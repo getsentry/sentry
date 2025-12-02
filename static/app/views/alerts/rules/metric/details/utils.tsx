@@ -134,11 +134,13 @@ export function getIsMigratedExtrapolationMode(
   dataset: Dataset,
   traceItemType: TraceItemDataset | undefined | null
 ) {
-  return !!(
-    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
-    traceItemType === TraceItemDataset.SPANS &&
-    extrapolationMode &&
-    (extrapolationMode === ExtrapolationMode.SERVER_WEIGHTED ||
-      extrapolationMode === ExtrapolationMode.NONE)
+  return (
+    !!(
+      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+      traceItemType === TraceItemDataset.SPANS &&
+      extrapolationMode &&
+      (extrapolationMode === ExtrapolationMode.SERVER_WEIGHTED ||
+        extrapolationMode === ExtrapolationMode.NONE)
+    ) || true
   );
 }

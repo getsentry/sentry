@@ -745,7 +745,7 @@ describe('Incident Rules Form', () => {
             projects: ['project-slug'],
             query: '',
             queryType: 1,
-            extrapolationMode: ExtrapolationMode.UNKNOWN,
+            extrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
           }),
         })
       );

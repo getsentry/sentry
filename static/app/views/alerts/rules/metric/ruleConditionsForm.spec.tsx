@@ -136,7 +136,7 @@ describe('RuleConditionsForm', () => {
       'Filter transactions by URL, tags, and other properties\u2026'
     );
     expect(
-      screen.getByText(/This chart may look different from the alert details chart./)
+      screen.getByText(/The thresholds on this chart may look off./)
     ).toBeInTheDocument();
   });
 });

@@ -262,7 +262,7 @@ describe('Incident Rules Create', () => {
     );
   });
 
-  it('uses unknown extrapolation mode for editing a migrated alert', async () => {
+  it('uses sample weighted extrapolation mode for editing a migrated alert', async () => {
     const {organization, project, router} = initializeOrg();
 
     render(

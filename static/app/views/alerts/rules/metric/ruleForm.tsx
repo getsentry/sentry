@@ -3,7 +3,8 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
+import {ExternalLink} from '@sentry/scraps/link/link';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip/tooltip';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {
@@ -821,11 +822,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             sensitivity: sensitivity ?? null,
             seasonality: seasonality ?? null,
             detectionType,
-            // We want to change the extrapolation mode to unknown once a migrated alert rule is edited
+            // We want to change the extrapolation mode to sample weighted once a migrated alert rule is edited
             extrapolationMode: this.isDuplicateRule
               ? undefined
               : getIsMigratedExtrapolationMode(extrapolationMode, dataset, traceItemType)
-                ? ExtrapolationMode.UNKNOWN
+                ? ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED
                 : extrapolationMode,
           },
           {
@@ -1498,9 +1499,20 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                         {t('Set thresholds')}
                         {showExtrapolationModeChangeWarning && (
                           <WarningIcon
-                            title={t(
-                              'Your thresholds may need to be adjusted after the change in extrapolation mode'
-                            )}
+                            tooltipProps={{
+                              title: tct(
+                                'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
+                                {
+                                  samplingLink: (
+                                    <ExternalLink
+                                      href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
+                                      openInNewTab
+                                    />
+                                  ),
+                                }
+                              ),
+                              isHoverable: true,
+                            }}
                             id="thresholds-warning-icon"
                           />
                         )}
@@ -1561,9 +1573,9 @@ function getTimeWindowFromDataset(
   return defaultWindow;
 }
 
-function WarningIcon({title, id}: {id: string; title: ReactNode}) {
+function WarningIcon({tooltipProps, id}: {id: string; tooltipProps?: TooltipProps}) {
   return (
-    <Tooltip title={title} skipWrapper>
+    <Tooltip {...tooltipProps} title={tooltipProps?.title} skipWrapper>
       <StyledIconWarning id={id} size="md" color="warning" />
     </Tooltip>
   );

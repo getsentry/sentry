@@ -349,9 +349,15 @@ function MigratedAlertWarning({
       <Alert.Container>
         <Alert type="info">
           {tctCode(
-            'This alert has been migrated from a transaction-based alert to a span-based alert. We have set a different extrapolation mode to mimic the previous alert behavior but this mode will be deprecated. Please [editLink:edit] the thresholds to match the regular extrapolation mode.',
+            'To match the original behaviour, we’ve migrated this alert from a transaction-based alert to a span-based alert using a special compatibility mode. When you have a moment, please [editLink:edit] the alert updating its thresholds to account for [samplingLink:sampling].',
             {
               editLink: <Link to={editLink} />,
+              samplingLink: (
+                <ExternalLink
+                  href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
+                  openInNewTab
+                />
+              ),
             }
           )}
         </Alert>

@@ -267,7 +267,7 @@ describe('MetricRulesEdit', () => {
     ).toBeInTheDocument();
   });
 
-  it('changes SERVER_WEIGHTED extrapolation mode to UNKNOWN when editing and saving', async () => {
+  it('changes SERVER_WEIGHTED extrapolation mode to CLIENT_AND_SERVER_WEIGHTED when editing and saving', async () => {
     const {organization, project} = initializeOrg();
     const ruleWithExtrapolation = MetricRuleFixture({
       id: '5',
@@ -276,7 +276,7 @@ describe('MetricRulesEdit', () => {
       aggregate: 'count()',
       query: '',
       eventTypes: [EventTypes.TRACE_ITEM_SPAN],
-      extrapolationMode: ExtrapolationMode.SERVER_WEIGHTED,
+      extrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
     });
 
     MockApiClient.addMockResponse({
@@ -342,7 +342,7 @@ describe('MetricRulesEdit', () => {
     );
   });
 
-  it('changes NONE extrapolation mode to UNKNOWN when editing and saving', async () => {
+  it('changes NONE extrapolation mode to CLIENT_AND_SERVER_WEIGHTED when editing and saving', async () => {
     const {organization, project} = initializeOrg();
     const ruleWithNoExtrapolation = MetricRuleFixture({
       id: '6',
@@ -410,7 +410,7 @@ describe('MetricRulesEdit', () => {
       expect.anything(),
       expect.objectContaining({
         data: expect.objectContaining({
-          extrapolationMode: ExtrapolationMode.UNKNOWN,
+          extrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
         }),
         method: 'PUT',
       })

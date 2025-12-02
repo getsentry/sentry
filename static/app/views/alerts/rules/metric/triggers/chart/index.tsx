@@ -175,7 +175,9 @@ class TriggersChart extends PureComponent<Props, State> {
     // we want to show the regular extrapolated chart as we are changing the extrapolation to UNKNOWN
     // once a migrated alert is saved
     if (getIsMigratedExtrapolationMode(extrapolationMode, dataset, traceItemType)) {
-      this.setState({adjustedExtrapolationMode: ExtrapolationMode.UNKNOWN});
+      this.setState({
+        adjustedExtrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
+      });
     } else {
       this.setState({adjustedExtrapolationMode: extrapolationMode});
     }

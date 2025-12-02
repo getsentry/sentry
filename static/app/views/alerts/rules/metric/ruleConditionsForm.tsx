@@ -610,7 +610,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           <Alert.Container>
             <Alert type="info">
               {tct(
-                'This chart may look different from the alert details chart. This is expected as the extrapolation mode has been changed. Once the alert has been saved, your alert will be switched to use the extrapolation mode represented here. To be alerted correctly, please edit your [thresholdsLink:thresholds]. For more information, check out this FAQ!',
+                'The thresholds on this chart may look off. This is because, once saved, alerts will now take into account [samplingLink:sampling rate]. Before clicking save, take the time to update your [thresholdsLink:thresholds]. Click cancel to continue running this alert in compatibility mode.',
                 {
                   thresholdsLink: (
                     <Button
@@ -621,6 +621,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           .getElementById('thresholds-warning-icon')
                           ?.scrollIntoView({behavior: 'smooth'});
                       }}
+                    />
+                  ),
+                  samplingLink: (
+                    <ExternalLink
+                      href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
+                      openInNewTab
                     />
                   ),
                 }

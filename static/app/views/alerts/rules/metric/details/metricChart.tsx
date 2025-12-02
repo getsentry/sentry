@@ -255,7 +255,7 @@ export default function MetricChart({
 
       const disabledTooltip = disableEapButton
         ? t(
-            'This alert cannot be opened in Explore as the extrapolation mode cannot be represented in Explore.'
+            'This alert cannot be opened in Explore until you update thresholds and resave.'
           )
         : undefined;
 
