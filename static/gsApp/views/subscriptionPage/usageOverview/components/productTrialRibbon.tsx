@@ -31,9 +31,9 @@ function ProductTrialRibbon({
   }
 
   const trialDaysLeft = -1 * getDaysSinceDate(activeProductTrial?.endDate ?? '');
-  const tooltipContent = potentialProductTrial
-    ? t('Trial available')
-    : tn('%s day left', '%s days left', trialDaysLeft);
+  const tooltipContent = activeProductTrial
+    ? tn('%s day left', '%s days left', trialDaysLeft)
+    : t('Trial available');
 
   return (
     <RibbonContainer>
