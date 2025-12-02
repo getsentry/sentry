@@ -3557,24 +3557,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable adding the `Reporting-Endpoints` header, which will in turn enable the sending of Reporting
-# API reports from the browser (as long as it's Chrome).
-register(
-    "issues.browser_reporting.reporting_endpoints_header_enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enable the collection of Reporting API reports via the `/api/0/reporting-api-experiment/`
-# endpoint. When this is false, the endpoint will just 404.
-register(
-    "issues.browser_reporting.collector_endpoint_enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Enable experimental message parameterization in grouping.
 register(
     "grouping.experimental_parameterization",

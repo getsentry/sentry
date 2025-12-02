@@ -737,7 +737,6 @@ export type KnownSentryApiUrls =
   | '/relocations/$relocationUuid/recover/'
   | '/relocations/$relocationUuid/retry/'
   | '/relocations/$relocationUuid/unpause/'
-  | '/reporting-api-experiment/'
   | '/secret-scanning/github/'
   | '/seer/models/'
   | '/sentry-app-installations/$uuid/'
