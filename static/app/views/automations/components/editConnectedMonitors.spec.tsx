@@ -199,7 +199,7 @@ describe('EditConnectedMonitors', () => {
 
     // Initially in "all project issues" mode
     expect(
-      screen.getByRole('radio', {name: 'Alert on all issues in a project'})
+      await screen.findByRole('radio', {name: 'Alert on all issues in a project'})
     ).toBeChecked();
 
     // Switch to specific monitors mode

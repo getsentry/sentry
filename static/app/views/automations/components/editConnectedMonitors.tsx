@@ -54,13 +54,9 @@ function useIssueStreamDetectors() {
 function getInitialMonitorMode(
   issueStreamDetectors: Detector[] | undefined,
   connectedIds: Automation['detectorIds']
-): MonitorMode | null {
-  if (!connectedIds.length) {
+): MonitorMode {
+  if (!connectedIds.length || !issueStreamDetectors) {
     return 'project';
-  }
-
-  if (!issueStreamDetectors) {
-    return null;
   }
 
   return connectedIds.every(id => issueStreamDetectors.find(d => d.id === id))
@@ -376,10 +372,10 @@ function EditConnectedMonitorsContent({
 }
 
 export default function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
-  const {data: issueStreamDetectors} = useIssueStreamDetectors();
+  const {data: issueStreamDetectors, isPending} = useIssueStreamDetectors();
   const initialMode = getInitialMonitorMode(issueStreamDetectors, connectedIds);
 
-  if (!initialMode) {
+  if (isPending && connectedIds.length > 0) {
     return (
       <WorkflowEngineContainer>
         <Section title={t('Source')}>
