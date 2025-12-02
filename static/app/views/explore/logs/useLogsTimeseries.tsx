@@ -7,7 +7,6 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import type {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
-  ChartIntervalUnspecifiedStrategy,
   useChartInterval,
 } from 'sentry/views/explore/hooks/useChartInterval';
 import {

@@ -31,7 +31,6 @@ import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
-  ChartIntervalUnspecifiedStrategy,
   useChartInterval,
 } from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
