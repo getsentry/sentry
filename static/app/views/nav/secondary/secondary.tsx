@@ -278,6 +278,8 @@ const Header = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   padding: 0 ${space(1)} 0 ${space(2)};
+
+  /* This is used in detail pages to match the height of sidebar header. */
   height: 44px;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 

@@ -43,6 +43,12 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
         : `Searched for issues${projectInfo}: '${question}'`;
     }
 
+    if (dataset === 'errors') {
+      return isLoading
+        ? `Searching for errors${projectInfo}: '${question}'...`
+        : `Searched for errors${projectInfo}: '${question}'`;
+    }
+
     // Default to spans
     return isLoading
       ? `Querying spans${projectInfo}: '${question}'...`
@@ -175,16 +181,17 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     const traceId = args.trace_id || '';
     const shortTraceId = traceId.slice(0, 8);
     return isLoading
-      ? `Double-clicking on metric '${metricName}' from trace ${shortTraceId}...`
-      : `Double-clicked on metric '${metricName}' from trace ${shortTraceId}`;
+      ? `Double-clicking on metric '${metricName}' in trace ${shortTraceId}...`
+      : `Double-clicked on metric '${metricName}' in trace ${shortTraceId}`;
   },
 
   get_log_attributes: (args, isLoading) => {
-    const logMessage = args.log_message || '';
-    const timestamp = args.timestamp || '';
+    const message = args.log_message_substring || '';
+    const traceId = args.trace_id || '';
+    const shortTraceId = traceId.slice(0, 8);
     return isLoading
-      ? `Examining logs matching '*${logMessage.slice(0, 20)}*' at ${timestamp}...`
-      : `Examined logs matching '*${logMessage.slice(0, 20)}*' at ${timestamp}`;
+      ? `Examining logs matching '*${message.slice(0, 20)}*' in trace ${shortTraceId}...`
+      : `Examined logs matching '*${message.slice(0, 20)}*' in trace ${shortTraceId}`;
   },
 };
 
@@ -342,6 +349,43 @@ export function buildToolLinkUrl(
         };
       }
 
+      if (dataset === 'errors') {
+        const queryParams: Record<string, any> = {
+          dataset: 'errors',
+          queryDataset: 'error-events',
+          query: query || '',
+          project: null,
+        };
+
+        if (stats_period) {
+          queryParams.statsPeriod = stats_period;
+        }
+
+        // If project_slugs is provided, look up the project IDs
+        if (project_slugs && project_slugs.length > 0 && projects) {
+          const projectIds = project_slugs
+            .map((slug: string) => projects.find(p => p.slug === slug)?.id)
+            .filter((id: string | undefined) => id !== undefined);
+          if (projectIds.length > 0) {
+            queryParams.project = projectIds;
+          }
+        }
+
+        const {y_axes} = toolLink.params;
+        if (y_axes) {
+          queryParams.yAxis = y_axes;
+        }
+
+        if (sort) {
+          queryParams.sort = sort;
+        }
+
+        return {
+          pathname: `/organizations/${orgSlug}/explore/discover/homepage/`,
+          query: queryParams,
+        };
+      }
+
       // Default to spans (traces) search
       const {y_axes, group_by, mode} = toolLink.params;
 
@@ -467,6 +511,30 @@ export function buildToolLinkUrl(
       return {
         pathname: `/organizations/${orgSlug}/explore/profiling/profile/${project.slug}/${profile_id}/flamegraph/`,
         ...(thread_id && {query: {tid: thread_id}}),
+      };
+    }
+    case 'get_log_attributes': {
+      const {trace_id} = toolLink.params;
+      if (!trace_id) {
+        return null;
+      }
+
+      // TODO: Currently no way to pass substring filter to this page, update with params.log_message_substring when it's supported.
+      return {
+        pathname: `/organizations/${orgSlug}/explore/logs/trace/${trace_id}/`,
+        query: {tab: 'logs'},
+      };
+    }
+    case 'get_metric_attributes': {
+      const {trace_id} = toolLink.params;
+      if (!trace_id) {
+        return null;
+      }
+
+      // TODO: Currently no way to pass name filter to this page, update with params.metric_name when it's supported.
+      return {
+        pathname: `/organizations/${orgSlug}/explore/metrics/trace/${trace_id}/`,
+        query: {tab: 'metrics'},
       };
     }
     default:

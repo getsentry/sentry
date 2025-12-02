@@ -2503,6 +2503,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register("metric_alerts.extended_max_subscriptions", default=1250, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "metric_alerts.extended_max_subscriptions_orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
 # SDK Crash Detection
 #
 # The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.
@@ -3044,6 +3049,24 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Notification Options - Start
+# Options for migrating to the notification platform
+# Data Export Success notifications
+register(
+    "notifications.platform-rate.data-export-success",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Data Export Failure notifications
+register(
+    "notifications.platform-rate.data-export-failure",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Notification Options - End
 
 # List of organizations with increased rate limits for organization_events API
 register(
