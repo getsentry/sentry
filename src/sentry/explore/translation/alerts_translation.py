@@ -77,6 +77,12 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
     if not snapshot:
         return
 
+    if snapshot.get("user_updated"):
+        logger.info(
+            "Skipping rollback for user-updated query", extra={"snuba_query_id": snuba_query.id}
+        )
+        return
+
     old_query_type, old_dataset, old_query, old_aggregate = _get_old_query_info(snuba_query)
 
     eap_query_parts, dropped_fields = translate_mep_to_eap(
