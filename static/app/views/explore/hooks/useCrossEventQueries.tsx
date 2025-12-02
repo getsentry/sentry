@@ -16,15 +16,15 @@ export function useCrossEventQueries() {
     switch (crossEvent.type) {
       case 'spans':
         spanQuery.push(crossEvent.query);
-        continue;
+        break;
       case 'logs':
         logQuery.push(crossEvent.query);
-        continue;
+        break;
       case 'metrics':
         metricQuery.push(crossEvent.query);
-        continue;
+        break;
       default:
-        continue;
+        break;
     }
   }
 
