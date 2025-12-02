@@ -108,6 +108,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.SPANS,
       interval: '',
+      tableWidths: [-1, -1, -1, -1],
       queries: [
         {
           name: '',
