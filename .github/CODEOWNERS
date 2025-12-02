@@ -153,7 +153,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 ## Issue Detection Lower Priority
 # Located here so they do not take precedence over rules below.
-/src/sentry/middleware/reporting_endpoint.py             @getsentry/issue-detection-backend
 /src/sentry/tasks/post_process.py                        @getsentry/issue-detection-backend
 ## Issue Detection Lower Priority
 
