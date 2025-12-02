@@ -3,18 +3,24 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import toNumber from 'lodash/toNumber';
 
+import {Alert} from '@sentry/scraps/alert/alert';
+import {Button} from '@sentry/scraps/button/button';
+import {ExternalLink} from '@sentry/scraps/link/link';
+
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text/heading';
 import {Text} from 'sentry/components/core/text/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormContext from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import {t} from 'sentry/locale';
+import {IconWarning} from 'sentry/icons/iconWarning';
+import {t, tct} from 'sentry/locale';
+import {pulse} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import {PriorityLevel} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
@@ -28,6 +34,7 @@ import {
   TRANSACTIONS_DATASET_DEPRECATION_MESSAGE,
   TransactionsDatasetWarning,
 } from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
+import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
@@ -62,6 +69,7 @@ function MetricDetectorForm() {
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
       <TransactionsDatasetWarningListener />
+      <MigratedAlertWarningListener />
       <TemplateSection />
       <CustomizeMetricSection />
       <DetectSection />
@@ -463,12 +471,42 @@ function DetectSection() {
   const aggregate = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const extrapolationMode = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.extrapolationMode
+  );
+
+  const showThresholdWarning = useIsMigratedExtrapolation({
+    dataset,
+    extrapolationMode,
+  });
 
   return (
     <Container>
       <Flex direction="column" gap="lg">
         <div>
-          <Heading as="h3">{t('Issue Detection')}</Heading>
+          <HeadingContainer>
+            <Heading as="h3">{t('Issue Detection')}</Heading>
+            {showThresholdWarning && (
+              <WarningIcon
+                id="thresholds-warning-icon"
+                tooltipProps={{
+                  isHoverable: true,
+                  title: tct(
+                    'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
+                    {
+                      samplingLink: (
+                        <ExternalLink
+                          href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
+                          openInNewTab
+                        />
+                      ),
+                    }
+                  ),
+                }}
+              />
+            )}
+          </HeadingContainer>
           <DetectionType />
           <Flex direction="column">
             {(!detectionType || detectionType === 'static') && (
@@ -575,6 +613,68 @@ function TransactionsDatasetWarningListener() {
 
   return <TransactionsDatasetWarning />;
 }
+
+function MigratedAlertWarningListener() {
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const extrapolationMode = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.extrapolationMode
+  );
+  const isMigratedExtrapolation = useIsMigratedExtrapolation({
+    dataset,
+    extrapolationMode,
+  });
+
+  if (isMigratedExtrapolation) {
+    return (
+      <Alert.Container>
+        <Alert type="info">
+          {tct(
+            'The thresholds on this chart may look off. This is because, once saved, alerts will now take into account [samplingLink:sampling rate]. Before clicking save, take the time to update your [thresholdsLink:thresholds]. Cancel to continue running this alert in compatibility mode.',
+            {
+              samplingLink: (
+                <ExternalLink
+                  href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
+                  openInNewTab
+                />
+              ),
+              thresholdsLink: (
+                <Button
+                  priority="link"
+                  aria-label="Go to thresholds"
+                  onClick={() => {
+                    document
+                      .getElementById('thresholds-warning-icon')
+                      ?.scrollIntoView({behavior: 'smooth'});
+                  }}
+                />
+              ),
+            }
+          )}
+        </Alert>
+      </Alert.Container>
+    );
+  }
+
+  return null;
+}
+
+function WarningIcon({id, tooltipProps}: {id: string; tooltipProps?: TooltipProps}) {
+  return (
+    <Tooltip title={tooltipProps?.title} skipWrapper {...tooltipProps}>
+      <StyledIconWarning id={id} size="md" color="warning" />
+    </Tooltip>
+  );
+}
+
+const StyledIconWarning = styled(IconWarning)`
+  animation: ${() => pulse(1.15)} 1s ease infinite;
+`;
+
+const HeadingContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+`;
 
 const DatasetRow = styled('div')`
   display: grid;

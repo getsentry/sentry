@@ -26,6 +26,7 @@ import {
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
 import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
+import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {getBackendDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
@@ -160,6 +161,15 @@ export function MetricDetectorChart({
       interval,
     });
 
+  const shouldAlterExtrapolationMode = useIsMigratedExtrapolation({
+    dataset: detectorDataset,
+    extrapolationMode,
+  });
+
+  const adjustedExtrapolationMode = shouldAlterExtrapolationMode
+    ? ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED
+    : extrapolationMode;
+
   const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
     detectorDataset,
     dataset,
@@ -171,7 +181,7 @@ export function MetricDetectorChart({
     statsPeriod: selectedTimePeriod,
     comparisonDelta,
     eventTypes,
-    extrapolationMode,
+    extrapolationMode: adjustedExtrapolationMode,
   });
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
