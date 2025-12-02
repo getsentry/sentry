@@ -14,6 +14,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {
+  usePopulateLinkedDashboards,
+  usePopulateLinkedDashboards,
+} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 
 import {assignTempId} from './layoutUtils';
 import type {DashboardDetails, DashboardListItem} from './types';
@@ -64,11 +68,18 @@ function OrgDashboards({children}: OrgDashboardsProps) {
 
   let selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
 
+  const {dashboard: populatedPrebuiltDashboard, isLoading: isLinkedDashboardsLoading} =
+    usePopulateLinkedDashboards(
+      selectedDashboard?.prebuiltId
+        ? PREBUILT_DASHBOARDS[selectedDashboard.prebuiltId]
+        : undefined
+    );
+
   // If the dashboard is a prebuilt dashboard, merge the prebuilt dashboard data into the selected dashboard
   if (selectedDashboard?.prebuiltId) {
     selectedDashboard = {
       ...selectedDashboard,
-      ...PREBUILT_DASHBOARDS[selectedDashboard.prebuiltId],
+      ...populatedPrebuiltDashboard,
     };
   }
 
@@ -171,7 +182,7 @@ function OrgDashboards({children}: OrgDashboardsProps) {
     [dashboardsError, selectedDashboardError, selectedDashboard, dashboards]
   );
 
-  if (isDashboardsPending || isSelectedDashboardLoading) {
+  if (isDashboardsPending || isSelectedDashboardLoading || isLinkedDashboardsLoading) {
     return (
       <Layout.Page withPadding>
         <LoadingIndicator />
