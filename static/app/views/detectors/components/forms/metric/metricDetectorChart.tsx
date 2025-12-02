@@ -230,7 +230,7 @@ export function MetricDetectorChart({
 
   const shouldFetchThresholds = Boolean(detectorId && isAnomalyDetection);
   const {anomalyThresholdSeries} = useMetricDetectorAnomalyThresholds({
-    detectorId: detectorId ?? 'skip',
+    detectorId: detectorId ?? '',
     startTimestamp: metricTimestamps.start,
     endTimestamp: metricTimestamps.end,
     series: shouldFetchThresholds ? series : [],
