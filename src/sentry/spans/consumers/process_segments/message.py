@@ -163,7 +163,7 @@ def _normalize_segment_name(segment_span: CompatibleSpan, project: Project) -> N
     unknown_if_parameterized = not source
     known_to_be_unparameterized = source == TRANSACTION_SOURCE_URL
     if unknown_if_parameterized or known_to_be_unparameterized:
-        normalize_segment_name(segment_span)
+        normalize_segment_name(project, segment_span)
 
     record_segment_name(project, segment_span)
 

@@ -1,7 +1,5 @@
 import {EventFixture} from 'sentry-fixture/event';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -76,7 +74,6 @@ describe('EventTagsTree', () => {
   it('renders tag tree', async () => {
     render(<EventTags projectSlug={project.slug} event={event} />, {
       organization,
-      deprecatedRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -132,7 +129,6 @@ describe('EventTagsTree', () => {
     });
     render(<EventTags projectSlug={project.slug} event={releaseEvent} />, {
       organization,
-      deprecatedRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -190,7 +186,6 @@ describe('EventTagsTree', () => {
       const uniqueTagsEvent = EventFixture({tags: [tag], projectID: project.id});
       render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
         organization,
-        deprecatedRouterMocks: true,
       });
       expect(mockDetailedProject).toHaveBeenCalled();
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -238,7 +233,6 @@ describe('EventTagsTree', () => {
     });
     render(<EventTags projectSlug={project.slug} event={errorTagEvent} />, {
       organization,
-      deprecatedRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -261,7 +255,6 @@ describe('EventTagsTree', () => {
     });
     render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
       organization,
-      deprecatedRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -287,7 +280,6 @@ describe('EventTagsTree', () => {
     });
     render(<EventTags projectSlug={highlightProject.slug} event={highlightsEvent} />, {
       organization,
-      deprecatedRouterMocks: true,
     });
     expect(mockHighlightProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -327,7 +319,6 @@ describe('EventTagsTree', () => {
     });
     render(<EventTags projectSlug={highlightProject.slug} event={highlightsEvent} />, {
       organization: readAccessOrganization,
-      deprecatedRouterMocks: true,
     });
     expect(mockHighlightProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -344,16 +335,16 @@ describe('EventTagsTree', () => {
     const highlightsEvent = EventFixture({
       tags: [{key: 'useless-tag', value: 'not so much'}],
     });
-    const issueDetailsRouter = RouterFixture({
-      location: LocationFixture({
-        pathname: `/organizations/${organization.slug}/issues/${event.groupID}/`,
-      }),
-    });
 
     render(<EventTags projectSlug={project.slug} event={highlightsEvent} />, {
       organization,
-      router: issueDetailsRouter,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${event.groupID}/`,
+          query: {},
+        },
+        route: '/organizations/:orgId/issues/:groupId/',
+      },
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 

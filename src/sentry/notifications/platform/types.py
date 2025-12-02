@@ -17,6 +17,7 @@ class NotificationCategory(StrEnum):
 
     # TODO(ecosystem): Connect this to NotificationSettingEnum
     DEBUG = "debug"
+    DATA_EXPORT = "data-export"
 
     def get_sources(self) -> list[str]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -30,6 +31,10 @@ NOTIFICATION_SOURCE_MAP = {
         "slow-load-metric-alert",
         "performance-monitoring",
         "team-communication",
+    ],
+    NotificationCategory.DATA_EXPORT: [
+        "data-export-success",
+        "data-export-failure",
     ],
 }
 
@@ -237,14 +242,18 @@ class NotificationBodyTextBlock(Protocol):
 
 @dataclass
 class ParagraphBlock(NotificationBodyFormattingBlock):
-    type: Literal[NotificationBodyFormattingBlockType.PARAGRAPH]
     blocks: list[NotificationBodyTextBlock]
+    type: Literal[NotificationBodyFormattingBlockType.PARAGRAPH] = (
+        NotificationBodyFormattingBlockType.PARAGRAPH
+    )
 
 
 @dataclass
 class CodeBlock(NotificationBodyFormattingBlock):
-    type: Literal[NotificationBodyFormattingBlockType.CODE_BLOCK]
     blocks: list[NotificationBodyTextBlock]
+    type: Literal[NotificationBodyFormattingBlockType.CODE_BLOCK] = (
+        NotificationBodyFormattingBlockType.CODE_BLOCK
+    )
 
 
 @dataclass
@@ -255,14 +264,16 @@ class BoldTextBlock(NotificationBodyTextBlock):
 
 @dataclass
 class CodeTextBlock(NotificationBodyTextBlock):
-    type: Literal[NotificationBodyTextBlockType.CODE]
     text: str
+    type: Literal[NotificationBodyTextBlockType.CODE] = NotificationBodyTextBlockType.CODE
 
 
 @dataclass
 class PlainTextBlock(NotificationBodyTextBlock):
-    type: Literal[NotificationBodyTextBlockType.PLAIN_TEXT]
     text: str
+    type: Literal[NotificationBodyTextBlockType.PLAIN_TEXT] = (
+        NotificationBodyTextBlockType.PLAIN_TEXT
+    )
 
 
 class NotificationTemplate[T: NotificationData](abc.ABC):

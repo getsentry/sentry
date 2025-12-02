@@ -1,4 +1,5 @@
 import {initializeLogsTest} from 'sentry-fixture/log';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -34,7 +35,7 @@ describe('LogsTabContent', () => {
   });
 
   let eventTableMock: jest.Mock;
-  let eventStatsMock: jest.Mock;
+  let eventsTimeSeriesMock: jest.Mock;
 
   function ProviderWrapper({children}: {children: React.ReactNode}) {
     return (
@@ -131,10 +132,12 @@ describe('LogsTabContent', () => {
       },
     });
 
-    eventStatsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+    eventsTimeSeriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {},
+      body: {
+        timeSeries: [TimeSeriesFixture()],
+      },
     });
 
     MockApiClient.addMockResponse({
@@ -190,16 +193,26 @@ describe('LogsTabContent', () => {
       })
     );
 
-    expect(eventStatsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events-stats/`,
+    expect(eventsTimeSeriesMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         query: expect.objectContaining({
-          environment: [],
-          statsPeriod: '14d',
+          caseInsensitive: 0,
           dataset: 'ourlogs',
-          yAxis: 'count(message)',
+          disableAggregateExtrapolation: '0',
+          environment: [],
+          excludeOther: 0,
+          groupBy: [],
           interval: '1h',
+          partial: 1,
+          project: [2],
           query: 'severity:error timestamp_precise:<=1508208040000000000',
+          referrer: 'explore.ourlogs.main-chart',
+          sampling: 'NORMAL',
+          sort: '-count_message',
+          statsPeriod: '14d',
+          topEvents: undefined,
+          yAxis: ['count(message)'],
         }),
       })
     );
@@ -284,17 +297,26 @@ describe('LogsTabContent', () => {
       })
     );
 
-    expect(eventStatsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events-stats/`,
+    expect(eventsTimeSeriesMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         query: expect.objectContaining({
-          environment: [],
-          statsPeriod: '14d',
-          dataset: 'ourlogs',
-          yAxis: 'count(message)',
-          interval: '1h',
-          query: 'severity:error timestamp_precise:<=1508208040000000000',
           caseInsensitive: 1,
+          dataset: 'ourlogs',
+          disableAggregateExtrapolation: '0',
+          environment: [],
+          excludeOther: 0,
+          groupBy: [],
+          interval: '1h',
+          partial: 1,
+          project: [2],
+          query: 'severity:error timestamp_precise:<=1508208040000000000',
+          referrer: 'explore.ourlogs.main-chart',
+          sampling: 'NORMAL',
+          sort: '-count_message',
+          statsPeriod: '14d',
+          topEvents: undefined,
+          yAxis: ['count(message)'],
         }),
       })
     );

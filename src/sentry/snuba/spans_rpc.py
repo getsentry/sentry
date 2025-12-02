@@ -1,4 +1,5 @@
 import logging
+import time
 from collections import defaultdict
 from datetime import timedelta
 from typing import Any
@@ -12,6 +13,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
 
+from sentry import options
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING, SUPPORTED_STATS_TYPES
 from sentry.search.eap.resolver import SearchResolver
@@ -32,6 +34,7 @@ from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
+TRACE_QUERY_LIMIT_OVERRIDE: None | int = None
 
 
 class Spans(rpc_dataset_common.RPCBase):
@@ -215,6 +218,8 @@ class Spans(rpc_dataset_common.RPCBase):
         request = GetTraceRequest(
             meta=meta,
             trace_id=trace_id,
+            # when this is None we just get the default limit
+            limit=TRACE_QUERY_LIMIT_OVERRIDE,  # type: ignore[arg-type]
             items=[
                 GetTraceRequest.TraceItem(
                     item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
@@ -222,38 +227,53 @@ class Spans(rpc_dataset_common.RPCBase):
                 )
             ],
         )
-        response = snuba_rpc.get_trace_rpc(request)
         spans = []
-        columns_by_name = {col.proto_definition.name: col for col in columns}
-        for item_group in response.item_groups:
-            for span_item in item_group.items:
-                span: dict[str, Any] = {
-                    "id": span_item.id,
-                    "children": [],
-                    "errors": [],
-                    "occurrences": [],
-                    "event_type": "span",
-                }
-                for attribute in span_item.attributes:
-                    resolved_column = columns_by_name[attribute.key.name]
-                    if resolved_column.proto_definition.type == STRING:
-                        span[resolved_column.public_alias] = attribute.value.val_str
-                    elif resolved_column.proto_definition.type == DOUBLE:
-                        span[resolved_column.public_alias] = attribute.value.val_double
-                    elif resolved_column.search_type == "boolean":
-                        span[resolved_column.public_alias] = (
-                            attribute.value.val_bool or attribute.value.val_int == 1
-                        )
-                    elif resolved_column.proto_definition.type == BOOLEAN:
-                        span[resolved_column.public_alias] = attribute.value.val_bool
-
-                    elif resolved_column.proto_definition.type == INT:
-                        span[resolved_column.public_alias] = attribute.value.val_int
-                        if resolved_column.public_alias == "project.id":
-                            span["project.slug"] = resolver.params.project_id_map.get(
-                                span[resolved_column.public_alias], "Unknown"
+        start_time = int(time.time())
+        MAX_ITERATIONS = options.get("performance.traces.pagination.max-iterations")
+        MAX_TIMEOUT = options.get("performance.traces.pagination.max-timeout")
+        for _ in range(MAX_ITERATIONS):
+            response = snuba_rpc.get_trace_rpc(request)
+            columns_by_name = {col.proto_definition.name: col for col in columns}
+            for item_group in response.item_groups:
+                for span_item in item_group.items:
+                    span: dict[str, Any] = {
+                        "id": span_item.id,
+                        "children": [],
+                        "errors": [],
+                        "occurrences": [],
+                        "event_type": "span",
+                    }
+                    for attribute in span_item.attributes:
+                        resolved_column = columns_by_name[attribute.key.name]
+                        if resolved_column.proto_definition.type == STRING:
+                            span[resolved_column.public_alias] = attribute.value.val_str
+                        elif resolved_column.proto_definition.type == DOUBLE:
+                            span[resolved_column.public_alias] = attribute.value.val_double
+                        elif resolved_column.search_type == "boolean":
+                            span[resolved_column.public_alias] = (
+                                attribute.value.val_bool or attribute.value.val_int == 1
                             )
-                spans.append(span)
+                        elif resolved_column.proto_definition.type == BOOLEAN:
+                            span[resolved_column.public_alias] = attribute.value.val_bool
+
+                        elif resolved_column.proto_definition.type == INT:
+                            span[resolved_column.public_alias] = attribute.value.val_int
+                            if resolved_column.public_alias == "project.id":
+                                span["project.slug"] = resolver.params.project_id_map.get(
+                                    span[resolved_column.public_alias], "Unknown"
+                                )
+                    spans.append(span)
+            if response.page_token.end_pagination:
+                break
+            if MAX_TIMEOUT > 0 and time.time() - start_time > MAX_TIMEOUT:
+                # If timeout is not set then logging this is not helpful
+                rpc_dataset_common.log_rpc_request(
+                    "running a trace query timed out while paginating",
+                    request,
+                    logger,
+                )
+                break
+            request.page_token.CopyFrom(response.page_token)
         return spans
 
     @classmethod

@@ -104,9 +104,11 @@ describe('SpansTabContent', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {},
+      body: {
+        timeSeries: [],
+      },
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/traces/`,
@@ -296,10 +298,12 @@ describe('SpansTabContent', () => {
         method: 'GET',
         body: {},
       });
-      const eventsStatsMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-stats/`,
+      const eventsTimeSeriesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
         method: 'GET',
-        body: {},
+        body: {
+          timeSeries: [],
+        },
       });
 
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
@@ -323,8 +327,8 @@ describe('SpansTabContent', () => {
       );
 
       await waitFor(() =>
-        expect(eventsStatsMock).toHaveBeenCalledWith(
-          `/organizations/${organization.slug}/events-stats/`,
+        expect(eventsTimeSeriesMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/events-timeseries/`,
           expect.objectContaining({
             query: expect.objectContaining({caseInsensitive: 1}),
           })
