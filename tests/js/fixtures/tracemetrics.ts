@@ -15,7 +15,7 @@ import type {
 } from 'sentry/views/explore/metrics/types';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
-export function TraceMetricFixture({
+function TraceMetricFixture({
   [TraceMetricKnownFieldKey.PROJECT_ID]: projectId,
   [TraceMetricKnownFieldKey.ORGANIZATION_ID]: organizationId,
   [TraceMetricKnownFieldKey.ID]: id,
