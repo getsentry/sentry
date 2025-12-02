@@ -4,7 +4,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -110,7 +110,7 @@ export default function TempestSettings() {
         title={getPageTitle()}
         action={
           <ButtonBar gap="lg">
-            <FeedbackWidgetButton />
+            <FeedbackButton />
             <RequestSdkAccessButton
               organization={organization}
               project={project}

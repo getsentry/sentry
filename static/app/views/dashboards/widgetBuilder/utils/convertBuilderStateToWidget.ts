@@ -39,7 +39,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     .filter(Boolean);
 
   const fields =
-    state.displayType === DisplayType.TABLE
+    state.displayType === DisplayType.TABLE || state.displayType === DisplayType.DETAILS
       ? state.fields?.map(generateFieldAsString)
       : [...(columns ?? []), ...(aggregates ?? [])];
 

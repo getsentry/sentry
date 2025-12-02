@@ -1293,6 +1293,31 @@ describe('SearchQueryBuilder', () => {
       expect(getLastInput()).toHaveFocus();
       expect(mockOnSearch).toHaveBeenCalledWith('"foo bar"', expect.anything());
     });
+
+    describe('logic items', () => {
+      it('will suggest logic items when typing its value', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
+          organization: {
+            features: ['search-query-builder-conditionals-combobox-menus'],
+          },
+        });
+        await userEvent.click(getLastInput());
+
+        await userEvent.type(getLastInput(), 'and');
+        const andSuggestionItem = await screen.findByRole('option', {
+          name: 'AND',
+        });
+        expect(andSuggestionItem).toBeInTheDocument();
+
+        await userEvent.clear(getLastInput());
+
+        await userEvent.type(getLastInput(), 'or');
+        const orSuggestionItem = await screen.findByRole('option', {
+          name: 'OR',
+        });
+        expect(orSuggestionItem).toBeInTheDocument();
+      });
+    });
   });
 
   describe('keyboard interactions', () => {

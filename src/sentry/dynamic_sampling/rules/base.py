@@ -1,5 +1,4 @@
 import logging
-from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
@@ -8,7 +7,7 @@ from sentry import features, quotas
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
-from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
+from sentry.dynamic_sampling.rules.combine import get_relay_biases
 from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_enabled_user_biases
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
@@ -94,7 +93,7 @@ def _get_rules_of_enabled_biases(
     project: Project,
     base_sample_rate: float,
     enabled_biases: set[str],
-    combined_biases: OrderedDict[RuleType, Bias],
+    combined_biases: dict[RuleType, Bias],
 ) -> list[PolymorphicRule]:
     rules = []
 
@@ -124,7 +123,7 @@ def generate_rules(project: Project) -> list[PolymorphicRule]:
         enabled_user_biases = get_enabled_user_biases(
             project.get_option("sentry:dynamic_sampling_biases", None)
         )
-        combined_biases = get_relay_biases_combinator(organization).get_combined_biases()
+        combined_biases = get_relay_biases(organization)
 
         rules = _get_rules_of_enabled_biases(
             project, base_sample_rate, enabled_user_biases, combined_biases

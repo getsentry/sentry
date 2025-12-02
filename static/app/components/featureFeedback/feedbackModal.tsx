@@ -84,6 +84,11 @@ export type FeedbackModalProps<T extends Data> = (
   useNewUserFeedback?: boolean;
 };
 
+/**
+ * A modal that allows users to submit feedback to Sentry (feedbacks project).
+ *
+ * @deprecated Use `<FeedbackButton/>` instead.
+ */
 export function FeedbackModal<T extends Data>({
   Header,
   Body,

@@ -12,6 +12,8 @@ import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type SortProps =
@@ -30,6 +32,7 @@ type Props = SortProps & {
   highlightedRowIndex?: number;
   query?: Query;
   ref?: RefObject<HTMLDivElement | null>;
+  stickyHeader?: boolean;
 };
 
 export default function ReplayTable({
@@ -43,9 +46,12 @@ export default function ReplayTable({
   showDropdownFilters,
   highlightedRowIndex = -1,
   sort,
+  // stickyHeader only works if the table is inside a scrollable container
+  stickyHeader = false,
 }: Props) {
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
+  const organization = useOrganization();
 
   if (isPending) {
     return (
@@ -59,6 +65,7 @@ export default function ReplayTable({
           replays={replays}
           onSortClick={onSortClick}
           sort={sort}
+          stickyHeader={stickyHeader}
         />
         <SimpleTable.Empty>
           <LoadingIndicator />
@@ -79,6 +86,7 @@ export default function ReplayTable({
           onSortClick={onSortClick}
           replays={replays}
           sort={sort}
+          stickyHeader={stickyHeader}
         />
 
         <SimpleTable.Empty>
@@ -102,6 +110,7 @@ export default function ReplayTable({
         onSortClick={onSortClick}
         replays={replays}
         sort={sort}
+        stickyHeader={stickyHeader}
       />
       {replays.length === 0 && (
         <SimpleTable.Empty>{t('No replays found')}</SimpleTable.Empty>
@@ -120,7 +129,10 @@ export default function ReplayTable({
           {columns.map((column, columnIndex) => (
             <RowCell key={`${replay.id}-${columnIndex}-${column.sortKey}`}>
               <column.Component
-                query={query}
+                to={{
+                  pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
+                  query,
+                }}
                 columnIndex={columnIndex}
                 replay={replay}
                 rowIndex={rowIndex}

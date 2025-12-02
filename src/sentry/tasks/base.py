@@ -11,7 +11,7 @@ from django.db.models import Model
 
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.registry import TaskNamespace
-from sentry.taskworker.retry import Retry, RetryError, retry_task
+from sentry.taskworker.retry import Retry, RetryTaskError, retry_task
 from sentry.taskworker.state import current_task
 from sentry.taskworker.task import P, R, Task
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
@@ -123,10 +123,24 @@ def retry(
     >>> def my_task():
     >>>     ...
 
-    If timeouts is True, task timeout exceptions will trigger a retry.
-    If it is False, timeout exceptions will behave as specified by the other parameters.
-    """
+    The first set of parameters define how different exceptions are handled.
+    Raising an error will still report a Sentry event.
 
+    | Parameter          | Retry | Report | Raise | Description |
+    |--------------------|-------|--------|-------|-------------|
+    | on                 | Yes   | Yes    | No    | Exceptions that will trigger a retry & report to Sentry. |
+    | on_silent          | Yes   | No     | No    | Exceptions that will trigger a retry but not be captured to Sentry. |
+    | exclude            | No    | No     | Yes   | Exceptions that will not trigger a retry and will be raised. |
+    | ignore             | No    | No     | No    | Exceptions that will be ignored and not trigger a retry & not report to Sentry. |
+    | ignore_and_capture | No    | Yes    | No    | Exceptions that will not trigger a retry and will be captured to Sentry. |
+
+    The following modifiers modify the behavior of the retry decorator.
+
+    | Modifier               | Description |
+    |------------------------|-------------|
+    | timeouts               | ProcessingDeadlineExceeded trigger a retry. |
+    | raise_on_no_retries    | Makes a RetryTaskError not be raised if no retries are left. |
+    """
     if func:
         return retry()(func)
 
@@ -138,18 +152,16 @@ def retry(
     def inner(func):
         @functools.wraps(func)
         def wrapped(*args, **kwargs):
+            task_state = current_task()
+            no_retries_remaining = task_state and not task_state.retries_remaining
             try:
                 return func(*args, **kwargs)
             except ignore:
                 return
-            except RetryError:
-                if (
-                    not raise_on_no_retries
-                    and (task_state := current_task())
-                    and not task_state.retries_remaining
-                ):
+            except RetryTaskError:
+                if not raise_on_no_retries and no_retries_remaining:
                     return
-                # If we haven't been asked to ignore no-retries, pass along the RetryError.
+                # If we haven't been asked to ignore no-retries, pass along the RetryTaskError.
                 raise
             except timeout_exceptions:
                 if timeouts:

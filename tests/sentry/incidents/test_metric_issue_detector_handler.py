@@ -54,22 +54,22 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
             "data_sources": [
                 {
                     "id": str(self.data_source.id),
-                    "organizationId": str(self.organization.id),
+                    "organization_id": str(self.organization.id),
                     "type": self.data_source.type,
-                    "sourceId": str(self.query_subscription.id),
-                    "queryObj": {
+                    "source_id": str(self.query_subscription.id),
+                    "query_obj": {
                         "id": str(self.query_subscription.id),
                         "status": self.query_subscription.status,
                         "subscription": self.query_subscription.subscription_id,
-                        "snubaQuery": {
+                        "snuba_query": {
                             "id": str(self.snuba_query.id),
                             "dataset": self.snuba_query.dataset,
                             "query": self.snuba_query.query,
                             "aggregate": self.snuba_query.aggregate,
-                            "timeWindow": self.snuba_query.time_window,
+                            "time_window": self.snuba_query.time_window,
                             "environment": self.environment.name,
-                            "eventTypes": ["error"],
-                            "extrapolationMode": "unknown",
+                            "event_types": ["error"],
+                            "extrapolation_mode": "unknown",
                         },
                     },
                 }

@@ -1,4 +1,4 @@
-import {useEffect, useRef, type RefObject} from 'react';
+import {useEffect, useMemo, useRef, type RefObject} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
@@ -11,6 +11,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
@@ -40,6 +41,8 @@ import {
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
 
+import {Tab, type useTab} from './useTab';
+
 const {info, fmt} = Sentry.logger;
 
 interface UseTrackAnalyticsProps {
@@ -54,11 +57,13 @@ interface UseTrackAnalyticsProps {
   spansTableResult: SpansTableResult;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualizes: readonly Visualize[];
+  attributeBreakdownsMode?: 'breakdowns' | 'cohort_comparison';
   title?: string;
   tracesTableResult?: TracesTableResult;
 }
 
 function useTrackAnalytics({
+  attributeBreakdownsMode,
   queryType,
   aggregatesTableResult,
   spansTableResult,
@@ -229,6 +234,7 @@ function useTrackAnalytics({
       interval,
       gave_seer_consent: gaveSeerConsent,
       version: 2,
+      attribute_breakdowns_mode: attributeBreakdownsMode,
     });
 
     info(fmt`trace.explorer.metadata:
@@ -246,6 +252,7 @@ function useTrackAnalytics({
       has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
       page_source: ${page_source}
       gave_seer_consent: ${gaveSeerConsent}
+      attribute_breakdowns_mode: ${attributeBreakdownsMode}
     `);
   }, [
     dataset,
@@ -268,6 +275,7 @@ function useTrackAnalytics({
     timeseriesResult.isPending,
     title,
     visualizes,
+    attributeBreakdownsMode,
   ]);
 
   const tracesTableResultDefined = defined(tracesTableResult);
@@ -358,6 +366,7 @@ export function useAnalytics({
   tracesTableResult,
   timeseriesResult,
   interval,
+  tab,
 }: Pick<
   UseTrackAnalyticsProps,
   | 'queryType'
@@ -366,7 +375,9 @@ export function useAnalytics({
   | 'tracesTableResult'
   | 'timeseriesResult'
   | 'interval'
->) {
+> & {
+  tab: ReturnType<typeof useTab>[0];
+}) {
   const dataset = useSpansDataset();
   const title = useQueryParamsTitle();
   const query = useQueryParamsQuery();
@@ -374,6 +385,14 @@ export function useAnalytics({
   const visualizes = useQueryParamsVisualizes();
   const topEvents = useTopEvents();
   const isTopN = topEvents ? topEvents > 0 : false;
+  const {chartSelection} = useChartSelection();
+
+  const attributeBreakdownsMode =
+    tab === Tab.ATTRIBUTE_BREAKDOWNS
+      ? chartSelection
+        ? 'cohort_comparison'
+        : 'breakdowns'
+      : undefined;
 
   return useTrackAnalytics({
     queryType,
@@ -389,6 +408,7 @@ export function useAnalytics({
     interval,
     page_source: 'explore',
     isTopN,
+    attributeBreakdownsMode,
   });
 }
 
@@ -699,6 +719,7 @@ export function useMetricsPanelAnalytics({
   yAxis,
   sortBys,
   aggregateSortBys,
+  panelIndex,
 }: {
   aggregateSortBys: readonly Sort[];
   interval: string;
@@ -709,11 +730,15 @@ export function useMetricsPanelAnalytics({
   mode: Mode;
   sortBys: readonly Sort[];
   yAxis: string;
+  panelIndex?: number;
 }) {
   const organization = useOrganization();
 
   const dataset = DiscoverDatasets.METRICS;
-  const dataScanned = metricSamplesTableResult.result.meta?.dataScanned ?? '';
+  const dataScanned =
+    mode === Mode.AGGREGATE
+      ? (metricAggregatesTableResult.result.meta?.dataScanned ?? '')
+      : (metricSamplesTableResult.result.meta?.dataScanned ?? '');
   const search = useQueryParamsSearch();
   const query = useQueryParamsQuery();
   const fields = useQueryParamsFields();
@@ -728,89 +753,29 @@ export function useMetricsPanelAnalytics({
     metricAggregatesTableResult.result.data?.length || 0
   );
   const resultLengthBox = useBox(metricSamplesTableResult.result.data?.length || 0);
+  const formattedSortBysBox = useBox(
+    useMemo(() => JSON.stringify(sortBys.map(formatSort)), [sortBys])
+  );
+  const formattedAggregateSortBysBox = useBox(
+    useMemo(() => JSON.stringify(aggregateSortBys.map(formatSort)), [aggregateSortBys])
+  );
+  const timeseriesDataBox = useBox(metricTimeseriesResult.data);
+  const searchStringBox = useBox(useMemo(() => search.formatString(), [search]));
+  const searchTokensLengthBox = useBox(useMemo(() => search.tokens.length, [search]));
   const fieldsBox = useBox(fields);
-  const yAxesBox = useBox([yAxis]);
-  const sortBysBox = useBox(sortBys.map(formatSort));
-  const aggregateSortBysBox = useBox(aggregateSortBys.map(formatSort));
-
-  const timeseriesData = useBox(metricTimeseriesResult.data);
-
-  useEffect(() => {
-    if (mode !== Mode.SAMPLES) {
-      return;
-    }
-
-    if (metricSamplesTableResult.result.isFetching || !metricTimeseriesResult.isPending) {
-      return;
-    }
-
-    trackAnalytics('metrics.explorer.panel.metadata', {
-      organization,
-      dataset,
-      dataScanned,
-      columns: fieldsBox.current,
-      columns_count: fieldsBox.current.length,
-      confidences: computeConfidence(yAxesBox.current, timeseriesData.current),
-      empty_buckets_percentage: computeEmptyBuckets(
-        yAxesBox.current,
-        timeseriesData.current
-      ),
-      interval,
-      query_status,
-      sample_counts: computeVisualizeSampleTotals(
-        yAxesBox.current,
-        timeseriesData.current,
-        isTopN
-      ),
-      table_result_length: resultLengthBox.current,
-      table_result_missing_root: 0,
-      table_result_mode: 'metric samples',
-      table_result_sort: sortBysBox.current,
-      user_queries: search.formatString(),
-      user_queries_count: search.tokens.length,
-    });
-
-    info(
-      fmt`metric.explorer.panel.metadata:
-      organization: ${organization.slug}
-      dataScanned: ${dataScanned}
-      dataset: ${dataset}
-      query: ${query}
-      fields: ${fieldsBox.current}
-      query_status: ${query_status}
-      result_length: ${String(resultLengthBox.current)}
-      user_queries: ${search.formatString()}
-      user_queries_count: ${String(search.tokens.length)}
-    `,
-      {isAnalytics: true}
-    );
-  }, [
-    organization,
-    dataset,
-    dataScanned,
-    query,
-    fieldsBox,
-    interval,
-    query_status,
-    isTopN,
-    metricSamplesTableResult.result.isFetching,
-    search,
-    timeseriesData,
-    mode,
-    resultLengthBox,
-    sortBysBox,
-    yAxesBox,
-    metricTimeseriesResult.isPending,
-  ]);
+  const dataScannedBox = useBox(dataScanned);
+  const yAxisBox = useBox(yAxis);
+  const intervalBox = useBox(interval);
+  const queryStatusBox = useBox(query_status);
+  const isTopNBox = useBox(isTopN);
 
   useEffect(() => {
-    if (mode !== Mode.AGGREGATE) {
-      return;
-    }
-
     if (
-      metricAggregatesTableResult.result.isPending ||
-      !metricTimeseriesResult.isPending
+      mode !== Mode.SAMPLES ||
+      metricSamplesTableResult.result.isFetching ||
+      metricTimeseriesResult.isPending ||
+      !dataScannedBox.current ||
+      !yAxisBox.current
     ) {
       return;
     }
@@ -818,57 +783,138 @@ export function useMetricsPanelAnalytics({
     trackAnalytics('metrics.explorer.panel.metadata', {
       organization,
       dataset,
-      dataScanned,
+      dataScanned: dataScannedBox.current,
       columns: fieldsBox.current,
       columns_count: fieldsBox.current.length,
-      confidences: computeConfidence([yAxis], timeseriesData.current),
-      empty_buckets_percentage: computeEmptyBuckets([yAxis], timeseriesData.current),
-      interval,
+      confidences: computeConfidence([yAxisBox.current], timeseriesDataBox.current),
+      empty_buckets_percentage: computeEmptyBuckets(
+        [yAxisBox.current],
+        timeseriesDataBox.current
+      ),
+      interval: intervalBox.current,
       query_status,
       sample_counts: computeVisualizeSampleTotals(
-        [yAxis],
-        timeseriesData.current,
-        isTopN
+        [yAxisBox.current],
+        timeseriesDataBox.current,
+        isTopNBox.current
       ),
-      table_result_length: aggregatesResultLengthBox.current,
+      table_result_length: resultLengthBox.current,
       table_result_missing_root: 0,
-      table_result_mode: 'aggregates',
-      table_result_sort: aggregateSortBysBox.current,
-      user_queries: search.formatString(),
-      user_queries_count: search.tokens.length,
+      table_result_mode: 'metric samples',
+      table_result_sort: JSON.parse(formattedSortBysBox.current),
+      user_queries: searchStringBox.current,
+      user_queries_count: searchTokensLengthBox.current,
+      panel_index: panelIndex,
     });
 
     info(
       fmt`metric.explorer.panel.metadata:
       organization: ${organization.slug}
-      dataScanned: ${dataScanned}
+      dataScanned: ${dataScannedBox.current}
       dataset: ${dataset}
       query: ${query}
       fields: ${fieldsBox.current}
-      query_status: ${query_status}
-      result_length: ${String(aggregatesResultLengthBox.current)}
-      user_queries: ${search.formatString()}
-      user_queries_count: ${String(search.tokens.length)}
+      query_status: ${queryStatusBox.current}
+      result_length: ${String(resultLengthBox.current)}
+      user_queries: ${searchStringBox.current}
+      user_queries_count: ${String(searchTokensLengthBox.current)}
     `,
       {isAnalytics: true}
     );
   }, [
-    aggregateSortBysBox,
-    aggregatesResultLengthBox,
-    dataScanned,
-    dataset,
-    fieldsBox,
-    interval,
-    isTopN,
-    metricAggregatesTableResult.result.isPending,
-    timeseriesData,
-    mode,
     organization,
+    dataset,
+    mode,
+    metricSamplesTableResult.result.isFetching,
+    metricTimeseriesResult.isPending,
+    panelIndex,
+    dataScannedBox,
+    fieldsBox,
+    intervalBox,
+    queryStatusBox,
+    isTopNBox,
+    resultLengthBox,
+    formattedSortBysBox,
+    yAxisBox,
+    timeseriesDataBox,
+    searchStringBox,
+    searchTokensLengthBox,
+    query_status,
+    query,
+  ]);
+
+  useEffect(() => {
+    if (
+      mode !== Mode.AGGREGATE ||
+      metricAggregatesTableResult.result.isPending ||
+      metricTimeseriesResult.isPending ||
+      !dataScannedBox.current ||
+      !yAxisBox.current
+    ) {
+      return;
+    }
+
+    trackAnalytics('metrics.explorer.panel.metadata', {
+      organization,
+      dataset,
+      dataScanned: dataScannedBox.current,
+      columns: fieldsBox.current,
+      columns_count: fieldsBox.current.length,
+      confidences: computeConfidence([yAxisBox.current], timeseriesDataBox.current),
+      empty_buckets_percentage: computeEmptyBuckets(
+        [yAxisBox.current],
+        timeseriesDataBox.current
+      ),
+      interval: intervalBox.current,
+      query_status: queryStatusBox.current as 'pending' | 'error' | 'success',
+      sample_counts: computeVisualizeSampleTotals(
+        [yAxisBox.current],
+        timeseriesDataBox.current,
+        isTopNBox.current
+      ),
+      table_result_length: aggregatesResultLengthBox.current,
+      table_result_missing_root: 0,
+      table_result_mode: 'aggregates',
+      table_result_sort: JSON.parse(formattedAggregateSortBysBox.current),
+      user_queries: searchStringBox.current,
+      user_queries_count: searchTokensLengthBox.current,
+      panel_index: panelIndex,
+    });
+
+    info(
+      fmt`metric.explorer.panel.metadata:
+      organization: ${organization.slug}
+      dataScanned: ${dataScannedBox.current}
+      dataset: ${dataset}
+      query: ${query}
+      fields: ${fieldsBox.current}
+      query_status: ${queryStatusBox.current}
+      result_length: ${String(aggregatesResultLengthBox.current)}
+      user_queries: ${searchStringBox.current}
+      user_queries_count: ${String(searchTokensLengthBox.current)}
+    `,
+      {isAnalytics: true}
+    );
+  }, [
+    organization,
+    dataset,
+    mode,
+    metricAggregatesTableResult.result.isPending,
+    metricTimeseriesResult.isPending,
+    panelIndex,
+    formattedAggregateSortBysBox,
+    aggregatesResultLengthBox,
+    dataScannedBox,
+    fieldsBox,
+    intervalBox,
+    isTopNBox,
+    timeseriesDataBox,
+    queryStatusBox,
+    searchStringBox,
+    searchTokensLengthBox,
+    yAxisBox,
     query,
     query_status,
-    search,
-    yAxis,
-    metricTimeseriesResult.isPending,
   ]);
 }
 
