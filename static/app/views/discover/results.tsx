@@ -36,7 +36,6 @@ import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
@@ -177,20 +176,26 @@ export class Results extends Component<Props, State> {
   };
 
   componentDidMount() {
-    const {organization, selection, location, isHomepage} = this.props;
+    const {organization, selection, location, isHomepage, navigate} = this.props;
     if (location.query.fromMetric) {
       this.setState({showMetricsAlert: true});
-      browserHistory.replace({
-        ...location,
-        query: {...location.query, fromMetric: undefined},
-      });
+      navigate(
+        {
+          ...location,
+          query: {...location.query, fromMetric: undefined},
+        },
+        {replace: true}
+      );
     }
     if (location.query[SHOW_UNPARAM_BANNER]) {
       this.setState({showUnparameterizedBanner: true});
-      browserHistory.replace({
-        ...location,
-        query: {...location.query, [SHOW_UNPARAM_BANNER]: undefined},
-      });
+      navigate(
+        {
+          ...location,
+          query: {...location.query, [SHOW_UNPARAM_BANNER]: undefined},
+        },
+        {replace: true}
+      );
     }
     loadOrganizationTags(this.tagsApi, organization.slug, selection);
     addRoutePerformanceContext(selection);
@@ -207,10 +212,13 @@ export class Results extends Component<Props, State> {
 
     if (location.query.incompatible) {
       this.setState({showQueryIncompatibleWithDataset: true});
-      browserHistory.replace({
-        ...location,
-        query: {...location.query, incompatible: undefined},
-      });
+      this.props.navigate(
+        {
+          ...location,
+          query: {...location.query, incompatible: undefined},
+        },
+        {replace: true}
+      );
     }
 
     this.checkEventView();
@@ -389,14 +397,15 @@ export class Results extends Component<Props, State> {
     if (isHomepage && !this.state.savedQuery) {
       this.setState({savedQuery, eventView: nextEventView});
     }
-    browserHistory.replace(
+    this.props.navigate(
       normalizeUrl(
         nextEventView.getResultsViewUrlTarget(
           organization,
           isHomepage,
           hasDatasetSelector(organization) ? savedQueryDataset : undefined
         )
-      )
+      ),
+      {replace: true}
     );
   }
 
