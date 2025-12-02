@@ -18,6 +18,7 @@ import {
   AlertRuleSensitivity,
   Dataset,
   EventTypes,
+  ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -706,6 +707,45 @@ describe('Incident Rules Form', () => {
             thresholdPeriod: 1,
             thresholdType: 0,
             timeWindow: 60,
+          }),
+        })
+      );
+    });
+
+    it('changes extrapolation mode when editing migrated transaction alert rule', async () => {
+      organization.features = [
+        ...organization.features,
+        'performance-view',
+        'visibility-explore-view',
+        'discover-saved-queries-deprecation',
+      ];
+      const metricRule = MetricRuleFixture();
+      createWrapper({
+        rule: {
+          ...metricRule,
+          aggregate: 'count(span.duration)',
+          eventTypes: ['trace_item_span'],
+          dataset: 'events_analytics_platform',
+          extrapolationMode: ExtrapolationMode.SERVER_WEIGHTED,
+        },
+        ruleId: rule.id,
+      });
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(editRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            aggregate: 'count(span.duration)',
+            dataset: 'events_analytics_platform',
+            eventTypes: ['trace_item_span'],
+            id: '4',
+            name: 'My Incident Rule',
+            projects: ['project-slug'],
+            query: '',
+            queryType: 1,
+            extrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
           }),
         })
       );
