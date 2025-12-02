@@ -7,6 +7,7 @@ import type {FieldObject} from 'sentry/components/forms/types';
 export interface CollapsibleSectionProps extends Omit<FieldFromConfigProps, 'field'> {
   fields: FieldObject[];
   label: ReactNode | (() => React.ReactNode);
+  initiallyCollapsed?: boolean;
 }
 
 export default function CollapsibleSection(props: CollapsibleSectionProps) {
@@ -16,7 +17,7 @@ export default function CollapsibleSection(props: CollapsibleSectionProps) {
         typeof props.disabled === 'function' ? props.disabled(props) : props.disabled
       }
       collapsible
-      initiallyCollapsed
+      initiallyCollapsed={props.initiallyCollapsed}
       nested
       title={typeof props.label === 'function' ? props.label() : props.label}
       fields={props.fields}
