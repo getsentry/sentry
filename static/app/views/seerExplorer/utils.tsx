@@ -521,7 +521,7 @@ export function buildToolLinkUrl(
 
       // TODO: Currently no way to pass substring filter to this page, update with params.log_message_substring when it's supported.
       return {
-        pathname: `/explore/logs/trace/${trace_id}/`,
+        pathname: `/organizations/${orgSlug}/explore/logs/trace/${trace_id}/`,
         query: {tab: 'logs'},
       };
     }
@@ -533,7 +533,7 @@ export function buildToolLinkUrl(
 
       // TODO: Currently no way to pass name filter to this page, update with params.metric_name when it's supported.
       return {
-        pathname: `/explore/metrics/trace/${trace_id}/`,
+        pathname: `/organizations/${orgSlug}/explore/metrics/trace/${trace_id}/`,
         query: {tab: 'metrics'},
       };
     }
