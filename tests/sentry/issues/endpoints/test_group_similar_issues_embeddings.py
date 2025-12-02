@@ -451,7 +451,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         The seer API can return hashes which don't have a group id attached.
         Test that these groups are not returned.
         """
-        existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
+        existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
         assert existing_grouphash.group_id is None
 
         # Create metadata for the grouphash so it has a creation date
@@ -460,7 +460,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
-                    "parent_hash": "dogs are great",
+                    "parent_hash": "dogs_are_great",
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 },
@@ -487,7 +487,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "get_similarity_data_from_seer.parent_hash_missing_group",
             extra={
                 "hash": self.event.get_primary_hash(),
-                "parent_hash": "dogs are great",
+                "parent_hash": "dogs_are_great",
                 "parent_gh_age_in_sec": mock.ANY,  # See below
                 "project_id": self.project.id,
                 "event_id": self.event.event_id,

@@ -70,7 +70,7 @@ def test_group_creation_race(default_project, lock_disabled) -> None:
         with (
             patch(
                 "sentry.grouping.ingest.hashing._calculate_event_grouping",
-                return_value=(["pound sign", "octothorpe"], {}),
+                return_value=(["pound_sign", "octothorpe"], {}),
             ),
             patch(
                 "sentry.event_manager._get_group_processing_kwargs",

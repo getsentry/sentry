@@ -21,7 +21,7 @@ class GetAssociatedFingerprintTest(TestCase):
             "client_fingerprint": json.dumps(raw_fingerprint),
         }
 
-        grouphash = GroupHash.objects.create(hash="yay dogs", project_id=self.project.id)
+        grouphash = GroupHash.objects.create(hash="yay_dogs", project_id=self.project.id)
         GroupHashMetadata.objects.create(grouphash=grouphash, hashing_metadata=hashing_metadata)
 
         assert grouphash.get_associated_fingerprint() == resolved_fingerprint
@@ -43,7 +43,7 @@ class GetAssociatedFingerprintTest(TestCase):
             "client_fingerprint": json.dumps(raw_fingerprint),
         }
 
-        grouphash = GroupHash.objects.create(hash="yay dogs", project_id=self.project.id)
+        grouphash = GroupHash.objects.create(hash="yay_dogs", project_id=self.project.id)
         GroupHashMetadata.objects.create(grouphash=grouphash, hashing_metadata=hashing_metadata)
 
         assert grouphash.get_associated_fingerprint() == resolved_fingerprint
@@ -63,19 +63,19 @@ class GetAssociatedFingerprintTest(TestCase):
             "client_fingerprint": str(raw_fingerprint),
         }
 
-        grouphash = GroupHash.objects.create(hash="yay dogs", project_id=self.project.id)
+        grouphash = GroupHash.objects.create(hash="yay_dogs", project_id=self.project.id)
         GroupHashMetadata.objects.create(grouphash=grouphash, hashing_metadata=hashing_metadata)
 
         assert grouphash.get_associated_fingerprint() is None
 
     def test_no_metadata(self) -> None:
-        grouphash = GroupHash.objects.create(hash="yay dogs", project_id=self.project.id)
+        grouphash = GroupHash.objects.create(hash="yay_dogs", project_id=self.project.id)
 
         assert grouphash.metadata is None
         assert grouphash.get_associated_fingerprint() is None
 
     def test_no_hashing_metadata(self) -> None:
-        grouphash = GroupHash.objects.create(hash="yay dogs", project_id=self.project.id)
+        grouphash = GroupHash.objects.create(hash="yay_dogs", project_id=self.project.id)
         GroupHashMetadata.objects.create(grouphash=grouphash)
 
         assert grouphash.metadata and grouphash.metadata.hashing_metadata is None
@@ -88,7 +88,7 @@ class GetAssociatedFingerprintTest(TestCase):
             "num_stacktraces": 1,
         }
 
-        grouphash = GroupHash.objects.create(hash="yay dogs", project_id=self.project.id)
+        grouphash = GroupHash.objects.create(hash="yay_dogs", project_id=self.project.id)
         GroupHashMetadata.objects.create(grouphash=grouphash, hashing_metadata=hashing_metadata)
 
         assert grouphash.get_associated_fingerprint() is None
