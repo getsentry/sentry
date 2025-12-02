@@ -182,7 +182,7 @@ def create_snuba_subscription(
     subscription_type: str,
     snuba_query: SnubaQuery,
     query_extra: str | None = None,
-    status: QuerySubscription.Status = QuerySubscription.Status.CREATING.value,
+    status: int = QuerySubscription.Status.CREATING.value,
 ) -> QuerySubscription:
     """
     Creates a subscription to a snuba query.
