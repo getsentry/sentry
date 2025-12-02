@@ -3,6 +3,7 @@ from django.contrib.auth.models import AnonymousUser
 from sentry import audit_log
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.workflow_engine.models import AlertRuleDetector, AlertRuleWorkflow
 
@@ -18,8 +19,8 @@ def _update_workflow_engine_models(
         if alert_rule_workflow and alert_rule_workflow.workflow:
             workflow = alert_rule_workflow.workflow
             workflow.update(enabled=is_enabled)
-            if isinstance(requesting_user, User):
-                assert isinstance(requesting_user, User)
+            if isinstance(requesting_user, User) or isinstance(requesting_user, RpcUser):
+                assert not isinstance(requesting_user, AnonymousUser)
                 create_audit_entry_from_user(
                     user=requesting_user,
                     organization_id=workflow.organization.id,
@@ -35,7 +36,7 @@ def _update_workflow_engine_models(
             detector = alert_rule_detector.detector
             detector.update(enabled=is_enabled)
             if isinstance(requesting_user, User):
-                assert isinstance(requesting_user, User)
+                assert not isinstance(requesting_user, AnonymousUser)
                 create_audit_entry_from_user(
                     user=requesting_user,
                     organization_id=detector.project.organization.id,
