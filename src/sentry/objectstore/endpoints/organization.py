@@ -96,6 +96,9 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
 
         headers.pop("Host", None)
         headers.pop("Transfer-Encoding", None)
+        # This assumes chunked transfer encoding, we might need to revisit this if we want to support other encodings.
+        # For some reason, wsgiref sets the value of this header to an empty string instead of None when using chunked encoding, so we need to clear this out.
+        headers.pop("Content-Length", None)
 
         stream: Generator[bytes] | ChunkedEncodingDecoder | None = None
         if request.method in ("PUT", "POST"):
@@ -121,9 +124,6 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
                     raise RuntimeError(
                         "This module assumes that uWSGI is used in production, and it seems that this is not true anymore. Adapt the module to the new server."
                     )
-                headers.pop(
-                    "Content-Length", None
-                )  # for some reason, wsgiref sets `Content-Length` to empty string instead of None when using chunked encoding
                 stream = ChunkedEncodingDecoder(wsgi_input._read)
 
         response = requests.request(
