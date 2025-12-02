@@ -297,8 +297,18 @@ function DashboardTable({
                   data-test-id="dashboard-duplicate"
                   icon={<IconCopy />}
                   size="sm"
-                  disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-                  title={limitMessage}
+                  disabled={
+                    hasReachedDashboardLimit ||
+                    isLoadingDashboardsLimit ||
+                    (organization.features.includes('dashboards-prebuilt-controls') &&
+                      defined(dataRow.prebuiltId))
+                  }
+                  title={
+                    organization.features.includes('dashboards-prebuilt-controls') &&
+                    defined(dataRow.prebuiltId)
+                      ? t('Prebuilt dashboards cannot be duplicated')
+                      : limitMessage
+                  }
                 />
               )}
             </DashboardCreateLimitWrapper>
