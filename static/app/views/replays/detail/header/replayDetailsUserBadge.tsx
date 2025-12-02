@@ -137,7 +137,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
               {showLiveIndicator ? (
                 <Tooltip
                   title={LIVE_TOOLTIP_MESSAGE}
-                  underlineColor="success"
+                  underlineColor="danger"
                   showUnderline
                 >
                   <Flex align="center" gap="xs">
