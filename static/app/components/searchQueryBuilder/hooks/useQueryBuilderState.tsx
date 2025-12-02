@@ -48,7 +48,7 @@ type QueryBuilderState = {
   focusOverride: FocusOverride | null;
 
   /**
-   * Stores the previous action that was preformed. This enables us to determine if we should take certain actions based on what was previously done.
+   * Stores the previous action that was performed. This enables us to determine if we should take certain actions based on what was previously done.
    */
   previousAction: QueryBuilderActions['type'] | null;
 
