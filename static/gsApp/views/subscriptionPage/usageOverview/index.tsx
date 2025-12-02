@@ -14,7 +14,7 @@ import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
 import {IconChevron, IconLightning, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -61,7 +61,8 @@ import {
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
 import CategoryUsageDrawer from 'getsentry/views/subscriptionPage/components/categoryUsageDrawer';
-import UsageOverviewActions from 'getsentry/views/subscriptionPage/usageOverview/actions';
+import UsageOverviewActions from 'getsentry/views/subscriptionPage/usageOverview/components/actions';
+import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 
 interface UsageOverviewProps {
   organization: Organization;
@@ -826,6 +827,15 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
         organization={organization}
         usageData={usageData}
       />
+      {/* XXX(isabella): this is temporary until the panel is used in the new usage overview so knip stays happy */}
+      {organization.features.includes('usage-overview-v2') && (
+        <ProductBreakdownPanel
+          organization={organization}
+          subscription={subscription}
+          usageData={usageData}
+          selectedProduct={DataCategory.ERRORS}
+        />
+      )}
     </Container>
   );
 }
