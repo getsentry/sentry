@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.organization_contributors.reset_num_actions_for_organization",
+    name="sentry.tasks.organization_contributors.reset_num_actions_for_organization_contributors",
     namespace=integrations_tasks,
     silo_mode=SiloMode.REGION,
 )

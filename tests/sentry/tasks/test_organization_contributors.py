@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from sentry.models.organizationcontributors import OrganizationContributors
+from sentry.silo.base import SiloMode
 from sentry.tasks.organization_contributors import reset_num_actions_for_organization_contributors
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -12,7 +13,7 @@ class ResetNumActionsForOrganizationContributorsTest(TestCase):
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization()
-        with assume_test_silo_mode("CONTROL"):
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration = self.create_integration(
                 organization=self.organization,
                 external_id="github:1",
@@ -21,7 +22,6 @@ class ResetNumActionsForOrganizationContributorsTest(TestCase):
 
     @patch("sentry.tasks.organization_contributors.logger")
     def test_resets_num_actions_for_all_contributors(self, mock_logger):
-        """Test that num_actions is reset to 0 for all contributors in organization."""
         contributor1 = OrganizationContributors.objects.create(
             organization=self.organization,
             integration_id=self.integration.id,
@@ -60,7 +60,6 @@ class ResetNumActionsForOrganizationContributorsTest(TestCase):
         assert contributor3.num_actions == 0
 
     def test_skips_contributors_already_at_zero(self):
-        """Test that contributors with num_actions=0 are not updated (optimization)."""
         contributor_zero = OrganizationContributors.objects.create(
             organization=self.organization,
             integration_id=self.integration.id,
@@ -90,10 +89,8 @@ class ResetNumActionsForOrganizationContributorsTest(TestCase):
         assert contributor_nonzero.date_updated > original_date_updated
 
     def test_only_updates_specified_organization(self):
-        """Test that only contributors from the specified organization are updated."""
         other_organization = self.create_organization()
 
-        # Create contributor in target organization
         contributor_in_org = OrganizationContributors.objects.create(
             organization=self.organization,
             integration_id=self.integration.id,
