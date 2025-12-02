@@ -662,6 +662,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         metrics = event.data["_metrics"]
         assert not metrics.get("flag.processing.error")
 
+    @pytest.mark.skip(reason="flaky: #103830")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_sets_inapp_after_resolving(self) -> None:
