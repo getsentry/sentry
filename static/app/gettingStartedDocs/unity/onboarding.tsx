@@ -1,6 +1,7 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
+  DocsParams,
   OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -58,6 +59,19 @@ export const onboarding: OnboardingConfig = {
           text: t("And that's it! Now Sentry can capture errors automatically."),
         },
         {
+          type: 'conditional',
+          condition: params.isPerformanceSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'To enable performance monitoring, set the [code:TracesSampleRate] option in the Sentry configuration window. For example, set it to [code:1.0] to capture 100% of transactions.',
+                {code: <code />}
+              ),
+            },
+          ],
+        },
+        {
           type: 'text',
           text: tct(
             'If you like additional contexts you could enable [link:Screenshots].',
@@ -71,7 +85,7 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: params => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -88,6 +102,51 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
+    ...(params.isPerformanceSelected
+      ? ([
+          {
+            title: t('Tracing'),
+            content: [
+              {
+                type: 'text',
+                text: t(
+                  'You can measure the performance of your code by capturing transactions and spans.'
+                ),
+              },
+              {
+                type: 'code',
+                language: 'csharp',
+                code: `using Sentry;
+
+// Transaction can be started by providing, at minimum, the name and the operation
+var transaction = SentrySdk.StartTransaction(
+    "test-transaction-name",
+    "test-transaction-operation"
+);
+
+// Transactions can have child spans (and those spans can have child spans as well)
+var span = transaction.StartChild("test-child-operation");
+
+// ... Perform the operation
+
+span.Finish(); // Mark the span as finished
+transaction.Finish(); // Mark the transaction as finished and send it to Sentry`,
+              },
+              {
+                type: 'text',
+                text: tct(
+                  'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/unity/tracing/" />
+                    ),
+                  }
+                ),
+              },
+            ],
+          },
+        ] satisfies OnboardingStep[])
+      : []),
     {
       title: t('Troubleshooting'),
       content: [
