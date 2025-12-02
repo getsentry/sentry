@@ -35,6 +35,7 @@ import {useMetricDetectorAnomalyPeriods} from 'sentry/views/detectors/hooks/useM
 import {useMetricDetectorAnomalyThresholds} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
+import {useMetricTimestamps} from 'sentry/views/detectors/hooks/useMetricTimestamps';
 import {useTimePeriodSelection} from 'sentry/views/detectors/hooks/useTimePeriodSelection';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
 
@@ -225,33 +226,7 @@ export function MetricDetectorChart({
     markLineTooltip: anomalyMarklineTooltip,
   });
 
-  const metricTimestamps = useMemo(() => {
-    const firstSeries = series[0];
-    if (!firstSeries?.data.length) {
-      return {start: undefined, end: undefined};
-    }
-    const data = firstSeries.data;
-    const firstPoint = data[0];
-    const lastPoint = data[data.length - 1];
-
-    if (!firstPoint || !lastPoint) {
-      return {start: undefined, end: undefined};
-    }
-
-    const firstTimestamp =
-      typeof firstPoint.name === 'number'
-        ? firstPoint.name
-        : new Date(firstPoint.name).getTime();
-    const lastTimestamp =
-      typeof lastPoint.name === 'number'
-        ? lastPoint.name
-        : new Date(lastPoint.name).getTime();
-
-    return {
-      start: Math.floor(firstTimestamp / 1000),
-      end: Math.floor(lastTimestamp / 1000),
-    };
-  }, [series]);
+  const metricTimestamps = useMetricTimestamps(series);
 
   const shouldFetchThresholds = Boolean(detectorId && isAnomalyDetection);
   const {anomalyThresholdSeries} = useMetricDetectorAnomalyThresholds({
