@@ -179,7 +179,7 @@ function InnerContent({
     )
   );
   const exceptionValue =
-    type === StackType.ORIGINAL ? exception.value : exception.rawValue;
+    type === StackType.ORIGINAL ? exception.value : exception.rawValue || exception.value;
 
   const renderedExceptionValue = exceptionValue
     ? renderLinksInText({exceptionText: exceptionValue})
