@@ -106,8 +106,16 @@ function DashboardGrid({
             onConfirm: () => handleDuplicateDashboard(dashboard, 'grid'),
           });
         },
-        disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
-        tooltip: limitMessage,
+        disabled:
+          hasReachedDashboardLimit ||
+          isLoadingDashboardsLimit ||
+          (defined(dashboard.prebuiltId) &&
+            !organization.features.includes('dashboards-prebuilt-controls')),
+        tooltip:
+          defined(dashboard.prebuiltId) &&
+          !organization.features.includes('dashboards-prebuilt-controls')
+            ? t('Prebuilt dashboards cannot be duplicated')
+            : limitMessage,
         tooltipOptions: {
           isHoverable: true,
         },
