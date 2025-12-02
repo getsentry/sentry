@@ -891,7 +891,7 @@ def get_issue_and_event_details(
         )
         return None
 
-    # If the recommended event (default option) doesn't have a trace or the trace has no spans, try finding a different event.
+    # If the recommended event (default when agent doesn't specify an event) doesn't have a useful trace, try finding a different event.
     if selected_event == "recommended" and (
         event.trace_id is None
         or _get_trace_with_spans(
