@@ -1,5 +1,6 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
   DocsParams,
   OnboardingConfig,
@@ -17,7 +18,7 @@ int main(void) {
   sentry_options_t *options = sentry_options_new();
   sentry_options_set_dsn(options, "${params.dsn.public}");
   // This is also the default-path. For further information and recommendations:
-  // https://docs.sentry.io/platforms/native/configuration/options/#database-path
+  // https://docs.sentry.io/platforms/native/configuration/options/#database_path
   sentry_options_set_database_path(options, ".sentry-native");
   sentry_options_set_release(options, "my-project-name@2.3.12");
   sentry_options_set_debug(options, 1);${
@@ -192,5 +193,19 @@ sentry_log_error("A %s log message", "formatted");`,
         ] satisfies OnboardingStep[])
       : []),
     ...([getConsoleExtensions(params)].filter(Boolean) as OnboardingStep[]),
+    {
+      title: t('Further Settings'),
+      content: [
+        {
+          type: 'custom',
+          content: (
+            <StoreCrashReportsConfig
+              organization={params.organization}
+              projectSlug={params.project.slug}
+            />
+          ),
+        },
+      ],
+    },
   ],
 };
