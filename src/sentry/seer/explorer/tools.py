@@ -654,7 +654,9 @@ def _get_issue_event_timeseries(
     return data, stats_period, interval
 
 
-def _get_trace_with_spans(trace_ids: list[str], org_id: int, start: str, end: str) -> str | None:
+def _get_trace_with_spans(
+    trace_ids: list[str], org_id: int, start: datetime, end: datetime
+) -> str | None:
     """
     Given a list of trace IDs, return a trace ID with at least one span (non-deterministic).
     """
@@ -675,8 +677,8 @@ def _get_trace_with_spans(trace_ids: list[str], org_id: int, start: str, end: st
         fields=["trace"],
         query=query,
         sort="-timestamp",
-        start=start,
-        end=end,
+        start=start.isoformat(),
+        end=end.isoformat(),
     )
 
     if not result or not result.get("data"):
@@ -699,8 +701,8 @@ def _get_event_with_valid_trace(group: Group, org_id: int) -> Event | GroupEvent
         query=f"issue:{group.qualified_short_id}",
         sort="-timestamp",
         project_ids=[group.project_id],
-        start=group.first_seen,
-        end=group.last_seen,
+        start=group.first_seen.isoformat(),
+        end=group.last_seen.isoformat(),
     )
 
     if not events_result or not events_result.get("data"):
