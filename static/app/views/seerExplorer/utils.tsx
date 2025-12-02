@@ -181,8 +181,8 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     const traceId = args.trace_id || '';
     const shortTraceId = traceId.slice(0, 8);
     return isLoading
-      ? `Double-clicking on metric '${metricName}' from trace ${shortTraceId}...`
-      : `Double-clicked on metric '${metricName}' from trace ${shortTraceId}`;
+      ? `Double-clicking on metric '${metricName}' in trace ${shortTraceId}...`
+      : `Double-clicked on metric '${metricName}' in trace ${shortTraceId}`;
   },
 
   get_log_attributes: (args, isLoading) => {
@@ -190,8 +190,8 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     const traceId = args.trace_id || '';
     const shortTraceId = traceId.slice(0, 8);
     return isLoading
-      ? `Examining logs matching '*${message.slice(0, 20)}*' from trace ${shortTraceId}...`
-      : `Examined logs matching '*${message.slice(0, 20)}*' from trace ${shortTraceId}`;
+      ? `Examining logs matching '*${message.slice(0, 20)}*' in trace ${shortTraceId}...`
+      : `Examined logs matching '*${message.slice(0, 20)}*' in trace ${shortTraceId}`;
   },
 };
 
