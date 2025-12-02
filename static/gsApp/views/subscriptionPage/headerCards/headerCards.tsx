@@ -89,6 +89,7 @@ function HeaderCards({organization, subscription}: HeaderCardsProps) {
             md: `repeat(${cards.length}, minmax(0, 1fr))`,
           }}
           gap="xl"
+          data-test-id="subscription-header-cards"
         >
           {cards}
         </Grid>

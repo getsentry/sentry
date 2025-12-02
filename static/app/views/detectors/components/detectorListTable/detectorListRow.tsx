@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Checkbox} from 'sentry/components/core/checkbox';
@@ -11,20 +12,17 @@ import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorListConnectedAutomations} from 'sentry/views/detectors/components/detectorListConnectedAutomations';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
 import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 interface DetectorListRowProps {
   detector: Detector;
   onSelect: (id: string) => void;
   selected: boolean;
-  renderVisualization?: (detector: Detector) => React.ReactNode;
 }
 
-export function DetectorListRow({
-  detector,
-  selected,
-  onSelect,
-  renderVisualization,
-}: DetectorListRowProps) {
+export function DetectorListRow({detector, selected, onSelect}: DetectorListRowProps) {
+  const {additionalColumns = [], renderVisualization} = useMonitorViewContext();
+
   return (
     <DetectorSimpleTableRow
       variant={detector.enabled ? 'default' : 'faded'}
@@ -55,12 +53,17 @@ export function DetectorListRow({
       <SimpleTable.RowCell data-column-name="connected-automations">
         <DetectorListConnectedAutomations automationIds={detector.workflowIds} />
       </SimpleTable.RowCell>
-      {defined(renderVisualization) && renderVisualization(detector)}
+      {additionalColumns.map(col => (
+        <Fragment key={col.id}>{col.renderCell(detector)}</Fragment>
+      ))}
+      {defined(renderVisualization) && renderVisualization({detector})}
     </DetectorSimpleTableRow>
   );
 }
 
 export function DetectorListRowSkeleton() {
+  const {additionalColumns = [], renderVisualization} = useMonitorViewContext();
+
   return (
     <DetectorSimpleTableRow>
       <SimpleTable.RowCell>
@@ -81,6 +84,16 @@ export function DetectorListRowSkeleton() {
       <SimpleTable.RowCell data-column-name="connected-automations">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
+      {additionalColumns.map(col => (
+        <Fragment key={col.id}>
+          {col.renderPendingCell?.() ?? (
+            <SimpleTable.RowCell data-column-name={col.id}>
+              <Placeholder height="20px" />
+            </SimpleTable.RowCell>
+          )}
+        </Fragment>
+      ))}
+      {defined(renderVisualization) ? renderVisualization({detector: null}) : null}
     </DetectorSimpleTableRow>
   );
 }

@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,7 +12,7 @@ import smallStarLight from 'sentry-images/spot/product-select-star-s.svg';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Flex} from 'sentry/components/core/layout';
 import {Separator} from 'sentry/components/core/separator';
 import {Heading, Text} from 'sentry/components/core/text';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -31,7 +31,7 @@ import {
   getSingularCategoryName,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
-import CheckoutOption from 'getsentry/views/amCheckout/checkoutOption';
+import CheckoutOption from 'getsentry/views/amCheckout/components/checkoutOption';
 import {type StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
@@ -45,7 +45,6 @@ interface ProductCheckoutInfo {
       }
     >
   >;
-  getProductDescription: (includedBudget: string) => React.ReactNode;
   buttonBorderColor?: Color;
   color?: Color;
   gradientEndColor?: Color;
@@ -62,7 +61,7 @@ export function getProductCheckoutDescription({
   withPunctuation: boolean;
   includedBudget?: string;
 }) {
-  if (product === AddOnCategory.SEER) {
+  if (product === AddOnCategory.LEGACY_SEER) {
     if (isNewCheckout) {
       return tct('Detect and fix issues faster with our AI agent[punctuation]', {
         punctuation: withPunctuation ? '.' : '',
@@ -80,6 +79,18 @@ export function getProductCheckoutDescription({
       }
     );
   }
+
+  if (product === AddOnCategory.SEER) {
+    return (
+      <Flex direction="column" gap="sm">
+        <Text>
+          {t('Setup required: connect repositories after adding to your plan.')}
+        </Text>
+        <Text>{t('Billed at month-end and varies with active contributors.')}</Text>
+      </Flex>
+    );
+  }
+
   return '';
 }
 
@@ -97,17 +108,10 @@ function ProductSelect({
 
   const theme = useTheme();
   const PRODUCT_CHECKOUT_INFO = {
-    [AddOnCategory.SEER]: {
+    [AddOnCategory.LEGACY_SEER]: {
       color: theme.pink400 as Color,
       gradientEndColor: theme.pink100 as Color,
       buttonBorderColor: theme.pink200 as Color,
-      getProductDescription: (includedBudget: string) =>
-        getProductCheckoutDescription({
-          product: AddOnCategory.SEER,
-          isNewCheckout: !!isNewCheckout,
-          withPunctuation: false,
-          includedBudget,
-        }),
       categoryInfo: {
         [DataCategory.SEER_AUTOFIX]: {
           description: t(
@@ -123,23 +127,12 @@ function ProductSelect({
         },
       },
     },
-    [AddOnCategory.PREVENT]: {
-      getProductDescription: (includedBudget: string) =>
-        getProductCheckoutDescription({
-          product: AddOnCategory.PREVENT,
-          isNewCheckout: !!isNewCheckout,
-          withPunctuation: false,
-          includedBudget,
-        }),
-      categoryInfo: {
-        [DataCategory.PREVENT_USER]: {
-          description: t('Prevent problems, before they happen'),
-          maxEventPriceDigits: 0,
-        },
-      },
-      color: undefined,
+    [AddOnCategory.SEER]: {
+      categoryInfo: {},
+      // TODO(isabella): These can be removed once the legacy implementation for this component is removed
       gradientEndColor: undefined,
       buttonBorderColor: undefined,
+      color: undefined,
     },
   } satisfies Record<AddOnCategory, ProductCheckoutInfo>;
   const billingInterval = utils.getShortInterval(activePlan.billingInterval);
@@ -205,56 +198,47 @@ function ProductSelect({
               isSelected={!!isSelected}
               ariaRole="checkbox"
             >
-              <Flex direction="column" gap="md" padding="xl" width="100%">
-                <Flex align="start" justify="between" gap="md">
-                  <Container paddingTop="sm">
-                    <Checkbox
-                      tabIndex={-1} // let CheckoutOption handle the focus
-                      aria-label={ariaLabel}
-                      aria-checked={isSelected}
-                      checked={isSelected}
-                      onChange={toggleProductOption}
-                    />
-                  </Container>
-                  <Flex direction="column" gap="0" width="100%">
-                    <Flex align="center" justify="between" gap="sm">
-                      <Heading as="h3" variant="primary">
-                        {toTitleCase(productName, {
-                          allowInnerUpperCase: true,
-                        })}
-                      </Heading>
-                      <ProductIconContainer isSelected={isSelected}>
-                        {productIcon}
-                      </ProductIconContainer>
+              <Flex direction="column" gap="lg" padding="xl" width="100%">
+                <Flex align="center" gap="md">
+                  <Checkbox
+                    tabIndex={-1} // let CheckoutOption handle the focus
+                    aria-label={ariaLabel}
+                    aria-checked={isSelected}
+                    checked={isSelected}
+                    onChange={toggleProductOption}
+                  />
+
+                  <Flex align="center" justify="between" gap="sm" flex="1">
+                    <Heading as="h3" variant="primary">
+                      {toTitleCase(productName, {
+                        allowInnerUpperCase: true,
+                      })}
+                    </Heading>
+                    <Flex align="center" gap="md">
+                      {formattedMonthlyBudget && (
+                        <Tag
+                          type="promotion"
+                          data-test-id="product-option-feature-credits"
+                        >
+                          {tct('Includes [includedBudget]/mo in credits', {
+                            includedBudget: formattedMonthlyBudget,
+                          })}
+                        </Tag>
+                      )}
+                      <Flex>
+                        <Text
+                          size="lg"
+                          bold
+                          variant="primary"
+                        >{`+$${priceInDollars}`}</Text>
+                        <Text size="lg" variant="muted">{`/${billingInterval}`}</Text>
+                      </Flex>
                     </Flex>
-                    <ProductDescription isNewCheckout colorOverride={theme.subText}>
-                      {checkoutInfo.getProductDescription(formattedMonthlyBudget ?? '')}
-                    </ProductDescription>
-                    <Container paddingTop="md">
-                      <Text
-                        size="2xl"
-                        bold
-                        variant="primary"
-                      >{`+$${priceInDollars}`}</Text>
-                      <Text size="md" variant="primary">{`/${billingInterval}`}</Text>
-                    </Container>
                   </Flex>
                 </Flex>
                 <Flex direction="column" gap="2xs">
                   <Separator orientation="horizontal" border="primary" />
-                  <Flex direction="column" gap="sm" paddingTop="xl">
-                    <FeatureItem data-test-id="product-option-feature-credits">
-                      <IconContainer>
-                        <IconCheckmark color={theme.successText as Color} />
-                      </IconContainer>
-                      {formattedMonthlyBudget && (
-                        <Text size="md">
-                          {tct('Includes [includedBudget]/mo in credits', {
-                            includedBudget: formattedMonthlyBudget,
-                          })}
-                        </Text>
-                      )}
-                    </FeatureItem>
+                  <Flex direction="column" gap="xl" paddingTop="xl">
                     {Object.entries(checkoutInfo.categoryInfo).map(([category, info]) => {
                       const pricingInfo =
                         activePlan.planCategories[category as DataCategory];
@@ -279,21 +263,21 @@ function ProductSelect({
                           <IconContainer>
                             <IconCheckmark color={theme.successText as Color} />
                           </IconContainer>
-                          <Text size="md">
-                            <FeatureItemCategory>
+                          <Flex direction="column" gap="xs">
+                            <Text size="md">
                               {getSingularCategoryName({
                                 plan: activePlan,
                                 category: category as DataCategory,
                                 hadCustomDynamicSampling: false,
                               })}
-                              {':'}
-                            </FeatureItemCategory>
-                            <span>
-                              {info.description}.{' '}
+                              {' - '}
                               {eventPrice &&
                                 `${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})}/${perEventNameOverride}`}
-                            </span>
-                          </Text>
+                            </Text>
+                            <Text size="md" variant="muted">
+                              {info.description}
+                            </Text>
+                          </Flex>
                         </FeatureItem>
                       );
                     })}
@@ -328,7 +312,12 @@ function ProductSelect({
                     </ProductName>
                   </ProductLabel>
                   <ProductDescription>
-                    {checkoutInfo.getProductDescription(formattedMonthlyBudget ?? '')}
+                    {getProductCheckoutDescription({
+                      product: apiName,
+                      isNewCheckout: !!isNewCheckout,
+                      withPunctuation: false,
+                      includedBudget: formattedMonthlyBudget ?? '',
+                    })}
                   </ProductDescription>
                 </Column>
                 <PriceContainer>
@@ -635,16 +624,6 @@ const IconContainer = styled('div')`
   align-items: center;
 `;
 
-const ProductIconContainer = styled('div')<{isSelected?: boolean}>`
-  display: flex;
-  background: ${p =>
-    p.isSelected ? p.theme.tokens.graphics.accent : p.theme.background};
-  border: 1px solid ${p => (p.isSelected ? p.theme.tokens.border.accent : p.theme.border)};
-  border-radius: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space.xs};
-  color: ${p => (p.isSelected ? p.theme.background : p.theme.textColor)};
-`;
-
 const StyledButton = styled(Button)`
   width: 100%;
   margin: ${p => p.theme.space.lg} 0 ${p => p.theme.space.xs};
@@ -712,11 +691,6 @@ const FeatureItem = styled('div')`
   align-items: start;
   color: ${p => p.theme.textColor};
   gap: ${p => p.theme.space.md};
-`;
-
-const FeatureItemCategory = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin-right: ${p => p.theme.space.xs};
 `;
 
 const Star1 = styled('img')`

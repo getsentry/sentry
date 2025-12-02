@@ -224,7 +224,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.integration, links)
 
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
@@ -253,7 +253,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.integration, links)
 
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
@@ -278,7 +278,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.integration, links)
         assert unfurls[links[0].url]["blocks"][1]["text"]["text"] == "```" + escape_text + "```"
 
     def test_unfurl_metric_alert(self) -> None:
@@ -306,7 +306,7 @@ class UnfurlTest(TestCase):
                 },
             ),
         ]
-        unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+        unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
         assert (
             links[0].url
             == f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{incident.alert_rule.id}/?alert={incident.identifier}"
@@ -355,7 +355,7 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         assert (
             unfurls[links[0].url]
@@ -407,7 +407,7 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         assert (
             unfurls[links[0].url]
@@ -465,7 +465,7 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         assert (
             unfurls[links[0].url]
@@ -484,7 +484,7 @@ class UnfurlTest(TestCase):
         assert chart_data["incidents"][0]["id"] == str(incident.id)
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_eap_spans_events_stats_call(
@@ -525,13 +525,13 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
         assert dataset == Spans
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_eap_ourlogs_events_stats_call(
@@ -574,7 +574,7 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
         assert dataset == OurLogs
@@ -613,7 +613,7 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         assert (
             unfurls[links[0].url]
@@ -627,7 +627,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["incidents"]) == 0
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -648,7 +648,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -662,7 +662,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [
                 (i * INTERVAL_COUNT, [{"count": 0}]) for i in range(int(INTERVALS_PER_DAY / 6))
@@ -687,7 +687,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -702,7 +702,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == 48
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "count()": {
                 "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
@@ -735,7 +735,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -750,7 +750,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["count_unique(user)"]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -773,7 +773,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -787,7 +787,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "default,first,capable-hagfish,None": {
                 "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
@@ -839,7 +839,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -859,7 +859,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"][first_key]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -905,7 +905,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -921,7 +921,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "default,first": {
                 "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
@@ -957,7 +957,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -976,7 +976,7 @@ class UnfurlTest(TestCase):
 
     # patched return value determined by reading events stats output
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "default,second": {
                 "data": [(1212121, [{"count": 15}]), (1652659200, [{"count": 12}])],
@@ -1025,7 +1025,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1044,7 +1044,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"][first_key]["data"]) == 2
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -1086,7 +1086,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1102,7 +1102,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -1130,7 +1130,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1149,7 +1149,7 @@ class UnfurlTest(TestCase):
 
     # patched return value determined by reading events stats output
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "default,second": {
                 "data": [(1212121, [{"count": 15}]), (1652659200, [{"count": 12}])],
@@ -1188,7 +1188,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1222,7 +1222,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1259,7 +1259,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1312,7 +1312,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1328,7 +1328,7 @@ class UnfurlTest(TestCase):
         assert api_mock.call_args[1]["params"]["interval"] == "10m"
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_saved_query_with_dataset(
@@ -1367,7 +1367,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1383,7 +1383,7 @@ class UnfurlTest(TestCase):
         assert dataset == transactions
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -1406,7 +1406,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]

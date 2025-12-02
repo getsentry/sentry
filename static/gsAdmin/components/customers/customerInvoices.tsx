@@ -25,7 +25,9 @@ const getRow = (orgId: string, region: string, row: any) => [
     {row.channel || 'n/a'}
   </td>,
   <td key="status" style={{textAlign: 'center'}}>
-    <Tag type={row.isPaid ? 'success' : 'warning'}>{row.isPaid ? 'Paid' : 'Pending'}</Tag>
+    <Tag type={row.isPaid ? 'success' : row.isClosed ? 'error' : 'warning'}>
+      {row.isPaid ? 'Paid' : row.isClosed ? 'Closed' : 'Pending'}
+    </Tag>
   </td>,
   <td key="amount" style={{textAlign: 'right'}}>
     ${(row.amount / 100).toLocaleString()}

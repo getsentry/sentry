@@ -50,6 +50,7 @@ export enum DataConditionType {
   EVENT_FREQUENCY = 'event_frequency',
   EVENT_UNIQUE_USER_FREQUENCY = 'event_unique_user_frequency',
   PERCENT_SESSIONS = 'percent_sessions',
+  ANOMALY_DETECTION = 'anomaly_detection',
 }
 
 export enum DataConditionGroupLogicType {

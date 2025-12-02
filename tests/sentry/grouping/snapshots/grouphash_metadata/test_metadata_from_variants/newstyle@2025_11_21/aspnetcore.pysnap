@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:55.346447+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,14 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "228c649a3aa0901622c0a0e66ab0522c"
+    hash: "85f90327d3b9ef257838f2664b9915e6"
     contributing component: exception
     hint: None
     root_component:
       app*
         exception*
+          type*
+            "System.Exception"
           stacktrace*
             frame* (marked in-app by the client)
               module*
@@ -41,15 +41,15 @@ contributing variants:
                 "SentryTest2.Controllers.ValuesController"
               function*
                 "Get"
-          type*
-            "System.Exception"
   system*
-    hash: "4ccd0f1953483581ba360c7518f90332"
+    hash: "97dff72812f7f33f6fd01179d7963d07"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "System.Exception"
           stacktrace*
             frame*
               module*
@@ -206,5 +206,3 @@ contributing variants:
                 "SentryTest2.Controllers.ValuesController"
               function*
                 "Get"
-          type*
-            "System.Exception"

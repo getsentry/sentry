@@ -8,7 +8,6 @@ import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 type Params = {
   aggregate: string;
   dataset: Dataset;
-  linkPrefix: string;
   organization: Organization;
   project: Project | undefined;
   environment?: string | string[];
@@ -21,7 +20,6 @@ type Params = {
 export function getMetricMonitorUrl({
   aggregate,
   dataset,
-  linkPrefix,
   organization,
   project,
   name,
@@ -50,7 +48,7 @@ export function getMetricMonitorUrl({
   } as const;
 
   return {
-    pathname: `${makeMonitorBasePathname(organization.slug, linkPrefix)}new/settings/`,
+    pathname: `${makeMonitorBasePathname(organization.slug)}new/settings/`,
     query: queryParams,
   };
 }

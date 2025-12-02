@@ -1,0 +1,38 @@
+---
+title: SlideOverPanel
+description: A multi-purpose panel that can be used to reveal more information in a UI without directing to another page.
+source: 'sentry/components/core/slideOverPanel'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/slideOverPanel.tsx
+---
+
+import * as Storybook from 'sentry/stories';
+
+import {SlideOverPanelPlayground} from 'sentry/stories/playground/slideOverPanel';
+
+import SlideOverDocumentation from '!!type-loader!@sentry/scraps/slideOverPanel';
+
+export const documentation = SlideOverDocumentation;
+
+The `SlideOverPanel` component is a panel that can appear on the right, left, or bottom of the page content to reveal more information. It's commonly used for UIs like the Widget Builder to open panels that provide more details or supplementary UIs.
+
+<Storybook.Demo>
+  <SlideOverPanelPlayground />
+</Storybook.Demo>
+
+<br />
+
+## Basic Usage
+
+```jsx
+<Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
+
+<SlideOverPanel collapsed={!isPanelOpen} slidePosition="right">
+  <Container border="primary" height="100%" padding="md">
+    <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
+  </Container>
+</SlideOverPanel>
+```
+
+> [!NOTE]
+> To enable exit animations, you'll need to wrap `<SlideOverPanel />` in an `<AnimatePresence />` component, and render the panel conditionally (e.g., `{isPanelOpen &&}`) instead of using the `collapsed` prop.

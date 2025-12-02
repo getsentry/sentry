@@ -32,7 +32,6 @@ export function UserDetailsFixture(params: Partial<User> = {}): User {
       avatarType: 'gravatar',
       theme: 'light',
       prefersIssueDetailsStreamlinedUI: false,
-      prefersNextjsInsightsOverview: false,
       prefersChonkUI: false,
     },
     avatar: {avatarUuid: null, avatarType: 'letter_avatar'},

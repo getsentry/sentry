@@ -1,10 +1,11 @@
 import {CommitFixture} from 'sentry-fixture/commit';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import type {ReleaseProject} from 'sentry/types/release';
@@ -15,10 +16,15 @@ import Commits from './commits';
 describe('Commits', () => {
   const release = ReleaseFixture();
   const project = ReleaseProjectFixture() as Required<ReleaseProject>;
-  const {router, organization} = initializeOrg({
-    router: {params: {release: release.version}},
-  });
+  const organization = OrganizationFixture();
   const repos = [RepositoryFixture({integrationId: '1'})];
+  const initialRouterConfig: RouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/releases/${release.version}/commits/`,
+      query: {},
+    },
+    route: '/organizations/:orgId/releases/:release/commits/',
+  };
 
   function renderComponent() {
     return render(
@@ -36,8 +42,8 @@ describe('Commits', () => {
         <Commits />
       </ReleaseContext>,
       {
-        router,
-        deprecatedRouterMocks: true,
+        organization,
+        initialRouterConfig,
       }
     );
   }
@@ -139,13 +145,7 @@ describe('Commits', () => {
       name: 'getsentry/sentry-frontend',
       integrationId: '1',
     });
-    // Current repo is stored in query parameter activeRepo
-    const {router: newRouterContext} = initializeOrg({
-      router: {
-        params: {release: release.version},
-        location: {query: {activeRepo: otherRepo.name}},
-      },
-    });
+
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/releases/${encodeURIComponent(
         release.version
@@ -178,8 +178,14 @@ describe('Commits', () => {
         <Commits />
       </ReleaseContext>,
       {
-        router: newRouterContext,
-        deprecatedRouterMocks: true,
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            query: {activeRepo: otherRepo.name},
+            pathname: `/organizations/${organization.slug}/releases/${release.version}/commits/`,
+          },
+        },
       }
     );
     expect(await screen.findByRole('button')).toHaveTextContent(otherRepo.name);

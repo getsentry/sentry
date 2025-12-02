@@ -1,20 +1,25 @@
 ---
-created: '2025-10-29T21:18:51.007416+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: "4ef1fb44d656c3be2a146971f2a222dc"
+  hash: "3bb283edd206ca9069e3da4ce9c11869"
   contributing component: exception
   hint: None
   root_component:
     app*
       exception*
+        type*
+          "<redacted>"
+        ns_error*
+          domain*
+            "<redacted>"
+          code*
+            2
         stacktrace*
           frame (marked out of app by the client)
             function*
               "start"
-          frame (marked in-app by the client but ignored by stack trace rule (category:threadbase -group v-group))
+          frame (marked in-app by the client but ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "stripped_application_code"
           frame (marked out of app by the client)
@@ -44,7 +49,7 @@ app:
           frame (marked out of app by the client)
             function*
               "_dispatch_call_block_and_release"
-          frame (marked in-app by the client but ignored by stack trace rule (category:internals -group))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
@@ -58,12 +63,12 @@ app:
           frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client but ignored by stack trace rule (category:internals -group))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client but ignored due to recursion)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
@@ -71,7 +76,7 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client but ignored by stack trace rule (category:internals -group))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
@@ -82,27 +87,27 @@ app:
           frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client but ignored by stack trace rule (category:internals -group))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client but ignored due to recursion)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client but ignored due to recursion)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client but ignored due to recursion)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client but ignored due to recursion)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
@@ -122,133 +127,14 @@ app:
           frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-        type*
-          "<redacted>"
-        ns_error*
-          domain*
-            "<redacted>"
-          code*
-            2
 --------------------------------------------------------------------------
 system:
-  hash: "47481871aa8d5ab5729cf2db78ce3032"
+  hash: "ab329c350a2abfdf4798139a4aee0d8b"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
-        stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "start"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "UIApplicationMain"
-          frame*
-            function*
-              "-[UIApplication _run]"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "GSEventRunModal"
-          frame (ignored by stack trace rule (category:indirection -group))
-            function*
-              "CFRunLoopRunSpecific"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "__CFRunLoopRun"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "_dispatch_main_queue_callback_4CF"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "_dispatch_client_callout"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "_dispatch_call_block_and_release"
-          frame (ignored by stack trace rule (category:internals -group))
-            filename*
-              "<compiler-generated>"
-            function*
-              "@callee_guaranteed"
-          frame*
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:internals -group))
-            filename*
-              "<compiler-generated>"
-            function*
-              "@callee_guaranteed"
-          frame (ignored due to recursion)
-            filename*
-              "<compiler-generated>"
-            function*
-              "@callee_guaranteed"
-          frame*
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:internals -group))
-            filename*
-              "<compiler-generated>"
-            function*
-              "@callee_guaranteed"
-          frame*
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:internals -group))
-            filename*
-              "<compiler-generated>"
-            function*
-              "@callee_guaranteed"
-          frame (ignored due to recursion)
-            filename*
-              "<compiler-generated>"
-            function*
-              "@callee_guaranteed"
-          frame (ignored due to recursion)
-            filename*
-              "<compiler-generated>"
-            function*
-              "@callee_guaranteed"
-          frame (ignored due to recursion)
-            filename*
-              "<compiler-generated>"
-            function*
-              "@callee_guaranteed"
-          frame (ignored due to recursion)
-            filename*
-              "<compiler-generated>"
-            function*
-              "@callee_guaranteed"
-          frame*
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
         type*
           "<redacted>"
         ns_error*
@@ -256,3 +142,115 @@ system:
             "<redacted>"
           code*
             2
+        stacktrace*
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+            function*
+              "start"
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+            function*
+              "stripped_application_code"
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+            function*
+              "UIApplicationMain"
+          frame*
+            function*
+              "-[UIApplication _run]"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "GSEventRunModal"
+          frame (ignored by built-in stack trace rule (category:indirection -group))
+            function*
+              "CFRunLoopRunSpecific"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "__CFRunLoopRun"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "_dispatch_main_queue_callback_4CF"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "_dispatch_client_callout"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "_dispatch_call_block_and_release"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"

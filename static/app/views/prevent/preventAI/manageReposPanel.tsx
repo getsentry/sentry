@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 
+import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -8,24 +10,25 @@ import {ExternalLink} from 'sentry/components/core/link';
 import {Switch} from 'sentry/components/core/switch';
 import {Heading, Text} from 'sentry/components/core/text';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import SlideOverPanel from 'sentry/components/slideOverPanel';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
 import type {
+  PreventAIConfig,
   PreventAIFeatureConfigsByName,
-  PreventAIOrgConfig,
   Sensitivity,
 } from 'sentry/types/prevent';
-import useOrganization from 'sentry/utils/useOrganization';
+import {usePreventAIGitHubConfig} from 'sentry/views/prevent/preventAI/hooks/usePreventAIConfig';
 import {useUpdatePreventAIFeature} from 'sentry/views/prevent/preventAI/hooks/useUpdatePreventAIFeature';
+import {getRepoNameWithoutOrg} from 'sentry/views/prevent/preventAI/utils';
 
 export type ManageReposPanelProps = {
   collapsed: boolean;
   isEditingOrgDefaults: boolean;
   onClose: () => void;
   org: OrganizationIntegration;
-  allRepos?: Array<{id: string; name: string}>;
+  allRepos?: Repository[];
   onFocusRepoSelector?: () => void;
   repo?: Repository | null;
 };
@@ -67,14 +70,19 @@ function ManageReposPanel({
   allRepos = [],
   isEditingOrgDefaults,
 }: ManageReposPanelProps) {
-  const organization = useOrganization();
   const {enableFeature, isLoading, error: updateError} = useUpdatePreventAIFeature();
 
-  const canEditSettings =
-    organization.access.includes('org:write') ||
-    organization.access.includes('org:admin');
+  const {
+    data: githubConfigData,
+    isPending: isLoadingConfig,
+    isError: isConfigError,
+  } = usePreventAIGitHubConfig({gitOrgName: org.name});
 
-  if (!organization.preventAiConfigGithub) {
+  if (isLoadingConfig) {
+    return <LoadingIndicator />;
+  }
+
+  if (isConfigError || !githubConfigData) {
     return (
       <Alert type="error">
         {t(
@@ -84,17 +92,21 @@ function ManageReposPanel({
     );
   }
 
+  // If organization is an empty object (Record<string, never>), use default_org_config
   const orgConfig =
-    organization.preventAiConfigGithub.github_organizations[org.name] ??
-    organization.preventAiConfigGithub.default_org_config;
+    githubConfigData.organization && Object.keys(githubConfigData.organization).length > 0
+      ? (githubConfigData.organization as PreventAIConfig)
+      : githubConfigData.default_org_config;
+
+  const githubRepoId = repo?.externalId;
 
   const {doesUseOrgDefaults, repoConfig} = isEditingOrgDefaults
     ? {doesUseOrgDefaults: true, repoConfig: orgConfig.org_defaults}
-    : getRepoConfig(orgConfig, repo?.id ?? '');
+    : getRepoConfig(orgConfig, githubRepoId ?? '');
 
   const repoNamesWithOverrides = allRepos
-    .filter(r => orgConfig.repo_overrides?.hasOwnProperty(r.id))
-    .map(r => r.name);
+    .filter(r => orgConfig.repo_overrides?.hasOwnProperty(r.externalId))
+    .map(r => getRepoNameWithoutOrg(r.name));
 
   return (
     <SlideOverPanel
@@ -184,12 +196,13 @@ function ManageReposPanel({
                 <Switch
                   size="lg"
                   checked={!doesUseOrgDefaults}
-                  disabled={isLoading || !canEditSettings}
+                  disabled={isLoading}
                   onChange={async () => {
                     await enableFeature({
                       feature: 'use_org_defaults',
-                      orgId: org.name,
-                      repoId: repo?.id,
+                      gitOrgName: org.name,
+                      originalConfig: orgConfig,
+                      repoId: githubRepoId,
                       enabled: !doesUseOrgDefaults,
                     });
                   }}
@@ -219,18 +232,15 @@ function ManageReposPanel({
                   <Switch
                     size="lg"
                     checked={repoConfig.vanilla.enabled}
-                    disabled={
-                      isLoading ||
-                      !canEditSettings ||
-                      (!isEditingOrgDefaults && doesUseOrgDefaults)
-                    }
+                    disabled={isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)}
                     onChange={async () => {
                       const newValue = !repoConfig.vanilla.enabled;
                       await enableFeature({
                         feature: 'vanilla',
                         enabled: newValue,
-                        orgId: org.name,
-                        repoId: repo?.id,
+                        gitOrgName: org.name,
+                        originalConfig: orgConfig,
+                        repoId: githubRepoId,
                       });
                     }}
                     aria-label="Enable PR Review"
@@ -253,16 +263,15 @@ function ManageReposPanel({
                           value={repoConfig.vanilla.sensitivity ?? 'medium'}
                           options={sensitivityOptions}
                           disabled={
-                            isLoading ||
-                            !canEditSettings ||
-                            (!isEditingOrgDefaults && doesUseOrgDefaults)
+                            isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)
                           }
                           onChange={async option =>
                             await enableFeature({
                               feature: 'vanilla',
                               enabled: true,
-                              orgId: org.name,
-                              repoId: repo?.id,
+                              gitOrgName: org.name,
+                              originalConfig: orgConfig,
+                              repoId: githubRepoId,
                               sensitivity: option.value,
                             })
                           }
@@ -275,44 +284,6 @@ function ManageReposPanel({
                     </Flex>
                   </Flex>
                 )}
-              </Flex>
-
-              {/* Test Generation Feature */}
-              <Flex direction="column">
-                <Flex
-                  border="muted"
-                  radius="md"
-                  background="secondary"
-                  padding="lg xl"
-                  align="center"
-                  justify="between"
-                >
-                  <Flex direction="column" gap="sm">
-                    <Text size="md">{t('Enable Test Generation')}</Text>
-                    <Text variant="muted" size="sm">
-                      {t('Run when @sentry generate-test is commented on a PR.')}
-                    </Text>
-                  </Flex>
-                  <Switch
-                    size="lg"
-                    checked={repoConfig.test_generation.enabled}
-                    disabled={
-                      isLoading ||
-                      !canEditSettings ||
-                      (!isEditingOrgDefaults && doesUseOrgDefaults)
-                    }
-                    onChange={async () => {
-                      const newValue = !repoConfig.test_generation.enabled;
-                      await enableFeature({
-                        feature: 'test_generation',
-                        enabled: newValue,
-                        orgId: org.name,
-                        repoId: repo?.id,
-                      });
-                    }}
-                    aria-label="Enable Test Generation"
-                  />
-                </Flex>
               </Flex>
 
               {/* Error Prediction Feature with SubItems */}
@@ -334,18 +305,15 @@ function ManageReposPanel({
                   <Switch
                     size="lg"
                     checked={repoConfig.bug_prediction.enabled}
-                    disabled={
-                      isLoading ||
-                      !canEditSettings ||
-                      (!isEditingOrgDefaults && doesUseOrgDefaults)
-                    }
+                    disabled={isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)}
                     onChange={async () => {
                       const newValue = !repoConfig.bug_prediction.enabled;
                       await enableFeature({
                         feature: 'bug_prediction',
                         enabled: newValue,
-                        orgId: org.name,
-                        repoId: repo?.id,
+                        gitOrgName: org.name,
+                        originalConfig: orgConfig,
+                        repoId: githubRepoId,
                       });
                     }}
                     aria-label="Enable Error Prediction"
@@ -368,16 +336,15 @@ function ManageReposPanel({
                           value={repoConfig.bug_prediction.sensitivity ?? 'medium'}
                           options={sensitivityOptions}
                           disabled={
-                            isLoading ||
-                            !canEditSettings ||
-                            (!isEditingOrgDefaults && doesUseOrgDefaults)
+                            isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)
                           }
                           onChange={async option =>
                             await enableFeature({
                               feature: 'bug_prediction',
                               enabled: true,
-                              orgId: org.name,
-                              repoId: repo?.id,
+                              gitOrgName: org.name,
+                              originalConfig: orgConfig,
+                              repoId: githubRepoId,
                               sensitivity: option.value,
                             })
                           }
@@ -403,9 +370,7 @@ function ManageReposPanel({
                           size="lg"
                           checked={repoConfig.bug_prediction.triggers.on_ready_for_review}
                           disabled={
-                            isLoading ||
-                            !canEditSettings ||
-                            (!isEditingOrgDefaults && doesUseOrgDefaults)
+                            isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)
                           }
                           onChange={async () => {
                             const newValue =
@@ -414,11 +379,45 @@ function ManageReposPanel({
                               feature: 'bug_prediction',
                               trigger: {on_ready_for_review: newValue},
                               enabled: true,
-                              orgId: org.name,
-                              repoId: repo?.id,
+                              gitOrgName: org.name,
+                              originalConfig: orgConfig,
+                              repoId: githubRepoId,
                             });
                           }}
                           aria-label="Auto Run on Opened Pull Requests"
+                        />
+                      </FieldGroup>
+                      <FieldGroup
+                        label={<Text size="md">{t('Auto Run on New Commits')}</Text>}
+                        help={
+                          <Text size="xs" variant="muted">
+                            {t('Run when new commits are pushed to a PR.')}
+                          </Text>
+                        }
+                        alignRight
+                        flexibleControlStateSize
+                      >
+                        <Switch
+                          size="lg"
+                          checked={
+                            repoConfig.bug_prediction.triggers.on_new_commit ?? false
+                          }
+                          disabled={
+                            isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)
+                          }
+                          onChange={async () => {
+                            const newValue =
+                              !repoConfig.bug_prediction.triggers.on_new_commit;
+                            await enableFeature({
+                              feature: 'bug_prediction',
+                              trigger: {on_new_commit: newValue},
+                              enabled: true,
+                              gitOrgName: org.name,
+                              originalConfig: orgConfig,
+                              repoId: githubRepoId,
+                            });
+                          }}
+                          aria-label="Auto Run on New Commits"
                         />
                       </FieldGroup>
                       <FieldGroup
@@ -435,9 +434,7 @@ function ManageReposPanel({
                           size="lg"
                           checked={repoConfig.bug_prediction.triggers.on_command_phrase}
                           disabled={
-                            isLoading ||
-                            !canEditSettings ||
-                            (!isEditingOrgDefaults && doesUseOrgDefaults)
+                            isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)
                           }
                           onChange={async () => {
                             const newValue =
@@ -446,8 +443,9 @@ function ManageReposPanel({
                               feature: 'bug_prediction',
                               trigger: {on_command_phrase: newValue},
                               enabled: true,
-                              orgId: org.name,
-                              repoId: repo?.id,
+                              gitOrgName: org.name,
+                              originalConfig: orgConfig,
+                              repoId: githubRepoId,
                             });
                           }}
                           aria-label="Run When Mentioned"
@@ -471,10 +469,10 @@ interface GetRepoConfigResult {
 }
 
 export function getRepoConfig(
-  orgConfig: PreventAIOrgConfig,
+  orgConfig: PreventAIConfig,
   repoId: string
 ): GetRepoConfigResult {
-  const repoConfig = orgConfig.repo_overrides[repoId];
+  const repoConfig = orgConfig.repo_overrides?.[repoId];
   if (repoConfig) {
     return {
       doesUseOrgDefaults: false,

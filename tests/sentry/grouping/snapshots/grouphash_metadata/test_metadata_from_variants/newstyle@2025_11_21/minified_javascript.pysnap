@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:58.410687+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,14 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "dcfcd48a02c100bbe4023cbc783054f0"
+    hash: "e1b3abdef8ab7e7c723645e9f52a44c6"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "NS_ERROR_NOT_INITIALIZED"
           stacktrace*
             frame*
               module*
@@ -123,5 +123,3 @@ contributing variants:
             frame*
               module*
                 "sentry/dist/vendor"
-          type*
-            "NS_ERROR_NOT_INITIALIZED"

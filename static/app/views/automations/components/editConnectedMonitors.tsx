@@ -16,10 +16,10 @@ import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {makeDetectorListQueryKey} from 'sentry/views/detectors/hooks';
-import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 
 interface Props {
@@ -65,6 +65,7 @@ function AllMonitors({
     setSearchQuery(query);
     setCursor(undefined);
   }, []);
+  const {selection} = usePageFilters();
 
   return (
     <PageFiltersContainer>
@@ -84,6 +85,7 @@ function AllMonitors({
           cursor={cursor}
           onCursor={setCursor}
           query={searchQuery}
+          projectIds={selection.projects}
           openInNewTab
         />
       </Section>
@@ -111,6 +113,7 @@ function ConnectMonitorsDrawer({
         makeDetectorListQueryKey({
           orgSlug: organization.slug,
           ids: localDetectorIds,
+          includeIssueStreamDetectors: true,
         })
       ) ?? [];
 
@@ -127,6 +130,7 @@ function ConnectMonitorsDrawer({
       makeDetectorListQueryKey({
         orgSlug: organization.slug,
         ids: newDetectorIds,
+        includeIssueStreamDetectors: true,
       }),
       newDetectors
     );
@@ -153,7 +157,6 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
   const ref = useRef<HTMLButtonElement>(null);
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const organization = useOrganization();
-  const {monitorsLinkPrefix} = useMonitorViewContext();
 
   const toggleDrawer = () => {
     if (isDrawerOpen) {
@@ -198,7 +201,7 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
           <LinkButton
             size="sm"
             icon={<IconAdd />}
-            href={makeMonitorCreatePathname(organization.slug, monitorsLinkPrefix)}
+            href={makeMonitorCreatePathname(organization.slug)}
             external
           >
             {t('Create New Monitor')}

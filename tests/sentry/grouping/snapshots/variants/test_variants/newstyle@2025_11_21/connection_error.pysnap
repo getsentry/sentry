@@ -1,15 +1,17 @@
 ---
-created: '2025-10-29T21:18:51.107350+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: "6b059b9febc815ac18ac4d2082e38a9b"
+  hash: "452f63c005af7ac8bd3ce1f988b04471"
   contributing component: exception
   hint: None
   root_component:
     app*
       exception*
+        type*
+          "ConnectionError"
+        value (ignored because stacktrace takes precedence)
+          "Error while reading from socket: ('Connection closed by server.',)"
         stacktrace*
           frame* (marked in-app by the client)
             module*
@@ -110,10 +112,6 @@ app:
               "read_response"
             context_line*
               "(e.args,))"
-        type*
-          "ConnectionError"
-        value (ignored because stacktrace takes precedence)
-          "Error while reading from socket: ('Connection closed by server.',)"
 --------------------------------------------------------------------------
 default:
   hash: null
@@ -125,12 +123,16 @@ default:
         "%s.process_error"
 --------------------------------------------------------------------------
 system:
-  hash: "013d3477a774fe20c468dc8accd516f1"
+  hash: "b23d305fce7a3c4343f5c57a2937bfad"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "ConnectionError"
+        value (ignored because stacktrace takes precedence)
+          "Error while reading from socket: ('Connection closed by server.',)"
         stacktrace*
           frame*
             module*
@@ -231,7 +233,3 @@ system:
               "read_response"
             context_line*
               "(e.args,))"
-        type*
-          "ConnectionError"
-        value (ignored because stacktrace takes precedence)
-          "Error while reading from socket: ('Connection closed by server.',)"

@@ -1,3 +1,5 @@
+import base64
+import binascii
 import time
 import uuid
 from typing import NamedTuple
@@ -43,6 +45,10 @@ def generate_conduit_token(
         conduit_private_key = settings.CONDUIT_GATEWAY_PRIVATE_KEY
         if conduit_private_key is None:
             raise ValueError("CONDUIT_GATEWAY_PRIVATE_KEY not configured")
+    try:
+        conduit_private_key_decoded = base64.b64decode(conduit_private_key).decode("utf-8")
+    except (binascii.Error, UnicodeDecodeError) as e:
+        raise ValueError("CONDUIT_GATEWAY_PRIVATE_KEY is not valid base64") from e
 
     now = int(time.time())
     exp = now + TOKEN_TTL_SEC
@@ -55,7 +61,7 @@ def generate_conduit_token(
         "iss": issuer,
         "aud": audience,
     }
-    return jwt.encode(payload, conduit_private_key, algorithm="RS256")
+    return jwt.encode(payload, conduit_private_key_decoded, algorithm="RS256")
 
 
 def get_conduit_credentials(

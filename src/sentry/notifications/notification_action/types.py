@@ -33,7 +33,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
     IntegrationFormError,
 )
-from sentry.taskworker.retry import RetryError
+from sentry.taskworker.retry import RetryTaskError
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
@@ -97,7 +97,7 @@ def invoke_future_with_error_handling(
         # monitor and potentially retry this action.
         raise
     except RETRYABLE_EXCEPTIONS as e:
-        raise RetryError from e
+        raise RetryTaskError from e
     except Exception as e:
         # This is just a redefinition of the safe_execute util function, as we
         # still want to report any unhandled exceptions.
@@ -486,13 +486,6 @@ class BaseMetricAlertHandler(ABC):
         if isinstance(event, GroupEvent):
             evidence_data, priority = cls._extract_from_group_event(event)
         elif isinstance(event, Activity):
-            # we only want to fire resolution activities if we are single processing
-            if not features.has(
-                "organizations:workflow-engine-single-process-metric-issues",
-                event_data.group.organization,
-            ):
-                return
-
             evidence_data, priority = cls._extract_from_activity(event)
         else:
             raise ValueError(

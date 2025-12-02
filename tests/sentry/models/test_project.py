@@ -36,7 +36,8 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import Detector, DetectorWorkflow
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
 class ProjectTest(APITestCase, TestCase):
@@ -445,7 +446,7 @@ class ProjectTest(APITestCase, TestCase):
         # Ensure the mock starts clean before the save operation
         mock_lock.reset_mock()
         Project.objects.create(organization=self.organization)
-        assert mock_lock.call_count == 1
+        assert mock_lock.call_count == 3  # 1 lock for cached org, 2 locks for default detectors
 
     @patch("sentry.models.project.locks.get")
     def test_lock_is_not_acquired_when_updating_project(self, mock_lock: MagicMock) -> None:
@@ -476,13 +477,168 @@ class ProjectTest(APITestCase, TestCase):
         assert alert_rule.team_id is None
         assert alert_rule.user_id is None
 
-    def test_project_detector(self) -> None:
-        project = self.create_project()
-        assert not Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
+    def test_project_detectors(self) -> None:
+        project = self.create_project(create_default_detectors=True)
+        assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).count() == 1
+        assert Detector.objects.filter(project=project, type=IssueStreamGroupType.slug).count() == 1
 
-        with self.feature({"organizations:workflow-engine-issue-alert-dual-write": True}):
-            project = self.create_project()
-            assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
+    def test_transfer_to_organization_with_metric_issue_detector_and_workflow(self) -> None:
+        from_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        to_org = self.create_organization()
+        project = self.create_project(teams=[team])
+
+        detector = self.create_detector(project=project)
+        data_source = self.create_data_source(organization=from_org)
+        data_source.detectors.add(detector)
+        workflow = self.create_workflow(organization=from_org)
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+
+        project.transfer_to(organization=to_org)
+
+        project.refresh_from_db()
+        detector.refresh_from_db()
+        data_source.refresh_from_db()
+        workflow.refresh_from_db()
+
+        assert project.organization_id == to_org.id
+        assert detector.project_id == project.id
+        assert data_source.organization_id == to_org.id
+        assert workflow.organization_id == to_org.id
+        assert DetectorWorkflow.objects.filter(detector=detector, workflow=workflow).exists()
+
+    def test_transfer_to_organization_with_workflow_data_condition_groups(self) -> None:
+        from_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        to_org = self.create_organization()
+        project = self.create_project(teams=[team])
+
+        detector = self.create_detector(project=project)
+        workflow = self.create_workflow(organization=from_org)
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+        condition_group = self.create_data_condition_group(organization=from_org)
+        self.create_workflow_data_condition_group(
+            workflow=workflow, condition_group=condition_group
+        )
+
+        project.transfer_to(organization=to_org)
+
+        project.refresh_from_db()
+        detector.refresh_from_db()
+        workflow.refresh_from_db()
+        condition_group.refresh_from_db()
+
+        assert project.organization_id == to_org.id
+        assert detector.project_id == project.id
+        assert workflow.organization_id == to_org.id
+        assert condition_group.organization_id == to_org.id
+        wdcg = condition_group.workflowdataconditiongroup_set.first()
+        assert wdcg is not None
+        assert wdcg.workflow_id == workflow.id
+
+    def test_transfer_to_organization_does_not_transfer_shared_workflows(self) -> None:
+        from_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        to_org = self.create_organization()
+
+        project_a = self.create_project(teams=[team], name="Project A")
+        project_b = self.create_project(teams=[team], organization=from_org, name="Project B")
+
+        detector_a = self.create_detector(project=project_a)
+        detector_b = self.create_detector(project=project_b)
+
+        shared_workflow = self.create_workflow(organization=from_org, name="Shared Workflow")
+        self.create_detector_workflow(detector=detector_a, workflow=shared_workflow)
+        self.create_detector_workflow(detector=detector_b, workflow=shared_workflow)
+
+        exclusive_workflow = self.create_workflow(organization=from_org, name="Exclusive Workflow")
+        self.create_detector_workflow(detector=detector_a, workflow=exclusive_workflow)
+
+        shared_dcg = self.create_data_condition_group(organization=from_org)
+        self.create_workflow_data_condition_group(
+            workflow=shared_workflow, condition_group=shared_dcg
+        )
+
+        exclusive_dcg = self.create_data_condition_group(organization=from_org)
+        self.create_workflow_data_condition_group(
+            workflow=exclusive_workflow, condition_group=exclusive_dcg
+        )
+
+        project_a.transfer_to(organization=to_org)
+
+        project_a.refresh_from_db()
+        project_b.refresh_from_db()
+        detector_a.refresh_from_db()
+        detector_b.refresh_from_db()
+        shared_workflow.refresh_from_db()
+        exclusive_workflow.refresh_from_db()
+        shared_dcg.refresh_from_db()
+        exclusive_dcg.refresh_from_db()
+
+        assert project_a.organization_id == to_org.id
+        assert project_b.organization_id == from_org.id
+        assert detector_a.project_id == project_a.id
+        assert detector_b.project_id == project_b.id
+        assert shared_workflow.organization_id == from_org.id
+        assert exclusive_workflow.organization_id == to_org.id
+        assert shared_dcg.organization_id == from_org.id
+        assert exclusive_dcg.organization_id == to_org.id
+        assert DetectorWorkflow.objects.filter(
+            detector=detector_a, workflow=shared_workflow
+        ).exists()
+        assert DetectorWorkflow.objects.filter(
+            detector=detector_b, workflow=shared_workflow
+        ).exists()
+        assert DetectorWorkflow.objects.filter(
+            detector=detector_a, workflow=exclusive_workflow
+        ).exists()
+
+    def test_transfer_to_organization_with_detector_workflow_condition_group(self) -> None:
+        from_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        to_org = self.create_organization()
+        project = self.create_project(teams=[team])
+
+        detector = self.create_detector(project=project)
+        workflow_condition_group = self.create_data_condition_group(organization=from_org)
+        detector.workflow_condition_group = workflow_condition_group
+        detector.save()
+
+        project.transfer_to(organization=to_org)
+
+        project.refresh_from_db()
+        detector.refresh_from_db()
+        workflow_condition_group.refresh_from_db()
+
+        assert project.organization_id == to_org.id
+        assert detector.project_id == project.id
+        assert workflow_condition_group.organization_id == to_org.id
+        assert detector.workflow_condition_group_id == workflow_condition_group.id
+
+    def test_transfer_to_organization_with_workflow_when_condition_groups(self) -> None:
+        from_org = self.create_organization()
+        to_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        project = self.create_project(teams=[team])
+
+        detector = self.create_detector(project=project)
+        when_condition_group = self.create_data_condition_group(organization=from_org)
+        workflow = self.create_workflow(
+            organization=from_org, when_condition_group=when_condition_group
+        )
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+
+        project.transfer_to(organization=to_org)
+
+        project.refresh_from_db()
+        detector.refresh_from_db()
+        workflow.refresh_from_db()
+        when_condition_group.refresh_from_db()
+
+        assert project.organization_id == to_org.id
+        assert detector.project_id == project.id
+        assert workflow.organization_id == to_org.id
+        assert when_condition_group.organization_id == to_org.id
 
 
 class ProjectOptionsTests(TestCase):

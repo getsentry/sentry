@@ -10,6 +10,7 @@ export const UPTIME_DEFAULT_DOWNTIME_THRESHOLD = 3;
 
 interface UptimeDetectorFormData {
   body: string;
+  description: string | null;
   downtimeThreshold: number;
   environment: string;
   headers: Array<[string, string]>;
@@ -30,10 +31,11 @@ export function uptimeFormDataToEndpointPayload(
 ): UptimeDetectorUpdatePayload {
   return {
     type: 'uptime_domain_failure',
-    name: data.name,
+    name: data.name || 'New Monitor',
     owner: data.owner,
     projectId: data.projectId,
     workflowIds: data.workflowIds,
+    description: data.description || null,
     dataSources: [
       {
         intervalSeconds: data.intervalSeconds,
@@ -69,6 +71,7 @@ export function uptimeSavedDetectorToFormData(
     projectId: detector.projectId,
     recoveryThreshold,
     downtimeThreshold,
+    description: detector.description || null,
   };
 
   if (dataSource?.type === 'uptime_subscription') {

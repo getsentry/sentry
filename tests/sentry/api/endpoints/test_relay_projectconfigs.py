@@ -175,6 +175,7 @@ def test_parse_retentions(call_endpoint, default_project):
             DataCategory.REPLAY: RetentionSettings(standard=11, downsampled=21),
             DataCategory.SPAN: RetentionSettings(standard=12, downsampled=22),
             DataCategory.LOG_BYTE: RetentionSettings(standard=13, downsampled=23),
+            DataCategory.TRACE_METRIC: RetentionSettings(standard=14, downsampled=24),
         }
         quotas_mock.get_event_retention = lambda x: 45
         quotas_mock.get_downsampled_event_retention = lambda x: 90
@@ -189,6 +190,7 @@ def test_parse_retentions(call_endpoint, default_project):
         assert safe.get_path(cfg, "config", "retentions") == {
             "span": {"standard": 12, "downsampled": 22},
             "log": {"standard": 13, "downsampled": 23},
+            "traceMetric": {"standard": 14, "downsampled": 24},
         }
 
 

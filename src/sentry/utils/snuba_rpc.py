@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Protocol, TypeVar
 
-import sentry_protos.snuba.v1alpha.request_common_pb2
 import sentry_sdk
 import sentry_sdk.scope
 import urllib3
@@ -15,6 +14,10 @@ from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
     CreateSubscriptionRequest,
     CreateSubscriptionResponse,
+)
+from sentry_protos.snuba.v1.endpoint_delete_trace_items_pb2 import (
+    DeleteTraceItemsRequest,
+    DeleteTraceItemsResponse,
 )
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest, GetTraceResponse
 from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import GetTracesRequest, GetTracesResponse
@@ -38,6 +41,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableResponse,
 )
 from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from urllib3.response import BaseHTTPResponse
 
 from sentry.utils.snuba import SnubaError, _snuba_pool
@@ -76,10 +80,7 @@ class SnubaRPCRequest(Protocol):
     @property
     def meta(
         self,
-    ) -> (
-        sentry_protos.snuba.v1alpha.request_common_pb2.RequestMeta
-        | sentry_protos.snuba.v1.request_common_pb2.RequestMeta
-    ): ...
+    ) -> RequestMeta: ...
 
 
 def table_rpc(requests: list[TraceItemTableRequest]) -> list[TraceItemTableResponse]:
@@ -117,6 +118,9 @@ def _make_rpc_requests(
     assert (
         len(referrers) == len(requests) == len(endpoint_names)
     ), "Length of Referrers must match length of requests for making requests"
+
+    if referrers:
+        sentry_sdk.set_tag("query.referrer", referrers[0])
 
     # Sets the thread parameters once so we're not doing it in the map repeatedly
     partial_request = partial(
@@ -189,6 +193,17 @@ def trace_item_details_rpc(req: TraceItemDetailsRequest) -> TraceItemDetailsResp
     """
     resp = _make_rpc_request("EndpointTraceItemDetails", "v1", req.meta.referrer, req)
     response = TraceItemDetailsResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
+def delete_trace_items_rpc(req: DeleteTraceItemsRequest) -> DeleteTraceItemsResponse:
+    """
+    An RPC which deletes trace items matching the filters specified in the request.
+    Used for deleting EAP trace items (e.g. occurrences).
+    """
+    resp = _make_rpc_request("EndpointDeleteTraceItems", "v1", req.meta.referrer, req)
+    response = DeleteTraceItemsResponse()
     response.ParseFromString(resp.data)
     return response
 

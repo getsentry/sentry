@@ -1,16 +1,18 @@
 ---
-created: '2025-10-29T21:18:53.140706+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: "19163f3ca34f5995c69d85351ce3d697"
+  hash: "b0dbf92202bf38adc8710e8ccd55d3df"
   contributing component: exception
   hint: None
   fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\""}}
   root_component:
     app*
       exception*
+        type*
+          "SoftTimeLimitExceeded"
+        value (ignored because stacktrace takes precedence)
+          "SoftTimeLimitExceeded()"
         stacktrace*
           frame* (marked in-app by the client)
             module*
@@ -165,20 +167,20 @@ app:
               "soft_timeout_sighandler"
             context_line*
               "raise SoftTimeLimitExceeded()"
-        type*
-          "SoftTimeLimitExceeded"
-        value (ignored because stacktrace takes precedence)
-          "SoftTimeLimitExceeded()"
   values: ["{{ default }}","soft-timelimit-exceeded"]
 --------------------------------------------------------------------------
 system:
-  hash: "847950eb44d280e6758d136c763d6ddc"
+  hash: "e440cd285687bab8b861ff96fe713929"
   contributing component: exception
   hint: None
   fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\""}}
   root_component:
     system*
       exception*
+        type*
+          "SoftTimeLimitExceeded"
+        value (ignored because stacktrace takes precedence)
+          "SoftTimeLimitExceeded()"
         stacktrace*
           frame*
             module*
@@ -333,8 +335,4 @@ system:
               "soft_timeout_sighandler"
             context_line*
               "raise SoftTimeLimitExceeded()"
-        type*
-          "SoftTimeLimitExceeded"
-        value (ignored because stacktrace takes precedence)
-          "SoftTimeLimitExceeded()"
   values: ["{{ default }}","soft-timelimit-exceeded"]

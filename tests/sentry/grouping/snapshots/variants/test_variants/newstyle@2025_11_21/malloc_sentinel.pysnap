@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.738417+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,6 +8,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "SIGABRT"
+        value*
+          "<redacted>"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             function*
@@ -95,20 +97,20 @@ app:
           frame (marked out of app by the client)
             function*
               "__pthread_kill"
-        type*
-          "SIGABRT"
-        value*
-          "<redacted>"
 --------------------------------------------------------------------------
 system:
-  hash: "70b7b816193e06eb5d6649989fbaf605"
+  hash: "44fcfaf834a1238bfaa22fcfabeea65f"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "SIGABRT"
+        value (ignored because stacktrace takes precedence)
+          "<redacted>"
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "_pthread_start"
           frame*
@@ -171,7 +173,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "std::__1::basic_string<T>::~basic_string"
           frame*
@@ -180,19 +182,15 @@ system:
           frame*
             function*
               "malloc_report"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "malloc_vreport"
-          frame*
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
             function*
               "pthread_kill"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
             function*
               "__pthread_kill"
-        type*
-          "SIGABRT"
-        value (ignored because stacktrace takes precedence)
-          "<redacted>"

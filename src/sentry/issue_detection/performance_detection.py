@@ -203,6 +203,7 @@ def get_merged_settings(project_id: int | None = None) -> dict[str | Any, Any]:
         "sql_injection_query_value_length_threshold": options.get(
             "performance.issues.sql_injection.query_value_length_threshold"
         ),
+        "web_vitals_count": options.get("performance.issues.web_vitals.count_threshold"),
     }
 
     default_project_settings = (

@@ -174,12 +174,10 @@ function ReleaseHeader({
 
       <Layout.HeaderActions>
         <ReleaseActions
-          organization={organization}
           projectSlug={project.slug}
           release={release}
           releaseMeta={releaseMeta}
           refetchData={refetchData}
-          location={location}
         />
       </Layout.HeaderActions>
 

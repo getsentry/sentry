@@ -1,2079 +1,2040 @@
 ---
-created: '2025-10-30T17:09:41.681034+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
-  "app_exception_stacktrace": {
-    "component": {
+  "grouping_config": "newstyle:2025-11-21",
+  "variants": {
+    "app_exception_stacktrace": {
+      "component": {
+        "contributes": false,
+        "hint": "ignored because system exception takes precedence",
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": false,
+            "hint": "ignored because this variant does not have a contributing stacktrace, but the system variant does",
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "NS_ERROR_NOT_INITIALIZED"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": null,
+                "id": "value",
+                "name": null,
+                "values": []
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because it contains no in-app frames",
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "M"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} o,r;for(b&&(o=i.domain)&&o.exit();t;){r=t.fn,t=t.next;try{r()}catch(o){throw t?n():e=void 0,o}}e=void 0,o&&o.enter()};if(b)n=function(){i.n {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "S/<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} ,M):b(n)):M(o)}catch(t){a&&!i&&a.exit(),M(t)}};n.length>p;)i(n[p++]);t._c=[],t._n=!1,e&&!t._h&&x(t)})}},x=function(t){d.call(b,function(){va {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "i"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} ry{c?(r||(2==t._h&&T(t),t._h=1),!0===c?n=o:(a&&a.enter(),n=c(o),a&&(a.exit(),i=!0)),n===e.promise?M(y(\"Promise-chain cycle\")):(p=N(n))?p.cal {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "b"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} ply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.lo {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "n"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "g/</t[e]"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_invoke</<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "W"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/app"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "app.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "e/<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} (e.t0)&&n<I)){e.next=12;break}return n++,e.abrupt(\"return\",a());case 12:throw e.t0;case 13:case\"end\":return e.stop()}},e,this,[[0,7]])}));re {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/app"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "app.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "e/</a</<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} urn e.stop()}},e,this,[[0,7]])}));return function(){return e.apply(this,arguments)}}(),e.abrupt(\"return\",a());case 3:case\"end\":return e.stop {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "exports/<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} unction(t){return function(){var e=this,o=arguments;return new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)} {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "L"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} function(t){O(this,L,\"Promise\",\"_h\"),s(t),o.call(this);try{t(M(H,this,1),M(C,this,1))}catch(t){C.call(this,t)}},(o=function(t){this._c=[],th {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "exports/</<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.load(n(1467))},,function( {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "c"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,funct {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "n"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "g/</t[e]"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_invoke</<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "W"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/app"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "app.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "e/<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} r(;;)switch(e.prev=e.next){case 0:return e.prev=0,e.next=3,t();case 3:return r=e.sent,e.abrupt(\"return\",r.default||r);case 7:if(e.prev=7,e.t {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/app"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "app.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "componentPromise"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} orgId/issues/:groupId/\",componentPromise:function(){return n.e(75).then(n.bind(null,2497))},component:Object(cs.default)(Zt.a)},b.a.createEl {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/app"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "app.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": "trimmed javascript function",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "e"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} \"+i+\")\");o.type=a,o.request=i,n[1](o)}r[e]=void 0}};var c=setTimeout(function(){i({type:\"timeout\",target:s})},12e4);s.onerror=s.onload=i,do {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "wrapTimeFunction/<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} ism:{data:{function:Dt(t)},handled:!0,type:\"instrument\"}}),t.apply(this,e)}},t.prototype.wrapRAF=function(t){return function(e){return t(Et( {snip}"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": false,
+      "description": "exception stacktrace — in-app frames",
+      "hash": null,
       "hint": "ignored because system exception takes precedence",
-      "id": "app",
-      "name": "in-app",
-      "values": [
-        {
-          "contributes": false,
-          "hint": "ignored because this variant does not have a contributing stacktrace, but the system variant does",
-          "id": "exception",
-          "name": "exception",
-          "values": [
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "NS_ERROR_NOT_INITIALIZED"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": []
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because it contains no in-app frames",
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": [
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "M"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} o,r;for(b&&(o=i.domain)&&o.exit();t;){r=t.fn,t=t.next;try{r()}catch(o){throw t?n():e=void 0,o}}e=void 0,o&&o.enter()};if(b)n=function(){i.n {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "S/<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} ,M):b(n)):M(o)}catch(t){a&&!i&&a.exit(),M(t)}};n.length>p;)i(n[p++]);t._c=[],t._n=!1,e&&!t._h&&x(t)})}},x=function(t){d.call(b,function(){va {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "i"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} ry{c?(r||(2==t._h&&T(t),t._h=1),!0===c?n=o:(a&&a.enter(),n=c(o),a&&(a.exit(),i=!0)),n===e.promise?M(y(\"Promise-chain cycle\")):(p=N(n))?p.cal {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "b"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} ply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.lo {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "n"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "g/</t[e]"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_invoke</<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "W"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/app"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "app.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "e/<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} (e.t0)&&n<I)){e.next=12;break}return n++,e.abrupt(\"return\",a());case 12:throw e.t0;case 13:case\"end\":return e.stop()}},e,this,[[0,7]])}));re {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/app"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "app.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "e/</a</<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} urn e.stop()}},e,this,[[0,7]])}));return function(){return e.apply(this,arguments)}}(),e.abrupt(\"return\",a());case 3:case\"end\":return e.stop {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "exports/<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} unction(t){return function(){var e=this,o=arguments;return new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)} {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "L"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} function(t){O(this,L,\"Promise\",\"_h\"),s(t),o.call(this);try{t(M(H,this,1),M(C,this,1))}catch(t){C.call(this,t)}},(o=function(t){this._c=[],th {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "exports/</<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.load(n(1467))},,function( {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "c"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,funct {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "n"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "g/</t[e]"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_invoke</<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "W"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/app"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "app.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "e/<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} r(;;)switch(e.prev=e.next){case 0:return e.prev=0,e.next=3,t();case 3:return r=e.sent,e.abrupt(\"return\",r.default||r);case 7:if(e.prev=7,e.t {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/app"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "app.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "componentPromise"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} orgId/issues/:groupId/\",componentPromise:function(){return n.e(75).then(n.bind(null,2497))},component:Object(cs.default)(Zt.a)},b.a.createEl {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/app"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "app.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": "trimmed javascript function",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "e"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} \"+i+\")\");o.type=a,o.request=i,n[1](o)}r[e]=void 0}};var c=setTimeout(function(){i({type:\"timeout\",target:s})},12e4);s.onerror=s.onload=i,do {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "wrapTimeFunction/<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} ism:{data:{function:Dt(t)},handled:!0,type:\"instrument\"}}),t.apply(this,e)}},t.prototype.wrapRAF=function(t){return function(e){return t(Et( {snip}"
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
+      "key": "app_exception_stacktrace",
+      "type": "component"
     },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": false,
-    "description": "exception stacktrace — in-app frames",
-    "hash": null,
-    "hint": "ignored because system exception takes precedence",
-    "key": "app_exception_stacktrace",
-    "type": "component"
-  },
-  "system_exception_stacktrace": {
-    "component": {
+    "system_exception_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "NS_ERROR_NOT_INITIALIZED"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": null,
+                "id": "value",
+                "name": null,
+                "values": []
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "M"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} o,r;for(b&&(o=i.domain)&&o.exit();t;){r=t.fn,t=t.next;try{r()}catch(o){throw t?n():e=void 0,o}}e=void 0,o&&o.enter()};if(b)n=function(){i.n {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "S/<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} ,M):b(n)):M(o)}catch(t){a&&!i&&a.exit(),M(t)}};n.length>p;)i(n[p++]);t._c=[],t._n=!1,e&&!t._h&&x(t)})}},x=function(t){d.call(b,function(){va {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "i"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} ry{c?(r||(2==t._h&&T(t),t._h=1),!0===c?n=o:(a&&a.enter(),n=c(o),a&&(a.exit(),i=!0)),n===e.promise?M(y(\"Promise-chain cycle\")):(p=N(n))?p.cal {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "b"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} ply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.lo {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "n"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "g/</t[e]"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_invoke</<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "W"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/app"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "app.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "e/<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} (e.t0)&&n<I)){e.next=12;break}return n++,e.abrupt(\"return\",a());case 12:throw e.t0;case 13:case\"end\":return e.stop()}},e,this,[[0,7]])}));re {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/app"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "app.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "e/</a</<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} urn e.stop()}},e,this,[[0,7]])}));return function(){return e.apply(this,arguments)}}(),e.abrupt(\"return\",a());case 3:case\"end\":return e.stop {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "exports/<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} unction(t){return function(){var e=this,o=arguments;return new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)} {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "L"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} function(t){O(this,L,\"Promise\",\"_h\"),s(t),o.call(this);try{t(M(H,this,1),M(C,this,1))}catch(t){C.call(this,t)}},(o=function(t){this._c=[],th {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "exports/</<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.load(n(1467))},,function( {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "c"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,funct {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "n"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "g/</t[e]"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_invoke</<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "W"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/app"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "app.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "e/<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} r(;;)switch(e.prev=e.next){case 0:return e.prev=0,e.next=3,t();case 3:return r=e.sent,e.abrupt(\"return\",r.default||r);case 7:if(e.prev=7,e.t {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/app"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "app.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "componentPromise"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} orgId/issues/:groupId/\",componentPromise:function(){return n.e(75).then(n.bind(null,2497))},component:Object(cs.default)(Zt.a)},b.a.createEl {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/app"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "app.js"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": "trimmed javascript function",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "e"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} \"+i+\")\");o.type=a,o.request=i,n[1](o)}r[e]=void 0}};var c=setTimeout(function(){i({type:\"timeout\",target:s})},12e4);s.onerror=s.onload=i,do {snip}"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry/dist/vendor"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because frame points to a URL",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "vendor.js"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "wrapTimeFunction/<"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because line is too long",
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "{snip} ism:{data:{function:Dt(t)},handled:!0,type:\"instrument\"}}),t.apply(this,e)}},t.prototype.wrapRAF=function(t){return function(e){return t(Et( {snip}"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": true,
+      "description": "exception stacktrace — all frames",
+      "hash": "e1b3abdef8ab7e7c723645e9f52a44c6",
       "hint": null,
-      "id": "system",
-      "name": null,
-      "values": [
-        {
-          "contributes": true,
-          "hint": null,
-          "id": "exception",
-          "name": "exception",
-          "values": [
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "NS_ERROR_NOT_INITIALIZED"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": []
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": [
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "M"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} o,r;for(b&&(o=i.domain)&&o.exit();t;){r=t.fn,t=t.next;try{r()}catch(o){throw t?n():e=void 0,o}}e=void 0,o&&o.enter()};if(b)n=function(){i.n {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "S/<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} ,M):b(n)):M(o)}catch(t){a&&!i&&a.exit(),M(t)}};n.length>p;)i(n[p++]);t._c=[],t._n=!1,e&&!t._h&&x(t)})}},x=function(t){d.call(b,function(){va {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "i"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} ry{c?(r||(2==t._h&&T(t),t._h=1),!0===c?n=o:(a&&a.enter(),n=c(o),a&&(a.exit(),i=!0)),n===e.promise?M(y(\"Promise-chain cycle\")):(p=N(n))?p.cal {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "b"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} ply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.lo {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "n"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "g/</t[e]"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_invoke</<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "W"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/app"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "app.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "e/<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} (e.t0)&&n<I)){e.next=12;break}return n++,e.abrupt(\"return\",a());case 12:throw e.t0;case 13:case\"end\":return e.stop()}},e,this,[[0,7]])}));re {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/app"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "app.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "e/</a</<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} urn e.stop()}},e,this,[[0,7]])}));return function(){return e.apply(this,arguments)}}(),e.abrupt(\"return\",a());case 3:case\"end\":return e.stop {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "exports/<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} unction(t){return function(){var e=this,o=arguments;return new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)} {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "L"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} function(t){O(this,L,\"Promise\",\"_h\"),s(t),o.call(this);try{t(M(H,this,1),M(C,this,1))}catch(t){C.call(this,t)}},(o=function(t){this._c=[],th {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "exports/</<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.load(n(1467))},,function( {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "c"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,funct {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "n"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "g/</t[e]"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_invoke</<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "W"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/app"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "app.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "e/<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} r(;;)switch(e.prev=e.next){case 0:return e.prev=0,e.next=3,t();case 3:return r=e.sent,e.abrupt(\"return\",r.default||r);case 7:if(e.prev=7,e.t {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/app"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "app.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "componentPromise"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} orgId/issues/:groupId/\",componentPromise:function(){return n.e(75).then(n.bind(null,2497))},component:Object(cs.default)(Zt.a)},b.a.createEl {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/app"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "app.js"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": "trimmed javascript function",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "e"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} \"+i+\")\");o.type=a,o.request=i,n[1](o)}r[e]=void 0}};var c=setTimeout(function(){i({type:\"timeout\",target:s})},12e4);s.onerror=s.onload=i,do {snip}"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry/dist/vendor"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because frame points to a URL",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "vendor.js"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "wrapTimeFunction/<"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because line is too long",
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "{snip} ism:{data:{function:Dt(t)},handled:!0,type:\"instrument\"}}),t.apply(this,e)}},t.prototype.wrapRAF=function(t){return function(e){return t(Et( {snip}"
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": true,
-    "description": "exception stacktrace — all frames",
-    "hash": "dcfcd48a02c100bbe4023cbc783054f0",
-    "hint": null,
-    "key": "system_exception_stacktrace",
-    "type": "component"
+      "key": "system_exception_stacktrace",
+      "type": "component"
+    }
   }
 }

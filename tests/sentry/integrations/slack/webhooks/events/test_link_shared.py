@@ -9,7 +9,7 @@ from slack_sdk.web import SlackResponse
 
 from sentry.integrations.slack.unfurl.types import Handler, make_type_coercer
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.testutils.asserts import assert_slo_metric
+from sentry.testutils.asserts import assert_slo_metric_calls
 
 from . import LINK_SHARED_EVENT, BaseEventTest, build_test_block
 
@@ -108,7 +108,7 @@ class LinkSharedEventTest(BaseEventTest):
         assert unfurls["link1"] == result1
         assert unfurls["link2"] == result2
 
-        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+        assert_slo_metric_calls(mock_record.mock_calls[-2:], EventLifecycleOutcome.SUCCESS)
 
     @patch(
         "sentry.integrations.slack.webhooks.event.match_link",
@@ -155,4 +155,12 @@ class LinkSharedEventTest(BaseEventTest):
 
         assert resp.status_code == 200, resp.content
 
-        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
+        assert_slo_metric_calls(mock_record.mock_calls[-2:], EventLifecycleOutcome.FAILURE)
+
+    def test_share_links_no_matches(self, mock_record) -> None:
+        event_data = orjson.loads(LINK_SHARED_EVENT)
+        event_data["links"] = [{}]
+        resp = self.post_webhook(event_data=event_data)
+        assert resp.status_code == 200, resp.content
+
+        assert_slo_metric_calls(mock_record.mock_calls[-2:], EventLifecycleOutcome.FAILURE)

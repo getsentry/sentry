@@ -33,6 +33,12 @@ describe('CronDetectorsList', () => {
       body: UserFixture(),
     });
 
+    // Mock processing errors endpoint (no errors by default)
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/processing-errors/',
+      body: [],
+    });
+
     // Ensure a project is selected for queries
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
 
@@ -107,6 +113,9 @@ describe('CronDetectorsList', () => {
 
     // Name
     expect(within(row).getByText('Cron Detector')).toBeInTheDocument();
+
+    // Environment name
+    expect(within(row).getByText('production')).toBeInTheDocument();
 
     // Timeline visualization should render ticks once stats load
     expect(await screen.findAllByTestId('monitor-checkin-tick')).not.toHaveLength(0);

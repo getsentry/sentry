@@ -183,6 +183,7 @@ class TestSyncAssigneeInbound(TestCase):
                 "email": "oopsnotfound@example.com",
                 "issue_key": external_issue.key,
                 "method": AssigneeInboundSyncMethod.EMAIL.value,
+                "assign": True,
             },
         )
 
@@ -469,6 +470,10 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
                 "external_user_name": "unknownuser",
                 "issue_key": external_issue.key,
                 "method": AssigneeInboundSyncMethod.EXTERNAL_ACTOR.value,
+                "assign": True,
+                "user_ids": [],
+                "groups_assigned_count": 0,
+                "affected_groups_count": 1,
             },
         )
 
@@ -510,6 +515,10 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
                 "external_user_name": "outsider",
                 "issue_key": external_issue.key,
                 "method": AssigneeInboundSyncMethod.EXTERNAL_ACTOR.value,
+                "assign": True,
+                "user_ids": [other_user.id],
+                "groups_assigned_count": 0,
+                "affected_groups_count": 1,
             },
         )
 

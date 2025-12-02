@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:55.570879+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,14 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "fe92cff6711f8a0a30cabb8b9245b1d6"
+    hash: "9b3e1c08a50257c5ad760f1f3205a48b"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "FailedToFetchError"
           stacktrace*
             frame*
               filename*
@@ -38,5 +38,3 @@ contributing variants:
                 "handleRequest"
               context_line*
                 "return handler(request);"
-          type*
-            "FailedToFetchError"

@@ -9,7 +9,6 @@ __all__ = [
     "ProjectFeature",
     "ProjectPluginFeature",
     "SystemFeature",
-    "UserFeature",
 ]
 
 import abc
@@ -73,15 +72,6 @@ class ProjectPluginFeature(Feature):
 
     def get_subject(self) -> Organization:
         return self.project.organization
-
-
-class UserFeature(Feature):
-    def __init__(self, name: str, user: User) -> None:
-        super().__init__(name)
-        self.user = user
-
-    def get_subject(self) -> User:
-        return self.user
 
 
 class FeatureHandlerStrategy(Enum):

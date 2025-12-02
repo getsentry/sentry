@@ -33,6 +33,7 @@ class TestDetectorSerializer(TestCase):
             "id": str(detector.id),
             "projectId": str(detector.project_id),
             "name": "Test Detector",
+            "description": None,
             "type": MetricIssue.slug,
             "createdBy": None,
             "dateCreated": detector.date_added,
@@ -75,6 +76,7 @@ class TestDetectorSerializer(TestCase):
         detector = self.create_detector(
             project_id=self.project.id,
             name="Test Detector",
+            description="A full featured detector",
             type=MetricIssue.slug,
             workflow_condition_group=condition_group,
             owner_user_id=self.user.id,
@@ -115,6 +117,7 @@ class TestDetectorSerializer(TestCase):
             "id": str(detector.id),
             "projectId": str(detector.project_id),
             "name": "Test Detector",
+            "description": "A full featured detector",
             "type": MetricIssue.slug,
             "createdBy": str(self.user.id),
             "dateCreated": detector.date_added,

@@ -15,7 +15,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useAutomationFireHistoryQuery} from 'sentry/views/automations/hooks';
-import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 const DEFAULT_HISTORY_PER_PAGE = 10;
@@ -57,7 +56,6 @@ export default function AutomationHistoryList({
   emptyMessage = t('No history found'),
 }: Props) {
   const org = useOrganization();
-  const {monitorsLinkPrefix} = useMonitorViewContext();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -116,13 +114,7 @@ export default function AutomationHistoryList({
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               {row.detector ? (
-                <StyledLink
-                  to={makeMonitorDetailsPathname(
-                    org.slug,
-                    row.detector.id,
-                    monitorsLinkPrefix
-                  )}
-                >
+                <StyledLink to={makeMonitorDetailsPathname(org.slug, row.detector.id)}>
                   <TruncatedText>{row.detector.name}</TruncatedText>
                 </StyledLink>
               ) : (
@@ -130,7 +122,12 @@ export default function AutomationHistoryList({
               )}
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
-              <StyledLink to={`/issues/${row.group.id}`}>
+              <StyledLink
+                to={{
+                  pathname: `/organizations/${org.slug}/issues/${row.group.id}/events/${row.eventId}/`,
+                  query: {project: row.group.project.id},
+                }}
+              >
                 <Flex gap="xs" align="center">
                   <PlatformIcon platform={row.group.platform} size={16} />
                   <TruncatedText>

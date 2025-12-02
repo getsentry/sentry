@@ -7,10 +7,11 @@ import type {
   BaseDetectorUpdatePayload,
   Detector,
 } from 'sentry/types/workflowEngine/detectors';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getDetectorAnalyticsPayload} from 'sentry/views/detectors/components/forms/common/getDetectorAnalyticsPayload';
 import {useCreateDetector} from 'sentry/views/detectors/hooks';
-import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 interface UseCreateDetectorFormSubmitOptions<TFormData, TUpdatePayload> {
@@ -31,7 +32,6 @@ export function useCreateDetectorFormSubmit<
   onSuccess,
 }: UseCreateDetectorFormSubmitOptions<TFormData, TUpdatePayload>): OnSubmitCallback {
   const organization = useOrganization();
-  const {monitorsLinkPrefix} = useMonitorViewContext();
   const navigate = useNavigate();
   const {mutateAsync: createDetector} = useCreateDetector();
 
@@ -46,18 +46,17 @@ export function useCreateDetectorFormSubmit<
         const payload = formDataToEndpointPayload(data as TFormData);
         const resultDetector = await createDetector(payload);
 
+        trackAnalytics('monitor.created', {
+          organization,
+          ...getDetectorAnalyticsPayload(resultDetector),
+        });
+
         addSuccessMessage(t('Monitor created successfully'));
 
         if (onSuccess) {
           onSuccess(resultDetector);
         } else {
-          navigate(
-            makeMonitorDetailsPathname(
-              organization.slug,
-              resultDetector.id,
-              monitorsLinkPrefix
-            )
-          );
+          navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
         }
 
         onSubmitSuccess?.(resultDetector);
@@ -74,8 +73,7 @@ export function useCreateDetectorFormSubmit<
     [
       formDataToEndpointPayload,
       createDetector,
-      organization.slug,
-      monitorsLinkPrefix,
+      organization,
       navigate,
       onSuccess,
       onError,

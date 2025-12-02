@@ -2,7 +2,6 @@ import logging
 from copy import deepcopy
 from datetime import UTC, datetime
 
-from django.conf import settings
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
 from django.http.response import HttpResponseBase
@@ -48,6 +47,7 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
+from sentry.incidents.utils.subscription_limits import get_max_metric_alert_subscriptions
 from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
@@ -73,6 +73,7 @@ from sentry.relay.config.metric_extraction import (
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import ExtrapolationMode
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
     GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
@@ -81,6 +82,7 @@ from sentry.uptime.types import (
 from sentry.utils.cursors import Cursor, StringCursor
 from sentry.workflow_engine.models import Detector, DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +101,9 @@ def create_metric_alert(
         raise ValidationError(
             "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
         )
+
+    if data.get("extrapolation_mode") == ExtrapolationMode.SERVER_WEIGHTED.name.lower():
+        raise ValidationError("server_weighted extrapolation mode is not supported for new alerts.")
 
     if project:
         data["projects"] = [project.slug]
@@ -196,7 +201,7 @@ class AlertRuleIndexMixin(Endpoint):
                 count_hits=True,
             )
         response[ALERT_RULES_COUNT_HEADER] = len(alert_rules)
-        response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
+        response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = get_max_metric_alert_subscriptions(organization)
         return response
 
 
@@ -249,6 +254,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-combined-rules")
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Fetches metric, issue, crons, and uptime alert rules for an organization
@@ -468,7 +474,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             cursor_cls=StringCursor if case_insensitive else Cursor,
             case_insensitive=case_insensitive,
         )
-        response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
+        response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = get_max_metric_alert_subscriptions(organization)
         return response
 
 
@@ -599,9 +605,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
             "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
         ):
             alert_limit = quotas.backend.get_metric_detector_limit(organization.id)
-            alert_count = AlertRule.objects.fetch_for_organization(
-                organization=organization
-            ).count()
+            alert_count = AlertRule.objects.fetch_for_organization(organization=organization)
+            # filter out alert rules without any projects
+            alert_count = alert_count.filter(projects__isnull=False).distinct().count()
 
             if alert_limit >= 0 and alert_count >= alert_limit:
                 raise ValidationError(
@@ -639,6 +645,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         },
         examples=MetricAlertExamples.LIST_METRIC_ALERT_RULES,  # TODO: make
     )
+    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
     def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         Return a list of active metric alert rules bound to an organization.
@@ -666,6 +673,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         },
         examples=MetricAlertExamples.CREATE_METRIC_ALERT_RULE,
     )
+    @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
     def post(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         Create a new metric alert rule for the given organization.

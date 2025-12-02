@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:55.326178+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,17 +22,17 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "2552498cfe69a6ddf1dcdde5440ce9c3"
+    hash: "b4626f44de843f1f586ff2648425c4f0"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "ApplicationNotResponding"
           stacktrace*
             frame*
               module*
                 "androidx.recyclerview.widget.RecyclerView"
               function*
                 "onLayout"
-          type*
-            "ApplicationNotResponding"

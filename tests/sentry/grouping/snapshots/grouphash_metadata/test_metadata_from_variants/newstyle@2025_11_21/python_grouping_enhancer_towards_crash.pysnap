@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:58.852902+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,14 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "90888e813b09fa25061af2883c0fb9bd"
+    hash: "5c0a281b9f8602e5d639d2f722fe5a9a"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "MultiValueDictKeyError"
           stacktrace*
             frame*
               module*
@@ -52,5 +52,3 @@ contributing variants:
                 "_wrapper"
               context_line*
                 "return bound_func(*args, **kwargs)"
-          type*
-            "MultiValueDictKeyError"

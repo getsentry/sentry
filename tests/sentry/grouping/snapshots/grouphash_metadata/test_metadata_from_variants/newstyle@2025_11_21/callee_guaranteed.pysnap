@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:55.441801+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,19 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "4ef1fb44d656c3be2a146971f2a222dc"
+    hash: "3bb283edd206ca9069e3da4ce9c11869"
     contributing component: exception
     hint: None
     root_component:
       app*
         exception*
+          type*
+            "<redacted>"
+          ns_error*
+            domain*
+              "<redacted>"
+            code*
+              2
           stacktrace*
             frame* (marked in-app by the client)
               function*
@@ -40,6 +45,13 @@ contributing variants:
             frame* (marked in-app by the client)
               function*
                 "stripped_application_code"
+  system*
+    hash: "ab329c350a2abfdf4798139a4aee0d8b"
+    contributing component: exception
+    hint: None
+    root_component:
+      system*
+        exception*
           type*
             "<redacted>"
           ns_error*
@@ -47,13 +59,6 @@ contributing variants:
               "<redacted>"
             code*
               2
-  system*
-    hash: "47481871aa8d5ab5729cf2db78ce3032"
-    contributing component: exception
-    hint: None
-    root_component:
-      system*
-        exception*
           stacktrace*
             frame*
               function*
@@ -70,10 +75,3 @@ contributing variants:
             frame*
               function*
                 "stripped_application_code"
-          type*
-            "<redacted>"
-          ns_error*
-            domain*
-              "<redacted>"
-            code*
-              2

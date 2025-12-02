@@ -18,6 +18,7 @@ import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getPrismLanguage} from 'sentry/utils/prism';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -85,37 +86,8 @@ function detectLanguageFromPath(filePath: string): string {
     return 'plaintext';
   }
 
-  // Map common file extensions to Prism language identifiers
-  const extensionMap: Record<string, string> = {
-    js: 'javascript',
-    jsx: 'jsx',
-    ts: 'typescript',
-    tsx: 'tsx',
-    py: 'python',
-    rb: 'ruby',
-    go: 'go',
-    java: 'java',
-    php: 'php',
-    c: 'c',
-    cpp: 'cpp',
-    cs: 'csharp',
-    html: 'html',
-    css: 'css',
-    scss: 'scss',
-    json: 'json',
-    md: 'markdown',
-    yaml: 'yaml',
-    yml: 'yaml',
-    sh: 'bash',
-    bash: 'bash',
-    rs: 'rust',
-    swift: 'swift',
-    kt: 'kotlin',
-    sql: 'sql',
-    xml: 'xml',
-  };
-
-  return extensionMap[extension] || 'plaintext';
+  const language = getPrismLanguage(extension);
+  return language || 'plaintext';
 }
 
 const SyntaxHighlightedCode = styled('div')`

@@ -1,799 +1,760 @@
 ---
-created: '2025-10-30T17:09:41.334711+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
-  "app_exception_stacktrace": {
-    "component": {
+  "grouping_config": "newstyle:2025-11-21",
+  "variants": {
+    "app_exception_stacktrace": {
+      "component": {
+        "contributes": false,
+        "hint": "ignored because system exception takes precedence",
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": false,
+            "hint": "ignored because this variant does not have a contributing stacktrace, but the system variant does",
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "Error"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "value",
+                "name": null,
+                "values": [
+                  "bad"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because it contains no in-app frames",
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": []
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": "trimmed javascript function",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "testMethod"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "aha"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "eval"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "test"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because filename is anonymous",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "<anonymous>"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": "trimmed javascript function",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "map"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": []
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": "trimmed javascript function",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "callback"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "callAnotherThing"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": "trimmed javascript function",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "aha"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": false,
+      "description": "exception stacktrace — in-app frames",
+      "hash": null,
       "hint": "ignored because system exception takes precedence",
-      "id": "app",
-      "name": "in-app",
-      "values": [
-        {
-          "contributes": false,
-          "hint": "ignored because this variant does not have a contributing stacktrace, but the system variant does",
-          "id": "exception",
-          "name": "exception",
-          "values": [
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "Error"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": [
-                "bad"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because it contains no in-app frames",
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": [
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": []
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": "trimmed javascript function",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "testMethod"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "aha"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "eval"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "test"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because filename is anonymous",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "<anonymous>"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": "trimmed javascript function",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "map"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": []
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": "trimmed javascript function",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "callback"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "callAnotherThing"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": "trimmed javascript function",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "aha"
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
+      "key": "app_exception_stacktrace",
+      "type": "component"
     },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": false,
-    "description": "exception stacktrace — in-app frames",
-    "hash": null,
-    "hint": "ignored because system exception takes precedence",
-    "key": "app_exception_stacktrace",
-    "type": "component"
-  },
-  "system_exception_stacktrace": {
-    "component": {
+    "system_exception_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "Error"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "bad"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": []
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": "trimmed javascript function",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "testMethod"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "aha"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored low quality javascript frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "eval"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "test"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored low quality javascript frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because filename is anonymous",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "<anonymous>"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": "trimmed javascript function",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "map"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": []
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": "trimmed javascript function",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "callback"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "callAnotherThing"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "test.html"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": "trimmed javascript function",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "aha"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": true,
+      "description": "exception stacktrace — all frames",
+      "hash": "811a408067f03b8eff2437a8e7515966",
       "hint": null,
-      "id": "system",
-      "name": null,
-      "values": [
-        {
-          "contributes": true,
-          "hint": null,
-          "id": "exception",
-          "name": "exception",
-          "values": [
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "Error"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "bad"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": [
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": []
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": "trimmed javascript function",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "testMethod"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "aha"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored low quality javascript frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "eval"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "test"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored low quality javascript frame",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because filename is anonymous",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "<anonymous>"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": "trimmed javascript function",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "map"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": []
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": "trimmed javascript function",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "callback"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "callAnotherThing"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "test.html"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": "trimmed javascript function",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "aha"
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": true,
-    "description": "exception stacktrace — all frames",
-    "hash": "c63e8727af1a8fe75872b6a762797113",
-    "hint": null,
-    "key": "system_exception_stacktrace",
-    "type": "component"
+      "key": "system_exception_stacktrace",
+      "type": "component"
+    }
   }
 }

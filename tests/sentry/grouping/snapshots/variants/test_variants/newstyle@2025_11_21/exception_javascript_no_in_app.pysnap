@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:51.878066+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,6 +8,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "TypeError"
+        value*
+          "Cannot read property 'submitError' of null"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             module*
@@ -27,18 +29,18 @@ app:
               "onError"
             context_line*
               "this.model.submitError(error);"
-        type*
-          "TypeError"
-        value*
-          "Cannot read property 'submitError' of null"
 --------------------------------------------------------------------------
 system:
-  hash: "26552f86ca2368e708afa1df6effc1c5"
+  hash: "9b140b41d4ae2bd9588ccff62cb8358f"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "TypeError"
+        value (ignored because stacktrace takes precedence)
+          "Cannot read property 'submitError' of null"
         stacktrace*
           frame*
             module*
@@ -56,7 +58,3 @@ system:
               "onError"
             context_line*
               "this.model.submitError(error);"
-        type*
-          "TypeError"
-        value (ignored because stacktrace takes precedence)
-          "Cannot read property 'submitError' of null"

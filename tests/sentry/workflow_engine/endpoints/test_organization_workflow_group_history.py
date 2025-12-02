@@ -1,6 +1,8 @@
 from uuid import uuid4
 
 from sentry.api.serializers import serialize
+from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.grouptype import MetricIssue
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
@@ -8,6 +10,7 @@ from sentry.workflow_engine.endpoints.serializers.workflow_group_history_seriali
     WorkflowGroupHistory,
     WorkflowGroupHistorySerializer,
 )
+from sentry.workflow_engine.models import DetectorGroup
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
 pytestmark = [requires_snuba]
@@ -26,22 +29,36 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
 
         self.history: list[WorkflowFireHistory] = []
         self.workflow = self.create_workflow(organization=self.organization)
+        self.detector = self.create_detector(
+            project=self.project,
+            type=ErrorGroupType.slug,
+        )
+        DetectorGroup.objects.create(
+            detector=self.detector,
+            group=self.group,
+        )
         for i in range(3):
             self.history.append(
                 WorkflowFireHistory(
                     workflow=self.workflow,
                     group=self.group,
                     event_id=uuid4().hex,
-                    is_single_written=True,
                 )
             )
         self.group_2 = self.create_group()
+        self.detector_2 = self.create_detector(
+            project=self.project,
+            type=MetricIssue.slug,
+        )
+        DetectorGroup.objects.create(
+            detector=self.detector_2,
+            group=self.group_2,
+        )
         self.history.append(
             WorkflowFireHistory(
                 workflow=self.workflow,
                 group=self.group_2,
                 event_id=uuid4().hex,
-                is_single_written=True,
             )
         )
         histories: list[WorkflowFireHistory] = WorkflowFireHistory.objects.bulk_create(self.history)
@@ -65,14 +82,18 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
         assert resp.data == serialize(
             [
                 WorkflowGroupHistory(
-                    self.group, 3, self.base_triggered_date, self.history[0].event_id, detector=None
+                    self.group,
+                    3,
+                    self.base_triggered_date,
+                    self.history[0].event_id,
+                    detector=self.detector,
                 ),
                 WorkflowGroupHistory(
                     self.group_2,
                     1,
                     self.base_triggered_date,
                     self.history[-1].event_id,
-                    detector=None,
+                    detector=self.detector_2,
                 ),
             ],
             self.user,
@@ -90,13 +111,17 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
         assert resp.data == serialize(
             [
                 WorkflowGroupHistory(
-                    self.group, 3, self.base_triggered_date, self.history[0].event_id, detector=None
+                    self.group,
+                    3,
+                    self.base_triggered_date,
+                    self.history[0].event_id,
+                    detector=self.detector,
                 )
             ],
             self.user,
             WorkflowGroupHistorySerializer(),
         )
-        assert resp["X-Hits"] == "4"
+        assert resp["X-Hits"] == "2"  # 2 unique groups, not 4 total history records
 
         resp = self.get_success_response(
             self.organization.slug,
@@ -113,13 +138,13 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
                     1,
                     self.base_triggered_date,
                     self.history[-1].event_id,
-                    detector=None,
+                    detector=self.detector_2,
                 )
             ],
             self.user,
             WorkflowGroupHistorySerializer(),
         )
-        assert resp["X-Hits"] == "4"
+        assert resp["X-Hits"] == "2"  # 2 unique groups, not 4 total history records
 
     def test_invalid_dates_error(self) -> None:
         self.get_error_response(

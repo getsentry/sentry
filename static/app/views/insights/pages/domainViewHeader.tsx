@@ -6,7 +6,7 @@ import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {TabListItemProps} from 'sentry/components/core/tabs';
 import {TabList} from 'sentry/components/core/tabs';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {IconBusiness} from 'sentry/icons';
@@ -65,7 +65,7 @@ export function DomainViewHeader({
 
   const isLaravelInsights = isLaravelInsightsAvailable && isInOverviewPage;
   const isNextJsInsights = isNextJsInsightsAvailable && isInOverviewPage;
-  const isAgentMonitoring = view === 'ai';
+  const isAgentMonitoring = view === 'ai-agents';
   const isSessionsInsights = selectedModule === ModuleName.SESSIONS;
 
   const crumbs: Crumb[] = [
@@ -131,7 +131,7 @@ export function DomainViewHeader({
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar>
-            <FeedbackWidgetButton optionOverrides={feedbackOptions} />
+            <FeedbackButton feedbackOptions={feedbackOptions} />
             {additonalHeaderActions}
           </ButtonBar>
         </Layout.HeaderActions>

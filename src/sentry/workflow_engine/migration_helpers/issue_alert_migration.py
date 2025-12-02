@@ -2,9 +2,12 @@ import logging
 from typing import Any
 
 from sentry.constants import ObjectStatus
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.monitors.models import Monitor
+from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
 from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.processing.processor import split_conditions_and_filters
@@ -30,7 +33,8 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
     enforce_data_condition_json_schema,
 )
-from sentry.workflow_engine.types import ERROR_DETECTOR_NAME
+from sentry.workflow_engine.types import ERROR_DETECTOR_NAME, ISSUE_STREAM_DETECTOR_NAME
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 logger = logging.getLogger(__name__)
 
@@ -54,14 +58,12 @@ class IssueAlertMigrator:
         self.organization = self.project.organization
 
     def run(self) -> Workflow:
-        error_detector = self._create_detector_lookup()
         conditions, filters = split_conditions_and_filters(self.data["conditions"])
         action_match = self.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         workflow = self._create_workflow_and_lookup(
             conditions=conditions,
             filters=filters,
             action_match=action_match,
-            detector=error_detector,
         )
         filter_match = self.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
         if_dcg = self._create_if_dcg(
@@ -75,9 +77,34 @@ class IssueAlertMigrator:
 
         return workflow
 
-    def _create_detector_lookup(self) -> Detector | None:
+    def _create_detector_lookups(self) -> list[Detector | None]:
         if self.rule.source == RuleSource.CRON_MONITOR:
-            return None
+            # Find the cron detector that was created before the rule
+            monitor_slug = None
+            for condition in self.data.get("conditions", []):
+                if condition.get("key") == "monitor.slug":
+                    monitor_slug = condition.get("value")
+                    break
+
+            if not monitor_slug:
+                return [None]
+
+            try:
+                with in_test_hide_transaction_boundary():
+                    monitor = Monitor.objects.get(
+                        slug=monitor_slug,
+                        organization_id=self.organization.id,
+                    )
+                    detector = Detector.objects.get(
+                        datasource__type=DATA_SOURCE_CRON_MONITOR,
+                        datasource__source_id=str(monitor.id),
+                        datasource__organization_id=self.organization.id,
+                    )
+                    return [detector]
+            except (Monitor.DoesNotExist, Detector.DoesNotExist):
+                pass
+
+            return [None]
 
         if self.is_dry_run:
             error_detector = Detector.objects.filter(
@@ -86,16 +113,34 @@ class IssueAlertMigrator:
             if not error_detector:
                 error_detector = Detector(type=ErrorGroupType.slug, project=self.project)
 
+            issue_stream_detector = Detector.objects.filter(
+                type=IssueStreamGroupType.slug, project=self.project
+            ).first()
+            if not issue_stream_detector:
+                issue_stream_detector = Detector(
+                    type=IssueStreamGroupType.slug, project=self.project
+                )
+
         else:
             error_detector, _ = Detector.objects.get_or_create(
                 type=ErrorGroupType.slug,
                 project=self.project,
                 defaults={"config": {}, "name": ERROR_DETECTOR_NAME},
             )
-            # TODO: get_or_create issue stream detector
             AlertRuleDetector.objects.get_or_create(detector=error_detector, rule_id=self.rule.id)
+            issue_stream_detector, _ = Detector.objects.get_or_create(
+                type=IssueStreamGroupType.slug,
+                project=self.project,
+                defaults={"config": {}, "name": ISSUE_STREAM_DETECTOR_NAME},
+            )
 
-        return error_detector
+        return [error_detector, issue_stream_detector]
+
+    def _connect_default_detectors(self, workflow: Workflow) -> None:
+        default_detectors = self._create_detector_lookups()
+        for detector in default_detectors:
+            if detector:
+                DetectorWorkflow.objects.get_or_create(detector=detector, workflow=workflow)
 
     def _bulk_create_data_conditions(
         self,
@@ -177,7 +222,6 @@ class IssueAlertMigrator:
         conditions: list[dict[str, Any]],
         filters: list[dict[str, Any]],
         action_match: str,
-        detector: Detector | None,
     ) -> Workflow:
         when_dcg = self._create_when_dcg(action_match=action_match)
         data_conditions = self._bulk_create_data_conditions(
@@ -231,8 +275,7 @@ class IssueAlertMigrator:
         else:
             workflow = Workflow.objects.create(**kwargs)
             workflow.update(date_added=self.rule.date_added)
-            if detector:
-                DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
+            self._connect_default_detectors(workflow=workflow)
             AlertRuleWorkflow.objects.create(rule_id=self.rule.id, workflow=workflow)
 
         return workflow

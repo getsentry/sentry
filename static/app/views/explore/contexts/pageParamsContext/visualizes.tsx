@@ -15,8 +15,6 @@ import {
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanFields} from 'sentry/views/insights/types';
 
-export const MAX_VISUALIZES = 4;
-
 export const DEFAULT_VISUALIZATION_AGGREGATE = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES[0]!;
 export const DEFAULT_VISUALIZATION_FIELD = ALLOWED_EXPLORE_VISUALIZE_FIELDS[0]!;
 export const DEFAULT_VISUALIZATION = `${DEFAULT_VISUALIZATION_AGGREGATE}(${DEFAULT_VISUALIZATION_FIELD})`;

@@ -33,6 +33,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
   const hasPerformance = organization.features.includes('performance-view');
   const hasProfiling = organization.features.includes('profiling-view');
   const hasLogs = organization.features.includes('ourlogs-enabled');
+  const hasMetrics = organization.features.includes('tracemetrics-enabled');
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   let reason = t('This feature is not enabled on your Sentry installation.');
@@ -76,6 +77,12 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
       onClick: createClickHandler('organizations:ourlogs-enabled', 'Logs'),
     };
   }
+  if (!hasMetrics) {
+    disabledProducts[ProductSolution.METRICS] = {
+      reason,
+      onClick: createClickHandler('organizations:tracemetrics-enabled', 'Metrics'),
+    };
+  }
   return disabledProducts;
 }
 
@@ -111,116 +118,150 @@ export const platformProductAvailability = {
   'java-logback': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   'java-spring': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
+  javascript: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+    ProductSolution.METRICS,
+  ],
   'javascript-react': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'javascript-react-router': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'javascript-vue': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'javascript-angular': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'javascript-ember': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'javascript-gatsby': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'javascript-solid': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'javascript-solidstart': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.METRICS,
   ],
   'javascript-svelte': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'javascript-tanstackstart-react': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.METRICS,
   ],
   'javascript-astro': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   node: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'node-azurefunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
-  'node-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-awslambda': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.METRICS,
+  ],
   'node-connect': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'node-express': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'node-fastify': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'node-gcpfunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'node-hapi': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'node-hono': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'node-koa': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'node-nestjs': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'node-cloudflare-workers': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
-  'node-cloudflare-pages': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'node-cloudflare-pages': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   php: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -236,91 +277,109 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-aiohttp': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-asgi': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-awslambda': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-bottle': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-celery': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-chalice': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-django': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-falcon': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-fastapi': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-flask': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-gcpfunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-quart': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-rq': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-serverless': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-tornado': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-starlette': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-wsgi': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   ruby: [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -529,6 +588,18 @@ export function ProductSelection({
           onClick={() => handleClickProduct(ProductSolution.LOGS)}
           disabled={disabledProducts[ProductSolution.LOGS]}
           checked={urlProducts.includes(ProductSolution.LOGS)}
+        />
+      )}
+      {products.includes(ProductSolution.METRICS) && (
+        <Product
+          label={t('Metrics')}
+          description={t(
+            'Custom metrics for tracking application performance and usage, automatically trace-connected.'
+          )}
+          docLink="https://docs.sentry.io/product/explore/metrics/"
+          onClick={() => handleClickProduct(ProductSolution.METRICS)}
+          disabled={disabledProducts[ProductSolution.METRICS]}
+          checked={urlProducts.includes(ProductSolution.METRICS)}
         />
       )}
       {products.includes(ProductSolution.SESSION_REPLAY) && (

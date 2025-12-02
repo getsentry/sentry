@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:52.304592+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,7 +8,7 @@ app:
   root_component:
     app (ignored because system stacktrace takes precedence)
       stacktrace (ignored because it contains no in-app frames)
-        frame (marked out of app by stack trace rule (family:javascript module:**/packages/flutter/** -app))
+        frame (marked out of app by built-in stack trace rule (family:javascript module:**/packages/flutter/** -app))
           module*
             "opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding"
           filename (ignored because frame points to a URL)

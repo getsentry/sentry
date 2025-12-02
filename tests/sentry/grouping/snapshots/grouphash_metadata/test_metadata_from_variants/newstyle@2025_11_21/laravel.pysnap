@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:58.191345+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,14 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "4665d486184740231357ab63f4543a8d"
+    hash: "04604148d9d04bfb7b3b3c19810a995c"
     contributing component: exception
     hint: None
     root_component:
       app*
         exception*
+          type*
+            "Exception"
           stacktrace*
             frame* (marked in-app by the client)
               filename*
@@ -50,15 +50,15 @@ contributing variants:
                 "Illuminate\\Routing\\RouteFileRegistrar::{closure}"
               context_line*
                 "throw new Exception('LARAVEL TEST');"
-          type*
-            "Exception"
   system*
-    hash: "107ed03036d901157372f260bc3df446"
+    hash: "f3b018db683f7190f410fec0fbc1a9b3"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "Exception"
           stacktrace*
             frame*
               filename*
@@ -408,5 +408,3 @@ contributing variants:
                 "Illuminate\\Routing\\RouteFileRegistrar::{closure}"
               context_line*
                 "throw new Exception('LARAVEL TEST');"
-          type*
-            "Exception"

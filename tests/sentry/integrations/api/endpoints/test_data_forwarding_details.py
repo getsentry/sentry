@@ -1,3 +1,5 @@
+from django.urls import reverse
+
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
@@ -13,10 +15,56 @@ class DataForwardingDetailsEndpointTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
+    def get_response(self, *args, **kwargs):
+        """
+        Override get_response to always add the required feature flag.
+        """
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": True,
+                "organizations:data-forwarding": True,
+            }
+        ):
+            return super().get_response(*args, **kwargs)
+
 
 @region_silo_test
 class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
     method = "PUT"
+
+    def test_without_revamp_feature_flag_access(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "old_key"},
+            is_enabled=True,
+        )
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": False,
+                "organizations:data-forwarding": True,
+            }
+        ):
+            response = self.client.put(
+                reverse(self.endpoint, args=(self.organization.slug, data_forwarder.id))
+            )
+            assert response.status_code == 403
+
+    def test_without_data_forwarding_feature_flag_access(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "old_key"},
+            is_enabled=True,
+        )
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": True,
+                "organizations:data-forwarding": False,
+            }
+        ):
+            response = self.client.put(
+                reverse(self.endpoint, args=(self.organization.slug, data_forwarder.id))
+            )
+            assert response.status_code == 403
 
     def test_update_data_forwarder(self) -> None:
         data_forwarder = self.create_data_forwarder(
@@ -37,9 +85,10 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
             "project_ids": [self.project.id],
         }
 
-        response = self.get_success_response(
-            self.organization.slug, data_forwarder.id, status_code=200, **payload
-        )
+        with self.feature({"organizations:data-forwarding-revamp-access": True}):
+            response = self.get_success_response(
+                self.organization.slug, data_forwarder.id, status_code=200, **payload
+            )
 
         assert response.data["config"] == {"write_key": "new_key"}
         assert not response.data["isEnabled"]
@@ -453,10 +502,143 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         assert project_config.overrides == {"custom": "value"}
         assert project_config.is_enabled
 
+    def test_org_write_can_bulk_enroll(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "test_key"},
+        )
+
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role="manager",  # Has org:write
+        )
+        self.login_as(user=user)
+
+        payload = {
+            "project_ids": [project1.id, project2.id],
+        }
+
+        self.get_success_response(
+            self.organization.slug, data_forwarder.id, status_code=200, **payload
+        )
+
+        enrolled_projects = set(
+            DataForwarderProject.objects.filter(
+                data_forwarder=data_forwarder, is_enabled=True
+            ).values_list("project_id", flat=True)
+        )
+        assert enrolled_projects == {project1.id, project2.id}
+
+    def test_org_write_can_update_project_overrides(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "test_key"},
+        )
+
+        project = self.create_project(organization=self.organization)
+
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role="manager",  # Has org:write
+            teams=[self.team],
+            teamRole="admin",
+        )
+        self.login_as(user=user)
+
+        payload = {
+            "project_id": project.id,
+            "overrides": {"custom": "value"},
+            "is_enabled": True,
+        }
+
+        self.get_success_response(
+            self.organization.slug, data_forwarder.id, status_code=200, **payload
+        )
+
+        project_config = DataForwarderProject.objects.get(
+            data_forwarder=data_forwarder, project=project
+        )
+        assert project_config.overrides == {"custom": "value"}
+        assert project_config.is_enabled
+
+    def test_project_write_cannot_update_main_config(self) -> None:
+        """Test that project:write users cannot update main data forwarder config"""
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "old_key"},
+            is_enabled=True,
+        )
+
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role="member",  # Has project:write but not org:write
+            teams=[self.team],
+            teamRole="admin",
+        )
+        self.login_as(user=user)
+
+        payload = {
+            "provider": DataForwarderProviderSlug.SEGMENT,
+            "config": {"write_key": "new_key"},
+            "is_enabled": False,
+        }
+
+        self.get_error_response(
+            self.organization.slug, data_forwarder.id, status_code=400, **payload
+        )
+
+        # Config should remain unchanged
+        data_forwarder.refresh_from_db()
+        assert data_forwarder.config == {"write_key": "old_key"}
+        assert data_forwarder.is_enabled
+
 
 @region_silo_test
 class DataForwardingDetailsDeleteTest(DataForwardingDetailsEndpointTest):
     method = "DELETE"
+
+    def test_without_revamp_feature_flag_access(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "old_key"},
+            is_enabled=True,
+        )
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": False,
+                "organizations:data-forwarding": True,
+            }
+        ):
+            response = self.client.delete(
+                reverse(self.endpoint, args=(self.organization.slug, data_forwarder.id))
+            )
+            assert response.status_code == 403
+
+    def test_without_data_forwarding_feature_flag_access(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "old_key"},
+            is_enabled=True,
+        )
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": True,
+                "organizations:data-forwarding": False,
+            }
+        ):
+            response = self.client.delete(
+                reverse(self.endpoint, args=(self.organization.slug, data_forwarder.id))
+            )
+            assert response.status_code == 204
 
     def test_delete_data_forwarder(self) -> None:
         data_forwarder = self.create_data_forwarder(

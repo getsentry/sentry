@@ -1401,6 +1401,81 @@ class ClearCommitsTestCase(TestCase):
             id=commit2.id, organization_id=org.id, repository_id=repo.id
         ).exists()
 
+    @receivers_raise_on_send()
+    def test_clear_commits_with_multiple_repositories(self) -> None:
+        """
+        Test that clear_commits works correctly when a release has commits
+        from multiple repositories, which creates multiple ReleaseHeadCommit objects.
+
+        This test would fail on master with .get() raising MultipleObjectsReturned,
+        but passes with the fix using .filter().
+        """
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org, name="foo")
+
+        # Create multiple repositories
+        repo1 = Repository.objects.create(organization_id=org.id, name="test/repo1")
+        repo2 = Repository.objects.create(organization_id=org.id, name="test/repo2")
+
+        # Create commits in each repository
+        commit1 = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo1.id,
+            key="commit1key",
+            message="First commit",
+        )
+        commit2 = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo2.id,
+            key="commit2key",
+            message="Second commit",
+        )
+
+        release = Release.objects.create(version="multi-repo-release", organization=org)
+        release.add_project(project)
+
+        # Set commits from both repositories
+        release.set_commits(
+            [
+                {"id": commit1.key, "repository": repo1.name},
+                {"id": commit2.key, "repository": repo2.name},
+            ]
+        )
+
+        # Verify we have multiple ReleaseHeadCommit objects for this release
+        head_commits = ReleaseHeadCommit.objects.filter(organization_id=org.id, release=release)
+        assert head_commits.count() == 2
+        assert ReleaseHeadCommit.objects.filter(
+            release_id=release.id, commit_id=commit1.id, repository_id=repo1.id
+        ).exists()
+        assert ReleaseHeadCommit.objects.filter(
+            release_id=release.id, commit_id=commit2.id, repository_id=repo2.id
+        ).exists()
+
+        # Verify ReleaseCommit objects exist
+        assert ReleaseCommit.objects.filter(commit=commit1, release=release).exists()
+        assert ReleaseCommit.objects.filter(commit=commit2, release=release).exists()
+
+        # Now clear the commits - this would fail on master with .get()
+        release.clear_commits()
+
+        # Verify all ReleaseHeadCommit objects are deleted
+        assert (
+            ReleaseHeadCommit.objects.filter(organization_id=org.id, release=release).count() == 0
+        )
+
+        # Verify all ReleaseCommit objects are deleted
+        assert not ReleaseCommit.objects.filter(release=release).exists()
+
+        # Verify release fields are cleared
+        assert release.commit_count == 0
+        assert release.authors == []
+        assert not release.last_commit_id
+
+        # Commits should still exist in their repositories
+        assert Commit.objects.filter(id=commit1.id).exists()
+        assert Commit.objects.filter(id=commit2.id).exists()
+
 
 class ReleaseGetUnusedFilterTestCase(TestCase):
     """Test the Release.get_unused_filter() method logic"""

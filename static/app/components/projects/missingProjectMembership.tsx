@@ -147,11 +147,8 @@ class MissingProjectMembership extends Component<Props, State> {
       <StyledPanel>
         {teams.length ? (
           <EmptyMessage
-            icon={<IconFlag size="xl" />}
+            icon={<IconFlag />}
             title={t("You're not a member of this project.")}
-            description={t(
-              `You'll need to join a team with access before you can view this data.`
-            )}
             action={
               <Field>
                 <StyledSelectControl
@@ -170,9 +167,11 @@ class MissingProjectMembership extends Component<Props, State> {
                 )}
               </Field>
             }
-          />
+          >
+            {t(`You'll need to join a team with access before you can view this data.`)}
+          </EmptyMessage>
         ) : (
-          <EmptyMessage icon={<IconFlag size="xl" />}>
+          <EmptyMessage icon={<IconFlag />}>
             {t(
               'No teams have access to this project yet. Ask an admin to add your team to this project.'
             )}

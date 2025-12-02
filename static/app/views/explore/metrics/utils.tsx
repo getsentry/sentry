@@ -1,8 +1,6 @@
-import type {ReactNode} from 'react';
 import qs from 'query-string';
 
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
-import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
@@ -14,14 +12,21 @@ import type {
   SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
+import {TraceSamplesTableStatColumns} from 'sentry/views/explore/metrics/constants';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   defaultMetricQuery,
   encodeMetricQueryParams,
+  type BaseMetricQuery,
 } from 'sentry/views/explore/metrics/metricQuery';
+import {
+  TraceMetricKnownFieldKey,
+  VirtualTableSampleColumnKey,
+  type SampleTableColumnKey,
+} from 'sentry/views/explore/metrics/types';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import type {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
-import type {PickableDays} from 'sentry/views/explore/utils';
 
 export function makeMetricsPathname({
   organizationSlug,
@@ -38,37 +43,13 @@ export function makeMetricsPathname({
  * This filter is used to narrow down attribute keys to only those that co-occur
  * with the specified metric.
  */
-export function createMetricNameFilter(
-  metricName: string | undefined
-): string | undefined {
-  return metricName
+export function createTraceMetricFilter(traceMetric: TraceMetric): string | undefined {
+  return traceMetric.name
     ? MutableSearch.fromQueryObject({
-        [`sentry._internal.cooccuring.name.${metricName}`]: ['true'],
+        [`sentry._internal.cooccuring.name.${traceMetric.name}`]: ['true'],
+        [`sentry._internal.cooccuring.type.${traceMetric.type}`]: ['true'],
       }).formatString()
     : undefined;
-}
-
-export function metricsPickableDays(): PickableDays {
-  const relativeOptions: Array<[string, ReactNode]> = [
-    ['1h', t('Last hour')],
-    ['24h', t('Last 24 hours')],
-    ['7d', t('Last 7 days')],
-    ['14d', t('Last 14 days')],
-    ['30d', t('Last 30 days')],
-  ];
-
-  return {
-    defaultPeriod: '24h',
-    maxPickableDays: 30, // May change with downsampled multi month support.
-    relativeOptions: ({
-      arbitraryOptions,
-    }: {
-      arbitraryOptions: Record<string, ReactNode>;
-    }) => ({
-      ...arbitraryOptions,
-      ...Object.fromEntries(relativeOptions),
-    }),
-  };
 }
 
 export function getMetricsUnit(
@@ -153,6 +134,7 @@ export function getMetricsUrlFromSavedQueryUrl({
 
     return {
       ...defaultQuery,
+      metric: queryItem.metric ?? defaultQuery.metric,
       queryParams: defaultQuery.queryParams.replace({
         mode: queryItem.mode,
         query: queryItem.query,
@@ -178,5 +160,49 @@ export function getMetricsUrlFromSavedQueryUrl({
       environments: savedQuery.environment ? [...savedQuery.environment] : [],
       projects: savedQuery.projects ? [...savedQuery.projects] : [],
     },
+  });
+}
+
+export function getMetricTableColumnType(
+  column: SampleTableColumnKey
+): 'value' | 'stat' | 'metric_value' {
+  if (TraceSamplesTableStatColumns.includes(column as VirtualTableSampleColumnKey)) {
+    return 'stat';
+  }
+  if (column === TraceMetricKnownFieldKey.METRIC_VALUE) {
+    return 'metric_value'; // Special cased for headers and rendering usually.
+  }
+  return 'value';
+}
+
+export function makeMetricsAggregate({
+  aggregate,
+  traceMetric,
+  attribute,
+}: {
+  aggregate: string;
+  traceMetric: TraceMetric;
+  attribute?: string;
+}) {
+  const args = [
+    attribute ?? 'value', // hard coded to `value` for now, but can be other attributes
+    traceMetric.name,
+    traceMetric.type,
+    '-', // hard coded to `-` for now, but can be other units`
+  ];
+  return `${aggregate}(${args.join(',')})`;
+}
+
+export function updateVisualizeYAxis(
+  visualize: VisualizeFunction,
+  aggregate: string,
+  traceMetric: TraceMetric
+): VisualizeFunction {
+  return visualize.replace({
+    yAxis: makeMetricsAggregate({
+      aggregate,
+      traceMetric,
+    }),
+    chartType: undefined,
   });
 }

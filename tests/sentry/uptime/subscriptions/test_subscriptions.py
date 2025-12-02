@@ -558,10 +558,10 @@ class CreateUptimeDetectorTest(UptimeTestCase):
             mock_enable_uptime_detector.assert_not_called()
 
     @mock.patch(
-        "sentry.quotas.backend.check_assign_seat",
-        return_value=SeatAssignmentResult(assignable=False, reason="Testing"),
+        "sentry.quotas.backend.assign_seat",
+        return_value=Outcome.RATE_LIMITED,
     )
-    def test_no_seat_assignment(self, _mock_check_assign_seat: mock.MagicMock) -> None:
+    def test_no_seat_assignment(self, _mock_assign_seat: mock.MagicMock) -> None:
         with self.tasks():
             detector = create_uptime_detector(
                 self.project,
@@ -998,13 +998,7 @@ class EnableUptimeDetectorTest(UptimeTestCase):
         "sentry.quotas.backend.assign_seat",
         return_value=Outcome.ACCEPTED,
     )
-    @mock.patch(
-        "sentry.quotas.backend.check_assign_seat",
-        return_value=SeatAssignmentResult(assignable=True),
-    )
-    def test(
-        self, mock_assign_seat: mock.MagicMock, mock_check_assign_seat: mock.MagicMock
-    ) -> None:
+    def test(self, mock_assign_seat: mock.MagicMock) -> None:
         # Mock out enable_uptime_detector here to avoid calling it
         # and polluting our mock quota calls.
         with mock.patch("sentry.uptime.subscriptions.subscriptions.enable_uptime_detector"):
@@ -1021,7 +1015,7 @@ class EnableUptimeDetectorTest(UptimeTestCase):
         # Calling enable_uptime_detector on an already enabled
         # monitor does nothing
         enable_uptime_detector(detector)
-        mock_check_assign_seat.assert_not_called()
+        mock_assign_seat.assert_not_called()
 
         detector.refresh_from_db()
 
@@ -1042,22 +1036,21 @@ class EnableUptimeDetectorTest(UptimeTestCase):
         assert uptime_subscription.status == UptimeSubscription.Status.ACTIVE.value
 
         # Seat assignment was called
-        mock_check_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
         mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
 
         detector.refresh_from_db()
         assert detector.enabled
 
     @mock.patch(
-        "sentry.quotas.backend.assign_seat",
-        return_value=Outcome.RATE_LIMITED,
-    )
-    @mock.patch(
         "sentry.quotas.backend.check_assign_seat",
         return_value=SeatAssignmentResult(assignable=False, reason="Testing"),
     )
+    @mock.patch(
+        "sentry.quotas.backend.assign_seat",
+        return_value=Outcome.RATE_LIMITED,
+    )
     def test_no_seat_assignment(
-        self, mock_check_assign_seat: mock.MagicMock, mock_assign_seat: mock.MagicMock
+        self, mock_assign_seat: mock.MagicMock, mock_check_assign_seat: mock.MagicMock
     ) -> None:
         # Mock out enable_uptime_detector here to avoid calling it
         # and polluting our mock quota calls.
@@ -1086,11 +1079,14 @@ class EnableUptimeDetectorTest(UptimeTestCase):
         detector.refresh_from_db()
         assert not detector.enabled
 
+        mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
         mock_check_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
-        mock_assign_seat.assert_not_called()
 
-    @mock.patch("sentry.quotas.backend.check_assign_seat")
-    def test_already_enabled(self, mock_check_assign_seat: mock.MagicMock) -> None:
+    @mock.patch(
+        "sentry.quotas.backend.assign_seat",
+        return_value=Outcome.ACCEPTED,
+    )
+    def test_already_enabled(self, mock_assign_seat: mock.MagicMock) -> None:
         detector = create_uptime_detector(
             self.project,
             self.environment,
@@ -1103,23 +1099,19 @@ class EnableUptimeDetectorTest(UptimeTestCase):
         assert detector.enabled
         assert detector.enabled
 
+        # Clear previous calls from creation
+        mock_assign_seat.reset_mock()
+
         enable_uptime_detector(detector)
 
-        # The check_assign_seat was called once during initial subscription creation
         # On the "second" call we find it's already enabled so do nothing
-        mock_check_assign_seat.assert_called_once()
+        mock_assign_seat.assert_not_called()
 
     @mock.patch(
         "sentry.quotas.backend.assign_seat",
         return_value=Outcome.ACCEPTED,
     )
-    @mock.patch(
-        "sentry.quotas.backend.check_assign_seat",
-        return_value=SeatAssignmentResult(assignable=True),
-    )
-    def test_skip_quotas(
-        self, mock_assign_seat: mock.MagicMock, mock_check_assign_seat: mock.MagicMock
-    ) -> None:
+    def test_skip_quotas(self, mock_assign_seat: mock.MagicMock) -> None:
         # Mock out enable_uptime_detector here to avoid calling it
         # and polluting our mock quota calls.
         with mock.patch("sentry.uptime.subscriptions.subscriptions.enable_uptime_detector"):
@@ -1149,7 +1141,6 @@ class EnableUptimeDetectorTest(UptimeTestCase):
         assert detector.enabled
         assert uptime_subscription.status == UptimeSubscription.Status.ACTIVE.value
 
-        mock_check_assign_seat.assert_not_called()
         mock_assign_seat.assert_not_called()
 
         detector.refresh_from_db()
@@ -1159,12 +1150,8 @@ class EnableUptimeDetectorTest(UptimeTestCase):
         "sentry.quotas.backend.assign_seat",
         return_value=Outcome.ACCEPTED,
     )
-    @mock.patch(
-        "sentry.quotas.backend.check_assign_seat",
-        return_value=SeatAssignmentResult(assignable=True),
-    )
     def test_enable_with_other_disabled_monitors_present(
-        self, mock_assign_seat: mock.MagicMock, mock_check_assign_seat: mock.MagicMock
+        self, mock_assign_seat: mock.MagicMock
     ) -> None:
         """
         Verify that enabling a monitor works regardless of disabled monitors in the organization.
@@ -1215,7 +1202,6 @@ class EnableUptimeDetectorTest(UptimeTestCase):
             assert detector2.enabled is True
 
             # Verify quota backend was called for seat assignment
-            mock_check_assign_seat.assert_called_with(DataCategory.UPTIME, detector2)
             mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector2)
 
             # Verify we still have 1 enabled and 1 disabled

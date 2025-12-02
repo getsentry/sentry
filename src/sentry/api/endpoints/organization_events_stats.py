@@ -11,7 +11,7 @@ from sentry import analytics, features
 from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationEventsV2EndpointBase
+from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
     transform_query_columns_for_error_upsampling,
@@ -19,6 +19,10 @@ from sentry.api.helpers.error_upsampling import (
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
+from sentry.search.eap.trace_metrics.config import (
+    TraceMetricsSearchResolverConfig,
+    get_trace_metric_from_request,
+)
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import (
@@ -33,6 +37,7 @@ from sentry.snuba import (
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
@@ -49,7 +54,7 @@ SENTRY_BACKEND_REFERRERS = [
 
 
 @region_silo_endpoint
-class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -192,6 +197,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         spans_metrics,
                         Spans,
                         OurLogs,
+                        ProfileFunctions,
                         TraceMetrics,
                         errors,
                         transactions,
@@ -233,6 +239,37 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             if should_upsample:
                 final_columns = transform_query_columns_for_error_upsampling(query_columns)
 
+            def get_rpc_config():
+                if scoped_dataset not in RPC_DATASETS:
+                    raise NotImplementedError
+
+                extrapolation_mode = self.get_extrapolation_mode(request)
+
+                if scoped_dataset == TraceMetrics:
+                    # tracemetrics uses aggregate conditions
+                    metric = get_trace_metric_from_request(request)
+
+                    return TraceMetricsSearchResolverConfig(
+                        metric=metric,
+                        auto_fields=False,
+                        use_aggregate_conditions=True,
+                        disable_aggregate_extrapolation=request.GET.get(
+                            "disableAggregateExtrapolation", "0"
+                        )
+                        == "1",
+                        extrapolation_mode=extrapolation_mode,
+                    )
+
+                return SearchResolverConfig(
+                    auto_fields=False,
+                    use_aggregate_conditions=True,
+                    disable_aggregate_extrapolation=request.GET.get(
+                        "disableAggregateExtrapolation", "0"
+                    )
+                    == "1",
+                    extrapolation_mode=extrapolation_mode,
+                )
+
             if top_events > 0:
                 raw_groupby = self.get_field_list(organization, request)
                 if "timestamp" in raw_groupby:
@@ -247,14 +284,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         limit=top_events,
                         include_other=include_other,
                         referrer=referrer,
-                        config=SearchResolverConfig(
-                            auto_fields=False,
-                            use_aggregate_conditions=True,
-                            disable_aggregate_extrapolation=request.GET.get(
-                                "disableAggregateExtrapolation", "0"
-                            )
-                            == "1",
-                        ),
+                        config=get_rpc_config(),
                         sampling_mode=snuba_params.sampling_mode,
                         equations=self.get_equation_list(organization, request),
                     )
@@ -285,14 +315,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     query_string=query,
                     y_axes=final_columns,
                     referrer=referrer,
-                    config=SearchResolverConfig(
-                        auto_fields=False,
-                        use_aggregate_conditions=True,
-                        disable_aggregate_extrapolation=request.GET.get(
-                            "disableAggregateExtrapolation", "0"
-                        )
-                        == "1",
-                    ),
+                    config=get_rpc_config(),
                     sampling_mode=snuba_params.sampling_mode,
                     comparison_delta=comparison_delta,
                 )

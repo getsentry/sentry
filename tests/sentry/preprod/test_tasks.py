@@ -1,6 +1,8 @@
 from datetime import timedelta
 from hashlib import sha1
+from unittest.mock import patch
 
+import sentry_sdk
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
@@ -414,7 +416,7 @@ class CreatePreprodArtifactTest(TestCase):
 class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
     def setUp(self) -> None:
         super().setUp()
-        self.preprod_artifact = PreprodArtifact.objects.create(
+        self.preprod_artifact = self.create_preprod_artifact(
             project=self.project, state=PreprodArtifact.ArtifactState.UPLOADED
         )
 
@@ -491,7 +493,7 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
 class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
     def setUp(self) -> None:
         super().setUp()
-        self.preprod_artifact = PreprodArtifact.objects.create(
+        self.preprod_artifact = self.create_preprod_artifact(
             project=self.project, state=PreprodArtifact.ArtifactState.UPLOADED
         )
 
@@ -520,7 +522,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
 
     def test_assemble_preprod_artifact_size_analysis_success(self) -> None:
         status, details = self._run_task_and_verify_status(
-            b'{"download_size": 1000, "install_size": 2000}'
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null}'
         )
 
         assert status == ChunkFileState.OK
@@ -545,14 +547,14 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
 
     def test_assemble_preprod_artifact_size_analysis_update_existing(self) -> None:
         # Create an existing size metrics record
-        existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.preprod_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        existing_size_metrics = self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
         )
 
         status, details = self._run_task_and_verify_status(
-            b'{"download_size": 1000, "install_size": 2000}'
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null}'
         )
 
         assert status == ChunkFileState.OK
@@ -609,31 +611,31 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
 class DetectExpiredPreprodArtifactsTest(TestCase):
     def test_detect_expired_preprod_artifacts_no_expired(self):
         """Test that no artifacts are marked as expired when none are expired"""
-        recent_artifact = PreprodArtifact.objects.create(
+        recent_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADED,
         )
 
-        recent_size_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=recent_artifact,
+        recent_size_metric = self.create_preprod_artifact_size_metrics(
+            recent_artifact,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
 
-        another_artifact = PreprodArtifact.objects.create(
+        another_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-        another_size_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=another_artifact,
+        another_size_metric = self.create_preprod_artifact_size_metrics(
+            another_artifact,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
 
-        recent_size_comparison = PreprodArtifactSizeComparison.objects.create(
+        recent_size_comparison = self.create_preprod_artifact_size_comparison(
             head_size_analysis=recent_size_metric,
             base_size_analysis=another_size_metric,
-            organization_id=self.organization.id,
+            organization=self.organization,
             state=PreprodArtifactSizeComparison.State.PROCESSING,
         )
 
@@ -653,7 +655,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         current_time = timezone.now()
         old_time = current_time - timedelta(minutes=35)  # 35 minutes ago (expired)
 
-        expired_uploading_artifact = PreprodArtifact.objects.create(
+        expired_uploading_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADING,
         )
@@ -661,7 +663,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             date_updated=old_time
         )
 
-        expired_uploaded_artifact = PreprodArtifact.objects.create(
+        expired_uploaded_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADED,
         )
@@ -669,29 +671,29 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             date_updated=old_time
         )
 
-        expired_size_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=expired_uploaded_artifact,
+        expired_size_metric = self.create_preprod_artifact_size_metrics(
+            expired_uploaded_artifact,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
         PreprodArtifactSizeMetrics.objects.filter(id=expired_size_metric.id).update(
             date_updated=old_time
         )
 
-        another_artifact = PreprodArtifact.objects.create(
+        another_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-        another_size_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=another_artifact,
+        another_size_metric = self.create_preprod_artifact_size_metrics(
+            another_artifact,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
 
-        expired_size_comparison = PreprodArtifactSizeComparison.objects.create(
+        expired_size_comparison = self.create_preprod_artifact_size_comparison(
             head_size_analysis=expired_size_metric,
             base_size_analysis=another_size_metric,
-            organization_id=self.organization.id,
+            organization=self.organization,
             state=PreprodArtifactSizeComparison.State.PROCESSING,
         )
         PreprodArtifactSizeComparison.objects.filter(id=expired_size_comparison.id).update(
@@ -739,48 +741,84 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             and "30 minutes" in expired_size_comparison.error_message
         )
 
+    def test_detect_expired_preprod_artifacts_captures_sentry_message(self):
+        """Test that Sentry messages are captured for each expired artifact"""
+        current_time = timezone.now()
+        old_time = current_time - timedelta(minutes=35)
+
+        expired_artifact_1 = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADING,
+        )
+        PreprodArtifact.objects.filter(id=expired_artifact_1.id).update(date_updated=old_time)
+
+        expired_artifact_2 = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+        )
+        PreprodArtifact.objects.filter(id=expired_artifact_2.id).update(date_updated=old_time)
+
+        with patch.object(sentry_sdk, "capture_message") as mock_capture_message:
+            detect_expired_preprod_artifacts()
+
+            # Should have captured a message for each expired artifact
+            assert mock_capture_message.call_count == 2
+
+            # Verify the message text and parameters
+            call_args_list = mock_capture_message.call_args_list
+            captured_artifact_ids = [call[1]["extras"]["artifact_id"] for call in call_args_list]
+
+            assert expired_artifact_1.id in captured_artifact_ids
+            assert expired_artifact_2.id in captured_artifact_ids
+
+            # Verify all calls have the same message text, error level, and contain artifact_id
+            for call in call_args_list:
+                assert call[0][0] == "PreprodArtifact expired"
+                assert call[1]["level"] == "error"
+                assert "artifact_id" in call[1]["extras"]
+
     def test_detect_expired_preprod_artifacts_mixed_states(self):
         """Test that only artifacts in the right states are considered for expiration"""
         current_time = timezone.now()
         old_time = current_time - timedelta(minutes=35)  # 35 minutes ago (expired)
 
-        uploading_artifact = PreprodArtifact.objects.create(
+        uploading_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADING,  # Should expire
         )
         PreprodArtifact.objects.filter(id=uploading_artifact.id).update(date_updated=old_time)
 
-        uploaded_artifact = PreprodArtifact.objects.create(
+        uploaded_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADED,  # Should expire
         )
         PreprodArtifact.objects.filter(id=uploaded_artifact.id).update(date_updated=old_time)
 
-        processed_artifact = PreprodArtifact.objects.create(
+        processed_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,  # Should NOT expire
         )
         PreprodArtifact.objects.filter(id=processed_artifact.id).update(date_updated=old_time)
 
-        failed_artifact = PreprodArtifact.objects.create(
+        failed_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.FAILED,  # Should NOT expire
         )
         PreprodArtifact.objects.filter(id=failed_artifact.id).update(date_updated=old_time)
 
-        processing_size_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=uploaded_artifact,
+        processing_size_metric = self.create_preprod_artifact_size_metrics(
+            uploaded_artifact,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,  # Should expire
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
         PreprodArtifactSizeMetrics.objects.filter(id=processing_size_metric.id).update(
             date_updated=old_time
         )
 
-        completed_size_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=processed_artifact,
+        completed_size_metric = self.create_preprod_artifact_size_metrics(
+            processed_artifact,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,  # Should NOT expire
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
         PreprodArtifactSizeMetrics.objects.filter(id=completed_size_metric.id).update(
             date_updated=old_time
@@ -812,7 +850,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         just_under_30_min_ago = current_time - timedelta(minutes=29)  # More buffer
         just_over_30_min_ago = current_time - timedelta(minutes=31)  # More buffer
 
-        exactly_30_artifact = PreprodArtifact.objects.create(
+        exactly_30_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADING,  # Test UPLOADING state
         )
@@ -820,7 +858,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             date_updated=exactly_30_min_ago
         )
 
-        just_under_30_artifact = PreprodArtifact.objects.create(
+        just_under_30_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADED,
         )
@@ -828,7 +866,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             date_updated=just_under_30_min_ago
         )
 
-        just_over_30_artifact = PreprodArtifact.objects.create(
+        just_over_30_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADING,  # Test UPLOADING state
         )

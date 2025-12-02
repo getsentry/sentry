@@ -61,6 +61,27 @@ class AggregateFieldSerializer(serializers.Serializer):
         )
 
 
+class MetricSerializer(serializers.Serializer):
+    name = serializers.CharField(
+        required=True,
+        help_text="The name of the metric.",
+    )
+    type = serializers.ChoiceField(
+        choices=[
+            "counter",
+            "gauge",
+            "distribution",
+        ],
+        required=True,
+        help_text="The type of the metric.",
+    )
+    unit = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="The unit of the metric (e.g., 'millisecond'). See MetricUnit in relay",
+    )
+
+
 @extend_schema_serializer(exclude_fields=["groupby"])
 class QuerySerializer(serializers.Serializer):
     fields = ListField(
@@ -104,6 +125,11 @@ class QuerySerializer(serializers.Serializer):
             "aggregate",
         ],
         help_text="The mode of the query.",
+    )
+    metric = MetricSerializer(
+        required=False,
+        allow_null=True,
+        help_text="The metric configuration (only used for metrics dataset).",
     )
 
 
@@ -173,15 +199,27 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
             "mode",
             "aggregateField",
             "aggregateOrderby",
+            "metric",
         ]
 
         for key in query_keys:
             if data.get(key) is not None:
-                query[key] = data[key]
+                value = data[key]
+                if key in ("start", "end"):
+                    value = value.isoformat()
+                query[key] = value
 
         if "query" in data:
             query["query"] = []
             for q in data["query"]:
+                if "metric" in q and data["dataset"] != "metrics":
+                    raise serializers.ValidationError(
+                        "Metric field is only allowed for metrics dataset"
+                    )
+                if data["dataset"] == "metrics" and "metric" not in q:
+                    raise serializers.ValidationError(
+                        "Metric field is required for metrics dataset"
+                    )
                 inner_query = {}
                 for key in inner_query_keys:
                     if key in q:

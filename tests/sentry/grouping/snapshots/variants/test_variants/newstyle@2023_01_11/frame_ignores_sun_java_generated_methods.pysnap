@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:41:47.923766+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,12 +8,12 @@ app:
   root_component:
     app (ignored because system stacktrace takes precedence)
       stacktrace (ignored because it contains no in-app frames)
-        frame (marked out of app by stack trace rule (category:framework -app))
+        frame (marked out of app by built-in stack trace rule (category:framework -app))
           module* (removed reflection marker)
             "sun.reflect.GeneratedMethodAccessor"
           function*
             "invoke"
-        frame (marked out of app by stack trace rule (category:framework -app))
+        frame (marked out of app by built-in stack trace rule (category:framework -app))
           module* (removed reflection marker)
             "jdk.internal.reflect.GeneratedMethodAccessor"
           function*

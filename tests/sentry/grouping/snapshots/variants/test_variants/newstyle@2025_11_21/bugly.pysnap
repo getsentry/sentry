@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:50.951385+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,6 +8,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type (ignored because exception is synthetic)
+          "SIGSEGV"
+        value*
+          "Segfault"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
           frame (marked out of app by the client)
@@ -25,10 +27,6 @@ app:
           frame (marked out of app by the client)
             function*
               "kill"
-        type (ignored because exception is synthetic)
-          "SIGSEGV"
-        value*
-          "Segfault"
 --------------------------------------------------------------------------
 system:
   hash: "d9c9b0f9ba46e32fddd7cd1512fad235"
@@ -37,6 +35,10 @@ system:
   root_component:
     system*
       exception*
+        type (ignored because exception is synthetic)
+          "SIGSEGV"
+        value (ignored because stacktrace takes precedence)
+          "Segfault"
         stacktrace*
           frame
           frame
@@ -52,7 +54,3 @@ system:
           frame*
             function*
               "kill"
-        type (ignored because exception is synthetic)
-          "SIGSEGV"
-        value (ignored because stacktrace takes precedence)
-          "Segfault"

@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:57.532598+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -29,13 +27,15 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "19163f3ca34f5995c69d85351ce3d697"
+    hash: "b0dbf92202bf38adc8710e8ccd55d3df"
     contributing component: exception
     hint: None
     fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\""}}
     root_component:
       app*
         exception*
+          type*
+            "SoftTimeLimitExceeded"
           stacktrace*
             frame* (marked in-app by the client)
               module*
@@ -121,17 +121,17 @@ contributing variants:
                 "_prefetch"
               context_line*
                 "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-          type*
-            "SoftTimeLimitExceeded"
     values: ["{{ default }}","soft-timelimit-exceeded"]
   system*
-    hash: "847950eb44d280e6758d136c763d6ddc"
+    hash: "e440cd285687bab8b861ff96fe713929"
     contributing component: exception
     hint: None
     fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\""}}
     root_component:
       system*
         exception*
+          type*
+            "SoftTimeLimitExceeded"
           stacktrace*
             frame*
               module*
@@ -252,6 +252,4 @@ contributing variants:
                 "soft_timeout_sighandler"
               context_line*
                 "raise SoftTimeLimitExceeded()"
-          type*
-            "SoftTimeLimitExceeded"
     values: ["{{ default }}","soft-timelimit-exceeded"]

@@ -253,7 +253,7 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs'];
+const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs', 'color'];
 
 const config: Config.InitialOptions = {
   verbose: false,
@@ -303,6 +303,7 @@ const config: Config.InitialOptions = {
   transform: {
     '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
+    '^.+\\.mjs?$': ['babel-jest', babelConfig as any],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [

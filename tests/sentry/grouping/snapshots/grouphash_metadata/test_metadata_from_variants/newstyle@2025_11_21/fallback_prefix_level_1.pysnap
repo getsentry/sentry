@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:56.346438+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,14 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "87497299851e09febfecf4e84e0d45ba"
+    hash: "c670c5a80a2775994bd2d63b408abd6c"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "EXC_BAD_ACCESS"
           stacktrace*
             frame*
               function*
@@ -37,5 +37,3 @@ contributing variants:
             frame*
               function*
                 "objc_release"
-          type*
-            "EXC_BAD_ACCESS"

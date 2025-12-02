@@ -42,6 +42,7 @@ from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
+    AUTO_OPEN_PRS_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
@@ -183,12 +184,6 @@ ORG_OPTIONS = (
         GITHUB_COMMENT_BOT_DEFAULT,
     ),
     (
-        "githubOpenPRBot",
-        "sentry:github_open_pr_bot",
-        bool,
-        GITHUB_COMMENT_BOT_DEFAULT,
-    ),
-    (
         "githubNudgeInvite",
         "sentry:github_nudge_invite",
         bool,
@@ -197,12 +192,6 @@ ORG_OPTIONS = (
     (
         "gitlabPRBot",
         "sentry:gitlab_pr_bot",
-        bool,
-        GITLAB_COMMENT_BOT_DEFAULT,
-    ),
-    (
-        "gitlabOpenPRBot",
-        "sentry:gitlab_open_pr_bot",
         bool,
         GITLAB_COMMENT_BOT_DEFAULT,
     ),
@@ -251,6 +240,13 @@ ORG_OPTIONS = (
         "sentry:enable_seer_coding",
         bool,
         ENABLE_SEER_CODING_DEFAULT,
+    ),
+    (
+        # Informs UI default for automated_run_stopping_point in project preferences
+        "autoOpenPrs",
+        "sentry:auto_open_prs",
+        bool,
+        AUTO_OPEN_PRS_DEFAULT,
     ),
     (
         "ingestThroughTrustedRelaysOnly",
@@ -310,11 +306,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     hideAiFeatures = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
-    githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
     gitlabPRBot = serializers.BooleanField(required=False)
-    gitlabOpenPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
@@ -340,6 +334,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     enablePrReviewTestGeneration = serializers.BooleanField(required=False)
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
+    autoOpenPrs = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
     )
@@ -724,6 +719,7 @@ def create_console_platform_audit_log(
         "genAIConsent",
         "defaultAutofixAutomationTuning",
         "defaultSeerScannerAutomation",
+        "autoOpenPrs",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
     ]
@@ -891,10 +887,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
         help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitHub integration.",
         required=False,
     )
-    githubOpenPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on open pull requests to show recent error issues for the code being changed. Requires a GitHub integration.",
-        required=False,
-    )
     githubNudgeInvite = serializers.BooleanField(
         help_text="Specify `true` to allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization. Requires a GitHub integration.",
         required=False,
@@ -903,10 +895,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     # gitlab features
     gitlabPRBot = serializers.BooleanField(
         help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitLab integration.",
-        required=False,
-    )
-    gitlabOpenPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on open pull requests to show recent error issues for the code being changed. Requires a GitLab integration.",
         required=False,
     )
 
@@ -1152,10 +1140,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         #       so we need to refactor this into an async task we can run and observe
         org_id = organization.id
         measure = SamplingMeasure.TRANSACTIONS
-        if options.get("dynamic-sampling.check_span_feature_flag") and features.has(
-            "organizations:dynamic-sampling-spans", organization
-        ):
-            measure = SamplingMeasure.SPANS
+        if options.get("dynamic-sampling.check_span_feature_flag"):
+            span_org_ids = options.get("dynamic-sampling.measure.spans") or []
+            if org_id in span_org_ids:
+                measure = SamplingMeasure.SPANS
 
         projects_with_tx_count_and_rates = []
         for chunk in query_project_counts_by_org(

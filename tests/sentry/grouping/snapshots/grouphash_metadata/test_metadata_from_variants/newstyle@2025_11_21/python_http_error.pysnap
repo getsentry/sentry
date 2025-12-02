@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:58.873836+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,14 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "d59239f5aad3304d60beb1fde3369b78"
+    hash: "721f24ff0b900f7945b4da03890d2a83"
     contributing component: exception
     hint: None
     root_component:
       app*
         exception*
+          type*
+            "HTTPError"
           stacktrace*
             frame* (marked in-app by the client)
               module*
@@ -45,15 +45,15 @@ contributing variants:
                 "send_notification"
               context_line*
                 "resp.raise_for_status()"
-          type*
-            "HTTPError"
   system*
-    hash: "133db3f366b1327dab4e661f66dfb961"
+    hash: "d2490be282c0ada7e13288fd90fb0cb3"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "HTTPError"
           stacktrace*
             frame*
               module*
@@ -76,5 +76,3 @@ contributing variants:
                 "raise_for_status"
               context_line*
                 "raise HTTPError(http_error_msg, response=self)"
-          type*
-            "HTTPError"

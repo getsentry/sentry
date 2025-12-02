@@ -160,6 +160,8 @@ def send_incident_occurrence(
             owner_actor = None
             monitor_env.monitor.update(owner_user_id=None, owner_team_id=None)
 
+    failure_reason = get_failure_reason(previous_checkins)
+
     occurrence = IssueOccurrence(
         id=uuid.uuid4().hex,
         resource_id=None,
@@ -167,12 +169,12 @@ def send_incident_occurrence(
         event_id=uuid.uuid4().hex,
         fingerprint=[incident.grouphash],
         type=MonitorIncidentType,
-        issue_title=f"Monitor failure: {monitor_env.monitor.name}",
-        subtitle="Your monitor has reached its failure threshold.",
+        issue_title=f"Cron failure: {monitor_env.monitor.name}",
+        subtitle=f"Your monitor is failing: {failure_reason}.",
         evidence_display=[
             IssueEvidence(
                 name="Failure reason",
-                value=str(get_failure_reason(previous_checkins)),
+                value=str(failure_reason),
                 important=True,
             ),
             IssueEvidence(

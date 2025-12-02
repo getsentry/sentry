@@ -243,7 +243,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       ...formData,
       reserved: {...formData.reserved, errors: reservedErrors},
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: true,
         },
       },
@@ -286,7 +286,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith('checkout.product_select', {
       organization,
       subscription,
-      seer: {
+      legacySeer: {
         enabled: true,
         previously_enabled: false,
       },

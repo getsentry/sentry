@@ -1,15 +1,24 @@
-import type {SentryRouteObject} from 'sentry/components/route';
+import Redirect from 'sentry/components/redirect';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
+import type {SentryRouteObject} from 'sentry/router/types';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 export const automationRoutes: SentryRouteObject = {
   path: 'alerts/',
   children: [
     {
-      index: true,
-      component: make(() => import('sentry/views/automations/list')),
+      component: RedirectToRuleList,
+      deprecatedRouteProps: true,
+      children: [
+        {index: true, component: make(() => import('sentry/views/automations/list'))},
+      ],
     },
     {
       path: 'new',
+      component: RedirectToNewRule,
+      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -19,6 +28,8 @@ export const automationRoutes: SentryRouteObject = {
     },
     {
       path: ':automationId/',
+      component: RedirectToRuleList,
+      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -32,3 +43,45 @@ export const automationRoutes: SentryRouteObject = {
     },
   ],
 };
+
+function RedirectToRuleList({children}: {children: React.ReactNode}) {
+  const user = useUser();
+  const organization = useOrganization();
+
+  const shouldRedirect =
+    !user.isStaff && !organization.features.includes('workflow-engine-ui');
+
+  if (shouldRedirect) {
+    return (
+      <Redirect
+        to={makeAlertsPathname({
+          path: '/rules/',
+          organization,
+        })}
+      />
+    );
+  }
+
+  return children;
+}
+
+function RedirectToNewRule({children}: {children: React.ReactNode}) {
+  const user = useUser();
+  const organization = useOrganization();
+
+  const shouldRedirect =
+    !user.isStaff && !organization.features.includes('workflow-engine-ui');
+
+  if (shouldRedirect) {
+    return (
+      <Redirect
+        to={makeAlertsPathname({
+          path: '/new/',
+          organization,
+        })}
+      />
+    );
+  }
+
+  return children;
+}

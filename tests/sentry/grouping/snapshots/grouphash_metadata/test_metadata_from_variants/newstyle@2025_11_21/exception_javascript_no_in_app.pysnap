@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:56.187302+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,14 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "26552f86ca2368e708afa1df6effc1c5"
+    hash: "9b140b41d4ae2bd9588ccff62cb8358f"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "TypeError"
           stacktrace*
             frame*
               module*
@@ -41,5 +41,3 @@ contributing variants:
                 "app/views/settings/components/forms/form"
               context_line*
                 "this.model.submitError(error);"
-          type*
-            "TypeError"

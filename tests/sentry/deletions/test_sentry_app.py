@@ -8,7 +8,6 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test, create_test_regions
 from sentry.users.models.user import User
 from sentry.workflow_engine.models import Action
@@ -60,7 +59,6 @@ class TestSentryAppDeletionTask(TestCase):
 
         assert c.fetchone()[0] == 1
 
-    @override_options({"workflow_engine.sentry-app-actions-outbox": True})
     def test_disables_actions(self) -> None:
         action = self.create_action(
             type=Action.Type.SENTRY_APP,

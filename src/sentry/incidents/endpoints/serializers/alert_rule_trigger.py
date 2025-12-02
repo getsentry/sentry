@@ -6,6 +6,7 @@ from django.db.models import prefetch_related_objects
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.endpoints.utils import translate_threshold
 from sentry.incidents.models.alert_rule import AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 
 @register(AlertRuleTrigger)
@@ -29,6 +30,9 @@ class AlertRuleTriggerSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
+        # Mark that we're using legacy AlertRuleTrigger models
+        report_used_legacy_models()
+
         return {
             "id": str(obj.id),
             "alertRuleId": str(obj.alert_rule_id),

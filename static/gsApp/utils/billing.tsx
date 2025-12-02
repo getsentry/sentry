@@ -1,11 +1,12 @@
 import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
-import {IconBuilding, IconGroup, IconPrevent, IconSeer, IconUser} from 'sentry/icons';
+import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {IconSize} from 'sentry/utils/theme';
 
 import {
@@ -20,21 +21,24 @@ import {
 } from 'getsentry/constants';
 import {
   AddOnCategory,
-  InvoiceItemType,
+  CREDIT_INVOICE_ITEM_TYPES,
+  FEE_INVOICE_ITEM_TYPES,
   OnDemandBudgetMode,
   PlanName,
   PlanTier,
   ReservedBudgetCategoryType,
-  type BillingConfig,
-  type BillingDetails,
-  type BillingMetricHistory,
-  type BillingStatTotal,
-  type EventBucket,
-  type InvoiceItem,
-  type Plan,
-  type PreviewInvoiceItem,
-  type ProductTrial,
-  type Subscription,
+} from 'getsentry/types';
+import type {
+  BillingConfig,
+  BillingDetails,
+  BillingMetricHistory,
+  BillingStatTotal,
+  EventBucket,
+  InvoiceItem,
+  Plan,
+  PreviewInvoiceItem,
+  ProductTrial,
+  Subscription,
 } from 'getsentry/types';
 import {
   getCategoryInfoFromPlural,
@@ -155,11 +159,17 @@ export function formatReservedWithUnits(
   if (!isByteCategory(dataCategory)) {
     return formatReservedNumberToString(reservedQuantity, options);
   }
+
   // convert reservedQuantity to BYTES to check for unlimited
-  const usageGb = reservedQuantity ? reservedQuantity * GIGABYTE : reservedQuantity;
+  // unless it's already unlimited
+  const usageGb =
+    reservedQuantity && !isUnlimitedReserved(reservedQuantity)
+      ? reservedQuantity * GIGABYTE
+      : reservedQuantity;
   if (isUnlimitedReserved(usageGb)) {
     return options.isGifted ? '0 GB' : UNLIMITED;
   }
+
   if (!options.useUnitScaling) {
     const byteOptions =
       dataCategory === DataCategory.LOG_BYTE
@@ -346,10 +356,6 @@ export const isBusinessTrial = (subscription: Subscription) => {
 
 export function isAmPlan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am');
-}
-
-export function isAm1Plan(planId?: string) {
-  return typeof planId === 'string' && planId.startsWith('am1');
 }
 
 export function isAm2Plan(planId?: string) {
@@ -590,14 +596,10 @@ export function getPlanIcon(plan: Plan) {
 }
 
 export function getProductIcon(product: AddOnCategory, size?: IconSize) {
-  switch (product) {
-    case AddOnCategory.SEER:
-      return <IconSeer size={size} />;
-    case AddOnCategory.PREVENT:
-      return <IconPrevent size={size} />;
-    default:
-      return null;
+  if ([AddOnCategory.LEGACY_SEER, AddOnCategory.SEER].includes(product)) {
+    return <IconSeer size={size} />;
   }
+  return null;
 }
 
 /**
@@ -627,7 +629,9 @@ export function hasAccessToSubscriptionOverview(
  */
 export function getSoftCapType(metricHistory: BillingMetricHistory): string | null {
   if (metricHistory.softCapType) {
-    return titleCase(metricHistory.softCapType.replace(/_/g, ' '));
+    return toTitleCase(metricHistory.softCapType.replace(/_/g, ' ').toLowerCase(), {
+      allowInnerUpperCase: true,
+    }).replace(' ', metricHistory.softCapType === 'ON_DEMAND' ? '-' : ' ');
   }
   if (metricHistory.trueForward) {
     return 'True Forward';
@@ -784,12 +788,10 @@ export function hasSomeBillingDetails(billingDetails: BillingDetails | undefined
 }
 
 export function getReservedBudgetCategoryForAddOn(addOnCategory: AddOnCategory) {
-  switch (addOnCategory) {
-    case AddOnCategory.SEER:
-      return ReservedBudgetCategoryType.SEER;
-    default:
-      return null;
+  if (addOnCategory === AddOnCategory.LEGACY_SEER) {
+    return ReservedBudgetCategoryType.SEER;
   }
+  return null;
 }
 
 // There are the data categories whose retention settings
@@ -797,6 +799,7 @@ export function getReservedBudgetCategoryForAddOn(addOnCategory: AddOnCategory) 
 export const RETENTION_SETTINGS_CATEGORIES = new Set([
   DataCategory.SPANS,
   DataCategory.LOG_BYTE,
+  DataCategory.TRANSACTIONS,
 ]);
 
 export function getCredits({
@@ -806,13 +809,8 @@ export function getCredits({
 }) {
   return invoiceItems.filter(
     item =>
-      [
-        InvoiceItemType.SUBSCRIPTION_CREDIT,
-        InvoiceItemType.CREDIT_APPLIED, // TODO(isabella): This is deprecated and replaced by BALANCE_CHANGE
-        InvoiceItemType.DISCOUNT,
-        InvoiceItemType.RECURRING_DISCOUNT,
-      ].includes(item.type) ||
-      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount < 0)
+      CREDIT_INVOICE_ITEM_TYPES.includes(item.type as any) ||
+      (item.type === 'balance_change' && item.amount < 0)
   );
 }
 
@@ -829,7 +827,7 @@ export function getCreditApplied({
   invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
 }) {
   const credits = getCredits({invoiceItems});
-  if (credits.some(item => item.type === InvoiceItemType.BALANCE_CHANGE)) {
+  if (credits.some(item => item.type === 'balance_change')) {
     return 0;
   }
   return creditApplied;
@@ -846,8 +844,8 @@ export function getFees({
 }) {
   return invoiceItems.filter(
     item =>
-      [InvoiceItemType.CANCELLATION_FEE, InvoiceItemType.SALES_TAX].includes(item.type) ||
-      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
+      FEE_INVOICE_ITEM_TYPES.includes(item.type as any) ||
+      (item.type === 'balance_change' && item.amount > 0)
   );
 }
 
@@ -871,4 +869,82 @@ export function formatOnDemandDescription(
 ): string {
   const budgetTerm = displayBudgetName(plan, {title: false}).toLowerCase();
   return description.replace(new RegExp(`\\s*${budgetTerm}\\s*`, 'gi'), ' ').trim();
+}
+
+/**
+ * Given a DataCategory or AddOnCategory, returns true if it is an add-on, false otherwise.
+ */
+export function checkIsAddOn(
+  selectedProduct: DataCategory | AddOnCategory | string
+): boolean {
+  return Object.values(AddOnCategory).includes(selectedProduct as AddOnCategory);
+}
+
+/**
+ * Get the billed DataCategory for an add-on or DataCategory.
+ */
+export function getBilledCategory(
+  subscription: Subscription,
+  selectedProduct: DataCategory | AddOnCategory
+): DataCategory | null {
+  if (checkIsAddOn(selectedProduct)) {
+    const category = selectedProduct as AddOnCategory;
+    const addOnInfo = subscription.addOns?.[category];
+    if (!addOnInfo) {
+      return null;
+    }
+
+    const {dataCategories, apiName} = addOnInfo;
+    const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
+    const reservedBudget = subscription.reservedBudgets?.find(
+      budget => budget.apiName === reservedBudgetCategory
+    );
+    return reservedBudget
+      ? (dataCategories.find(dataCategory =>
+          subscription.planDetails.planCategories[dataCategory]?.find(
+            bucket => bucket.events === RESERVED_BUDGET_QUOTA
+          )
+        ) ?? dataCategories[0]!)
+      : dataCategories[0]!;
+  }
+
+  return selectedProduct as DataCategory;
+}
+
+export function productIsEnabled(
+  subscription: Subscription,
+  selectedProduct: DataCategory | AddOnCategory
+): boolean {
+  const billedCategory = getBilledCategory(subscription, selectedProduct);
+  if (!billedCategory) {
+    return false;
+  }
+
+  const activeProductTrial = getActiveProductTrial(
+    subscription.productTrials ?? null,
+    billedCategory
+  );
+  if (activeProductTrial) {
+    return true;
+  }
+
+  if (checkIsAddOn(selectedProduct)) {
+    const addOnInfo = subscription.addOns?.[selectedProduct as AddOnCategory];
+    if (!addOnInfo) {
+      return false;
+    }
+    return addOnInfo.enabled;
+  }
+
+  const metricHistory = subscription.categories[billedCategory];
+  if (!metricHistory) {
+    return false;
+  }
+  const isPaygOnly = metricHistory.reserved === 0;
+  return (
+    !isPaygOnly ||
+    metricHistory.onDemandBudget > 0 ||
+    (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED &&
+      subscription.onDemandBudgets.sharedMaxBudget > 0)
+  );
 }

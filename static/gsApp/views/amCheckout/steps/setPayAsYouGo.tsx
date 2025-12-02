@@ -21,7 +21,7 @@ import {OnDemandBudgetMode, type OnDemandBudgets} from 'getsentry/types';
 import {isBizPlanFamily} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {getTotalBudget} from 'getsentry/views/onDemandBudgets/utils';
 

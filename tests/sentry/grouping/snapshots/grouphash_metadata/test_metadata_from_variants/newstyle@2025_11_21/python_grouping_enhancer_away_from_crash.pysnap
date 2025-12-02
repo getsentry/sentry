@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:58.829867+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,14 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "121caa876de75ec51bf72ed4c852cd75"
+    hash: "4ec09a051686463f01ce05bffbcf3f89"
     contributing component: exception
     hint: None
     root_component:
       app*
         exception*
+          type*
+            "MultiValueDictKeyError"
           stacktrace*
             frame* (marked in-app by the client)
               module*
@@ -45,15 +45,15 @@ contributing variants:
                 "handle"
               context_line*
                 "email = request.POST['user']"
-          type*
-            "MultiValueDictKeyError"
   system*
-    hash: "a5af2577d4caca8f983657c5d1919e14"
+    hash: "b19423b06ce0a7e46ae8b00e12804378"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "MultiValueDictKeyError"
           stacktrace*
             frame*
               module*
@@ -76,5 +76,3 @@ contributing variants:
                 "__getitem__"
               context_line*
                 "raise MultiValueDictKeyError(repr(key))"
-          type*
-            "MultiValueDictKeyError"

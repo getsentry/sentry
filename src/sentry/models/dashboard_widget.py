@@ -132,6 +132,14 @@ class DatasetSourcesTypes(Enum):
     Dataset modified by the transaction -> span migration version 3
     """
     SPAN_MIGRATION_VERSION_3 = 9
+    """
+    Dataset modified by the transaction -> span migration version 4 (fixing boolean bug)
+    """
+    SPAN_MIGRATION_VERSION_4 = 10
+    """
+    Dataset modified by the transaction -> span migration version 5 (fixing boolean bug again)
+    """
+    SPAN_MIGRATION_VERSION_5 = 11
 
     @classmethod
     def as_choices(cls):
@@ -160,6 +168,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
     TABLE = 4
     BIG_NUMBER = 6
     TOP_N = 7
+    DETAILS = 8
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
@@ -168,6 +177,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (TABLE, "table"),
         (BIG_NUMBER, "big_number"),
         (TOP_N, "top_n"),
+        (DETAILS, "details"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 

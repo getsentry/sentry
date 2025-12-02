@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.257556+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,6 +8,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "ArithmeticException"
+        value*
+          "/ by zero"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             module*
@@ -396,10 +398,6 @@ app:
               "application.java"
             function*
               "home"
-        type*
-          "ArithmeticException"
-        value*
-          "/ by zero"
 --------------------------------------------------------------------------
 default:
   hash: null
@@ -411,35 +409,39 @@ default:
         "Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.ArithmeticException: / by zero] with root cause"
 --------------------------------------------------------------------------
 system:
-  hash: "ef2555bf7958ada8eefafbfdaed1c409"
+  hash: "6c27831782d10c44d7d0a01ef3f9c71e"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "ArithmeticException"
+        value (ignored because stacktrace takes precedence)
+          "/ by zero"
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "java.lang.Thread"
             filename (ignored because module takes precedence)
               "thread.java"
             function*
               "run"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
             filename (ignored because module takes precedence)
               "taskthread.java"
             function*
               "run"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "java.util.concurrent.ThreadPoolExecutor$Worker"
             filename (ignored because module takes precedence)
               "threadpoolexecutor.java"
             function*
               "run"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             module*
               "java.util.concurrent.ThreadPoolExecutor"
             filename (ignored because module takes precedence)
@@ -768,7 +770,7 @@ system:
               "invocablehandlermethod.java"
             function*
               "doInvoke"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             module*
               "java.lang.reflect.Method"
             filename (ignored because module takes precedence)
@@ -796,14 +798,10 @@ system:
               "nativemethodaccessorimpl.java"
             function*
               "invoke0"
-          frame (ignored by stack trace rule (module:io.sentry.* -group))
+          frame (ignored by built-in stack trace rule (module:io.sentry.* -group))
             module*
               "io.sentry.example.Application"
             filename (ignored because module takes precedence)
               "application.java"
             function*
               "home"
-        type*
-          "ArithmeticException"
-        value (ignored because stacktrace takes precedence)
-          "/ by zero"

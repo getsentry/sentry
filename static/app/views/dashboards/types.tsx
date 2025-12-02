@@ -24,6 +24,7 @@ export enum DisplayType {
   LINE = 'line',
   TABLE = 'table',
   BIG_NUMBER = 'big_number',
+  DETAILS = 'details',
   TOP_N = 'top_n',
 }
 
@@ -73,8 +74,11 @@ interface WidgetQueryOnDemand {
 }
 
 export type LinkedDashboard = {
+  // The destination dashboard id, set this to '-1' for prebuilt dashboards that link to other prebuilt dashboards
   dashboardId: string;
   field: string;
+  // Used for static dashboards that are not saved to the database
+  staticDashboardId?: PrebuiltDashboardId;
 };
 
 /**
@@ -166,6 +170,7 @@ export type DashboardListItem = {
   isFavorited?: boolean;
   lastVisited?: string;
   permissions?: DashboardPermissions;
+  prebuiltId?: PrebuiltDashboardId;
 };
 
 export enum DashboardFilterKeys {

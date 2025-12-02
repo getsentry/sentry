@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import type {TermOperator} from 'sentry/components/searchSyntax/parser';
+import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import TextOverflow from 'sentry/components/textOverflow';
 import {prettifyTagKey} from 'sentry/utils/fields';
+import {getOperatorLabel} from 'sentry/views/dashboards/globalFilter/numericFilterSelector';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
 type NumericFilterSelectorTriggerProps = {
@@ -12,7 +12,7 @@ type NumericFilterSelectorTriggerProps = {
   globalFilterValue: string;
 };
 
-function FilterSelectorTrigger({
+function NumericFilterSelectorTrigger({
   globalFilter,
   globalFilterOperator,
   globalFilterValue,
@@ -22,14 +22,39 @@ function FilterSelectorTrigger({
   return (
     <ButtonLabelWrapper>
       <TextOverflow>
-        {prettifyTagKey(tag.key)} {OP_LABELS[globalFilterOperator]}{' '}
+        {prettifyTagKey(tag.key)} {getOperatorLabel(globalFilterOperator)}{' '}
         <FilterValueWrapper>{globalFilterValue}</FilterValueWrapper>
       </TextOverflow>
     </ButtonLabelWrapper>
   );
 }
 
-export default FilterSelectorTrigger;
+type BetweenFilterSelectorTriggerProps = {
+  globalFilter: GlobalFilter;
+  lowerBound: string;
+  upperBound: string;
+};
+
+function BetweenFilterSelectorTrigger({
+  globalFilter,
+  lowerBound,
+  upperBound,
+}: BetweenFilterSelectorTriggerProps) {
+  const {tag} = globalFilter;
+  const operatorLabel = getOperatorLabel(TermOperator.LESS_THAN_EQUAL);
+
+  return (
+    <ButtonLabelWrapper>
+      <TextOverflow>
+        <FilterValueWrapper>{lowerBound}</FilterValueWrapper> {operatorLabel}{' '}
+        {prettifyTagKey(tag.key)} {operatorLabel}{' '}
+        <FilterValueWrapper>{upperBound}</FilterValueWrapper>
+      </TextOverflow>
+    </ButtonLabelWrapper>
+  );
+}
+
+export {NumericFilterSelectorTrigger, BetweenFilterSelectorTrigger};
 
 const ButtonLabelWrapper = styled('span')`
   width: 100%;

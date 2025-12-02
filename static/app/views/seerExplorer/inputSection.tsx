@@ -1,40 +1,35 @@
 import styled from '@emotion/styled';
 
-import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
+import {Button} from '@sentry/scraps/button';
+import {TextArea} from '@sentry/scraps/textarea/textarea';
 
-import SlashCommands, {type SlashCommand} from './slashCommands';
+import {IconMenu} from 'sentry/icons';
 
 interface InputSectionProps {
   focusedBlockIndex: number;
   inputValue: string;
   interruptRequested: boolean;
   isPolling: boolean;
+  menu: React.ReactElement;
   onClear: () => void;
-  onCommandSelect: (command: SlashCommand) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onInputClick: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  onMaxSize: () => void;
-  onMedSize: () => void;
-  onSlashCommandsVisibilityChange: (isVisible: boolean) => void;
-  ref?: React.RefObject<HTMLTextAreaElement | null>;
+  onMenuButtonClick: () => void;
+  textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 function InputSection({
+  menu,
+  onMenuButtonClick,
   inputValue,
   focusedBlockIndex,
   isPolling,
   interruptRequested,
-  onClear,
   onInputChange,
-  onKeyDown,
   onInputClick,
-  onCommandSelect,
-  onSlashCommandsVisibilityChange,
-  onMaxSize,
-  onMedSize,
-  ref,
+  onKeyDown,
+  textAreaRef,
 }: InputSectionProps) {
   const getPlaceholder = () => {
     if (focusedBlockIndex !== -1) {
@@ -51,28 +46,27 @@ function InputSection({
 
   return (
     <InputBlock>
-      <InputContainer onClick={onInputClick}>
-        <SlashCommands
-          inputValue={inputValue}
-          onCommandSelect={onCommandSelect}
-          onVisibilityChange={onSlashCommandsVisibilityChange}
-          onMaxSize={onMaxSize}
-          onMedSize={onMedSize}
-          onClear={onClear}
-        />
-        <InputRow>
-          <ChevronIcon direction="right" size="sm" />
-          <InputTextarea
-            ref={ref}
-            value={inputValue}
-            onChange={onInputChange}
-            onKeyDown={onKeyDown}
-            placeholder={getPlaceholder()}
-            rows={1}
+      {menu}
+      <InputRow>
+        <ButtonContainer>
+          <Button
+            priority="default"
+            aria-label="Toggle Menu"
+            onClick={onMenuButtonClick}
+            icon={<IconMenu size="md" />}
           />
-        </InputRow>
-        {focusedBlockIndex === -1 && <FocusIndicator />}
-      </InputContainer>
+        </ButtonContainer>
+        <InputTextarea
+          ref={textAreaRef}
+          value={inputValue}
+          onChange={onInputChange}
+          onKeyDown={onKeyDown}
+          onClick={onInputClick}
+          placeholder={getPlaceholder()}
+          rows={1}
+          data-test-id="seer-explorer-input"
+        />
+      </InputRow>
     </InputBlock>
   );
 }
@@ -82,59 +76,34 @@ export default InputSection;
 // Styled components
 const InputBlock = styled('div')`
   width: 100%;
-  border-top: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.background};
   position: sticky;
   bottom: 0;
 `;
 
-const InputContainer = styled('div')`
-  position: relative;
-  width: 100%;
-`;
-
 const InputRow = styled('div')`
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   width: 100%;
+  padding: 0;
 `;
 
-const ChevronIcon = styled(IconChevron)`
-  color: ${p => p.theme.subText};
-  margin-top: 18px;
-  margin-left: ${space(2)};
-  margin-right: ${space(1)};
-  flex-shrink: 0;
+const ButtonContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  padding: ${p => p.theme.space.sm};
+  padding-top: ${p => p.theme.space.md};
+
+  button {
+    width: auto;
+    padding: ${p => p.theme.space.md};
+  }
 `;
 
-const FocusIndicator = styled('div')`
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 3px;
-  background: ${p => p.theme.purple400};
-`;
-
-const InputTextarea = styled('textarea')`
+const InputTextarea = styled(TextArea)`
   width: 100%;
-  border: none;
-  outline: none;
-  background: transparent;
-  padding: ${space(2)} ${space(2)} ${space(2)} 0;
+  margin: ${p => p.theme.space.sm} ${p => p.theme.space.sm} ${p => p.theme.space.sm} 0;
   color: ${p => p.theme.textColor};
   resize: none;
-  min-height: 40px;
-  max-height: 120px;
-  line-height: 1.4;
   overflow-y: auto;
-  box-sizing: border-box;
-
-  &::placeholder {
-    color: ${p => p.theme.subText};
-  }
-
-  &:focus {
-    outline: none;
-  }
 `;

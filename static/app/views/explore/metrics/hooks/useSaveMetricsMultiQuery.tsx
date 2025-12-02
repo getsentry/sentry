@@ -69,6 +69,7 @@ export function useSaveMetricsMultiQuery() {
               ...groupBys,
               ...(yAxes.length > 0 ? [{yAxes, chartType}] : []),
             ],
+            metric: metricQuery.metric,
             fields: metricQuery.queryParams.fields,
             orderby: metricQuery.queryParams.sortBys[0]
               ? encodeSort(metricQuery.queryParams.sortBys[0])

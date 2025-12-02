@@ -1,3 +1,5 @@
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PreventContext} from 'sentry/components/prevent/context/preventContext';
@@ -9,6 +11,7 @@ jest.mock('sentry/utils/regions', () => ({
 }));
 
 const mockGetRegionData = jest.mocked(getRegionDataFromOrganization);
+const mockProvider = GitHubIntegrationProviderFixture();
 
 const mockPreventContext = {
   repository: 'test-repo',
@@ -86,6 +89,13 @@ describe('TestsOnboardingPage', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/prevent/owner/123/repository/test-repo/`,
       body: mockRepoData,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/config/integrations/`,
+      method: 'GET',
+      body: {
+        providers: [mockProvider],
+      },
     });
   });
 

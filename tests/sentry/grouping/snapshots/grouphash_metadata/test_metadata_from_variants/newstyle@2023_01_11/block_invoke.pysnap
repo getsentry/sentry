@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:42:03.199389+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -34,6 +32,6 @@ contributing variants:
             frame* (marked in-app by the client)
               function*
                 "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
-            frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            frame* (marked in-app by built-in stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
               function*
                 "__99+[Something else]_block_invoke_2"

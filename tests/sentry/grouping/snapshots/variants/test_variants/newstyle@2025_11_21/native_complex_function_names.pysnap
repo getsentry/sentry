@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.836647+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,6 +8,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value*
+          "Holy shit everything is on fire!"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             function*
@@ -20,10 +22,6 @@ app:
           frame (marked out of app by the client)
             function*
               "<lambda>::operator()"
-        type (ignored because exception is synthetic)
-          "log_demo"
-        value*
-          "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
   hash: "9b78cced1eefcd0c655a0a3d8ce2cdd2"
@@ -32,6 +30,10 @@ system:
   root_component:
     system*
       exception*
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
         stacktrace*
           frame*
             function*
@@ -39,10 +41,6 @@ system:
           frame*
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             function*
               "<lambda>::operator()"
-        type (ignored because exception is synthetic)
-          "log_demo"
-        value (ignored because stacktrace takes precedence)
-          "Holy shit everything is on fire!"

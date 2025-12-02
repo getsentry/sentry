@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:58.119405+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,14 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "4a3cf3893b6485428dd02da116c8370e"
+    hash: "b5165008246a0897e1e7d18eb1df4d33"
     contributing component: exception
     hint: None
     root_component:
       app*
         exception*
+          type*
+            "NotFoundError"
           stacktrace*
             frame* (marked in-app by the client)
               module*
@@ -51,15 +51,15 @@ contributing variants:
                 "app/api"
               context_line*
                 "const preservedError = new Error();"
-          type*
-            "NotFoundError"
   system*
-    hash: "0b81da6ea3d7cc82b1d4825b7aac0b8d"
+    hash: "ff35b5385c8228096073758c6f50075b"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "NotFoundError"
           stacktrace*
             frame*
               module*
@@ -131,5 +131,3 @@ contributing variants:
                 "app/api"
               context_line*
                 "const preservedError = new Error();"
-          type*
-            "NotFoundError"

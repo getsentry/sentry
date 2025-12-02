@@ -202,12 +202,7 @@ def process_batch(
                 project_id=val["project_id"],
                 payload=payload.value,
                 end_timestamp=cast(float, val["end_timestamp"]),
-                # TODO(INGEST-612): Remove "is_remote" as soon as Relay writes "is_segment".
-                is_segment_span=bool(
-                    val.get("parent_span_id") is None
-                    or val.get("is_segment")
-                    or val.get("is_remote")
-                ),
+                is_segment_span=bool(val.get("parent_span_id") is None or val.get("is_segment")),
             )
 
             spans.append(span)

@@ -11,8 +11,11 @@ import {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {
+  HeadSortCell,
+  useTableSort,
+} from 'sentry/views/insights/pages/agents/components/headSortCell';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -60,6 +63,7 @@ export function PathsTable() {
   mutableQuery.addFilterValue(SpanFields.TRANSACTION_OP, 'http.server');
   mutableQuery.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
+  const {tableSort} = useTableSort();
   const tableDataRequest = useTableDataWithController({
     query: mutableQuery,
     fields: [
@@ -73,20 +77,25 @@ export function PathsTable() {
       'http.request.method',
       'count_unique(user)',
     ],
+    sort: tableSort,
     referrer: Referrer.PATHS_TABLE,
   });
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
-    return (
-      <HeadSortCell
-        sortKey={column.key}
-        align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-        forceCellGrow={column.key === 'transaction'}
-      >
-        {column.name}
-      </HeadSortCell>
-    );
-  }, []);
+  const renderHeadCell = useCallback(
+    (column: GridColumnHeader<string>) => {
+      return (
+        <HeadSortCell
+          sortKey={column.key}
+          currentSort={tableSort}
+          align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
+          forceCellGrow={column.key === 'transaction'}
+        >
+          {column.name}
+        </HeadSortCell>
+      );
+    },
+    [tableSort]
+  );
 
   type TableData = (typeof tableDataRequest.data)[number];
 

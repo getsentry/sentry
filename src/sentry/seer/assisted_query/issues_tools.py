@@ -479,7 +479,7 @@ def execute_issues_query(
     stats_period: str = "7d",
     sort: str | None = None,
     limit: int = 25,
-) -> list[dict[str, Any]] | None:
+) -> list[dict[str, Any]] | dict[str, Any] | None:
     """
     Execute an issues query by calling the issues endpoint.
 
@@ -492,7 +492,7 @@ def execute_issues_query(
         limit: Number of results to return (default 25)
 
     Returns:
-        Issue data from the API response, or None if organization doesn't exist
+        List of issues, dict with error key if 400 error occurred, or None if organization doesn't exist
     """
     try:
         organization = Organization.objects.get(id=org_id)
@@ -515,10 +515,69 @@ def execute_issues_query(
     if sort:
         params["sort"] = sort
 
+    try:
+        resp = client.get(
+            auth=api_key,
+            user=None,
+            path=f"/organizations/{organization.slug}/issues/",
+            params=params,
+        )
+        return resp.data
+    except client.ApiError as e:
+        if e.status_code == 400:
+            error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
+            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
+        raise
+
+
+def get_issues_stats(
+    *,
+    org_id: int,
+    issue_ids: list[str],
+    project_ids: list[int],
+    query: str,
+    stats_period: str = "7d",
+) -> list[dict[str, Any]] | None:
+    """
+    Get stats for specific issues by calling the issues-stats endpoint.
+
+    This endpoint provides count, userCount, firstSeen, lastSeen, and
+    timeseries data for each issue.
+
+    Args:
+        org_id: Organization ID
+        issue_ids: List of issue IDs to get stats for
+        project_ids: List of project IDs
+        query: Search query string (e.g., "is:unresolved")
+        stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Defaults to "7d".
+
+    Returns:
+        List of issue stats, or None if organization doesn't exist.
+        Each item contains: id, count, userCount, firstSeen, lastSeen, stats, lifetime
+    """
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        logger.warning("Organization not found", extra={"org_id": org_id})
+        return None
+
+    if not issue_ids:
+        return []
+
+    api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
+
+    params: dict[str, Any] = {
+        "project": project_ids,
+        "groups": issue_ids,
+        "query": query,
+        "statsPeriod": stats_period,
+        "referrer": Referrer.SEER_RPC,
+    }
+
     resp = client.get(
         auth=api_key,
         user=None,
-        path=f"/organizations/{organization.slug}/issues/",
+        path=f"/organizations/{organization.slug}/issues-stats/",
         params=params,
     )
 

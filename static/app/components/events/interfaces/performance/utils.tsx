@@ -6,7 +6,7 @@ import type {
   TraceContextSpanProxy,
 } from 'sentry/components/events/interfaces/spans/types';
 import type {EntrySpans, EventTransaction} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType, type Event} from 'sentry/types/event';
 import {getIssueTypeFromOccurrenceType, IssueType} from 'sentry/types/group';
 
 export const TRACE_WATERFALL_PREFERENCES_KEY =
@@ -97,3 +97,7 @@ export function getProblemSpansForSpanTree(event: EventTransaction): {
 
   return {affectedSpanIds, focusedSpanIds};
 }
+
+export const isWebVitalsEvent = (event: Event) => {
+  return getIssueTypeFromOccurrenceType(event.occurrence?.type) === IssueType.WEB_VITALS; // Web Vitals group type id
+};

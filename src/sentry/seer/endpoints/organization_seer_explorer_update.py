@@ -47,7 +47,7 @@ class OrganizationSeerExplorerUpdateEndpoint(OrganizationEndpoint):
             return Response(
                 {"detail": "AI features are disabled for this organization."}, status=403
             )
-        if not get_seer_org_acknowledgement(organization.id):
+        if not get_seer_org_acknowledgement(organization):
             return Response(
                 {"detail": "Seer has not been acknowledged by the organization."}, status=403
             )
