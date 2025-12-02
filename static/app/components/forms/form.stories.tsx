@@ -55,20 +55,13 @@ export default Storybook.story('Form', story => {
 
   story('JsonForm - collapsible field w/ callbacks', () => {
     const [logs, setLogs] = useState<Array<[string, any]>>([]);
-    const makeAppendLog = (eventName: string) => {
-      return (...args: any[]) => {
-        setLogs(prev => [...prev, [eventName, args]]);
-      };
-    };
 
     return (
       <Grid columns="repeat(2, 1fr)" gap="md">
         <Form
-          onFieldChange={makeAppendLog('onFieldChange')}
-          onPreSubmit={makeAppendLog('onPreSubmit')}
-          onSubmit={makeAppendLog('onSubmit')}
-          onSubmitSuccess={makeAppendLog('onSubmitSuccess')}
-          onSubmitError={makeAppendLog('onSubmitError')}
+          onFieldChange={(...args) => {
+            setLogs(prev => [...prev, ['onFieldChange', args]]);
+          }}
         >
           <JsonForm
             fields={[
@@ -94,13 +87,13 @@ export default Storybook.story('Form', story => {
         </Form>
         <Container>
           <Heading as="h2">Callbacks</Heading>
-          <ul style={{listStyle: 'none', padding: 0, margin: 0}}>
+          <ol>
             {logs.map((log, i) => (
               <li key={i}>
                 <pre>{JSON.stringify(log)}</pre>
               </li>
             ))}
-          </ul>
+          </ol>
         </Container>
       </Grid>
     );
