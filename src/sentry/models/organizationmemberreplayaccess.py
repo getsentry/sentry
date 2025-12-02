@@ -4,13 +4,11 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, region_silo_model, sane_repr
-from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
-from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 
 
 @region_silo_model
-class OrganizationMemberReplayAccess(ReplicatedRegionModel):
+class OrganizationMemberReplayAccess(Model):
     """
     Tracks which organization members have permission to access replay data.
 
@@ -19,7 +17,6 @@ class OrganizationMemberReplayAccess(ReplicatedRegionModel):
     """
 
     __relocation_scope__ = RelocationScope.Organization
-    category = OutboxCategory.ORGANIZATION_MEMBER_UPDATE
 
     organization = FlexibleForeignKey("sentry.Organization", related_name="replay_access_set")
     organizationmember = FlexibleForeignKey(

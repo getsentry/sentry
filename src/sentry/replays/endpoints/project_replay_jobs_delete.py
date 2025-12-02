@@ -89,8 +89,6 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         """
         Create a new replay deletion job.
         """
-        from sentry.replays.permissions import has_replay_permission
-
         if not has_replay_permission(project.organization, request.user):
             return Response(status=403)
 
@@ -144,8 +142,6 @@ class ProjectReplayDeletionJobDetailEndpoint(ProjectEndpoint):
         """
         Fetch a replay delete job instance.
         """
-        from sentry.replays.permissions import has_replay_permission
-
         if not has_replay_permission(project.organization, request.user):
             return Response(status=403)
 

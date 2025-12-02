@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sentry import features
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -25,13 +27,6 @@ def has_replay_permission(organization: Organization, user: User | None) -> bool
     """
     if not features.has("organizations:replay-granular-permissions", organization):
         return True
-
-    if not user or not user.is_authenticated:
-        return False
-
-    from sentry.models.organizationmember import OrganizationMember
-    from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
-
     try:
         member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
     except OrganizationMember.DoesNotExist:

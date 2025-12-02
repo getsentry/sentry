@@ -7,6 +7,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import serialize
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
 from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import OrganizationRole, Role
 from sentry.users.models.user import User
@@ -60,8 +61,6 @@ class OrganizationMemberWithRolesSerializer(OrganizationMemberWithTeamsSerialize
         # Filter out emails from the serialized user data
         for user_data in users_by_id.values():
             user_data.pop("emails", None)
-
-        from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
 
         replay_access_map = {
             access.organizationmember_id: True
