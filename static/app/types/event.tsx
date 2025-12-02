@@ -204,6 +204,7 @@ export type ExceptionValue = {
   type: string;
   value: string;
   frames?: Frame[] | null;
+  rawValue?: string | null;
 };
 
 export type ExceptionType = {

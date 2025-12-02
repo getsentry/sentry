@@ -178,10 +178,12 @@ function InnerContent({
       project?.platform
     )
   );
-  const exceptionValue = exception.value
-    ? renderLinksInText({exceptionText: exception.value})
-    : null;
+  const exceptionValue =
+    type === StackType.ORIGINAL ? exception.value : exception.rawValue;
 
+  const renderedExceptionValue = exceptionValue
+    ? renderLinksInText({exceptionText: exceptionValue})
+    : null;
   const platform = getStacktracePlatform(event, exception.stacktrace);
 
   // The banners should appear on the top exception only
@@ -193,13 +195,13 @@ function InnerContent({
   return (
     <Fragment>
       <StyledPre>
-        {meta?.[exceptionIdx]?.value?.[''] && !exception.value ? (
+        {meta?.[exceptionIdx]?.value?.[''] && !exceptionValue ? (
           <AnnotatedText
-            value={exception.value}
+            value={exceptionValue}
             meta={meta?.[exceptionIdx]?.value?.['']}
           />
         ) : (
-          exceptionValue
+          renderedExceptionValue
         )}
       </StyledPre>
       <ToggleExceptionButton
