@@ -321,7 +321,6 @@ from sentry.issues.endpoints import (
     SourceMapDebugEndpoint,
     TeamGroupsOldEndpoint,
 )
-from sentry.issues.endpoints.browser_reporting_collector import BrowserReportingCollectorEndpoint
 from sentry.issues.endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from sentry.issues.endpoints.event_owners import EventOwnersEndpoint
 from sentry.issues.endpoints.event_reprocessable import EventReprocessableEndpoint
@@ -3763,12 +3762,6 @@ urlpatterns = [
         r"^secret-scanning/github/$",
         SecretScanningGitHubEndpoint.as_view(),
         name="sentry-api-0-secret-scanning-github",
-    ),
-    # Temporary public endpoint for proxying browser reports to GCP, to gather real-world data
-    re_path(
-        r"^reporting-api-experiment/$",
-        BrowserReportingCollectorEndpoint.as_view(),
-        name="sentry-api-0-reporting-api-experiment",
     ),
     # Catch all
     re_path(

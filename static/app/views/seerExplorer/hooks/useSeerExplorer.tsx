@@ -14,11 +14,18 @@ import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import useAsciiSnapshot from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
+export type PendingUserInput = {
+  data: Record<string, any>;
+  id: string;
+  input_type: 'file_change_approval';
+};
+
 export type SeerExplorerResponse = {
   session: {
     blocks: Block[];
-    status: 'processing' | 'completed' | 'error';
+    status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
     updated_at: string;
+    pending_user_input?: PendingUserInput | null;
     run_id?: number;
   } | null;
 };
@@ -251,6 +258,45 @@ export const useSeerExplorer = () => {
     }
   }, [api, orgSlug, runId, interruptRequested]);
 
+  const respondToUserInput = useCallback(
+    async (inputId: string, responseData?: Record<string, any>) => {
+      if (!orgSlug || !runId) {
+        return;
+      }
+
+      setWaitingForResponse(true);
+
+      try {
+        await api.requestPromise(
+          `/organizations/${orgSlug}/seer/explorer-update/${runId}/`,
+          {
+            method: 'POST',
+            data: {
+              payload: {
+                type: 'user_input_response',
+                input_id: inputId,
+                response_data: responseData,
+              },
+            },
+          }
+        );
+
+        // Invalidate queries to fetch fresh data
+        queryClient.invalidateQueries({
+          queryKey: makeSeerExplorerQueryKey(orgSlug, runId),
+        });
+      } catch (e: any) {
+        setWaitingForResponse(false);
+        setApiQueryData<SeerExplorerResponse>(
+          queryClient,
+          makeSeerExplorerQueryKey(orgSlug, runId),
+          makeErrorSeerExplorerData(e?.responseJSON?.detail ?? 'An error occurred')
+        );
+      }
+    },
+    [api, orgSlug, runId, queryClient]
+  );
+
   // Always filter messages based on optimistic state and deletedFromIndex before any other processing
   const sessionData = apiData?.session ?? null;
 
@@ -385,5 +431,6 @@ export const useSeerExplorer = () => {
     deletedFromIndex,
     interruptRun,
     interruptRequested,
+    respondToUserInput,
   };
 };

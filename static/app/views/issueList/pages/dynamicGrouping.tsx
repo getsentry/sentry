@@ -7,11 +7,13 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {InlineCode} from 'sentry/components/core/code/inlineCode';
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {Link} from 'sentry/components/core/link';
 import {TextArea} from 'sentry/components/core/textarea';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -27,6 +29,23 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+
+/**
+ * Parses a string and renders backtick-wrapped text as inline code elements.
+ * Example: "Error in `Contains` filter" becomes ["Error in ", <InlineCode>Contains</InlineCode>, " filter"]
+ */
+function renderWithInlineCode(text: string): React.ReactNode {
+  const parts = text.split(/(`[^`]+`)/g);
+  if (parts.length === 1) {
+    return text;
+  }
+  return parts.map((part, index) => {
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return <InlineCode key={index}>{part.slice(1, -1)}</InlineCode>;
+    }
+    return part;
+  });
+}
 
 interface AssignedEntity {
   email: string | null;
@@ -272,7 +291,7 @@ function ClusterCard({
     <CardContainer>
       {/* Zone 1: Title + Description (Primary Focus) */}
       <CardHeader>
-        <ClusterTitle>{cluster.title}</ClusterTitle>
+        <ClusterTitle>{renderWithInlineCode(cluster.title)}</ClusterTitle>
         <ClusterTags
           cluster={cluster}
           onTagClick={onTagClick}
@@ -385,6 +404,7 @@ function DynamicGrouping() {
   );
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [disableFilters, setDisableFilters] = useState(false);
+  const [showDevTools, setShowDevTools] = useState(false);
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
@@ -422,7 +442,7 @@ function DynamicGrouping() {
   const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
   const isUsingCustomData = customClusterData !== null;
 
-  // Extract all unique teams from the cluster data
+  // Extract all unique teams from the cluster data (for dev tools filter UI)
   const teamsInData = useMemo(() => {
     const data = topIssuesResponse?.data ?? [];
     const teamMap = new Map<string, {id: string; name: string}>();
@@ -538,7 +558,9 @@ function DynamicGrouping() {
     <PageWrapper>
       <HeaderSection>
         <Flex align="center" gap="md" style={{marginBottom: space(2)}}>
-          <Heading as="h1">{t('Top Issues')}</Heading>
+          <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
+            {t('Top Issues')}
+          </ClickableHeading>
           {isUsingCustomData && (
             <CustomDataBadge>
               <Text size="xs" bold>
@@ -556,13 +578,25 @@ function DynamicGrouping() {
         </Flex>
 
         <Flex gap="sm" style={{marginBottom: space(2)}}>
-          <Button
+          {showDevTools && (
+            <Button
+              size="sm"
+              icon={<IconUpload size="xs" />}
+              onClick={() => setShowJsonInput(!showJsonInput)}
+            >
+              {showJsonInput ? t('Hide JSON Input') : t('Paste JSON')}
+            </Button>
+          )}
+          <FeedbackButton
             size="sm"
-            icon={<IconUpload size="xs" />}
-            onClick={() => setShowJsonInput(!showJsonInput)}
-          >
-            {showJsonInput ? t('Hide JSON Input') : t('Paste JSON')}
-          </Button>
+            feedbackOptions={{
+              messagePlaceholder: t('What do you think about the new Top Issues page?'),
+              tags: {
+                ['feedback.source']: 'top-issues',
+                ['feedback.owner']: 'issues',
+              },
+            }}
+          />
         </Flex>
 
         {showJsonInput && (
@@ -619,10 +653,10 @@ function DynamicGrouping() {
           <Fragment>
             <Text size="sm" variant="muted">
               {tn(
-                'Viewing %s issue in %s cluster',
-                'Viewing %s issues across %s clusters',
-                totalIssues,
-                filteredAndSortedClusters.length
+                'Viewing %s cluster containing %s issue',
+                'Viewing %s clusters containing %s issues',
+                filteredAndSortedClusters.length,
+                totalIssues
               )}
               {shouldSkipFilters && ` ${t('(filters disabled)')}`}
             </Text>
@@ -652,7 +686,7 @@ function DynamicGrouping() {
               </ActiveTagFilters>
             )}
 
-            {!shouldSkipFilters && (
+            {showDevTools && !shouldSkipFilters && (
               <Container
                 padding="sm"
                 border="primary"
@@ -750,6 +784,11 @@ const HeaderSection = styled('div')`
   padding: ${space(4)} ${space(4)} ${space(3)};
 `;
 
+const ClickableHeading = styled(Heading)`
+  cursor: pointer;
+  user-select: none;
+`;
+
 const CardsSection = styled('div')`
   flex: 1;
   padding: ${space(2)} ${space(4)} ${space(4)};
@@ -759,7 +798,7 @@ const CardsGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: ${space(3)};
-  align-items: start;
+  align-items: stretch;
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: 1fr;

@@ -1,13 +1,16 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {
   KeyValueData,
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import Placeholder from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -34,6 +37,15 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
   }
 
   const vcsInfo = buildDetailsData.vcs_info;
+  const hasVcsInfo = [
+    vcsInfo.head_sha,
+    vcsInfo.base_sha,
+    vcsInfo.pr_number,
+    vcsInfo.head_ref,
+    vcsInfo.base_ref,
+    vcsInfo.head_repo_name,
+    vcsInfo.base_repo_name,
+  ].some(value => value !== null && value !== undefined && value !== '');
 
   const makeLinkableValue = (
     value: string | number | null | undefined,
@@ -132,7 +144,31 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
       )}
 
       {/* VCS info */}
-      <KeyValueData.Card title="Git details" contentItems={vcsInfoContentItems} />
+      {hasVcsInfo ? (
+        <KeyValueData.Card title="Git details" contentItems={vcsInfoContentItems} />
+      ) : (
+        <Container
+          border="primary"
+          radius="md"
+          padding="md"
+          // background="secondary"
+          width="100%"
+        >
+          <Flex direction="column" gap="sm">
+            <Text bold>{t('Missing git metadata')}</Text>
+            <Text variant="muted" size="sm">
+              {t('Integrate with CI to automate uploading, diffing, and alerting')}
+            </Text>
+            <LinkButton
+              size="sm"
+              external
+              href="https://docs.sentry.io/product/size-analysis/integrating-into-ci/"
+            >
+              {t('View CI setup docs')}
+            </LinkButton>
+          </Flex>
+        </Container>
+      )}
     </Flex>
   );
 }

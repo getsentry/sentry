@@ -389,6 +389,9 @@ export const useOpenSeerDrawer = ({
         height: fit-content;
         max-height: 100%;
       `,
+      shouldCloseOnInteractOutside: () => {
+        return false;
+      },
       onClose: () => {
         navigate(
           {
