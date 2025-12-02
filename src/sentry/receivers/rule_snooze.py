@@ -1,12 +1,13 @@
-from django.db.models.signals import post_save, pre_delete
-
 from sentry import audit_log
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.users.models.user import User
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.workflow_engine.models import AlertRuleDetector, AlertRuleWorkflow
 
 
-def _update_workflow_engine_models(instance: RuleSnooze, is_enabled: bool) -> None:
+def _update_workflow_engine_models(
+    instance: RuleSnooze, is_enabled: bool, requesting_user: User
+) -> None:
     if instance.user_id is not None:
         return
 
@@ -16,10 +17,10 @@ def _update_workflow_engine_models(instance: RuleSnooze, is_enabled: bool) -> No
             workflow = alert_rule_workflow.workflow
             workflow.update(enabled=is_enabled)
             create_audit_entry_from_user(
-                user=None,
-                organization_id=workflow.organization,
+                user=requesting_user,
+                organization_id=workflow.organization.id,
                 target_object=workflow.id,
-                data=workflow.get_audit_log_data(),
+                data={**workflow.get_audit_log_data(), "enabled": workflow.enabled},
                 event=audit_log.get_event_id("WORKFLOW_EDIT"),
             )
     elif instance.alert_rule:
@@ -30,33 +31,9 @@ def _update_workflow_engine_models(instance: RuleSnooze, is_enabled: bool) -> No
             detector = alert_rule_detector.detector
             detector.update(enabled=is_enabled)
             create_audit_entry_from_user(
-                user=None,
-                organization_id=detector.project.organization,
+                user=requesting_user,
+                organization_id=detector.project.organization.id,
                 target_object=detector.id,
-                data=detector.get_audit_log_data(),
+                data={**detector.get_audit_log_data(), "enabled": detector.enabled},
                 event=audit_log.get_event_id("DETECTOR_EDIT"),
             )
-
-
-def disable_workflow_engine_models(instance: RuleSnooze, created, **kwargs):
-    if not created:
-        return
-    _update_workflow_engine_models(instance, is_enabled=False)
-
-
-def enable_workflow_engine_models(instance: RuleSnooze, **kwargs) -> None:
-    _update_workflow_engine_models(instance, is_enabled=True)
-
-
-post_save.connect(
-    disable_workflow_engine_models,
-    sender=RuleSnooze,
-    dispatch_uid="disable_workflow_engine_models",
-    weak=False,
-)
-pre_delete.connect(
-    enable_workflow_engine_models,
-    sender=RuleSnooze,
-    dispatch_uid="enable_workflow_engine_models",
-    weak=False,
-)

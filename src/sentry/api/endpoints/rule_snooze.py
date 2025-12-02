@@ -134,6 +134,9 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
                 until=data.get("until"),
                 date_added=datetime.datetime.now(datetime.UTC),
             )
+            _update_workflow_engine_models(
+                instance=rule_snooze, is_enabled=False, requesting_user=request.user
+            )
 
         if not user_id:
             # create an audit log entry if the rule is snoozed for everyone
@@ -174,7 +177,9 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
         # Only allow deletion of shared snooze if user created it or has proper permissions
         if shared_snooze and can_edit_alert_rule(project.organization, request):
             with transaction.atomic(router.db_for_write(RuleSnooze)):
-                _update_workflow_engine_models(shared_snooze, is_enabled=True)
+                _update_workflow_engine_models(
+                    shared_snooze, is_enabled=True, requesting_user=request.user
+                )
                 shared_snooze.delete()
             deletion_type = "everyone"
 
@@ -254,8 +259,6 @@ class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
     def create_instance(self, rule: Rule, user_id: int | None, **kwargs: Any) -> RuleSnooze:
         with transaction.atomic(router.db_for_write(RuleSnooze)):
             rule_snooze = RuleSnooze.objects.create(user_id=user_id, rule=rule, **kwargs)
-            _update_workflow_engine_models(rule_snooze, is_enabled=False)
-
         return rule_snooze
 
     def record_audit_log_entry(
@@ -305,7 +308,6 @@ class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[AlertRule]):
     def create_instance(self, rule: AlertRule, user_id: int | None, **kwargs: Any) -> RuleSnooze:
         with transaction.atomic(router.db_for_write(RuleSnooze)):
             rule_snooze = RuleSnooze.objects.create(user_id=user_id, alert_rule=rule, **kwargs)
-            _update_workflow_engine_models(rule_snooze, is_enabled=False)
 
         return rule_snooze
 

@@ -173,7 +173,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         }
 
     def get_audit_log_data(self) -> dict[str, Any]:
-        return {"name": self.name, "enabled": self.enabled}
+        return {"name": self.name}
 
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None

@@ -8,7 +8,7 @@ from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
-from sentry.utils.audit import create_audit_entry_from_user
+from sentry.utils.audit import create_system_audit_entry
 from sentry.workflow_engine.models.detector import Detector
 
 
@@ -16,12 +16,11 @@ def toggle_detector(detector: Detector, enabled: bool) -> None:
     updated_detector_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
     detector.update(status=updated_detector_status)
     detector.update(enabled=enabled)
-    create_audit_entry_from_user(
-        user=None,
-        organization_id=detector.project.organization,
+    create_system_audit_entry(
+        organization=detector.project.organization,
         target_object=detector.id,
-        data=detector.get_audit_log_data(),
         event=audit_log.get_event_id("DETECTOR_EDIT"),
+        data={**detector.get_audit_log_data(), "enabled": detector.enabled},
     )
 
 

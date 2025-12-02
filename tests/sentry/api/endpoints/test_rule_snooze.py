@@ -324,6 +324,12 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
                 target="everyone",
                 status_code=201,
             )
+        event = log_rpc_service.find_last_log(
+            event=audit_log.get_event_id("WORKFLOW_EDIT"),
+            organization_id=workflow.organization.id,
+            target_object_id=workflow.id,
+        )
+        assert event is not None
 
         # Verify workflow is disabled
         workflow.refresh_from_db()
@@ -420,7 +426,12 @@ class DeleteRuleSnoozeTest(BaseRuleSnoozeTest):
                 self.issue_alert_rule.id,
                 status_code=204,
             )
-
+        event = log_rpc_service.find_last_log(
+            event=audit_log.get_event_id("WORKFLOW_EDIT"),
+            organization_id=workflow.organization.id,
+            target_object_id=workflow.id,
+        )
+        assert event is not None
         # Verify workflow is re-enabled
         workflow.refresh_from_db()
         assert workflow.enabled is True
@@ -671,6 +682,51 @@ class PostMetricRuleSnoozeTest(BaseRuleSnoozeTest):
         assert not RuleSnooze.objects.filter(alert_rule=self.metric_alert_rule.id).exists()
         assert response.data["detail"] == "Rule does not exist"
 
+    def test_create_snooze_disables_detector(self) -> None:
+        """Test that creating a rule snooze for everyone disables the detector"""
+        detector = self.create_detector()
+        self.create_alert_rule_detector(alert_rule_id=self.metric_alert_rule.id, detector=detector)
+
+        # Create snooze for everyone
+        # This should cause the detector to be disabled
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.metric_alert_rule.id,
+                target="everyone",
+                status_code=201,
+            )
+        event = log_rpc_service.find_last_log(
+            event=audit_log.get_event_id("DETECTOR_EDIT"),
+            organization_id=self.organization.id,
+            target_object_id=detector.id,
+        )
+        assert event is not None
+
+        # Verify detector is disabled
+        detector.refresh_from_db()
+        assert detector.enabled is False
+
+    def test_create_user_snooze_does_not_disable_detector(self) -> None:
+        """Test that creating a user-specific rule snooze does not disable the detector"""
+        detector = self.create_detector()
+        self.create_alert_rule_detector(alert_rule_id=self.metric_alert_rule.id, detector=detector)
+
+        # Create snooze for the user
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.metric_alert_rule.id,
+                target="me",
+                status_code=201,
+            )
+
+        # Verify detector is still enabled (user-specific snooze should not affect it)
+        detector.refresh_from_db()
+        assert detector.enabled is True
+
 
 class DeleteMetricRuleSnoozeTest(BaseRuleSnoozeTest):
     endpoint = "sentry-api-0-metric-rule-snooze"
@@ -740,6 +796,13 @@ class DeleteMetricRuleSnoozeTest(BaseRuleSnoozeTest):
                 self.metric_alert_rule.id,
                 status_code=204,
             )
+
+        event = log_rpc_service.find_last_log(
+            event=audit_log.get_event_id("DETECTOR_EDIT"),
+            organization_id=self.organization.id,
+            target_object_id=detector.id,
+        )
+        assert event is not None
 
         # Verify detector is re-enabled
         detector.refresh_from_db()

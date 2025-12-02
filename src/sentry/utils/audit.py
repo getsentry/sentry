@@ -243,5 +243,4 @@ def create_system_audit_entry(
             logger.info(audit_log.get(entry.event).api_name, extra=extra)
         else:
             logger.info(entry, extra=extra)
-
     return entry
