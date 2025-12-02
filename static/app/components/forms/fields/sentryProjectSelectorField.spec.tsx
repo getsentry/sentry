@@ -58,4 +58,29 @@ describe('SentryProjectSelectorField', () => {
     expect(screen.getByText('Main projects')).toBeInTheDocument();
     expect(screen.getByText('Other')).toBeInTheDocument();
   });
+
+  it('can select multiple values', async () => {
+    const mock = jest.fn();
+    const projects = [
+      ProjectFixture({id: '1', slug: 'project-a'}),
+      ProjectFixture({id: '2', slug: 'project-b'}),
+      ProjectFixture({id: '3', slug: 'project-c'}),
+    ];
+    render(
+      <SentryProjectSelectorField
+        onChange={mock}
+        name="projects"
+        projects={projects}
+        multiple
+      />
+    );
+
+    const input = screen.getByRole('textbox');
+
+    await selectEvent.select(input, 'project-a');
+    expect(mock).toHaveBeenLastCalledWith(['1'], expect.anything());
+
+    await selectEvent.select(input, 'project-b');
+    expect(mock).toHaveBeenLastCalledWith(['1', '2'], expect.anything());
+  });
 });
