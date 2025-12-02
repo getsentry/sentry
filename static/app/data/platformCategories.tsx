@@ -304,7 +304,10 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'apple-ios',
   'apple-macos',
   'bun',
+  'cocoa-objc',
+  'cocoa-swift',
   'dart',
+  'dotnet',
   'flutter',
   'go',
   'go-echo',
@@ -336,6 +339,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
   'javascript-vue',
+  'native',
   'node',
   'node-azurefunctions',
   'node-connect',
@@ -350,6 +354,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'node-nestjs',
   'php',
   'php-laravel',
+  'php-symfony',
   'python',
   'python-aiohttp',
   'python-asgi',
@@ -376,6 +381,8 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'ruby-rack',
   'ruby-rails',
   'rust',
+  'unity',
+  'unreal',
 ]);
 
 // List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
