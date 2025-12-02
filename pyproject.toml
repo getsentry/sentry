@@ -224,6 +224,7 @@ markers = [
     "symbolicator: test requires access to symbolicator",
     "querybuilder: smoke tests for QueryBuilders",
     "thread_leak_allowlist: temporarily allow known-issue thread leaks",
+    "xdist_unsafe: this test fails when executed with xdist and needs to be run serially",
 ]
 filterwarnings = [
     # Consider all warnings to be errors other than the ignored ones.
