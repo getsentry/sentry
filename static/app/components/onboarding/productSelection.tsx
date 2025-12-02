@@ -93,7 +93,11 @@ export const platformProductAvailability = {
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
-  dotnet: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  dotnet: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'dotnet-aspnet': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-aspnetcore': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-awslambda': [ProductSolution.PERFORMANCE_MONITORING],
@@ -187,6 +191,7 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
+  native: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   node: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -272,7 +277,11 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
   ],
-  'php-symfony': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'php-symfony': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   python: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -396,6 +405,8 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
   ],
+  unity: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  unreal: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
 } as Record<PlatformKey, ProductSolution[]>;
 
 type ProductProps = {
