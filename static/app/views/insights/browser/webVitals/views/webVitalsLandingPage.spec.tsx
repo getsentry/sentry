@@ -1,41 +1,39 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import WebVitalsLandingPage from 'sentry/views/insights/browser/webVitals/views/webVitalsLandingPage';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
 
 describe('WebVitalsLandingPage', () => {
   const organization = OrganizationFixture({
     features: ['insight-modules'],
   });
 
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/insights/frontend/pageloads/`,
+      query: {},
+    },
+    route: `/organizations/:orgId/insights/frontend/pageloads/`,
+  };
+
   let eventsMock: jest.Mock;
 
   beforeEach(() => {
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {period: '14d', start: null, end: null, utc: null},
+    });
+
     ProjectsStore.loadInitialData([
       ProjectFixture({hasInsightsVitals: true, firstTransactionEvent: true}),
     ]);
-
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -81,7 +79,10 @@ describe('WebVitalsLandingPage', () => {
   });
 
   it('renders', async () => {
-    render(<WebVitalsLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<WebVitalsLandingPage />, {
+      organization,
+      initialRouterConfig,
+    });
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     // Table query
     expect(eventsMock).toHaveBeenNthCalledWith(
