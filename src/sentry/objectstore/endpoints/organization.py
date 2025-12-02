@@ -43,7 +43,9 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
     def _check_flag(self, request: Request, organization: Organization) -> Response | None:
         if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
             return Response(
-                "This endpoint requires the organizations:objectstore-endpoint feature flag.",
+                {
+                    "error": "This endpoint requires the organizations:objectstore-endpoint feature flag."
+                },
                 status=403,
             )
         return None
@@ -85,11 +87,14 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         target_url = get_target_url(path)
 
         headers = dict(request.headers)
-        if request.method in ("PUT", "POST") and not headers.get("Transfer-Encoding") == "chunked":
-            return Response("Only Transfer-Encoding: chunked is supported", status=400)
+
+        if (
+            request.method in ("PUT", "POST")
+            and not (headers.get("Transfer-Encoding") or "").lower() == "chunked"
+        ):
+            return Response({"error": "Only Transfer-Encoding: chunked is supported"}, status=400)
 
         headers.pop("Host", None)
-        headers.pop("Content-Length", None)
         headers.pop("Transfer-Encoding", None)
 
         stream: Generator[bytes] | ChunkedEncodingDecoder | None = None
@@ -116,6 +121,9 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
                     raise RuntimeError(
                         "This module assumes that uWSGI is used in production, and it seems that this is not true anymore. Adapt the module to the new server."
                     )
+                headers.pop(
+                    "Content-Length", None
+                )  # for some reason, wsgiref sets `Content-Length` to empty string instead of None when using chunked encoding
                 stream = ChunkedEncodingDecoder(wsgi_input._read)
 
         response = requests.request(
