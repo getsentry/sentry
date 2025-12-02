@@ -62,7 +62,6 @@ import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
 import CategoryUsageDrawer from 'getsentry/views/subscriptionPage/components/categoryUsageDrawer';
 import UsageOverviewActions from 'getsentry/views/subscriptionPage/usageOverview/actions';
-import {EMPTY_STAT_TOTAL} from 'getsentry/views/subscriptionPage/usageTotals';
 
 interface UsageOverviewProps {
   organization: Organization;
@@ -182,12 +181,8 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
         () => (
           <CategoryUsageDrawer
             categoryInfo={categoryInfo}
-            stats={usageData.stats[dataCategory] ?? []}
             subscription={subscription}
-            periodStart={usageData.periodStart}
-            periodEnd={usageData.periodEnd}
-            eventTotals={usageData.eventTotals?.[dataCategory] ?? {}}
-            totals={usageData.totals[dataCategory] ?? EMPTY_STAT_TOTAL}
+            usageData={usageData}
           />
         ),
         {

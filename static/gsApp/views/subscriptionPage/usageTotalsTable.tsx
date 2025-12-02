@@ -310,12 +310,7 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
   const hasSpikeProtection = categoryInfo?.hasSpikeProtection ?? false;
 
   return (
-    <Grid
-      gap="md"
-      padding={isNewBillingUI ? 'md' : 'md 0'}
-      border={isNewBillingUI ? 'primary' : undefined}
-      radius={isNewBillingUI ? 'md' : undefined}
-    >
+    <Grid gap="md" padding={isNewBillingUI ? 'md' : 'md 0'}>
       {isNewBillingUI && (
         <IngestionSummary
           category={category}
@@ -404,6 +399,7 @@ const TextWithQuestionTooltip = styled('div')`
 `;
 
 const StyledTable = styled(StripedTable)`
+  width: unset;
   table-layout: fixed;
 
   th,
