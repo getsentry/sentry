@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.testutils.cases import TestCase
-from sentry.testutils.factories import Factories
 from sentry.testutils.silo import region_silo_test
 
 
@@ -10,31 +9,19 @@ from sentry.testutils.silo import region_silo_test
 class PreprodArtifactSizeMetricsTest(TestCase):
     """Tests for PreprodArtifact size metrics related methods."""
 
-    def setUp(self):
-        super().setUp()
-        self.organization = self.create_organization(owner=self.user)
-        self.team = self.create_team(organization=self.organization)
-        self.project = self.create_project(
-            teams=[self.team], organization=self.organization, name="test_project"
-        )
-
     def test_get_size_metrics_filtering(self):
         """Test the get_size_metrics method with various filters."""
-        artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.filtering",
-        )
+        artifact = self.create_preprod_artifact(app_id="com.example.filtering")
 
-        main_metrics = Factories.create_preprod_artifact_size_metrics(
+        main_metrics = self.create_preprod_artifact_size_metrics(
             artifact,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
-        watch_metrics = Factories.create_preprod_artifact_size_metrics(
+        watch_metrics = self.create_preprod_artifact_size_metrics(
             artifact,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
         )
-        feature_metrics = Factories.create_preprod_artifact_size_metrics(
+        feature_metrics = self.create_preprod_artifact_size_metrics(
             artifact,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
             identifier="test_feature",
@@ -84,26 +71,18 @@ class PreprodArtifactSizeMetricsTest(TestCase):
 
     def test_get_size_metrics_for_artifacts_bulk(self):
         """Test the bulk get_size_metrics_for_artifacts classmethod."""
-        artifact1 = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.bulk1",
-        )
-        artifact2 = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.bulk2",
-        )
+        artifact1 = self.create_preprod_artifact(app_id="com.example.bulk1")
+        artifact2 = self.create_preprod_artifact(app_id="com.example.bulk2")
 
-        artifact1_main = Factories.create_preprod_artifact_size_metrics(
+        artifact1_main = self.create_preprod_artifact_size_metrics(
             artifact1,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
-        artifact1_watch = Factories.create_preprod_artifact_size_metrics(
+        artifact1_watch = self.create_preprod_artifact_size_metrics(
             artifact1,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
         )
-        artifact2_main = Factories.create_preprod_artifact_size_metrics(
+        artifact2_main = self.create_preprod_artifact_size_metrics(
             artifact2,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
@@ -149,40 +128,32 @@ class PreprodArtifactSizeMetricsTest(TestCase):
 
     def test_get_size_metrics_ignores_other_artifacts(self):
         """Test that get_size_metrics only returns metrics for the specific artifact."""
-        artifact1 = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.app1",
-        )
-        artifact2 = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.app2",
-        )
+        artifact1 = self.create_preprod_artifact(app_id="com.example.app1")
+        artifact2 = self.create_preprod_artifact(app_id="com.example.app2")
 
-        artifact1_main = Factories.create_preprod_artifact_size_metrics(
+        artifact1_main = self.create_preprod_artifact_size_metrics(
             artifact1,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
-        artifact1_watch = Factories.create_preprod_artifact_size_metrics(
+        artifact1_watch = self.create_preprod_artifact_size_metrics(
             artifact1,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
         )
-        artifact1_feature = Factories.create_preprod_artifact_size_metrics(
+        artifact1_feature = self.create_preprod_artifact_size_metrics(
             artifact1,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
             identifier="feature_a",
         )
 
-        artifact2_main = Factories.create_preprod_artifact_size_metrics(
+        artifact2_main = self.create_preprod_artifact_size_metrics(
             artifact2,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
-        artifact2_watch = Factories.create_preprod_artifact_size_metrics(
+        artifact2_watch = self.create_preprod_artifact_size_metrics(
             artifact2,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
         )
-        artifact2_feature = Factories.create_preprod_artifact_size_metrics(
+        artifact2_feature = self.create_preprod_artifact_size_metrics(
             artifact2,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
             identifier="feature_a",  # Same identifier as artifact1 but different artifact
