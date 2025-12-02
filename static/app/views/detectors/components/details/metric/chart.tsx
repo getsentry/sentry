@@ -19,7 +19,6 @@ import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detec
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {AlertRuleThresholdType} from 'sentry/views/alerts/rules/metric/types';
 import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
@@ -27,6 +26,7 @@ import {
 import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
+import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
 import {
   useIncidentMarkers,
   type IncidentPeriod,
@@ -225,32 +225,10 @@ export function useMetricDetectorChart({
     series,
   });
 
-  const filteredAnomalyThresholdSeries = useMemo(() => {
-    if (!anomalyThresholdSeries.length) {
-      return [];
-    }
-
-    const condition = detector.conditionGroup?.conditions[0];
-    if (!condition || condition.type !== 'anomaly_detection') {
-      return [];
-    }
-
-    const [upperThreshold, lowerThreshold, seerValue] = anomalyThresholdSeries;
-
-    if (typeof condition.comparison === 'number') {
-      return [];
-    }
-
-    const {thresholdType} = condition.comparison;
-
-    const filtered = [];
-
-    if (thresholdType !== AlertRuleThresholdType.BELOW) filtered.push(upperThreshold);
-    if (thresholdType !== AlertRuleThresholdType.ABOVE) filtered.push(lowerThreshold);
-    if (seerValue) filtered.push(seerValue);
-
-    return filtered.filter((s): s is NonNullable<typeof s> => !!s);
-  }, [anomalyThresholdSeries, detector.conditionGroup]);
+  const filteredAnomalyThresholdSeries = useFilteredAnomalyThresholdSeries({
+    anomalyThresholdSeries,
+    detector,
+  });
 
   const incidentPeriods = useMemo(() => {
     return openPeriods.flatMap<IncidentPeriod>(period => [

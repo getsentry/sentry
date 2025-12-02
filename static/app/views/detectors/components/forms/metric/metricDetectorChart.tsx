@@ -28,6 +28,7 @@ import {
 import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
 import {getBackendDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
 import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import type {IncidentPeriod} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorAnomalyPeriods} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyPeriods';
@@ -260,26 +261,11 @@ export function MetricDetectorChart({
     series: shouldFetchThresholds ? series : [],
   });
 
-  const filteredAnomalyThresholdSeries = useMemo(() => {
-    if (
-      !detectorId ||
-      !anomalyThresholdSeries.length ||
-      !isAnomalyDetection ||
-      thresholdType === undefined
-    ) {
-      return [];
-    }
-
-    const [upperThreshold, lowerThreshold, seerValue] = anomalyThresholdSeries;
-
-    const filtered = [];
-
-    if (thresholdType !== AlertRuleThresholdType.BELOW) filtered.push(upperThreshold);
-    if (thresholdType !== AlertRuleThresholdType.ABOVE) filtered.push(lowerThreshold);
-    if (seerValue) filtered.push(seerValue);
-
-    return filtered.filter((s): s is NonNullable<typeof s> => !!s);
-  }, [detectorId, anomalyThresholdSeries, isAnomalyDetection, thresholdType]);
+  const filteredAnomalyThresholdSeries = useFilteredAnomalyThresholdSeries({
+    anomalyThresholdSeries: detectorId ? anomalyThresholdSeries : [],
+    isAnomalyDetection,
+    thresholdType,
+  });
 
   const {maxValue, minValue} = useDetectorChartAxisBounds({series, thresholdMaxValue});
 
