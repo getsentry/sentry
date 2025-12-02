@@ -316,7 +316,6 @@ const StyledFeedbackButton = styled(Button)`
 
 const PaginationContainer = styled(Flex)`
   justify-content: end;
-  margin-top: ${space(2)};
 `;
 
 interface PaginationProps {
@@ -371,6 +370,8 @@ function Chart({
   chartWidth,
   chartRef,
 }: ChartProps) {
+  const theme = useTheme();
+
   return (
     <BaseChart
       ref={chartRef}
@@ -397,7 +398,7 @@ function Chart({
                 hideOverlap: false,
                 showMaxLabel: false,
                 showMinLabel: false,
-                color: '#000',
+                color: theme.chartLabel,
                 interval: 0,
                 fontSize: CHART_AXIS_LABEL_FONT_SIZE,
                 formatter: (value: string) =>

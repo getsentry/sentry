@@ -71,7 +71,7 @@ function createActionButton(
     `    data-tooltip-action="${action}"`,
     `    data-tooltip-action-key="${escapedAttributeName}"`,
     `    data-tooltip-action-value="${escapedValue}"`,
-    '    style="width: 100%; padding: 8px 10px; cursor: pointer; text-align: left;"',
+    '    style="width: 100%; padding: 8px 15px; cursor: pointer; text-align: left;"',
     `    onmouseover="this.style.background='${actionBackground}'"`,
     '    onmouseout="this.style.background=\'\'"',
     '  >',

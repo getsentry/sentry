@@ -85,7 +85,7 @@ export function Chart({
             justify-content: space-between;
             gap: 20px;
             margin: 0 auto;
-            padding: 10px;
+            padding: 8px 15px;
             min-width: 100px;
             max-width: 300px;
           "
