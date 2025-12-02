@@ -484,7 +484,7 @@ export function Control({
               minWidth={overlayProps.style!.minWidth}
               maxWidth={
                 overlayProps.style?.maxWidth
-                  ? `calc(${overlayProps.style.maxWidth}px * 0.9)`
+                  ? `calc(${withUnits(overlayProps.style.maxWidth)} * 0.9)`
                   : undefined
               }
               maxHeight={overlayProps.style!.maxHeight}
@@ -632,7 +632,7 @@ const SearchInput = styled(Input)`
     margin-top: calc(${space(0.5)} + 1px);
   }
 `;
-const withUnits = (value: any) => (typeof value === 'string' ? value : `${value}px`);
+const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {
   shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
