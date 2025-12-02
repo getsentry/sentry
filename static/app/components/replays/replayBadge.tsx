@@ -1,19 +1,13 @@
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
-import {Tooltip} from '@sentry/scraps/tooltip';
-
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Grid} from 'sentry/components/core/layout';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
-import {
-  LIVE_TOOLTIP_MESSAGE,
-  LiveIndicator,
-  useLiveBadge,
-} from 'sentry/components/replays/replayLiveIndicator';
+import {LiveBadge, useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -79,17 +73,14 @@ export default function ReplayBadge({replay}: Props) {
       />
 
       <Flex direction="column" gap="xs" justify="center">
-        <Flex direction="row" align="center">
+        <Flex direction="row" align="center" gap="xs">
+          {/* We use div here because the Text component doesn't have display: block */}
           <div>
             <Text size="md" bold ellipsis data-underline-on-hover>
               {replay.user.display_name || t('Anonymous User')}
             </Text>
           </div>
-          {isLive ? (
-            <Tooltip title={LIVE_TOOLTIP_MESSAGE}>
-              <LiveIndicator />
-            </Tooltip>
-          ) : null}
+          {isLive ? <LiveBadge /> : null}
         </Flex>
 
         <Flex gap="xs">
