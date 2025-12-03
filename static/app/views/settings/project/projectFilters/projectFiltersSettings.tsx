@@ -83,13 +83,13 @@ const LEGACY_BROWSER_SUBFILTERS = {
   chrome: {
     icon: iconChrome,
     title: 'Chrome',
-    helpText: 'Version 63 and lower',
+    helpText: 'Version 110 and lower',
     legacy: false,
   },
   safari: {
     icon: iconSafari,
     title: 'Safari',
-    helpText: 'Version 11 and lower',
+    helpText: 'Version 15 and lower',
     legacy: false,
   },
   safari_pre_6: {
@@ -101,7 +101,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   firefox: {
     icon: iconFirefox,
     title: 'Firefox',
-    helpText: 'Version 66 and lower',
+    helpText: 'Version 110 and lower',
     legacy: false,
   },
   android: {
@@ -119,7 +119,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   edge: {
     icon: iconEdgeLegacy,
     title: 'Edge',
-    helpText: 'Version 78 and lower',
+    helpText: 'Version 110 and lower',
     legacy: false,
   },
   edge_pre_79: {
@@ -161,7 +161,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   opera: {
     icon: iconOpera,
     title: 'Opera',
-    helpText: 'Version 50 and lower',
+    helpText: 'Version 99 and lower',
     legacy: false,
   },
   opera_pre_15: {
