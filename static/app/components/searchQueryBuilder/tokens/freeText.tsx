@@ -101,13 +101,12 @@ function replaceFocusedWordWithFilter(
   value: string,
   cursorPosition: number,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter,
-  hasDefaultToContains: boolean
+  getFieldDefinition: FieldDefinitionGetter
 ) {
   return replaceFocusedWord(
     value,
     cursorPosition,
-    getInitialFilterText(key, getFieldDefinition(key), hasDefaultToContains)
+    getInitialFilterText(key, getFieldDefinition(key))
   );
 }
 
@@ -272,9 +271,6 @@ function SearchQueryBuilderInputInternal({
   const organization = useOrganization();
   const hasInputChangeFlows = organization.features.includes(
     'search-query-builder-input-flow-changes'
-  );
-  const hasDefaultToContains = organization.features.includes(
-    'search-query-builder-default-to-contains'
   );
 
   const updateSelectionIndex = useCallback(() => {
@@ -516,8 +512,7 @@ function SearchQueryBuilderInputInternal({
               inputValue,
               selectionIndex,
               value,
-              getFieldDefinition,
-              hasDefaultToContains
+              getFieldDefinition
             ),
             focusOverride: calculateNextFocusForFilter(
               state,
@@ -620,8 +615,7 @@ function SearchQueryBuilderInputInternal({
                     inputValue,
                     selectionIndex,
                     filterValue,
-                    getFieldDefinition,
-                    hasDefaultToContains
+                    getFieldDefinition
                   ),
                   focusOverride: calculateNextFocusForFilter(
                     state,
@@ -664,8 +658,7 @@ function SearchQueryBuilderInputInternal({
                 inputValue,
                 selectionIndex,
                 filterKey,
-                getFieldDefinition,
-                hasDefaultToContains
+                getFieldDefinition
               ),
               focusOverride: calculateNextFocusForFilter(
                 state,
