@@ -47,10 +47,30 @@ def apply_processor_args_overrides(
     Returns:
         Updated arguments dict with overrides applied
     """
+    import inspect
+
+    # Get valid StreamProcessor parameters
+    valid_params = set(inspect.signature(StreamProcessor.__init__).parameters.keys())
+    # Remove 'self' from the set
+    valid_params.discard("self")
+
     consumer_specific_overrides = overrides.get(consumer_name, {})
 
     # Apply overrides
     for key, value in consumer_specific_overrides.items():
+        # Skip invalid parameters and emit a warning
+        if key not in valid_params:
+            logger.warning(
+                "skipping invalid StreamProcessor argument from options",
+                extra={
+                    "consumer_name": consumer_name,
+                    "argument": key,
+                    "value": value,
+                    "valid_params": sorted(valid_params),
+                },
+            )
+            continue
+
         if key in base_args:
             logger.info(
                 "overriding StreamProcessor argument from options",

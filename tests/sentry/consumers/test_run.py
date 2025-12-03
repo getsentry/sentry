@@ -110,3 +110,18 @@ def test_apply_processor_args_overrides() -> None:
         )
         assert result["stuck_detector_timeout"] == 456
         mock_logger.info.assert_not_called()
+
+    # Test skipping invalid parameters and logging warning
+    with patch("sentry.consumers.logger") as mock_logger:
+        result = apply_processor_args_overrides(
+            "ingest-monitors",
+            {"join_timeout": 10.0},
+            {"ingest-monitors": {"invalid_param": 789, "join_timeout": 999.0}},
+        )
+        assert result["join_timeout"] == 999.0
+        assert "invalid_param" not in result
+        mock_logger.warning.assert_called_once()
+        call_args = mock_logger.warning.call_args
+        assert call_args[0][0] == "skipping invalid StreamProcessor argument from options"
+        assert call_args[1]["extra"]["argument"] == "invalid_param"
+        assert call_args[1]["extra"]["value"] == 789
