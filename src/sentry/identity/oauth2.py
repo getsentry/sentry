@@ -13,6 +13,7 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
+from django.utils.html import escape
 from django.views.decorators.csrf import csrf_exempt
 from requests import Response
 from requests.exceptions import HTTPError, SSLError
@@ -34,6 +35,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, ApiUnauthorized
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
+from sentry.utils.strings import to_single_line_str, truncatechars
 
 from .base import Provider
 
@@ -42,6 +44,28 @@ __all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
 ERR_TOKEN_RETRIEVAL = "Failed to retrieve token from the upstream service."
+MAX_PIPELINE_ERROR_DETAIL_CHARS = 256
+FALLBACK_ERROR_DETAIL = "unspecified_oauth_error"
+
+
+def _sanitize_error_detail(raw_value: str | None) -> tuple[str | None, str | None]:
+    if raw_value is None:
+        return None, None
+
+    printable_value = "".join(ch for ch in raw_value if ch.isprintable())
+    normalized_value = truncatechars(
+        to_single_line_str(printable_value), MAX_PIPELINE_ERROR_DETAIL_CHARS
+    )
+    if not normalized_value:
+        return None, None
+
+    return normalized_value, escape(normalized_value)
+
+
+def _format_pipeline_error_message(message: str, rendered_detail: str | None) -> str:
+    if rendered_detail:
+        return f"{message}\nError: {rendered_detail}"
+    return message
 
 
 def _redirect_url(pipeline: IdentityPipeline) -> str:
@@ -358,19 +382,28 @@ class OAuth2CallbackView:
             state = request.GET.get("state")
             code = request.GET.get("code")
 
+            error_detail, rendered_error_detail = _sanitize_error_detail(error)
+
             if error:
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
-                    extra={"error": error},
+                    extra={"error": error_detail or FALLBACK_ERROR_DETAIL},
                 )
-                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
+                formatted_error = _format_pipeline_error_message(
+                    ERR_INVALID_STATE, rendered_error_detail
+                )
+                return pipeline.error(formatted_error)
 
-            if state != pipeline.fetch_state("state"):
+            pipeline_state = pipeline.fetch_state("state")
+            if state != pipeline_state:
+                safe_state, _ = _sanitize_error_detail(state)
+                safe_pipeline_state, _ = _sanitize_error_detail(pipeline_state)
+                safe_code, _ = _sanitize_error_detail(code)
                 extra = {
                     "error": "invalid_state",
-                    "state": state,
-                    "pipeline_state": pipeline.fetch_state("state"),
-                    "code": code,
+                    "state": safe_state,
+                    "pipeline_state": safe_pipeline_state,
+                    "code": safe_code,
                 }
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE, extra=extra
@@ -386,12 +419,23 @@ class OAuth2CallbackView:
 
         # these errors are based off of the results of exchange_token, lifecycle errors are captured inside
         if "error_description" in data:
-            error = data.get("error")
-            return pipeline.error(data["error_description"])
+            description_detail, rendered_description_detail = _sanitize_error_detail(
+                data.get("error_description")
+            )
+            if rendered_description_detail:
+                return pipeline.error(rendered_description_detail)
+            return pipeline.error(ERR_TOKEN_RETRIEVAL)
 
         if "error" in data:
-            logger.info("identity.token-exchange-error", extra={"error": data["error"]})
-            return pipeline.error(f"{ERR_TOKEN_RETRIEVAL}\nError: {data['error']}")
+            error_detail, rendered_error_detail = _sanitize_error_detail(data.get("error"))
+            logger.info(
+                "identity.token-exchange-error",
+                extra={"error": error_detail or FALLBACK_ERROR_DETAIL},
+            )
+            formatted_error = _format_pipeline_error_message(
+                ERR_TOKEN_RETRIEVAL, rendered_error_detail
+            )
+            return pipeline.error(formatted_error)
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a
