@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any
 
 from django.db import DataError
-from django.db.models import Expression, F
+from django.db.models import F
 
 from sentry.db import models
 from sentry.signals import buffer_incr_complete
@@ -172,7 +172,7 @@ class Buffer(Service):
         created = False
 
         if not signal_only:
-            update_kwargs: dict[str, Expression] = {c: F(c) + v for c, v in columns.items()}
+            update_kwargs: dict[str, Any] = {c: F(c) + v for c, v in columns.items()}
 
             if extra:
                 # Because of the group.update() below, we need to parse
