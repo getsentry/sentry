@@ -1213,7 +1213,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'seer/',
-      name: t('Seer Automation'),
+      name: t('Seer'),
       component: make(() => import('getsentry/views/seerAutomation/index')),
       children: [
         {
@@ -1226,9 +1226,9 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('getsentry/views/seerAutomation/projects')),
         },
         {
-          path: 'repositories/',
+          path: 'repos/',
           name: t('Seer'),
-          component: make(() => import('getsentry/views/seerAutomation/repositories')),
+          component: make(() => import('getsentry/views/seerAutomation/repos')),
         },
         {
           path: 'onboarding/',
