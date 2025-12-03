@@ -24,11 +24,11 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
             },
         )
 
-    def test_denied_without_feature_flag(self) -> None:
-        """Test that requests are denied without the feature flag"""
+    def test_no_feature_flag(self) -> None:
+        """Test that requests without the feature flag return 404"""
         path = self._get_path("get_organization_slug")
         response = self.client.post(path, data={"args": {}}, format="json")
-        assert response.status_code == 403
+        assert response.status_code == 404
 
     @with_feature("organizations:seer-public-rpc")
     def test_unknown_method_returns_404(self) -> None:
@@ -112,6 +112,24 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         )
 
         assert response.status_code == 404
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_project_method_with_non_accessible_project(self) -> None:
+        """Test that non-existent project_id returns 404"""
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        user = self.create_user()
+        self.login_as(user)
+
+        path = self._get_path("get_transactions_for_project")
+        response = self.client.post(
+            path,
+            data={"args": {"project_id": self.project.id}},
+            format="json",
+        )
+
+        assert response.status_code == 403  # Project not accessible
 
     @with_feature("organizations:seer-public-rpc")
     def test_unknown_method_returns_404_for_org_method(self) -> None:

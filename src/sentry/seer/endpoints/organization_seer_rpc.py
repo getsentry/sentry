@@ -144,6 +144,8 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
         arguments: dict[str, Any],
         organization: Organization,
     ) -> Any:
+        arguments.pop("organization_id", None)
+
         # Check if this is an org-level method
         if method_name in public_org_seer_method_registry:
             method = public_org_seer_method_registry[method_name]
@@ -152,24 +154,15 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
 
         # Check if this is a project-level method
         if method_name in public_project_seer_method_registry:
-            project_id = arguments.get("project_id")
+            # Validate project access
+            project_id = arguments.pop("project_id", None)
             if project_id is None:
                 raise ParseError("project_id is required for this method")
-
-            # Validate project access
             project = self._validate_project_access(request, organization, project_id)
 
             method = public_project_seer_method_registry[method_name]
-
-            # Remove org/project from args since we inject validated values
-            arguments_without_org_and_project = {
-                key: value
-                for key, value in arguments.items()
-                if key not in ["organization_id", "project_id"]
-            }
-
             return method(
-                **arguments_without_org_and_project,
+                **arguments,
                 organization_id=organization.id,
                 project_id=project.id,
             )
@@ -179,7 +172,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
     @sentry_sdk.trace
     def post(self, request: Request, organization: Organization, method_name: str) -> Response:
         if not self._is_allowed(organization):
-            raise PermissionDenied("This organization is not allowed to use this endpoint")
+            raise NotFound()
 
         try:
             arguments: dict[str, Any] = request.data.get("args", {})
