@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import random
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from logging import Logger
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 
+from sentry import features, options
 from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
@@ -111,6 +113,7 @@ class WorkflowEvaluationSnapshot(TypedDict):
 @dataclass
 class WorkflowEvaluationData:
     event: GroupEvent | Activity
+    organization: Organization
     associated_detector: Detector | None = None
     action_groups: set[DataConditionGroup] | None = None
     workflows: set[Workflow] | None = None
@@ -185,14 +188,24 @@ class WorkflowEvaluation:
     data: WorkflowEvaluationData
     msg: str | None = None
 
-    def to_log(self, logger: Logger) -> None:
+    def log_to(self, logger: Logger) -> bool:
         """
-        Determines how far in the process the evaluation got to
-        and creates a structured log string to quickly find.
+        Logs workflow evaluation data.
+        Logging may be skipped if the organization isn't opted in and logs are being
+        sampled.
+        Returns True if logged, False otherwise.
+        """
+        # Check if we should log this evaluation
+        organization = self.data.organization
+        should_log = features.has("organizations:workflow-engine-log-evaluations", organization)
 
-        Then this will return the that log string, and the
-        relevant processing data to be logged.
-        """
+        if not should_log:
+            sample_rate = options.get("workflow_engine.evaluation_log_sample_rate")
+            should_log = random.random() < sample_rate
+
+        if not should_log:
+            return False
+
         log_str = "workflow_engine.process_workflows.evaluation"
 
         if self.tainted:
@@ -228,6 +241,7 @@ class WorkflowEvaluation:
                 "debug_msg": self.msg,
             },
         )
+        return True
 
 
 class ConfigTransformer(ABC):
