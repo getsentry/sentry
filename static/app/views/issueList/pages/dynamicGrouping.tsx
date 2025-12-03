@@ -445,16 +445,11 @@ function ClusterCard({
       <IssuesSection>
         <IssuesSectionHeader>
           <Text size="sm" bold uppercase>
-            {tn('%s Issue', '%s Issues', issueCount)}
+            {t('Preview Issues')}
           </Text>
         </IssuesSectionHeader>
         <IssuesList>
           <ClusterIssues groupIds={cluster.group_ids} />
-          {cluster.group_ids.length > 3 && (
-            <MoreIssuesIndicator>
-              {t('+ %s more similar issues', cluster.group_ids.length - 3)}
-            </MoreIssuesIndicator>
-          )}
         </IssuesList>
       </IssuesSection>
 
@@ -493,7 +488,9 @@ function ClusterCard({
         <Link
           to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
         >
-          <Button size="sm">{t('View All Issues')}</Button>
+          <Button size="sm">
+            {t('View All Issues') + ` (${cluster.group_ids.length})`}
+          </Button>
         </Link>
       </CardFooter>
     </CardContainer>
@@ -1071,14 +1068,6 @@ const IssuesList = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1.5)};
-`;
-
-const MoreIssuesIndicator = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  text-align: center;
-  font-style: italic;
-  padding-top: ${space(1)};
 `;
 
 // Zone 4: Footer with actions
