@@ -1,9 +1,6 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {StoryTreeNode} from './storyTree';
-import {CategorizedStoryTree, inferFileCategory, useStoryTree} from './storyTree';
-import {useStoryBookFiles} from './useStoriesLoader';
+import {CategorizedStoryTree} from './storyTree';
 
 export function StorySidebar() {
   return (
@@ -17,112 +14,6 @@ function scrollIntoView(node: HTMLElement | null) {
   node
     ?.querySelector('[aria-current="page"]')
     ?.scrollIntoView({behavior: 'instant', block: 'nearest'});
-}
-
-export function useStoryBookFilesByCategory(): Record<
-  | 'foundations'
-  | 'principles'
-  | 'patterns'
-  | 'typography'
-  | 'layout'
-  | 'core'
-  | 'product'
-  | 'shared',
-  StoryTreeNode[]
-> {
-  const files = useStoryBookFiles();
-  const filesByOwner = useMemo(() => {
-    // The order of keys here is important and used by the pagination in storyFooter
-    const map: Record<ReturnType<typeof inferFileCategory>, string[]> = {
-      foundations: [],
-      principles: [],
-      patterns: [],
-      typography: [],
-      layout: [],
-      core: [],
-      product: [],
-      shared: [],
-    };
-    for (const file of files) {
-      switch (inferFileCategory(file)) {
-        case 'foundations':
-          map.foundations.push(file);
-          break;
-        case 'principles':
-          map.principles.push(file);
-          break;
-        case 'patterns':
-          map.patterns.push(file);
-          break;
-        case 'typography':
-          map.typography.push(file);
-          break;
-        case 'layout':
-          map.layout.push(file);
-          break;
-        case 'core':
-          map.core.push(file);
-          break;
-        case 'shared':
-          map.shared.push(file);
-          break;
-        default:
-          map.product.push(file);
-      }
-    }
-    return map;
-  }, [files]);
-
-  const foundations = useStoryTree(filesByOwner.foundations, {
-    query: '',
-    representation: 'category',
-    type: 'flat',
-  });
-  const principles = useStoryTree(filesByOwner.principles, {
-    query: '',
-    representation: 'category',
-    type: 'flat',
-  });
-  const patterns = useStoryTree(filesByOwner.patterns, {
-    query: '',
-    representation: 'category',
-    type: 'flat',
-  });
-  const typography = useStoryTree(filesByOwner.typography, {
-    query: '',
-    representation: 'category',
-    type: 'flat',
-  });
-  const core = useStoryTree(filesByOwner.core, {
-    query: '',
-    representation: 'category',
-    type: 'flat',
-  });
-  const layout = useStoryTree(filesByOwner.layout, {
-    query: '',
-    representation: 'category',
-    type: 'flat',
-  });
-  const product = useStoryTree(filesByOwner.product, {
-    query: '',
-    representation: 'category',
-  });
-
-  const shared = useStoryTree(filesByOwner.shared, {
-    query: '',
-    representation: 'category',
-  });
-
-  return {
-    foundations,
-    principles,
-    patterns,
-    typography,
-    core,
-    product,
-    layout,
-    shared,
-  };
 }
 
 const SidebarContainer = styled('nav')`
