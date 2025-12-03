@@ -124,6 +124,10 @@ function PageLayout(props: Props) {
       case Tab.WEB_VITALS:
         return [DataCategory.TRANSACTIONS];
       case Tab.TRANSACTION_SUMMARY:
+        // The transactions summary page technically also uses transactions
+        // in additional to spans. But if we specify transactions here, it'll
+        // use the 90d retention for transactions instead of the 30d retention
+        // for spans in some cases which is not what we want.
         return [DataCategory.SPANS];
       default:
         throw new Error(`Unsupported tab: ${tab}`);
