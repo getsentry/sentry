@@ -14,6 +14,7 @@ from sentry.api.serializers.models.event import EventSerializer, IssueEventSeria
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import default_start_end_dates
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -621,6 +622,7 @@ def _get_issue_event_timeseries(
     project_id: int,
     issue_short_id: str,
     first_seen_delta: timedelta,
+    issue_category: GroupCategory,
 ) -> tuple[dict[str, Any], str, str] | None:
     """
     Get event counts over time for an issue (no group by) by calling the events-stats endpoint. Dynamically picks
@@ -636,9 +638,14 @@ def _get_issue_event_timeseries(
     stats_period = stats_period or "90d"
     interval = interval or "3d"
 
+    # Use the correct dataset based on issue category
+    # Error issues are stored in the "events" dataset, while issue platform issues
+    # (performance, etc.) are stored in "issuePlatform" (search_issues)
+    dataset = "errors" if issue_category == GroupCategory.ERROR else "issuePlatform"
+
     data = execute_timeseries_query(
         org_id=organization.id,
-        dataset="issuePlatform",
+        dataset=dataset,
         y_axes=["count()"],
         group_by=[],
         query=f"issue:{issue_short_id}",
@@ -778,6 +785,7 @@ def get_issue_and_event_details(
         project_id=group.project_id,
         issue_short_id=group.qualified_short_id,
         first_seen_delta=datetime.now(UTC) - group.first_seen,
+        issue_category=group.issue_category,
     )
     if ts_result:
         timeseries, timeseries_stats_period, timeseries_interval = ts_result
