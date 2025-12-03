@@ -192,6 +192,9 @@ function getAISpanAttributes({
     typeof origin === 'string' &&
     origin.startsWith('auto.ai')
   ) {
+    const sdkName = attributes['sdk.name'];
+    const sdkVersion = attributes['sdk.version'];
+
     Sentry.captureMessage('Gen AI span missing required attributes', {
       level: 'warning',
       tags: {
@@ -200,6 +203,8 @@ function getAISpanAttributes({
         span_operation: op || 'unknown',
         missing_attributes: missingGenAIAttributes.join(','),
         origin,
+        sdk_name: sdkName?.toString() || 'unknown',
+        sdk_version: sdkVersion?.toString() || 'unknown',
       },
     });
   }

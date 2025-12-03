@@ -98,6 +98,8 @@ describe('getHighlightedSpanAttributes', () => {
     const attributes = {
       'gen_ai.origin': 'auto.ai.openai',
       'gen_ai.request.model': 'gpt-4',
+      'sdk.name': 'sentry.python',
+      'sdk.version': '2.0.0',
       // Missing: gen_ai.system, gen_ai.operation.name, gen_ai.agent.name
     };
 
@@ -117,6 +119,8 @@ describe('getHighlightedSpanAttributes', () => {
           span_operation: 'gen_ai.chat',
           missing_attributes: 'gen_ai.system,gen_ai.operation.name,gen_ai.agent.name',
           origin: 'auto.ai.openai',
+          sdk_name: 'sentry.python',
+          sdk_version: '2.0.0',
         },
       }
     );
@@ -167,5 +171,35 @@ describe('getHighlightedSpanAttributes', () => {
     });
 
     expect(Sentry.captureMessage).not.toHaveBeenCalled();
+  });
+
+  it('should use unknown for sdk_name and sdk_version when not provided', () => {
+    const attributes = {
+      'gen_ai.origin': 'auto.ai.openai',
+      // No sdk.name or sdk.version
+    };
+
+    getHighlightedSpanAttributes({
+      op: 'gen_ai.chat',
+      spanId: '123',
+      attributes,
+    });
+
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'Gen AI span missing required attributes',
+      {
+        level: 'warning',
+        tags: {
+          feature: 'agent-monitoring',
+          span_type: 'gen_ai',
+          span_operation: 'gen_ai.chat',
+          missing_attributes:
+            'gen_ai.system,gen_ai.request.model,gen_ai.operation.name,gen_ai.agent.name',
+          origin: 'auto.ai.openai',
+          sdk_name: 'unknown',
+          sdk_version: 'unknown',
+        },
+      }
+    );
   });
 });
