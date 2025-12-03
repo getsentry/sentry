@@ -624,4 +624,24 @@ describe('WidgetBuilderSlideout', () => {
       screen.queryByTestId('transaction-widget-disabled-wrapper')
     ).not.toBeInTheDocument();
   });
+
+  it('should not show the query filter builder if the widget is an issue and a chart display type', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          openWidgetTemplates={false}
+          setIsPreviewDraggable={jest.fn()}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>
+    );
+
+    expect(screen.queryByText('Query Filter Builder')).not.toBeInTheDocument();
+  });
 });

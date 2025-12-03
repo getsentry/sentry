@@ -126,6 +126,9 @@ function WidgetBuilderSlideout({
   const isChartWidget = isChartDisplayType(state.displayType);
 
   const showVisualizeSection = state.displayType !== DisplayType.DETAILS;
+  const showQueryFilterBuilder = !(
+    state.dataset === WidgetType.ISSUE && isChartDisplayType(state.displayType)
+  );
 
   const customPreviewRef = useRef<HTMLDivElement>(null);
   const templatesPreviewRef = useRef<HTMLDivElement>(null);
@@ -347,10 +350,12 @@ function WidgetBuilderSlideout({
                 </Section>
               )}
               <Section>
-                <WidgetBuilderQueryFilterBuilder
-                  onQueryConditionChange={onQueryConditionChange}
-                  validatedWidgetResponse={validatedWidgetResponse}
-                />
+                {showQueryFilterBuilder && (
+                  <WidgetBuilderQueryFilterBuilder
+                    onQueryConditionChange={onQueryConditionChange}
+                    validatedWidgetResponse={validatedWidgetResponse}
+                  />
+                )}
               </Section>
               {state.displayType === DisplayType.BIG_NUMBER && (
                 <Section>
