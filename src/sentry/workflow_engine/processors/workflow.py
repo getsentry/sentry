@@ -456,7 +456,9 @@ def process_workflows(
         if not event_detectors:
             raise Detector.DoesNotExist("No Detectors associated with the issue were found")
 
-        log_context.add_extras(detector_id=event_detectors.preferred_detector.id)
+        log_context.add_extras(
+            detector_id=event_detectors.preferred_detector.id, group_id=event_data.group.id
+        )
         organization = event_data.event.project.organization
 
         # set the detector / org information asap, this is used in `get_environment_by_event` as well.
