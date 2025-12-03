@@ -2611,7 +2611,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-conduit-demo",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/objectstore/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/objectstore/(?P<path>.*)$",
         OrganizationObjectstoreEndpoint.as_view(),
         name="sentry-api-0-organization-objectstore",
     ),
