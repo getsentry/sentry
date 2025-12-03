@@ -367,32 +367,16 @@ class ApiGatewayTest(ApiGatewayTestCase):
         )
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/sentry-apps/{sentry_app.slug}/requests/",
-            json={"proxy": True, "name": "requests"},
-        )
-        responses.add(
-            responses.GET,
             f"{self.REGION.address}/sentry-apps/{sentry_app.id}/interaction/",
             json={"proxy": True, "name": "interaction"},
-        )
-        responses.add(
-            responses.GET,
-            f"{self.REGION.address}/sentry-apps/{sentry_app.id}/requests/",
-            json={"proxy": True, "name": "requests"},
         )
 
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
             resp = self.client.get(f"/sentry-apps/{sentry_app.slug}/interaction/")
             self._check_response(resp, "interaction")
 
-            resp = self.client.get(f"/sentry-apps/{sentry_app.slug}/requests/")
-            self._check_response(resp, "requests")
-
             resp = self.client.get(f"/sentry-apps/{sentry_app.id}/interaction/")
             self._check_response(resp, "interaction")
-
-            resp = self.client.get(f"/sentry-apps/{sentry_app.id}/requests/")
-            self._check_response(resp, "requests")
 
     @responses.activate
     def test_proxy_sentryapp_installation_path_invalid(self) -> None:
