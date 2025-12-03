@@ -54,6 +54,21 @@ io.sentry.sample.MainActivity -> io.sentry.sample.MainActivity:
 PROGUARD_BUG_UUID = "071207ac-b491-4a74-957c-2c94fd9594f2"
 PROGUARD_BUG_SOURCE = b"x"
 
+PROGUARD_OUTLINE_UUID = "d9a82b1e-7a8e-4c4b-9c7a-8b5e3f2a1d6c"
+PROGUARD_OUTLINE_SOURCE = b"""\
+# compiler: R8
+# compiler_version: 2.0
+# min_api: 15
+outline.OutlineClass -> o.a:
+    1:2:int outline() -> a
+# {"id":"com.android.tools.r8.outline"}
+com.example.RealClass -> com.example.b:
+    4:4:int realMethod(int):98:98 -> s
+    5:5:int realMethod(int):100:100 -> s
+    27:27:int realMethod(int):0:0 -> s
+# {"id":"com.android.tools.r8.outlineCallsite","positions":{"1":4,"2":5},"outline":"Lo/a;a()I"}
+"""
+
 JVM_DEBUG_ID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
 JVM_SOURCE = b"""\
 package io.sentry.samples
@@ -661,6 +676,87 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
         metrics = event.data["_metrics"]
         assert not metrics.get("flag.processing.error")
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_removes_frames_not_found_in_mapping_but_preserves_native_frames(self) -> None:
+        """Test that outline frames are removed while native frames are preserved."""
+        self.upload_proguard_mapping(PROGUARD_OUTLINE_UUID, PROGUARD_OUTLINE_SOURCE)
+
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_OUTLINE_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "s",
+                                    "abs_path": None,
+                                    "module": "com.example.b",
+                                    "filename": None,
+                                    "lineno": 27,
+                                },
+                                {
+                                    "package": "/system/lib64/libc.so",
+                                    "instruction_addr": "0x00000000000a9170",
+                                    "addr_mode": "rel:0",
+                                    "symbol": "__pthread_start(void*)",
+                                    "symbol_addr": "0x00000000000a9130",
+                                },
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "o.a",
+                                    "filename": None,
+                                    "lineno": 1,
+                                },
+                                {
+                                    "platform": "native",
+                                    "instruction_addr": "0x79571a8000",
+                                    "addr_mode": "abs",
+                                },
+                            ]
+                        },
+                        "module": "com.example",
+                        "type": "Exception",
+                        "value": "Something went wrong",
+                    }
+                ]
+            },
+            "timestamp": before_now(seconds=1).isoformat(),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+
+        exc = event.interfaces["exception"].values[0]
+        bt = exc.stacktrace
+        frames = bt.frames
+
+        # Should only have 3 frames:
+        # - First deobfuscated Java frame (realMethod)
+        # - Native frame (preserved)
+        # - Native frame (preserved)
+        # The outline frame should be removed by symbolicator
+        assert len(frames) == 3
+
+        # First frame should be deobfuscated and inlined
+        assert frames[0].function == "realMethod"
+        assert frames[0].module == "com.example.RealClass"
+        assert frames[0].lineno == 98
+
+        # Second frame (native, no function/module) should be preserved as-is
+        assert frames[1].package == "/system/lib64/libc.so"
+        assert frames[1].instruction_addr == "0xa9170"
+        assert frames[1].symbol == "__pthread_start(void*)"
+
+        # Third frame (native platform) should be preserved as-is
+        assert frames[2].platform == "native"
+        assert frames[2].instruction_addr == "0x79571a8000"
 
     @requires_symbolicator
     @pytest.mark.symbolicator
