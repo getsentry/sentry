@@ -654,6 +654,6 @@ describe('WidgetBuilderSlideout', () => {
       }
     );
 
-    expect(screen.queryByText('Query Filter Builder')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Add a search term')).not.toBeInTheDocument();
   });
 });
