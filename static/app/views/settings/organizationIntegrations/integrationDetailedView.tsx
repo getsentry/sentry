@@ -271,7 +271,7 @@ export default function IntegrationDetailedView() {
         priority: 'primary',
         'data-test-id': 'install-button',
         disabled: disabledFromFeatures,
-      };
+      } as const;
 
       if (!provider) {
         return null;
