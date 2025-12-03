@@ -34,6 +34,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, ApiUnauthorized
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
+from sentry.utils.oauth import KNOWN_OAUTH_ERROR_CODES, sanitize_oauth_error_code
 
 from .base import Provider
 
@@ -41,7 +42,14 @@ __all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
+ERR_PROVIDER_ERROR = "The identity provider returned an error while processing your request."
 ERR_TOKEN_RETRIEVAL = "Failed to retrieve token from the upstream service."
+
+
+def _format_provider_error_message(error_code: str | None) -> str:
+    if error_code and error_code in KNOWN_OAUTH_ERROR_CODES:
+        return f"{ERR_PROVIDER_ERROR}\nError code: {error_code}"
+    return ERR_PROVIDER_ERROR
 
 
 def _redirect_url(pipeline: IdentityPipeline) -> str:
@@ -359,11 +367,12 @@ class OAuth2CallbackView:
             code = request.GET.get("code")
 
             if error:
+                sanitized_error = sanitize_oauth_error_code(error)
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
-                    extra={"error": error},
+                    extra={"error": sanitized_error or "unknown_error"},
                 )
-                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
+                return pipeline.error(_format_provider_error_message(sanitized_error))
 
             if state != pipeline.fetch_state("state"):
                 extra = {
@@ -390,8 +399,9 @@ class OAuth2CallbackView:
             return pipeline.error(data["error_description"])
 
         if "error" in data:
-            logger.info("identity.token-exchange-error", extra={"error": data["error"]})
-            return pipeline.error(f"{ERR_TOKEN_RETRIEVAL}\nError: {data['error']}")
+            sanitized_error = sanitize_oauth_error_code(data["error"])
+            logger.info("identity.token-exchange-error", extra={"error": sanitized_error})
+            return pipeline.error(_format_provider_error_message(sanitized_error))
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a
