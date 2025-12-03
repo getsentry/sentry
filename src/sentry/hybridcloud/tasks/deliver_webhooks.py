@@ -542,7 +542,7 @@ def perform_region_request(region: Region, payload: WebhookPayload) -> None:
 
 def perform_codecov_request(payload: WebhookPayload) -> None:
     """
-    We don't retry forwarding Codecov requests for now. We want to prove out that it would work.
+    Forward Codecov mailboxes. Only transport failures should be retried.
     """
     logging_context: dict[str, str | int] = {
         "payload_id": payload.id,
@@ -621,4 +621,4 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
                 "deliver_webhooks.send_request_to_codecov.failure",
                 extra={"error": str(err), **logging_context},
             )
-            return
+            raise DeliveryFailed() from err
