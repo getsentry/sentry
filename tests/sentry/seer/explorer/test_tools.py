@@ -1186,8 +1186,8 @@ class TestGetIssueAndEventDetails(
             for _, kwargs in mock_api_client.get.call_args_list:
                 if kwargs["path"] == f"/organizations/{self.organization.slug}/events-stats/":
                     stats_request_count += 1
-                    # assert kwargs["params"]["statsPeriod"] == stats_period
-                    # assert kwargs["params"]["interval"] == interval
+                    assert kwargs["params"]["statsPeriod"] == stats_period
+                    assert kwargs["params"]["interval"] == interval
 
             assert stats_request_count == 1
 
