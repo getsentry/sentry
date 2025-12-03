@@ -39,6 +39,11 @@ class GroupReprocessingEndpoint(GroupEndpoint):
         if remaining_events not in ("delete", "keep"):
             return self.respond({"error": "remainingEvents must be delete or keep"}, status=400)
 
+        if remaining_events == "delete" and not request.access.has_permission("event:admin"):
+            return self.respond(
+                {"error": "you do not have permission to delete remaining events"}, status=403
+            )
+
         reprocess_group.delay(
             project_id=group.project_id,
             group_id=group.id,
