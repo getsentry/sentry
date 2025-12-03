@@ -333,8 +333,7 @@ class Spans(rpc_dataset_common.RPCBase):
                         name = translate_internal_to_public_alias(attribute.attribute_name)
                         attrs[attribute.attribute_name].append(
                             {
-                                "label": name,  # public alias
-                                "name": bucket.label,  # internal alias
+                                "label": name,
                                 "value": bucket.value,
                             }
                         )
