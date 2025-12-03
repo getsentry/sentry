@@ -349,14 +349,15 @@ function WidgetBuilderSlideout({
                   <Visualize error={error} setError={setError} />
                 </Section>
               )}
-              <Section>
-                {showQueryFilterBuilder && (
+
+              {showQueryFilterBuilder && (
+                <Section>
                   <WidgetBuilderQueryFilterBuilder
                     onQueryConditionChange={onQueryConditionChange}
                     validatedWidgetResponse={validatedWidgetResponse}
                   />
-                )}
-              </Section>
+                </Section>
+              )}
               {state.displayType === DisplayType.BIG_NUMBER && (
                 <Section>
                   <ThresholdsSection
