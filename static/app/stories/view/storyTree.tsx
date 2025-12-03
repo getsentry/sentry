@@ -135,13 +135,13 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
     label: string;
   }
 > = {
-  typography: {
-    label: 'Typography',
-    components: ['heading', 'prose', 'text', 'inlinecode', 'quote'],
-  },
   layout: {
     label: 'Layout',
     components: ['composition', 'container', 'flex', 'grid', 'stack'],
+  },
+  typography: {
+    label: 'Typography',
+    components: ['heading', 'prose', 'text', 'inlinecode', 'quote'],
   },
   buttons: {
     label: 'Buttons',
@@ -162,7 +162,13 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   pickers: {
     label: 'Pickers',
-    components: ['select', 'multiselect', 'compactselect', 'segmentedcontrol'],
+    components: [
+      'select',
+      'multiselect',
+      'compactselect',
+      'composite',
+      'segmentedcontrol',
+    ],
   },
   navigation: {
     label: 'Navigation',
@@ -170,7 +176,7 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   'status-feedback': {
     label: 'Status & Feedback',
-    components: ['alert', 'badge', 'toast', 'tooltip'],
+    components: ['alert', 'badge', 'toast'],
   },
   'data-display': {
     label: 'Data Display',
@@ -178,11 +184,11 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   overlays: {
     label: 'Overlays',
-    components: ['slideoverpanel'],
+    components: ['slideoverpanel', 'tooltip'],
   },
   utilities: {
     label: 'Utilities',
-    components: ['separator', 'interactionstatelayer', 'composite'],
+    components: ['separator', 'interactionstatelayer'],
   },
   shared: {
     label: 'Shared',
@@ -199,8 +205,8 @@ export const SECTION_ORDER: StorySection[] = [
 ];
 
 export const COMPONENT_SUBCATEGORY_ORDER: ComponentSubcategory[] = [
-  'typography',
   'layout',
+  'typography',
   'buttons',
   'forms',
   'pickers',
@@ -352,7 +358,6 @@ export function inferFileCategory(path: string): StoryCategory {
     return 'patterns';
   }
 
-  // Leave core at the end, as both typography and layout are considered core components
   if (isCoreFile(path)) {
     return 'core';
   }
