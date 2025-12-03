@@ -22,13 +22,6 @@ export function requestAnimationFrameTimeout(cb: () => void, timeout: number) {
   return rafId;
 }
 
-export const DEFAULT_PROFILING_DATETIME_SELECTION = {
-  start: null,
-  end: null,
-  utc: false,
-  period: '24h',
-};
-
 export function getProfileTargetId(reference: Profiling.BaseProfileReference): string {
   if (isTransactionProfileReference(reference)) {
     return reference.profile_id;
