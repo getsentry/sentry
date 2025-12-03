@@ -499,7 +499,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         """
         blames: list[FileBlameInfo] = []
 
-        try:
+        with self._connect() as p4:
             for file in files:
                 try:
                     # Build depot path for the file (includes stream if specified)
@@ -546,7 +546,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                                     commit=commit,
                                 )
                                 blames.append(blame_info)
-                        except self.P4Exception as e:
+                        except P4Exception as e:
                             logger.warning(
                                 "perforce.client.get_blame_for_files.describe_error",
                                 extra={
@@ -557,7 +557,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                                     "file_path": file.path,
                                 },
                             )
-                except self.P4Exception as e:
+                except P4Exception as e:
                     # Log but don't fail for individual file errors
                     logger.warning(
                         "perforce.client.get_blame_for_files.annotate_error",

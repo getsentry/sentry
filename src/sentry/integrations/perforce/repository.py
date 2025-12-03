@@ -14,6 +14,7 @@ from sentry.integrations.perforce.client import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
