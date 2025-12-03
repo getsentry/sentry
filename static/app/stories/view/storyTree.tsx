@@ -483,7 +483,8 @@ function inferComponentName(path: string): string {
     part = parts.pop();
   }
 
-  return part ?? '';
+  // Remove file extensions (.stories.tsx, .mdx, etc.)
+  return (part ?? '').replace(/\.(stories\.tsx|mdx)$/, '');
 }
 
 function formatName(name: string) {
