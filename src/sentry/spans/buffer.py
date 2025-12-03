@@ -76,9 +76,12 @@ from django.utils.functional import cached_property
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
+from sentry.constants import DataCategory
+from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.utils import metrics, redis
+from sentry.utils.outcomes import Outcome, track_outcome
 
 # SegmentKey is an internal identifier used by the redis buffer that is also
 # directly used as raw redis key. the format is
@@ -499,6 +502,27 @@ class SpansBuffer:
                 if sizes[key] > max_segment_bytes:
                     metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
                     logger.warning("Skipping too large segment, byte size %s", sizes[key])
+
+                    # Get count of spans dropped by add-buffer.lua
+                    # Also count the spans we loaded (which will also be dropped)
+                    dropped_count_key = b"span-buf:dc:" + key
+                    stored_dropped = self.client.get(dropped_count_key)
+                    num_dropped_spans = int(stored_dropped) if stored_dropped else 0
+                    num_dropped_spans += len(payloads[key]) + len(decompressed_spans)
+
+                    # Track outcome for dropped spans
+                    project_id_bytes, _, _ = parse_segment_key(key)
+                    project_id = int(project_id_bytes)
+                    project = Project.objects.get_from_cache(id=project_id)
+                    track_outcome(
+                        org_id=project.organization_id,
+                        project_id=project_id,
+                        key_id=None,
+                        outcome=Outcome.INVALID,
+                        reason="segment_too_large",
+                        category=DataCategory.SPAN_INDEXED,
+                        quantity=num_dropped_spans,
+                    )
 
                     del payloads[key]
                     del cursors[key]

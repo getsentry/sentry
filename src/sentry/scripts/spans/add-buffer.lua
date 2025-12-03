@@ -74,8 +74,17 @@ if #sunionstore_args > 0 then
     redis.call("zunionstore", set_key, #sunionstore_args + 1, set_key, unpack(sunionstore_args))
     redis.call("unlink", unpack(sunionstore_args))
 
+    local num_dropped_spans = 0
     while (redis.call("memory", "usage", set_key) or 0) > max_segment_bytes do
         redis.call("zpopmin", set_key)
+        num_dropped_spans = num_dropped_spans + 1
+    end
+
+    -- Store count of dropped spans for outcome tracking
+    if num_dropped_spans > 0 then
+        local dropped_count_key = string.format("span-buf:dc:%s", set_key)
+        redis.call("incrby", dropped_count_key, num_dropped_spans)
+        redis.call("expire", dropped_count_key, set_timeout)
     end
 end
 
