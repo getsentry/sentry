@@ -8,8 +8,7 @@ import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {loadPrismLanguage} from 'sentry/utils/prism';
-// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
-import {darkTheme} from 'sentry/utils/theme';
+import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme.chonk';
 
 interface CodeBlockProps {
   children: string;
@@ -210,7 +209,11 @@ export function CodeBlock({
 
   // Override theme provider when in dark mode to provider dark theme to
   // components
-  return <ThemeProvider theme={dark ? darkTheme : theme}>{snippet}</ThemeProvider>;
+  return (
+    <ThemeProvider theme={dark ? (DO_NOT_USE_darkChonkTheme as any) : theme}>
+      {snippet}
+    </ThemeProvider>
+  );
 }
 
 const FlexSpacer = styled('div')`
