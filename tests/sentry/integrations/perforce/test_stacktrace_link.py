@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.perforce.integration import PerforceIntegrationProvider
 from sentry.integrations.utils.stacktrace_link import get_stacktrace_config
@@ -40,6 +42,17 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             source_root="/",
             default_branch=None,
         )
+
+        # Mock the Perforce client's check_file to avoid actual P4 connection
+        self.check_file_patcher = patch(
+            "sentry.integrations.perforce.client.PerforceClient.check_file",
+            return_value={"depotFile": "//depot/mock"},
+        )
+        self.check_file_patcher.start()
+
+    def tearDown(self):
+        self.check_file_patcher.stop()
+        super().tearDown()
 
     def test_get_stacktrace_config_python_path(self):
         """Test stacktrace link generation for Python SDK path"""
@@ -205,7 +218,11 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
 
         assert result["source_url"] is not None
         assert isinstance(result["source_url"], str)
-        assert "https://p4web.example.com//depot/app/services/processor.py" in result["source_url"]
+        # Swarm format uses /files/ prefix
+        assert (
+            "https://p4web.example.com/files//depot/app/services/processor.py"
+            in result["source_url"]
+        )
 
     def test_get_stacktrace_config_abs_path_fallback(self):
         """Test stacktrace link uses abs_path when filename is just basename"""
@@ -330,6 +347,17 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
             metadata={},
         )
         self.project = self.create_project(organization=self.organization)
+
+        # Mock the Perforce client's check_file to avoid actual P4 connection
+        self.check_file_patcher = patch(
+            "sentry.integrations.perforce.client.PerforceClient.check_file",
+            return_value={"depotFile": "//depot/mock"},
+        )
+        self.check_file_patcher.start()
+
+    def tearDown(self):
+        self.check_file_patcher.stop()
+        super().tearDown()
 
     def test_stacktrace_link_empty_stack_root(self):
         """Test stacktrace link with empty stack_root (shouldn't match anything)"""

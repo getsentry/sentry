@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
+from datetime import datetime, timezone
 from typing import Any
 
 from sentry.integrations.perforce.client import (
@@ -80,9 +81,20 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
                     f"Depot not found or no access: {depot_path.path}. Available depots: {[d['name'] for d in depots]}"
                 )
 
-        except Exception:
-            # Don't fail - depot might be valid but empty
-            pass
+        except IntegrationError:
+            # Re-raise validation errors so user sees them
+            raise
+        except Exception as e:
+            # Log and re-raise connection/P4 errors
+            # We cannot create a repository if we can't validate the depot exists
+            logger.exception(
+                "perforce.get_repository_data.depot_validation_failed",
+                extra={"depot_path": depot_path.path},
+            )
+            raise IntegrationError(
+                f"Failed to validate depot: {depot_path.path}. "
+                f"Please check your Perforce server connection and credentials."
+            ) from e
 
         config["external_id"] = depot_path.path
         config["integration_id"] = installation.model.id
@@ -115,57 +127,84 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
             "integration_id": data["integration_id"],
         }
 
-    def compare_commits(
-        self, repo: Repository, start_sha: str | None, end_sha: str
-    ) -> Sequence[Mapping[str, Any]]:
+    def _extract_commit_info(
+        self,
+        change: P4ChangeInfo,
+        depot_path: str,
+        client: PerforceClient,
+        user_cache: dict[str, P4UserInfo | None],
+    ) -> P4CommitInfo:
         """
-        Compare commits (changelists) between two versions.
+        Extract commit info from a Perforce changelist.
 
         Args:
-            repo: Repository instance
-            start_sha: Starting changelist number (or None for initial)
-            end_sha: Ending changelist number
+            change: Perforce changelist info
+            depot_path: Depot path for repository field
+            client: Perforce client for user lookups
+            user_cache: Cache of user info to avoid redundant lookups
 
         Returns:
-            List of changelist dictionaries
+            Commit info in Sentry format
         """
-        integration_id = repo.integration_id
-        if integration_id is None:
-            raise NotImplementedError("Perforce integration requires an integration_id")
-
-        integration = integration_service.get_integration(integration_id=integration_id)
-        if integration is None:
-            raise NotImplementedError("Integration not found")
-
-        installation = integration.get_installation(organization_id=repo.organization_id)
-        client = installation.get_client()
-
-        depot_path = repo.config.get("depot_path", repo.name)
-
+        # Handle potentially null/invalid time field
+        time_value = change.get("time") or 0
         try:
-            # Get changelists in range
-            if start_sha is None:
-                # Get last N changes
-                changes = client.get_changes(f"{depot_path}/...", max_changes=20)
-            else:
-                # Get changes between start and end (exclusive start, inclusive end)
-                # P4 -e flag returns changes >= specified CL, so we get all recent changes
-                # and filter to range (start_sha, end_sha]
-                changes = client.get_changes(f"{depot_path}/...", max_changes=100)
-
-                # Filter to only changes in range: start_sha < change <= end_sha
-                if changes:
-                    start_cl_num = int(start_sha) if start_sha.isdigit() else 0
-                    changes = [c for c in changes if int(c["change"]) > start_cl_num]
-
-            return self._format_commits(changes, depot_path)
-
-        except Exception as e:
-            logger.exception(
-                "perforce.compare_commits.error",
-                extra={"repo": repo.name, "start": start_sha, "end": end_sha, "error": str(e)},
+            time_int = int(time_value)
+        except (TypeError, ValueError) as e:
+            logger.warning(
+                "perforce.format_commits.invalid_time_value",
+                extra={
+                    "changelist": change.get("change"),
+                    "time_value": time_value,
+                    "error": str(e),
+                },
             )
-            return []
+            time_int = 0
+
+        # Convert Unix timestamp to ISO 8601 format
+        timestamp = datetime.fromtimestamp(time_int, tz=timezone.utc).isoformat()
+
+        # Get user information from Perforce
+        username = change.get("user", "unknown")
+        author_email = f"{username}@perforce"
+        author_name = username
+
+        # Fetch user info if not in cache (skip "unknown" placeholder)
+        if username != "unknown" and username not in user_cache:
+            try:
+                user_cache[username] = client.get_user(username)
+            except Exception as e:
+                # Log user lookup failures but don't fail the entire commit processing
+                logger.warning(
+                    "perforce.format_commits.user_lookup_failed",
+                    extra={
+                        "changelist": change.get("change"),
+                        "username": username,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    },
+                )
+                # Cache None to avoid repeated failed lookups for the same user
+                user_cache[username] = None
+
+        user_info = user_cache.get(username)
+        if user_info:
+            # Use actual email from Perforce if available
+            if user_info.get("email"):
+                author_email = user_info["email"]
+            # Use full name from Perforce if available
+            if user_info.get("full_name"):
+                author_name = user_info["full_name"]
+
+        return P4CommitInfo(
+            id=str(change["change"]),
+            repository=depot_path,
+            author_email=author_email,
+            author_name=author_name,
+            message=change.get("desc", ""),
+            timestamp=timestamp,
+            patch_set=[],
+        )
 
     def _format_commits(
         self, changelists: Sequence[P4ChangeInfo], depot_path: str, client: PerforceClient
@@ -184,21 +223,21 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         commits: list[P4CommitInfo] = []
         user_cache: dict[str, P4UserInfo | None] = {}
 
-        for cl in changelists:
-            # Format timestamp (P4 time is Unix timestamp)
-            timestamp = self.format_date(int(cl["time"]))
-
-            commits.append(
-                {
-                    "id": str(cl["change"]),  # Changelist number as commit ID
-                    "repository": depot_path,
-                    "author_email": f"{cl['user']}@perforce",  # P4 doesn't store email
-                    "author_name": cl["user"],
-                    "message": cl["desc"],
-                    "timestamp": timestamp,
-                    "patch_set": [],  # Could fetch with 'p4 describe' if needed
-                }
-            )
+        for change in changelists:
+            try:
+                commit = self._extract_commit_info(change, depot_path, client, user_cache)
+                commits.append(commit)
+            except (KeyError, TypeError) as e:
+                logger.warning(
+                    "perforce.format_commits.invalid_changelist_data",
+                    extra={
+                        "changelist": change.get("change"),
+                        "depot_path": depot_path,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    },
+                )
+                continue
 
         return commits
 
@@ -270,17 +309,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Get URL for pull request.
         Perforce doesn't have native pull requests.
         """
-        web_url = None
-        if repo.integration_id:
-            integration = integration_service.get_integration(integration_id=repo.integration_id)
-            if integration:
-                web_url = integration.metadata.get("web_url")
-
-        if web_url:
-            # Swarm review URL format
-            return f"{web_url}/reviews/{pull_request.key}"
-
-        return f"p4://{repo.name}@{pull_request.key}"
+        raise NotImplementedError("Perforce does not have native pull requests")
 
     def repository_external_slug(self, repo: Repository) -> str:
         """Get external slug for repository."""

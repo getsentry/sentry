@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.perforce.integration import (
     PerforceIntegration,
@@ -30,6 +32,9 @@ class PerforceCodeMappingTest(IntegrationTestCase):
         self.project = self.create_project(organization=self.organization)
         self.org_integration = self.integration.organizationintegration_set.first()
         assert self.org_integration is not None
+
+    def tearDown(self):
+        super().tearDown()
 
     def test_code_mapping_depot_root_to_slash(self):
         """
@@ -337,6 +342,17 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
             default_branch=None,
         )
 
+        # Mock the Perforce client's check_file to avoid actual P4 connection
+        self.check_file_patcher = patch(
+            "sentry.integrations.perforce.client.PerforceClient.check_file",
+            return_value={"depotFile": "//depot/mock"},
+        )
+        self.check_file_patcher.start()
+
+    def tearDown(self):
+        self.check_file_patcher.stop()
+        super().tearDown()
+
     def test_python_sdk_path_full_flow(self):
         """Test full flow: Python SDK -> code mapping -> format_source_url"""
         # 1. Python SDK sends this path
@@ -381,20 +397,14 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
             organization=self.organization,
             provider="perforce",
             name="Perforce",
-<<<<<<< HEAD
             external_id="perforce-test-web-flow",
-            metadata={
-                "web_url": "https://p4web.example.com",
-                "web_viewer_type": "p4web",
-=======
-            external_id="perforce-test-swarm-flow",
             metadata={
                 "p4port": "ssl:perforce.example.com:1666",
                 "user": "testuser",
                 "password": "testpass",
                 "auth_type": "password",
-                "web_url": "https://swarm.example.com",
->>>>>>> 73c0776894f (Rework based on PR comments)
+                "web_url": "https://p4web.example.com",
+                "web_viewer_type": "p4web",
             },
         )
         installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
@@ -424,10 +434,10 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
             default_branch=None,
         )
 
-        # Python SDK path with @revision from Symbolic
+        # Python SDK path with #revision from Symbolic
         frame = EventFrame(
-            filename="depot/app/services/processor.py@42",
-            abs_path="depot/app/services/processor.py@42",
+            filename="depot/app/services/processor.py#42",
+            abs_path="depot/app/services/processor.py#42",
         )
 
         # Code mapping
@@ -442,4 +452,5 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
         assert mapped_path is not None
         url = installation.format_source_url(repo=repo_web, filepath=mapped_path, branch=None)
 
-        assert url == "https://p4web.example.com//depot/app/services/processor.py?ac=64&rev1=42"
+        # Swarm format: /files/<depot_path>?v=<revision>
+        assert url == "https://p4web.example.com/files//depot/app/services/processor.py?v=42"
