@@ -572,5 +572,89 @@ describe('SpansTabContent', () => {
         screen.getByRole('button', {name: 'Add a cross event query'})
       ).toBeDisabled();
     });
+
+    it('adds a cross event search bar when cross event added', async () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      );
+
+      expect(screen.getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Logs'}));
+
+      expect(
+        screen.getByPlaceholderText('Search for logs, users, tags, and more')
+      ).toBeInTheDocument();
+    });
+
+    it('can remove a cross event query', async () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {crossEvents: JSON.stringify([{query: '', type: 'logs'}])},
+          },
+        },
+      });
+
+      expect(
+        await screen.findByPlaceholderText('Search for logs, users, tags, and more')
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByLabelText('Remove cross event search for logs'));
+
+      expect(
+        screen.queryByPlaceholderText('Search for logs, users, tags, and more')
+      ).not.toBeInTheDocument();
+    });
+
+    it('changes the cross event search bar when dataset changed', async () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {crossEvents: JSON.stringify([{query: '', type: 'logs'}])},
+          },
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: /Logs/}));
+      await userEvent.click(screen.getByRole('option', {name: 'Metrics'}));
+
+      expect(
+        screen.getByPlaceholderText('Search for metrics, users, tags, and more')
+      ).toBeInTheDocument();
+    });
+
+    it('displays the cross event query limit alert', () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              crossEvents: JSON.stringify([
+                {query: '', type: 'spans'},
+                {query: '', type: 'logs'},
+                {query: '', type: 'metrics'},
+              ]),
+            },
+          },
+        },
+      });
+
+      expect(
+        screen.getByText('You can add up to a maximum of 2 cross event queries.')
+      ).toBeInTheDocument();
+    });
   });
 });

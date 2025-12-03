@@ -2,7 +2,7 @@ import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
 
-type CrossEventType = 'logs' | 'spans' | 'metrics';
+export type CrossEventType = 'logs' | 'spans' | 'metrics';
 
 export interface CrossEvent {
   query: string;

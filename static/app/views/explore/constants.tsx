@@ -72,3 +72,5 @@ export const SENTRY_LOG_STRING_TAGS: string[] = [
 ];
 
 export const SENTRY_LOG_NUMBER_TAGS: string[] = [OurLogKnownFieldKey.SEVERITY_NUMBER];
+
+export const MAX_CROSS_EVENT_QUERIES = 2;
