@@ -1,11 +1,10 @@
 from collections.abc import Callable, Generator
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 from wsgiref.util import is_hop_by_hop
 
 import requests
 from django.conf import settings
-from django.core.exceptions import SuspiciousOperation
 from django.http import StreamingHttpResponse
 from requests import Response as ExternalResponse
 from rest_framework.request import Request
@@ -25,8 +24,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
-
-CHUNK_SIZE = 512 * 1024
 
 
 @region_silo_endpoint
@@ -140,24 +137,18 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
 
 def get_target_url(path: str) -> str:
     base = options.get("objectstore.config")["base_url"].rstrip("/")
-    base_parsed = urlparse(base)
-
-    target = urljoin(base, path)
-    target_parsed = urlparse(target)
-
-    if (
-        target_parsed.scheme != base_parsed.scheme
-        or target_parsed.netloc != base_parsed.netloc
-        or not target.startswith(base)
-    ):
-        raise SuspiciousOperation("Possible SSRF attempt")
-    if ".." in path:
-        raise SuspiciousOperation("Possible path traversal attempt")
-
+    # `path` should be a relative path, only grab that part
+    path = urlparse(path).path
+    # Simply concatenate base and path, without resolving URLs
+    # This means that if the user supplies path traversal patterns like "/../", we include them literally rather than resolving them
+    # It's responsibility of Objectstore to deal with them correctly
+    target = base + "/" + path
     return target
 
 
 def stream_response(external_response: ExternalResponse) -> StreamingHttpResponse:
+    CHUNK_SIZE = 512 * 1024
+
     def stream_generator() -> Generator[bytes]:
         external_response.raw.decode_content = False
         while True:
