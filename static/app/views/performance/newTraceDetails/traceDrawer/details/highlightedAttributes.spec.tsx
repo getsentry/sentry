@@ -98,6 +98,7 @@ describe('getHighlightedSpanAttributes', () => {
     const attributes = {
       'gen_ai.origin': 'auto.ai.openai',
       'gen_ai.request.model': 'gpt-4',
+      'gen_ai.usage.total_cost': '0.05',
       'sdk.name': 'sentry.python',
       'sdk.version': '2.0.0',
       // Missing: gen_ai.system, gen_ai.operation.name, gen_ai.agent.name
@@ -119,8 +120,8 @@ describe('getHighlightedSpanAttributes', () => {
           span_operation: 'gen_ai.chat',
           missing_attributes: 'gen_ai.system,gen_ai.operation.name,gen_ai.agent.name',
           origin: 'auto.ai.openai',
-          sdk_name: 'sentry.python',
-          sdk_version: '2.0.0',
+          sdk: 'sentry.python@2.0.0',
+          span_id: '123',
         },
       }
     );
@@ -131,6 +132,7 @@ describe('getHighlightedSpanAttributes', () => {
       'gen_ai.origin': 'auto.ai.openai',
       'gen_ai.system': 'openai',
       'gen_ai.request.model': 'gpt-4',
+      'gen_ai.usage.total_cost': '0.05',
       'gen_ai.operation.name': 'chat',
       'gen_ai.agent.name': 'my-agent',
     };
@@ -173,7 +175,7 @@ describe('getHighlightedSpanAttributes', () => {
     expect(Sentry.captureMessage).not.toHaveBeenCalled();
   });
 
-  it('should use unknown for sdk_name and sdk_version when not provided', () => {
+  it('should use unknown for sdk when not provided', () => {
     const attributes = {
       'gen_ai.origin': 'auto.ai.openai',
       // No sdk.name or sdk.version
@@ -181,7 +183,7 @@ describe('getHighlightedSpanAttributes', () => {
 
     getHighlightedSpanAttributes({
       op: 'gen_ai.chat',
-      spanId: '123',
+      spanId: '456',
       attributes,
     });
 
@@ -196,8 +198,8 @@ describe('getHighlightedSpanAttributes', () => {
           missing_attributes:
             'gen_ai.system,gen_ai.request.model,gen_ai.operation.name,gen_ai.agent.name',
           origin: 'auto.ai.openai',
-          sdk_name: 'unknown',
-          sdk_version: 'unknown',
+          sdk: 'unknown',
+          span_id: '456',
         },
       }
     );
