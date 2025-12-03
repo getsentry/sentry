@@ -46,6 +46,7 @@ type QueryBuilderState = {
    * a state change. useApplyFocusOverride reads this value and focuses the selected item.
    */
   focusOverride: FocusOverride | null;
+
   /**
    * The current query value.
    * This is the basic source of truth for what is currently being displayed.
@@ -493,8 +494,10 @@ function replaceTokensWithText(
     text,
     tokens,
     focusOverride: incomingFocusOverride,
+    shouldCommitQuery,
   }: {
     getFieldDefinition: FieldDefinitionGetter;
+    shouldCommitQuery: boolean;
     text: string;
     tokens: Array<TokenResult<Token>>;
     focusOverride?: FocusOverride;
@@ -508,7 +511,9 @@ function replaceTokensWithText(
 
   // Only update the committed query if we aren't in the middle of creating a filter
   const committedQuery =
-    incomingFocusOverride?.part === 'value' ? state.committedQuery : newQuery;
+    incomingFocusOverride?.part === 'value' && shouldCommitQuery
+      ? state.committedQuery
+      : newQuery;
 
   if (incomingFocusOverride) {
     return {
@@ -533,7 +538,7 @@ function replaceTokensWithText(
   return {
     ...state,
     query: newQuery,
-    committedQuery: newQuery,
+    committedQuery: shouldCommitQuery ? newQuery : state.committedQuery,
     focusOverride,
   };
 }
@@ -847,10 +852,14 @@ export function useQueryBuilderState({
         return state;
       }
 
+      const hasReplaceRawSearchKeys =
+        replaceRawSearchKeys && replaceRawSearchKeys.length > 0;
+
       switch (action.type) {
         case 'CLEAR':
           return {
             ...state,
+
             query: '',
             committedQuery: '',
             focusOverride: {
@@ -859,17 +868,13 @@ export function useQueryBuilderState({
           };
         case 'COMMIT_QUERY':
           if (state.query === state.committedQuery) {
-            return state;
+            return {...state};
           }
           return {...state, committedQuery: state.query};
         case 'UPDATE_QUERY': {
           const shouldCommitQuery = action.shouldCommitQuery ?? true;
 
-          if (
-            !hasWildcardOperators ||
-            !replaceRawSearchKeys ||
-            replaceRawSearchKeys.length === 0
-          ) {
+          if (!hasWildcardOperators || !hasReplaceRawSearchKeys) {
             return {
               ...state,
               query: action.query,
@@ -890,7 +895,12 @@ export function useQueryBuilderState({
             ? replacedState.focusOverride
             : (action.focusOverride ?? null);
 
-          return {...state, query, committedQuery, focusOverride};
+          return {
+            ...state,
+            query,
+            committedQuery,
+            focusOverride,
+          };
         }
         case 'RESET_FOCUS_OVERRIDE':
           return {
@@ -903,6 +913,7 @@ export function useQueryBuilderState({
               tokens: [action.token],
               text: '',
               getFieldDefinition,
+              shouldCommitQuery: true,
             }),
             clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
           };
@@ -913,19 +924,26 @@ export function useQueryBuilderState({
             clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
           };
         }
+        case 'UPDATE_FREE_TEXT_ON_BLUR': {
+          const newState = updateFreeText(state, action);
+          return {
+            ...newState,
+            committedQuery: state.committedQuery,
+            clearAskSeerFeedback:
+              newState.query !== state.query && displayAskSeerFeedback ? true : false,
+          };
+        }
         case 'UPDATE_FREE_TEXT_ON_SELECT':
         case 'UPDATE_FREE_TEXT_ON_COLON':
         case 'UPDATE_FREE_TEXT_ON_FUNCTION':
         case 'UPDATE_FREE_TEXT_ON_PARENTHESIS': {
           const newState = updateFreeText(state, action);
-
           return {
             ...newState,
             clearAskSeerFeedback:
               newState.query !== state.query && displayAskSeerFeedback ? true : false,
           };
         }
-        case 'UPDATE_FREE_TEXT_ON_BLUR':
         case 'UPDATE_FREE_TEXT_ON_EXIT':
         case 'UPDATE_FREE_TEXT_ON_COMMIT': {
           const newState = updateFreeTextAndReplaceText(
@@ -942,49 +960,26 @@ export function useQueryBuilderState({
               newState.query !== state.query && displayAskSeerFeedback ? true : false,
           };
         }
-        case 'REPLACE_TOKENS_WITH_TEXT_ON_CUT':
-        case 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE':
-        case 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT':
-        case 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN': {
           return replaceTokensWithText(state, {
             tokens: action.tokens,
             text: action.text,
             focusOverride: action.focusOverride,
             getFieldDefinition,
+            shouldCommitQuery: hasReplaceRawSearchKeys ? false : true,
           });
-        case 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE': {
-          const newState = replaceTokensWithText(state, {
+        }
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_CUT':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT': {
+          return replaceTokensWithText(state, {
             tokens: action.tokens,
             text: action.text,
             focusOverride: action.focusOverride,
             getFieldDefinition,
+            shouldCommitQuery: true,
           });
-
-          if (
-            !hasWildcardOperators ||
-            !replaceRawSearchKeys ||
-            replaceRawSearchKeys.length === 0
-          ) {
-            return newState;
-          }
-
-          const replacedState = replaceFreeTextTokens(
-            newState.query,
-            getFieldDefinition,
-            replaceRawSearchKeys ?? []
-          );
-
-          const query = replacedState?.newQuery ? replacedState.newQuery : newState.query;
-          const focusOverride = replacedState?.focusOverride
-            ? replacedState.focusOverride
-            : newState.focusOverride;
-
-          return {
-            ...newState,
-            query,
-            committedQuery: query,
-            focusOverride,
-          };
         }
         case 'UPDATE_FILTER_KEY':
           return updateFilterKey(state, action);

@@ -442,7 +442,7 @@ function DynamicGrouping() {
   const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
   const isUsingCustomData = customClusterData !== null;
 
-  // Extract all unique teams from the cluster data
+  // Extract all unique teams from the cluster data (for dev tools filter UI)
   const teamsInData = useMemo(() => {
     const data = topIssuesResponse?.data ?? [];
     const teamMap = new Map<string, {id: string; name: string}>();
@@ -653,10 +653,10 @@ function DynamicGrouping() {
           <Fragment>
             <Text size="sm" variant="muted">
               {tn(
-                'Viewing %s issue in %s cluster',
-                'Viewing %s issues across %s clusters',
-                totalIssues,
-                filteredAndSortedClusters.length
+                'Viewing %s cluster containing %s issue',
+                'Viewing %s clusters containing %s issues',
+                filteredAndSortedClusters.length,
+                totalIssues
               )}
               {shouldSkipFilters && ` ${t('(filters disabled)')}`}
             </Text>
@@ -686,7 +686,7 @@ function DynamicGrouping() {
               </ActiveTagFilters>
             )}
 
-            {!shouldSkipFilters && (
+            {showDevTools && !shouldSkipFilters && (
               <Container
                 padding="sm"
                 border="primary"
