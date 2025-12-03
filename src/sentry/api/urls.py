@@ -3707,12 +3707,6 @@ urlpatterns = [
         GroupingConfigsEndpoint.as_view(),
         name="sentry-api-0-grouping-configs",
     ),
-    # Symbolicator Builtin Sources
-    re_path(
-        r"^builtin-symbol-sources/$",
-        BuiltinSymbolSourcesEndpoint.as_view(),
-        name="sentry-api-0-builtin-symbol-sources",
-    ),
     # Project Wizard
     re_path(
         r"^wizard/$",
