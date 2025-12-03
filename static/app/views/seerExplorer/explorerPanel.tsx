@@ -1,13 +1,14 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 
 import useOrganization from 'sentry/utils/useOrganization';
 import BlockComponent from 'sentry/views/seerExplorer/blockComponents';
 import EmptyState from 'sentry/views/seerExplorer/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/explorerMenu';
-import FileChangeApproval from 'sentry/views/seerExplorer/fileChangeApproval';
+import FileChangeApprovalBlock from 'sentry/views/seerExplorer/fileChangeApprovalBlock';
 import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
 import {usePanelSizing} from 'sentry/views/seerExplorer/hooks/usePanelSizing';
+import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import InputSection from 'sentry/views/seerExplorer/inputSection';
 import PanelContainers, {
@@ -312,16 +313,19 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input;
 
-  const handleSubmitFileChanges = useCallback(
-    (decisions: boolean[]) => {
-      if (pendingInput?.id) {
-        respondToUserInput(pendingInput.id, {
-          decisions,
-        });
-      }
-    },
-    [pendingInput?.id, respondToUserInput]
-  );
+  const {
+    isFileApprovalPending,
+    fileApprovalIndex,
+    fileApprovalTotalPatches,
+    handleFileApprovalApprove,
+    handleFileApprovalReject,
+  } = usePendingUserInput({
+    isAwaitingUserInput,
+    pendingInput,
+    respondToUserInput,
+    scrollContainerRef,
+    userScrolledUpRef,
+  });
 
   const panelContent = (
     <PanelContainers
@@ -331,18 +335,12 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       panelSize={panelSize}
       onUnminimize={handleUnminimize}
     >
-      {isAwaitingUserInput && pendingInput ? (
-        <FileChangeApproval
-          pendingInput={pendingInput}
-          onSubmit={handleSubmitFileChanges}
-          isMinimized={isMinimized}
-        />
-      ) : (
-        <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
-          {blocks.length === 0 ? (
-            <EmptyState />
-          ) : (
-            blocks.map((block: Block, index: number) => (
+      <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
+        {blocks.length === 0 && !(isAwaitingUserInput && pendingInput) ? (
+          <EmptyState />
+        ) : (
+          <Fragment>
+            {blocks.map((block: Block, index: number) => (
               <BlockComponent
                 key={block.id}
                 ref={el => {
@@ -350,7 +348,10 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                 }}
                 block={block}
                 blockIndex={index}
-                isLast={index === blocks.length - 1}
+                isAwaitingFileApproval={isFileApprovalPending}
+                isLast={
+                  index === blocks.length - 1 && !(isAwaitingUserInput && pendingInput)
+                }
                 isFocused={focusedBlockIndex === index}
                 isPolling={isPolling}
                 onClick={() => handleBlockClick(index)}
@@ -379,25 +380,40 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                   blockEnterHandlers.current.set(index, handler);
                 }}
               />
-            ))
-          )}
-        </BlocksContainer>
-      )}
-      {!(isAwaitingUserInput && pendingInput) && (
-        <InputSection
-          menu={menu}
-          onMenuButtonClick={onMenuButtonClick}
-          focusedBlockIndex={focusedBlockIndex}
-          inputValue={inputValue}
-          interruptRequested={interruptRequested}
-          isPolling={isPolling}
-          onClear={() => setInputValue('')}
-          onInputChange={handleInputChange}
-          onInputClick={handleInputClick}
-          textAreaRef={textareaRef}
-          onKeyDown={handleInputKeyDown}
-        />
-      )}
+            ))}
+            {isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches && (
+              <FileChangeApprovalBlock
+                currentIndex={fileApprovalIndex}
+                isLast
+                pendingInput={pendingInput!}
+              />
+            )}
+          </Fragment>
+        )}
+      </BlocksContainer>
+      <InputSection
+        menu={menu}
+        onMenuButtonClick={onMenuButtonClick}
+        focusedBlockIndex={focusedBlockIndex}
+        inputValue={inputValue}
+        interruptRequested={interruptRequested}
+        isPolling={isPolling}
+        onClear={() => setInputValue('')}
+        onInputChange={handleInputChange}
+        onInputClick={handleInputClick}
+        textAreaRef={textareaRef}
+        onKeyDown={handleInputKeyDown}
+        fileApprovalActions={
+          isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
+            ? {
+                currentIndex: fileApprovalIndex,
+                totalPatches: fileApprovalTotalPatches,
+                onApprove: handleFileApprovalApprove,
+                onReject: handleFileApprovalReject,
+              }
+            : undefined
+        }
+      />
     </PanelContainers>
   );
 
