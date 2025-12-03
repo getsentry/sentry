@@ -125,7 +125,6 @@ export interface ControlProps
    */
   loading?: boolean;
   maxMenuHeight?: number | string;
-  maxMenuWidth?: number | string;
   /**
    * Optional content to display below the menu's header and above the options.
    */
@@ -215,7 +214,6 @@ export function Control({
   hideOptions,
   menuTitle,
   maxMenuHeight = '32rem',
-  maxMenuWidth,
   menuWidth,
   menuHeaderTrailingItems,
   menuBody,
@@ -297,7 +295,11 @@ export function Control({
     onInteractOutside,
     shouldCloseOnInteractOutside,
     shouldCloseOnBlur,
-    preventOverflowOptions,
+    preventOverflowOptions: {
+      ...preventOverflowOptions,
+      boundary:
+        preventOverflowOptions?.boundary ?? document.querySelector('main') ?? undefined,
+    },
     flipOptions,
     strategy,
     onOpenChange: open => {
@@ -480,7 +482,11 @@ export function Control({
             <StyledOverlay
               width={menuWidth ?? menuFullWidth}
               minWidth={overlayProps.style!.minWidth}
-              maxWidth={maxMenuWidth}
+              maxWidth={
+                overlayProps.style?.maxWidth
+                  ? `calc(${withUnits(overlayProps.style.maxWidth)} * 0.9)`
+                  : undefined
+              }
               maxHeight={overlayProps.style!.maxHeight}
               maxHeightProp={maxMenuHeight}
               data-menu-has-header={!!menuTitle || clearable}
@@ -626,7 +632,7 @@ const SearchInput = styled(Input)`
     margin-top: calc(${space(0.5)} + 1px);
   }
 `;
-const withUnits = (value: any) => (typeof value === 'string' ? value : `${value}px`);
+const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {
   shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
