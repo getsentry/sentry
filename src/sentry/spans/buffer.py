@@ -66,7 +66,6 @@ from __future__ import annotations
 import itertools
 import logging
 import math
-from collections import defaultdict
 from collections.abc import Generator, MutableMapping, Sequence
 from typing import Any, NamedTuple
 
@@ -479,7 +478,6 @@ class SpansBuffer:
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         cursors = {key: 0 for key in segment_keys}
         sizes = {key: 0 for key in segment_keys}
-        dropped_counts: defaultdict[SegmentKey, int] = defaultdict(int)
 
         while cursors:
             with self.client.pipeline(transaction=False) as p:
@@ -505,9 +503,6 @@ class SpansBuffer:
                     metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
                     logger.warning("Skipping too large segment, byte size %s", sizes[key])
 
-                    # Track loaded spans that we're dropping
-                    dropped_counts[key] = len(payloads[key]) + len(decompressed_spans)
-
                     del payloads[key]
                     del cursors[key]
                     continue
@@ -526,22 +521,15 @@ class SpansBuffer:
 
             ingested_count_results = p.execute()
 
-        # Calculate dropped counts: ingested - loaded
+        # Calculate dropped counts: total ingested - successfully loaded
         for key, ingested_count in zip(segment_keys, ingested_count_results):
             if ingested_count:
                 total_ingested = int(ingested_count)
-                # Count successfully loaded spans
-                loaded_count = len(payloads.get(key, []))
-                # Add any loaded spans we're dropping (from size check above)
-                loaded_count += dropped_counts[key]
+                successfully_loaded = len(payloads.get(key, []))
+                dropped = total_ingested - successfully_loaded
+                if not dropped:
+                    continue
 
-                dropped = total_ingested - loaded_count
-                if dropped > 0:
-                    dropped_counts[key] = dropped
-
-        # Emit outcomes for all segments with dropped spans
-        for key, num_dropped_spans in dropped_counts.items():
-            if num_dropped_spans > 0:
                 project_id_bytes, _, _ = parse_segment_key(key)
                 project_id = int(project_id_bytes)
                 try:
@@ -559,7 +547,7 @@ class SpansBuffer:
                         outcome=Outcome.INVALID,
                         reason="segment_too_large",
                         category=DataCategory.SPAN_INDEXED,
-                        quantity=num_dropped_spans,
+                        quantity=dropped,
                     )
 
         for key, spans in payloads.items():
