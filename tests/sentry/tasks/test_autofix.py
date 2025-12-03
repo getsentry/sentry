@@ -233,3 +233,33 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         # 1 failed GET + 1 GET + 1 SET = 3 calls
         assert mock_post.call_count == 3
+
+    @patch("sentry.tasks.autofix.requests.post")
+    def test_continues_on_malformed_json_response(self, mock_post: MagicMock) -> None:
+        """Test that task continues if Seer API returns malformed JSON (non-dict preference)."""
+        # First project: GET returns malformed JSON (preference is a string, not a dict)
+        # This would cause AttributeError when calling .get() on the string
+        mock_get_malformed = MagicMock()
+        mock_get_malformed.json.return_value = {"preference": "not_a_dict"}
+
+        # Second project: GET + SET succeed
+        mock_get_response = MagicMock()
+        mock_get_response.json.return_value = {"preference": None}
+        mock_set_response = MagicMock()
+        mock_post.side_effect = [
+            mock_get_malformed,
+            mock_get_response,
+            mock_set_response,
+        ]
+
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        # Both projects should still have their Sentry DB options set
+        assert project1.get_option("sentry:seer_scanner_automation") is True
+        assert project2.get_option("sentry:seer_scanner_automation") is True
+
+        # 1 malformed GET + 1 GET + 1 SET = 3 calls
+        assert mock_post.call_count == 3

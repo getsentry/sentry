@@ -184,7 +184,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             )
             set_response.raise_for_status()
             successful_project_ids.append(project.id)
-        except (requests.RequestException, ValueError):
+        except (requests.RequestException, ValueError, AttributeError):
             logger.exception(
                 "Failed to configure Seer preferences for project",
                 extra={"organization_id": organization_id, "project_id": project.id},
