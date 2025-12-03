@@ -513,16 +513,23 @@ class SpansBuffer:
                     # Track outcome for dropped spans
                     project_id_bytes, _, _ = parse_segment_key(key)
                     project_id = int(project_id_bytes)
-                    project = Project.objects.get_from_cache(id=project_id)
-                    track_outcome(
-                        org_id=project.organization_id,
-                        project_id=project_id,
-                        key_id=None,
-                        outcome=Outcome.INVALID,
-                        reason="segment_too_large",
-                        category=DataCategory.SPAN_INDEXED,
-                        quantity=num_dropped_spans,
-                    )
+                    try:
+                        project = Project.objects.get_from_cache(id=project_id)
+                    except Project.DoesNotExist:
+                        logger.warning(
+                            "Project does not exist for dropped segment",
+                            extra={"project_id": project_id},
+                        )
+                    else:
+                        track_outcome(
+                            org_id=project.organization_id,
+                            project_id=project_id,
+                            key_id=None,
+                            outcome=Outcome.INVALID,
+                            reason="segment_too_large",
+                            category=DataCategory.SPAN_INDEXED,
+                            quantity=num_dropped_spans,
+                        )
 
                     del payloads[key]
                     del cursors[key]
