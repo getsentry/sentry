@@ -219,7 +219,9 @@ export function getWidgetInterval(
       datetimeObj,
       widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS
         ? 'spans'
-        : 'high'
+        : widget.widgetType === WidgetType.ISSUE
+          ? 'issues'
+          : 'high'
     );
     // Only return high fidelity interval if desired interval is higher fidelity
     if (desiredPeriod < parsePeriodToHours(highInterval)) {
