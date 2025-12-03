@@ -4,7 +4,237 @@ import {CodeBlock} from 'sentry/components/core/code';
 import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 
-export function CeleryBeatAutoDiscovery() {
+export interface CronsPlatformGuide {
+  Guide: React.ComponentType<any>;
+  key: string;
+  title: string;
+}
+
+export interface CronsPlatform {
+  guides: CronsPlatformGuide[];
+  label: string;
+  platform: string;
+}
+
+export const platformGuides = [
+  {
+    platform: 'python-celery',
+    label: 'Celery',
+    guides: [
+      {
+        Guide: CeleryBeatAutoDiscovery,
+        title: 'Auto-Instrument',
+        key: 'upsert',
+      },
+    ],
+  },
+  {
+    platform: 'php',
+    label: 'PHP',
+    guides: [
+      {
+        Guide: PHPUpsertPlatformGuide,
+        title: 'Upsert',
+        key: 'upsert',
+      },
+    ],
+  },
+  {
+    platform: 'php-laravel',
+    label: 'Laravel',
+    guides: [
+      {
+        Guide: LaravelUpsertPlatformGuide,
+        title: 'Upsert',
+        key: 'upsert',
+      },
+    ],
+  },
+  {
+    platform: 'python',
+    label: 'Python',
+    guides: [
+      {
+        Guide: PythonUpsertPlatformGuide,
+        title: 'Upsert',
+        key: 'upsert',
+      },
+    ],
+  },
+  {
+    platform: 'node',
+    label: 'NodeJS',
+    guides: [
+      {
+        Guide: NodeJsUpsertPlatformGuide,
+        title: 'Upsert',
+        key: 'upsert',
+      },
+    ],
+  },
+  {
+    platform: 'deno',
+    label: 'Deno',
+    guides: [
+      {
+        Guide: DenoUpsertPlatformGuide,
+        title: 'Auto-Instrument',
+        key: 'upsert',
+      },
+    ],
+  },
+  {
+    platform: 'node-nestjs',
+    label: 'NestJS',
+    guides: [
+      {
+        Guide: NestJSUpsertPlatformGuide,
+        title: 'Upsert',
+        key: 'upsert',
+      },
+    ],
+  },
+  {
+    platform: 'javascript-nextjs',
+    label: 'Next.js',
+    guides: [
+      {
+        Guide: NextJSUpsertPlatformGuide,
+        title: 'Auto-Instrument',
+        key: 'upsert',
+      },
+    ],
+  },
+  {
+    platform: 'go',
+    label: 'Go',
+    guides: [
+      {
+        Guide: GoUpsertPlatformGuide,
+        title: 'Upsert',
+        key: 'upsert',
+      },
+    ],
+  },
+  {
+    platform: 'java',
+    label: 'Java',
+    guides: [
+      {
+        Guide: JavaUpsertPlatformGuide,
+        title: 'Upsert',
+        key: 'upsert',
+      },
+    ],
+  },
+  {
+    platform: 'java-spring-boot',
+    label: 'Spring Boot',
+    guides: [
+      {
+        Guide: JavaSpringBootUpsertPlatformGuide,
+        title: 'Auto-Instrument',
+        key: 'upsert',
+      },
+    ],
+  },
+  {
+    platform: 'ruby',
+    label: 'Ruby',
+    guides: [
+      {
+        Guide: RubyUpsertPlatformGuide,
+        title: 'Upsert',
+        key: 'upsert',
+      },
+      {
+        Guide: RubySidekiqMixinPlatformGuide,
+        title: 'Sidekiq Mixin',
+        key: 'sidekiq-mixin',
+      },
+    ],
+  },
+  {
+    platform: 'ruby-rails',
+    label: 'Rails',
+    guides: [
+      {
+        Guide: RubySidekiqAutoPlatformGuide,
+        title: 'Sidekiq Auto Discovery',
+        key: 'rails-sidekiq',
+      },
+      {
+        Guide: RubyActiveJobPlatformGuide,
+        title: 'ActiveJob',
+        key: 'rails-activejob',
+      },
+      {
+        Guide: RubyRailsMixinPlatformGuide,
+        title: 'Mixin',
+        key: 'rails-mixin',
+      },
+    ],
+  },
+  {
+    platform: 'elixir',
+    label: 'Elixir',
+    guides: [
+      {
+        Guide: ElixirUpsertPlatformGuide,
+        title: 'Upsert',
+        key: 'upsert',
+      },
+      {
+        Guide: ElixirObanPlatformGuide,
+        title: 'Oban',
+        key: 'elixir-oban',
+      },
+      {
+        Guide: ElixirQuantumPlatformGuide,
+        title: 'Quantum',
+        key: 'elixir-quantum',
+      },
+    ],
+  },
+  {
+    platform: 'dotnet',
+    label: '.NET',
+    guides: [
+      {
+        Guide: DotNetUpsertPlatformGuide,
+        title: 'Upsert',
+        key: 'upsert',
+      },
+    ],
+  },
+  {
+    platform: 'cli',
+    label: 'Sentry CLI',
+    guides: [
+      {
+        Guide: CLIUpsertPlatformGuide,
+        title: 'Upsert',
+        key: 'upsert',
+      },
+    ],
+  },
+  {
+    platform: 'http',
+    label: 'HTTP',
+    guides: [
+      {
+        Guide: CurlUpsertPlatformGuide,
+        title: 'Upsert',
+        key: 'upsert',
+      },
+    ],
+  },
+] as const satisfies CronsPlatform[];
+
+export type SupportedPlatform = (typeof platformGuides)[number]['platform'];
+export type GuideKey = (typeof platformGuides)[number]['guides'][number]['key'];
+
+function CeleryBeatAutoDiscovery() {
   const code = `# tasks.py
 from celery import signals
 
@@ -40,7 +270,7 @@ def init_sentry(**kwargs):
   );
 }
 
-export function PHPUpsertPlatformGuide() {
+function PHPUpsertPlatformGuide() {
   const scheduleCode = `// Create a crontab schedule object (every 10 minutes)
 $monitorSchedule = \\Sentry\\MonitorSchedule::crontab('*/10 * * * *');
 
@@ -91,7 +321,7 @@ $checkInId = \\Sentry\\captureCheckIn(
   );
 }
 
-export function LaravelUpsertPlatformGuide() {
+function LaravelUpsertPlatformGuide() {
   const basicConfigCode = `Schedule::command(SendEmailsCommand::class)
     ->everyHour()
     ->sentryMonitor(); // add this line`;
@@ -156,7 +386,7 @@ export function LaravelUpsertPlatformGuide() {
   );
 }
 
-export function PythonUpsertPlatformGuide() {
+function PythonUpsertPlatformGuide() {
   const configCode = `# All keys except 'schedule' are optional
 monitor_config = {
     "schedule": {"type": "crontab", "value": "*/10 * * * *"},
@@ -220,7 +450,7 @@ capture_checkin(
   );
 }
 
-export function NodeJsUpsertPlatformGuide() {
+function NodeJsUpsertPlatformGuide() {
   const withMonitorCode = `const monitorConfig = {
   schedule: {
     type: "crontab",
@@ -292,7 +522,7 @@ Sentry.captureCheckIn({
   );
 }
 
-export function DenoUpsertPlatformGuide() {
+function DenoUpsertPlatformGuide() {
   const setupCode = `import * as Sentry from "npm:@sentry/deno";
 
 Sentry.init({
@@ -335,7 +565,7 @@ Sentry.init({
   );
 }
 
-export function NestJSUpsertPlatformGuide() {
+function NestJSUpsertPlatformGuide() {
   const code = `import { Cron } from '@nestjs/schedule';
 import { SentryCron } from '@sentry/nestjs';
 
@@ -374,7 +604,7 @@ export class MyCronService {
   );
 }
 
-export function NextJSUpsertPlatformGuide() {
+function NextJSUpsertPlatformGuide() {
   const configCode = `// next.config.js
 const { withSentryConfig } = require('@sentry/nextjs');
 
@@ -424,7 +654,7 @@ module.exports = withSentryConfig(
   );
 }
 
-export function GoUpsertPlatformGuide() {
+function GoUpsertPlatformGuide() {
   const scheduleCode = `// Create a crontab schedule object (every 10 minutes)
 monitorSchedule := sentry.CrontabSchedule("*/10 * * * *")
 
@@ -478,7 +708,7 @@ sentry.CaptureCheckIn(
   );
 }
 
-export function JavaUpsertPlatformGuide() {
+function JavaUpsertPlatformGuide() {
   const scheduleCode = `import io.sentry.MonitorSchedule;
 import io.sentry.MonitorScheduleUnit;
 
@@ -520,7 +750,7 @@ String result = CheckInUtils.withCheckIn("<monitor-slug>", monitorConfig, () -> 
   );
 }
 
-export function JavaSpringBootUpsertPlatformGuide() {
+function JavaSpringBootUpsertPlatformGuide() {
   const code = `import io.sentry.spring.jakarta.checkin.SentryCheckIn;
 
 @Component
@@ -561,7 +791,7 @@ public class CustomJob {
   );
 }
 
-export function RubyUpsertPlatformGuide() {
+function RubyUpsertPlatformGuide() {
   const configCode = `# Create a config from a crontab schedule (every 10 minutes)
 monitor_config = Sentry::Cron::MonitorConfig.from_crontab(
   '*/10 * * * *',
@@ -614,7 +844,7 @@ Sentry.capture_check_in(
   );
 }
 
-export function RubySidekiqAutoPlatformGuide() {
+function RubySidekiqAutoPlatformGuide() {
   const sidekiqCronCode = `Sentry.init do |config|
   # for sidekiq-cron
   config.enabled_patches += [:sidekiq_cron]
@@ -653,7 +883,7 @@ end`;
   );
 }
 
-export function RubySidekiqMixinPlatformGuide() {
+function RubySidekiqMixinPlatformGuide() {
   const configCode = `# Create monitor config with an interval
 monitor_config = Sentry::Cron::MonitorConfig.from_interval(
   10,
@@ -707,7 +937,7 @@ end`;
   );
 }
 
-export function RubyRailsMixinPlatformGuide() {
+function RubyRailsMixinPlatformGuide() {
   const activeJobCode = `class ExampleActiveJob < ApplicationJob
   include Sentry::Cron::MonitorCheckIns
 
@@ -763,7 +993,7 @@ sentry_monitor_check_ins slug: 'custom', monitor_config: Sentry::Cron::MonitorCo
   );
 }
 
-export function RubyActiveJobPlatformGuide() {
+function RubyActiveJobPlatformGuide() {
   const configCode = `# Create monitor config with an interval
 monitor_config = Sentry::Cron::MonitorConfig.from_interval(
   10,
@@ -816,7 +1046,7 @@ end`;
   );
 }
 
-export function ElixirUpsertPlatformGuide() {
+function ElixirUpsertPlatformGuide() {
   const configCode = `# Create a config from a crontab schedule (every 10 minutes)
 monitor_config = [
   schedule: [
@@ -879,7 +1109,7 @@ Sentry.capture_check_in(
   );
 }
 
-export function ElixirObanPlatformGuide() {
+function ElixirObanPlatformGuide() {
   const code = `config :sentry,
   integrations: [
     oban: [cron: [enabled: true]]  # 👈
@@ -909,7 +1139,7 @@ export function ElixirObanPlatformGuide() {
   );
 }
 
-export function ElixirQuantumPlatformGuide() {
+function ElixirQuantumPlatformGuide() {
   const code = `config :sentry,
   integrations: [
     quantum: [cron: [enabled: true]]  # 👈
@@ -939,7 +1169,7 @@ export function ElixirQuantumPlatformGuide() {
   );
 }
 
-export function DotNetUpsertPlatformGuide() {
+function DotNetUpsertPlatformGuide() {
   const scheduleCode = `// Create a crontab schedule (every 10 minutes)
 SentrySdk.CaptureCheckIn(
     "<monitor-slug>",
@@ -999,7 +1229,7 @@ SentrySdk.CaptureCheckIn("<monitor-slug>", CheckInStatus.Ok, checkInId);`;
   );
 }
 
-export function CLIUpsertPlatformGuide() {
+function CLIUpsertPlatformGuide() {
   const upsertCode = `# Upsert a monitor with a crontab schedule (every 10 minutes)
 sentry-cli monitors run \\
   --schedule "*/10 * * * *" \\
@@ -1055,7 +1285,7 @@ sentry-cli monitors run \\
   );
 }
 
-export function CurlUpsertPlatformGuide() {
+function CurlUpsertPlatformGuide() {
   const upsertCode = `SENTRY_INGEST="https://<ingest-domain>"
 SENTRY_CRONS="\${SENTRY_INGEST}/api/<project-id>/cron/<monitor-slug>/<dsn-public-key>/"
 
