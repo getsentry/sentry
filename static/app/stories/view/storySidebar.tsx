@@ -4,55 +4,13 @@ import styled from '@emotion/styled';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import type {StoryTreeNode} from './storyTree';
-import {inferFileCategory, StoryTree, useStoryTree} from './storyTree';
+import {CategorizedStoryTree, inferFileCategory, useStoryTree} from './storyTree';
 import {useStoryBookFiles} from './useStoriesLoader';
 
 export function StorySidebar() {
-  const {foundations, principles, patterns, typography, layout, core, product, shared} =
-    useStoryBookFilesByCategory();
-
   return (
     <SidebarContainer key="sidebar" ref={scrollIntoView}>
-      <ul>
-        <li>
-          <h3>Foundations</h3>
-          <StoryTree nodes={foundations} />
-        </li>
-        {principles.length > 0 && (
-          <li>
-            <h3>Principles</h3>
-            <StoryTree nodes={principles} />
-          </li>
-        )}
-        {patterns.length > 0 && (
-          <li>
-            <h3>Patterns</h3>
-            <StoryTree nodes={patterns} />
-          </li>
-        )}
-        <li>
-          <h3>Typography</h3>
-          <StoryTree nodes={typography} />
-        </li>
-        <li>
-          <h3>Layout</h3>
-          <StoryTree nodes={layout} />
-        </li>
-        <li>
-          <h3>Components</h3>
-          <StoryTree nodes={core} />
-        </li>
-        {product.length > 0 ? (
-          <li>
-            <h3>Product</h3>
-            <StoryTree nodes={product} />
-          </li>
-        ) : null}
-        <li>
-          <h3>Shared</h3>
-          <StoryTree nodes={shared} />
-        </li>
-      </ul>
+      <CategorizedStoryTree />
     </SidebarContainer>
   );
 }
