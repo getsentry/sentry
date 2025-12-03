@@ -1,4 +1,4 @@
-import {useDeferredValue, useEffect} from 'react';
+import {useCallback, useDeferredValue, useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -31,7 +31,7 @@ type ChildRenderFunction = (renderPropProps: ChildRenderProps) => React.ReactNod
 type SlideOverPanelProps = {
   children: React.ReactNode | ChildRenderFunction;
   /**
-   * Whether the panel is visible. In most cases it's better to conditionally render this component rather than use this prop, since it'll defer rendering the panel contents until they're needed.
+   * Whether the panel is visible. In most cases it's better to use this prop rather than render the panel conditionally, since it'll defer rendering the contents of the panel to a lower priority React lane.
    */
   collapsed: boolean;
   ariaLabel?: string;
@@ -88,6 +88,20 @@ export function SlideOverPanel({
     }
   }, [collapsed, onOpen]);
 
+  // Create a fallback render function, in case the parent component passes
+  // `React.ReactNode` as `children`. This way, even if they don't pass a render
+  // prop they still get the benefit of fast panel opening.
+  const fallbackRenderFunction: ChildRenderFunction = useCallback(
+    ({isOpening}: ChildRenderProps) => {
+      return isOpening ? null : (children as React.ReactNode); // This function should only ever run for `React.ReactNode`, its whole purpose is to create a render function for `React.ReactNode`
+    },
+    [children]
+  );
+
+  const renderFunctionProps: ChildRenderProps = {
+    isOpening: isOpen !== isContentVisible && !isContentVisible,
+  };
+
   const openStyle = slidePosition ? OPEN_STYLES[slidePosition] : OPEN_STYLES.right;
 
   const collapsedStyle = slidePosition
@@ -114,10 +128,11 @@ export function SlideOverPanel({
     >
       {/* Render the child content. If it's a render prop, pass the `isOpening`
       prop. We expect the render prop to render a skeleton UI if `isOpening` is
-      true. */}
+      true. Otherwise, use the fallback render prop, which shows a blank panel
+      while opening. */}
       {typeof children === 'function'
-        ? children({isOpening: isOpen !== isContentVisible && !isContentVisible})
-        : children}
+        ? children(renderFunctionProps)
+        : fallbackRenderFunction(renderFunctionProps)}
     </_SlideOverPanel>
   ) : null;
 }

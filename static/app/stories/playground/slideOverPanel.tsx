@@ -1,11 +1,9 @@
-import {Fragment, useCallback, useMemo, useState, type ComponentProps} from 'react';
-import {AnimatePresence} from 'framer-motion';
+import {Fragment, useCallback, useState, type ComponentProps} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
-import {Switch} from '@sentry/scraps/switch';
 
 import Placeholder from 'sentry/components/placeholder';
 
@@ -16,59 +14,35 @@ export function SlideOverPanelPlayground() {
     <Fragment>
       <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
 
-      <AnimatePresence>
-        {isPanelOpen && (
-          <SlideOverPanel collapsed={false} slidePosition="right">
-            <Container border="primary" height="100%" padding="md">
-              <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
-            </Container>
-          </SlideOverPanel>
-        )}
-      </AnimatePresence>
+      <SlideOverPanel collapsed={!isPanelOpen} slidePosition="right">
+        <Container border="primary" height="100%" padding="md">
+          <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
+        </Container>
+      </SlideOverPanel>
     </Fragment>
   );
 }
 
 export function SlideOverPanelSkeletonPlayground() {
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
-  const [isSkeletonEnabled, setIsSkeletonEnabled] = useState<boolean>(false);
 
   const closePanel = useCallback(() => {
     setIsPanelOpen(false);
   }, []);
 
-  const fastChildren = useMemo(
-    () =>
-      function (options: {isOpening: boolean}) {
-        return options.isOpening ? (
-          <SkeletonPanelContents onClick={closePanel} />
-        ) : (
-          <PanelContents onClick={closePanel} />
-        );
-      },
-    [closePanel]
-  );
-
-  const slowChildren = <PanelContents onClick={closePanel} />;
-
   return (
     <Fragment>
-      <Flex direction="column" gap="md">
-        <Flex gap="md" as="label">
-          Enable Skeleton UI
-          <Switch
-            checked={isSkeletonEnabled}
-            onChange={() => setIsSkeletonEnabled(!isSkeletonEnabled)}
-          />
-        </Flex>
-        <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
-      </Flex>
+      <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
 
-      <AnimatePresence>
-        <SlideOverPanel collapsed={!isPanelOpen} slidePosition="right">
-          {isSkeletonEnabled ? fastChildren : slowChildren}
-        </SlideOverPanel>
-      </AnimatePresence>
+      <SlideOverPanel collapsed={!isPanelOpen} slidePosition="right">
+        {(options: {isOpening: boolean}) => {
+          return options.isOpening ? (
+            <SkeletonPanelContents onClick={closePanel} />
+          ) : (
+            <PanelContents onClick={closePanel} />
+          );
+        }}
+      </SlideOverPanel>
     </Fragment>
   );
 }
