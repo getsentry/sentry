@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import {defined} from 'sentry/utils';
+import {MAX_CROSS_EVENT_QUERIES} from 'sentry/views/explore/constants';
 import {useQueryParamsCrossEvents} from 'sentry/views/explore/queryParams/context';
 
 export function useCrossEventQueries() {
@@ -11,11 +12,15 @@ export function useCrossEventQueries() {
       return undefined;
     }
 
+    // We only want to include the first MAX_CROSS_EVENT_QUERIES cross events in the
+    // actual API request to avoid overwhelming the backend.
+    const slicedCrossEvents = crossEvents.slice(0, MAX_CROSS_EVENT_QUERIES);
+
     const logQuery: string[] = [];
     const metricQuery: string[] = [];
     const spanQuery: string[] = [];
 
-    for (const crossEvent of crossEvents) {
+    for (const crossEvent of slicedCrossEvents) {
       switch (crossEvent.type) {
         case 'spans':
           spanQuery.push(crossEvent.query);
