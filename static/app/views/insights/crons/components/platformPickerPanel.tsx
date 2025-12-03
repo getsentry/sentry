@@ -9,52 +9,7 @@ import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export type SupportedPlatform =
-  | 'python-celery'
-  | 'php'
-  | 'php-laravel'
-  | 'python'
-  | 'node'
-  | 'deno'
-  | 'node-nestjs'
-  | 'node-nextjs'
-  | 'go'
-  | 'java'
-  | 'java-spring-boot'
-  | 'ruby'
-  | 'ruby-rails'
-  | 'elixir'
-  | 'dotnet'
-  | 'cli'
-  | 'http';
-
-interface SDKPlatformInfo {
-  label: string;
-  platform: SupportedPlatform;
-}
-
-export const CRON_SDK_PLATFORMS: SDKPlatformInfo[] = [
-  {platform: 'python-celery', label: 'Celery'},
-  {platform: 'php', label: 'PHP'},
-  {platform: 'php-laravel', label: 'Laravel'},
-  {platform: 'python', label: 'Python'},
-  {platform: 'node', label: 'Node'},
-  {platform: 'deno', label: 'Deno'},
-  {platform: 'node-nestjs', label: 'NestJS'},
-  {platform: 'node-nextjs', label: 'Next.js'},
-  {platform: 'go', label: 'Go'},
-  {platform: 'java', label: 'Java'},
-  {platform: 'java-spring-boot', label: 'Spring Boot'},
-  {platform: 'ruby', label: 'Ruby'},
-  {platform: 'ruby-rails', label: 'Rails'},
-  {platform: 'elixir', label: 'Elixir'},
-  {platform: 'dotnet', label: '.NET'},
-];
-
-export const CRON_GENERIC_PLATFORMS = [
-  {platform: 'cli', label: 'Sentry CLI'},
-  {platform: 'http', label: 'HTTP (cURL)'},
-];
+import {platformGuides, type SupportedPlatform} from './upsertPlatformGuides';
 
 interface Props {
   onSelect: (platform: SupportedPlatform | null) => void;
@@ -71,18 +26,20 @@ export function PlatformPickerPanel({onSelect}: Props) {
       </p>
       <SectionTitle>{t('Platforms')}</SectionTitle>
       <Actions>
-        {CRON_SDK_PLATFORMS.map(({platform, label}) => (
-          <PlatformOption key={platform}>
-            <PlatformButton
-              priority="default"
-              onClick={() => onSelect(platform)}
-              aria-label={t('Create %s Monitor', platform)}
-            >
-              <PlatformIcon platform={platform} format="lg" size="100%" />
-            </PlatformButton>
-            <div>{label}</div>
-          </PlatformOption>
-        ))}
+        {platformGuides
+          .filter(({platform}) => !['cli', 'http'].includes(platform))
+          .map(({platform, label}) => (
+            <PlatformOption key={platform}>
+              <PlatformButton
+                priority="default"
+                onClick={() => onSelect(platform)}
+                aria-label={t('Create %s Monitor', platform)}
+              >
+                <PlatformIcon platform={platform} format="lg" size="100%" />
+              </PlatformButton>
+              <div>{label}</div>
+            </PlatformOption>
+          ))}
       </Actions>
       <SectionTitle>{t('Generic')}</SectionTitle>
       <Actions>
