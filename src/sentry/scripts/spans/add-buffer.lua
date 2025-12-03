@@ -74,19 +74,27 @@ if #sunionstore_args > 0 then
     redis.call("zunionstore", set_key, #sunionstore_args + 1, set_key, unpack(sunionstore_args))
     redis.call("unlink", unpack(sunionstore_args))
 
-    local num_dropped_spans = 0
-    while (redis.call("memory", "usage", set_key) or 0) > max_segment_bytes do
-        redis.call("zpopmin", set_key)
-        num_dropped_spans = num_dropped_spans + 1
+    -- Merge ingested count keys for merged spans
+    local ingested_count_key = string.format("span-buf:ic:%s", set_key)
+    for i = 1, #sunionstore_args do
+        local merged_key = sunionstore_args[i]
+        local merged_ic_key = string.format("span-buf:ic:%s", merged_key)
+        local merged_count = redis.call("get", merged_ic_key)
+        if merged_count then
+            redis.call("incrby", ingested_count_key, merged_count)
+        end
+        redis.call("del", merged_ic_key)
     end
 
-    -- Store count of dropped spans for outcome tracking
-    if num_dropped_spans > 0 then
-        local dropped_count_key = string.format("span-buf:dc:%s", set_key)
-        redis.call("incrby", dropped_count_key, num_dropped_spans)
-        redis.call("expire", dropped_count_key, set_timeout)
+    while (redis.call("memory", "usage", set_key) or 0) > max_segment_bytes do
+        redis.call("zpopmin", set_key)
     end
 end
+
+-- Track total number of spans ingested for this segment
+local ingested_count_key = string.format("span-buf:ic:%s", set_key)
+redis.call("incrby", ingested_count_key, num_spans)
+redis.call("expire", ingested_count_key, set_timeout)
 
 redis.call("expire", set_key, set_timeout)
 

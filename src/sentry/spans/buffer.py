@@ -66,6 +66,7 @@ from __future__ import annotations
 import itertools
 import logging
 import math
+from collections import defaultdict
 from collections.abc import Generator, MutableMapping, Sequence
 from typing import Any, NamedTuple
 
@@ -478,6 +479,7 @@ class SpansBuffer:
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         cursors = {key: 0 for key in segment_keys}
         sizes = {key: 0 for key in segment_keys}
+        dropped_counts: defaultdict[SegmentKey, int] = defaultdict(int)
 
         while cursors:
             with self.client.pipeline(transaction=False) as p:
@@ -489,9 +491,9 @@ class SpansBuffer:
                         p.sscan(key, cursor=cursor, count=page_size)
                     current_keys.append(key)
 
-                results = p.execute()
+                scan_results = p.execute()
 
-            for key, (cursor, scan_values) in zip(current_keys, results):
+            for key, (cursor, scan_values) in zip(current_keys, scan_results):
                 decompressed_spans = []
 
                 for scan_value in scan_values:
@@ -503,33 +505,8 @@ class SpansBuffer:
                     metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
                     logger.warning("Skipping too large segment, byte size %s", sizes[key])
 
-                    # Get count of spans dropped by add-buffer.lua
-                    # Also count the spans we loaded (which will also be dropped)
-                    dropped_count_key = b"span-buf:dc:" + key
-                    stored_dropped = self.client.get(dropped_count_key)
-                    num_dropped_spans = int(stored_dropped) if stored_dropped else 0
-                    num_dropped_spans += len(payloads[key]) + len(decompressed_spans)
-
-                    # Track outcome for dropped spans
-                    project_id_bytes, _, _ = parse_segment_key(key)
-                    project_id = int(project_id_bytes)
-                    try:
-                        project = Project.objects.get_from_cache(id=project_id)
-                    except Project.DoesNotExist:
-                        logger.warning(
-                            "Project does not exist for dropped segment",
-                            extra={"project_id": project_id},
-                        )
-                    else:
-                        track_outcome(
-                            org_id=project.organization_id,
-                            project_id=project_id,
-                            key_id=None,
-                            outcome=Outcome.INVALID,
-                            reason="segment_too_large",
-                            category=DataCategory.SPAN_INDEXED,
-                            quantity=num_dropped_spans,
-                        )
+                    # Track loaded spans that we're dropping
+                    dropped_counts[key] = len(payloads[key]) + len(decompressed_spans)
 
                     del payloads[key]
                     del cursors[key]
@@ -540,6 +517,50 @@ class SpansBuffer:
                     del cursors[key]
                 else:
                     cursors[key] = cursor
+
+        # Fetch ingested counts for all segments to calculate dropped spans
+        with self.client.pipeline(transaction=False) as p:
+            for key in segment_keys:
+                ingested_count_key = b"span-buf:ic:" + key
+                p.get(ingested_count_key)
+
+            ingested_count_results = p.execute()
+
+        # Calculate dropped counts: ingested - loaded
+        for key, ingested_count in zip(segment_keys, ingested_count_results):
+            if ingested_count:
+                total_ingested = int(ingested_count)
+                # Count successfully loaded spans
+                loaded_count = len(payloads.get(key, []))
+                # Add any loaded spans we're dropping (from size check above)
+                loaded_count += dropped_counts[key]
+
+                dropped = total_ingested - loaded_count
+                if dropped > 0:
+                    dropped_counts[key] = dropped
+
+        # Emit outcomes for all segments with dropped spans
+        for key, num_dropped_spans in dropped_counts.items():
+            if num_dropped_spans > 0:
+                project_id_bytes, _, _ = parse_segment_key(key)
+                project_id = int(project_id_bytes)
+                try:
+                    project = Project.objects.get_from_cache(id=project_id)
+                except Project.DoesNotExist:
+                    logger.warning(
+                        "Project does not exist for segment with dropped spans",
+                        extra={"project_id": project_id},
+                    )
+                else:
+                    track_outcome(
+                        org_id=project.organization_id,
+                        project_id=project_id,
+                        key_id=None,
+                        outcome=Outcome.INVALID,
+                        reason="segment_too_large",
+                        category=DataCategory.SPAN_INDEXED,
+                        quantity=num_dropped_spans,
+                    )
 
         for key, spans in payloads.items():
             if not spans:
@@ -557,6 +578,7 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
                     p.delete(b"span-buf:hrs:" + segment_key)
+                    p.delete(b"span-buf:ic:" + segment_key)
                     p.unlink(segment_key)
                     p.zrem(flushed_segment.queue_key, segment_key)
 
