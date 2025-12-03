@@ -25,6 +25,7 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 const WEB_VITALS_COUNT = 5;
@@ -78,6 +79,7 @@ function WebVitalsLandingPage() {
                 extraFilters={
                   <Fragment>
                     <BrowserTypeSelector />
+                    <SubregionSelector />
                   </Fragment>
                 }
               />
