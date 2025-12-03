@@ -218,7 +218,7 @@ function SpanTabContentSection({
     enabled: isReady && queryType === 'aggregate',
     queryExtras: {
       caseInsensitive,
-      ...(hasCrossEventQueries ? crossEventQueries : {}),
+      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
     },
   });
   const spansTableResult = useExploreSpansTable({
@@ -227,7 +227,7 @@ function SpanTabContentSection({
     enabled: isReady && queryType === 'samples',
     queryExtras: {
       caseInsensitive,
-      ...(hasCrossEventQueries ? crossEventQueries : {}),
+      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
     },
   });
   const tracesTableResult = useExploreTracesTable({
@@ -236,7 +236,7 @@ function SpanTabContentSection({
     enabled: isReady && queryType === 'traces',
     queryExtras: {
       caseInsensitive,
-      ...(hasCrossEventQueries ? crossEventQueries : {}),
+      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
     },
   });
 
@@ -246,7 +246,7 @@ function SpanTabContentSection({
       enabled: isReady,
       queryExtras: {
         caseInsensitive,
-        ...(hasCrossEventQueries ? crossEventQueries : {}),
+        ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
       },
     });
 
