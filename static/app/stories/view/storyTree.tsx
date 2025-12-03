@@ -816,6 +816,85 @@ export function StoryTree({nodes, ...htmlProps}: Props) {
   );
 }
 
+/**
+ * Renders the full sidebar with hierarchical sections and component subcategories.
+ * All subcategories are collapsible sections using StoryTree.
+ */
+export function CategorizedStoryTree() {
+  const hierarchy = useStoryHierarchy();
+
+  return (
+    <ul>
+      {SECTION_ORDER.map(section => {
+        const data = hierarchy.get(section);
+        if (!data || (data.stories.length === 0 && !data.subcategories?.size)) {
+          return null;
+        }
+
+        return (
+          <li key={section}>
+            <SectionHeader>{SECTION_CONFIG[section].label}</SectionHeader>
+
+            {section === 'components' && data.subcategories ? (
+              <SubcategoryList>
+                {COMPONENT_SUBCATEGORY_ORDER.map(subcategory => {
+                  const nodes = data.subcategories!.get(subcategory);
+                  if (!nodes?.length) {
+                    return null;
+                  }
+
+                  return (
+                    <SubcategorySection
+                      key={subcategory}
+                      label={COMPONENT_SUBCATEGORY_CONFIG[subcategory].label}
+                      nodes={nodes}
+                    />
+                  );
+                })}
+              </SubcategoryList>
+            ) : (
+              <StoryTree nodes={data.stories} />
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function SubcategorySection({label, nodes}: {label: string; nodes: StoryTreeNode[]}) {
+  const [expanded, setExpanded] = useState(false);
+  const location = useLocation();
+
+  // Check if any child is active to auto-expand
+  const hasActiveChild = useMemo(() => {
+    for (const node of nodes) {
+      const match = node.find(
+        n => n.filesystemPath === (location.state?.storyPath ?? location.query.name)
+      );
+      if (match) {
+        return true;
+      }
+    }
+    return false;
+  }, [location, nodes]);
+
+  // Auto-expand if has active child
+  if (hasActiveChild && !expanded) {
+    setExpanded(true);
+  }
+
+  return (
+    <li>
+      <SubcategoryHeader onClick={() => setExpanded(!expanded)}>
+        <Flex flex={1}>{label}</Flex>
+        <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
+      </SubcategoryHeader>
+      {expanded && <StoryTree nodes={nodes} />}
+    </li>
+  );
+}
+
 function Folder(props: {node: StoryTreeNode}) {
   const [expanded, setExpanded] = useState(props.node.expanded);
   const {storySlug} = useStoryParams();
@@ -900,6 +979,48 @@ const StoryList = styled('ul')`
 
   &:first-child {
     padding-left: 0;
+  }
+`;
+
+const SectionHeader = styled('h3')`
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  margin: 0;
+  padding: ${p => p.theme.space.md};
+`;
+
+const SubcategoryList = styled('ul')`
+  list-style-type: none;
+  padding-left: 0;
+`;
+
+const SubcategoryHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+  padding: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.xl};
+  color: ${p => p.theme.tokens.content.muted};
+  cursor: pointer;
+  position: relative;
+  font-weight: ${p => p.theme.fontWeight.bold};
+
+  &:before {
+    background: ${p => p.theme.gray100};
+    content: '';
+    inset: 0 ${p => p.theme.space['2xs']} 0 -${p => p.theme.space['2xs']};
+    position: absolute;
+    z-index: -1;
+    border-radius: ${p => p.theme.borderRadius};
+    opacity: 0;
+  }
+
+  &:hover {
+    color: ${p => p.theme.tokens.content.primary};
+    &:before {
+      opacity: 1;
+    }
   }
 `;
 
