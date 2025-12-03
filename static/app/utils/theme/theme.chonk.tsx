@@ -1114,12 +1114,6 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   ...lightShadows,
 
   tokens: lightTokens,
-
-  inverted: {
-    ...chonkDarkColorMapping,
-    ...darkAliases,
-    tokens: darkTokens,
-  },
   radius,
   focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
     outline: 'none',
@@ -1181,12 +1175,6 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   ...darkAliases,
   ...darkShadows,
   tokens: darkTokens,
-
-  inverted: {
-    ...chonkDarkColorMapping,
-    ...darkAliases,
-    tokens: lightTokens,
-  },
 
   radius,
   focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
