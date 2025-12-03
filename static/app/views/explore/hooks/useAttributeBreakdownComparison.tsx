@@ -18,11 +18,11 @@ export type AttributeBreakdownsComparison = {
     attributeName: string;
     cohort1: Array<{
       label: string;
-      value: string;
+      value: number;
     }>;
     cohort2: Array<{
       label: string;
-      value: string;
+      value: number;
     }>;
     order: {
       rrf: number;

@@ -1,18 +1,12 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {Alert} from '@sentry/scraps/alert/alert';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text/text';
 
-import {Alert} from 'sentry/components/core/alert';
 import Panel from 'sentry/components/panels/panel';
-import BaseSearchBar from 'sentry/components/searchBar';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -27,10 +21,8 @@ import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
 import {Chart} from './attributeDistributionChart';
+import {CHARTS_PER_PAGE} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
-
-const CHARTS_COLUMN_COUNT = 3;
-const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 4;
 
 export type AttributeDistribution = Array<{
   name: string;
@@ -118,6 +110,8 @@ export function AttributeDistribution() {
       []
     );
 
+    // We sort the attributes by descending population density
+    //  (i.e. the number of spans with the attribute populated / total number of spans)
     filtered.sort((a, b) => {
       const sumA = a.values.reduce(
         (sum, v) => sum + (typeof v.value === 'number' ? v.value : 0),
@@ -146,8 +140,8 @@ export function AttributeDistribution() {
     <Panel>
       <Flex direction="column" gap="xl" padding="xl">
         <ChartSelectionAlert />
-        <ControlsContainer>
-          <StyledBaseSearchBar
+        <AttributeBreakdownsComponent.ControlsContainer>
+          <AttributeBreakdownsComponent.StyledBaseSearchBar
             placeholder={t('Search keys')}
             onChange={q => {
               setSearchQuery(q);
@@ -156,14 +150,14 @@ export function AttributeDistribution() {
             size="sm"
           />
           <AttributeBreakdownsComponent.FeedbackButton />
-        </ControlsContainer>
+        </AttributeBreakdownsComponent.ControlsContainer>
         {isAttributeBreakdownsLoading || isCohortCountLoading ? (
           <AttributeBreakdownsComponent.LoadingCharts />
         ) : error ? (
           <AttributeBreakdownsComponent.ErrorState error={error} />
         ) : filteredAttributeDistribution.length > 0 ? (
           <Fragment>
-            <ChartsGrid>
+            <AttributeBreakdownsComponent.ChartsGrid>
               {filteredAttributeDistribution
                 .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
                 .map(attribute => (
@@ -174,35 +168,12 @@ export function AttributeDistribution() {
                     theme={theme}
                   />
                 ))}
-            </ChartsGrid>
-            <PaginationContainer>
-              <ButtonBar merged gap="0">
-                <Button
-                  icon={<IconChevron direction="left" />}
-                  aria-label={t('Previous')}
-                  size="sm"
-                  disabled={page === 0}
-                  onClick={() => {
-                    setPage(page - 1);
-                  }}
-                />
-                <Button
-                  icon={<IconChevron direction="right" />}
-                  aria-label={t('Next')}
-                  size="sm"
-                  disabled={
-                    page ===
-                    Math.ceil(
-                      (filteredAttributeDistribution?.length ?? 0) / CHARTS_PER_PAGE
-                    ) -
-                      1
-                  }
-                  onClick={() => {
-                    setPage(page + 1);
-                  }}
-                />
-              </ButtonBar>
-            </PaginationContainer>
+            </AttributeBreakdownsComponent.ChartsGrid>
+            <AttributeBreakdownsComponent.Pagination
+              currentPage={page}
+              onPageChange={setPage}
+              totalItems={filteredAttributeDistribution?.length ?? 0}
+            />
           </Fragment>
         ) : (
           <AttributeBreakdownsComponent.EmptySearchState />
@@ -223,25 +194,3 @@ function ChartSelectionAlert() {
     </Alert>
   );
 }
-
-const ControlsContainer = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
-`;
-
-const StyledBaseSearchBar = styled(BaseSearchBar)`
-  flex: 1;
-`;
-
-const ChartsGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(${CHARTS_COLUMN_COUNT}, 1fr);
-  gap: ${space(1)};
-`;
-
-const PaginationContainer = styled('div')`
-  display: flex;
-  justify-content: end;
-  align-items: center;
-`;

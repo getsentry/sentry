@@ -79,6 +79,7 @@ const List = styled('ul')`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   overflow: hidden;
+  transform: translateY(-20px);
 `;
 
 const ListItem = styled('li')`

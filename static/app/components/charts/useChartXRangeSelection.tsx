@@ -483,10 +483,14 @@ function calculateActionMenuPosition({
   // bottom-right of the box.
   if (clampedXMaxPixel > 0.6 * xMaxPixel) {
     position = 'left';
-    leftOffset = clampedXMinPixel;
+
+    // -1 to account for the border of the drawn box
+    leftOffset = clampedXMinPixel - 1;
   } else {
     position = 'right';
-    leftOffset = clampedXMaxPixel;
+
+    // +1 to account for the border of the drawn box
+    leftOffset = clampedXMaxPixel + 1;
   }
 
   return {
