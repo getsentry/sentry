@@ -1212,9 +1212,9 @@ const lightColors = {
   pink200: color.pink.light.transparent[200],
   pink100: color.pink.light.transparent[100],
 
-  red700: color.red.light.opaque[1200], // ⚠ link.danger.active only
-  red600: color.red.light.opaque[1100], // ⚠ link.danger.hover only
-  red500: color.red.light.opaque[1000], // ⚠ content.danger, link.danger.default
+  red700: color.red.light.opaque[1300], // ⚠ link.danger.active only
+  red600: color.red.light.opaque[1200], // ⚠ link.danger.hover only
+  red500: color.red.light.opaque[1100], // ⚠ content.danger, link.danger.default
   red400: color.red.light.opaque[1000], // graphics.danger, border.danger
   red300: color.red.light.transparent[300],
   red200: color.red.light.transparent[200],
@@ -1253,8 +1253,8 @@ const darkColors: Colors = {
   surface500: color.neutral.dark.opaque[500], // background.primary
   surface400: color.neutral.dark.opaque[400], // background.secondary
   surface300: color.neutral.dark.opaque[300], // background.teritary
-  surface200: color.neutral.dark.opaque[300], // border.muted
-  surface100: color.neutral.dark.opaque[200], // border.primary
+  surface200: color.neutral.dark.opaque[200], // border.muted
+  surface100: color.neutral.dark.opaque[100], // border.primary
 
   gray800: color.neutral.dark.opaque[1600], // content.primary
   gray700: color.neutral.dark.opaque[1300], // ⚠ link.muted.active only
