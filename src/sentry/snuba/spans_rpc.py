@@ -334,10 +334,7 @@ class Spans(rpc_dataset_common.RPCBase):
                             attribute.attribute_name, "string", SupportedTraceItemType.SPANS
                         )
                         attrs[attribute.attribute_name].append(
-                            {
-                                "label": name,
-                                "value": bucket.value,
-                            }
+                            {"label": name, "value": bucket.value}
                         )
                 stats.append({"attribute_distributions": {"data": attrs}})
 

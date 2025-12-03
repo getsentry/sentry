@@ -68,12 +68,12 @@ function createActionButton(
 ): string {
   return [
     '  <div',
+    `    class="attribute-breakdowns-tooltip-action-button"`,
     `    data-tooltip-action="${action}"`,
     `    data-tooltip-action-key="${escapedAttributeName}"`,
     `    data-tooltip-action-value="${escapedValue}"`,
+    `    data-hover-background="${actionBackground}"`,
     '    style="width: 100%; padding: 8px 15px; cursor: pointer; text-align: left;"',
-    `    onmouseover="this.style.background='${actionBackground}'"`,
-    '    onmouseout="this.style.background=\'\'"',
     '  >',
     `    ${label}`,
     '  </div>',
