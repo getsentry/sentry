@@ -4386,7 +4386,7 @@ describe('SearchQueryBuilder', () => {
       });
 
       describe('pasting text', () => {
-        it('should replace raw search keys on paste', async () => {
+        it('should not replace raw search keys on paste', async () => {
           render(
             <SearchQueryBuilder
               {...defaultProps}
@@ -4399,19 +4399,11 @@ describe('SearchQueryBuilder', () => {
           await userEvent.click(getLastInput());
           await userEvent.paste('randomValue');
 
-          // Should have tokenized the pasted text
-          expect(
-            screen.getByRole('row', {
-              name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
-            })
-          ).toBeInTheDocument();
-          // Focus should be at the end of the pasted text
-          expect(
-            screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
-          ).toHaveFocus();
+          // Should have the pasted text
+          expect(screen.getByRole('row', {name: 'randomValue'})).toBeInTheDocument();
         });
 
-        it('should replace raw search keys on paste, leaving other tokens intact', async () => {
+        it('not should replace raw search keys on paste, leaving other tokens intact', async () => {
           render(
             <SearchQueryBuilder
               {...defaultProps}
@@ -4423,6 +4415,7 @@ describe('SearchQueryBuilder', () => {
 
           await userEvent.click(getLastInput());
           await userEvent.paste('randomValue');
+          await userEvent.keyboard('{Escape}');
 
           // leaves unrelated filter key tokens intact
           expect(
@@ -4434,46 +4427,12 @@ describe('SearchQueryBuilder', () => {
             screen.getByRole('row', {name: 'span.description:test'})
           ).toBeInTheDocument();
 
-          // Should have tokenized the pasted text
-          expect(
-            screen.getByRole('row', {
-              name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
-            })
-          ).toBeInTheDocument();
+          // Should have the pasted text
+          expect(screen.getByRole('row', {name: 'randomValue'})).toBeInTheDocument();
           // Focus should be at the end of the pasted text
           expect(
             screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
           ).toHaveFocus();
-        });
-
-        it('should replace raw search keys on paste, merging with existing tokens', async () => {
-          render(
-            <SearchQueryBuilder
-              {...defaultProps}
-              initialQuery={`span.description:${WildcardOperators.CONTAINS}test`}
-              replaceRawSearchKeys={['span.description']}
-            />,
-            {organization: {features: ['search-query-builder-wildcard-operators']}}
-          );
-
-          await userEvent.click(getLastInput());
-          await userEvent.paste('randomValue');
-          // the new filter key combobox is opened, when we get moved to the new token
-          await userEvent.keyboard('{Escape}');
-
-          // Should have tokenized the pasted text
-          expect(
-            screen.getByRole('row', {
-              name: `span.description:${WildcardOperators.CONTAINS}test`,
-            })
-          ).toBeInTheDocument();
-          expect(
-            screen.getByRole('row', {
-              name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
-            })
-          ).toBeInTheDocument();
-          // Focus should be at the end of the pasted text
-          expect(getLastInput()).toHaveFocus();
         });
       });
 
@@ -4501,7 +4460,7 @@ describe('SearchQueryBuilder', () => {
       });
 
       describe('on blur', () => {
-        it('should replace the raw search key with the defined key:value', async () => {
+        it('should not replace the raw search key with the defined key:value', async () => {
           render(
             <SearchQueryBuilder
               {...defaultProps}
@@ -4516,12 +4475,8 @@ describe('SearchQueryBuilder', () => {
           await userEvent.keyboard('randomValue');
           await userEvent.click(document.body);
 
-          expect(
-            screen.getByRole('row', {
-              name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
-            })
-          ).toBeInTheDocument();
-          expect(getLastInput()).not.toHaveFocus();
+          expect(screen.getByRole('row', {name: `randomValue`})).toBeInTheDocument();
+          expect(getLastInput()).toHaveFocus();
         });
       });
 
