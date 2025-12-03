@@ -277,7 +277,6 @@ function ManageReposPanel({
                           }
                           aria-label="PR Review Sensitivity"
                           menuWidth={350}
-                          maxMenuWidth={500}
                           data-test-id="pr-review-sensitivity-dropdown"
                         />
                       </FieldGroup>
@@ -350,7 +349,6 @@ function ManageReposPanel({
                           }
                           aria-label="Error Prediction Sensitivity"
                           menuWidth={350}
-                          maxMenuWidth={500}
                           data-test-id="error-prediction-sensitivity-dropdown"
                         />
                       </FieldGroup>

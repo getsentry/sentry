@@ -89,7 +89,6 @@ export function TestSuiteDropdown() {
       onSearch={handleOnSearch}
       emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}
-      maxMenuWidth={`${MAX_SUITE_UI_LENGTH}em`}
       trigger={triggerProps => {
         const areAllSuitesSelected =
           value.length === 0 || testSuites?.every(suite => value.includes(suite));

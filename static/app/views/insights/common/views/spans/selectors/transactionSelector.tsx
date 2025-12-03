@@ -71,7 +71,6 @@ export function TransactionSelector({
       loading={isPending}
       searchable
       menuTitle={t('Page')}
-      maxMenuWidth="600px"
       onSearch={newValue => {
         if (!wasSearchSpaceExhausted) {
           debouncedSetSearch(newValue);
