@@ -183,13 +183,13 @@ class ApiGatewayTest(ApiGatewayTestCase):
         project_key = self.create_project_key(self.project)
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/sentry-js-sdk-loader/{project_key.public_key}/",
+            f"{self.REGION.address}/js-sdk-loader/{project_key.public_key}.js",
             json={"proxy": True},
         )
 
         # No /api/0 as we only include sentry.api.urls.urlpatterns
         # and not sentry.web.urls which includes the version prefix
-        region_pinned = f"/sentry-js-sdk-loader/{project_key.public_key}/"
+        region_pinned = f"/js-sdk-loader/{project_key.public_key}.js"
         control_url = reverse(
             "control-endpoint", kwargs={"organization_slug": self.organization.slug}
         )
