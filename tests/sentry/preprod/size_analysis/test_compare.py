@@ -819,21 +819,11 @@ class CompareWithRenameDetectionTest(TestCase):
             children=children or [],
         )
 
-    def _create_file_info(
-        self, path: str, hash_value: str, treemap_type: str = "files", size: int = 100
-    ) -> FileInfo:
+    def _create_file_info(self, path: str, hash_value: str, **kwargs) -> FileInfo:
         """Helper to create FileInfo."""
         return FileInfo(
             path=path,
-            full_path=None,
-            size=size,
-            file_type="application/octet-stream",
             hash=hash_value,
-            treemap_type=treemap_type,
-            is_dir=False,
-            children=[],
-            idiom=None,
-            colorspace=None,
         )
 
     def _create_size_analysis_results(
@@ -1111,6 +1101,186 @@ class CompareWithRenameDetectionTest(TestCase):
             assert item.type == DiffType.ADDED
             assert item.size_diff == 100
 
+    def test_rename_selection_is_deterministic(self):
+        """Test that rename selection is deterministic when multiple paths share the same hash.
+
+        When multiple files on each side share the same hash, we need to deterministically
+        select which paths are treated as renames vs additions/removals. This test verifies
+        that selection is based on alphabetical ordering, not arbitrary set ordering.
+        """
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+
+        # Head has 3 files with same hash (z, a, m - intentionally not alphabetical)
+        head_treemap = self._create_treemap_element(
+            "root",
+            0,
+            children=[
+                self._create_treemap_element("z.txt", 100, path="z.txt", element_type="files"),
+                self._create_treemap_element("a.txt", 100, path="a.txt", element_type="files"),
+                self._create_treemap_element("m.txt", 100, path="m.txt", element_type="files"),
+            ],
+        )
+
+        # Base has 2 files with same hash (y, b - intentionally not alphabetical)
+        base_treemap = self._create_treemap_element(
+            "root",
+            0,
+            children=[
+                self._create_treemap_element("y.txt", 100, path="y.txt", element_type="files"),
+                self._create_treemap_element("b.txt", 100, path="b.txt", element_type="files"),
+            ],
+        )
+
+        # All files have the same hash
+        head_file_analysis = FileAnalysis(
+            items=[
+                self._create_file_info("z.txt", "same_hash"),
+                self._create_file_info("a.txt", "same_hash"),
+                self._create_file_info("m.txt", "same_hash"),
+            ]
+        )
+        base_file_analysis = FileAnalysis(
+            items=[
+                self._create_file_info("y.txt", "same_hash"),
+                self._create_file_info("b.txt", "same_hash"),
+            ]
+        )
+
+        head_results = self._create_size_analysis_results(
+            treemap_root=head_treemap, file_analysis=head_file_analysis
+        )
+        base_results = self._create_size_analysis_results(
+            treemap_root=base_treemap, file_analysis=base_file_analysis
+        )
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # With 3 head paths and 2 base paths, we should have:
+        # - 2 renames (min(3, 2) = 2, excluded from diff)
+        # - 1 addition (3 - 2 = 1)
+        # The alphabetically-first paths should be selected as renames:
+        # - Head: a.txt, m.txt (first 2 alphabetically) -> renames
+        # - Base: b.txt, y.txt (first 2 alphabetically) -> renames
+        # - z.txt should be the addition (alphabetically last on head side)
+        assert len(result.diff_items) == 1
+        assert result.diff_items[0].path == "z.txt"
+        assert result.diff_items[0].type == DiffType.ADDED
+
+    def test_rename_does_not_skip_all_elements_at_path(self):
+        """Test that rename detection only skips the renamed element, not all elements at path.
+
+        Bug scenario: When multiple elements exist at the same path (e.g., Assets.car with
+        multiple images of same name), and ONE of them is a rename, only that one should
+        be skipped - not ALL elements at that path.
+        """
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+
+        # Head has 3 elements at same path "Assets.car/icon.png":
+        # - One is a rename (same hash as base's old_icon.png)
+        # - Two are genuinely new additions
+        head_treemap = self._create_treemap_element(
+            "Assets.car",
+            300,
+            path="Assets.car",
+            children=[
+                # 3 images with same path but different sizes (simulating Assets.car duplicates)
+                self._create_treemap_element(
+                    "icon.png", 100, path="Assets.car/icon.png", element_type="assets"
+                ),
+                self._create_treemap_element(
+                    "icon.png", 200, path="Assets.car/icon.png", element_type="assets"
+                ),
+                self._create_treemap_element(
+                    "icon.png", 300, path="Assets.car/icon.png", element_type="assets"
+                ),
+            ],
+        )
+
+        # Base has 1 element at a DIFFERENT path that will be detected as rename source
+        base_treemap = self._create_treemap_element(
+            "Assets.car",
+            100,
+            path="Assets.car",
+            children=[
+                self._create_treemap_element(
+                    "old_icon.png", 100, path="Assets.car/old_icon.png", element_type="assets"
+                ),
+            ],
+        )
+
+        # File analysis: one head file has same hash as base file (rename)
+        # The other two head files have different hashes (true additions)
+        head_file_analysis = FileAnalysis(
+            items=[
+                FileInfo(
+                    path="Assets.car",
+                    hash="parent_hash",
+                    children=[
+                        self._create_file_info("icon.png", "renamed_hash"),  # Same as base
+                        self._create_file_info("icon.png", "new_hash_1"),  # New
+                        self._create_file_info("icon.png", "new_hash_2"),  # New
+                    ],
+                ),
+            ]
+        )
+        base_file_analysis = FileAnalysis(
+            items=[
+                FileInfo(
+                    path="Assets.car",
+                    hash="parent_hash",
+                    children=[
+                        self._create_file_info("old_icon.png", "renamed_hash"),  # Will be renamed
+                    ],
+                ),
+            ]
+        )
+
+        head_results = self._create_size_analysis_results(
+            treemap_root=head_treemap, file_analysis=head_file_analysis
+        )
+        base_results = self._create_size_analysis_results(
+            treemap_root=base_treemap, file_analysis=base_file_analysis
+        )
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # Expected behavior:
+        # - 1 rename: Assets.car/icon.png (hash=renamed_hash) <-> Assets.car/old_icon.png
+        # - 2 additions: the other two icon.png elements with new hashes
+        # Bug behavior: ALL 3 icon.png elements get skipped because path is in renamed_paths
+
+        added_items = [item for item in result.diff_items if item.type == DiffType.ADDED]
+        assert len(added_items) == 2, (
+            f"Expected 2 additions (the non-renamed elements), got {len(added_items)}. "
+            "Bug: rename detection is skipping ALL elements at the path, not just the renamed one."
+        )
+
     def test_rename_detection_with_nested_children(self):
         """Test rename detection works with nested file_analysis children (e.g., Assets.car).
 
@@ -1157,31 +1327,17 @@ class CompareWithRenameDetectionTest(TestCase):
         # File analysis has Assets.car with children - same hash means it's a rename
         head_assets_car = FileInfo(
             path="Assets.car",
-            full_path=None,
-            size=100,
-            file_type="car",
             hash="parent_hash",
-            treemap_type="assets",
-            is_dir=False,
             children=[
-                self._create_file_info("NewIcon.png", "icon_hash", treemap_type="assets"),
+                self._create_file_info("NewIcon.png", "icon_hash"),
             ],
-            idiom=None,
-            colorspace=None,
         )
         base_assets_car = FileInfo(
             path="Assets.car",
-            full_path=None,
-            size=100,
-            file_type="car",
             hash="parent_hash",
-            treemap_type="assets",
-            is_dir=False,
             children=[
-                self._create_file_info("OldIcon.png", "icon_hash", treemap_type="assets"),
+                self._create_file_info("OldIcon.png", "icon_hash"),
             ],
-            idiom=None,
-            colorspace=None,
         )
 
         head_file_analysis = FileAnalysis(items=[head_assets_car])

@@ -14,6 +14,8 @@ from sentry.preprod.models import PreprodArtifactSizeMetrics
 
 class TreemapElement(BaseModel):
 
+    model_config = ConfigDict(frozen=True)
+
     name: str
     size: int
     path: str | None
@@ -25,6 +27,8 @@ class TreemapElement(BaseModel):
 
 class TreemapResults(BaseModel):
     """Complete treemap analysis results."""
+
+    model_config = ConfigDict(frozen=True)
 
     root: TreemapElement
     file_count: int
