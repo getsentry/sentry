@@ -528,7 +528,7 @@ class SpansBuffer:
                 total_ingested = int(ingested_count)
                 successfully_loaded = len(payloads.get(key, []))
                 dropped = total_ingested - successfully_loaded
-                if not dropped:
+                if dropped <= 0:
                     continue
 
                 project_id_bytes, _, _ = parse_segment_key(key)
