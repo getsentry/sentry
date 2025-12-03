@@ -100,6 +100,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-edit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=True)
     # Enables global filters for dashboards
     manager.add("organizations:dashboards-global-filters", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enables favourite and duplicate controls for prebuilt dashboards
+    manager.add("organizations:dashboards-prebuilt-controls", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables import/export functionality for dashboards
     manager.add("organizations:dashboards-import", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable metrics enhanced performance in dashboards
@@ -118,6 +120,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-widget-timeseries-visualization", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the details widget for dashboards
     manager.add("organizations:dashboards-details-widget", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable series display type for issue widgets
+    manager.add("organizations:dashboards-issue-widget-series-display-type", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy v2 (with Break the Glass feature)
@@ -382,6 +386,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-coding-agent-integrations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Explorer panel for AI-powered data exploration
     manager.add("organizations:seer-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable Seer new onboarding flow (code review + RCA + PR creation)
+    manager.add("organizations:seer-new-onboarding", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer GTM Settings page designs
     manager.add("organizations:seer-settings-gtm", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable search query builder boolean operator select feature
@@ -672,7 +678,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
     # Enables experimental span v2 processing in Relay.
     manager.add("projects:span-v2-experimental-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enbale Triage signals V0 for AI powered issue classifiaction in sentry
+    # Enable Triage signals V0 for AI powered issue classification in sentry
     manager.add("projects:triage-signals-v0", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     manager.add("projects:profiling-ingest-unsampled-profiles", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)

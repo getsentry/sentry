@@ -1434,6 +1434,33 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
         assert resp.data[0] == "Invalid extrapolation mode for this alert type."
 
+    def test_update_marks_query_as_user_updated_when_snapshot_exists(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+
+        alert_rule.snuba_query.query_snapshot = {
+            "type": alert_rule.snuba_query.type,
+            "dataset": alert_rule.snuba_query.dataset,
+            "query": alert_rule.snuba_query.query,
+            "aggregate": alert_rule.snuba_query.aggregate,
+        }
+        alert_rule.snuba_query.save()
+
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["query"] = "user.modified:query"
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        alert_rule.snuba_query.refresh_from_db()
+        assert alert_rule.snuba_query.query_snapshot is not None
+        assert alert_rule.snuba_query.query_snapshot.get("user_updated") is True
+
 
 class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
     method = "put"

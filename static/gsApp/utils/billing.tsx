@@ -6,6 +6,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {IconSize} from 'sentry/utils/theme';
 
 import {
@@ -158,11 +159,17 @@ export function formatReservedWithUnits(
   if (!isByteCategory(dataCategory)) {
     return formatReservedNumberToString(reservedQuantity, options);
   }
+
   // convert reservedQuantity to BYTES to check for unlimited
-  const usageGb = reservedQuantity ? reservedQuantity * GIGABYTE : reservedQuantity;
+  // unless it's already unlimited
+  const usageGb =
+    reservedQuantity && !isUnlimitedReserved(reservedQuantity)
+      ? reservedQuantity * GIGABYTE
+      : reservedQuantity;
   if (isUnlimitedReserved(usageGb)) {
     return options.isGifted ? '0 GB' : UNLIMITED;
   }
+
   if (!options.useUnitScaling) {
     const byteOptions =
       dataCategory === DataCategory.LOG_BYTE
@@ -622,7 +629,9 @@ export function hasAccessToSubscriptionOverview(
  */
 export function getSoftCapType(metricHistory: BillingMetricHistory): string | null {
   if (metricHistory.softCapType) {
-    return titleCase(metricHistory.softCapType.replace(/_/g, ' '));
+    return toTitleCase(metricHistory.softCapType.replace(/_/g, ' ').toLowerCase(), {
+      allowInnerUpperCase: true,
+    }).replace(' ', metricHistory.softCapType === 'ON_DEMAND' ? '-' : ' ');
   }
   if (metricHistory.trueForward) {
     return 'True Forward';
@@ -860,4 +869,82 @@ export function formatOnDemandDescription(
 ): string {
   const budgetTerm = displayBudgetName(plan, {title: false}).toLowerCase();
   return description.replace(new RegExp(`\\s*${budgetTerm}\\s*`, 'gi'), ' ').trim();
+}
+
+/**
+ * Given a DataCategory or AddOnCategory, returns true if it is an add-on, false otherwise.
+ */
+export function checkIsAddOn(
+  selectedProduct: DataCategory | AddOnCategory | string
+): boolean {
+  return Object.values(AddOnCategory).includes(selectedProduct as AddOnCategory);
+}
+
+/**
+ * Get the billed DataCategory for an add-on or DataCategory.
+ */
+export function getBilledCategory(
+  subscription: Subscription,
+  selectedProduct: DataCategory | AddOnCategory
+): DataCategory | null {
+  if (checkIsAddOn(selectedProduct)) {
+    const category = selectedProduct as AddOnCategory;
+    const addOnInfo = subscription.addOns?.[category];
+    if (!addOnInfo) {
+      return null;
+    }
+
+    const {dataCategories, apiName} = addOnInfo;
+    const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
+    const reservedBudget = subscription.reservedBudgets?.find(
+      budget => budget.apiName === reservedBudgetCategory
+    );
+    return reservedBudget
+      ? (dataCategories.find(dataCategory =>
+          subscription.planDetails.planCategories[dataCategory]?.find(
+            bucket => bucket.events === RESERVED_BUDGET_QUOTA
+          )
+        ) ?? dataCategories[0]!)
+      : dataCategories[0]!;
+  }
+
+  return selectedProduct as DataCategory;
+}
+
+export function productIsEnabled(
+  subscription: Subscription,
+  selectedProduct: DataCategory | AddOnCategory
+): boolean {
+  const billedCategory = getBilledCategory(subscription, selectedProduct);
+  if (!billedCategory) {
+    return false;
+  }
+
+  const activeProductTrial = getActiveProductTrial(
+    subscription.productTrials ?? null,
+    billedCategory
+  );
+  if (activeProductTrial) {
+    return true;
+  }
+
+  if (checkIsAddOn(selectedProduct)) {
+    const addOnInfo = subscription.addOns?.[selectedProduct as AddOnCategory];
+    if (!addOnInfo) {
+      return false;
+    }
+    return addOnInfo.enabled;
+  }
+
+  const metricHistory = subscription.categories[billedCategory];
+  if (!metricHistory) {
+    return false;
+  }
+  const isPaygOnly = metricHistory.reserved === 0;
+  return (
+    !isPaygOnly ||
+    metricHistory.onDemandBudget > 0 ||
+    (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED &&
+      subscription.onDemandBudgets.sharedMaxBudget > 0)
+  );
 }

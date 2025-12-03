@@ -2,7 +2,6 @@ from io import BytesIO
 
 from django.test import override_settings
 
-from sentry.models.files.file import File
 from sentry.preprod.models import PreprodArtifact
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
@@ -21,7 +20,7 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
         self.file.putfile(BytesIO(b"test content for original file"))
 
         # Create a preprod artifact
-        self.preprod_artifact = PreprodArtifact.objects.create(
+        self.preprod_artifact = self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -61,7 +60,7 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_download_preprod_artifact_no_file(self) -> None:
         # Create an artifact without a file
-        no_file_artifact = PreprodArtifact.objects.create(
+        no_file_artifact = self.create_preprod_artifact(
             project=self.project,
             file_id=None,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -95,13 +94,13 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_download_preprod_artifact_with_range_suffix(self) -> None:
         test_content = b"0123456789" * 100
-        file_obj = File.objects.create(
+        file_obj = self.create_file(
             name="test_range.bin",
             type="application/octet-stream",
         )
         file_obj.putfile(BytesIO(test_content))
 
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             file_id=file_obj.id,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -124,13 +123,13 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_download_preprod_artifact_with_range_bounded(self) -> None:
         test_content = b"0123456789" * 100
-        file_obj = File.objects.create(
+        file_obj = self.create_file(
             name="test_range.bin",
             type="application/octet-stream",
         )
         file_obj.putfile(BytesIO(test_content))
 
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             file_id=file_obj.id,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -150,13 +149,13 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_download_preprod_artifact_with_range_unbounded(self) -> None:
         test_content = b"0123456789" * 100
-        file_obj = File.objects.create(
+        file_obj = self.create_file(
             name="test_range.bin",
             type="application/octet-stream",
         )
         file_obj.putfile(BytesIO(test_content))
 
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             file_id=file_obj.id,
             state=PreprodArtifact.ArtifactState.PROCESSED,
