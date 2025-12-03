@@ -17,8 +17,7 @@ from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import Feature, with_feature
-from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cache import cache_key_for_event
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
@@ -191,22 +190,6 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         )
         self.workflow_triggers.conditions.all().delete()
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
-
-    @pytest.fixture(autouse=True)
-    def with_feature_flags(self):
-        with (
-            Feature(
-                {
-                    "organizations:workflow-engine-single-process-workflows": True,
-                }
-            ),
-            override_options(
-                {
-                    "workflow_engine.issue_alert.group.type_id.rollout": [1],
-                }
-            ),
-        ):
-            yield
 
     @pytest.fixture(autouse=True)
     def with_tasks(self):

@@ -993,16 +993,6 @@ def process_workflow_engine(job: PostProcessJob) -> None:
         return
 
 
-def _should_single_process_event(job: PostProcessJob) -> bool:
-    org = job["event"].project.organization
-
-    return (
-        features.has("organizations:workflow-engine-single-process-workflows", org)
-        and job["event"].group.type
-        in options.get("workflow_engine.issue_alert.group.type_id.rollout")
-    ) or job["event"].group.type in options.get("workflow_engine.issue_alert.group.type_id.ga")
-
-
 def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
     """
     Call for process_workflow_engine with the issue alert feature flag
@@ -1010,9 +1000,7 @@ def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    # process workflow engine if we are single processing or dual processing for a specific org
-    if _should_single_process_event(job):
-        process_workflow_engine(job)
+    process_workflow_engine(job)
 
 
 def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
@@ -1023,50 +1011,6 @@ def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
         return
 
     process_workflow_engine(job)
-
-
-def process_rules(job: PostProcessJob) -> None:
-    if job["is_reprocessed"]:
-        return
-
-    if _should_single_process_event(job):
-        # we are only processing through workflow engine
-        return
-
-    metrics.incr(
-        "post_process.rules_processor_events", tags={"group_type": job["event"].group.type}
-    )
-
-    from sentry.rules.processing.processor import RuleProcessor
-
-    group_event = job["event"]
-    is_new = job["group_state"]["is_new"]
-    is_regression = job["group_state"]["is_regression"]
-    is_new_group_environment = job["group_state"]["is_new_group_environment"]
-    has_reappeared = job["has_reappeared"]
-    has_escalated = job["has_escalated"]
-
-    has_alert = False
-
-    rp = RuleProcessor(
-        group_event,
-        is_new,
-        is_regression,
-        is_new_group_environment,
-        has_reappeared,
-        has_escalated,
-    )
-    with sentry_sdk.start_span(op="tasks.post_process_group.rule_processor_callbacks"):
-        # TODO(dcramer): ideally this would fanout, but serializing giant
-        # objects back and forth isn't super efficient
-        callback_and_futures = rp.apply()
-
-        for callback, futures in callback_and_futures:
-            has_alert = True
-            safe_execute(callback, group_event, futures)
-
-    job["has_alert"] = has_alert
-    return
 
 
 def process_code_mappings(job: PostProcessJob) -> None:
@@ -1707,7 +1651,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         handle_owner_assignment,
         handle_auto_assignment,
         kick_off_seer_automation,
-        process_rules,
         process_workflow_engine_issue_alerts,
         process_service_hooks,
         process_resource_change_bounds,
@@ -1726,7 +1669,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),
         feedback_filter_decorator(process_inbox_adds),
-        feedback_filter_decorator(process_rules),
         feedback_filter_decorator(process_workflow_engine_issue_alerts),
         feedback_filter_decorator(process_resource_change_bounds),
     ],
@@ -1739,7 +1681,6 @@ GENERIC_POST_PROCESS_PIPELINE = [
     process_snoozes,
     process_inbox_adds,
     kick_off_seer_automation,
-    process_rules,
     process_workflow_engine_issue_alerts,
     process_resource_change_bounds,
     process_data_forwarding,
