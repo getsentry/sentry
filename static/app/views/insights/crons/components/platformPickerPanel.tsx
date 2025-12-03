@@ -5,6 +5,7 @@ import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
 import {Button} from 'sentry/components/core/button';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -85,10 +86,10 @@ export function PlatformPickerPanel({onSelect}: Props) {
       </Actions>
       <SectionTitle>{t('Generic')}</SectionTitle>
       <Actions>
-        <Button size="sm" priority="default" onClick={() => onSelect('cli')}>
+        <Button size="sm" icon={<IconTerminal />} onClick={() => onSelect('cli')}>
           Sentry CLI
         </Button>
-        <Button size="sm" priority="default" onClick={() => onSelect('http')}>
+        <Button size="sm" icon={<IconGlobe />} onClick={() => onSelect('http')}>
           HTTP (cURL)
         </Button>
       </Actions>
