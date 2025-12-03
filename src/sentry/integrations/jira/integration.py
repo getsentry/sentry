@@ -1021,6 +1021,22 @@ class JiraIntegration(IssueSyncIntegration):
 
         super().raise_error(exc, identity=identity)
 
+    @staticmethod
+    def _requires_assignee(exc: ApiError) -> bool:
+        if not isinstance(exc, ApiInvalidRequestError):
+            return False
+
+        error_json = exc.json or {}
+        errors = error_json.get("errors")
+        if not isinstance(errors, Mapping):
+            return False
+
+        assignee_error = errors.get("assignee")
+        if isinstance(assignee_error, str):
+            return "must be assigned" in assignee_error.lower()
+
+        return False
+
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
@@ -1077,6 +1093,17 @@ class JiraIntegration(IssueSyncIntegration):
                 "Insufficient permissions to assign user to the Jira issue."
             ) from e
         except ApiError as e:
+            if not assign and self._requires_assignee(e):
+                logger.info(
+                    "jira.unassign-not-allowed",
+                    extra={
+                        "organization_id": external_issue.organization_id,
+                        "integration_id": external_issue.integration_id,
+                        "user_id": user.id if user else None,
+                        "issue_key": external_issue.key,
+                    },
+                )
+                return
             # TODO(jess): do we want to email people about these types of failures?
             logger.info(
                 "jira.failed-to-assign",
