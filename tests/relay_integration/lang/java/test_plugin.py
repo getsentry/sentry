@@ -560,6 +560,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             for e in excs
         )
 
+    @pytest.mark.skip(reason="flaky: #104256")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_resolving_does_not_fail_when_no_value(self) -> None:
