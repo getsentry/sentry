@@ -12,9 +12,11 @@ AI_OPERATION_TYPE_MAP: dict[AI_OPERATION_TYPE_VALUE, list[str]] = {
         "ai.pipeline.stream_text",
         "ai.pipeline.stream_object",
         "gen_ai.create_agent",
+        "invoke_agent",
+        "create_agent",
     ],
-    "tool": ["gen_ai.execute_tool"],
-    "handoff": ["gen_ai.handoff"],
+    "tool": ["gen_ai.execute_tool", "execute_tool"],
+    "handoff": ["gen_ai.handoff", "handoff"],
     "ai_client": ["*"],  # default fallback
 }
 
