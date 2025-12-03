@@ -1,23 +1,655 @@
-import type React from 'react';
-import {useTheme, type Theme} from '@emotion/react';
-import styled, {
-  type CreateStyledComponent,
-  type FilteringStyledOptions,
-  type StyledOptions,
-} from '@emotion/styled';
+/**
+ * This file is the source of truth for the theme,
+ * it is roughly split into the following sections:
+ *
+ * - Theme helpers (color generation and aliases)
+ * - Common type definitions for certain fields like button kinds and variants
+ * - Light and dark theme definitions
+ * - Theme type exports
+ */
+import {css, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import color from 'color';
+import {spring, type Transition} from 'framer-motion';
 
-import type {ColorMapping, FormTheme, Theme as SentryTheme} from './theme';
-import commonTheme, {
-  darkTheme,
-  generateAlertTheme,
-  generateButtonTheme,
-  generateLevelTheme,
-  generateTagTheme,
-  generateThemePrismVariables,
-  generateThemeUtils,
-  lightTheme,
-} from './theme';
+type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
+
+type PhysicsMotionName = 'spring';
+
+type MotionDuration = 'fast' | 'moderate' | 'slow';
+
+type MotionDefinition = Record<MotionDuration, string>;
+
+const motionDurations: Record<MotionDuration, number> = {
+  fast: 120,
+  moderate: 160,
+  slow: 240,
+};
+
+const motionCurves: Record<SimpleMotionName, [number, number, number, number]> = {
+  smooth: [0.72, 0, 0.16, 1],
+  snap: [0.8, -0.4, 0.5, 1],
+  enter: [0.24, 1, 0.32, 1],
+  exit: [0.64, 0, 0.8, 0],
+};
+
+const motionCurveWithDuration = (
+  durations: Record<MotionDuration, number>,
+  easing: [number, number, number, number]
+): [MotionDefinition, Record<MotionDuration, Transition>] => {
+  const motion: MotionDefinition = {
+    fast: `${durations.fast}ms cubic-bezier(${easing.join(', ')})`,
+    moderate: `${durations.moderate}ms cubic-bezier(${easing.join(', ')})`,
+    slow: `${durations.slow}ms cubic-bezier(${easing.join(', ')})`,
+  };
+
+  const framerMotion: Record<MotionDuration, Transition> = {
+    fast: {
+      duration: durations.fast / 1000,
+      ease: easing,
+    },
+    moderate: {
+      duration: durations.moderate / 1000,
+      ease: easing,
+    },
+    slow: {
+      duration: durations.slow / 1000,
+      ease: easing,
+    },
+  };
+
+  return [motion, framerMotion];
+};
+
+const motionTransitions: Record<PhysicsMotionName, Record<MotionDuration, Transition>> = {
+  spring: {
+    fast: {
+      type: 'spring',
+      stiffness: 1400,
+      damping: 50,
+    },
+    moderate: {
+      type: 'spring',
+      stiffness: 1000,
+      damping: 50,
+    },
+    slow: {
+      type: 'spring',
+      stiffness: 600,
+      damping: 50,
+    },
+  },
+};
+
+const motionTransitionWithDuration = (
+  transitionDefinitions: Record<MotionDuration, Transition>
+): [MotionDefinition, Record<MotionDuration, Transition>] => {
+  const motion = {
+    fast: `${spring({
+      keyframes: [0, 1],
+      ...transitionDefinitions.fast,
+    })}`,
+    moderate: `${spring({
+      keyframes: [0, 1],
+      ...transitionDefinitions.moderate,
+    })}`,
+    slow: `${spring({
+      keyframes: [0, 1],
+      ...transitionDefinitions.slow,
+    })}`,
+  };
+
+  return [motion, transitionDefinitions];
+};
+
+function generateMotion() {
+  const [smoothMotion, smoothFramer] = motionCurveWithDuration(
+    motionDurations,
+    motionCurves.smooth
+  );
+  const [snapMotion, snapFramer] = motionCurveWithDuration(
+    motionDurations,
+    motionCurves.snap
+  );
+  const [enterMotion, enterFramer] = motionCurveWithDuration(
+    motionDurations,
+    motionCurves.enter
+  );
+  const [exitMotion, exitFramer] = motionCurveWithDuration(
+    motionDurations,
+    motionCurves.exit
+  );
+  const [springMotion, springFramer] = motionTransitionWithDuration(
+    motionTransitions.spring
+  );
+
+  return {
+    smooth: smoothMotion,
+    snap: snapMotion,
+    enter: enterMotion,
+    exit: exitMotion,
+    spring: springMotion,
+    framer: {
+      smooth: smoothFramer,
+      snap: snapFramer,
+      enter: enterFramer,
+      exit: exitFramer,
+      spring: springFramer,
+    },
+  };
+}
+
+type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
+type AlertColors = Record<
+  Alert,
+  {
+    background: string;
+    backgroundLight: string;
+    border: string;
+    borderHover: string;
+    color: string;
+    // @TODO(jonasbadalic): Why is textLight optional and only set on error?
+    textLight?: string;
+  }
+>;
+
+export const generateThemeUtils = (colors: Colors, aliases: Aliases) => ({
+  tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
+    textDecoration: 'underline' as const,
+    textDecorationThickness: '0.75px',
+    textUnderlineOffset: '1.25px',
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    textDecorationColor: colors[underlineColor] ?? aliases[underlineColor],
+    textDecorationStyle: 'dotted' as const,
+  }),
+  overflowEllipsis: css`
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  `,
+  // https://css-tricks.com/inclusively-hidden/
+  visuallyHidden: css`
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  `,
+});
+
+export const generateThemePrismVariables = (
+  prismColors: typeof prismLight,
+  blockBackground: string
+) =>
+  // eslint-disable-next-line @emotion/syntax-preference
+  css({
+    // block background differs based on light/dark mode
+    '--prism-block-background': blockBackground,
+    ...prismColors,
+  });
+
+export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
+  default: {
+    color: alias.textColor,
+    colorActive: alias.textColor,
+    background: alias.background,
+    backgroundActive: alias.hover,
+    border: alias.border,
+    borderActive: alias.border,
+    borderTranslucent: alias.translucentBorder,
+    focusBorder: alias.focusBorder,
+    focusShadow: alias.focus,
+  },
+  primary: {
+    color: colors.white,
+    colorActive: colors.white,
+    background: colors.purple300,
+    backgroundActive: colors.purple400,
+    border: colors.purple300,
+    borderActive: colors.purple300,
+    borderTranslucent: colors.purple300,
+    focusBorder: alias.focusBorder,
+    focusShadow: alias.focus,
+  },
+  danger: {
+    color: colors.white,
+    colorActive: colors.white,
+    background: colors.red300,
+    backgroundActive: colors.red400,
+    border: colors.red300,
+    borderActive: colors.red300,
+    borderTranslucent: colors.red300,
+    focusBorder: colors.red300,
+    focusShadow: colors.red200,
+  },
+  link: {
+    color: alias.linkColor,
+    colorActive: alias.linkHoverColor,
+    background: 'transparent',
+    backgroundActive: 'transparent',
+    border: 'transparent',
+    borderActive: 'transparent',
+    borderTranslucent: 'transparent',
+    focusBorder: alias.focusBorder,
+    focusShadow: alias.focus,
+  },
+  disabled: {
+    color: alias.disabled,
+    colorActive: alias.disabled,
+    background: alias.background,
+    backgroundActive: alias.background,
+    border: alias.disabledBorder,
+    borderActive: alias.disabledBorder,
+    borderTranslucent: alias.translucentInnerBorder,
+    focusBorder: 'transparent',
+    focusShadow: 'transparent',
+  },
+  transparent: {
+    color: alias.textColor,
+    colorActive: alias.textColor,
+    background: 'transparent',
+    backgroundActive: 'transparent',
+    border: 'transparent',
+    borderActive: 'transparent',
+    borderTranslucent: 'transparent',
+    focusBorder: 'transparent',
+    focusShadow: 'transparent',
+  },
+});
+
+export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
+  info: {
+    border: colors.blue200,
+    background: colors.blue300,
+    color: colors.blue400,
+    backgroundLight: colors.blue100,
+    borderHover: colors.blue300,
+  },
+  success: {
+    background: colors.green300,
+    backgroundLight: colors.green100,
+    border: colors.green200,
+    borderHover: colors.green300,
+    color: colors.green400,
+  },
+  muted: {
+    background: colors.gray200,
+    backgroundLight: alias.backgroundSecondary,
+    border: alias.border,
+    borderHover: alias.border,
+    color: 'inherit',
+  },
+  warning: {
+    background: colors.yellow300,
+    backgroundLight: colors.yellow100,
+    border: colors.yellow200,
+    borderHover: colors.yellow300,
+    color: colors.yellow400,
+  },
+  error: {
+    background: colors.red300,
+    backgroundLight: colors.red100,
+    border: colors.red200,
+    borderHover: colors.red300,
+    color: colors.red400,
+    textLight: colors.red200,
+  },
+});
+
+export const generateLevelTheme = (colors: Colors): LevelColors => ({
+  sample: colors.purple300,
+  info: colors.blue300,
+  warning: colors.yellow300,
+  // Hardcoded legacy color (orange400). We no longer use orange anywhere
+  // else in the app (except for the chart palette). This needs to be harcoded
+  // here because existing users may still associate orange with the "error" level.
+  error: '#FF7738',
+  fatal: colors.red300,
+  default: colors.gray300,
+  unknown: colors.gray200,
+});
+
+export const generateTagTheme = (colors: Colors): TagColors => ({
+  default: {
+    background: colors.surface400,
+    border: colors.translucentGray200,
+    color: colors.gray400,
+  },
+  promotion: {
+    background: colors.pink100,
+    border: colors.pink100,
+    color: colors.pink400,
+  },
+  highlight: {
+    background: colors.purple100,
+    border: colors.purple100,
+    color: colors.purple400,
+  },
+  warning: {
+    background: colors.yellow100,
+    border: colors.yellow100,
+    color: colors.yellow400,
+  },
+  success: {
+    background: colors.green100,
+    border: colors.green100,
+    color: colors.green400,
+  },
+  error: {
+    background: colors.red100,
+    border: colors.red100,
+    color: colors.red400,
+  },
+  info: {
+    background: colors.purple100,
+    border: colors.purple100,
+    color: colors.purple400,
+  },
+  white: {
+    background: colors.white,
+    border: colors.white,
+    color: colors.black,
+  },
+  black: {
+    background: colors.black,
+    border: colors.black,
+    color: colors.white,
+  },
+});
+
+/**
+ * Theme definition
+ */
+
+type Colors = typeof lightColors;
+
+type Tag =
+  | 'default'
+  | 'promotion'
+  | 'highlight'
+  | 'warning'
+  | 'success'
+  | 'error'
+  | 'info'
+  // @TODO(jonasbadalic): What are white and black tags?
+  | 'white'
+  | 'black';
+
+type TagColors = Record<
+  Tag,
+  {
+    background: string;
+    border: string;
+    color: string;
+  }
+>;
+
+// @TODO: is this loose coupling enough?
+type Level = 'sample' | 'info' | 'warning' | 'error' | 'fatal' | 'default' | 'unknown';
+type LevelColors = Record<Level, string>;
+
+// @TODO(jonasbadalic): Disabled is not a button variant, it's a state
+type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled' | 'transparent';
+type ButtonColors = Record<
+  Button,
+  {
+    background: string;
+    backgroundActive: string;
+    border: string;
+    borderActive: string;
+    borderTranslucent: string;
+    color: string;
+    colorActive: string;
+    focusBorder: string;
+    focusShadow: string;
+  }
+>;
+
+type Breakpoint = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+type Breakpoints = Record<Breakpoint, string>;
+
+const breakpoints = {
+  '2xs': '0px',
+  xs: '500px',
+  sm: '800px',
+  md: '992px',
+  lg: '1200px',
+  xl: '1440px',
+  '2xl': '2560px',
+} as const satisfies Breakpoints;
+
+type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+
+// @TODO: this needs to directly reference the icon direction
+type IconDirection = 'up' | 'right' | 'down' | 'left';
+const iconDirectionToAngle: Record<IconDirection, number> = {
+  up: 0,
+  right: 90,
+  down: 180,
+  left: 270,
+} as const;
+
+/**
+ * Unless you are implementing a new component in the `sentry/components/core`
+ * directory, use `ComponentProps['size']` instead.
+ * @internal
+ */
+export type FormSize = 'xs' | 'sm' | 'md';
+
+export type Space = keyof typeof space;
+
+export type FormTheme = {
+  form: Record<
+    FormSize,
+    {
+      fontSize: string;
+      height: string;
+      lineHeight: string;
+      minHeight: string;
+    }
+  >;
+  formPadding: Record<
+    FormSize,
+    {
+      paddingBottom: number;
+      paddingLeft: number;
+      paddingRight: number;
+      paddingTop: number;
+    }
+  >;
+  formRadius: Record<
+    FormSize,
+    {
+      borderRadius: string;
+    }
+  >;
+  formSpacing: Record<FormSize, string>;
+};
+
+const iconSizes: Record<Size, string> = {
+  xs: '12px',
+  sm: '14px',
+  md: '18px',
+  lg: '24px',
+  xl: '32px',
+  '2xl': '72px',
+} as const;
+
+const space = {
+  '0': '0px',
+  /**
+   * Equivalent to deprecated `space(0.25)`
+   */
+  '2xs': '2px',
+  /**
+   * Equivalent to deprecated `space(0.5)`
+   */
+  xs: '4px',
+  /**
+   * Equivalent to deprecated `space(0.75)`
+   */
+  sm: '6px',
+  /**
+   * Equivalent to deprecated `space(1)`
+   */
+  md: '8px',
+  /**
+   * Equivalent to deprecated `space(1.5)`
+   */
+  lg: '12px',
+  /**
+   * Equivalent to deprecated `space(2)`
+   */
+  xl: '16px',
+  /**
+   * Equivalent to deprecated `space(3)` (was `20px`)
+   */
+  '2xl': '24px',
+  /**
+   * Equivalent to deprecated `space(4)` (was `30px`)
+   */
+  '3xl': '32px',
+} as const;
+
+/**
+ * Values shared between light and dark theme
+ */
+const commonTheme = {
+  breakpoints,
+
+  space,
+  motion: generateMotion(),
+
+  // Icons
+  iconSizes,
+  iconDirections: iconDirectionToAngle,
+
+  // Try to keep these ordered plz
+  zIndex: {
+    // Generic z-index when you hope your component is isolated and
+    // does not need to battle others for z-index priority
+    initial: 1,
+    truncationFullValue: 10,
+
+    // @TODO(jonasbadalic) This should exist on traceView component
+    traceView: {
+      spanTreeToggler: 900,
+      dividerLine: 909,
+      rowInfoMessage: 910,
+      minimapContainer: 999,
+    },
+
+    header: 1000,
+    errorMessage: 1000,
+    dropdown: 1001,
+
+    dropdownAutocomplete: {
+      // needs to be below actor but above other page elements (e.g. pagination)
+      // (e.g. Issue Details "seen" dots on chart is 2)
+      // stream header is 1000
+      menu: 1007,
+      // needs to be above menu
+      // @TODO(jonasbadalic) why does it need to be above menu?
+      actor: 1008,
+    },
+
+    globalSelectionHeader: 1009,
+
+    // needs to be below sidebar
+    // @TODO(jonasbadalic) why does it need to be below sidebar?
+    widgetBuilderDrawer: 1016,
+
+    settingsSidebarNavMask: 1017,
+    settingsSidebarNav: 1018,
+    sidebarPanel: 1019,
+    sidebar: 1020,
+    orgAndUserMenu: 1030,
+
+    // Sentry user feedback modal
+    sentryErrorEmbed: 1090,
+
+    // If you change modal also update shared-components.less
+    // as the z-index for bootstrap modals lives there.
+    drawer: 9999,
+    modal: 10000,
+    toast: 10001,
+
+    // tooltips and hovercards can be inside modals sometimes.
+    hovercard: 10002,
+    tooltip: 10003,
+
+    tour: {
+      blur: 10100,
+      element: 10101,
+      overlay: 10102,
+    },
+
+    // On mobile views issue list dropdowns overlap
+    issuesList: {
+      stickyHeader: 2,
+      sortOptions: 3,
+      displayOptions: 4,
+    },
+  },
+
+  borderRadius: '6px',
+  fontSize: {
+    xs: '11px',
+    sm: '12px',
+    md: '14px',
+    lg: '16px',
+    xl: '18px',
+    '2xl': '20px',
+  } satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>,
+
+  fontWeight: {
+    normal: 400 as const,
+    bold: 600 as const,
+  },
+
+  /**
+   * @TODO(jonasbadalic) remove relative font sizes
+   * @deprecated use fontSize instead
+   */
+  fontSizeRelativeSmall: '0.9em' as const,
+  codeFontSize: '13px' as const,
+  headerFontSize: '22px' as const,
+
+  text: {
+    family: "'Rubik', 'Avenir Next', sans-serif",
+    familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
+    lineHeightHeading: 1.2,
+    lineHeightBody: 1.4,
+  },
+};
+
+export type ColorMapping = typeof lightColors;
+export type Color = keyof typeof lightColors;
+export type IconSize = keyof typeof iconSizes;
+type Aliases = typeof lightAliases;
+export type ColorOrAlias = keyof Aliases | Color;
+export interface Theme extends Omit<typeof lightTheme, 'chart'> {
+  chart: {
+    colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
+    getColorPalette: ReturnType<typeof makeChartColorPalette>;
+    neutral: string;
+  };
+}
+
+/**
+ * Do not import theme values directly as they only define light color theme.
+ * Consuming it directly means that you won't get the correct colors in dark mode.
+ * @deprecated use useTheme hook instead.
+ */
+const commonThemeExport = {...commonTheme};
+/**
+ * @deprecated Do not import the theme directly, use useTheme hook instead.
+ */
+export default commonThemeExport;
 
 const CHART_PALETTE_LIGHT = [
   ['#7553FF'],
@@ -369,6 +1001,121 @@ const CHART_PALETTE_DARK = [
   ],
 ] as const;
 
+// Mapping of chonk theme to sentry theme
+const chonkLightColorMapping: ColorMapping = {
+  black: lightColors.black,
+  white: lightColors.white,
+
+  // @TODO(jonasbadalic): why is this needed?
+  lightModeBlack: lightColors.black,
+  lightModeWhite: lightColors.white,
+
+  surface100: lightColors.surface200,
+  surface200: lightColors.surface300,
+  surface300: lightColors.surface400,
+  surface400: lightColors.surface500,
+
+  translucentSurface100: lightColors.surface100,
+  translucentSurface200: lightColors.surface200,
+
+  surface500: lightColors.surface500,
+
+  gray500: lightColors.gray800,
+  gray400: lightColors.gray500,
+  gray300: lightColors.gray400,
+  gray200: lightColors.gray200,
+  gray100: lightColors.gray100,
+
+  translucentGray200: lightColors.gray200,
+  translucentGray100: lightColors.gray100,
+
+  purple400: lightColors.blue500,
+  purple300: lightColors.blue400,
+  purple200: lightColors.blue200,
+  purple100: lightColors.blue100,
+
+  blue400: lightColors.blue500,
+  blue300: lightColors.blue400,
+  blue200: lightColors.blue200,
+  blue100: lightColors.blue100,
+
+  pink400: lightColors.pink500,
+  pink300: lightColors.pink400,
+  pink200: lightColors.pink200,
+  pink100: lightColors.pink100,
+
+  red400: lightColors.red500,
+  red300: lightColors.red400,
+  red200: lightColors.red200,
+  red100: lightColors.red100,
+
+  yellow400: lightColors.yellow500,
+  yellow300: lightColors.yellow400,
+  yellow200: lightColors.yellow200,
+  yellow100: lightColors.yellow100,
+
+  green400: lightColors.green500,
+  green300: lightColors.green400,
+  green200: lightColors.green200,
+  green100: lightColors.green100,
+};
+
+const chonkDarkColorMapping: ColorMapping = {
+  black: darkColors.black,
+  white: darkColors.white,
+
+  lightModeBlack: darkColors.black,
+  lightModeWhite: darkColors.white,
+
+  surface100: darkColors.surface200,
+  surface200: darkColors.surface300,
+  surface300: darkColors.surface400,
+  surface400: darkColors.surface500,
+  surface500: darkColors.surface500,
+
+  translucentSurface100: darkColors.surface100,
+  translucentSurface200: darkColors.surface200,
+
+  gray500: darkColors.gray500,
+  gray400: darkColors.gray400,
+  gray300: darkColors.gray300,
+  gray200: darkColors.gray200,
+  gray100: darkColors.gray100,
+
+  translucentGray200: darkColors.gray200,
+  translucentGray100: darkColors.gray100,
+
+  purple400: darkColors.blue500,
+  purple300: darkColors.blue400,
+  purple200: darkColors.blue200,
+  purple100: darkColors.blue100,
+
+  blue400: darkColors.blue500,
+  blue300: darkColors.blue400,
+  blue200: darkColors.blue200,
+  blue100: darkColors.blue100,
+
+  pink400: darkColors.pink500,
+  pink300: darkColors.pink400,
+  pink200: darkColors.pink200,
+  pink100: darkColors.pink100,
+
+  green400: darkColors.green500,
+  green300: darkColors.green400,
+  green200: darkColors.green200,
+  green100: darkColors.green100,
+
+  yellow400: darkColors.yellow500,
+  yellow300: darkColors.yellow400,
+  yellow200: darkColors.yellow200,
+  yellow100: darkColors.yellow100,
+
+  red400: darkColors.red500,
+  red300: darkColors.red400,
+  red200: darkColors.red200,
+  red100: darkColors.red100,
+};
+
 type ChartColorPalette = typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
 type ColorLength = (typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK)['length'];
 
@@ -620,7 +1367,7 @@ const lightColors = {
   },
 };
 
-const darkColors: typeof lightColors = {
+const darkColors: Colors = {
   black: '#181423',
   white: '#FFFFFF',
 
@@ -954,162 +1701,22 @@ const fontSize = {
   '2xl': '24px' as const,
 } satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>;
 
-const chonkCommonTheme = {
-  ...commonTheme,
-  fontSize,
-};
-
-// Mapping of chonk theme to sentry theme
-const chonkLightColorMapping: ColorMapping = {
-  black: lightColors.black,
-  white: lightColors.white,
-
-  // @TODO(jonasbadalic): why is this needed?
-  lightModeBlack: lightColors.black,
-  lightModeWhite: lightColors.white,
-
-  surface100: lightColors.surface200,
-  surface200: lightColors.surface300,
-  surface300: lightColors.surface400,
-  surface400: lightColors.surface500,
-
-  translucentSurface100: lightColors.surface100,
-  translucentSurface200: lightColors.surface200,
-
-  surface500: lightColors.surface500,
-
-  gray500: lightColors.gray800,
-  gray400: lightColors.gray500,
-  gray300: lightColors.gray400,
-  gray200: lightColors.gray200,
-  gray100: lightColors.gray100,
-
-  translucentGray200: lightColors.gray200,
-  translucentGray100: lightColors.gray100,
-
-  purple400: lightColors.blue500,
-  purple300: lightColors.blue400,
-  purple200: lightColors.blue200,
-  purple100: lightColors.blue100,
-
-  blue400: lightColors.blue500,
-  blue300: lightColors.blue400,
-  blue200: lightColors.blue200,
-  blue100: lightColors.blue100,
-
-  pink400: lightColors.pink500,
-  pink300: lightColors.pink400,
-  pink200: lightColors.pink200,
-  pink100: lightColors.pink100,
-
-  red400: lightColors.red500,
-  red300: lightColors.red400,
-  red200: lightColors.red200,
-  red100: lightColors.red100,
-
-  yellow400: lightColors.yellow500,
-  yellow300: lightColors.yellow400,
-  yellow200: lightColors.yellow200,
-  yellow100: lightColors.yellow100,
-
-  green400: lightColors.green500,
-  green300: lightColors.green400,
-  green200: lightColors.green200,
-  green100: lightColors.green100,
-};
-
-const chonkDarkColorMapping: ColorMapping = {
-  black: darkColors.black,
-  white: darkColors.white,
-
-  lightModeBlack: darkColors.black,
-  lightModeWhite: darkColors.white,
-
-  surface100: darkColors.surface200,
-  surface200: darkColors.surface300,
-  surface300: darkColors.surface400,
-  surface400: darkColors.surface500,
-  surface500: darkColors.surface500,
-
-  translucentSurface100: darkColors.surface100,
-  translucentSurface200: darkColors.surface200,
-
-  gray500: darkColors.gray500,
-  gray400: darkColors.gray400,
-  gray300: darkColors.gray300,
-  gray200: darkColors.gray200,
-  gray100: darkColors.gray100,
-
-  translucentGray200: darkColors.gray200,
-  translucentGray100: darkColors.gray100,
-
-  purple400: darkColors.blue500,
-  purple300: darkColors.blue400,
-  purple200: darkColors.blue200,
-  purple100: darkColors.blue100,
-
-  blue400: darkColors.blue500,
-  blue300: darkColors.blue400,
-  blue200: darkColors.blue200,
-  blue100: darkColors.blue100,
-
-  pink400: darkColors.pink500,
-  pink300: darkColors.pink400,
-  pink200: darkColors.pink200,
-  pink100: darkColors.pink100,
-
-  green400: darkColors.green500,
-  green300: darkColors.green400,
-  green200: darkColors.green200,
-  green100: darkColors.green100,
-
-  yellow400: darkColors.yellow500,
-  yellow300: darkColors.yellow400,
-  yellow200: darkColors.yellow200,
-  yellow100: darkColors.yellow100,
-
-  red400: darkColors.red500,
-  red300: darkColors.red400,
-  red200: darkColors.red200,
-  red100: darkColors.red100,
-};
-
 const lightTokens = generateChonkTokens(lightColors);
 const darkTokens = generateChonkTokens(darkColors);
 
 const lightAliases = generateAliases(lightTokens, lightColors);
 const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
 
-interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
-  chart: {
-    colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
-    getColorPalette: ReturnType<typeof makeChartColorPalette>;
-    neutral: string;
-  };
-  colors: typeof lightColors & {
-    background: ReturnType<typeof generateChonkTokens>['background'];
-    border: ReturnType<typeof generateChonkTokens>['border'];
-    content: ReturnType<typeof generateChonkTokens>['content'];
-  };
-  focusRing: (existingShadow?: React.CSSProperties['boxShadow']) => {
-    boxShadow: React.CSSProperties['boxShadow'];
-    outline: React.CSSProperties['outline'];
-  };
-  isChonk: true;
-  radius: typeof radius;
-  tokens: typeof lightTokens;
-}
-
 /**
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
-export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
-  isChonk: true,
+export const lightTheme = {
   type: 'light',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
-  ...chonkCommonTheme,
+  ...commonTheme,
+  fontSize,
   ...formTheme,
-  ...chonkLightColorMapping,
+  ...lightColors,
   ...lightAliases,
   ...lightShadows,
 
@@ -1121,11 +1728,11 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(chonkLightColorMapping, lightAliases),
-  alert: generateAlertTheme(chonkLightColorMapping, lightAliases),
-  button: generateButtonTheme(chonkLightColorMapping, lightAliases),
-  tag: generateTagTheme(chonkLightColorMapping),
-  level: generateLevelTheme(chonkLightColorMapping),
+  ...generateThemeUtils(lightColors, lightAliases),
+  alert: generateAlertTheme(lightColors, lightAliases),
+  button: generateButtonTheme(lightColors, lightAliases),
+  tag: generateTagTheme(lightColors),
+  level: generateLevelTheme(lightColors),
 
   chart: {
     neutral: color(lightColors.gray400).lighten(0.8).toString(),
@@ -1141,9 +1748,6 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
     prismDark,
     darkAliases.backgroundElevated
   ),
-
-  stacktraceActiveBackground: lightTheme.stacktraceActiveBackground,
-  stacktraceActiveText: lightTheme.stacktraceActiveText,
 
   colors: {
     ...lightColors,
@@ -1165,13 +1769,13 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
 /**
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
-export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
-  isChonk: true,
+export const darkTheme: Theme = {
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
-  ...chonkCommonTheme,
+  ...commonTheme,
+  fontSize,
   ...formTheme,
-  ...chonkDarkColorMapping,
+  ...darkColors,
   ...darkAliases,
   ...darkShadows,
   tokens: darkTokens,
@@ -1183,11 +1787,11 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(chonkDarkColorMapping, darkAliases),
-  alert: generateAlertTheme(chonkDarkColorMapping, darkAliases),
-  button: generateButtonTheme(chonkDarkColorMapping, darkAliases),
-  tag: generateTagTheme(chonkDarkColorMapping),
-  level: generateLevelTheme(chonkDarkColorMapping),
+  ...generateThemeUtils(darkColors, darkAliases),
+  alert: generateAlertTheme(darkColors, darkAliases),
+  button: generateButtonTheme(darkColors, darkAliases),
+  tag: generateTagTheme(darkColors),
+  level: generateLevelTheme(darkColors),
 
   chart: {
     neutral: color(darkColors.gray400).darken(0.35).toString(),
@@ -1200,9 +1804,6 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
     prismDark,
     darkAliases.backgroundElevated
   ),
-
-  stacktraceActiveBackground: darkTheme.stacktraceActiveBackground,
-  stacktraceActiveText: darkTheme.stacktraceActiveText,
 
   colors: {
     ...darkColors,
@@ -1221,135 +1822,9 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   },
 };
 
-declare module '@emotion/react' {
-  // @TODO(jonasbadalic): interface extending a type might be prone to some issues.
-  // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-shadow
-  export interface DO_NOT_USE_ChonkTheme extends ChonkTheme {
-    isChonk: true;
-  }
-
-  /**
-   * Configure Emotion to use our theme
-   */
-  export interface Theme extends SentryTheme {
-    isChonk: boolean;
-  }
-}
-
-/**
- * Chonk utilities and overrrides to assert correct theme type
- * inside chonk components without having to check for theme.isChonk everywhere
- */
-// eslint-disable-next-line @typescript-eslint/naming-convention
-interface DO_NOT_USE_ChonkTheme extends ChonkTheme {
-  isChonk: true;
-}
-
 // Emotion has no override available for styled, so we create our own,
 // which allows us to use chonkStyled and access the chonk theme and write
 // our components with a future type API.
-interface ChonkCreateStyled {
-  <
-    C extends React.ComponentClass<React.ComponentProps<C>>,
-    ForwardedProps extends keyof React.ComponentProps<C> &
-      string = keyof React.ComponentProps<C> & string,
-  >(
-    component: C,
-    options: FilteringStyledOptions<React.ComponentProps<C>, ForwardedProps>
-  ): CreateStyledComponent<
-    Pick<React.ComponentProps<C>, ForwardedProps> & {
-      theme?: DO_NOT_USE_ChonkTheme;
-    },
-    Record<string, unknown>,
-    {
-      ref?: React.Ref<InstanceType<C>>;
-    }
-  >;
-  <C extends React.ComponentClass<React.ComponentProps<C>>>(
-    component: C,
-    options?: StyledOptions<React.ComponentProps<C>>
-  ): CreateStyledComponent<
-    React.ComponentProps<C> & {
-      theme?: DO_NOT_USE_ChonkTheme;
-    },
-    Record<string, unknown>,
-    {
-      ref?: React.Ref<InstanceType<C>>;
-    }
-  >;
-  <
-    C extends React.ComponentType<React.ComponentProps<C>>,
-    ForwardedProps extends keyof React.ComponentProps<C> &
-      string = keyof React.ComponentProps<C> & string,
-  >(
-    component: C,
-    options: FilteringStyledOptions<React.ComponentProps<C>, ForwardedProps>
-  ): CreateStyledComponent<
-    Pick<React.ComponentProps<C>, ForwardedProps> & {
-      theme?: DO_NOT_USE_ChonkTheme;
-    }
-  >;
-  <C extends React.ComponentType<React.ComponentProps<C>>>(
-    component: C,
-    options?: StyledOptions<React.ComponentProps<C>>
-  ): CreateStyledComponent<
-    React.ComponentProps<C> & {
-      theme?: DO_NOT_USE_ChonkTheme;
-    }
-  >;
-  <
-    Tag extends keyof React.JSX.IntrinsicElements,
-    ForwardedProps extends keyof React.JSX.IntrinsicElements[Tag] &
-      string = keyof React.JSX.IntrinsicElements[Tag] & string,
-  >(
-    tag: Tag,
-    options: FilteringStyledOptions<React.JSX.IntrinsicElements[Tag], ForwardedProps>
-  ): CreateStyledComponent<
-    {
-      as?: React.ElementType;
-      theme?: DO_NOT_USE_ChonkTheme;
-    },
-    Pick<React.JSX.IntrinsicElements[Tag], ForwardedProps>
-  >;
-  <Tag extends keyof React.JSX.IntrinsicElements>(
-    tag: Tag,
-    options?: StyledOptions<React.JSX.IntrinsicElements[Tag]>
-  ): CreateStyledComponent<
-    {
-      as?: React.ElementType;
-      theme?: DO_NOT_USE_ChonkTheme;
-    },
-    React.JSX.IntrinsicElements[Tag]
-  >;
-}
+export const chonkStyled = styled;
 
-type ChonkStyled = {
-  [Tag in keyof React.JSX.IntrinsicElements]: CreateStyledComponent<
-    {
-      as?: React.ElementType;
-      theme?: DO_NOT_USE_ChonkTheme;
-    },
-    React.JSX.IntrinsicElements[Tag]
-  >;
-};
-
-// Emotion has no override available for styled, so we create our own,
-// which allows us to use chonkStyled and access the chonk theme and write
-// our components with a future type API.
-interface ChonkStyle extends ChonkCreateStyled, ChonkStyled {}
-export const chonkStyled = styled as ChonkStyle;
-
-export function useChonkTheme(): ChonkTheme {
-  const theme = useTheme() as Theme | ChonkTheme;
-
-  assertChonkTheme(theme);
-  return theme;
-}
-
-function assertChonkTheme(
-  theme: Theme | DO_NOT_USE_ChonkTheme
-): asserts theme is ChonkTheme {
-  if (!theme.isChonk) {
-    throw new Error('A chonk component may only be called inside a chonk theme context');
-  }
-}
+export const useChonkTheme = useTheme;
