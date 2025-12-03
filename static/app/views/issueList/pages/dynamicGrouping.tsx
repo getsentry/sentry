@@ -353,7 +353,6 @@ function ClusterCard({
   selectedTags?: Set<string>;
 }) {
   const organization = useOrganization();
-  const issueCount = cluster.group_ids.length;
   const [showDescription, setShowDescription] = useState(false);
   const clusterStats = useClusterStats(cluster.group_ids);
   const {copy} = useCopyToClipboard();
@@ -913,23 +912,37 @@ function DynamicGrouping() {
               </Text>
             </Container>
           ) : (
-            <Fragment>
-              <CardsGrid>
-                {displayedClusters.map(cluster => (
-                  <ClusterCard
-                    key={cluster.cluster_id}
-                    cluster={cluster}
-                    onTagClick={handleTagClick}
-                    selectedTags={selectedTags}
-                  />
-                ))}
-              </CardsGrid>
-              {hasMoreClusters && (
-                <ShowMoreButton onClick={handleShowMore}>
-                  {t('Show more clusters (%s more)', remainingClusterCount)}
-                </ShowMoreButton>
-              )}
-            </Fragment>
+            <CardsGrid>
+              <CardsColumn>
+                {displayedClusters
+                  .filter((_, index) => index % 2 === 0)
+                  .map(cluster => (
+                    <ClusterCard
+                      key={cluster.cluster_id}
+                      cluster={cluster}
+                      onTagClick={handleTagClick}
+                      selectedTags={selectedTags}
+                    />
+                  ))}
+              </CardsColumn>
+              <CardsColumn>
+                {displayedClusters
+                  .filter((_, index) => index % 2 === 1)
+                  .map(cluster => (
+                    <ClusterCard
+                      key={cluster.cluster_id}
+                      cluster={cluster}
+                      onTagClick={handleTagClick}
+                      selectedTags={selectedTags}
+                    />
+                  ))}
+              </CardsColumn>
+            </CardsGrid>
+          )}
+          {hasMoreClusters && (
+            <ShowMoreButton onClick={handleShowMore}>
+              {t('Show more clusters (%s more)', remainingClusterCount)}
+            </ShowMoreButton>
           )}
         </CardsSection>
       </PageWrapper>
@@ -958,14 +971,20 @@ const CardsSection = styled('div')`
 `;
 
 const CardsGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
   gap: ${space(3)};
-  align-items: stretch;
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
+`;
+
+const CardsColumn = styled('div')`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(3)};
+  min-width: 0;
 `;
 
 // Card with subtle hover effect
