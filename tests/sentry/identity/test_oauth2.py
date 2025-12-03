@@ -9,7 +9,12 @@ from django.test import Client, RequestFactory
 from requests.exceptions import SSLError
 
 import sentry.identity
-from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
+from sentry.identity.oauth2 import (
+    ERR_INVALID_STATE,
+    ERR_TOKEN_RETRIEVAL,
+    OAuth2CallbackView,
+    OAuth2LoginView,
+)
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
@@ -40,6 +45,13 @@ class OAuth2CallbackViewTest(TestCase):
             client_id=123456,
             client_secret="secret-value",
         )
+
+    def _build_pipeline(self, state: str = "expected-state") -> MagicMock:
+        pipeline = MagicMock()
+        pipeline.provider.key = "dummy"
+        pipeline.config = {}
+        pipeline.fetch_state.return_value = state
+        return pipeline
 
     @responses.activate
     def test_exchange_token_success(self, mock_record: MagicMock) -> None:
@@ -156,6 +168,52 @@ class OAuth2CallbackViewTest(TestCase):
         assert "401" in result["error"]
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
+
+    def test_callback_error_parameter_is_sanitized(self, mock_record: MagicMock) -> None:
+        pipeline = self._build_pipeline()
+        sentinel_response = object()
+        pipeline.error.return_value = sentinel_response
+
+        request = RequestFactory().get("/", {"error": "bad \n<script>alert(1)</script>"})
+
+        response = self.view.dispatch(request, pipeline)
+
+        expected_message = f"{ERR_INVALID_STATE}\nError: bad <script>alert(1)</script>"
+        pipeline.error.assert_called_once_with(expected_message)
+        assert response is sentinel_response
+
+    def test_error_description_is_sanitized(self, mock_record: MagicMock) -> None:
+        pipeline = self._build_pipeline()
+        sentinel_response = object()
+        pipeline.error.return_value = sentinel_response
+
+        request = RequestFactory().get("/", {"state": "expected-state", "code": "auth-code"})
+
+        with patch.object(
+            self.view, "exchange_token", return_value={"error_description": "bad \r\nvalue"}
+        ) as mock_exchange:
+            response = self.view.dispatch(request, pipeline)
+
+        mock_exchange.assert_called_once()
+        pipeline.error.assert_called_once_with("bad value")
+        assert response is sentinel_response
+
+    def test_exchange_token_error_payload_is_sanitized(self, mock_record: MagicMock) -> None:
+        pipeline = self._build_pipeline()
+        sentinel_response = object()
+        pipeline.error.return_value = sentinel_response
+        request = RequestFactory().get("/", {"state": "expected-state", "code": "auth-code"})
+
+        with patch.object(self.view, "exchange_token", return_value={"error": "foo\nbar"}):
+            with patch("sentry.identity.oauth2.logger") as mock_logger:
+                response = self.view.dispatch(request, pipeline)
+
+        expected_error = "foo bar"
+        pipeline.error.assert_called_once_with(f"{ERR_TOKEN_RETRIEVAL}\nError: {expected_error}")
+        mock_logger.info.assert_called_once_with(
+            "identity.token-exchange-error", extra={"error": expected_error}
+        )
+        assert response is sentinel_response
 
 
 @control_silo_test
