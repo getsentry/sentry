@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
@@ -24,7 +25,6 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils import snuba_rpc
-from sentry.utils.snuba_rpc import TraceItemAttributeNamesRequest
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +94,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
             attrs_response = snuba_rpc.attribute_names_rpc(attrs_request)
 
         # Chunk attributes and run stats query in parallel
-        chunked_attributes = defaultdict(list[AttributeKey])
+        chunked_attributes: dict[int, list[AttributeKey]] = defaultdict(list[AttributeKey])
         for i, attr in enumerate(attrs_response.attributes):
             if attr.name in SPANS_STATS_EXCLUDED_ATTRIBUTES:
                 continue

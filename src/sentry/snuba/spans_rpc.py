@@ -322,7 +322,7 @@ class Spans(rpc_dataset_common.RPCBase):
             if "attributeDistributions" in stats_types and result.HasField(
                 "attribute_distributions"
             ):
-                attributes = defaultdict(list)
+                attrs = defaultdict(list)
                 for attribute in result.attribute_distributions.attributes:
                     if not can_expose_attribute(
                         attribute.attribute_name, SupportedTraceItemType.SPANS
@@ -330,9 +330,9 @@ class Spans(rpc_dataset_common.RPCBase):
                         continue
 
                     for bucket in attribute.buckets:
-                        attributes[attribute.attribute_name].append(
+                        attrs[attribute.attribute_name].append(
                             {"label": bucket.label, "value": bucket.value}
                         )
-                stats.append({"attribute_distributions": {"data": attributes}})
+                stats.append({"attribute_distributions": {"data": attrs}})
 
         return stats

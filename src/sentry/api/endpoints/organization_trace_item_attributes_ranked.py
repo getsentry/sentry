@@ -5,6 +5,7 @@ from typing import Any, cast
 
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     AttributeDistributionsRequest,
     StatsType,
@@ -33,7 +34,7 @@ from sentry.seer.workflows.compare import keyed_rrf_score
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils import snuba_rpc
-from sentry.utils.snuba_rpc import TraceItemAttributeNamesRequest, trace_item_stats_rpc
+from sentry.utils.snuba_rpc import trace_item_stats_rpc
 
 logger = logging.getLogger(__name__)
 
@@ -158,13 +159,13 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
             attrs_response = snuba_rpc.attribute_names_rpc(attrs_request)
 
         # Chunk attributes for parallel processing
-        chunked_attributes = defaultdict(list[AttributeKey])
-        for i, attr in enumerate(attrs_response.attributes):
-            if attr.name in SPANS_STATS_EXCLUDED_ATTRIBUTES:
+        chunked_attributes: dict[int, list[AttributeKey]] = defaultdict(list[AttributeKey])
+        for i, attr_proto in enumerate(attrs_response.attributes):
+            if attr_proto.name in SPANS_STATS_EXCLUDED_ATTRIBUTES:
                 continue
 
             chunked_attributes[i % PARALLELIZATION_FACTOR].append(
-                AttributeKey(name=attr.name, type=AttributeKey.TYPE_STRING)
+                AttributeKey(name=attr_proto.name, type=AttributeKey.TYPE_STRING)
             )
 
         def run_stats_request_with_error_handling(filter, attributes):
@@ -330,7 +331,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         # Create RRR order mapping from compare_distributions results
         # scored_attrs_rrr returns a dict with 'results' key containing list of [attribute_name, score] pairs
         rrr_results = scored_attrs_rrr.get("results", [])
-        rrr_order_map = {attr: i for i, (attr, _) in enumerate(rrr_results)}
+        rrr_order_map = {attr_name: i for i, (attr_name, _) in enumerate(rrr_results)}
 
         ranked_distribution: dict[str, Any] = {
             "rankedAttributes": [],
@@ -343,7 +344,8 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
             "cohort2Total": total_baseline,
         }
 
-        for i, (attr, _) in enumerate(scored_attrs_rrf):
+        for i, scored_attr_tuple in enumerate(scored_attrs_rrf):
+            attr = scored_attr_tuple[0]
 
             public_alias, _, _ = translate_internal_to_public_alias(
                 attr, "string", SupportedTraceItemType.SPANS
