@@ -9,6 +9,8 @@ import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {useStoryBookFiles} from './useStoriesLoader';
+
 export class StoryTreeNode {
   public name: string;
   public label: string;
@@ -287,6 +289,142 @@ export const COMPONENT_SUBCATEGORY_ORDER: ComponentSubcategory[] = [
   'utilities',
   'shared',
 ];
+
+// Hierarchical structure for sidebar rendering
+export interface StoryHierarchyData {
+  stories: StoryTreeNode[];
+  subcategories?: Map<ComponentSubcategory, StoryTreeNode[]>;
+}
+
+/**
+ * Returns a flat array of all stories in display order (for pagination).
+ * Stories are ordered by section, then by subcategory within components.
+ */
+export function useFlatStoryList(): StoryTreeNode[] {
+  const files = useStoryBookFiles();
+
+  return useMemo(() => {
+    const result: StoryTreeNode[] = [];
+
+    // Group files by section and subcategory
+    const grouped = new Map<
+      StorySection,
+      {bySubcategory: Map<ComponentSubcategory, string[]>; direct: string[]}
+    >();
+
+    for (const section of SECTION_ORDER) {
+      grouped.set(section, {direct: [], bySubcategory: new Map()});
+    }
+
+    for (const file of files) {
+      const loc = inferStoryLocation(file);
+      const sectionData = grouped.get(loc.section);
+      if (!sectionData) {
+        continue;
+      }
+
+      if (loc.subcategory) {
+        if (!sectionData.bySubcategory.has(loc.subcategory)) {
+          sectionData.bySubcategory.set(loc.subcategory, []);
+        }
+        sectionData.bySubcategory.get(loc.subcategory)!.push(file);
+      } else {
+        sectionData.direct.push(file);
+      }
+    }
+
+    // Build flat list in order
+    for (const section of SECTION_ORDER) {
+      const sectionData = grouped.get(section)!;
+
+      // Add direct stories for this section
+      for (const file of sectionData.direct.sort()) {
+        const name = inferComponentName(file);
+        const node = new StoryTreeNode(formatName(name), section, file);
+        result.push(node);
+      }
+
+      // Add stories by subcategory (for components section)
+      if (section === 'components') {
+        for (const subcategory of COMPONENT_SUBCATEGORY_ORDER) {
+          const subcategoryFiles = sectionData.bySubcategory.get(subcategory);
+          if (!subcategoryFiles) {
+            continue;
+          }
+
+          for (const file of subcategoryFiles.sort()) {
+            const name = inferComponentName(file);
+            const node = new StoryTreeNode(formatName(name), 'core', file);
+            result.push(node);
+          }
+        }
+      }
+    }
+
+    return result;
+  }, [files]);
+}
+
+/**
+ * Returns a hierarchical structure for sidebar rendering.
+ * Sections contain stories, and the components section has subcategories.
+ */
+export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
+  const files = useStoryBookFiles();
+
+  return useMemo(() => {
+    const hierarchy = new Map<StorySection, StoryHierarchyData>();
+
+    // Initialize sections
+    for (const section of SECTION_ORDER) {
+      if (section === 'components') {
+        hierarchy.set(section, {
+          stories: [],
+          subcategories: new Map(),
+        });
+      } else {
+        hierarchy.set(section, {stories: []});
+      }
+    }
+
+    // Group files by section and subcategory
+    for (const file of files) {
+      const loc = inferStoryLocation(file);
+      const sectionData = hierarchy.get(loc.section);
+      if (!sectionData) {
+        continue;
+      }
+
+      const name = inferComponentName(file);
+      const node = new StoryTreeNode(
+        formatName(name),
+        loc.section === 'components' ? 'core' : loc.section,
+        file
+      );
+
+      if (loc.subcategory && sectionData.subcategories) {
+        if (!sectionData.subcategories.has(loc.subcategory)) {
+          sectionData.subcategories.set(loc.subcategory, []);
+        }
+        sectionData.subcategories.get(loc.subcategory)!.push(node);
+      } else {
+        sectionData.stories.push(node);
+      }
+    }
+
+    // Sort stories within each section/subcategory
+    for (const [, sectionData] of hierarchy) {
+      sectionData.stories.sort((a, b) => a.label.localeCompare(b.label));
+      if (sectionData.subcategories) {
+        for (const [, nodes] of sectionData.subcategories) {
+          nodes.sort((a, b) => a.label.localeCompare(b.label));
+        }
+      }
+    }
+
+    return hierarchy;
+  }, [files]);
+}
 
 export function inferFileCategory(path: string): StoryCategory {
   if (isFoundationFile(path)) {
