@@ -1,11 +1,11 @@
-from unittest import mock
+from unittest.mock import MagicMock, patch
 
 from sentry.testutils.cases import APITestCase
 
 
-@mock.patch("sentry.issues.endpoints.group_reprocessing.reprocess_group")
+@patch("sentry.issues.endpoints.group_reprocessing.reprocess_group")
 class GroupReprocessingTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         # Create an event which will create the group
@@ -19,7 +19,9 @@ class GroupReprocessingTest(APITestCase):
         self.group = event.group
         self.url = f"/api/0/issues/{self.group.id}/reprocessing/"
 
-    def test_reprocess_without_admin_scope_and_delete_remaining_events(self, mock_reprocess):
+    def test_reprocess_without_admin_scope_and_delete_remaining_events(
+        self, mock_reprocess: MagicMock
+    ) -> None:
         """Test that users without event:admin scope cannot delete remaining events."""
         # Disable event:admin scope for members
         self.organization.update_option("sentry:events_member_admin", False)
@@ -45,7 +47,9 @@ class GroupReprocessingTest(APITestCase):
         assert response.status_code == 403
         assert response.data == {"error": "you do not have permission to delete remaining events"}
 
-    def test_reprocess_with_admin_scope_and_delete_remaining_events(self, mock_reprocess):
+    def test_reprocess_with_admin_scope_and_delete_remaining_events(
+        self, mock_reprocess: MagicMock
+    ) -> None:
         """Test that users with event:admin scope can delete remaining events."""
         # Create a user with admin scope
         admin_user = self.create_user()
@@ -68,7 +72,9 @@ class GroupReprocessingTest(APITestCase):
         # Should succeed (200) because admin has event:admin scope
         assert response.status_code == 200
 
-    def test_reprocess_without_admin_scope_and_keep_remaining_events(self, mock_reprocess):
+    def test_reprocess_without_admin_scope_and_keep_remaining_events(
+        self, mock_reprocess: MagicMock
+    ) -> None:
         """Test that users without event:admin scope can keep remaining events."""
         # Disable event:admin scope for members
         self.organization.update_option("sentry:events_member_admin", False)
@@ -94,7 +100,7 @@ class GroupReprocessingTest(APITestCase):
         # Should succeed (200) because keeping events doesn't require admin scope
         assert response.status_code == 200
 
-    def test_reprocess_with_max_events_validation(self, mock_reprocess):
+    def test_reprocess_with_max_events_validation(self, mock_reprocess: MagicMock) -> None:
         """Test maxEvents parameter validation."""
         # Test with non-numeric maxEvents
         response = self.client.post(
@@ -147,7 +153,7 @@ class GroupReprocessingTest(APITestCase):
 
         assert response.status_code == 200
 
-    def test_reprocess_with_remaining_events_validation(self, mock_reprocess):
+    def test_reprocess_with_remaining_events_validation(self, mock_reprocess: MagicMock) -> None:
         """Test remainingEvents parameter validation."""
         # Test with invalid remainingEvents
         response = self.client.post(
