@@ -21,7 +21,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox
 from sentry.sentry_metrics.client.snuba import build_mri
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.group import GroupSubStatus
@@ -80,7 +80,7 @@ class HistoricGroupCounts(
 ):
     """Test that querying Snuba for the hourly counts for groups works as expected."""
 
-    def _create_hourly_bucket(self, count: int, event: Event) -> GroupsCountResponse:
+    def _create_hourly_bucket(self, count: int, event: Event | GroupEvent) -> GroupsCountResponse:
         """It simplifies writing the expected data structures"""
         assert event.group_id is not None
         return {

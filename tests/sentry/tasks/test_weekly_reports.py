@@ -415,6 +415,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         perf_event_2 = self.create_performance_issue(
             fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group2"
         )
+        assert perf_event_1.group is not None
+        assert perf_event_2.group is not None
         perf_event_1.group.update(substatus=GroupSubStatus.ONGOING)
         perf_event_2.group.update(substatus=GroupSubStatus.ONGOING)
 

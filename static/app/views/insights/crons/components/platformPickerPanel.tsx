@@ -5,10 +5,9 @@ import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
 import {Button} from 'sentry/components/core/button';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import {NewMonitorButton} from './newMonitorButton';
 
 export type SupportedPlatform =
   | 'python-celery'
@@ -16,12 +15,18 @@ export type SupportedPlatform =
   | 'php-laravel'
   | 'python'
   | 'node'
+  | 'deno'
+  | 'node-nestjs'
+  | 'node-nextjs'
   | 'go'
   | 'java'
   | 'java-spring-boot'
   | 'ruby'
   | 'ruby-rails'
-  | 'dotnet';
+  | 'elixir'
+  | 'dotnet'
+  | 'cli'
+  | 'http';
 
 interface SDKPlatformInfo {
   label: string;
@@ -34,12 +39,21 @@ export const CRON_SDK_PLATFORMS: SDKPlatformInfo[] = [
   {platform: 'php-laravel', label: 'Laravel'},
   {platform: 'python', label: 'Python'},
   {platform: 'node', label: 'Node'},
+  {platform: 'deno', label: 'Deno'},
+  {platform: 'node-nestjs', label: 'NestJS'},
+  {platform: 'node-nextjs', label: 'Next.js'},
   {platform: 'go', label: 'Go'},
   {platform: 'java', label: 'Java'},
   {platform: 'java-spring-boot', label: 'Spring Boot'},
   {platform: 'ruby', label: 'Ruby'},
   {platform: 'ruby-rails', label: 'Rails'},
+  {platform: 'elixir', label: 'Elixir'},
   {platform: 'dotnet', label: '.NET'},
+];
+
+export const CRON_GENERIC_PLATFORMS = [
+  {platform: 'cli', label: 'Sentry CLI'},
+  {platform: 'http', label: 'HTTP (cURL)'},
 ];
 
 interface Props {
@@ -72,12 +86,12 @@ export function PlatformPickerPanel({onSelect}: Props) {
       </Actions>
       <SectionTitle>{t('Generic')}</SectionTitle>
       <Actions>
-        <NewMonitorButton size="sm" priority="default">
+        <Button size="sm" icon={<IconTerminal />} onClick={() => onSelect('cli')}>
           Sentry CLI
-        </NewMonitorButton>
-        <NewMonitorButton size="sm" priority="default">
+        </Button>
+        <Button size="sm" icon={<IconGlobe />} onClick={() => onSelect('http')}>
           HTTP (cURL)
-        </NewMonitorButton>
+        </Button>
       </Actions>
     </OnboardingPanel>
   );

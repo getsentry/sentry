@@ -113,6 +113,7 @@ export {IconSentryPrideLogo} from './iconSentryPrideLogo';
 export {IconSettings} from './iconSettings';
 export {IconShow} from './iconShow';
 export {IconSiren} from './iconSiren';
+export {IconSlashForward} from './iconSlashForward';
 export {IconSliders} from './iconSliders';
 export {IconSort} from './iconSort';
 export {IconSound} from './iconSound';

@@ -3,16 +3,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Button} from '@sentry/scraps/button/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {Text} from 'sentry/components/core/text';
-import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
-import BaseSearchBar from 'sentry/components/searchBar';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUserTimezone} from 'sentry/utils/dates';
@@ -20,16 +15,12 @@ import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useQueryParamsVisualizes} from 'sentry/views/explore/queryParams/context';
-import {prettifyAggregation} from 'sentry/views/explore/utils';
 
 import {Chart} from './cohortComparisonChart';
+import {CHARTS_PER_PAGE} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
 
 type SortingMethod = 'rrr';
-
-const CHARTS_COLUMN_COUNT = 3;
-const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 4;
-const PERCENTILE_FUNCTION_PREFIXES = ['p50', 'p75', 'p90', 'p95', 'p99', 'avg'];
 
 export function CohortComparison({
   selection,
@@ -42,7 +33,7 @@ export function CohortComparison({
 
   const yAxis = visualizes[chartIndex]?.yAxis ?? '';
 
-  const {data, isLoading, isError} = useAttributeBreakdownComparison({
+  const {data, isLoading, error} = useAttributeBreakdownComparison({
     aggregateFunction: yAxis,
     range: selection.range,
   });
@@ -90,7 +81,7 @@ export function CohortComparison({
     setPage(0);
   }, [filteredRankedAttributes]);
 
-  const selectionHint = useMemo(() => {
+  const selectedRangeToDates = useMemo(() => {
     if (!selection) {
       return null;
     }
@@ -102,41 +93,20 @@ export function CohortComparison({
     startTimestamp = Math.min(startTimestamp, endTimestamp - 60_000);
 
     const userTimezone = getUserTimezone() || moment.tz.guess();
-    const startDate = moment
-      .tz(startTimestamp, userTimezone)
-      .format('MMM D YYYY h:mm A z');
-    const endDate = moment.tz(endTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
-
-    // Check if yAxis is a percentile function (only these functions should include "and is greater than or equal to")
-    const yAxisLower = yAxis.toLowerCase();
-    const isPercentileFunction = PERCENTILE_FUNCTION_PREFIXES.some(prefix =>
-      yAxisLower.startsWith(prefix)
-    );
-
-    const formattedFunction = prettifyAggregation(yAxis) ?? yAxis;
+    const start = moment.tz(startTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
+    const end = moment.tz(endTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
 
     return {
-      selection: isPercentileFunction
-        ? t(
-            `Selection is data between %s - %s and is greater than or equal to %s`,
-            startDate,
-            endDate,
-            formattedFunction
-          )
-        : t(`Selection is data between %s - %s`, startDate, endDate),
-      baseline: t('Baseline is all other spans from your query'),
+      start,
+      end,
     };
-  }, [selection, yAxis]);
-
-  if (isError) {
-    return <LoadingError message={t('Failed to load attribute breakdowns')} />;
-  }
+  }, [selection]);
 
   return (
     <Panel data-explore-chart-selection-region>
-      <Flex direction="column" gap="xl" padding="xl">
-        <ControlsContainer>
-          <StyledBaseSearchBar
+      <Flex direction="column" gap="2xl" padding="xl">
+        <AttributeBreakdownsComponent.ControlsContainer>
+          <AttributeBreakdownsComponent.StyledBaseSearchBar
             placeholder={t('Search keys')}
             onChange={query => {
               setSearchQuery(query);
@@ -145,22 +115,30 @@ export function CohortComparison({
             size="sm"
           />
           <AttributeBreakdownsComponent.FeedbackButton />
-        </ControlsContainer>
+        </AttributeBreakdownsComponent.ControlsContainer>
         {isLoading ? (
           <AttributeBreakdownsComponent.LoadingCharts />
+        ) : error ? (
+          <AttributeBreakdownsComponent.ErrorState error={error} />
         ) : (
           <Fragment>
-            {selectionHint && (
+            {selectedRangeToDates && (
               <SelectionHintContainer>
                 <SelectionHint color={theme.chart.getColorPalette(0)?.[0]}>
-                  {selectionHint.selection}
+                  {t(
+                    'Selection is data between %s - %s',
+                    selectedRangeToDates.start,
+                    selectedRangeToDates.end
+                  )}
                 </SelectionHint>
-                <SelectionHint color="#A29FAA">{selectionHint.baseline}</SelectionHint>
+                <SelectionHint color="#A29FAA">
+                  {t('Baseline is all other spans from your query')}
+                </SelectionHint>
               </SelectionHintContainer>
             )}
             {filteredRankedAttributes.length > 0 ? (
               <Fragment>
-                <ChartsGrid>
+                <AttributeBreakdownsComponent.ChartsGrid>
                   {filteredRankedAttributes
                     .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
                     .map(attribute => (
@@ -172,37 +150,15 @@ export function CohortComparison({
                         cohort2Total={data?.cohort2Total ?? 0}
                       />
                     ))}
-                </ChartsGrid>
-                <PaginationContainer>
-                  <ButtonBar merged gap="0">
-                    <Button
-                      icon={<IconChevron direction="left" />}
-                      aria-label={t('Previous')}
-                      size="sm"
-                      disabled={page === 0}
-                      onClick={() => {
-                        setPage(page - 1);
-                      }}
-                    />
-                    <Button
-                      icon={<IconChevron direction="right" />}
-                      aria-label={t('Next')}
-                      size="sm"
-                      disabled={
-                        page ===
-                        Math.ceil(filteredRankedAttributes.length / CHARTS_PER_PAGE) - 1
-                      }
-                      onClick={() => {
-                        setPage(page + 1);
-                      }}
-                    />
-                  </ButtonBar>
-                </PaginationContainer>
+                </AttributeBreakdownsComponent.ChartsGrid>
+                <AttributeBreakdownsComponent.Pagination
+                  currentPage={page}
+                  onPageChange={setPage}
+                  totalItems={filteredRankedAttributes.length}
+                />
               </Fragment>
             ) : (
-              <NoAttributesMessage>
-                {t('No matching attributes found')}
-              </NoAttributesMessage>
+              <AttributeBreakdownsComponent.EmptySearchState />
             )}
           </Fragment>
         )}
@@ -210,35 +166,6 @@ export function CohortComparison({
     </Panel>
   );
 }
-
-const ControlsContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const StyledBaseSearchBar = styled(BaseSearchBar)`
-  flex: 1;
-`;
-
-const NoAttributesMessage = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: ${p => p.theme.subText};
-`;
-
-const ChartsGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(${CHARTS_COLUMN_COUNT}, 1fr);
-  gap: ${space(1)};
-`;
-
-const PaginationContainer = styled('div')`
-  display: flex;
-  justify-content: end;
-  align-items: center;
-`;
 
 const SelectionHintContainer = styled('div')`
   display: flex;

@@ -71,7 +71,7 @@ function makeDirectionText(condition: MetricCondition) {
   }
 }
 
-function getConditionDescription({
+export function getConditionDescription({
   aggregate,
   config,
   condition,

@@ -160,7 +160,7 @@ const VerticalScroll = styled('main')`
   padding: ${p => p.theme.space.xl};
 `;
 
-const StoryMainContainer = styled('div')`
+const StoryMainContainer = styled('main')`
   grid-row: 1;
   grid-column: 2;
   color: ${p => p.theme.tokens.content.primary};
