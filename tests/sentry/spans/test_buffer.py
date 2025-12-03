@@ -779,3 +779,64 @@ def test_preassigned_disconnected_segment(buffer: SpansBuffer) -> None:
     assert list(buffer.get_memory_info())
 
     assert_clean(buffer.client)
+
+
+def test_chunk_large_segment_basic(buffer: SpansBuffer) -> None:
+    """Test that _chunk_large_segment splits segments correctly."""
+    # Create spans with known sizes
+    small_span = b"x" * 100  # 100 bytes
+    large_spans = [small_span] * 150  # 15000 bytes total
+
+    max_size = 5000  # Max 5000 bytes per chunk
+
+    chunks = buffer._chunk_large_segment(large_spans, max_size)
+
+    # Should create 3 chunks: 5000, 5000, 5000 bytes (50 + 50 + 50 spans)
+    assert len(chunks) == 3
+    assert len(chunks[0]) == 50
+    assert len(chunks[1]) == 50
+    assert len(chunks[2]) == 50
+
+    # Verify each chunk is under the limit
+    for chunk in chunks:
+        chunk_size = sum(len(span) for span in chunk)
+        assert chunk_size <= max_size
+
+
+def test_chunk_large_segment_oversized_span(buffer: SpansBuffer) -> None:
+    """Test handling of a single span that exceeds the limit."""
+    # Create one giant span and some normal spans
+    oversized_span = b"x" * 6000  # 6000 bytes
+    normal_span = b"y" * 100  # 100 bytes
+
+    spans = [normal_span, oversized_span, normal_span]
+    max_size = 5000
+
+    chunks = buffer._chunk_large_segment(spans, max_size)
+
+    # Should create 3 chunks:
+    # 1. [normal_span] (100 bytes)
+    # 2. [oversized_span] (6000 bytes - alone in its chunk)
+    # 3. [normal_span] (100 bytes)
+    assert len(chunks) == 3
+    assert len(chunks[0]) == 1
+    assert len(chunks[1]) == 1
+    assert len(chunks[2]) == 1
+    assert chunks[1][0] == oversized_span
+
+
+def test_chunk_large_segment_empty(buffer: SpansBuffer) -> None:
+    """Test that empty span list returns a single empty chunk."""
+    chunks = buffer._chunk_large_segment([], 5000)
+    assert chunks == [[]]
+
+
+def test_chunk_large_segment_under_limit(buffer: SpansBuffer) -> None:
+    """Test that segments under the limit remain in a single chunk."""
+    small_spans = [b"x" * 100] * 10  # 1000 bytes total
+    max_size = 5000
+
+    chunks = buffer._chunk_large_segment(small_spans, max_size)
+
+    assert len(chunks) == 1
+    assert len(chunks[0]) == 10

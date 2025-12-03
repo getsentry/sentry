@@ -419,6 +419,7 @@ class SpansBuffer:
         return_segments = {}
         num_has_root_spans = 0
         any_shard_at_limit = False
+        max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
 
         for shard, queue_key, segment_key in segment_keys:
             segment_span_id = _segment_key_to_span_id(segment_key).decode("ascii")
@@ -427,32 +428,59 @@ class SpansBuffer:
             if len(segment) >= max_segments_per_shard:
                 any_shard_at_limit = True
 
-            output_spans = []
-            has_root_span = False
             metrics.timing("spans.buffer.flush_segments.num_spans_per_segment", len(segment))
-            # This incr metric is needed to get a rate overall.
             metrics.incr("spans.buffer.flush_segments.count_spans_per_segment", amount=len(segment))
-            for payload in segment:
-                span = orjson.loads(payload)
 
-                if not attribute_value(span, "sentry.segment.id"):
-                    span.setdefault("attributes", {})["sentry.segment.id"] = {
-                        "type": "string",
-                        "value": segment_span_id,
-                    }
+            # Chunk the segment (returns single chunk if it fits within limit)
+            span_chunks = self._chunk_large_segment(segment, max_segment_bytes)
 
-                is_segment = segment_span_id == span["span_id"]
-                span["is_segment"] = is_segment
-                if is_segment:
-                    has_root_span = True
+            if len(span_chunks) > 1:
+                segment_size = sum(len(span) for span in segment)
+                metrics.incr("spans.buffer.flush_segments.segment_chunked")
+                logger.info(
+                    "Chunking large segment",
+                    extra={
+                        "segment_size": segment_size,
+                        "max_size": max_segment_bytes,
+                        "num_spans": len(segment),
+                        "num_chunks": len(span_chunks),
+                    },
+                )
 
-                output_spans.append(OutputSpan(payload=span))
+            # Process each chunk as a separate segment
+            for chunk_idx, span_chunk in enumerate(span_chunks):
+                output_spans = []
+                has_root_span = False
 
-            metrics.incr(
-                "spans.buffer.flush_segments.num_segments_per_shard", tags={"shard_i": shard}
-            )
-            return_segments[segment_key] = FlushedSegment(queue_key=queue_key, spans=output_spans)
-            num_has_root_spans += int(has_root_span)
+                for payload in span_chunk:
+                    span = orjson.loads(payload)
+
+                    if not attribute_value(span, "sentry.segment.id"):
+                        span.setdefault("attributes", {})["sentry.segment.id"] = {
+                            "type": "string",
+                            "value": segment_span_id,
+                        }
+
+                    is_segment = segment_span_id == span["span_id"]
+                    span["is_segment"] = is_segment
+                    if is_segment:
+                        has_root_span = True
+
+                    output_spans.append(OutputSpan(payload=span))
+
+                # For single chunks, use original key. For multiple chunks, add suffix
+                if len(span_chunks) == 1:
+                    chunk_segment_key = segment_key
+                else:
+                    chunk_segment_key = segment_key + b":chunk:" + str(chunk_idx).encode()
+
+                metrics.incr(
+                    "spans.buffer.flush_segments.num_segments_per_shard", tags={"shard_i": shard}
+                )
+                return_segments[chunk_segment_key] = FlushedSegment(
+                    queue_key=queue_key, spans=output_spans
+                )
+                num_has_root_spans += int(has_root_span)
 
         metrics.timing("spans.buffer.flush_segments.num_segments", len(return_segments))
         metrics.timing("spans.buffer.flush_segments.has_root_span", num_has_root_spans)
@@ -460,17 +488,69 @@ class SpansBuffer:
         self.any_shard_at_limit = any_shard_at_limit
         return return_segments
 
+    def _chunk_large_segment(self, spans: list[bytes], max_segment_bytes: int) -> list[list[bytes]]:
+        """
+        Chunks a list of spans into smaller lists that each stay under the size limit.
+
+        This allows us to process large segments without dropping them entirely.
+        The hierarchy may break across chunks, but each chunk stays under the limit.
+
+        Always returns at least one chunk (which may be empty if input is empty).
+
+        :param spans: List of span payloads (as bytes).
+        :param max_segment_bytes: Maximum size in bytes for each chunk.
+        :return: List of chunked span lists, each under the size limit.
+        """
+        if not spans:
+            return [[]]
+
+        chunks = []
+        current_chunk = []
+        current_size = 0
+
+        for span in spans:
+            span_size = len(span)
+
+            # If a single span exceeds the limit, put it in its own chunk
+            if span_size > max_segment_bytes:
+                if current_chunk:
+                    chunks.append(current_chunk)
+                    current_chunk = []
+                    current_size = 0
+                chunks.append([span])
+                metrics.incr("spans.buffer.chunk_segments.oversized_span")
+                logger.warning(
+                    "Single span exceeds max segment size",
+                    extra={"span_size": span_size, "max_size": max_segment_bytes},
+                )
+                continue
+
+            # If adding this span would exceed the limit, start a new chunk
+            if current_size + span_size > max_segment_bytes and current_chunk:
+                chunks.append(current_chunk)
+                current_chunk = []
+                current_size = 0
+
+            current_chunk.append(span)
+            current_size += span_size
+
+        # Add the final chunk if it has any spans
+        if current_chunk:
+            chunks.append(current_chunk)
+
+        return chunks
+
     def _load_segment_data(self, segment_keys: list[SegmentKey]) -> dict[SegmentKey, list[bytes]]:
         """
         Loads the segments from Redis, given a list of segment keys. Segments
-        exceeding a certain size are skipped, and an error is logged.
+        exceeding a certain size are chunked into smaller segments that each
+        stay under the size limit.
 
         :param segment_keys: List of segment keys to load.
         :return: Dictionary mapping segment keys to lists of span payloads.
         """
 
         page_size = options.get("spans.buffer.segment-page-size")
-        max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
 
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         cursors = {key: 0 for key in segment_keys}
@@ -496,13 +576,6 @@ class SpansBuffer:
                     decompressed_spans.extend(self._decompress_batch(span_data))
 
                 sizes[key] += sum(len(span) for span in decompressed_spans)
-                if sizes[key] > max_segment_bytes:
-                    metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
-                    logger.warning("Skipping too large segment, byte size %s", sizes[key])
-
-                    del payloads[key]
-                    del cursors[key]
-                    continue
 
                 payloads[key].extend(decompressed_spans)
                 if cursor == 0:
