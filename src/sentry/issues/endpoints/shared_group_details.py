@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,6 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environment_func
 from sentry.api.serializers import SharedGroupSerializer, serialize
 from sentry.models.group import Group
@@ -20,6 +23,11 @@ class SharedGroupDetailsEndpoint(Endpoint):
     }
     permission_classes = ()
 
+    @deprecated(
+        deprecation_date=datetime.fromisoformat("2026-06-15T00:00:00+00:00"),
+        suggested_api="/api/0/organizations/{organization_id_or_slug}/shared/issues/{share_id}/",
+        url_names=["sentry-api-0-shared-group-details"],
+    )
     def get(
         self,
         request: Request,
