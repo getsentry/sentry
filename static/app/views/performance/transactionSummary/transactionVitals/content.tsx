@@ -14,13 +14,16 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {WebVital} from 'sentry/utils/fields';
 import Histogram from 'sentry/utils/performance/histogram';
 import {FILTER_OPTIONS} from 'sentry/utils/performance/histogram/constants';
 import VitalsCardsDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 
@@ -54,6 +57,11 @@ function VitalsContent() {
   }, []);
 
   const zoomKeys = useMemo(() => makeZoomKeys(), []);
+
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.TRANSACTIONS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
     <Histogram location={location} zoomKeys={zoomKeys}>
@@ -90,7 +98,7 @@ function VitalsContent() {
                   <FilterActions>
                     <PageFilterBar condensed>
                       <EnvironmentPageFilter />
-                      <DatePageFilter />
+                      <DatePageFilter {...datePageFilterProps} />
                     </PageFilterBar>
                     <StyledSearchBarWrapper>
                       <TransactionSearchQueryBuilder
