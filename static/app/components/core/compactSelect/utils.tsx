@@ -66,7 +66,7 @@ export function getSelectedOptions<Value extends SelectKey>(
     // If this is an option
     if (selection === 'all' || selection.has(cur.key)) {
       const {key: _key, ...opt} = cur;
-      return acc.concat(opt);
+      acc.push(opt);
     }
     return acc;
   }, []);
@@ -81,19 +81,24 @@ export function getDisabledOptions<Value extends SelectKey>(
   items: Array<SelectOptionOrSectionWithKey<Value>>,
   isOptionDisabled?: (opt: SelectOptionWithKey<Value>) => boolean
 ): SelectKey[] {
-  return items.reduce((acc: SelectKey[], cur) => {
+  return items.reduce<SelectKey[]>((acc, cur) => {
     // If this is a section
     if ('options' in cur) {
       if (cur.disabled) {
         // If the entire section is disabled, then mark all of its children as disabled
-        return acc.concat(cur.options.map(opt => opt.key));
+        for (const opt of cur.options) {
+          acc.push(opt.key);
+        }
+        return acc;
       }
+
       return acc.concat(getDisabledOptions(cur.options, isOptionDisabled));
     }
 
     // If this is an option
     if (isOptionDisabled?.(cur) ?? cur.disabled) {
-      return acc.concat(cur.key);
+      acc.push(cur.key);
+      return acc;
     }
     return acc;
   }, []);

@@ -166,7 +166,8 @@ export function collapseTextTokens(tokens: ParseResult | null) {
       return acc;
     }
 
-    return [...acc, token];
+    acc.push(token);
+    return acc;
   }, []);
 }
 
