@@ -201,11 +201,6 @@ function buildRoutes(): RouteObject[] {
       path: '/user-feedback/',
       redirectTo: '/feedback/',
     },
-    // TODO: remove share/issue orgless url
-    {
-      path: '/share/issue/:shareId/',
-      component: make(() => import('sentry/views/sharedGroupDetails')),
-    },
     {
       path: '/organizations/:orgId/share/issue/:shareId/',
       component: make(() => import('sentry/views/sharedGroupDetails')),
