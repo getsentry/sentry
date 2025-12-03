@@ -65,12 +65,7 @@ def decode(
     """
     # TODO: We do not currently have type-safety for keys suitable for decoding *and*
     # encoding vs those only suitable for decoding.
-    # TODO(flub): The algorithms parameter really does not need to be optional and should be
-    # a straight list[str].  However this is used by some unclear code in
-    # sentry.integrations.msteams.webhook.verify_signature which isn't checked by mypy yet,
-    # and I am too afraid to change this.  One day (hah!) all will be checked by mypy and
-    # this can be safely fixed.
-    options = {"verify": True}
+    options = {}
     kwargs = dict()
     if audience is False:
         options["verify_aud"] = False

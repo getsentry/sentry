@@ -185,6 +185,27 @@ def test_decode_audience() -> None:
     assert claims == payload
 
 
+def test_decode_invalid_signature(token: str) -> None:
+    """Verify that decode rejects tokens when the wrong key is provided."""
+    with pytest.raises(pyjwt.exceptions.InvalidSignatureError):
+        jwt_utils.decode(token, "wrong_secret")
+
+
+def test_decode_tampered_payload() -> None:
+    """Verify that decode rejects tokens with tampered payloads."""
+    claims = {"iss": "me", "data": "original"}
+    token = jwt_utils.encode(claims, "secret")
+
+    # Tamper with the payload by modifying the middle part
+    parts = token.split(".")
+    # Create a token with different payload but same signature
+    tampered_payload = pyjwt.utils.base64url_encode(b'{"iss":"attacker"}').decode("utf-8")
+    tampered_token = f"{parts[0]}.{tampered_payload}.{parts[2]}"
+
+    with pytest.raises(pyjwt.exceptions.InvalidSignatureError):
+        jwt_utils.decode(tampered_token, "secret")
+
+
 def test_encode(token: str) -> None:
     headers = {
         "alg": "HS256",
