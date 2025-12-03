@@ -8,6 +8,10 @@ import type {ProductSelectionProps} from 'sentry/components/onboarding/productSe
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SentryRouteObject} from 'sentry/router/types';
+import type {
+  useDefaultMaxPickableDays,
+  useMaxPickableDays,
+} from 'sentry/utils/useMaxPickableDays';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
@@ -110,6 +114,11 @@ type OrganizationHeaderProps = {
 
 type ProductSelectionAvailabilityProps = Omit<ProductSelectionProps, 'disabledProducts'>;
 
+type DateRangeQueryLimitFooterProps = {
+  description: string;
+  source: string;
+};
+
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
   hideCTA?: boolean;
@@ -189,9 +198,9 @@ type ComponentHooks = {
   'component:disabled-member': () => React.ComponentType;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;
-  'component:explore-date-range-query-limit-footer': () => React.ComponentType;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
+  'component:header-date-page-filter-upsell-footer': () => React.ComponentType<DateRangeQueryLimitFooterProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:insights-date-range-query-limit-footer': () => React.ComponentType;
@@ -325,7 +334,9 @@ type ReactHooks = {
   'react-hook:use-dashboard-dataset-retention-limit': (props: {
     dataset: WidgetType;
   }) => number;
+  'react-hook:use-default-max-pickable-days': typeof useDefaultMaxPickableDays;
   'react-hook:use-get-max-retention-days': () => number | undefined;
+  'react-hook:use-max-pickable-days': typeof useMaxPickableDays;
   'react-hook:use-metric-detector-limit': () => {
     detectorCount: number;
     detectorLimit: number;

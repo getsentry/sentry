@@ -18,6 +18,7 @@ from sentry.seer.autofix.issue_summary import (
     _fetch_user_preference,
     _get_event,
     _get_stopping_point_from_fixability,
+    get_and_update_group_fixability_score,
     get_issue_summary,
     run_automation,
 )
@@ -770,7 +771,7 @@ class TestGetStoppingPointFromFixability:
         assert _get_stopping_point_from_fixability(score) == expected
 
 
-@with_feature({"organizations:gen-ai-features": True, "projects:triage-signals-v0": True})
+@with_feature({"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True})
 class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -850,7 +851,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         )
 
         with self.feature(
-            {"organizations:gen-ai-features": True, "projects:triage-signals-v0": False}
+            {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": False}
         ):
             run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
@@ -973,7 +974,7 @@ class TestApplyUserPreferenceUpperBound:
         assert result == expected
 
 
-@with_feature({"organizations:gen-ai-features": True, "projects:triage-signals-v0": True})
+@with_feature({"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True})
 class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1079,7 +1080,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
 
 
 @with_feature("organizations:gen-ai-features")
-@with_feature("projects:triage-signals-v0")
+@with_feature("organizations:triage-signals-v0-org")
 class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1095,7 +1096,7 @@ class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
     def test_alert_skips_automation_below_threshold(
         self, mock_budget, mock_state, mock_fixability, mock_trigger
     ):
-        """Alert automation should skip when event count < 10 with triage-signals-v0"""
+        """Alert automation should skip when event count < 10 with triage-signals-v0-org"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_budget.return_value = True
         mock_state.return_value = None
@@ -1143,3 +1144,65 @@ class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
 
         # Should trigger automation
         mock_trigger.delay.assert_called_once()
+
+
+@with_feature("organizations:gen-ai-features")
+class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    def test_returns_existing_score_without_regenerating(self, mock_generate):
+        """Test that existing fixability score is returned without calling Seer."""
+        # Set an existing fixability score
+        self.group.update(seer_fixability_score=0.75)
+
+        result = get_and_update_group_fixability_score(self.group)
+
+        assert result == 0.75
+        # Seer should not be called when score exists
+        mock_generate.assert_not_called()
+
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    def test_generates_and_updates_score_when_missing(self, mock_generate):
+        """Test that fixability score is generated and saved when missing."""
+        mock_generate.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="Test",
+            whats_wrong="Something",
+            trace="Trace",
+            possible_cause="Cause",
+            scores=SummarizeIssueScores(fixability_score=0.85),
+        )
+
+        result = get_and_update_group_fixability_score(self.group)
+
+        assert result == 0.85
+        # Verify group was updated with the new score
+        self.group.refresh_from_db()
+        assert self.group.seer_fixability_score == 0.85
+        mock_generate.assert_called_once_with(self.group)
+
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    def test_force_generate_regenerates_existing_score(self, mock_generate):
+        """Test that force_generate=True regenerates score even if one exists."""
+        # Set an existing score
+        self.group.update(seer_fixability_score=0.50)
+
+        mock_generate.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="Test",
+            whats_wrong="Something",
+            trace="Trace",
+            possible_cause="Cause",
+            scores=SummarizeIssueScores(fixability_score=0.90),
+        )
+
+        result = get_and_update_group_fixability_score(self.group, force_generate=True)
+
+        assert result == 0.90
+        # Verify the score was updated
+        self.group.refresh_from_db()
+        assert self.group.seer_fixability_score == 0.90
+        mock_generate.assert_called_once_with(self.group)

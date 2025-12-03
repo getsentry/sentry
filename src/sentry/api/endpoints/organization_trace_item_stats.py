@@ -12,7 +12,7 @@ from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
@@ -40,7 +40,7 @@ class OrganizationTraceItemsStatsSerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class OrganizationTraceItemsStatsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

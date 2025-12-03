@@ -84,16 +84,14 @@ def get_attribute_values_with_substring(
         item_type: Type of trace item (default: "spans")
 
     Returns:
-        Dictionary with values:
+        Dictionary with field names as keys and lists of values:
         {
-            "values": {
-                "span.status": ["ok", "error", ...],
-                "transaction": ["checkout", ...]
-            }
+            "span.status": ["ok", "error", ...],
+            "transaction": ["checkout", ...]
         }
     """
     if not fields_with_substrings:
-        return {"values": {}}
+        return {}
 
     organization = Organization.objects.get(id=org_id)
     api_key = ApiKey(organization_id=org_id, scope_list=API_KEY_SCOPES)
@@ -127,6 +125,4 @@ def get_attribute_values_with_substring(
         values.setdefault(field, set()).update(field_values_list[:limit])
 
     # Convert sets to sorted lists for JSON serialization
-    return {
-        "values": {field: sorted(field_values)[:limit] for field, field_values in values.items()}
-    }
+    return {field: sorted(field_values)[:limit] for field, field_values in values.items()}

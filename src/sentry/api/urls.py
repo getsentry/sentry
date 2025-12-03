@@ -321,7 +321,6 @@ from sentry.issues.endpoints import (
     SourceMapDebugEndpoint,
     TeamGroupsOldEndpoint,
 )
-from sentry.issues.endpoints.browser_reporting_collector import BrowserReportingCollectorEndpoint
 from sentry.issues.endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from sentry.issues.endpoints.event_owners import EventOwnersEndpoint
 from sentry.issues.endpoints.event_reprocessable import EventReprocessableEndpoint
@@ -570,7 +569,6 @@ from sentry.sentry_apps.api.endpoints.sentry_app_interaction import SentryAppInt
 from sentry.sentry_apps.api.endpoints.sentry_app_publish_request import (
     SentryAppPublishRequestEndpoint,
 )
-from sentry.sentry_apps.api.endpoints.sentry_app_requests import SentryAppRequestsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_rotate_secret import SentryAppRotateSecretEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_stats_details import SentryAppStatsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_webhook_requests import (
@@ -2612,7 +2610,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-conduit-demo",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/objectstore/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/objectstore/(?P<path>.*)$",
         OrganizationObjectstoreEndpoint.as_view(),
         name="sentry-api-0-organization-objectstore",
     ),
@@ -3381,11 +3379,6 @@ SENTRY_APP_URLS = [
     # The following a region endpoints as interactions and request logs
     # are per-region.
     re_path(
-        r"^(?P<sentry_app_id_or_slug>[^/]+)/requests/$",
-        SentryAppRequestsEndpoint.as_view(),
-        name="sentry-api-0-sentry-app-requests",
-    ),
-    re_path(
         r"^(?P<sentry_app_id_or_slug>[^/]+)/interaction/$",
         SentryAppInteractionEndpoint.as_view(),
         name="sentry-api-0-sentry-app-interaction",
@@ -3763,12 +3756,6 @@ urlpatterns = [
         r"^secret-scanning/github/$",
         SecretScanningGitHubEndpoint.as_view(),
         name="sentry-api-0-secret-scanning-github",
-    ),
-    # Temporary public endpoint for proxying browser reports to GCP, to gather real-world data
-    re_path(
-        r"^reporting-api-experiment/$",
-        BrowserReportingCollectorEndpoint.as_view(),
-        name="sentry-api-0-reporting-api-experiment",
     ),
     # Catch all
     re_path(

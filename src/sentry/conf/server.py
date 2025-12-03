@@ -195,6 +195,7 @@ SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER = "default"
 SENTRY_HYBRIDCLOUD_DELETIONS_REDIS_CLUSTER = "default"
 SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
 SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
+SENTRY_SNOWFLAKE_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -388,7 +389,6 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.staff.StaffMiddleware",
-    "sentry.middleware.reporting_endpoint.ReportingEndpointMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -921,6 +921,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.web_vitals_issue_detection",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tempest.tasks",
+    "sentry.uptime.autodetect.notifications",
     "sentry.uptime.autodetect.tasks",
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
@@ -1009,9 +1010,8 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "delete-pending-groups": {
         "task": "deletions:sentry.tasks.delete_pending_groups",
-        # Runs every 2 hours during 9am-5pm Eastern Time (EST: UTC-5)
-        # 9am, 11am, 1pm, 3pm, 5pm EST = 14:00, 16:00, 18:00, 20:00, 22:00 UTC
-        "schedule": task_crontab("0", "14,16,18,20,22", "*", "*", "*"),
+        # Runs every 6 hours (at 00:00, 06:00, 12:00, 18:00 UTC)
+        "schedule": task_crontab("0", "*/6", "*", "*", "*"),
     },
     "schedule-weekly-organization-reports-new": {
         "task": "reports:sentry.tasks.summaries.weekly_reports.schedule_organizations",
@@ -2128,7 +2128,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.11.0"
+SELF_HOSTED_STABLE_VERSION = "25.11.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2509,7 +2509,7 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin", "options.admin")
 
 # WARNING(iker): there are two different formats for KAFKA_CLUSTERS: the one we
-# use below, and a legacy one still used in `getsentry`.
+# use below, and a legacy one that still might be used by self-hosted instances.
 # Reading items from this default configuration directly might break deploys.
 # To correctly read items from this dictionary and not worry about the format,
 # see `sentry.utils.kafka_config.get_kafka_consumer_cluster_options`.

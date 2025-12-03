@@ -16,15 +16,14 @@ import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackI
 import useHaveSelectedProjectsSetupFeedback from 'sentry/components/feedback/useFeedbackOnboarding';
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import useRedirectToFeedbackFromEvent from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -47,7 +46,6 @@ export default function FeedbackListPage() {
   const isMediumOrSmaller = useMedia(`(max-width: ${theme.breakpoints.md})`);
   const [showItemPreview, setShowItemPreview] = useState(false);
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
-  const openFeedbackForm = useFeedbackForm();
 
   // show feedback item preview when feedback is selected on med screens and smaller
   useEffect(() => {
@@ -150,24 +148,17 @@ export default function FeedbackListPage() {
               </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
-              {openFeedbackForm ? (
-                <Button
-                  size="sm"
-                  icon={<IconMegaphone />}
-                  onClick={() =>
-                    openFeedbackForm({
-                      messagePlaceholder: t(
-                        'How can we improve the User Feedback experience?'
-                      ),
-                      tags: {
-                        ['feedback.source']: 'feedback-list',
-                      },
-                    })
-                  }
-                >
-                  {t('Give Feedback')}
-                </Button>
-              ) : null}
+              <FeedbackButton
+                size="sm"
+                feedbackOptions={{
+                  messagePlaceholder: t(
+                    'How can we improve the User Feedback experience?'
+                  ),
+                  tags: {
+                    ['feedback.source']: 'feedback-list',
+                  },
+                }}
+              />
             </Layout.HeaderActions>
           </Layout.Header>
           <PageFiltersContainer>

@@ -5,7 +5,10 @@ import Feature from 'sentry/components/acl/feature';
 import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {
+  DatePageFilter,
+  type DatePageFilterProps,
+} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -76,8 +79,14 @@ const FRONTEND_COLUMN_TITLES = [
   {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
+interface Am1FrontendOverviewPageProps {
+  datePageFilterProps: DatePageFilterProps;
+}
+
 // Am1 customers do not have EAP, so we need to use the old frontend overview page for now
-export function Am1FrontendOverviewPage() {
+export function Am1FrontendOverviewPage({
+  datePageFilterProps,
+}: Am1FrontendOverviewPageProps) {
   useOverviewPageTrackPageload();
   const theme = useTheme();
 
@@ -212,7 +221,7 @@ export function Am1FrontendOverviewPage() {
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
-                  <DatePageFilter />
+                  <DatePageFilter {...datePageFilterProps} />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar

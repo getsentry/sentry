@@ -21,6 +21,7 @@ import {
   Dataset,
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
+import {getIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -310,10 +311,18 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
   const datasetConfig = getDatasetConfig(data.dataset);
   const {eventTypes, query} = datasetConfig.separateEventTypesFromQuery(data.query);
 
+  const isUsingMigratedExtrapolation = getIsMigratedExtrapolation({
+    dataset: data.dataset,
+    extrapolationMode: data.extrapolationMode,
+  });
+  const adjustedExtrapolationMode = isUsingMigratedExtrapolation
+    ? ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED
+    : data.extrapolationMode;
+
   return {
     queryType: getQueryType(data.dataset),
     dataset: getBackendDataset(data.dataset),
-    extrapolationMode: data.extrapolationMode,
+    extrapolationMode: adjustedExtrapolationMode,
     query,
     aggregate: datasetConfig.toApiAggregate(data.aggregateFunction),
     timeWindow: data.interval,

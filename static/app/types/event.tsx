@@ -1,5 +1,6 @@
 import type {CloudResourceContext} from '@sentry/core';
 
+import type {AppContext} from 'sentry/components/events/contexts/knownContext/app';
 import type {CultureContext} from 'sentry/components/events/contexts/knownContext/culture';
 import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import type {
@@ -203,6 +204,9 @@ export type ExceptionValue = {
   type: string;
   value: string;
   frames?: Frame[] | null;
+  rawModule?: string | null;
+  rawType?: string | null;
+  rawValue?: string | null;
 };
 
 export type ExceptionType = {
@@ -636,6 +640,7 @@ export type EventContexts = {
   'Current Culture'?: CultureContext;
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
+  app?: AppContext;
   browser?: BrowserContext;
   client_os?: OSContext;
   cloud_resource?: CloudResourceContext;
@@ -693,7 +698,7 @@ export type EventEvidenceDisplay = {
   value: string;
 };
 
-type EventOccurrence = {
+export type EventOccurrence = {
   detectionTime: string;
   eventId: string;
   /**

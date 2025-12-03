@@ -571,7 +571,7 @@ describe('DetectorEdit', () => {
       expect(screen.queryByText('Dynamic')).not.toBeInTheDocument();
     });
 
-    it('disables column select when spans + count()', async () => {
+    it('limited options when selecting spans + count()', async () => {
       const spansDetector = MetricDetectorFixture({
         dataSources: [
           SnubaQueryDataSourceFixture({
@@ -606,9 +606,14 @@ describe('DetectorEdit', () => {
         await screen.findByRole('link', {name: spansDetector.name})
       ).toBeInTheDocument();
 
-      // Column parameter should be locked to "spans" and disabled
+      // Column parameter should be locked to "spans" - verify only "spans" option is available
       const button = screen.getByRole('button', {name: 'spans'});
-      expect(button).toBeDisabled();
+      await userEvent.click(button);
+
+      // Verify only "spans" option exists in the dropdown
+      const options = screen.getAllByRole('option');
+      expect(options).toHaveLength(1);
+      expect(options[0]).toHaveTextContent('spans');
     });
 
     it('resets 1 day interval to 15 minutes when switching to dynamic detection', async () => {
@@ -930,7 +935,7 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('button', {name: 'p75'})).toBeDisabled();
     });
 
-    it('preserves SERVER_WEIGHTED extrapolation mode when editing and saving', async () => {
+    it('changes SERVER_WEIGHTED extrapolation mode to CLIEND_AND_SERVER_WEIGHTED when editing and saving', async () => {
       const spanDetectorWithExtrapolation = MetricDetectorFixture({
         id: '1',
         name: 'Span Detector with Extrapolation',
@@ -985,13 +990,14 @@ describe('DetectorEdit', () => {
         await screen.findByRole('link', {name: 'Span Detector with Extrapolation'})
       ).toBeInTheDocument();
 
-      // Verify events-stats is called with 'serverOnly' extrapolation mode for the chart
+      // Verify events-stats is called with 'sampleWeightd' extrapolation mode for the chart
+      // as we want to switch the extrapolation mode when saving
       await waitFor(() => {
         expect(eventsStatsRequest).toHaveBeenCalledWith(
           `/organizations/${organization.slug}/events-stats/`,
           expect.objectContaining({
             query: expect.objectContaining({
-              extrapolationMode: 'serverOnly',
+              extrapolationMode: 'sampleWeighted',
               sampling: SAMPLING_MODE.NORMAL,
             }),
           })
@@ -1015,7 +1021,7 @@ describe('DetectorEdit', () => {
             data: expect.objectContaining({
               dataSources: expect.arrayContaining([
                 expect.objectContaining({
-                  extrapolationMode: ExtrapolationMode.SERVER_WEIGHTED,
+                  extrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
                 }),
               ]),
             }),
