@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -55,22 +56,24 @@ function HunkHeader({
   );
 }
 
-function FileDiffView({patch}: {patch: FilePatch}) {
+function FileDiffView({patch, repoName}: {patch: FilePatch; repoName: string}) {
   const isDelete = patch.type === DiffFileType.DELETED;
 
   return (
     <FileDiffWrapper>
       <FileHeader>
-        <FileAddedRemoved>
+        <Flex gap="md" align="center">
           <FileAdded>+{patch.added}</FileAdded>
           <FileRemoved>-{patch.removed}</FileRemoved>
-        </FileAddedRemoved>
-        <FileName title={patch.path}>{patch.path}</FileName>
+        </Flex>
+        <FileName
+          title={`${repoName}:${patch.path}`}
+        >{`${repoName}:${patch.path}`}</FileName>
       </FileHeader>
       {isDelete ? (
-        <DeleteMessage>
+        <Flex align="center" justify="center" padding="3xl">
           <Text variant="muted">{t('This file will be deleted.')}</Text>
-        </DeleteMessage>
+        </Flex>
       ) : (
         <DiffContainer>
           {patch.hunks.map((hunk, hunkIndex) => (
@@ -137,7 +140,7 @@ function FileChangeApprovalBlock({
           animate={{opacity: 1, y: 0}}
           exit={{opacity: 0, y: 10}}
         >
-          <BlockRow>
+          <Flex align="start" width="100%">
             <BlockContentWrapper>
               <DiffScrollContainer>
                 <AnimatePresence mode="wait">
@@ -148,12 +151,15 @@ function FileChangeApprovalBlock({
                     exit={{opacity: 0, x: -20}}
                     transition={{duration: 0.12, ease: 'easeOut'}}
                   >
-                    <FileDiffView patch={currentPatch.patch} />
+                    <FileDiffView
+                      patch={currentPatch.patch}
+                      repoName={currentPatch.repo_name}
+                    />
                   </motion.div>
                 </AnimatePresence>
               </DiffScrollContainer>
             </BlockContentWrapper>
-          </BlockRow>
+          </Flex>
         </motion.div>
       </AnimatePresence>
     </Block>
@@ -169,12 +175,6 @@ const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   flex-shrink: 0;
   cursor: pointer;
   background: ${p => (p.isFocused ? p.theme.hover : 'transparent')};
-`;
-
-const BlockRow = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  width: 100%;
 `;
 
 const BlockContentWrapper = styled('div')`
@@ -205,12 +205,6 @@ const FileHeader = styled('div')`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
-const FileAddedRemoved = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
-
 const FileAdded = styled('div')`
   color: ${p => p.theme.successText};
 `;
@@ -225,13 +219,6 @@ const FileName = styled('div')`
   white-space: nowrap;
   direction: rtl;
   text-align: left;
-`;
-
-const DeleteMessage = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${p => p.theme.space['3xl']};
 `;
 
 const DiffContainer = styled('div')`

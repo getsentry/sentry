@@ -397,7 +397,9 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         focusedBlockIndex={focusedBlockIndex}
         inputValue={inputValue}
         interruptRequested={interruptRequested}
+        isMinimized={isMinimized}
         isPolling={isPolling}
+        isVisible={isVisible}
         onClear={() => setInputValue('')}
         onInputChange={handleInputChange}
         onInputClick={handleInputClick}

@@ -31,6 +31,8 @@ interface InputSectionProps {
   onMenuButtonClick: () => void;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   fileApprovalActions?: FileApprovalActions;
+  isMinimized?: boolean;
+  isVisible?: boolean;
 }
 
 function InputSection({
@@ -38,8 +40,10 @@ function InputSection({
   onMenuButtonClick,
   inputValue,
   focusedBlockIndex,
+  isMinimized = false,
   isPolling,
   interruptRequested,
+  isVisible = false,
   onInputChange,
   onInputClick,
   onKeyDown,
@@ -61,7 +65,7 @@ function InputSection({
 
   // Handle keyboard shortcuts for file approval
   useEffect(() => {
-    if (!fileApprovalActions) {
+    if (!fileApprovalActions || !isVisible || isMinimized) {
       return undefined;
     }
 
@@ -85,7 +89,7 @@ function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [fileApprovalActions]);
+  }, [fileApprovalActions, isVisible, isMinimized]);
 
   // Render file approval action bar instead of entire input section
   if (fileApprovalActions) {
@@ -103,7 +107,7 @@ function InputSection({
           <Flex justify="between" align="center">
             <Flex align="center" gap="md" paddingLeft="md">
               <Text size="md" bold>
-                {t('Reviewing Changes')}
+                {t('Make this change?')}
               </Text>
               {hasMultiple && (
                 <Text size="md" variant="muted">
