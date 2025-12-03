@@ -54,7 +54,7 @@ function DataConditionFixture(params: Partial<MetricCondition> = {}): MetricCond
   };
 }
 
-export function AnomalyDetectionConditionFixture(
+function AnomalyDetectionConditionFixture(
   params: Partial<MetricCondition> = {}
 ): MetricCondition {
   return DataConditionFixture({
