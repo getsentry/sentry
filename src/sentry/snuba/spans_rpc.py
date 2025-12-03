@@ -12,6 +12,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     TraceItemStatsRequest,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry import options
 from sentry.exceptions import InvalidSearchQuery
@@ -287,6 +288,7 @@ class Spans(rpc_dataset_common.RPCBase):
         referrer: str,
         config: SearchResolverConfig,
         search_resolver: SearchResolver | None = None,
+        attributes: list[AttributeKey] | None = None,
     ) -> list[dict[str, Any]]:
         search_resolver = search_resolver or cls.get_resolver(params, config)
         stats_filter, _, _ = search_resolver.resolve_query(query_string)
@@ -308,6 +310,7 @@ class Spans(rpc_dataset_common.RPCBase):
                 StatsType(
                     attribute_distributions=AttributeDistributionsRequest(
                         max_buckets=75,
+                        attributes=attributes,
                     )
                 )
             )
@@ -319,7 +322,7 @@ class Spans(rpc_dataset_common.RPCBase):
             if "attributeDistributions" in stats_types and result.HasField(
                 "attribute_distributions"
             ):
-                attributes = defaultdict(list)
+                attrs = defaultdict(list)
                 for attribute in result.attribute_distributions.attributes:
                     if not can_expose_attribute(
                         attribute.attribute_name, SupportedTraceItemType.SPANS
@@ -327,9 +330,9 @@ class Spans(rpc_dataset_common.RPCBase):
                         continue
 
                     for bucket in attribute.buckets:
-                        attributes[attribute.attribute_name].append(
+                        attrs[attribute.attribute_name].append(
                             {"label": bucket.label, "value": bucket.value}
                         )
-                stats.append({"attribute_distributions": {"data": attributes}})
+                stats.append({"attribute_distributions": {"data": attrs}})
 
         return stats

@@ -634,6 +634,18 @@ SPANS_REPLACEMENT_MAP: dict[str, str] = {
     if definition.replacement
 }
 
+# Attributes excluded from stats queries (e.g., attribute distributions)
+# These are typically system-level identifiers that don't provide useful distribution insights
+SPANS_STATS_EXCLUDED_ATTRIBUTES: set[str] = {
+    "sentry.item_id",
+    "sentry.trace_id",
+    "sentry.segment_id",
+    "sentry.parent_span_id",
+    "sentry.profile_id",
+    "sentry.event_id",
+    "sentry.group",
+}
+
 
 SPAN_VIRTUAL_CONTEXTS = {
     "device.class": VirtualColumnDefinition(
