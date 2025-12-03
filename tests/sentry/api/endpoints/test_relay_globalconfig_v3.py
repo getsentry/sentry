@@ -150,6 +150,10 @@ def test_global_config_ai_operation_type_map() -> None:
         "gen_ai.create_agent": "agent",
         "gen_ai.execute_tool": "tool",
         "gen_ai.handoff": "handoff",
+        "invoke_agent": "agent",
+        "create_agent": "agent",
+        "execute_tool": "tool",
+        "handoff": "handoff",
     }
 
     operation_types = ai_operation_type_map["operationTypes"]

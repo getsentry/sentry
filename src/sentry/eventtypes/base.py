@@ -1,3 +1,5 @@
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 from warnings import warn
 
 from sentry.utils.safe import get_path
@@ -9,7 +11,7 @@ from sentry.utils.strings import strip, truncatechars
 class BaseEvent:
     key: str  # abstract
 
-    def get_metadata(self, data):
+    def get_metadata(self, data: MutableMapping[str, Any]) -> dict[str, str]:
         metadata = self.extract_metadata(data)
         title = data.get("title")
         if title is not None:
@@ -19,22 +21,22 @@ class BaseEvent:
 
         return metadata
 
-    def get_title(self, metadata):
+    def get_title(self, metadata: Mapping[str, str | None]) -> str:
         title = metadata.get("title")
         if title is not None:
             return title
         return self.compute_title(metadata) or "<untitled>"
 
-    def compute_title(self, metadata):
+    def compute_title(self, metadata: Mapping[str, str | None]) -> str | None:
         return None
 
-    def extract_metadata(self, metadata):
+    def extract_metadata(self, metadata: MutableMapping[str, Any]) -> dict[str, str]:
         return {}
 
-    def get_location(self, metadata):
+    def get_location(self, metadata: dict[str, str]) -> str | None:
         return None
 
-    def to_string(self, metadata):
+    def to_string(self, metadata: dict[str, str | None]) -> str:
         warn(DeprecationWarning("This method was replaced by get_title"), stacklevel=2)
         return self.get_title(metadata)
 
@@ -42,7 +44,7 @@ class BaseEvent:
 class DefaultEvent(BaseEvent):
     key = "default"
 
-    def extract_metadata(self, data):
+    def extract_metadata(self, data: MutableMapping[str, Any]) -> dict[str, str]:
         message = strip(
             get_path(data, "logentry", "formatted") or get_path(data, "logentry", "message")
         )
