@@ -96,11 +96,37 @@ class GroupReprocessingTest(APITestCase):
 
     def test_reprocess_with_max_events_validation(self, mock_reprocess):
         """Test maxEvents parameter validation."""
-        # Test with invalid maxEvents (0)
+        # Test with non-numeric maxEvents
+        response = self.client.post(
+            self.url,
+            data={
+                "maxEvents": "abc",
+                "remainingEvents": "keep",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert response.data == {"error": "maxEvents must be at least 1"}
+
+        # Test with zero maxEvents
         response = self.client.post(
             self.url,
             data={
                 "maxEvents": 0,
+                "remainingEvents": "keep",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert response.data == {"error": "maxEvents must be at least 1"}
+
+        # Test with negative maxEvents
+        response = self.client.post(
+            self.url,
+            data={
+                "maxEvents": -5,
                 "remainingEvents": "keep",
             },
             format="json",

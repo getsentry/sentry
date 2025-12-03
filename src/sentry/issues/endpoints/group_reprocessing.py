@@ -28,12 +28,13 @@ class GroupReprocessingEndpoint(GroupEndpoint):
 
         max_events = request.data.get("maxEvents")
         if max_events is not None:
-            max_events = int(max_events)
+            try:
+                max_events = int(max_events)
+            except (ValueError, TypeError):
+                return self.respond({"error": "maxEvents must be at least 1"}, status=400)
 
             if max_events <= 0:
                 return self.respond({"error": "maxEvents must be at least 1"}, status=400)
-        else:
-            max_events = None
 
         remaining_events = request.data.get("remainingEvents")
         if remaining_events not in ("delete", "keep"):
