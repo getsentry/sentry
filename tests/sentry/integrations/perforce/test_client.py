@@ -59,9 +59,11 @@ class PerforceClientTest(TestCase):
                     "desc": "Fix bug in main module",
                 }
             ],
-            # Third call: filelog for file 2
+            # Third call: user lookup for johndoe (returns no Update field = doesn't exist)
+            [{"User": "johndoe", "Email": "", "FullName": ""}],
+            # Fourth call: filelog for file 2
             [{"change": ["12346"], "depotFile": "//depot/src/utils.py"}],
-            # Fourth call: describe for changelist 12346
+            # Fifth call: describe for changelist 12346
             [
                 {
                     "change": "12346",
@@ -70,6 +72,8 @@ class PerforceClientTest(TestCase):
                     "desc": "Add utility functions",
                 }
             ],
+            # Sixth call: user lookup for janedoe (returns no Update field = doesn't exist)
+            [{"User": "janedoe", "Email": "", "FullName": ""}],
         ]
 
         file1 = SourceLineInfo(
@@ -96,7 +100,7 @@ class PerforceClientTest(TestCase):
         assert blames[0].lineno == 10
         assert blames[0].commit.commitId == "12345"
         assert blames[0].commit.commitAuthorName == "johndoe"
-        assert blames[0].commit.commitAuthorEmail == "johndoe@perforce.local"
+        assert blames[0].commit.commitAuthorEmail == "johndoe@perforce"
         assert blames[0].commit.commitMessage == "Fix bug in main module"
         assert blames[0].commit.committedDate == datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 
@@ -105,7 +109,7 @@ class PerforceClientTest(TestCase):
         assert blames[1].lineno == 25
         assert blames[1].commit.commitId == "12346"
         assert blames[1].commit.commitAuthorName == "janedoe"
-        assert blames[1].commit.commitAuthorEmail == "janedoe@perforce.local"
+        assert blames[1].commit.commitAuthorEmail == "janedoe@perforce"
         assert blames[1].commit.commitMessage == "Add utility functions"
         assert blames[1].commit.committedDate == datetime(2021, 1, 2, 0, 0, 0, tzinfo=timezone.utc)
 
@@ -149,6 +153,8 @@ class PerforceClientTest(TestCase):
                     "desc": "Initial commit",
                 }
             ],
+            # user lookup for johndoe
+            [{"User": "johndoe", "Email": "", "FullName": ""}],
         ]
 
         file = SourceLineInfo(
@@ -187,6 +193,8 @@ class PerforceClientTest(TestCase):
                     "desc": "Initial commit",
                 }
             ],
+            # File 1 user lookup for johndoe
+            [{"User": "johndoe", "Email": "", "FullName": ""}],
             # File 2 filelog - throws exception
             P4Exception("File not found"),
         ]
@@ -246,6 +254,49 @@ class PerforceClientTest(TestCase):
         # Should log warning
         assert mock_logger.warning.called
         assert "describe_error" in str(mock_logger.warning.call_args)
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    @mock.patch("sentry.integrations.perforce.client.logger")
+    def test_get_blame_for_files_invalid_time(self, mock_logger, mock_p4_class):
+        """Test get_blame_for_files handles invalid time values gracefully"""
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+
+        # Mock with invalid time value (non-numeric string)
+        mock_p4.run.side_effect = [
+            # filelog
+            [{"change": ["12345"], "depotFile": "//depot/src/main.py"}],
+            # describe with invalid time value
+            [
+                {
+                    "change": "12345",
+                    "user": "johndoe",
+                    "time": "invalid",  # Invalid time value that will raise ValueError
+                    "desc": "Initial commit",
+                }
+            ],
+            # user lookup for johndoe
+            [{"User": "johndoe", "Email": "", "FullName": ""}],
+        ]
+
+        file = SourceLineInfo(
+            path="src/main.py",
+            lineno=10,
+            ref="",
+            repo=self.repo,
+            code_mapping=None,  # type: ignore[arg-type]
+        )
+
+        blames = self.p4_client.get_blame_for_files([file], extra={})
+
+        # Should still return blame with epoch time (0)
+        assert len(blames) == 1
+        assert blames[0].commit.committedDate == datetime(1970, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+
+        # Should log warning about invalid time
+        assert mock_logger.warning.called
+        warning_calls = [str(call) for call in mock_logger.warning.call_args_list]
+        assert any("invalid_time_value" in call for call in warning_calls)
 
     @mock.patch("sentry.integrations.perforce.client.P4")
     def test_get_depots(self, mock_p4_class):

@@ -498,6 +498,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         - Individual file failures are caught and logged without failing entire batch
         """
         blames: list[FileBlameInfo] = []
+        user_cache: dict[str, P4UserInfo | None] = {}
 
         with self._connect() as p4:
             for file in files:
@@ -525,16 +526,36 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                             if change_info and len(change_info) > 0:
                                 change = change_info[0]
                                 username = change.get("user", "unknown")
-                                # Perforce doesn't provide email by default, so we generate a fallback
-                                email = change.get("email") or f"{username}@perforce.local"
+
+                                # Get author email and name with caching
+                                author_email, author_name = self.get_author_info_from_cache(
+                                    username, user_cache
+                                )
+
+                                # Handle potentially null/invalid time field
+                                time_value = change.get("time") or 0
+                                try:
+                                    time_int = int(time_value)
+                                except (TypeError, ValueError) as e:
+                                    logger.warning(
+                                        "perforce.client.get_blame_for_files.invalid_time_value",
+                                        extra={
+                                            **extra,
+                                            "changelist": changelist,
+                                            "time_value": time_value,
+                                            "error": str(e),
+                                            "repo_name": file.repo.name,
+                                            "file_path": file.path,
+                                        },
+                                    )
+                                    time_int = 0
+
                                 commit = CommitInfo(
                                     commitId=changelist,
-                                    committedDate=datetime.fromtimestamp(
-                                        int(change.get("time", 0)), tz=timezone.utc
-                                    ),
+                                    committedDate=datetime.fromtimestamp(time_int, tz=timezone.utc),
                                     commitMessage=change.get("desc", "").strip(),
-                                    commitAuthorName=username,
-                                    commitAuthorEmail=email,
+                                    commitAuthorName=author_name,
+                                    commitAuthorEmail=author_email,
                                 )
 
                                 blame_info = FileBlameInfo(
