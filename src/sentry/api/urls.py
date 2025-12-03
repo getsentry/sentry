@@ -335,7 +335,6 @@ from sentry.issues.endpoints.group_tagkey_details import GroupTagKeyDetailsEndpo
 from sentry.issues.endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
 from sentry.issues.endpoints.group_user_reports import GroupUserReportsEndpoint
-from sentry.issues.endpoints.grouping_configs import GroupingConfigsEndpoint
 from sentry.issues.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
@@ -3700,12 +3699,6 @@ urlpatterns = [
         r"^integration-features/$",
         IntegrationFeaturesEndpoint.as_view(),
         name="sentry-api-0-integration-features",
-    ),
-    # Grouping configs
-    re_path(
-        r"^grouping-configs/$",
-        GroupingConfigsEndpoint.as_view(),
-        name="sentry-api-0-grouping-configs",
     ),
     # Project Wizard
     re_path(
