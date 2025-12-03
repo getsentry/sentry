@@ -126,3 +126,14 @@ class PipelineTestCase(TestCase):
         resp = intercepted_pipeline.next_step()
         assert isinstance(resp, HttpResponse)  # TODO(cathy): fix typing on
         assert ERR_MISMATCHED_USER.encode() in resp.content
+
+    def test_error_response_escapes_message(self) -> None:
+        pipeline = DummyPipeline(self.request, "dummy", self.org)
+        pipeline.initialize()
+
+        payload = '<img src="x" onerror="alert(1)">'
+        resp = pipeline.error(payload)
+        assert isinstance(resp, HttpResponse)
+        html = resp.content.decode()
+        assert "<img" not in html
+        assert "&lt;img" in html
