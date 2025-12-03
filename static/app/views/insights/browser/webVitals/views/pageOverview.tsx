@@ -34,6 +34,7 @@ import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/c
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
@@ -158,6 +159,7 @@ function PageOverview() {
             <TopMenuContainer>
               <ModulePageFilterBar moduleName={ModuleName.VITAL} />
               <BrowserTypeSelector />
+              <SubregionSelector />
             </TopMenuContainer>
             <Flex>
               <ChartContainer>
