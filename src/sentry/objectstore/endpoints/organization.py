@@ -154,7 +154,7 @@ def stream_response(external_response: ExternalResponse) -> StreamingHttpRespons
     )
 
     for header, value in external_response.headers.items():
-        if header == "server":
+        if header.lower() == "server":
             continue
         if not is_hop_by_hop(header):
             response[header] = value
