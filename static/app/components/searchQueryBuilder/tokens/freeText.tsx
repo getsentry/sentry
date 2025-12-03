@@ -102,12 +102,12 @@ function replaceFocusedWordWithFilter(
   cursorPosition: number,
   key: string,
   getFieldDefinition: FieldDefinitionGetter,
-  hasWildcardOperators: boolean
+  hasDefaultToContains: boolean
 ) {
   return replaceFocusedWord(
     value,
     cursorPosition,
-    getInitialFilterText(key, getFieldDefinition(key), hasWildcardOperators)
+    getInitialFilterText(key, getFieldDefinition(key), hasDefaultToContains)
   );
 }
 
@@ -273,9 +273,9 @@ function SearchQueryBuilderInputInternal({
   const hasInputChangeFlows = organization.features.includes(
     'search-query-builder-input-flow-changes'
   );
-  const hasWildcardOperators =
-    organization.features.includes('search-query-builder-wildcard-operators') &&
-    organization.features.includes('search-query-builder-default-to-contains');
+  const hasDefaultToContains = organization.features.includes(
+    'search-query-builder-default-to-contains'
+  );
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -517,7 +517,7 @@ function SearchQueryBuilderInputInternal({
               selectionIndex,
               value,
               getFieldDefinition,
-              hasWildcardOperators
+              hasDefaultToContains
             ),
             focusOverride: calculateNextFocusForFilter(
               state,
@@ -621,7 +621,7 @@ function SearchQueryBuilderInputInternal({
                     selectionIndex,
                     filterValue,
                     getFieldDefinition,
-                    hasWildcardOperators
+                    hasDefaultToContains
                   ),
                   focusOverride: calculateNextFocusForFilter(
                     state,
@@ -665,7 +665,7 @@ function SearchQueryBuilderInputInternal({
                 selectionIndex,
                 filterKey,
                 getFieldDefinition,
-                hasWildcardOperators
+                hasDefaultToContains
               ),
               focusOverride: calculateNextFocusForFilter(
                 state,

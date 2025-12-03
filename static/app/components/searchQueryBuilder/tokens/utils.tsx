@@ -118,15 +118,15 @@ function getInitialValueType(fieldDefinition: FieldDefinition | null) {
 export function getInitialFilterText(
   key: string,
   fieldDefinition: FieldDefinition | null,
-  hasWildcardOperators: boolean
+  hasDefaultToContains: boolean
 ) {
   const defaultValue = getDefaultFilterValue({fieldDefinition});
 
   const keyText = getInitialFilterKeyText(key, fieldDefinition);
   const valueType = getInitialValueType(fieldDefinition);
 
-  const allowContainsOperator =
-    hasWildcardOperators && areWildcardOperatorsAllowed(fieldDefinition);
+  const allowDefaultToContains =
+    hasDefaultToContains && areWildcardOperatorsAllowed(fieldDefinition);
 
   switch (valueType) {
     case FieldValueType.INTEGER:
@@ -136,7 +136,7 @@ export function getInitialFilterText(
     case FieldValueType.PERCENTAGE:
       return `${keyText}:>${defaultValue}`;
     case FieldValueType.STRING: {
-      return allowContainsOperator
+      return allowDefaultToContains
         ? `${keyText}:${WildcardOperators.CONTAINS}${defaultValue}`
         : `${keyText}:${defaultValue}`;
     }

@@ -117,8 +117,7 @@ export function newNumericFilterQuery(
   const newFilterQuery = modifyFilterOperatorQuery(
     newFilterValue,
     newFilterToken,
-    newOperator,
-    false
+    newOperator
   );
   return newFilterQuery;
 }
