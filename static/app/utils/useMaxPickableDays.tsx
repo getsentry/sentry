@@ -103,11 +103,11 @@ export function getMaxPickableDays(
       const maxPickableDays = organization.features.includes(
         'visibility-explore-range-high'
       )
-        ? 90
+        ? MAX_PICKABLE_DAYS
         : 30;
       return {
         maxPickableDays,
-        maxUpgradableDays: 90,
+        maxUpgradableDays: MAX_PICKABLE_DAYS,
         upsellFooter: SpansUpsellFooter,
       };
     }
@@ -118,6 +118,16 @@ export function getMaxPickableDays(
         maxPickableDays: 30,
         maxUpgradableDays: 30,
         defaultPeriod: '24h',
+      };
+    case DataCategory.PROFILE_CHUNKS:
+    case DataCategory.PROFILE_CHUNKS_UI:
+    case DataCategory.PROFILE_DURATION:
+    case DataCategory.PROFILE_DURATION_UI:
+    case DataCategory.TRANSACTIONS:
+    case DataCategory.REPLAYS:
+      return {
+        maxPickableDays: MAX_PICKABLE_DAYS,
+        maxUpgradableDays: MAX_PICKABLE_DAYS,
       };
     default:
       throw new Error(

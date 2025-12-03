@@ -14,6 +14,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -22,6 +23,8 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -244,6 +247,11 @@ function Search(props: Props) {
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
   const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
 
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.TRANSACTIONS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   return (
     <FilterActions>
       {shouldUseOTelFriendlyUI ? (
@@ -257,7 +265,7 @@ function Search(props: Props) {
       )}
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
-        <DatePageFilter />
+        <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <StyledSearchBarWrapper>
         <TransactionSearchQueryBuilder

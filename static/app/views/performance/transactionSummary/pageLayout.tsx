@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -17,6 +17,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -31,6 +32,8 @@ import {
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useRouter from 'sentry/utils/useRouter';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
@@ -109,6 +112,32 @@ function PageLayout(props: Props) {
   >();
 
   const {isInDomainView} = useDomainViewFilters();
+
+  const dataCategories: [DataCategory, ...DataCategory[]] = useMemo(() => {
+    switch (tab) {
+      case Tab.PROFILING:
+        return [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI];
+      case Tab.REPLAYS:
+        return [DataCategory.REPLAYS];
+      case Tab.EVENTS:
+      case Tab.TAGS:
+      case Tab.WEB_VITALS:
+        return [DataCategory.TRANSACTIONS];
+      case Tab.TRANSACTION_SUMMARY:
+        // The transactions summary page technically also uses transactions
+        // in additional to spans. But if we specify transactions here, it'll
+        // use the 90d retention for transactions instead of the 30d retention
+        // for spans in some cases which is not what we want.
+        return [DataCategory.SPANS];
+      default:
+        throw new Error(`Unsupported tab: ${tab}`);
+    }
+  }, [tab]);
+
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories,
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const getNewRoute = useCallback(
     (newTab: Tab) => {
@@ -277,6 +306,19 @@ function PageLayout(props: Props) {
               shouldForceProject={defined(project)}
               forceProject={project}
               specificProjectSlugs={defined(project) ? [project.slug] : []}
+              maxPickableDays={datePageFilterProps.maxPickableDays}
+              defaultSelection={
+                datePageFilterProps.defaultPeriod
+                  ? {
+                      datetime: {
+                        period: datePageFilterProps.defaultPeriod,
+                        start: null,
+                        end: null,
+                        utc: null,
+                      },
+                    }
+                  : undefined
+              }
             >
               <Tabs value={tab} onChange={onTabChange}>
                 <Layout.Page>
