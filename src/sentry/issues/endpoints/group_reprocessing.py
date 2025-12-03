@@ -27,7 +27,7 @@ class GroupReprocessingEndpoint(GroupEndpoint):
         """
 
         max_events = request.data.get("maxEvents")
-        if max_events:
+        if max_events is not None:
             max_events = int(max_events)
 
             if max_events <= 0:
