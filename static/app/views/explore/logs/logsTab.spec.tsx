@@ -30,9 +30,7 @@ const datePageFilterProps: DatePageFilterProps = {
 };
 
 describe('LogsTabContent', () => {
-  const {organization, project, setupPageFilters} = initializeLogsTest({
-    orgFeatures: ['search-query-builder-case-insensitivity'],
-  });
+  const {organization, project, setupPageFilters} = initializeLogsTest();
 
   let eventTableMock: jest.Mock;
   let eventsTimeSeriesMock: jest.Mock;

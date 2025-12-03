@@ -4263,8 +4263,7 @@ describe('SearchQueryBuilder', () => {
           {...defaultProps}
           caseInsensitive={1}
           onCaseInsensitiveClick={() => Promise.resolve(new URLSearchParams())}
-        />,
-        {organization: {features: ['search-query-builder-case-insensitivity']}}
+        />
       );
 
       expect(await screen.findByRole('button', {name: 'Match case'})).toBeInTheDocument();
