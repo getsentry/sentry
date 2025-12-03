@@ -3,15 +3,16 @@ import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert/alert';
 import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text/text';
 
 import Panel from 'sentry/components/panels/panel';
+import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -184,13 +185,22 @@ export function AttributeDistribution() {
 }
 
 function ChartSelectionAlert() {
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: 'attribute-breakdowns-chart-selection-alert-dismissed',
+  });
+
+  if (isDismissed) {
+    return null;
+  }
+
   return (
     <Alert type="info">
-      <Text>
+      <Flex align="center" justify="between">
         {t(
           'Drag to select a region in the chart above and see how its breakdowns differ from the baseline.'
         )}
-      </Text>
+        <IconClose size="sm" onClick={dismiss} cursor="pointer" />
+      </Flex>
     </Alert>
   );
 }

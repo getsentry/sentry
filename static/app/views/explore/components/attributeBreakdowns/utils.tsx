@@ -100,7 +100,6 @@ export function tooltipActionsHtmlRenderer(
 
   return [
     '<div',
-    '  data-explore-chart-selection-region',
     '  class="tooltip-footer"',
     '  id="tooltipActions"',
     '  style="',
