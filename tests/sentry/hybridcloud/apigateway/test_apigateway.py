@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 import pytest
@@ -6,10 +7,9 @@ from django.conf import settings
 from django.test import RequestFactory, override_settings
 from django.urls import get_resolver, reverse
 from rest_framework.response import Response
-from unittest.mock import patch
 
-from sentry.silo.base import SiloLimit, SiloMode
 from sentry.hybridcloud.apigateway.proxy import proxy_region_request
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.helpers.apigateway import ApiGatewayTestCase, verify_request_params
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import control_silo_test
