@@ -101,7 +101,6 @@ export type KnownSentryApiUrls =
   | '/internal/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/$headArtifactId/size/$identifier/'
   | '/internal/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/$headArtifactId/update/'
   | '/internal/beacon/'
-  | '/internal/check-am2-compatibility/'
   | '/internal/demo/email-capture/'
   | '/internal/environment/'
   | '/internal/feature-flags/'
