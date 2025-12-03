@@ -7,6 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 import {Flex} from 'sentry/components/core/layout';
 import {tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import {escape} from 'sentry/utils';
 import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
 import type {AttributeDistribution} from './attributeDistributionContent';
