@@ -92,10 +92,8 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
             return Response({"error": "Only Transfer-Encoding: chunked is supported"}, status=400)
 
         headers.pop("Host", None)
-        headers.pop("Transfer-Encoding", None)
-        # This assumes chunked transfer encoding, we might need to revisit this if we want to support other encodings.
-        # For some reason, wsgiref sets the value of this header to an empty string instead of None when using chunked encoding, so we need to clear this out.
         headers.pop("Content-Length", None)
+        headers.pop("Transfer-Encoding", None)
 
         stream: Generator[bytes] | ChunkedEncodingDecoder | None = None
         if request.method in ("PUT", "POST"):
