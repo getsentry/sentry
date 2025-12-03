@@ -2,7 +2,7 @@ import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 // Gets the current screen name for video/mobile replays - mirrors getCurrentUrl.tsx
-function getCurrentScreenName(
+export default function getCurrentScreenName(
   replayRecord: undefined | ReplayRecord,
   frames: undefined | BreadcrumbFrame[],
   currentOffsetMS: number
@@ -24,5 +24,3 @@ function getCurrentScreenName(
     ? mostRecentFrame.data.to
     : '';
 }
-
-export default getCurrentScreenName;
