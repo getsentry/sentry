@@ -1389,11 +1389,6 @@ export const lightTheme = {
   ...lightAliases,
   ...lightShadows,
   tokens: lightTokens,
-  inverted: {
-    ...darkColors,
-    ...darkAliases,
-    tokens: darkTokens,
-  },
   ...generateThemeUtils(lightColors, lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
   button: generateButtonTheme(lightColors, lightAliases),
@@ -1437,11 +1432,6 @@ export const darkTheme: typeof lightTheme = {
   ...darkAliases,
   ...darkShadows,
   tokens: darkTokens,
-  inverted: {
-    ...lightColors,
-    ...lightAliases,
-    tokens: lightTokens,
-  },
   ...generateThemeUtils(darkColors, darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
   button: generateButtonTheme(darkColors, darkAliases),
