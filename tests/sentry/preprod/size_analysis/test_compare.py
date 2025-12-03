@@ -958,6 +958,63 @@ class RenameDetectionTest(TestCase):
         assert head_renamed == set()
         assert base_renamed == set()
 
+    def test_find_renamed_paths_with_duplicates(self):
+        """Test that when a file is renamed AND duplicated, only min count are marked as renames.
+
+        Scenario: Base has 1 file with hash X, head has 3 files with same hash X at different paths.
+        Expected: 1 rename pair, 2 additions (not 3 renames).
+        """
+        head_analysis = FileAnalysis(
+            items=[
+                self._create_file_info("Framework1/resource.png", "same_hash"),
+                self._create_file_info("Framework2/resource.png", "same_hash"),
+                self._create_file_info("Framework3/resource.png", "same_hash"),
+            ]
+        )
+        base_analysis = FileAnalysis(
+            items=[
+                self._create_file_info("OldFramework/resource.png", "same_hash"),
+            ]
+        )
+
+        head_renamed, base_renamed = _find_renamed_paths(head_analysis, base_analysis)
+
+        # Only 1 path on each side should be marked as renamed (the minimum)
+        assert len(head_renamed) == 1
+        assert len(base_renamed) == 1
+        assert base_renamed == {"OldFramework/resource.png"}
+        # One of the head paths should be marked as renamed
+        assert head_renamed.issubset(
+            {"Framework1/resource.png", "Framework2/resource.png", "Framework3/resource.png"}
+        )
+
+    def test_find_renamed_paths_with_multiple_duplicates_both_sides(self):
+        """Test rename+duplicate when both sides have multiple copies.
+
+        Scenario: Base has 2 files with hash X, head has 4 files with same hash X.
+        Expected: 2 rename pairs (matching the smaller count), 2 additions.
+        """
+        head_analysis = FileAnalysis(
+            items=[
+                self._create_file_info("New1/file.png", "same_hash"),
+                self._create_file_info("New2/file.png", "same_hash"),
+                self._create_file_info("New3/file.png", "same_hash"),
+                self._create_file_info("New4/file.png", "same_hash"),
+            ]
+        )
+        base_analysis = FileAnalysis(
+            items=[
+                self._create_file_info("Old1/file.png", "same_hash"),
+                self._create_file_info("Old2/file.png", "same_hash"),
+            ]
+        )
+
+        head_renamed, base_renamed = _find_renamed_paths(head_analysis, base_analysis)
+
+        # 2 paths on each side should be marked as renamed (the minimum)
+        assert len(head_renamed) == 2
+        assert len(base_renamed) == 2
+
 
 class CompareWithRenameDetectionTest(TestCase):
     """Integration tests for rename detection in compare_size_analysis."""

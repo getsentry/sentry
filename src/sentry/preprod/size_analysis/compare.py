@@ -269,14 +269,19 @@ def _find_renamed_paths(
     head_file_analysis: FileAnalysis | None,
     base_file_analysis: FileAnalysis | None,
 ) -> tuple[set[str], set[str]]:
-    """Find paths that are likely renames (same hash, different path)."""
+    """Find paths that are likely renames (same hash, different path).
+
+    When a file with the same hash exists at different paths in head vs base,
+    we consider it a rename. However, if there are more paths on one side
+    (e.g., file was renamed AND duplicated), we only mark min(head, base)
+    as renames - the rest are true additions/removals.
+    """
     head_hash_to_paths = _build_hash_to_paths(head_file_analysis)
     base_hash_to_paths = _build_hash_to_paths(base_file_analysis)
 
     head_renamed_paths: set[str] = set()
     base_renamed_paths: set[str] = set()
 
-    # Find files that exist in head but not base (potential "added" that are actually renames)
     for file_hash, head_paths in head_hash_to_paths.items():
         base_paths = base_hash_to_paths.get(file_hash, set())
         # Paths only in head (not in base) with the same hash as paths only in base
@@ -284,9 +289,11 @@ def _find_renamed_paths(
         base_only = base_paths - head_paths
 
         if head_only and base_only:
-            # These are renames - same hash exists in both but at different paths
-            head_renamed_paths.update(head_only)
-            base_renamed_paths.update(base_only)
+            # Only mark the minimum count as renames - the rest are real adds/removes
+            # e.g., 1 base path + 3 head paths = 1 rename + 2 additions
+            rename_count = min(len(head_only), len(base_only))
+            head_renamed_paths.update(list(head_only)[:rename_count])
+            base_renamed_paths.update(list(base_only)[:rename_count])
 
     return head_renamed_paths, base_renamed_paths
 
