@@ -404,7 +404,6 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
                 "password": "testpass",
                 "auth_type": "password",
                 "web_url": "https://p4web.example.com",
-                "web_viewer_type": "p4web",
             },
         )
         installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]

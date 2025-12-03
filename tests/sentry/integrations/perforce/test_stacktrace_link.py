@@ -173,7 +173,6 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             external_id="perforce-test-web-link",
             metadata={
                 "web_url": "https://p4web.example.com",
-                "web_viewer_type": "p4web",
             },
         )
 
