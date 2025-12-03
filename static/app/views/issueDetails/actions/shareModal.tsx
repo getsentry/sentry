@@ -37,10 +37,9 @@ interface ShareIssueModalProps extends ModalRenderProps {
 
 type UrlRef = React.ElementRef<typeof AutoSelectText>;
 
-export function getShareUrl(group: Group) {
-  const path = `/share/issue/${group.shareId}/`;
-  const {host, protocol} = window.location;
-  return `${protocol}//${host}${path}`;
+export function getShareUrl(organization: Organization, group: Group) {
+  const path = `/organizations/${organization.slug}/share/issue/${group.shareId}/`;
+  return `${window.location.origin}${normalizeUrl(path)}`;
 }
 
 export default function ShareIssueModal({
@@ -122,7 +121,7 @@ export default function ShareIssueModal({
     [api, setLoading, onToggle, isPublished, organization.slug, projectSlug, groupId]
   );
 
-  const shareUrl = group?.shareId ? getShareUrl(group) : null;
+  const shareUrl = group?.shareId ? getShareUrl(organization, group) : null;
 
   return (
     <Fragment>
