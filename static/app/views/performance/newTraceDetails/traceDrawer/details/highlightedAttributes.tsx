@@ -206,6 +206,7 @@ function getAISpanAttributes({
         sdk:
           [sdkName?.toString(), sdkVersion?.toString()].filter(Boolean).join('@') ||
           'unknown',
+        span_id: spanId,
       },
     });
   }
