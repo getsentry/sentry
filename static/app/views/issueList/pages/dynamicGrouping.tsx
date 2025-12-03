@@ -6,11 +6,13 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {InlineCode} from 'sentry/components/core/code/inlineCode';
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {Link} from 'sentry/components/core/link';
 import {TextArea} from 'sentry/components/core/textarea';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -23,12 +25,20 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import Redirect from 'sentry/components/redirect';
 import TimeSince from 'sentry/components/timeSince';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconClose, IconFire, IconUpload} from 'sentry/icons';
+import {
+  IconChevron,
+  IconClose,
+  IconCopy,
+  IconFire,
+  IconSeer,
+  IconUpload,
+} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
@@ -77,6 +87,58 @@ interface ClusterSummary {
   code_area_tags?: string[];
   error_type_tags?: string[];
   service_tags?: string[];
+}
+
+/**
+ * Formats cluster information for copying to clipboard in a readable format.
+ */
+function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
+  const lines: string[] = [];
+
+  lines.push(`## ${cluster.title}`);
+  lines.push('');
+
+  if (cluster.description) {
+    lines.push('### Summary');
+    lines.push(cluster.description);
+    lines.push('');
+  }
+
+  lines.push('### Group IDs');
+  lines.push(cluster.group_ids.join(', '));
+
+  return lines.join('\n');
+}
+
+/**
+ * Formats a prompt for Seer Explorer about the cluster.
+ */
+function formatClusterPromptForSeer(cluster: ClusterSummary): string {
+  const message = formatClusterInfoForClipboard(cluster);
+  return `I'd like to investigate this cluster of issues:\n\n${message}\n\nPlease help me understand the root cause and potential fixes for these related issues.`;
+}
+
+/**
+ * Opens Seer Explorer by simulating the Cmd+/ or Ctrl+/ keyboard shortcut.
+ * User can then paste with Cmd+V / Ctrl+V.
+ */
+function openSeerExplorerWithClipboard(): void {
+  // Simulate keyboard shortcut to open Seer Explorer (Cmd+/ or Ctrl+/)
+  const isMac = navigator.platform.toUpperCase().includes('MAC');
+
+  // Create a KeyboardEvent with the proper keyCode (191 = '/')
+  // useHotkeys checks evt.keyCode, so we need to set it explicitly
+  const event = new KeyboardEvent('keydown', {
+    key: '/',
+    code: 'Slash',
+    keyCode: 191,
+    which: 191,
+    metaKey: isMac,
+    ctrlKey: !isMac,
+    bubbles: true,
+  } as KeyboardEventInit);
+
+  document.dispatchEvent(event);
 }
 
 interface TopIssuesResponse {
@@ -280,12 +342,10 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
 
 function ClusterCard({
   cluster,
-  onRemove,
   onTagClick,
   selectedTags,
 }: {
   cluster: ClusterSummary;
-  onRemove: (clusterId: number) => void;
   onTagClick?: (tag: string) => void;
   selectedTags?: Set<string>;
 }) {
@@ -293,6 +353,20 @@ function ClusterCard({
   const issueCount = cluster.group_ids.length;
   const [showDescription, setShowDescription] = useState(false);
   const clusterStats = useClusterStats(cluster.group_ids);
+  const {copy} = useCopyToClipboard();
+
+  const handleSendToSeer = useCallback(() => {
+    copy(formatClusterPromptForSeer(cluster), {
+      successMessage: t('Copied to clipboard. Paste into Seer Explorer with Cmd+V'),
+    });
+    setTimeout(() => {
+      openSeerExplorerWithClipboard();
+    }, 100);
+  }, [cluster, copy]);
+
+  const handleCopyMarkdown = useCallback(() => {
+    copy(formatClusterInfoForClipboard(cluster));
+  }, [cluster, copy]);
 
   return (
     <CardContainer>
@@ -383,9 +457,36 @@ function ClusterCard({
 
       {/* Zone 4: Actions (Tertiary) */}
       <CardFooter>
-        <Button size="sm" priority="primary" onClick={() => onRemove(cluster.cluster_id)}>
-          {t('Resolve All')}
-        </Button>
+        <ButtonBar merged gap="0">
+          <SeerButton
+            size="sm"
+            priority="primary"
+            icon={<IconSeer size="xs" />}
+            onClick={handleSendToSeer}
+          >
+            {t('Explore with Seer')}
+          </SeerButton>
+          <DropdownMenu
+            items={[
+              {
+                key: 'copy-markdown',
+                label: t('Copy as markdown for agents'),
+                leadingItems: <IconCopy size="sm" />,
+                onAction: handleCopyMarkdown,
+              },
+            ]}
+            trigger={(triggerProps, isOpen) => (
+              <SeerDropdownTrigger
+                {...triggerProps}
+                size="sm"
+                priority="primary"
+                icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+                aria-label={t('More options')}
+              />
+            )}
+            position="bottom-end"
+          />
+        </ButtonBar>
         <Link
           to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
         >
@@ -404,7 +505,6 @@ function DynamicGrouping() {
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
-  const [removedClusterIds, setRemovedClusterIds] = useState(new Set<number>());
   const [showJsonInput, setShowJsonInput] = useState(false);
   const [jsonInputValue, setJsonInputValue] = useState('');
   const [customClusterData, setCustomClusterData] = useState<ClusterSummary[] | null>(
@@ -483,10 +583,6 @@ function DynamicGrouping() {
     }
   };
 
-  const handleRemoveCluster = (clusterId: number) => {
-    setRemovedClusterIds(prev => new Set([...prev, clusterId]));
-  };
-
   const handleTagClick = (tag: string) => {
     setSelectedTags(prev => {
       const next = new Set(prev);
@@ -539,11 +635,9 @@ function DynamicGrouping() {
   // When using custom JSON data with filters disabled, skip all filtering and sorting
   const shouldSkipFilters = isUsingCustomData && disableFilters;
   const filteredAndSortedClusters = shouldSkipFilters
-    ? clusterData.filter(cluster => !removedClusterIds.has(cluster.cluster_id))
+    ? clusterData
     : clusterData
         .filter(cluster => {
-          if (removedClusterIds.has(cluster.cluster_id)) return false;
-
           // Filter by selected tags
           if (!clusterHasSelectedTags(cluster)) return false;
 
@@ -787,7 +881,6 @@ function DynamicGrouping() {
                 <ClusterCard
                   key={cluster.cluster_id}
                   cluster={cluster}
-                  onRemove={handleRemoveCluster}
                   onTagClick={handleTagClick}
                   selectedTags={selectedTags}
                 />
@@ -949,6 +1042,18 @@ const CardFooter = styled('div')`
   justify-content: flex-end;
   gap: ${space(1)};
   background: ${p => p.theme.backgroundSecondary};
+`;
+
+// Split button for Send to Seer action
+const SeerButton = styled(Button)`
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+`;
+
+const SeerDropdownTrigger = styled(Button)`
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
 `;
 
 // Issue preview link with hover effect - consistent with issue feed cards
