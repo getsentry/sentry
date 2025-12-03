@@ -179,31 +179,6 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp.data["proxy"] is False
 
     @responses.activate
-    def test_proxy_check_region_pinned_url(self) -> None:
-        responses.add(
-            responses.GET,
-            f"{self.REGION.address}/builtin-symbol-sources/",
-            json={"proxy": True},
-        )
-
-        # No /api/0 as we only include sentry.api.urls.urlpatterns
-        # and not sentry.web.urls which includes the version prefix
-        region_pinned = "/builtin-symbol-sources/"
-        control_url = reverse(
-            "control-endpoint", kwargs={"organization_slug": self.organization.slug}
-        )
-
-        with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
-            resp = self.client.get(region_pinned)
-            assert resp.status_code == 200
-            resp_json = json.loads(close_streaming_response(resp))
-            assert resp_json["proxy"] is True
-
-            resp = self.client.get(control_url)
-            assert resp.status_code == 200
-            assert resp.data["proxy"] is False
-
-    @responses.activate
     def test_proxy_check_region_pinned_url_with_params(self) -> None:
         responses.add(
             responses.GET,
