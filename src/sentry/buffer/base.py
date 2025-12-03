@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
+import psycopg2.errors
 from django.db import DataError
 from django.db.models import F
 
@@ -199,9 +200,12 @@ class Buffer(Service):
                     try:
                         group.update(using=None, **update_kwargs)
                     except DataError as e:
-                        # Catch DataError: integer out of range when times_seen exceeds 32-bit limit
+                        # Catch NumericValueOutOfRange when times_seen exceeds 32-bit limit
                         # This happens when current_times_seen + increment > MAX_INT32
-                        if "integer out of range" in str(e) and "times_seen" in columns:
+                        if (
+                            isinstance(e.__cause__, psycopg2.errors.NumericValueOutOfRange)
+                            and "times_seen" in columns
+                        ):
                             # Cap times_seen to MAX_INT32 and retry the update
                             update_kwargs["times_seen"] = MAX_INT32
                             try:

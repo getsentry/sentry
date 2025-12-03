@@ -1,9 +1,11 @@
 from datetime import timedelta
 from unittest import mock
 
+import psycopg2.errors
+from django.db import DataError
 from django.utils import timezone
 
-from sentry.buffer.base import Buffer, BufferField
+from sentry.buffer.base import MAX_INT32, Buffer, BufferField
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -82,3 +84,42 @@ class BufferTest(TestCase):
         self.buf.process(Group, columns, filters, {"last_seen": the_date}, signal_only=True)
         group.refresh_from_db()
         assert group.times_seen == prev_times_seen
+
+    def test_process_caps_times_seen_on_overflow(self) -> None:
+        """Test that times_seen is capped to MAX_INT32 when increment would cause overflow.
+
+        Note: We use mocking here because triggering a real NumericValueOutOfRange
+        inside a test transaction causes PostgreSQL to abort the transaction,
+        preventing the retry from succeeding. In production, buffer processing
+        runs outside transactions, so the retry works correctly.
+        """
+        group = Group.objects.create(project=Project(id=1))
+        columns = {"times_seen": 1}
+        filters = {"id": group.id, "project_id": 1}
+
+        # Mock the group.update to raise NumericValueOutOfRange on first call,
+        # then succeed on retry with capped value
+        original_update = Group.update
+        call_count = 0
+
+        def mock_update(self, *args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                # First call raises the overflow error
+                cause = psycopg2.errors.NumericValueOutOfRange()
+                error = DataError("integer out of range")
+                error.__cause__ = cause
+                raise error
+            # Second call (retry with capped value) succeeds
+            return original_update(self, *args, **kwargs)
+
+        with mock.patch.object(Group, "update", mock_update):
+            self.buf.process(Group, columns, filters)
+
+        # Verify it retried (called twice)
+        assert call_count == 2
+
+        # Verify the group was updated with MAX_INT32
+        group.refresh_from_db()
+        assert group.times_seen == MAX_INT32
