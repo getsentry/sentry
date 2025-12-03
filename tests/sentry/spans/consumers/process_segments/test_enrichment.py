@@ -695,7 +695,7 @@ def test_enrich_gen_ai_agent_name_not_from_grandparent() -> None:
     assert attribute_value(child, "gen_ai.agent.name") is None
 
 
-def test_enrich_gen_ai_agent_name_from_immediate_parent_fallback_so_span_op() -> None:
+def test_enrich_gen_ai_agent_name_from_immediate_parent_fallback_to_span_op() -> None:
     """Test that gen_ai.agent.name is inherited from the immediate parent with gen_ai.invoke_agent operation."""
     parent_span = build_mock_span(
         project_id=1,
