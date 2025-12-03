@@ -295,25 +295,25 @@ function useWrappedDiscoverQueryBase<T>({
       queryExtras.sampling = samplingMode;
     }
 
-    if (typeof caseInsensitive === 'number') {
-      queryExtras.caseInsensitive = caseInsensitive.toString();
-    }
-
-    if (Array.isArray(logQuery) && logQuery.length > 0) {
-      queryExtras.logQuery = logQuery;
-    }
-
-    if (Array.isArray(metricQuery) && metricQuery.length > 0) {
-      queryExtras.metricQuery = metricQuery;
-    }
-
-    if (Array.isArray(spanQuery) && spanQuery.length > 0) {
-      queryExtras.spanQuery = spanQuery;
-    }
-
     if (disableAggregateExtrapolation) {
       queryExtras.disableAggregateExtrapolation = '1';
     }
+  }
+
+  if (typeof caseInsensitive === 'number') {
+    queryExtras.caseInsensitive = caseInsensitive.toString();
+  }
+
+  if (Array.isArray(logQuery) && logQuery.length > 0) {
+    queryExtras.logQuery = logQuery;
+  }
+
+  if (Array.isArray(metricQuery) && metricQuery.length > 0) {
+    queryExtras.metricQuery = metricQuery;
+  }
+
+  if (Array.isArray(spanQuery) && spanQuery.length > 0) {
+    queryExtras.spanQuery = spanQuery;
   }
 
   if (allowAggregateConditions !== undefined) {
