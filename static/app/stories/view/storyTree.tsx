@@ -182,6 +182,112 @@ export type StoryCategory =
   | 'layout'
   | 'shared';
 
+// New hierarchical category system
+export type StorySection = 'overview' | 'principles' | 'patterns' | 'components';
+
+export type ComponentSubcategory =
+  | 'typography'
+  | 'layout'
+  | 'buttons'
+  | 'forms'
+  | 'pickers'
+  | 'navigation'
+  | 'status-feedback'
+  | 'data-display'
+  | 'overlays'
+  | 'utilities'
+  | 'shared';
+
+export const SECTION_CONFIG: Record<StorySection, {label: string}> = {
+  overview: {label: 'Overview'},
+  principles: {label: 'Principles'},
+  patterns: {label: 'Patterns'},
+  components: {label: 'Components'},
+};
+
+export const COMPONENT_SUBCATEGORY_CONFIG: Record<
+  ComponentSubcategory,
+  {
+    components: string[];
+    label: string;
+  }
+> = {
+  typography: {
+    label: 'Typography',
+    components: ['heading', 'prose', 'text', 'inlinecode', 'quote'],
+  },
+  layout: {
+    label: 'Layout',
+    components: ['composition', 'container', 'flex', 'grid', 'stack'],
+  },
+  buttons: {
+    label: 'Buttons',
+    components: ['button', 'linkbutton', 'buttonbar'],
+  },
+  forms: {
+    label: 'Forms',
+    components: [
+      'input',
+      'inputgroup',
+      'numberinput',
+      'numberdraginput',
+      'checkbox',
+      'radio',
+      'switch',
+      'slider',
+    ],
+  },
+  pickers: {
+    label: 'Pickers',
+    components: ['select', 'multiselect', 'compactselect', 'segmentedcontrol'],
+  },
+  navigation: {
+    label: 'Navigation',
+    components: ['link', 'tabs', 'menulistitem', 'disclosure'],
+  },
+  'status-feedback': {
+    label: 'Status & Feedback',
+    components: ['alert', 'badge', 'toast', 'tooltip'],
+  },
+  'data-display': {
+    label: 'Data Display',
+    components: ['avatar', 'image', 'codeblock'],
+  },
+  overlays: {
+    label: 'Overlays',
+    components: ['slideoverpanel'],
+  },
+  utilities: {
+    label: 'Utilities',
+    components: ['separator', 'interactionstatelayer', 'composite'],
+  },
+  shared: {
+    label: 'Shared',
+    components: [],
+  },
+};
+
+export const SECTION_ORDER: StorySection[] = [
+  'overview',
+  'principles',
+  'patterns',
+  'components',
+];
+
+export const COMPONENT_SUBCATEGORY_ORDER: ComponentSubcategory[] = [
+  'typography',
+  'layout',
+  'buttons',
+  'forms',
+  'pickers',
+  'navigation',
+  'status-feedback',
+  'data-display',
+  'overlays',
+  'utilities',
+  'shared',
+];
+
 export function inferFileCategory(path: string): StoryCategory {
   if (isFoundationFile(path)) {
     return 'foundations';
