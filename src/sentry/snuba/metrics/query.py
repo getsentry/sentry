@@ -15,6 +15,7 @@ from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_utils import string_to_use_case_id
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import get_derived_metrics
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
@@ -193,7 +194,7 @@ class DeprecatingMetricsQuery(MetricsQueryValidationRunner):
         parsed_mri = parse_mri(metric_mri)
         assert parsed_mri is not None
         try:
-            return UseCaseID(parsed_mri.namespace)
+            return string_to_use_case_id(parsed_mri.namespace)
         except ValueError:
             raise ValueError("Can't find correct use_case_id based on metric MRI")
 
