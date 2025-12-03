@@ -118,6 +118,24 @@ describe('useMaxPickableDays', () => {
         upsellFooter: expect.any(Object),
       });
     });
+
+    it('returns 90/90 for profiles', () => {
+      const {result} = renderHookWithProviders(() =>
+        useMaxPickableDays({
+          dataCategories: [
+            DataCategory.PROFILE_CHUNKS,
+            DataCategory.PROFILE_CHUNKS_UI,
+            DataCategory.PROFILE_DURATION,
+            DataCategory.PROFILE_DURATION_UI,
+          ],
+        })
+      );
+
+      expect(result.current).toEqual({
+        maxPickableDays: 90,
+        maxUpgradableDays: 90,
+      });
+    });
   });
 
   describe('with downsampled-date-page-filter', () => {
@@ -259,6 +277,27 @@ describe('useMaxPickableDays', () => {
         maxPickableDays: 396,
         maxUpgradableDays: 396,
         upsellFooter: expect.any(Object),
+      });
+    });
+
+    it('returns 30/90 for profiles', () => {
+      const {result} = renderHookWithProviders(
+        () =>
+          useMaxPickableDays({
+            dataCategories: [
+              DataCategory.PROFILE_CHUNKS,
+              DataCategory.PROFILE_CHUNKS_UI,
+              DataCategory.PROFILE_DURATION,
+              DataCategory.PROFILE_DURATION_UI,
+            ],
+          }),
+        {organization}
+      );
+
+      expect(result.current).toEqual({
+        maxPickableDays: 30,
+        maxUpgradableDays: 30,
+        defaultPeriod: '24h',
       });
     });
   });
