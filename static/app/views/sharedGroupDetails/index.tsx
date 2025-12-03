@@ -39,30 +39,24 @@ function SharedGroupDetails() {
 
   const {
     data: group,
-    isPending,
+    isLoading,
     isError,
     refetch,
-  } = useApiQuery<Group>(
-    [
-      orgSlug
-        ? `/organizations/${orgSlug}/shared/issues/${shareId}/`
-        : `/shared/issues/${shareId}/`,
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+  } = useApiQuery<Group>([`/organizations/${orgSlug}/shared/issues/${shareId}/`], {
+    staleTime: 0,
+    enabled: !!orgSlug,
+  });
 
-  if (isPending) {
+  if (isLoading) {
     return <LoadingIndicator />;
-  }
-
-  if (!group) {
-    return <NotFound />;
   }
 
   if (isError) {
     return <LoadingError onRetry={refetch} />;
+  }
+
+  if (!group || !orgSlug) {
+    return <NotFound />;
   }
 
   // project.organization is not a real organization, it's just the slug and name

@@ -27,7 +27,7 @@ interface ShortIdBreadcrumbProps {
 export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
   const organization = useOrganization();
   const [isHovered, setIsHovered] = useState(false);
-  const shareUrl = group?.shareId ? getShareUrl(group) : null;
+  const shareUrl = group?.shareId ? getShareUrl(organization, group) : null;
   const {copy} = useCopyToClipboard();
 
   const handleCopyShortId = useCallback(() => {
