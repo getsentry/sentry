@@ -148,6 +148,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                     "content-type": "application/json;charset=utf-8",
                     **sign_with_seer_secret(get_body),
                 },
+                timeout=5,
             )
             get_response.raise_for_status()
             current_prefs = get_response.json()
@@ -181,6 +182,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                     "content-type": "application/json;charset=utf-8",
                     **sign_with_seer_secret(set_body),
                 },
+                timeout=5,
             )
             set_response.raise_for_status()
             successful_project_ids.append(project.id)
