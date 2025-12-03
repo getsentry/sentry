@@ -10,6 +10,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.constants import LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BoundedBigIntegerField,
+    BoundedPositiveBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     GzippedDictField,
@@ -39,7 +40,7 @@ class GroupTombstone(Model):
         blank=True, null=True
     )
     actor_id = BoundedPositiveIntegerField(null=True)
-    times_seen = BoundedPositiveIntegerField(db_default=0)
+    times_seen = BoundedPositiveBigIntegerField(db_default=0)
     last_seen = models.DateTimeField(auto_now_add=True, null=True)
 
     class Meta:
