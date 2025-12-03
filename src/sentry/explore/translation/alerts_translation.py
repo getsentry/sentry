@@ -70,9 +70,14 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
         logger.info("No active query subscription found for snuba query %s", snuba_query.id)
         return
 
-    data_source: DataSource = DataSource.objects.get(
-        source_id=str(query_subscription.id), type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-    )
+    try:
+        data_source: DataSource = DataSource.objects.get(
+            source_id=str(query_subscription.id), type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        )
+    except DataSource.DoesNotExist as e:
+        logger.info("Data source not found for snuba query %s", snuba_query.id)
+        sentry_sdk.capture_exception(e)
+        return
     if not features.has(
         "organizations:migrate-transaction-alerts-to-spans", data_source.organization
     ):
