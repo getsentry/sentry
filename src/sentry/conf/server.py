@@ -3051,7 +3051,6 @@ SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
 # on the main domain for a long time.
 REGION_PINNED_URL_NAMES = {
     # These paths have organization scoped aliases
-    "sentry-api-0-builtin-symbol-sources",
     "sentry-api-0-grouping-configs",
     # Unprefixed issue URLs
     "sentry-api-0-group-details",
