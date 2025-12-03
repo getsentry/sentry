@@ -274,7 +274,11 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
-  'php-symfony': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'php-symfony': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.METRICS,
+  ],
   python: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
