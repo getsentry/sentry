@@ -361,7 +361,9 @@ function useFilterSuggestions({
   const queryParams = useMemo(
     () =>
       [
-        key ? {key: key.key, name: key.name} : {key: keyName, name: keyName},
+        key
+          ? {key: key.key, name: key.name, kind: key.kind}
+          : {key: keyName, name: keyName, kind: undefined},
         filterValue,
       ] as const,
     [filterValue, key, keyName]

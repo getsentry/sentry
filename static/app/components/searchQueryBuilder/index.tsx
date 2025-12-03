@@ -28,11 +28,12 @@ import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {IconCase, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
+import type {SavedSearchType, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 
 export interface SearchQueryBuilderProps {
   /**
@@ -41,7 +42,7 @@ export interface SearchQueryBuilderProps {
    * Should be a stable reference.
    */
   filterKeys: TagCollection;
-  getTagValues: (key: Tag, query: string) => Promise<string[]>;
+  getTagValues: GetTagValues;
   initialQuery: string;
   /**
    * Indicates the usage of the search bar for analytics

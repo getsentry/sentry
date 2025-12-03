@@ -150,11 +150,21 @@ function FilterSelector({
     () =>
       [
         'global-dashboard-filters-tag-values',
-        {key: globalFilter.tag.key, name: globalFilter.tag.name},
+        {
+          key: globalFilter.tag.key,
+          name: globalFilter.tag.name,
+          kind: globalFilter.tag.kind,
+        },
         selection,
         searchQuery,
       ] as const,
-    [globalFilter.tag.key, globalFilter.tag.name, selection, searchQuery]
+    [
+      globalFilter.tag.key,
+      globalFilter.tag.name,
+      globalFilter.tag.kind,
+      selection,
+      searchQuery,
+    ]
   );
   const queryKey = useDebouncedValue(baseQueryKey);
 
