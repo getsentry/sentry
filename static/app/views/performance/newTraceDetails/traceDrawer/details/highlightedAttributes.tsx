@@ -203,8 +203,9 @@ function getAISpanAttributes({
         span_operation: op || 'unknown',
         missing_attributes: missingGenAIAttributes.join(','),
         origin,
-        sdk_name: sdkName?.toString() || 'unknown',
-        sdk_version: sdkVersion?.toString() || 'unknown',
+        sdk:
+          [sdkName?.toString(), sdkVersion?.toString()].filter(Boolean).join('@') ||
+          'unknown',
       },
     });
   }
