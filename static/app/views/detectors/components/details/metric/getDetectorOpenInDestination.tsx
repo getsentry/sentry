@@ -107,6 +107,12 @@ function getDetectorExploreUrl({
   const snubaQuery = detector.dataSources[0].queryObj.snubaQuery;
   const interval = convertTimeWindowSecondsToInterval(snubaQuery.timeWindow);
   const projectId = Number(detector.projectId);
+  const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
+
+  const query =
+    dataset === DetectorDataset.TRANSACTIONS
+      ? `is_transaction:true ${snubaQuery.query}`.trim()
+      : snubaQuery.query;
 
   return getExploreUrl({
     organization,
@@ -127,7 +133,7 @@ function getDetectorExploreUrl({
         yAxes: [snubaQuery.aggregate],
       },
     ],
-    query: snubaQuery.query,
+    query,
   });
 }
 
@@ -163,9 +169,9 @@ function getDetectorLogsUrl({
  * Get the "Open in" button text and destination URL for a metric detector.
  *
  * Returns the appropriate destination based on the detector's dataset:
- * - SPANS: Open in Explore
+ * - SPANS/TRANSACTIONS: Open in Explore
  * - LOGS: Open in Logs
- * - ERRORS/TRANSACTIONS: Open in Discover
+ * - ERRORS: Open in Discover
  */
 export function getDetectorOpenInDestination(
   options: GetDetectorExploreUrlOptions
@@ -190,8 +196,12 @@ export function getDetectorOpenInDestination(
         buttonText: t('Open in Explore'),
         to: getDetectorExploreUrl(options),
       };
-    case DetectorDataset.ERRORS:
     case DetectorDataset.TRANSACTIONS:
+      return {
+        buttonText: t('Open in Explore'),
+        to: getDetectorExploreUrl(options),
+      };
+    case DetectorDataset.ERRORS:
       return {
         buttonText: t('Open in Discover'),
         to: getDetectorDiscoverUrl(options),

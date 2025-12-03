@@ -60,7 +60,7 @@ describe('getDetectorOpenInDestination', () => {
   });
 
   describe('Transactions dataset', () => {
-    it('returns "Open in Discover" for transactions dataset', () => {
+    it('returns "Open in Explore" for transactions dataset', () => {
       const detector = MetricDetectorFixture({
         dataSources: [
           SnubaQueryDataSourceFixture({
@@ -88,20 +88,17 @@ describe('getDetectorOpenInDestination', () => {
         statsPeriod: '14d',
       });
 
-      expect(result?.buttonText).toBe('Open in Discover');
-      expect(result?.to).toEqual(
-        expect.objectContaining({
-          pathname: expect.stringContaining('/discover/results/'),
-          query: expect.objectContaining({
-            dataset: 'transactions',
-            query: 'transaction:/api/users',
-            interval: '10m',
-            statsPeriod: '14d',
-            project: '1',
-            environment: 'prod',
-          }),
-        })
+      expect(result?.buttonText).toBe('Open in Explore');
+      expect(result?.to).toContain('/explore/traces/');
+      expect(result?.to).toContain(
+        'query=is_transaction%3Atrue%20transaction%3A%2Fapi%2Fusers'
       );
+      expect(result?.to).toContain('interval=10m');
+      expect(result?.to).toContain('environment=prod');
+      expect(result?.to).toContain(
+        'visualize=%7B%22chartType%22%3A1%2C%22yAxes%22%3A%5B%22p95%28transaction.duration%29%22%5D%7D'
+      );
+      expect(result?.to).toContain('project=1');
     });
   });
 
