@@ -359,6 +359,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
             ):
                 distribution = {
                     "attributeName": public_alias,
+                    "internalAlias": attr,
                     "cohort1": cohort_1_distribution_map.get(attr),
                     "cohort2": cohort_2_distribution_map.get(attr),
                     "order": {  # TODO: aayush-se remove this once we have selected a single ranking method

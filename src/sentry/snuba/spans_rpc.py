@@ -26,7 +26,7 @@ from sentry.search.eap.types import (
     SearchResolverConfig,
     SupportedTraceItemType,
 )
-from sentry.search.eap.utils import can_expose_attribute
+from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
@@ -330,8 +330,13 @@ class Spans(rpc_dataset_common.RPCBase):
                         continue
 
                     for bucket in attribute.buckets:
+                        name = translate_internal_to_public_alias(attribute.attribute_name)
                         attrs[attribute.attribute_name].append(
-                            {"label": bucket.label, "value": bucket.value}
+                            {
+                                "label": name,  # public alias
+                                "name": bucket.label,  # internal alias
+                                "value": bucket.value,
+                            }
                         )
                 stats.append({"attribute_distributions": {"data": attrs}})
 
