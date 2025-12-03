@@ -91,29 +91,19 @@ describe('transformIssuesResponseToTable', () => {
   });
   it('transforms issues timeseries response to series', () => {
     expect(
-      transformIssuesResponseToSeries(
-        {
-          timeSeries: [
-            {
-              yAxis: 'count(new_issues)',
-              values: [{timestamp: 1763495560000, value: 10}],
-              meta: {
-                valueType: 'integer',
-                valueUnit: null,
-                interval: 10800000,
-              },
+      transformIssuesResponseToSeries({
+        timeSeries: [
+          {
+            yAxis: 'count(new_issues)',
+            values: [{timestamp: 1763495560000, value: 10}],
+            meta: {
+              valueType: 'integer',
+              valueUnit: null,
+              interval: 10800000,
             },
-          ],
-        },
-        {
-          name: '',
-          fields: ['count(new_issues)'],
-          columns: [],
-          aggregates: ['count(new_issues)'],
-          orderby: '',
-          conditions: '',
-        }
-      )
+          },
+        ],
+      })
     ).toEqual([expect.objectContaining({data: [{name: 1763495560000, value: 10}]})]);
   });
 });

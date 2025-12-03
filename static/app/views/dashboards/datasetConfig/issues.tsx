@@ -303,12 +303,9 @@ function getIssuesSeriesRequest(
   >;
 }
 
-export function transformIssuesResponseToSeries(
-  data: IssuesSeriesResponse,
-  widgetQuery: WidgetQuery
-): Series[] {
+export function transformIssuesResponseToSeries(data: IssuesSeriesResponse): Series[] {
   return data.timeSeries.map(timeSeries => ({
-    seriesName: widgetQuery.name || timeSeries.yAxis,
+    seriesName: timeSeries.yAxis,
     data: timeSeries.values.map(item => ({
       name: item.timestamp,
       value: item.value ?? 0,
