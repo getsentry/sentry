@@ -19,10 +19,12 @@ from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
-from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
-from sentry.seer.endpoints.seer_rpc import (
+from sentry.seer.assisted_query.traces_tools import (
     get_attribute_names,
     get_attribute_values_with_substring,
+)
+from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
+from sentry.seer.endpoints.seer_rpc import (
     get_attributes_and_values,
     get_attributes_for_span,
     get_organization_project_ids,
