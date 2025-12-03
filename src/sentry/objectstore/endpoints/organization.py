@@ -4,14 +4,12 @@ from urllib.parse import urlparse
 from wsgiref.util import is_hop_by_hop
 
 import requests
-from django.conf import settings
 from django.http import StreamingHttpResponse
 from requests import Response as ExternalResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.utils.env import in_test_environment
-
+# TODO(granian): Remove this and related code paths when we fully switch from uwsgi to granian
 uwsgi: Any = None
 try:
     import uwsgi
@@ -35,7 +33,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.FOUNDATIONAL_STORAGE
-    parser_classes = ()  # don't attempt to parse request data, so we can access the raw wsgi.input
+    parser_classes = ()  # don't attempt to parse request data, so we can access the raw body in wsgi.input
 
     def _check_flag(self, request: Request, organization: Organization) -> Response | None:
         if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
@@ -96,10 +94,13 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         headers.pop("Transfer-Encoding", None)
 
         stream: Generator[bytes] | ChunkedEncodingDecoder | None = None
-        if request.method in ("PUT", "POST"):
-            wsgi_input = request.META.get("wsgi.input")
-            assert wsgi_input
+        wsgi_input = request.META.get("wsgi.input")
 
+        if "granian" in request.META.get("SERVER_SOFTWARE", "").lower():
+            stream = wsgi_input
+        # uwsgi and wsgiref will respectively raise an exception and hang when attempting to read wsgi.input while there's no body.
+        # For now, support bodies only on PUT and POST requests.
+        elif request.method in ("PUT", "POST"):
             if uwsgi:
 
                 def stream_generator():
@@ -110,16 +111,8 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
                         yield chunk
 
                 stream = stream_generator()
-
-            else:
-                # This code path should be hit only in test/dev mode, where the wsgi implementation is wsgiref, not uwsgi.
-                # wsgiref doesn't handle chunked encoding automatically, and exposes different functions on the class it uses to represent the input stream.
-                # Therefore, we need to decode the chunked encoding ourselves using ChunkedEncodingDecoder.
-                if not (settings.IS_DEV or in_test_environment()):
-                    raise RuntimeError(
-                        "This module assumes that uWSGI is used in production, and it seems that this is not true anymore. Adapt the module to the new server."
-                    )
-                stream = ChunkedEncodingDecoder(wsgi_input._read)
+            else:  # assumes wsgiref, used in dev/test mode
+                stream = ChunkedEncodingDecoder(wsgi_input._read)  # type: ignore[union-attr]
 
         response = requests.request(
             request.method,
