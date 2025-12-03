@@ -103,18 +103,9 @@ function normalizeFilename(filename: string) {
   );
 }
 
-export type StoryCategory =
-  | 'foundations'
-  | 'principles'
-  | 'patterns'
-  | 'core'
-  | 'product'
-  | 'typography'
-  | 'layout'
-  | 'shared';
+export type StoryCategory = 'principles' | 'patterns' | 'core' | 'product';
 
-// New hierarchical category system
-export type StorySection = 'overview' | 'principles' | 'patterns' | 'components';
+export type StorySection = 'overview' | StoryCategory;
 
 export type ComponentSubcategory =
   | 'typography'
@@ -133,7 +124,8 @@ export const SECTION_CONFIG: Record<StorySection, {label: string}> = {
   overview: {label: 'Overview'},
   principles: {label: 'Principles'},
   patterns: {label: 'Patterns'},
-  components: {label: 'Components'},
+  core: {label: 'Components'},
+  product: {label: 'Shared'},
 };
 
 export const COMPONENT_SUBCATEGORY_CONFIG: Record<
@@ -202,7 +194,8 @@ export const SECTION_ORDER: StorySection[] = [
   'overview',
   'principles',
   'patterns',
-  'components',
+  'core',
+  'product',
 ];
 
 export const COMPONENT_SUBCATEGORY_ORDER: ComponentSubcategory[] = [
@@ -273,8 +266,7 @@ export function useFlatStoryList(): StoryTreeNode[] {
         result.push(node);
       }
 
-      // Add stories by subcategory (for components section)
-      if (section === 'components') {
+      if (section === 'core') {
         for (const subcategory of COMPONENT_SUBCATEGORY_ORDER) {
           const subcategoryFiles = sectionData.bySubcategory.get(subcategory);
           if (!subcategoryFiles) {
@@ -306,7 +298,7 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
 
     // Initialize sections
     for (const section of SECTION_ORDER) {
-      if (section === 'components') {
+      if (section === 'core') {
         hierarchy.set(section, {
           stories: [],
           subcategories: new Map(),
@@ -325,11 +317,7 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
       }
 
       const name = inferComponentName(file);
-      const node = new StoryTreeNode(
-        formatName(name),
-        loc.section === 'components' ? 'core' : loc.section,
-        file
-      );
+      const node = new StoryTreeNode(formatName(name), loc.section, file);
 
       if (loc.subcategory && sectionData.subcategories) {
         if (!sectionData.subcategories.has(loc.subcategory)) {
@@ -356,11 +344,7 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
 }
 
 export function inferFileCategory(path: string): StoryCategory {
-  if (isFoundationFile(path)) {
-    return 'foundations';
-  }
-
-  if (isLegacyPrinciplesFile(path)) {
+  if (isPrinciplesFile(path)) {
     return 'principles';
   }
 
@@ -368,24 +352,12 @@ export function inferFileCategory(path: string): StoryCategory {
     return 'patterns';
   }
 
-  if (isTypographyFile(path)) {
-    return 'typography';
-  }
-
-  if (isLayoutFile(path)) {
-    return 'layout';
-  }
-
   // Leave core at the end, as both typography and layout are considered core components
   if (isCoreFile(path)) {
     return 'core';
   }
 
-  if (isProductFile(path)) {
-    return 'product';
-  }
-
-  return 'shared';
+  return 'product';
 }
 
 // New hierarchical inference system
@@ -414,11 +386,11 @@ export function inferStoryLocation(path: string): StoryLocation {
   if (isCoreFile(path)) {
     const componentName = inferComponentName(path).toLowerCase();
     const subcategory = inferComponentSubcategory(componentName);
-    return {section: 'components', subcategory};
+    return {section: 'core', subcategory};
   }
 
   // Shared (non-core components)
-  return {section: 'components', subcategory: 'shared'};
+  return {section: 'product'};
 }
 
 function inferComponentSubcategory(componentName: string): ComponentSubcategory {
@@ -443,37 +415,12 @@ function isPrinciplesFile(file: string) {
   );
 }
 
-// Legacy: kept for backward compatibility with old inferFileCategory
-function isLegacyPrinciplesFile(file: string) {
-  return file.includes('components/core/principles');
-}
-
 function isCoreFile(file: string) {
   return file.includes('components/core');
 }
 
-function isFoundationFile(file: string) {
-  return file.includes('app/styles') || file.includes('app/icons');
-}
-
-function isTypographyFile(file: string) {
-  return file.includes('components/core/text');
-}
-
-function isLayoutFile(file: string) {
-  return file.includes('components/core/layout');
-}
-
 function isPatternsFile(file: string) {
   return file.includes('components/core/patterns');
-}
-
-function isProductFile(path: string): boolean {
-  if (path.includes('/views/insights/')) {
-    return true;
-  }
-
-  return false;
 }
 
 function inferComponentName(path: string): string {
@@ -544,7 +491,7 @@ export function CategorizedStoryTree() {
           <li key={section}>
             <SectionHeader>{SECTION_CONFIG[section].label}</SectionHeader>
 
-            {section === 'components' && data.subcategories ? (
+            {section === 'core' && data.subcategories ? (
               <SubcategoryList>
                 {COMPONENT_SUBCATEGORY_ORDER.map(subcategory => {
                   const nodes = data.subcategories!.get(subcategory);

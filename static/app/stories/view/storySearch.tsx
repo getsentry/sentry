@@ -52,7 +52,7 @@ export function StorySearch() {
       }
 
       // For components section, flatten all subcategories into component groups
-      if (section === 'components' && data.subcategories) {
+      if (section === 'core' && data.subcategories) {
         for (const subcategory of COMPONENT_SUBCATEGORY_ORDER) {
           const nodes = data.subcategories.get(subcategory);
           if (nodes?.length) {
