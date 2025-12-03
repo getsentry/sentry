@@ -34,6 +34,7 @@ class EvidenceData(Generic[DataPacketEvaluationType]):
     detector_id: int
     data_packet_source_id: int
     conditions: list[dict[str, Any]]
+    config: dict[str, Any] = dataclasses.field(default_factory=dict, kw_only=True)
     data_sources: list[dict[str, Any]] = dataclasses.field(default_factory=list, kw_only=True)
 
 
