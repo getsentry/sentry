@@ -17,31 +17,49 @@ import useOrganization from 'sentry/utils/useOrganization';
 import MonitorCreateForm from 'sentry/views/insights/crons/components/monitorCreateForm';
 
 import type {SupportedPlatform} from './platformPickerPanel';
-import {CRON_SDK_PLATFORMS, PlatformPickerPanel} from './platformPickerPanel';
-import type {QuickStartProps} from './quickStartEntries';
+import {
+  CRON_GENERIC_PLATFORMS,
+  CRON_SDK_PLATFORMS,
+  PlatformPickerPanel,
+} from './platformPickerPanel';
 import {
   CeleryBeatAutoDiscovery,
+  CLIUpsertPlatformGuide,
+  CurlUpsertPlatformGuide,
+  DenoUpsertPlatformGuide,
   DotNetUpsertPlatformGuide,
+  ElixirObanPlatformGuide,
+  ElixirQuantumPlatformGuide,
+  ElixirUpsertPlatformGuide,
   GoUpsertPlatformGuide,
+  JavaSpringBootUpsertPlatformGuide,
   JavaUpsertPlatformGuide,
   LaravelUpsertPlatformGuide,
+  NestJSUpsertPlatformGuide,
+  NextJSUpsertPlatformGuide,
   NodeJsUpsertPlatformGuide,
   PHPUpsertPlatformGuide,
+  PythonUpsertPlatformGuide,
+  RubyActiveJobPlatformGuide,
   RubyRailsMixinPlatformGuide,
   RubySidekiqAutoPlatformGuide,
+  RubySidekiqMixinPlatformGuide,
   RubyUpsertPlatformGuide,
-} from './quickStartEntries';
+} from './upsertPlatformGuides';
 
 enum GuideKey {
-  BEAT_AUTO = 'beat_auto',
   UPSERT = 'upsert',
   MANUAL = 'manual',
   MIXIN = 'mixin',
   SIDEKIQ_AUTO = 'sidekiq_auto',
+  SIDEKIQ_MIXIN = 'sidekiq_mixin',
+  ACTIVEJOB = 'activejob',
+  OBAN = 'oban',
+  QUANTUM = 'quantum',
 }
 
 interface PlatformGuide {
-  Guide: React.ComponentType<QuickStartProps>;
+  Guide: React.ComponentType<any>;
   key: GuideKey;
   title: string;
 }
@@ -50,8 +68,8 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
   'python-celery': [
     {
       Guide: CeleryBeatAutoDiscovery,
-      title: 'Beat Auto Discovery',
-      key: GuideKey.BEAT_AUTO,
+      title: 'Auto-Instrument',
+      key: GuideKey.UPSERT,
     },
   ],
   php: [
@@ -68,11 +86,38 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
       key: GuideKey.UPSERT,
     },
   ],
-  python: [],
+  python: [
+    {
+      Guide: PythonUpsertPlatformGuide,
+      title: 'Upsert',
+      key: GuideKey.UPSERT,
+    },
+  ],
   node: [
     {
       Guide: NodeJsUpsertPlatformGuide,
       title: 'Upsert',
+      key: GuideKey.UPSERT,
+    },
+  ],
+  deno: [
+    {
+      Guide: DenoUpsertPlatformGuide,
+      title: 'Auto-Instrument',
+      key: GuideKey.UPSERT,
+    },
+  ],
+  'node-nestjs': [
+    {
+      Guide: NestJSUpsertPlatformGuide,
+      title: 'Upsert',
+      key: GuideKey.UPSERT,
+    },
+  ],
+  'node-nextjs': [
+    {
+      Guide: NextJSUpsertPlatformGuide,
+      title: 'Auto-Instrument',
       key: GuideKey.UPSERT,
     },
   ],
@@ -90,12 +135,23 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
       key: GuideKey.UPSERT,
     },
   ],
-  'java-spring-boot': [],
+  'java-spring-boot': [
+    {
+      Guide: JavaSpringBootUpsertPlatformGuide,
+      title: 'Auto-Instrument',
+      key: GuideKey.UPSERT,
+    },
+  ],
   ruby: [
     {
       Guide: RubyUpsertPlatformGuide,
       title: 'Upsert',
       key: GuideKey.UPSERT,
+    },
+    {
+      Guide: RubySidekiqMixinPlatformGuide,
+      title: 'Sidekiq Mixin',
+      key: GuideKey.SIDEKIQ_MIXIN,
     },
   ],
   'ruby-rails': [
@@ -105,14 +161,50 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
       key: GuideKey.SIDEKIQ_AUTO,
     },
     {
+      Guide: RubyActiveJobPlatformGuide,
+      title: 'ActiveJob',
+      key: GuideKey.ACTIVEJOB,
+    },
+    {
       Guide: RubyRailsMixinPlatformGuide,
       title: 'Mixin',
       key: GuideKey.MIXIN,
     },
   ],
+  elixir: [
+    {
+      Guide: ElixirUpsertPlatformGuide,
+      title: 'Upsert',
+      key: GuideKey.UPSERT,
+    },
+    {
+      Guide: ElixirObanPlatformGuide,
+      title: 'Oban',
+      key: GuideKey.OBAN,
+    },
+    {
+      Guide: ElixirQuantumPlatformGuide,
+      title: 'Quantum',
+      key: GuideKey.QUANTUM,
+    },
+  ],
   dotnet: [
     {
       Guide: DotNetUpsertPlatformGuide,
+      title: 'Upsert',
+      key: GuideKey.UPSERT,
+    },
+  ],
+  cli: [
+    {
+      Guide: CLIUpsertPlatformGuide,
+      title: 'Upsert',
+      key: GuideKey.UPSERT,
+    },
+  ],
+  http: [
+    {
+      Guide: CurlUpsertPlatformGuide,
       title: 'Upsert',
       key: GuideKey.UPSERT,
     },
@@ -180,9 +272,10 @@ export function CronsLandingPanel() {
     );
   }
 
-  const platformText = CRON_SDK_PLATFORMS.find(
-    ({platform: sdkPlatform}) => sdkPlatform === platform
-  )?.label;
+  const platformText =
+    CRON_SDK_PLATFORMS.find(p => p.platform === platform)?.label ??
+    CRON_GENERIC_PLATFORMS.find(p => p.platform === platform)?.label ??
+    platform;
 
   const guides = platformGuides[platform];
 

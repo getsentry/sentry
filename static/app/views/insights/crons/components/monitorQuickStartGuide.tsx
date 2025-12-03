@@ -9,7 +9,7 @@ import {t, tct} from 'sentry/locale';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {QuickStartProps} from 'sentry/views/insights/crons/components/quickStartEntries';
+import type {QuickStartProps} from 'sentry/views/insights/crons/components/manualCheckInGuides';
 import {
   CLICronQuickStart,
   CurlCronQuickStart,
@@ -27,7 +27,7 @@ import {
   RubyCronQuickStart,
   RubyRailsCronQuickStart,
   RubySidekiqCronQuickStart,
-} from 'sentry/views/insights/crons/components/quickStartEntries';
+} from 'sentry/views/insights/crons/components/manualCheckInGuides';
 
 interface Props {
   monitorSlug: string;
