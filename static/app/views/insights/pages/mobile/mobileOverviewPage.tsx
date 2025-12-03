@@ -281,7 +281,7 @@ function MobileOverviewPageWithProviders() {
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
   const useEap = useInsightsEap();
   return (
-    <DomainOverviewPageProviders>
+    <DomainOverviewPageProviders maxPickableDays={maxPickableDays.maxPickableDays}>
       {useEap ? (
         <EAPMobileOverviewPage datePageFilterProps={datePageFilterProps} />
       ) : (
