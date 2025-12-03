@@ -53,11 +53,7 @@ export const metrics: OnboardingConfig = {
 \\Sentry\\trace_metrics()->gauge('test-gauge', 50.0, ['my-attribute' => 'foo'], \\Sentry\\Unit::millisecond());
 
 // Distribution metric
-\\Sentry\\trace_metrics()->distribution('test-distribution', 20.0, ['my-attribute' => 'foo'], \\Sentry\\Unit::kilobyte())
-
-// Somewhere at the end of your execution, you should flush
-// to send pending metrics to Sentry.
-\\Sentry\\trace_metrics()->flush();`,
+\\Sentry\\trace_metrics()->distribution('test-distribution', 20.0, ['my-attribute' => 'foo'], \\Sentry\\Unit::kilobyte())`,
         },
       ],
     },
