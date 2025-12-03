@@ -393,12 +393,8 @@ function OpenInButton({detector}: OpenInButtonProps) {
     return null;
   }
 
-  const snubaQuery = detector.dataSources[0].queryObj.snubaQuery;
-  const isEapDataset = snubaQuery.dataset === 'events_analytics_platform';
-  const featureFlag = isEapDataset ? 'visibility-explore-view' : 'discover-basic';
-
   return (
-    <Feature features={featureFlag}>
+    <Feature features="visibility-explore-view">
       <LinkButton size="xs" to={destination.to}>
         {destination.buttonText}
       </LinkButton>
