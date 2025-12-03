@@ -18,8 +18,11 @@ import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Redirect from 'sentry/components/redirect';
 import TimeSince from 'sentry/components/timeSince';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconClose, IconFire, IconUpload} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -27,6 +30,7 @@ import type {Group} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
@@ -56,14 +60,17 @@ interface AssignedEntity {
 
 interface ClusterSummary {
   assignedTo: AssignedEntity[];
-  cluster_avg_similarity: number | null; // unused
+  cluster_avg_similarity: number | null;
+  // unused
   cluster_id: number;
-  cluster_min_similarity: number | null; // unused
-  cluster_size: number | null; // unused
+  cluster_min_similarity: number | null;
+  // unused
+  cluster_size: number | null;
+  // unused
   description: string;
   fixability_score: number | null;
   group_ids: number[];
-  issue_titles: string[]; // unused
+  issue_titles: string[];
   project_ids: number[];
   tags: string[];
   title: string;
@@ -393,6 +400,7 @@ function DynamicGrouping() {
   const organization = useOrganization();
   const user = useUser();
   const {teams: userTeams} = useUserTeams();
+  const {selection} = usePageFilters();
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
@@ -516,6 +524,18 @@ function DynamicGrouping() {
     return Array.from(selectedTags).every(tag => allClusterTags.includes(tag));
   };
 
+  // Helper to check if a cluster has any of the selected projects
+  const clusterHasSelectedProjects = (cluster: ClusterSummary): boolean => {
+    // If "All Projects" is selected (indicated by -1) or no specific projects are selected, show all clusters
+    if (
+      selection.projects.length === 0 ||
+      selection.projects.includes(ALL_ACCESS_PROJECTS)
+    ) {
+      return true;
+    }
+    return cluster.project_ids.some(projectId => selection.projects.includes(projectId));
+  };
+
   // When using custom JSON data with filters disabled, skip all filtering and sorting
   const shouldSkipFilters = isUsingCustomData && disableFilters;
   const filteredAndSortedClusters = shouldSkipFilters
@@ -526,6 +546,9 @@ function DynamicGrouping() {
 
           // Filter by selected tags
           if (!clusterHasSelectedTags(cluster)) return false;
+
+          // Filter by selected projects
+          if (!clusterHasSelectedProjects(cluster)) return false;
 
           if (filterByAssignedToMe) {
             if (!cluster.assignedTo?.length) return false;
@@ -555,222 +578,225 @@ function DynamicGrouping() {
   }
 
   return (
-    <PageWrapper>
-      <HeaderSection>
-        <Flex align="center" gap="md" style={{marginBottom: space(2)}}>
-          <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
-            {t('Top Issues')}
-          </ClickableHeading>
-          {isUsingCustomData && (
-            <CustomDataBadge>
-              <Text size="xs" bold>
-                {t('Using Custom Data')}
-              </Text>
-              <Button
-                size="zero"
-                borderless
-                icon={<IconClose size="xs" />}
-                aria-label={t('Clear custom data')}
-                onClick={handleClearCustomData}
-              />
-            </CustomDataBadge>
-          )}
-        </Flex>
-
-        <Flex gap="sm" style={{marginBottom: space(2)}}>
-          {showDevTools && (
-            <Button
-              size="sm"
-              icon={<IconUpload size="xs" />}
-              onClick={() => setShowJsonInput(!showJsonInput)}
-            >
-              {showJsonInput ? t('Hide JSON Input') : t('Paste JSON')}
-            </Button>
-          )}
-          <FeedbackButton
-            size="sm"
-            feedbackOptions={{
-              messagePlaceholder: t('What do you think about the new Top Issues page?'),
-              tags: {
-                ['feedback.source']: 'top-issues',
-                ['feedback.owner']: 'issues',
-              },
-            }}
-          />
-        </Flex>
-
-        {showJsonInput && (
-          <JsonInputContainer>
-            <Text size="sm" variant="muted" style={{marginBottom: space(1)}}>
-              {t(
-                'Paste cluster JSON data below. Accepts either a raw array of clusters or an object with a "data" property.'
-              )}
-            </Text>
-            <TextArea
-              value={jsonInputValue}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                setJsonInputValue(e.target.value);
-                setJsonError(null);
-              }}
-              placeholder={t('Paste JSON here...')}
-              rows={8}
-              monospace
-            />
-            {jsonError && (
-              <Text size="sm" style={{color: 'var(--red400)', marginTop: space(1)}}>
-                {jsonError}
-              </Text>
+    <PageFiltersContainer>
+      <PageWrapper>
+        <HeaderSection>
+          <Flex align="center" gap="md" style={{marginBottom: space(2)}}>
+            <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
+              {t('Top Issues')}
+            </ClickableHeading>
+            {isUsingCustomData && (
+              <CustomDataBadge>
+                <Text size="xs" bold>
+                  {t('Using Custom Data')}
+                </Text>
+                <Button
+                  size="zero"
+                  borderless
+                  icon={<IconClose size="xs" />}
+                  aria-label={t('Clear custom data')}
+                  onClick={handleClearCustomData}
+                />
+              </CustomDataBadge>
             )}
-            <Flex gap="sm" align="center" style={{marginTop: space(1.5)}}>
-              <Checkbox
-                checked={disableFilters}
-                onChange={e => setDisableFilters(e.target.checked)}
-                aria-label={t('Disable filters and sorting')}
-                size="sm"
-              />
-              <Text size="sm" variant="muted">
-                {t('Disable filters and sorting')}
-              </Text>
-            </Flex>
-            <Flex gap="sm" style={{marginTop: space(1)}}>
-              <Button size="sm" priority="primary" onClick={handleParseJson}>
-                {t('Parse and Load')}
-              </Button>
+          </Flex>
+
+          <Flex gap="sm" align="center" style={{marginBottom: space(2)}}>
+            <ProjectPageFilter />
+            {showDevTools && (
               <Button
                 size="sm"
-                onClick={() => {
-                  setShowJsonInput(false);
+                icon={<IconUpload size="xs" />}
+                onClick={() => setShowJsonInput(!showJsonInput)}
+              >
+                {showJsonInput ? t('Hide JSON Input') : t('Paste JSON')}
+              </Button>
+            )}
+            <FeedbackButton
+              size="sm"
+              feedbackOptions={{
+                messagePlaceholder: t('What do you think about the new Top Issues page?'),
+                tags: {
+                  ['feedback.source']: 'top-issues',
+                  ['feedback.owner']: 'issues',
+                },
+              }}
+            />
+          </Flex>
+
+          {showJsonInput && (
+            <JsonInputContainer>
+              <Text size="sm" variant="muted" style={{marginBottom: space(1)}}>
+                {t(
+                  'Paste cluster JSON data below. Accepts either a raw array of clusters or an object with a "data" property.'
+                )}
+              </Text>
+              <TextArea
+                value={jsonInputValue}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                  setJsonInputValue(e.target.value);
                   setJsonError(null);
                 }}
-              >
-                {t('Cancel')}
-              </Button>
-            </Flex>
-          </JsonInputContainer>
-        )}
-
-        {isPending ? null : (
-          <Fragment>
-            <Text size="sm" variant="muted">
-              {tn(
-                'Viewing %s cluster containing %s issue',
-                'Viewing %s clusters containing %s issues',
-                filteredAndSortedClusters.length,
-                totalIssues
-              )}
-              {shouldSkipFilters && ` ${t('(filters disabled)')}`}
-            </Text>
-
-            {selectedTags.size > 0 && (
-              <ActiveTagFilters>
-                <Text size="sm" variant="muted">
-                  {t('Filtering by tags:')}
-                </Text>
-                <Flex wrap="wrap" gap="xs" align="center">
-                  {Array.from(selectedTags).map(tag => (
-                    <ActiveTagChip key={tag}>
-                      <Text size="xs">{tag}</Text>
-                      <Button
-                        size="zero"
-                        borderless
-                        icon={<IconClose size="xs" />}
-                        aria-label={t('Remove filter for %s', tag)}
-                        onClick={() => handleClearTagFilter(tag)}
-                      />
-                    </ActiveTagChip>
-                  ))}
-                  <Button size="xs" borderless onClick={handleClearAllTagFilters}>
-                    {t('Clear all')}
-                  </Button>
-                </Flex>
-              </ActiveTagFilters>
-            )}
-
-            {showDevTools && !shouldSkipFilters && (
-              <Container
-                padding="sm"
-                border="primary"
-                radius="md"
-                background="primary"
-                marginTop="md"
-              >
-                <Disclosure>
-                  <Disclosure.Title>
-                    <Text size="sm" bold>
-                      {t('More Filters')}
-                    </Text>
-                  </Disclosure.Title>
-                  <Disclosure.Content>
-                    <Flex direction="column" gap="md" paddingTop="md">
-                      <Flex gap="sm" align="center">
-                        <Checkbox
-                          checked={filterByAssignedToMe}
-                          onChange={e => handleAssignedToMeChange(e.target.checked)}
-                          aria-label={t('Show only issues assigned to me')}
-                          size="sm"
-                          disabled={isTeamFilterActive}
-                        />
-                        <FilterLabel disabled={isTeamFilterActive}>
-                          {t('Only show issues assigned to me')}
-                        </FilterLabel>
-                      </Flex>
-
-                      {teamsInData.length > 0 && (
-                        <Flex direction="column" gap="sm">
-                          <FilterLabel disabled={filterByAssignedToMe}>
-                            {t('Filter by teams')}
-                          </FilterLabel>
-                          <Flex direction="column" gap="xs" style={{paddingLeft: 8}}>
-                            {teamsInData.map(team => (
-                              <Flex key={team.id} gap="sm" align="center">
-                                <Checkbox
-                                  checked={selectedTeamIds.has(team.id)}
-                                  onChange={() => handleTeamToggle(team.id)}
-                                  aria-label={t('Filter by team %s', team.name)}
-                                  size="sm"
-                                  disabled={filterByAssignedToMe}
-                                />
-                                <FilterLabel disabled={filterByAssignedToMe}>
-                                  #{team.name}
-                                </FilterLabel>
-                              </Flex>
-                            ))}
-                          </Flex>
-                        </Flex>
-                      )}
-                    </Flex>
-                  </Disclosure.Content>
-                </Disclosure>
-              </Container>
-            )}
-          </Fragment>
-        )}
-      </HeaderSection>
-
-      <CardsSection>
-        {isPending ? (
-          <LoadingIndicator />
-        ) : filteredAndSortedClusters.length === 0 ? (
-          <Container padding="lg" border="primary" radius="md" background="primary">
-            <Text variant="muted" align="center" as="div">
-              {t('No clusters match the current filters')}
-            </Text>
-          </Container>
-        ) : (
-          <CardsGrid>
-            {filteredAndSortedClusters.map(cluster => (
-              <ClusterCard
-                key={cluster.cluster_id}
-                cluster={cluster}
-                onRemove={handleRemoveCluster}
-                onTagClick={handleTagClick}
-                selectedTags={selectedTags}
+                placeholder={t('Paste JSON here...')}
+                rows={8}
+                monospace
               />
-            ))}
-          </CardsGrid>
-        )}
-      </CardsSection>
-    </PageWrapper>
+              {jsonError && (
+                <Text size="sm" style={{color: 'var(--red400)', marginTop: space(1)}}>
+                  {jsonError}
+                </Text>
+              )}
+              <Flex gap="sm" align="center" style={{marginTop: space(1.5)}}>
+                <Checkbox
+                  checked={disableFilters}
+                  onChange={e => setDisableFilters(e.target.checked)}
+                  aria-label={t('Disable filters and sorting')}
+                  size="sm"
+                />
+                <Text size="sm" variant="muted">
+                  {t('Disable filters and sorting')}
+                </Text>
+              </Flex>
+              <Flex gap="sm" style={{marginTop: space(1)}}>
+                <Button size="sm" priority="primary" onClick={handleParseJson}>
+                  {t('Parse and Load')}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setShowJsonInput(false);
+                    setJsonError(null);
+                  }}
+                >
+                  {t('Cancel')}
+                </Button>
+              </Flex>
+            </JsonInputContainer>
+          )}
+
+          {isPending ? null : (
+            <Fragment>
+              <Text size="sm" variant="muted">
+                {tn(
+                  'Viewing %s cluster containing %s issue',
+                  'Viewing %s clusters containing %s issues',
+                  filteredAndSortedClusters.length,
+                  totalIssues
+                )}
+                {shouldSkipFilters && ` ${t('(filters disabled)')}`}
+              </Text>
+
+              {selectedTags.size > 0 && (
+                <ActiveTagFilters>
+                  <Text size="sm" variant="muted">
+                    {t('Filtering by tags:')}
+                  </Text>
+                  <Flex wrap="wrap" gap="xs" align="center">
+                    {Array.from(selectedTags).map(tag => (
+                      <ActiveTagChip key={tag}>
+                        <Text size="xs">{tag}</Text>
+                        <Button
+                          size="zero"
+                          borderless
+                          icon={<IconClose size="xs" />}
+                          aria-label={t('Remove filter for %s', tag)}
+                          onClick={() => handleClearTagFilter(tag)}
+                        />
+                      </ActiveTagChip>
+                    ))}
+                    <Button size="xs" borderless onClick={handleClearAllTagFilters}>
+                      {t('Clear all')}
+                    </Button>
+                  </Flex>
+                </ActiveTagFilters>
+              )}
+
+              {showDevTools && !shouldSkipFilters && (
+                <Container
+                  padding="sm"
+                  border="primary"
+                  radius="md"
+                  background="primary"
+                  marginTop="md"
+                >
+                  <Disclosure>
+                    <Disclosure.Title>
+                      <Text size="sm" bold>
+                        {t('More Filters')}
+                      </Text>
+                    </Disclosure.Title>
+                    <Disclosure.Content>
+                      <Flex direction="column" gap="md" paddingTop="md">
+                        <Flex gap="sm" align="center">
+                          <Checkbox
+                            checked={filterByAssignedToMe}
+                            onChange={e => handleAssignedToMeChange(e.target.checked)}
+                            aria-label={t('Show only issues assigned to me')}
+                            size="sm"
+                            disabled={isTeamFilterActive}
+                          />
+                          <FilterLabel disabled={isTeamFilterActive}>
+                            {t('Only show issues assigned to me')}
+                          </FilterLabel>
+                        </Flex>
+
+                        {teamsInData.length > 0 && (
+                          <Flex direction="column" gap="sm">
+                            <FilterLabel disabled={filterByAssignedToMe}>
+                              {t('Filter by teams')}
+                            </FilterLabel>
+                            <Flex direction="column" gap="xs" style={{paddingLeft: 8}}>
+                              {teamsInData.map(team => (
+                                <Flex key={team.id} gap="sm" align="center">
+                                  <Checkbox
+                                    checked={selectedTeamIds.has(team.id)}
+                                    onChange={() => handleTeamToggle(team.id)}
+                                    aria-label={t('Filter by team %s', team.name)}
+                                    size="sm"
+                                    disabled={filterByAssignedToMe}
+                                  />
+                                  <FilterLabel disabled={filterByAssignedToMe}>
+                                    #{team.name}
+                                  </FilterLabel>
+                                </Flex>
+                              ))}
+                            </Flex>
+                          </Flex>
+                        )}
+                      </Flex>
+                    </Disclosure.Content>
+                  </Disclosure>
+                </Container>
+              )}
+            </Fragment>
+          )}
+        </HeaderSection>
+
+        <CardsSection>
+          {isPending ? (
+            <LoadingIndicator />
+          ) : filteredAndSortedClusters.length === 0 ? (
+            <Container padding="lg" border="primary" radius="md" background="primary">
+              <Text variant="muted" align="center" as="div">
+                {t('No clusters match the current filters')}
+              </Text>
+            </Container>
+          ) : (
+            <CardsGrid>
+              {filteredAndSortedClusters.map(cluster => (
+                <ClusterCard
+                  key={cluster.cluster_id}
+                  cluster={cluster}
+                  onRemove={handleRemoveCluster}
+                  onTagClick={handleTagClick}
+                  selectedTags={selectedTags}
+                />
+              ))}
+            </CardsGrid>
+          )}
+        </CardsSection>
+      </PageWrapper>
+    </PageFiltersContainer>
   );
 }
 
