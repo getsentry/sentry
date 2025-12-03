@@ -313,7 +313,7 @@ def _collect_file_hashes(
     hash_to_paths: dict[str, set[str]],
     parent_path: str = "",
 ) -> None:
-    if parent_path and not file_info.path.startswith(parent_path):
+    if parent_path and not file_info.path.startswith(f"{parent_path}/"):
         full_path = f"{parent_path}/{file_info.path}"
     else:
         full_path = file_info.path
