@@ -94,7 +94,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
             attrs_response = snuba_rpc.attribute_names_rpc(attrs_request)
 
         # Chunk attributes and run stats query in parallel
-        chunked_attributes: dict[int, list[AttributeKey]] = defaultdict(list[AttributeKey])
+        chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
         for i, attr in enumerate(attrs_response.attributes):
             if attr.name in SPANS_STATS_EXCLUDED_ATTRIBUTES:
                 continue
