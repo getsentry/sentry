@@ -6,6 +6,7 @@ import {
 
 import {crashReport} from './crashReport';
 import {logs} from './logs';
+import {metrics} from './metrics';
 import {onboarding} from './onboarding';
 import {performance} from './performance';
 import {profiling} from './profiling';
@@ -18,6 +19,7 @@ const docs: Docs = {
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
   logsOnboarding: logs,
+  metricsOnboarding: metrics,
 };
 
 export default docs;
