@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {
   setApiQueryData,
@@ -10,14 +10,22 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import useAsciiSnapshot from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block} from 'sentry/views/seerExplorer/types';
+
+export type PendingUserInput = {
+  data: Record<string, any>;
+  id: string;
+  input_type: 'file_change_approval';
+};
 
 export type SeerExplorerResponse = {
   session: {
     blocks: Block[];
-    status: 'processing' | 'completed' | 'error';
+    status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
     updated_at: string;
+    pending_user_input?: PendingUserInput | null;
     run_id?: number;
   } | null;
 };
@@ -94,7 +102,10 @@ export const useSeerExplorer = () => {
   const orgSlug = organization?.slug;
   const captureAsciiSnapshot = useAsciiSnapshot();
 
-  const [currentRunId, setCurrentRunId] = useState<number | null>(null);
+  const [runId, setRunId] = useSessionStorage<number | null>(
+    'seer-explorer-run-id',
+    null
+  );
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
   const [interruptRequested, setInterruptRequested] = useState<boolean>(false);
@@ -108,11 +119,11 @@ export const useSeerExplorer = () => {
   } | null>(null);
 
   const {data: apiData, isPending} = useApiQuery<SeerExplorerResponse>(
-    makeSeerExplorerQueryKey(orgSlug || '', currentRunId || undefined),
+    makeSeerExplorerQueryKey(orgSlug || '', runId || undefined),
     {
       staleTime: 0,
       retry: false,
-      enabled: !!currentRunId && !!orgSlug,
+      enabled: !!runId && !!orgSlug,
       refetchInterval: query => {
         if (isPolling(query.state.data?.[0]?.session || null, waitingForResponse)) {
           return POLL_INTERVAL;
@@ -176,7 +187,7 @@ export const useSeerExplorer = () => {
 
       try {
         const response = (await api.requestPromise(
-          `/organizations/${orgSlug}/seer/explorer-chat/${currentRunId ? `${currentRunId}/` : ''}`,
+          `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
           {
             method: 'POST',
             data: {
@@ -188,8 +199,8 @@ export const useSeerExplorer = () => {
         )) as SeerExplorerChatResponse;
 
         // Set run ID if this is a new session
-        if (!currentRunId) {
-          setCurrentRunId(response.run_id);
+        if (!runId) {
+          setRunId(response.run_id);
         }
 
         // Invalidate queries to fetch fresh data
@@ -201,7 +212,7 @@ export const useSeerExplorer = () => {
         setOptimistic(null);
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
-          makeSeerExplorerQueryKey(orgSlug, currentRunId || undefined),
+          makeSeerExplorerQueryKey(orgSlug, runId || undefined),
           makeErrorSeerExplorerData(e?.responseJSON?.detail ?? 'An error occurred')
         );
       }
@@ -210,34 +221,20 @@ export const useSeerExplorer = () => {
       queryClient,
       api,
       orgSlug,
-      currentRunId,
+      runId,
       apiData,
       deletedFromIndex,
       captureAsciiSnapshot,
+      setRunId,
     ]
   );
-
-  const startNewSession = useCallback(() => {
-    setCurrentRunId(null);
-    setWaitingForResponse(false);
-    setDeletedFromIndex(null);
-    setOptimistic(null);
-    setInterruptRequested(false);
-    if (orgSlug) {
-      setApiQueryData<SeerExplorerResponse>(
-        queryClient,
-        makeSeerExplorerQueryKey(orgSlug),
-        makeInitialSeerExplorerData()
-      );
-    }
-  }, [queryClient, orgSlug]);
 
   const deleteFromIndex = useCallback((index: number) => {
     setDeletedFromIndex(index);
   }, []);
 
   const interruptRun = useCallback(async () => {
-    if (!orgSlug || !currentRunId) {
+    if (!orgSlug || !runId || interruptRequested) {
       return;
     }
 
@@ -245,7 +242,7 @@ export const useSeerExplorer = () => {
 
     try {
       await api.requestPromise(
-        `/organizations/${orgSlug}/seer/explorer-update/${currentRunId}/`,
+        `/organizations/${orgSlug}/seer/explorer-update/${runId}/`,
         {
           method: 'POST',
           data: {
@@ -259,12 +256,51 @@ export const useSeerExplorer = () => {
       // If the request fails, reset the interrupt state
       setInterruptRequested(false);
     }
-  }, [api, orgSlug, currentRunId]);
+  }, [api, orgSlug, runId, interruptRequested]);
+
+  const respondToUserInput = useCallback(
+    async (inputId: string, responseData?: Record<string, any>) => {
+      if (!orgSlug || !runId) {
+        return;
+      }
+
+      setWaitingForResponse(true);
+
+      try {
+        await api.requestPromise(
+          `/organizations/${orgSlug}/seer/explorer-update/${runId}/`,
+          {
+            method: 'POST',
+            data: {
+              payload: {
+                type: 'user_input_response',
+                input_id: inputId,
+                response_data: responseData,
+              },
+            },
+          }
+        );
+
+        // Invalidate queries to fetch fresh data
+        queryClient.invalidateQueries({
+          queryKey: makeSeerExplorerQueryKey(orgSlug, runId),
+        });
+      } catch (e: any) {
+        setWaitingForResponse(false);
+        setApiQueryData<SeerExplorerResponse>(
+          queryClient,
+          makeSeerExplorerQueryKey(orgSlug, runId),
+          makeErrorSeerExplorerData(e?.responseJSON?.detail ?? 'An error occurred')
+        );
+      }
+    },
+    [api, orgSlug, runId, queryClient]
+  );
 
   // Always filter messages based on optimistic state and deletedFromIndex before any other processing
   const sessionData = apiData?.session ?? null;
 
-  const filteredSessionData = (() => {
+  const filteredSessionData = useMemo(() => {
     const realBlocks = sessionData?.blocks || [];
 
     // Respect rewound/deleted index first for the real blocks view
@@ -295,7 +331,7 @@ export const useSeerExplorer = () => {
       ];
 
       const baseSession: NonNullable<SeerExplorerResponse['session']> = sessionData ?? {
-        run_id: currentRunId ?? undefined,
+        run_id: runId ?? undefined,
         blocks: [],
         status: 'processing',
         updated_at: new Date().toISOString(),
@@ -316,7 +352,7 @@ export const useSeerExplorer = () => {
     }
 
     return sessionData;
-  })();
+  }, [sessionData, deletedFromIndex, optimistic, runId]);
 
   // Clear optimistic blocks once the real blocks change in poll results
   useEffect(() => {
@@ -353,16 +389,48 @@ export const useSeerExplorer = () => {
     }
   }
 
+  /** Resets the hook state. The session isn't actually created until the user sends a message. */
+  const startNewSession = useCallback(() => {
+    if (!interruptRequested && isPolling(filteredSessionData, waitingForResponse)) {
+      // Make interrupt request before resetting state.
+      interruptRun();
+    }
+    // Reset state.
+    setRunId(null);
+    setWaitingForResponse(false);
+    setDeletedFromIndex(null);
+    setOptimistic(null);
+    setInterruptRequested(false);
+    if (orgSlug) {
+      setApiQueryData<SeerExplorerResponse>(
+        queryClient,
+        makeSeerExplorerQueryKey(orgSlug),
+        makeInitialSeerExplorerData()
+      );
+    }
+  }, [
+    queryClient,
+    orgSlug,
+    setRunId,
+    filteredSessionData,
+    waitingForResponse,
+    interruptRun,
+    interruptRequested,
+  ]);
+
   return {
     sessionData: filteredSessionData,
     isPolling: isPolling(filteredSessionData, waitingForResponse),
     isPending,
     sendMessage,
+    runId,
+    setRunId,
+    /** Resets the run id, blocks, and other state. The new session isn't actually created until the user sends a message. */
     startNewSession,
-    runId: currentRunId,
     deleteFromIndex,
     deletedFromIndex,
     interruptRun,
     interruptRequested,
+    respondToUserInput,
   };
 };

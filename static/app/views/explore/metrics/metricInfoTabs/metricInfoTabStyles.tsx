@@ -100,10 +100,10 @@ export const StyledSimpleTableHeader = styled(SimpleTable.Header)`
 `;
 
 export const StickyTableRow = styled(SimpleTable.Row)<{
-  isSticky?: boolean;
+  sticky?: boolean;
 }>`
   ${p =>
-    p.isSticky &&
+    p.sticky &&
     `
     top: 0px;
     z-index: 1;

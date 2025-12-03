@@ -2529,6 +2529,7 @@ describe('Customer Details', () => {
           countryCode: 'US',
           expMonth: 12,
           expYear: 2028,
+          brand: 'Visa',
         },
       });
 
@@ -2564,6 +2565,7 @@ describe('Customer Details', () => {
           countryCode: 'US',
           expMonth: 12,
           expYear: 2028,
+          brand: 'Visa',
         },
       });
 
@@ -2599,6 +2601,7 @@ describe('Customer Details', () => {
           countryCode: 'US',
           expMonth: 12,
           expYear: 2028,
+          brand: 'Visa',
         },
       });
 
@@ -2633,6 +2636,7 @@ describe('Customer Details', () => {
           countryCode: 'US',
           expMonth: 12,
           expYear: 2028,
+          brand: 'Visa',
         },
       });
 
@@ -2689,6 +2693,7 @@ describe('Customer Details', () => {
           countryCode: 'US',
           expMonth: 12,
           expYear: 2028,
+          brand: 'Visa',
         },
       });
 

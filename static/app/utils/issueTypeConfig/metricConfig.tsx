@@ -105,7 +105,7 @@ const metricConfig: IssueCategoryConfigMapping = {
       ctaText: t('View monitor details'),
     },
     header: {
-      filterBar: {enabled: true, fixedEnvironment: true},
+      filterBar: {enabled: true, fixedEnvironment: true, searchBar: {enabled: false}},
       graph: {enabled: true, type: 'detector-history'},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: false},
@@ -131,6 +131,7 @@ const metricConfig: IssueCategoryConfigMapping = {
     stats: {enabled: true},
     tags: {enabled: false},
     issueSummary: {enabled: false},
+    groupingInfo: {enabled: false},
   },
 };
 

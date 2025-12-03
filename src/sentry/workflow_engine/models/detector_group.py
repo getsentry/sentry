@@ -12,7 +12,7 @@ class DetectorGroup(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    detector = FlexibleForeignKey("workflow_engine.Detector", on_delete=models.CASCADE)
+    detector = FlexibleForeignKey("workflow_engine.Detector", null=True, on_delete=models.SET_NULL)
     group = FlexibleForeignKey("sentry.Group", on_delete=models.CASCADE)
 
     class Meta:

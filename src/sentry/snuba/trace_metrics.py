@@ -12,7 +12,6 @@ from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolv
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
-from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger("sentry.snuba.trace_metrics")
@@ -56,8 +55,6 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
 
         search_resolver = search_resolver or cls.get_resolver(params=params, config=config)
 
-        extra_conditions = config.extra_conditions(search_resolver)
-
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
                 query_string=query_string,
@@ -70,7 +67,6 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
                 resolver=search_resolver,
                 page_token=page_token,
                 additional_queries=additional_queries,
-                extra_conditions=extra_conditions,
             ),
             debug=debug,
         )
@@ -91,8 +87,6 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
         cls.validate_granularity(params)
         search_resolver = cls.get_resolver(params, config)
 
-        extra_conditions = config.extra_conditions(search_resolver)
-
         rpc_request, aggregates, groupbys = cls.get_timeseries_query(
             search_resolver=search_resolver,
             params=params,
@@ -101,11 +95,10 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
             groupby=[],
             referrer=referrer,
             sampling_mode=sampling_mode,
-            extra_conditions=extra_conditions,
         )
 
         """Run the query"""
-        rpc_response = snuba_rpc.timeseries_rpc([rpc_request])[0]
+        rpc_response = cls._run_timeseries_rpc(params.debug, rpc_request)
 
         """Process the results"""
         result = rpc_dataset_common.ProcessedTimeseries()

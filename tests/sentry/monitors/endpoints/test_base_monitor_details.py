@@ -4,7 +4,7 @@ from uuid import UUID
 
 import pytest
 
-from sentry.constants import ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
@@ -18,6 +18,7 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorIncident,
     ScheduleType,
+    is_monitor_muted,
 )
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.utils import ensure_cron_detector, get_timeout_at
@@ -345,18 +346,21 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 
     def test_can_mute(self) -> None:
         monitor = self._create_monitor()
+        # Create an environment so the monitor has an environment to mute
+        self._create_monitor_environment(monitor)
+
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"isMuted": True}
         )
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.is_muted
+        assert is_monitor_muted(monitor)
 
     def test_can_unmute(self) -> None:
         monitor = self._create_monitor()
-
-        monitor.update(is_muted=True)
+        # Create a muted environment so the monitor is muted
+        self._create_monitor_environment(monitor, is_muted=True)
 
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"isMuted": False}
@@ -364,7 +368,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert not monitor.is_muted
+        assert not is_monitor_muted(monitor)
 
     def test_timezone(self) -> None:
         monitor = self._create_monitor()
@@ -785,13 +789,11 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             resp.data["detail"]["message"] == "existing monitors may not be moved between projects"
         ), resp.content
 
-    @patch("sentry.quotas.backend.check_assign_monitor_seat")
-    @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_activate_monitor_success(
-        self, assign_monitor_seat: MagicMock, check_assign_monitor_seat: MagicMock
-    ) -> None:
-        check_assign_monitor_seat.return_value = SeatAssignmentResult(assignable=True)
-        assign_monitor_seat.return_value = Outcome.ACCEPTED
+    @patch("sentry.quotas.backend.check_assign_seat")
+    @patch("sentry.quotas.backend.assign_seat")
+    def test_activate_monitor_success(self, assign_seat: MagicMock, check_seat: MagicMock) -> None:
+        check_seat.return_value = SeatAssignmentResult(assignable=True)
+        assign_seat.return_value = Outcome.ACCEPTED
 
         monitor = self._create_monitor()
         monitor.update(status=ObjectStatus.DISABLED)
@@ -802,15 +804,15 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.status == ObjectStatus.ACTIVE
-        assert assign_monitor_seat.called
+        assert assign_seat.called
 
-    @patch("sentry.quotas.backend.check_assign_monitor_seat")
-    @patch("sentry.quotas.backend.assign_monitor_seat")
+    @patch("sentry.quotas.backend.check_assign_seat")
+    @patch("sentry.quotas.backend.assign_seat")
     def test_no_activate_if_already_activated(
-        self, assign_monitor_seat: MagicMock, check_assign_monitor_seat: MagicMock
+        self, assign_seat: MagicMock, check_seat: MagicMock
     ) -> None:
-        check_assign_monitor_seat.return_value = SeatAssignmentResult(assignable=True)
-        assign_monitor_seat.return_value = Outcome.ACCEPTED
+        check_seat.return_value = SeatAssignmentResult(assignable=True)
+        assign_seat.return_value = Outcome.ACCEPTED
 
         monitor = self._create_monitor()
 
@@ -820,10 +822,10 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.status == ObjectStatus.ACTIVE
-        assert not assign_monitor_seat.called
+        assert not assign_seat.called
 
-    @patch("sentry.quotas.backend.disable_monitor_seat")
-    def test_no_disable_if_already_disabled(self, disable_monitor_seat: MagicMock) -> None:
+    @patch("sentry.quotas.backend.disable_seat")
+    def test_no_disable_if_already_disabled(self, disable_seat: MagicMock) -> None:
         monitor = self._create_monitor()
 
         self.get_success_response(
@@ -832,21 +834,21 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         monitor.update(status=ObjectStatus.DISABLED)
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.status == ObjectStatus.DISABLED
-        assert not disable_monitor_seat.called
+        assert not disable_seat.called
 
     @patch("sentry.quotas.backend.update_monitor_slug")
-    @patch("sentry.quotas.backend.check_assign_monitor_seat")
-    @patch("sentry.quotas.backend.assign_monitor_seat")
+    @patch("sentry.quotas.backend.check_assign_seat")
+    @patch("sentry.quotas.backend.assign_seat")
     def test_update_slug_sends_right_slug_to_assign(
-        self, assign_monitor_seat, check_assign_monitor_seat, update_monitor_slug
+        self, assign_seat, check_seat, update_monitor_slug
     ):
-        check_assign_monitor_seat.return_value = SeatAssignmentResult(assignable=True)
+        check_seat.return_value = SeatAssignmentResult(assignable=True)
 
-        def dummy_assign(monitor):
+        def dummy_assign(data_category, monitor):
             assert monitor.slug == old_slug
             return Outcome.ACCEPTED
 
-        assign_monitor_seat.side_effect = dummy_assign
+        assign_seat.side_effect = dummy_assign
 
         monitor = self._create_monitor()
         monitor.update(status=ObjectStatus.DISABLED)
@@ -864,16 +866,14 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         update_call_args = update_monitor_slug.call_args
         assert update_call_args[0] == (old_slug, new_slug, monitor.project_id)
 
-    @patch("sentry.quotas.backend.check_assign_monitor_seat")
-    @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_activate_monitor_invalid(
-        self, assign_monitor_seat: MagicMock, check_assign_monitor_seat: MagicMock
-    ) -> None:
+    @patch("sentry.quotas.backend.check_assign_seat")
+    @patch("sentry.quotas.backend.assign_seat")
+    def test_activate_monitor_invalid(self, assign_seat: MagicMock, check_seat: MagicMock) -> None:
         result = SeatAssignmentResult(
             assignable=False,
             reason="Over quota",
         )
-        check_assign_monitor_seat.return_value = result
+        check_seat.return_value = result
 
         monitor = self._create_monitor()
         monitor.update(status=ObjectStatus.DISABLED)
@@ -887,17 +887,17 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         )
 
         assert resp.data["status"][0] == result.reason
-        assert not assign_monitor_seat.called
+        assert not assign_seat.called
 
-    @patch("sentry.quotas.backend.disable_monitor_seat")
-    def test_deactivate_monitor(self, disable_monitor_seat: MagicMock) -> None:
+    @patch("sentry.quotas.backend.disable_seat")
+    def test_deactivate_monitor(self, disable_seat: MagicMock) -> None:
         monitor = self._create_monitor()
 
         self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"status": "disabled"}
         )
 
-        assert disable_monitor_seat.called
+        assert disable_seat.called
 
 
 class BaseDeleteMonitorTest(MonitorTestCase):
@@ -907,10 +907,10 @@ class BaseDeleteMonitorTest(MonitorTestCase):
         self.login_as(user=self.user)
         super().setUp()
 
-    @patch("sentry.quotas.backend.disable_monitor_seat")
+    @patch("sentry.quotas.backend.disable_seat")
     @patch("sentry.quotas.backend.update_monitor_slug")
     def test_simple(
-        self, mock_update_monitor_slug: MagicMock, mock_disable_monitor_seat: MagicMock
+        self, mock_update_monitor_slug: MagicMock, mock_disable_seat: MagicMock
     ) -> None:
         monitor = self._create_monitor()
         old_slug = monitor.slug
@@ -927,7 +927,7 @@ class BaseDeleteMonitorTest(MonitorTestCase):
             object_id=monitor.id, model_name="Monitor"
         ).exists()
         mock_update_monitor_slug.assert_called_once()
-        mock_disable_monitor_seat.assert_called_once_with(monitor=monitor)
+        mock_disable_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
 
     def test_mismatched_org_slugs(self) -> None:
         monitor = self._create_monitor()

@@ -34,7 +34,7 @@ class NotificationSettingEnum(ValueEqualityEnum):
     QUOTA_SEER_BUDGET = "quotaSeerBudget"
     QUOTA_SPEND_ALLOCATIONS = "quotaSpendAllocations"
     QUOTA_LOG_BYTES = "quotaLogBytes"
-    QUOTA_PREVENT_USERS = "quotaPreventUsers"
+    QUOTA_SEER_USERS = "quotaSeerUsers"
     SPIKE_PROTECTION = "spikeProtection"
     MISSING_MEMBERS = "missingMembers"
     REPORTS = "reports"
@@ -151,7 +151,7 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.QUOTA_PREVENT_USERS: {
+    NotificationSettingEnum.QUOTA_SEER_USERS: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },

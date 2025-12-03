@@ -33,6 +33,12 @@ describe('CronDetectorsList', () => {
       body: UserFixture(),
     });
 
+    // Mock processing errors endpoint (no errors by default)
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/processing-errors/',
+      body: [],
+    });
+
     // Ensure a project is selected for queries
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
 

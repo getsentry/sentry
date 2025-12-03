@@ -10,8 +10,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.permissions import SentryIsAuthenticated
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.promptsactivity import PromptsActivity
@@ -36,12 +36,11 @@ class PromptsActivitySerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class PromptsActivityEndpoint(Endpoint):
+class PromptsActivityEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
     }
-    permission_classes = (SentryIsAuthenticated,)
 
     def get(self, request: Request, **kwargs) -> Response:
         """Return feature prompt status if dismissed or in snoozed period"""
@@ -98,11 +97,14 @@ class PromptsActivityEndpoint(Endpoint):
         else:
             fields["project_id"] = 0
 
-        if "organization_id" in required_fields:
+        if (
+            "organization_id" in required_fields
+            and fields["organization_id"] == request.organization.id
+        ):
             if not Organization.objects.filter(id=fields["organization_id"]).exists():
                 return Response({"detail": "Organization no longer exists"}, status=400)
         else:
-            fields["organization_id"] = 0
+            return Response({"detail": "Organization missing or mismatched"}, status=400)
 
         data: dict[str, Any] = {}
         now = calendar.timegm(timezone.now().utctimetuple())

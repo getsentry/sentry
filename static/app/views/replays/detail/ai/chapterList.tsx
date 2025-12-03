@@ -37,15 +37,20 @@ export function ChapterList({timeRanges}: Props) {
     [replay, setCurrentTime]
   );
 
+  // do not include chapters that are before the start of the replay;
+  // we filter these crumbs on the frontend anyway
   const chapterData = useMemo(
     () =>
       timeRanges
-        .map(({period_title, period_start, period_end, error, feedback}) => ({
+        .filter(
+          ({period_start, period_end}) =>
+            period_start >= (replay?.getStartTimestampMs() ?? 0) &&
+            period_end >= (replay?.getStartTimestampMs() ?? 0)
+        )
+        .map(({period_title, period_start, period_end}) => ({
           title: period_title,
           start: period_start,
           end: period_end,
-          error,
-          feedback,
           breadcrumbs:
             replay
               ?.getSummaryChapterFrames()

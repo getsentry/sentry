@@ -128,6 +128,7 @@ class SAML2AcceptACSView(BaseView):
         return pipeline.current_step()
 
 
+@control_silo_view
 class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
@@ -152,6 +153,7 @@ class SAML2ACSView(AuthView):
         return pipeline.next_step()
 
 
+@control_silo_view
 class SAML2SLSView(BaseView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, organization_slug: str) -> HttpResponseRedirect:
@@ -179,6 +181,7 @@ class SAML2SLSView(BaseView):
         return self.redirect(redirect_to)
 
 
+@control_silo_view
 class SAML2MetadataView(BaseView):
     def dispatch(self, request: HttpRequest, organization_slug: str) -> HttpResponse:
         provider = get_provider(organization_slug)

@@ -193,7 +193,7 @@ function DistributionsDrawerButton({
         replace
         disabled={tags.length === 0}
       >
-        {includeFeatureFlags
+        {includeFeatureFlags && !isScreenSmall
           ? tct('View[nbsp]All Tags[nbsp]&[nbsp]Flags', {
               nbsp: '\u00A0', // non-breaking space unicode character.
             })

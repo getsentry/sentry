@@ -12,10 +12,11 @@ interface Props {
   queryParamKey?: string;
 }
 
-const DEFAULT_SORT = {field: 'started_at', kind: 'desc'} as const;
+const DECODED_DEFAULT_REPLAY_LIST_SORT: Sort = {field: 'started_at', kind: 'desc'};
+export const DEFAULT_REPLAY_LIST_SORT = encodeSort(DECODED_DEFAULT_REPLAY_LIST_SORT);
 
 export default function useReplayTableSort({
-  defaultSort = DEFAULT_SORT,
+  defaultSort = DECODED_DEFAULT_REPLAY_LIST_SORT,
   queryParamKey = 'sort',
 }: Props = {}) {
   const organization = useOrganization();

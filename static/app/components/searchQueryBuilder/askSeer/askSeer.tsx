@@ -20,7 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
   const organization = useOrganization();
   const hasAskSeerConsentFlowChanges = organization.features.includes(
-    'ask-seer-consent-flow-update'
+    'gen-ai-consent-flow-removal'
   );
   const {gaveSeerConsent, displayAskSeerFeedback} = useSearchQueryBuilder();
 

@@ -18,7 +18,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
@@ -196,7 +195,6 @@ function AutomationDetailLoadingStates({automationId}: {automationId: string}) {
 }
 
 export default function AutomationDetail() {
-  useWorkflowEngineFeatureGate({redirect: true});
   const params = useParams<{automationId: string}>();
 
   const {data: automation, isPending} = useAutomationQuery(params.automationId);

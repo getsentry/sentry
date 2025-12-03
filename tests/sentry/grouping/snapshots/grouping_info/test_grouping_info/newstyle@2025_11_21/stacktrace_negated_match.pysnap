@@ -1,7 +1,5 @@
 ---
-created: '2025-11-05T23:19:02.651026+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
   "grouping_config": "newstyle:2025-11-21",
@@ -76,7 +74,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
+                    "hint": "marked out of app by built-in stack trace rule (family:native function:std::* -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -138,7 +136,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
+                    "hint": "marked out of app by built-in stack trace rule (family:native function:std::* -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -169,7 +167,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -312,7 +310,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (!function:log_demo::* -group)",
+                    "hint": "ignored by custom stack trace rule (!function:log_demo::* -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -343,7 +341,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (!function:log_demo::* -group)",
+                    "hint": "ignored by custom stack trace rule (!function:log_demo::* -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -374,7 +372,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (!function:log_demo::* -group)",
+                    "hint": "ignored by custom stack trace rule (!function:log_demo::* -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -405,7 +403,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (!function:log_demo::* -group)",
+                    "hint": "ignored by custom stack trace rule (!function:log_demo::* -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -436,7 +434,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:internals -group)",
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -498,7 +496,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (!function:log_demo::* -group)",
+                    "hint": "ignored by custom stack trace rule (!function:log_demo::* -group)",
                     "id": "frame",
                     "name": null,
                     "values": [

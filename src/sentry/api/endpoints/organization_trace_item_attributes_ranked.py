@@ -10,12 +10,13 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     StatsType,
     TraceItemStatsRequest,
 )
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
@@ -33,11 +34,11 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
     def get(self, request: Request, organization: Organization) -> Response:
 
@@ -51,9 +52,8 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         except NoProjects:
             return Response({"rankedAttributes": []})
 
-        aggregate_extrapolation = request.GET.get("aggregateExtrapolation") == "1"
         resolver_config = SearchResolverConfig(
-            disable_aggregate_extrapolation=not aggregate_extrapolation
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE
         )
 
         resolver = SearchResolver(

@@ -8,10 +8,12 @@ from sentry.models.rule import Rule
 from sentry.notifications.utils import get_generic_data
 from sentry.notifications.utils.links import get_group_settings_link, get_rules
 from sentry.utils import json
+from sentry.web.frontend.base import internal_region_silo_view
 
 from .mail import COMMIT_EXAMPLE, MailPreview, make_feedback_issue
 
 
+@internal_region_silo_view
 class DebugFeedbackIssueEmailView(View):
     def get(self, request):
         org = Organization(id=1, slug="example", name="Example")

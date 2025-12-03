@@ -198,9 +198,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 # to be more efficient than a Max() aggregation, because it lets us look at ~1
                 # workflow fire history row per workflow.
                 latest_fire_subquery = Subquery(
-                    WorkflowFireHistory.objects.filter(
-                        workflow=OuterRef("pk"), is_single_written=True
-                    )
+                    WorkflowFireHistory.objects.filter(workflow=OuterRef("pk"))
                     .order_by("-date_added")
                     .values("date_added")[:1]
                 )

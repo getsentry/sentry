@@ -27,7 +27,7 @@ const StepperTransitionIndicator = styled(motion.span)`
   position: absolute;
 `;
 
-type Props = React.HTMLAttributes<HTMLDivElement> & {
+type Props = Omit<React.HTMLAttributes<HTMLDivElement>, 'onClick'> & {
   currentStepIndex: number;
   numSteps: number;
   onClick: (stepIndex: number) => void;

@@ -23,7 +23,7 @@ export default function CreateProjectButton() {
         path: '/new/',
         organization,
       })}
-      icon={<IconAdd isCircled />}
+      icon={<IconAdd />}
     >
       {t('Create Project')}
     </LinkButton>

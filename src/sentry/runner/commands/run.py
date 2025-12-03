@@ -539,28 +539,10 @@ def taskbroker_send_tasks(
     help="Quantized rebalancing means that during deploys, rebalancing is triggered across all pods within a consumer group at the same time. The value is used by the pods to align their group join/leave activity to some multiple of the delay",
 )
 @click.option(
-    "--shutdown-strategy-before-consumer",
-    is_flag=True,
-    default=False,
-    help="A potential workaround for Broker Handle Destroyed during shutdown (see arroyo option).",
-)
-@click.option(
     "--profile-consumer-join",
     is_flag=True,
     default=False,
     help="Adds a ProcessingStrategy to the start of a consumer that records a transaction of the consumer's join() method.",
-)
-@click.option(
-    "--enable-autocommit",
-    is_flag=True,
-    default=False,
-    help="Enable Kafka autocommit mode with 1s commit interval. Offsets are stored via store_offsets and rdkafka commits them automatically.",
-)
-@click.option(
-    "--retry-handle-destroyed",
-    is_flag=True,
-    default=False,
-    help="Enable retrying on `KafkaError._DESTROY` during commit.",
 )
 @configuration
 def basic_consumer(
@@ -569,7 +551,6 @@ def basic_consumer(
     topic: str | None,
     kafka_slice_id: int | None,
     quantized_rebalance_delay_secs: int | None,
-    enable_autocommit: bool,
     **options: Any,
 ) -> None:
     """
@@ -599,15 +580,20 @@ def basic_consumer(
         logging.getLogger("arroyo").setLevel(log_level.upper())
 
     add_global_tags(
-        kafka_topic=topic, consumer_group=options["group_id"], kafka_slice_id=kafka_slice_id
+        set_sentry_tags=True,
+        tags={
+            "kafka_topic": topic,
+            "consumer_group": options["group_id"],
+            "kafka_slice_id": kafka_slice_id,
+        },
     )
+
     processor = get_stream_processor(
         consumer_name,
         consumer_args,
         topic=topic,
         kafka_slice_id=kafka_slice_id,
         add_global_tags=True,
-        enable_autocommit=enable_autocommit,
         **options,
     )
 

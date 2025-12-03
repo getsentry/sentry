@@ -22,7 +22,12 @@ from sentry.types.region import (
 )
 from sentry.utils.http import is_using_customer_domain, query_string
 from sentry.web.client_config import get_client_config
-from sentry.web.frontend.base import BaseView, ControlSiloOrganizationView
+from sentry.web.frontend.base import (
+    BaseView,
+    ControlSiloOrganizationView,
+    all_silo_view,
+    control_silo_view,
+)
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger(__name__)
@@ -95,6 +100,18 @@ class ReactMixin:
         ):
             user_theme = f"theme-{react_config['user']['options']['theme']}"
 
+        prefers_chonk_ui = False
+        if organization is not None and features.has("organizations:chonk-ui", organization):
+            if features.has("organizations:chonk-ui-enforce", organization):
+                prefers_chonk_ui = True
+
+        if (
+            prefers_chonk_ui is False
+            and react_config.get("user", None)
+            and react_config["user"].get("options", {}).get("prefersChonkUI", False)
+        ):
+            prefers_chonk_ui = react_config["user"]["options"]["prefersChonkUI"]
+
         context = {
             "CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME,
             "meta_tags": [
@@ -109,6 +126,7 @@ class ReactMixin:
             "org_context": org_context,
             "react_config": react_config,
             "user_theme": user_theme,
+            "prefers_chonk_ui": prefers_chonk_ui,
         }
 
         # Force a new CSRF token to be generated and set in user's
@@ -186,8 +204,9 @@ class ReactMixin:
         return response
 
 
-# TODO(dcramer): once we implement basic auth hooks in React we can make this
-# generic
+# While most of our HTML views are rendered in control silo,
+# our tests frequently redirect to HTML views
+@all_silo_view
 class ReactPageView(ControlSiloOrganizationView, ReactMixin):
     def handle_auth_required(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         # If user is a superuser (but not active, because otherwise this method would never be called)
@@ -202,11 +221,13 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
         return self.handle_react(request, organization=organization)
 
 
+@all_silo_view
 class GenericReactPageView(BaseView, ReactMixin):
     def handle(self, request: HttpRequest, **kwargs) -> HttpResponse:
         return self.handle_react(request, **kwargs)
 
 
+@control_silo_view
 class AuthV2ReactPageView(GenericReactPageView):
     auth_required = False
 

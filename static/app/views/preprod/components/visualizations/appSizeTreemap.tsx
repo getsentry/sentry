@@ -24,6 +24,7 @@ interface AppSizeTreemapProps {
   root: TreemapElement | null;
   searchQuery: string;
   alertMessage?: string;
+  onAlertClick?: () => void;
   onSearchChange?: (query: string) => void;
   unfilteredRoot?: TreemapElement;
 }
@@ -32,11 +33,13 @@ function FullscreenModalContent({
   unfilteredRoot,
   initialSearch,
   alertMessage,
+  onAlertClick,
   onSearchChange,
 }: {
   initialSearch: string;
   unfilteredRoot: TreemapElement;
   alertMessage?: string;
+  onAlertClick?: () => void;
   onSearchChange?: (query: string) => void;
 }) {
   const [localSearch, setLocalSearch] = useState(initialSearch);
@@ -76,6 +79,7 @@ function FullscreenModalContent({
           root={filteredRoot}
           searchQuery={localSearch}
           alertMessage={alertMessage}
+          onAlertClick={onAlertClick}
         />
       </Container>
     </Flex>
@@ -84,7 +88,8 @@ function FullscreenModalContent({
 
 export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const theme = useTheme();
-  const {root, searchQuery, unfilteredRoot, alertMessage, onSearchChange} = props;
+  const {root, searchQuery, unfilteredRoot, alertMessage, onAlertClick, onSearchChange} =
+    props;
   const appSizeCategoryInfo = getAppSizeCategoryInfo(theme);
   const renderingContext = useContext(ChartRenderingContext);
   const isFullscreen = renderingContext?.isFullscreen ?? false;
@@ -204,6 +209,12 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       height: `calc(100% - 22px)`,
       width: '100%',
       top: '22px',
+      // Very mysteriously this controls the initial breadcrumbs:
+      // https://github.com/apache/echarts/blob/6f305b497adc47fa2987a450d892d09741342c56/src/chart/treemap/TreemapView.ts#L665
+      // If truthy the root is selected else the 'middle' node is selected.
+      // It has to be set to large number to avoid problems caused by
+      // leafDepth's main use - controlling how many layers to render.
+      leafDepth: 100000,
       breadcrumb: {
         show: true,
         left: '0',
@@ -317,7 +328,15 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
 
   return (
     <Flex direction="column" gap="sm" height="100%" width="100%">
-      {alertMessage && <Alert type="warning">{alertMessage}</Alert>}
+      {alertMessage && (
+        <ClickableAlert
+          type="warning"
+          onClick={onAlertClick}
+          style={{cursor: onAlertClick ? 'pointer' : 'default'}}
+        >
+          {alertMessage}
+        </ClickableAlert>
+      )}
       <Container
         height="100%"
         width="100%"
@@ -366,6 +385,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
                       unfilteredRoot={unfilteredRoot}
                       initialSearch={searchQuery}
                       alertMessage={alertMessage}
+                      onAlertClick={onAlertClick}
                       onSearchChange={onSearchChange}
                     />
                   ) : (
@@ -374,6 +394,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
                         root={root}
                         searchQuery={searchQuery}
                         alertMessage={alertMessage}
+                        onAlertClick={onAlertClick}
                       />
                     </Container>
                   ),
@@ -386,6 +407,12 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     </Flex>
   );
 }
+
+const ClickableAlert = styled(Alert)`
+  &:hover {
+    opacity: ${p => (p.onClick ? 0.9 : 1)};
+  }
+`;
 
 const ButtonContainer = styled(Flex)`
   top: 0px;

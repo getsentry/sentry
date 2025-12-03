@@ -186,7 +186,7 @@ class OpsgenieClientTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @with_feature("organizations:workflow-engine-ui")
+    @with_feature("organizations:workflow-engine-ui-links")
     def test_send_notification_with_workflow_engine_ui_links(self, mock_record: MagicMock) -> None:
         resp_data = {
             "result": "Request will be processed",

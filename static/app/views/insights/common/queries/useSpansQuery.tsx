@@ -19,7 +19,6 @@ import type {
   RPCQueryExtras,
   SamplingMode,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   getRetryDelay,
   shouldRetryHandler,
@@ -113,7 +112,6 @@ function useSpansQueryBase<T>({
     caseInsensitive: queryExtras?.caseInsensitive,
     samplingMode: queryExtras?.samplingMode,
     disableAggregateExtrapolation: queryExtras?.disableAggregateExtrapolation,
-    traceMetric: queryExtras?.traceMetric,
   });
 
   if (trackResponseAnalytics) {
@@ -245,7 +243,6 @@ type WrappedDiscoverQueryProps<T> = {
   referrer?: string;
   refetchInterval?: number;
   samplingMode?: SamplingMode;
-  traceMetric?: TraceMetric;
 };
 
 function useWrappedDiscoverQueryBase<T>({
@@ -264,7 +261,6 @@ function useWrappedDiscoverQueryBase<T>({
   additionalQueryKey,
   refetchInterval,
   caseInsensitive,
-  traceMetric,
 }: WrappedDiscoverQueryProps<T> & {
   pageFiltersReady: boolean;
 }) {
@@ -292,11 +288,6 @@ function useWrappedDiscoverQueryBase<T>({
 
   if (allowAggregateConditions !== undefined) {
     queryExtras.allowAggregateConditions = allowAggregateConditions ? '1' : '0';
-  }
-
-  if (traceMetric?.name && traceMetric?.type) {
-    queryExtras.metricName = traceMetric.name;
-    queryExtras.metricType = traceMetric.type;
   }
 
   const result = useDiscoverQuery({

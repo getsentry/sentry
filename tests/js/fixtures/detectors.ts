@@ -12,6 +12,7 @@ import type {
   CronDetector,
   CronMonitorDataSource,
   ErrorDetector,
+  IssueStreamDetector,
   MetricCondition,
   MetricConditionGroup,
   MetricDetector,
@@ -99,6 +100,18 @@ export function ErrorDetectorFixture(params: Partial<ErrorDetector> = {}): Error
   };
 }
 
+export function IssueStreamDetectorFixture(
+  params: Partial<IssueStreamDetector> = {}
+): IssueStreamDetector {
+  return {
+    ...BASE_DETECTOR,
+    name: 'Issue Stream Detector',
+    id: '4',
+    type: 'issue_stream',
+    ...params,
+  };
+}
+
 export function UptimeDetectorFixture(
   params: Partial<UptimeDetector> = {}
 ): UptimeDetector {
@@ -155,7 +168,7 @@ export function SnubaQueryDataSourceFixture(
         aggregate: 'count()',
         dataset: Dataset.ERRORS,
         id: '',
-        query: '',
+        query: 'is:unresolved',
         timeWindow: 60,
         eventTypes: [EventTypes.ERROR],
       },

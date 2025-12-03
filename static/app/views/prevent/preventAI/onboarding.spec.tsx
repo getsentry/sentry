@@ -49,7 +49,7 @@ describe('PreventAIOnboarding', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: 'Ship Code That Breaks Less With Code Reviews And Tests',
+        name: 'Ship Code That Breaks Less With Code Reviews',
       })
     ).toBeInTheDocument();
 
@@ -66,7 +66,7 @@ describe('PreventAIOnboarding', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders all three onboarding steps', () => {
+  it('renders both onboarding steps', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(screen.getByText('1')).toBeInTheDocument();
@@ -78,9 +78,6 @@ describe('PreventAIOnboarding', () => {
     expect(
       screen.getByRole('heading', {name: 'Setup GitHub Integration'})
     ).toBeInTheDocument();
-
-    expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Setup Seer'})).toBeInTheDocument();
   });
 
   it('renders external links with correct hrefs', async () => {
@@ -120,14 +117,6 @@ describe('PreventAIOnboarding', () => {
       {organization}
     );
 
-    const seerLink = screen.getByRole('link', {name: 'Seer by Sentry GitHub App'});
-    expect(seerLink).toHaveAttribute('href', 'https://github.com/apps/seer-by-sentry');
-    await userEvent.click(seerLink);
-    expect(trackAnalytics).toHaveBeenCalledWith(
-      'prevent.ai_onboarding.seer_app_link.clicked',
-      {organization}
-    );
-
     const learnMoreLink = screen.getByRole('link', {name: 'Learn more'});
     expect(learnMoreLink).toHaveAttribute(
       'href',
@@ -148,17 +137,13 @@ describe('PreventAIOnboarding', () => {
         'It reviews your pull requests, predicting errors and suggesting code fixes.'
       )
     ).toBeInTheDocument();
-
-    expect(
-      screen.getByText('It generates unit tests for untested code in your PR.')
-    ).toBeInTheDocument();
   });
 
   it('renders how to use feature descriptions', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(
-      screen.getByText('AI Code Review helps you ship better code with three features:')
+      screen.getByText('AI Code Review helps you ship better code with new features:')
     ).toBeInTheDocument();
 
     expect(
@@ -173,14 +158,6 @@ describe('PreventAIOnboarding', () => {
       screen.getByText(
         textWithMarkupMatcher(
           'It predicts which errors your code will cause. This happens automatically when you mark a PR ready for review, and when you trigger a PR review with @sentry review.'
-        )
-      )
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          'It generates unit tests for your PR when you prompt @sentry generate-test.'
         )
       )
     ).toBeInTheDocument();
@@ -222,11 +199,10 @@ describe('PreventAIOnboarding', () => {
     render(<PreventAIOnboarding />, {organization});
 
     const stepHeadings = screen.getAllByRole('heading', {level: 3});
-    expect(stepHeadings).toHaveLength(3);
+    expect(stepHeadings).toHaveLength(2);
 
     expect(stepHeadings[0]).toHaveTextContent('Enable AI Code Review features');
     expect(stepHeadings[1]).toHaveTextContent('Setup GitHub Integration');
-    expect(stepHeadings[2]).toHaveTextContent('Setup Seer');
   });
 
   describe('step descriptions', () => {
@@ -263,19 +239,7 @@ describe('PreventAIOnboarding', () => {
       expect(
         screen.getByText(
           textWithMarkupMatcher(
-            'To grant Seer access to your codebase, install the Sentry GitHub App to connect your GitHub repositories. Learn more about GitHub integration.'
-          )
-        )
-      ).toBeInTheDocument();
-    });
-
-    it('renders step 3 description with Seer app link', () => {
-      render(<PreventAIOnboarding />, {organization});
-
-      expect(
-        screen.getByText(
-          textWithMarkupMatcher(
-            'AI Code Review uses the Sentry Seer agent to power its core functionalities. Install the Seer by Sentry GitHub App within the same GitHub organization.'
+            'Install the Sentry GitHub App to connect your GitHub repositories and enable AI Code Review to access your codebase. Learn more about GitHub integration.'
           )
         )
       ).toBeInTheDocument();
@@ -295,41 +259,5 @@ describe('PreventAIOnboarding', () => {
     const prCommentsImage = screen.getByAltText('Prevent PR Comments');
     expect(prCommentsImage).toBeInTheDocument();
     expect(prCommentsImage).toHaveAttribute('src', expectedSrc);
-  });
-
-  it('shows EU data storage alert when organization region is EU', () => {
-    const euOrg = OrganizationFixture({
-      slug: 'eu-org',
-      links: {
-        organizationUrl: 'https://eu-org.sentry.io',
-        regionUrl: 'https://de.sentry.io',
-      },
-    });
-
-    render(<PreventAIOnboarding />, {organization: euOrg});
-
-    expect(
-      screen.getByText(
-        'AI Code Review data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('does not show region alert for US organizations', () => {
-    const usOrg = OrganizationFixture({
-      slug: 'us-org',
-      links: {
-        organizationUrl: 'https://us-org.sentry.io',
-        regionUrl: 'https://us.sentry.io',
-      },
-    });
-
-    render(<PreventAIOnboarding />, {organization: usOrg});
-
-    expect(
-      screen.queryByText(
-        'AI Code Review data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
-      )
-    ).not.toBeInTheDocument();
   });
 });

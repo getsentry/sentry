@@ -1,8 +1,8 @@
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {ensureAttributeObject} from 'sentry/views/insights/agents/utils/aiTraceNodes';
-import {getIsMCPNode} from 'sentry/views/insights/mcp/utils/mcpTraceNodes';
+import {ensureAttributeObject} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';

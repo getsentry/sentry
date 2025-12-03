@@ -1,7 +1,5 @@
 ---
-created: '2025-11-03T21:48:49.004067+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: "be36642f41f047346396f018f62375d3"
@@ -15,14 +13,14 @@ app:
         value*
           "bad"
         stacktrace (ignored because it contains no in-app frames)
-          frame (marked out of app by stack trace rule (function:processTicksAndRejections -app))
+          frame (marked out of app by built-in stack trace rule (function:processTicksAndRejections -app))
             module*
               "task_queues"
             filename (ignored because module takes precedence)
               "task_queues"
             function*
               "processTicksAndRejections"
-          frame (marked out of app by stack trace rule (function:runMicrotasks -app))
+          frame (marked out of app by built-in stack trace rule (function:runMicrotasks -app))
             filename*
               "axiosinterceptor.js"
             function*
@@ -40,14 +38,14 @@ system:
         value*
           "bad"
         stacktrace (ignored because it contains no contributing frames)
-          frame (ignored by stack trace rule (function:processTicksAndRejections -group))
+          frame (ignored by built-in stack trace rule (function:processTicksAndRejections -group))
             module*
               "task_queues"
             filename (ignored because module takes precedence)
               "task_queues"
             function*
               "processTicksAndRejections"
-          frame (ignored by stack trace rule (function:runMicrotasks -group))
+          frame (ignored by built-in stack trace rule (function:runMicrotasks -group))
             filename*
               "axiosinterceptor.js"
             function*

@@ -40,21 +40,17 @@ import {
   PAYG_BUSINESS_DEFAULT,
   PAYG_TEAM_DEFAULT,
 } from 'getsentry/constants';
-import {
-  CheckoutType,
-  InvoiceItemType,
-  OnDemandBudgetMode,
-  PlanName,
-  PlanTier,
-  type BillingConfig,
-  type CheckoutAddOns,
-  type EventBucket,
-  type Invoice,
-  type OnDemandBudgets,
-  type Plan,
-  type PreviewData,
-  type PromotionData,
-  type Subscription,
+import {CheckoutType, OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
+import type {
+  BillingConfig,
+  CheckoutAddOns,
+  EventBucket,
+  Invoice,
+  OnDemandBudgets,
+  Plan,
+  PreviewData,
+  PromotionData,
+  Subscription,
 } from 'getsentry/types';
 import {
   hasActiveVCFeature,
@@ -69,16 +65,16 @@ import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import withPromotions from 'getsentry/utils/withPromotions';
-import Cart from 'getsentry/views/amCheckout/cart';
-import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
-import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
-import CheckoutSuccess from 'getsentry/views/amCheckout/checkoutSuccess';
+import Cart from 'getsentry/views/amCheckout/components/cart';
+import CheckoutOverview from 'getsentry/views/amCheckout/components/checkoutOverview';
+import CheckoutOverviewV2 from 'getsentry/views/amCheckout/components/checkoutOverviewV2';
+import CheckoutSuccess from 'getsentry/views/amCheckout/components/checkoutSuccess';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
+import AddBillingInformation from 'getsentry/views/amCheckout/steps/addBillingInfo';
 import AddDataVolume from 'getsentry/views/amCheckout/steps/addDataVolume';
 import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
-import AddBillingInformation from 'getsentry/views/amCheckout/steps/checkoutV3/addBillingInfo';
-import BuildYourPlan from 'getsentry/views/amCheckout/steps/checkoutV3/buildYourPlan';
-import ChooseYourBillingCycle from 'getsentry/views/amCheckout/steps/checkoutV3/chooseYourBillingCycle';
+import BuildYourPlan from 'getsentry/views/amCheckout/steps/buildYourPlan';
+import ChooseYourBillingCycle from 'getsentry/views/amCheckout/steps/chooseYourBillingCycle';
 import ContractSelect from 'getsentry/views/amCheckout/steps/contractSelect';
 import OnDemandBudgetsStep from 'getsentry/views/amCheckout/steps/onDemandBudgets';
 import OnDemandSpend from 'getsentry/views/amCheckout/steps/onDemandSpend';
@@ -138,16 +134,12 @@ class AMCheckout extends Component<Props, State> {
     const queryString =
       query && Object.keys(query).length > 0 ? `?${qs.stringify(query)}` : '';
 
-    // TODO(checkout v3): remove these checks once checkout v3 is GA'd and we've remove the legacy checkout route
-    if (props.location?.pathname.includes('checkout-v3') && !props.isNewCheckout) {
-      props.navigate(
-        `/settings/${props.organization.slug}/billing/checkout/${queryString}`,
-        {
-          replace: true,
-        }
-      );
-    } else if (!props.location?.pathname.includes('checkout-v3') && props.isNewCheckout) {
-      props.navigate(`/checkout-v3/${queryString}`, {replace: true});
+    // TODO(checkout v3): remove this check once we properly redirect from the legacy routes
+    if (
+      props.location?.pathname.includes('/settings/billing/checkout/') &&
+      props.isNewCheckout
+    ) {
+      props.navigate(`/checkout/${queryString}`, {replace: true});
     }
     let step = 1;
     if (props.location?.hash) {
@@ -811,9 +803,7 @@ class AMCheckout extends Component<Props, State> {
     }
 
     if (isSubmitted && isNewCheckout) {
-      const purchasedPlanItem = invoice?.items.find(
-        item => item.type === InvoiceItemType.SUBSCRIPTION
-      );
+      const purchasedPlanItem = invoice?.items.find(item => item.type === 'subscription');
       const basePlan = purchasedPlanItem
         ? this.getPlan(purchasedPlanItem.data.plan)
         : this.getPlan(formData.plan);

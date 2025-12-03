@@ -196,7 +196,7 @@ class ProjectUserIssueEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
     def get_formatter(self, data: dict) -> BaseUserIssueFormatter:
         if data.get("issueType") == WebVitalsGroup.slug:

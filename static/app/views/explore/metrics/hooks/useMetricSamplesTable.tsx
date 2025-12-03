@@ -22,9 +22,12 @@ import {
   useMetricsFrozenSearch,
   useMetricsFrozenTracePeriod,
 } from 'sentry/views/explore/metrics/metricsFrozenContext';
-import {type TraceMetricEventsResponseItem} from 'sentry/views/explore/metrics/types';
 import {
-  useQueryParamsQuery,
+  TraceMetricKnownFieldKey,
+  type TraceMetricEventsResponseItem,
+} from 'sentry/views/explore/metrics/types';
+import {
+  useQueryParamsSearch,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
@@ -74,7 +77,7 @@ function useMetricsQueryKey({
   traceMetric?: TraceMetric;
 }) {
   const organization = useOrganization();
-  const query = useQueryParamsQuery();
+  const userSearch = useQueryParamsSearch();
   const frozenSearch = useMetricsFrozenSearch();
   const frozenTracePeriod = useMetricsFrozenTracePeriod();
   const sortBys = useQueryParamsSortBys();
@@ -86,20 +89,19 @@ function useMetricsQueryKey({
     [fields]
   );
   const queryString = useMemo(() => {
-    const queryStr = query;
-    const frozenSearchStr = frozenSearch?.formatString() ?? '';
+    const newSearch = userSearch.copy();
 
-    const parts = [frozenSearchStr, queryStr].filter(Boolean);
-
-    if (parts.length === 0) {
-      return '';
-    }
-    if (parts.length === 1) {
-      return parts[0];
+    if (frozenSearch) {
+      newSearch.tokens.push(...frozenSearch.tokens);
     }
 
-    return parts.join(' ');
-  }, [query, frozenSearch]);
+    if (traceMetric) {
+      newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_NAME, traceMetric.name);
+      newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_TYPE, traceMetric.type);
+    }
+
+    return newSearch.formatString();
+  }, [userSearch, frozenSearch, traceMetric]);
 
   const adjustedDatetime = useMemo(() => {
     const baseDatetime = frozenTracePeriod
@@ -158,8 +160,6 @@ function useMetricsQueryKey({
       orderby: orderby.length > 0 ? orderby : undefined,
       per_page: limit,
       referrer,
-      metricName: traceMetric?.name,
-      metricType: traceMetric?.type,
       sampling: queryExtras?.samplingMode ?? SAMPLING_MODE.NORMAL,
       caseInsensitive: queryExtras?.caseInsensitive,
       disableAggregateExtrapolation: queryExtras?.disableAggregateExtrapolation
@@ -206,10 +206,7 @@ export function useMetricSamplesTable({
       traceMetric,
       fields,
       ingestionDelaySeconds,
-      queryExtras: {
-        ...queryExtras,
-        traceMetric,
-      },
+      queryExtras,
     },
     queryOptions: {
       canTriggerHighAccuracy,

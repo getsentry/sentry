@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
+import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -68,7 +69,6 @@ import {
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {ModelName} from 'sentry/views/insights/agents/components/modelName';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
@@ -76,6 +76,7 @@ import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/ta
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
@@ -1396,12 +1397,13 @@ function wrapFieldRendererInDashboardLink(
   dashboardFilters: DashboardFilters | undefined = undefined
 ): FieldFormatterRenderFunctionPartial {
   return function (data, baggage) {
-    const {organization} = baggage;
+    const {organization, location} = baggage;
     const value = data[field];
     const dashboardUrl = getDashboardUrl(
       field,
       value,
       organization,
+      location,
       widget,
       dashboardFilters
     );
@@ -1416,6 +1418,7 @@ function getDashboardUrl(
   field: string,
   value: any,
   organization: Organization,
+  location: Location,
   widget: Widget | undefined = undefined,
   dashboardFilters: DashboardFilters | undefined = undefined
 ) {
@@ -1424,9 +1427,10 @@ function getDashboardUrl(
     const dashboardLink = widget.queries[0]?.linkedDashboards?.find(
       linkedDashboard => linkedDashboard.field === field
     );
-    if (dashboardLink) {
-      const newTemporaryFilters: GlobalFilter[] =
-        dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? [];
+    if (dashboardLink && dashboardLink.dashboardId !== '-1') {
+      const newTemporaryFilters: GlobalFilter[] = [
+        ...(dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? []),
+      ].filter(filter => Boolean(filter.value));
 
       // Format the value as a proper filter condition string
       const mutableSearch = new MutableSearch('');
@@ -1437,8 +1441,20 @@ function getDashboardUrl(
         tag: {key: field, name: field, kind: FieldKind.TAG},
         value: formattedValue,
       });
+
+      // Preserve project, environment, and time range query params
+      const filterParams = pick(location.query, [
+        'release',
+        'environment',
+        'project',
+        'statsPeriod',
+        'start',
+        'end',
+      ]);
+
       const url = `/organizations/${organization.slug}/dashboard/${dashboardLink.dashboardId}/?${qs.stringify(
         {
+          ...filterParams,
           [DashboardFilterKeys.TEMPORARY_FILTERS]: newTemporaryFilters.map(filter =>
             JSON.stringify(filter)
           ),

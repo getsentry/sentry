@@ -22,7 +22,6 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
 
     def test_create_workflow_fire_histories(self) -> None:
         create_workflow_fire_histories(
-            self.detector,
             Action.objects.filter(id=self.action.id),
             self.event_data,
             is_single_processing=True,
@@ -30,11 +29,29 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
         )
         assert (
             WorkflowFireHistory.objects.filter(
-                detector=self.detector,
+                detector=None,
                 workflow=self.workflow,
                 group=self.group,
                 event_id=self.group_event.event_id,
-                is_single_written=True,
             ).count()
             == 1
         )
+
+    def test_create_workflow_fire_histories_only_canonical(self) -> None:
+        initial_count = WorkflowFireHistory.objects.count()
+
+        result = create_workflow_fire_histories(
+            Action.objects.filter(id=self.action.id),
+            self.event_data,
+            is_single_processing=False,
+            is_delayed=False,
+        )
+
+        assert result == []
+        assert WorkflowFireHistory.objects.count() == initial_count
+
+        assert not WorkflowFireHistory.objects.filter(
+            workflow=self.workflow,
+            group=self.group,
+            event_id=self.group_event.event_id,
+        ).exists()

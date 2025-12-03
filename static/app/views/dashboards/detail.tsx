@@ -61,6 +61,7 @@ import {
   isWidgetUsingTransactionName,
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
+import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
@@ -985,6 +986,7 @@ class DashboardDetail extends Component<Props, State> {
                           onUpdate={this.onUpdateWidget}
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
+                          isEmbedded={this.isEmbedded}
                           isPreview={this.isPreview}
                           widgetLegendState={this.state.widgetLegendState}
                         />
@@ -1185,6 +1187,7 @@ class DashboardDetail extends Component<Props, State> {
                                 isPreview={this.isPreview}
                                 onDashboardFilterChange={this.handleChangeFilter}
                                 shouldBusySaveButton={this.state.isSavingDashboardFilters}
+                                isPrebuiltDashboard={defined(dashboard.prebuiltId)}
                                 onCancel={() => {
                                   resetPageFilters(dashboard, location);
                                   trackAnalytics('dashboards2.filter.cancel', {
@@ -1257,27 +1260,30 @@ class DashboardDetail extends Component<Props, State> {
 
                               <WidgetViewerContext value={{seriesData, setData}}>
                                 <Fragment>
-                                  <Dashboard
-                                    dashboard={modifiedDashboard ?? dashboard}
-                                    isEditingDashboard={this.isEditingDashboard}
-                                    widgetLimitReached={widgetLimitReached}
-                                    onUpdate={this.onUpdateWidget}
-                                    handleUpdateWidgetList={this.handleUpdateWidgetList}
-                                    handleAddCustomWidget={this.handleAddCustomWidget}
-                                    onAddWidget={this.onAddWidget}
-                                    newWidget={newWidget}
-                                    onSetNewWidget={onSetNewWidget}
-                                    isPreview={this.isPreview}
-                                    widgetLegendState={this.state.widgetLegendState}
-                                    onEditWidget={this.onEditWidget}
-                                    newlyAddedWidget={newlyAddedWidget}
-                                    onNewWidgetScrollComplete={
-                                      this.handleScrollToNewWidgetComplete
-                                    }
-                                    useTimeseriesVisualization={
-                                      useTimeseriesVisualization
-                                    }
-                                  />
+                                  <WidgetQueryQueueProvider>
+                                    <Dashboard
+                                      dashboard={modifiedDashboard ?? dashboard}
+                                      isEditingDashboard={this.isEditingDashboard}
+                                      widgetLimitReached={widgetLimitReached}
+                                      onUpdate={this.onUpdateWidget}
+                                      handleUpdateWidgetList={this.handleUpdateWidgetList}
+                                      handleAddCustomWidget={this.handleAddCustomWidget}
+                                      onAddWidget={this.onAddWidget}
+                                      newWidget={newWidget}
+                                      onSetNewWidget={onSetNewWidget}
+                                      isEmbedded={this.isEmbedded}
+                                      isPreview={this.isPreview}
+                                      widgetLegendState={this.state.widgetLegendState}
+                                      onEditWidget={this.onEditWidget}
+                                      newlyAddedWidget={newlyAddedWidget}
+                                      onNewWidgetScrollComplete={
+                                        this.handleScrollToNewWidgetComplete
+                                      }
+                                      useTimeseriesVisualization={
+                                        useTimeseriesVisualization
+                                      }
+                                    />
+                                  </WidgetQueryQueueProvider>
 
                                   <WidgetBuilderV2
                                     isOpen={this.state.isWidgetBuilderOpen}

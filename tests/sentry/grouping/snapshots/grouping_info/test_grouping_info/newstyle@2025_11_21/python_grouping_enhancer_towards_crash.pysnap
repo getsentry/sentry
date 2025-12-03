@@ -1,7 +1,5 @@
 ---
-created: '2025-11-05T23:19:02.051469+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
   "grouping_config": "newstyle:2025-11-21",
@@ -265,7 +263,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked in-app by the client but ignored by stack trace rule (function:wrapped_view ^-group -group)",
+                    "hint": "marked in-app by the client but ignored by custom stack trace rule (function:wrapped_view ^-group -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -353,7 +351,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked in-app by the client but ignored by stack trace rule (function:wrapped_view ^-group -group)",
+                    "hint": "marked in-app by the client but ignored by custom stack trace rule (function:wrapped_view ^-group -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -397,7 +395,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked in-app by the client but ignored by stack trace rule (function:wrapped_view ^-group -group)",
+                    "hint": "marked in-app by the client but ignored by custom stack trace rule (function:wrapped_view ^-group -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -667,7 +665,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (function:wrapped_view ^-group -group)",
+                    "hint": "ignored by custom stack trace rule (function:wrapped_view ^-group -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -711,7 +709,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (function:wrapped_view ^-group -group)",
+                    "hint": "ignored by custom stack trace rule (function:wrapped_view ^-group -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -755,7 +753,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (function:wrapped_view ^-group -group)",
+                    "hint": "ignored by custom stack trace rule (function:wrapped_view ^-group -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -799,7 +797,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (function:wrapped_view ^-group -group)",
+                    "hint": "ignored by custom stack trace rule (function:wrapped_view ^-group -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -843,7 +841,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (function:wrapped_view ^-group -group)",
+                    "hint": "ignored by custom stack trace rule (function:wrapped_view ^-group -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -887,7 +885,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (function:wrapped_view ^-group -group)",
+                    "hint": "ignored by custom stack trace rule (function:wrapped_view ^-group -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -931,7 +929,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (function:wrapped_view ^-group -group)",
+                    "hint": "ignored by custom stack trace rule (function:wrapped_view ^-group -group)",
                     "id": "frame",
                     "name": null,
                     "values": [

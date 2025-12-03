@@ -240,7 +240,7 @@ export default function RequestLog({app}: RequestLogProps) {
                 </PanelItem>
               ))
             ) : (
-              <EmptyMessage icon={<IconFlag size="xl" />}>
+              <EmptyMessage icon={<IconFlag />}>
                 {t('No requests found in the last 30 days.')}
               </EmptyMessage>
             )}

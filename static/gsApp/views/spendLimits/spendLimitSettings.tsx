@@ -35,9 +35,9 @@ import {
   getPlanCategoryName,
   getSingularCategoryName,
 } from 'getsentry/utils/dataCategory';
-import CheckoutOption from 'getsentry/views/amCheckout/checkoutOption';
+import CheckoutOption from 'getsentry/views/amCheckout/components/checkoutOption';
+import {renderPerformanceHovercard} from 'getsentry/views/amCheckout/components/volumeSliders';
 import {getProductCheckoutDescription} from 'getsentry/views/amCheckout/steps/productSelect';
-import {renderPerformanceHovercard} from 'getsentry/views/amCheckout/steps/volumeSliders';
 import {
   displayPrice,
   displayPriceWithCents,

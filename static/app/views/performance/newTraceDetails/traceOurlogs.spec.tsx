@@ -21,16 +21,6 @@ function Component({traceSlug}: {traceSlug: string}) {
 }
 
 describe('TraceViewLogsSection', () => {
-  beforeEach(() => {
-    // the search query combobox is firing updates and causing console.errors
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-    MockApiClient.clearMockResponses();
-  });
-
   it('renders empty logs', async () => {
     const organization = OrganizationFixture({features: ['ourlogs-enabled']});
     const mockRequest = MockApiClient.addMockResponse({
@@ -44,17 +34,8 @@ describe('TraceViewLogsSection', () => {
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
+    expect(await screen.findByText(/No logs found/)).toBeInTheDocument();
     expect(mockRequest).toHaveBeenCalledTimes(1);
-
-    // without waiting a few ticks, the test fails just before the
-    // promise corresponding to the request resolves
-    // by adding some ticks, it forces the test to wait a little longer
-    // until the promise is resolved
-    for (let i = 0; i < 10; i++) {
-      await tick();
-    }
-
-    expect(screen.getByText(/No logs found/)).toBeInTheDocument();
   });
 
   it('renders some logs', async () => {
@@ -82,16 +63,7 @@ describe('TraceViewLogsSection', () => {
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
+    expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     expect(mockRequest).toHaveBeenCalledTimes(1);
-
-    // without waiting a few ticks, the test fails just before the
-    // promise corresponding to the request resolves
-    // by adding some ticks, it forces the test to wait a little longer
-    // until the promise is resolved
-    for (let i = 0; i < 10; i++) {
-      await tick();
-    }
-
-    expect(screen.getByText(/i am a log/)).toBeInTheDocument();
   });
 });

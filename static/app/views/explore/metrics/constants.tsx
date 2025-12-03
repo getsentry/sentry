@@ -38,6 +38,7 @@ export const HiddenTraceMetricDetailFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.TRACE_FLAGS,
   TraceMetricKnownFieldKey.METRIC_NAME,
   TraceMetricKnownFieldKey.METRIC_TYPE,
+  TraceMetricKnownFieldKey.METRIC_UNIT,
   TraceMetricKnownFieldKey.CLIENT_SAMPLE_RATE,
 ];
 
@@ -45,6 +46,7 @@ export const HiddenTraceMetricSearchFields: TraceMetricFieldKey[] = [
   ...AlwaysHiddenTraceMetricFields,
   TraceMetricKnownFieldKey.METRIC_NAME,
   TraceMetricKnownFieldKey.METRIC_TYPE,
+  TraceMetricKnownFieldKey.METRIC_UNIT,
 ];
 
 export const HiddenTraceMetricGroupByFields: TraceMetricFieldKey[] = [
@@ -177,3 +179,9 @@ export const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
   distribution: 'p75',
   gauge: 'avg',
 };
+
+/**
+ * Query parameter key for controlling the metrics drawer state.
+ * When this parameter is set to 'true', the metrics drawer should open automatically.
+ */
+export const METRICS_DRAWER_QUERY_PARAM = 'metricsDrawer';

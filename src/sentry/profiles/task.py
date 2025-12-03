@@ -29,7 +29,12 @@ from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
-from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, SymbolicatorTaskKind
+from sentry.lang.native.symbolicator import (
+    FrameOrder,
+    Symbolicator,
+    SymbolicatorPlatform,
+    SymbolicatorTaskKind,
+)
 from sentry.lang.native.utils import native_images_from_data
 from sentry.models.eventerror import EventError
 from sentry.models.files.utils import get_profiles_storage
@@ -424,6 +429,9 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                     profile=profile,
                     modules=raw_modules,
                     stacktraces=raw_stacktraces,
+                    # Frames in a profile aren't inherently ordered,
+                    # but returned inlinees should be ordered callee first.
+                    frame_order=FrameOrder.callee_first,
                     platform=platform,
                 )
 
@@ -491,7 +499,10 @@ def _normalize_profile(profile: Profile, organization: Organization, project: Pr
 
 @metrics.wraps("process_profile.normalize")
 def _normalize(profile: Profile, organization: Organization) -> None:
-    profile["retention_days"] = quotas.backend.get_event_retention(organization=organization) or 90
+    profile["retention_days"] = quotas.backend.get_event_retention(
+        organization=organization,
+        category=_get_duration_category(profile),
+    )
     platform = profile["platform"]
     version = profile.get("version")
 
@@ -596,6 +607,7 @@ def symbolicate(
     profile: Profile,
     modules: list[Any],
     stacktraces: list[Any],
+    frame_order: FrameOrder,
     platform: str,
 ) -> Any:
     if platform in SHOULD_SYMBOLICATE_JS:
@@ -605,6 +617,7 @@ def symbolicate(
             modules=modules,
             release=profile.get("release"),
             dist=profile.get("dist"),
+            frame_order=frame_order,
             apply_source_context=False,
         )
     elif platform == "android":
@@ -614,6 +627,7 @@ def symbolicate(
             stacktraces=stacktraces,
             modules=modules,
             release_package=profile.get("transaction_metadata", {}).get("app.identifier"),
+            frame_order=frame_order,
             apply_source_context=False,
             classes=[],
         )
@@ -621,6 +635,7 @@ def symbolicate(
         platform=platform,
         stacktraces=stacktraces,
         modules=modules,
+        frame_order=frame_order,
         apply_source_context=False,
     )
 
@@ -635,6 +650,7 @@ def run_symbolicate(
     profile: Profile,
     modules: list[Any],
     stacktraces: list[Any],
+    frame_order: FrameOrder,
     platform: str,
 ) -> tuple[list[Any], list[Any], bool]:
     symbolication_start_time = time()
@@ -662,6 +678,7 @@ def run_symbolicate(
                 profile=profile,
                 stacktraces=stacktraces,
                 modules=modules,
+                frame_order=frame_order,
                 platform=platform,
             )
 
@@ -940,6 +957,9 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                         )
                     },
                 ],
+                # Methods in a profile aren't inherently ordered, but the order of returned
+                # inlinees should be caller first.
+                frame_order=FrameOrder.caller_first,
                 platform=profile["platform"],
             )
             if response:
@@ -1155,13 +1175,15 @@ def _track_duration_outcome(
         key_id=None,
         outcome=Outcome.ACCEPTED,
         timestamp=datetime.now(timezone.utc),
-        category=(
-            DataCategory.PROFILE_DURATION_UI
-            if profile["platform"] in UI_PROFILE_PLATFORMS
-            else DataCategory.PROFILE_DURATION
-        ),
+        category=_get_duration_category(profile),
         quantity=duration_ms,
     )
+
+
+def _get_duration_category(profile: Profile) -> DataCategory:
+    if profile["platform"] in UI_PROFILE_PLATFORMS:
+        return DataCategory.PROFILE_DURATION_UI
+    return DataCategory.PROFILE_DURATION
 
 
 def _calculate_profile_duration_ms(profile: Profile) -> int:

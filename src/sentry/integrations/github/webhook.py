@@ -29,7 +29,6 @@ from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
-from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
@@ -767,13 +766,15 @@ class PullRequestEventWebhook(GitHubWebhook):
                 },
             )
 
-            installation = integration.get_installation(organization_id=organization.id)
-            if (
-                action == "opened"
-                and created
-                and isinstance(installation, CommitContextIntegration)
-            ):
-                installation.queue_open_pr_comment_task_if_needed(pr=pr, organization=organization)
+            if created:
+                metrics.incr(
+                    "github.webhook.pull_request.created",
+                    sample_rate=1.0,
+                    tags={
+                        "organization_id": organization.id,
+                        "repository_id": repo.id,
+                    },
+                )
 
         except IntegrityError:
             pass

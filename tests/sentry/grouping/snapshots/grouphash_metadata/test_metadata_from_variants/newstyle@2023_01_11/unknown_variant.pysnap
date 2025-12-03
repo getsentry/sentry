@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:42:08.965993+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_unknown_hash_basis
 ---
 hash_basis: unknown
 hashing_metadata: {}

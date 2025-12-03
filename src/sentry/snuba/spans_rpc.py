@@ -1,17 +1,31 @@
 import logging
+import time
+from collections import defaultdict
 from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
+from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
+    AttributeDistributionsRequest,
+    StatsType,
+    TraceItemStatsRequest,
+)
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
 
+from sentry import options
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.constants import DOUBLE, INT, STRING
+from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING, SUPPORTED_STATS_TYPES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
+from sentry.search.eap.types import (
+    AdditionalQueries,
+    EAPResponse,
+    SearchResolverConfig,
+    SupportedTraceItemType,
+)
+from sentry.search.eap.utils import can_expose_attribute
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
@@ -20,6 +34,7 @@ from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
+TRACE_QUERY_LIMIT_OVERRIDE: None | int = None
 
 
 class Spans(rpc_dataset_common.RPCBase):
@@ -88,7 +103,8 @@ class Spans(rpc_dataset_common.RPCBase):
         )
 
         """Run the query"""
-        rpc_response = snuba_rpc.timeseries_rpc([rpc_request])[0]
+        rpc_response = cls._run_timeseries_rpc(params.debug, rpc_request)
+
         """Process the results"""
         result = rpc_dataset_common.ProcessedTimeseries()
         final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
@@ -202,6 +218,8 @@ class Spans(rpc_dataset_common.RPCBase):
         request = GetTraceRequest(
             meta=meta,
             trace_id=trace_id,
+            # when this is None we just get the default limit
+            limit=TRACE_QUERY_LIMIT_OVERRIDE,  # type: ignore[arg-type]
             items=[
                 GetTraceRequest.TraceItem(
                     item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
@@ -209,31 +227,109 @@ class Spans(rpc_dataset_common.RPCBase):
                 )
             ],
         )
-        response = snuba_rpc.get_trace_rpc(request)
         spans = []
-        columns_by_name = {col.proto_definition.name: col for col in columns}
-        for item_group in response.item_groups:
-            for span_item in item_group.items:
-                span: dict[str, Any] = {
-                    "id": span_item.id,
-                    "children": [],
-                    "errors": [],
-                    "occurrences": [],
-                    "event_type": "span",
-                }
-                for attribute in span_item.attributes:
-                    resolved_column = columns_by_name[attribute.key.name]
-                    if resolved_column.proto_definition.type == STRING:
-                        span[resolved_column.public_alias] = attribute.value.val_str
-                    elif resolved_column.proto_definition.type == DOUBLE:
-                        span[resolved_column.public_alias] = attribute.value.val_double
-                    elif resolved_column.search_type == "boolean":
-                        span[resolved_column.public_alias] = attribute.value.val_int == 1
-                    elif resolved_column.proto_definition.type == INT:
-                        span[resolved_column.public_alias] = attribute.value.val_int
-                        if resolved_column.public_alias == "project.id":
-                            span["project.slug"] = resolver.params.project_id_map.get(
-                                span[resolved_column.public_alias], "Unknown"
+        start_time = int(time.time())
+        MAX_ITERATIONS = options.get("performance.traces.pagination.max-iterations")
+        MAX_TIMEOUT = options.get("performance.traces.pagination.max-timeout")
+        for _ in range(MAX_ITERATIONS):
+            response = snuba_rpc.get_trace_rpc(request)
+            columns_by_name = {col.proto_definition.name: col for col in columns}
+            for item_group in response.item_groups:
+                for span_item in item_group.items:
+                    span: dict[str, Any] = {
+                        "id": span_item.id,
+                        "children": [],
+                        "errors": [],
+                        "occurrences": [],
+                        "event_type": "span",
+                    }
+                    for attribute in span_item.attributes:
+                        resolved_column = columns_by_name[attribute.key.name]
+                        if resolved_column.proto_definition.type == STRING:
+                            span[resolved_column.public_alias] = attribute.value.val_str
+                        elif resolved_column.proto_definition.type == DOUBLE:
+                            span[resolved_column.public_alias] = attribute.value.val_double
+                        elif resolved_column.search_type == "boolean":
+                            span[resolved_column.public_alias] = (
+                                attribute.value.val_bool or attribute.value.val_int == 1
                             )
-                spans.append(span)
+                        elif resolved_column.proto_definition.type == BOOLEAN:
+                            span[resolved_column.public_alias] = attribute.value.val_bool
+
+                        elif resolved_column.proto_definition.type == INT:
+                            span[resolved_column.public_alias] = attribute.value.val_int
+                            if resolved_column.public_alias == "project.id":
+                                span["project.slug"] = resolver.params.project_id_map.get(
+                                    span[resolved_column.public_alias], "Unknown"
+                                )
+                    spans.append(span)
+            if response.page_token.end_pagination:
+                break
+            if MAX_TIMEOUT > 0 and time.time() - start_time > MAX_TIMEOUT:
+                # If timeout is not set then logging this is not helpful
+                rpc_dataset_common.log_rpc_request(
+                    "running a trace query timed out while paginating",
+                    request,
+                    logger,
+                )
+                break
+            request.page_token.CopyFrom(response.page_token)
         return spans
+
+    @classmethod
+    @sentry_sdk.trace
+    def run_stats_query(
+        cls,
+        *,
+        params: SnubaParams,
+        stats_types: set[str],
+        query_string: str,
+        referrer: str,
+        config: SearchResolverConfig,
+        search_resolver: SearchResolver | None = None,
+    ) -> list[dict[str, Any]]:
+        search_resolver = search_resolver or cls.get_resolver(params, config)
+        stats_filter, _, _ = search_resolver.resolve_query(query_string)
+        meta = search_resolver.resolve_meta(
+            referrer=referrer,
+            sampling_mode=params.sampling_mode,
+        )
+        stats_request = TraceItemStatsRequest(
+            filter=stats_filter,
+            meta=meta,
+            stats_types=[],
+        )
+
+        if not set(stats_types).intersection(SUPPORTED_STATS_TYPES):
+            return []
+
+        if "attributeDistributions" in stats_types:
+            stats_request.stats_types.append(
+                StatsType(
+                    attribute_distributions=AttributeDistributionsRequest(
+                        max_buckets=75,
+                    )
+                )
+            )
+
+        response = snuba_rpc.trace_item_stats_rpc(stats_request)
+        stats = []
+
+        for result in response.results:
+            if "attributeDistributions" in stats_types and result.HasField(
+                "attribute_distributions"
+            ):
+                attributes = defaultdict(list)
+                for attribute in result.attribute_distributions.attributes:
+                    if not can_expose_attribute(
+                        attribute.attribute_name, SupportedTraceItemType.SPANS
+                    ):
+                        continue
+
+                    for bucket in attribute.buckets:
+                        attributes[attribute.attribute_name].append(
+                            {"label": bucket.label, "value": bucket.value}
+                        )
+                stats.append({"attribute_distributions": {"data": attributes}})
+
+        return stats

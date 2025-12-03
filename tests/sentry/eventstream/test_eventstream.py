@@ -466,3 +466,95 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 assert trace_item.organization_id == event.project.organization_id
                 assert trace_item.retention_days == 90
                 assert trace_item.attributes["group_id"].int_value == group_info.group.id
+
+    def test_snuba_event_stream_forwarding_to_items(self):
+        create_default_projects()
+        es = SnubaEventStream()
+
+        # Prepare a generic event with a span item
+        profile_message = load_data("generic-event-profiling")
+        event_data = {
+            **profile_message["event"],
+            "contexts": {"trace": {"trace_id": uuid.uuid4().hex}},
+            "timestamp": timezone.now().isoformat(),
+        }
+        project_id = event_data.get("project_id", self.project.id)
+
+        occurrence, group_info = self.process_occurrence(
+            event_id=event_data["event_id"],
+            project_id=project_id,
+            event_data=event_data,
+        )
+        assert group_info is not None
+
+        event = Event(
+            event_id=occurrence.event_id,
+            project_id=project_id,
+            data=nodestore.backend.get(Event.generate_node_id(project_id, occurrence.event_id)),
+        )
+        group_event = event.for_group(group_info.group)
+        group_event.occurrence = occurrence
+
+        with self.options({"eventstream.eap_forwarding_rate": 1.0}):
+            # Mock both _send and _send_item to avoid schema validation and verify EAP forwarding
+            with patch.object(es, "_send"), patch.object(es, "_send_item") as mock_send_item:
+                es.insert(
+                    group_event,
+                    is_new=True,
+                    is_regression=True,
+                    is_new_group_environment=False,
+                    primary_hash="",
+                    skip_consume=False,
+                    received_timestamp=event_data["timestamp"],
+                )
+                mock_send_item.assert_called_once()
+
+                trace_item = mock_send_item.call_args[0][0]
+                assert trace_item.item_id == event.event_id.encode("utf-8")
+                assert trace_item.item_type == TRACE_ITEM_TYPE_OCCURRENCE
+                assert trace_item.trace_id == event_data["contexts"]["trace"]["trace_id"]
+                assert trace_item.project_id == event.project_id
+                assert trace_item.organization_id == event.project.organization_id
+                assert trace_item.retention_days == 90
+                assert trace_item.attributes["group_id"].int_value == group_info.group.id
+
+    def test_snuba_event_stream_no_forwarding_when_rate_zero(self):
+        create_default_projects()
+        es = SnubaEventStream()
+
+        # Prepare a generic event with a span item
+        profile_message = load_data("generic-event-profiling")
+        event_data = {
+            **profile_message["event"],
+            "contexts": {"trace": {"trace_id": uuid.uuid4().hex}},
+            "timestamp": timezone.now().isoformat(),
+        }
+        project_id = event_data.get("project_id", self.project.id)
+
+        occurrence, group_info = self.process_occurrence(
+            event_id=event_data["event_id"],
+            project_id=project_id,
+            event_data=event_data,
+        )
+        assert group_info is not None
+
+        event = Event(
+            event_id=occurrence.event_id,
+            project_id=project_id,
+            data=nodestore.backend.get(Event.generate_node_id(project_id, occurrence.event_id)),
+        )
+        group_event = event.for_group(group_info.group)
+        group_event.occurrence = occurrence
+
+        with self.options({"eventstream.eap_forwarding_rate": 0.0}):
+            with patch.object(es, "_send"), patch.object(es, "_send_item") as mock_send_item:
+                es.insert(
+                    group_event,
+                    is_new=True,
+                    is_regression=True,
+                    is_new_group_environment=False,
+                    primary_hash="",
+                    skip_consume=False,
+                    received_timestamp=event_data["timestamp"],
+                )
+                mock_send_item.assert_not_called()

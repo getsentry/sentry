@@ -20,9 +20,9 @@ import {
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
-import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {AI_GENERATIONS_PAGE_FILTER} from 'sentry/views/insights/aiGenerations/views/utils/constants';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 
 const CHART_TYPE_OPTIONS = [

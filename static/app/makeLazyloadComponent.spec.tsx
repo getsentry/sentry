@@ -1,5 +1,3 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Link} from 'sentry/components/core/link/link';
@@ -241,10 +239,6 @@ describe('makeLazyloadComponent', () => {
 
       act(() => {
         OrganizationStore.init();
-        OrganizationStore.onUpdate(
-          OrganizationFixture({features: ['route-intent-preloading']}),
-          {replace: true}
-        );
       });
     });
 

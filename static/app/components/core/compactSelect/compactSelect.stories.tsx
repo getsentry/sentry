@@ -284,7 +284,7 @@ export default Storybook.story('CompactSelect', story => {
   });
 
   story('Simple', () => {
-    const [value, setValue] = useState<string>('');
+    const [value, setValue] = useState<string>();
     const options = [
       {value: '', label: 'All'},
       {value: '2', label: '2XX', details: 'Optional'},

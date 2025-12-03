@@ -1275,11 +1275,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
           | TraceTreeNode<TraceTree.EAPSpan>
           | undefined;
 
-        const areSpanLabelsMatching = options.organization.features.includes(
+        const shouldUseOTelFriendlyUI = options.organization.features.includes(
           'performance-otel-friendly-ui'
-        )
-          ? areSpanNamesMatching
-          : areSpanDescriptionsMatching;
+        );
 
         if (
           next &&
@@ -1289,7 +1287,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
           // skip `op: default` spans as `default` is added to op-less spans
           next.value.op !== 'default' &&
           next.value.op === current.value.op &&
-          areSpanLabelsMatching(next, current)
+          // If OTEL friendly UI is enabled, we only match on span name if the description is not present
+          (shouldUseOTelFriendlyUI && !next.value.description
+            ? areSpanNamesMatching(next, current)
+            : areSpanDescriptionsMatching(next, current))
           // next.value.description === current.value.description
         ) {
           // console.log('are matching');

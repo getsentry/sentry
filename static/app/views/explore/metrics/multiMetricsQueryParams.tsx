@@ -188,33 +188,15 @@ export function useAddMetricQuery() {
   return function () {
     const target = {...location, query: {...location.query}};
 
-    const newMetricQueries: string[] = [...metricQueries, defaultMetricQuery()]
+    const newMetricQueries: string[] = [
+      ...metricQueries,
+      metricQueries[metricQueries.length - 1] ?? defaultMetricQuery(),
+    ]
       .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
       .filter(defined)
       .filter(Boolean);
     target.query.metric = newMetricQueries;
 
     navigate(target);
-  };
-}
-
-export function SingleMetricQueryParamsProvider({children}: {children: ReactNode}) {
-  return (
-    <MultiMetricsQueryParamsProvider allowUpTo={1}>
-      {children}
-    </MultiMetricsQueryParamsProvider>
-  );
-}
-
-export function useSingleMetricQueryParams() {
-  const metricQueries = useMultiMetricsQueryParams();
-  const metricQuery = metricQueries[0]!;
-
-  return {
-    queryParams: metricQuery.queryParams,
-    setQueryParams: metricQuery.setQueryParams,
-    metric: metricQuery.metric,
-    setTraceMetric: metricQuery.setTraceMetric,
-    removeMetric: metricQuery.removeMetric,
   };
 }

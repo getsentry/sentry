@@ -1,7 +1,5 @@
 ---
-created: '2024-12-16T06:50:58.618483+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 hashed_checksum:
   hash: "de46d023e69b171b90ccf3ebca7aede4"

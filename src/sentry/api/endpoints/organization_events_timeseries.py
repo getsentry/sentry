@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
 from sentry.api.endpoints.timeseries import (
     EMPTY_STATS_RESPONSE,
@@ -72,7 +72,7 @@ def null_zero(value: float) -> float | None:
 
 
 @region_silo_endpoint
-class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -222,19 +222,21 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             if dataset not in RPC_DATASETS:
                 raise NotImplementedError
 
+            extrapolation_mode = self.get_extrapolation_mode(request)
+
             if dataset == TraceMetrics:
                 # tracemetrics uses aggregate conditions
-                metric_name, metric_type, metric_unit = get_trace_metric_from_request(request)
+                metric = get_trace_metric_from_request(request)
+
                 return TraceMetricsSearchResolverConfig(
-                    metric_name=metric_name,
-                    metric_type=metric_type,
-                    metric_unit=metric_unit,
+                    metric=metric,
                     auto_fields=False,
                     use_aggregate_conditions=True,
                     disable_aggregate_extrapolation=request.GET.get(
                         "disableAggregateExtrapolation", "0"
                     )
                     == "1",
+                    extrapolation_mode=extrapolation_mode,
                 )
 
             return SearchResolverConfig(
@@ -244,14 +246,19 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     "disableAggregateExtrapolation", "0"
                 )
                 == "1",
+                extrapolation_mode=extrapolation_mode,
             )
 
         if top_events > 0:
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
+            raw_orderby = self.get_orderby(request)
             if len(raw_groupby) == 0:
                 raise ParseError("groupBy is a required parameter when doing topEvents")
             if "timestamp" in raw_groupby:
                 raise ParseError("Cannot group by timestamp")
+            if raw_orderby:
+                if "timestamp" in [col.strip("-") for col in raw_orderby]:
+                    raise ParseError("Cannot order by timestamp")
             if dataset in RPC_DATASETS:
                 return dataset.run_top_events_timeseries_query(
                     params=snuba_params,

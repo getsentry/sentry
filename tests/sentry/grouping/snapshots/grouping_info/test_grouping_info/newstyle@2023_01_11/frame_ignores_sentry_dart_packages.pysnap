@@ -1,7 +1,5 @@
 ---
-created: '2025-11-05T23:19:05.406414+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
   "grouping_config": "newstyle:2023-01-11",
@@ -21,7 +19,7 @@ source: tests/sentry/grouping/test_grouping_info.py
             "values": [
               {
                 "contributes": false,
-                "hint": "marked out of app by stack trace rule (path:package:sentry_logging/** -app)",
+                "hint": "marked out of app by built-in stack trace rule (path:package:sentry_logging/** -app)",
                 "id": "frame",
                 "name": null,
                 "values": [
@@ -54,7 +52,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               },
               {
                 "contributes": false,
-                "hint": "marked out of app by stack trace rule (path:package:sentry_dio/** -app)",
+                "hint": "marked out of app by built-in stack trace rule (path:package:sentry_dio/** -app)",
                 "id": "frame",
                 "name": null,
                 "values": [
@@ -87,7 +85,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               },
               {
                 "contributes": false,
-                "hint": "marked out of app by stack trace rule (path:package:sentry_file/** -app)",
+                "hint": "marked out of app by built-in stack trace rule (path:package:sentry_file/** -app)",
                 "id": "frame",
                 "name": null,
                 "values": [
@@ -120,7 +118,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               },
               {
                 "contributes": false,
-                "hint": "marked out of app by stack trace rule (path:package:sentry_hive/** -app)",
+                "hint": "marked out of app by built-in stack trace rule (path:package:sentry_hive/** -app)",
                 "id": "frame",
                 "name": null,
                 "values": [
@@ -153,7 +151,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               },
               {
                 "contributes": false,
-                "hint": "marked out of app by stack trace rule (path:package:sentry_isar/** -app)",
+                "hint": "marked out of app by built-in stack trace rule (path:package:sentry_isar/** -app)",
                 "id": "frame",
                 "name": null,
                 "values": [
@@ -186,7 +184,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               },
               {
                 "contributes": false,
-                "hint": "marked out of app by stack trace rule (path:package:sentry_sqflite/** -app)",
+                "hint": "marked out of app by built-in stack trace rule (path:package:sentry_sqflite/** -app)",
                 "id": "frame",
                 "name": null,
                 "values": [
@@ -219,7 +217,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               },
               {
                 "contributes": false,
-                "hint": "marked out of app by stack trace rule (path:package:sentry_drift/** -app)",
+                "hint": "marked out of app by built-in stack trace rule (path:package:sentry_drift/** -app)",
                 "id": "frame",
                 "name": null,
                 "values": [
@@ -284,7 +282,7 @@ source: tests/sentry/grouping/test_grouping_info.py
             "values": [
               {
                 "contributes": false,
-                "hint": "ignored by stack trace rule (path:package:sentry_logging/** -group)",
+                "hint": "ignored by built-in stack trace rule (path:package:sentry_logging/** -group)",
                 "id": "frame",
                 "name": null,
                 "values": [
@@ -317,7 +315,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               },
               {
                 "contributes": false,
-                "hint": "ignored by stack trace rule (path:package:sentry_dio/** -group)",
+                "hint": "ignored by built-in stack trace rule (path:package:sentry_dio/** -group)",
                 "id": "frame",
                 "name": null,
                 "values": [
@@ -350,7 +348,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               },
               {
                 "contributes": false,
-                "hint": "ignored by stack trace rule (path:package:sentry_file/** -group)",
+                "hint": "ignored by built-in stack trace rule (path:package:sentry_file/** -group)",
                 "id": "frame",
                 "name": null,
                 "values": [
@@ -383,7 +381,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               },
               {
                 "contributes": false,
-                "hint": "ignored by stack trace rule (path:package:sentry_hive/** -group)",
+                "hint": "ignored by built-in stack trace rule (path:package:sentry_hive/** -group)",
                 "id": "frame",
                 "name": null,
                 "values": [
@@ -416,7 +414,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               },
               {
                 "contributes": false,
-                "hint": "ignored by stack trace rule (path:package:sentry_isar/** -group)",
+                "hint": "ignored by built-in stack trace rule (path:package:sentry_isar/** -group)",
                 "id": "frame",
                 "name": null,
                 "values": [
@@ -449,7 +447,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               },
               {
                 "contributes": false,
-                "hint": "ignored by stack trace rule (path:package:sentry_sqflite/** -group)",
+                "hint": "ignored by built-in stack trace rule (path:package:sentry_sqflite/** -group)",
                 "id": "frame",
                 "name": null,
                 "values": [
@@ -482,7 +480,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               },
               {
                 "contributes": false,
-                "hint": "ignored by stack trace rule (path:package:sentry_drift/** -group)",
+                "hint": "ignored by built-in stack trace rule (path:package:sentry_drift/** -group)",
                 "id": "frame",
                 "name": null,
                 "values": [

@@ -1,0 +1,166 @@
+{
+  "platform": "python",
+  "message": "Failed to process pipeline step process_rules",
+  "exception": {
+    "values": [
+      {
+        "type": "TimeoutError",
+        "value": "timed out",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "<module>",
+              "module": "__main__",
+              "filename": "<string>",
+              "abs_path": "/usr/src/getsentry/<string>",
+              "context_line": "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=11, pipe_handle=32)"
+            },
+            {
+              "function": "spawn_main",
+              "module": "multiprocessing.spawn",
+              "filename": "multiprocessing/spawn.py",
+              "abs_path": "/usr/local/lib/python3.13/multiprocessing/spawn.py",
+              "context_line": "exitcode = _main(fd, parent_sentinel)"
+            },
+            {
+              "function": "_main",
+              "module": "multiprocessing.spawn",
+              "filename": "multiprocessing/spawn.py",
+              "abs_path": "/usr/local/lib/python3.13/multiprocessing/spawn.py",
+              "context_line": "return self._bootstrap(parent_sentinel)"
+            },
+            {
+              "function": "_bootstrap",
+              "module": "multiprocessing.process",
+              "filename": "multiprocessing/process.py",
+              "abs_path": "/usr/local/lib/python3.13/multiprocessing/process.py",
+              "context_line": "self.run()"
+            },
+            {
+              "function": "run",
+              "module": "multiprocessing.process",
+              "filename": "multiprocessing/process.py",
+              "abs_path": "/usr/local/lib/python3.13/multiprocessing/process.py",
+              "context_line": "self._target(*self._args, **self._kwargs)"
+            },
+            {
+              "function": "child_process",
+              "module": "sentry.taskworker.workerchild",
+              "filename": "sentry/taskworker/workerchild.py",
+              "abs_path": "/usr/src/sentry/src/sentry/taskworker/workerchild.py",
+              "context_line": "run_worker("
+            },
+            {
+              "function": "run_worker",
+              "module": "sentry.taskworker.workerchild",
+              "filename": "sentry/taskworker/workerchild.py",
+              "abs_path": "/usr/src/sentry/src/sentry/taskworker/workerchild.py",
+              "context_line": "_execute_activation(task_func, inflight.activation)"
+            },
+            {
+              "function": "_execute_activation",
+              "module": "sentry.taskworker.workerchild",
+              "filename": "sentry/taskworker/workerchild.py",
+              "abs_path": "/usr/src/sentry/src/sentry/taskworker/workerchild.py",
+              "context_line": "task_func(*args, **kwargs)"
+            },
+            {
+              "function": "__call__",
+              "module": "sentry.taskworker.task",
+              "filename": "sentry/taskworker/task.py",
+              "abs_path": "/usr/src/sentry/src/sentry/taskworker/task.py",
+              "context_line": "return self._func(*args, **kwargs)"
+            },
+            {
+              "function": "post_process_group",
+              "module": "sentry.tasks.post_process",
+              "filename": "sentry/tasks/post_process.py",
+              "abs_path": "/usr/src/sentry/src/sentry/tasks/post_process.py",
+              "context_line": "run_post_process_job("
+            },
+            {
+              "function": "run_post_process_job",
+              "module": "sentry.tasks.post_process",
+              "filename": "sentry/tasks/post_process.py",
+              "abs_path": "/usr/src/sentry/src/sentry/tasks/post_process.py",
+              "context_line": "logger.exception("
+            },
+            {
+              "function": "exception",
+              "module": "logging",
+              "filename": "__init__.py",
+              "abs_path": "/usr/local/lib/python3.13/logging/__init__.py",
+              "context_line": "self.error(msg, *args, exc_info=exc_info, **kwargs)"
+            },
+            {
+              "function": "error",
+              "module": "logging",
+              "filename": "__init__.py",
+              "abs_path": "/usr/local/lib/python3.13/logging/__init__.py",
+              "context_line": "self._log(ERROR, msg, args, **kwargs)"
+            },
+            {
+              "function": "_log",
+              "module": "logging",
+              "filename": "__init__.py",
+              "abs_path": "/usr/local/lib/python3.13/logging/__init__.py",
+              "context_line": "self.handle(record)"
+            },
+            {
+              "function": "handle",
+              "module": "logging",
+              "filename": "__init__.py",
+              "abs_path": "/usr/local/lib/python3.13/logging/__init__.py",
+              "context_line": "self.callHandlers(record)"
+            },
+            {
+              "function": "callHandlers",
+              "module": "logging",
+              "filename": "__init__.py",
+              "abs_path": "/usr/local/lib/python3.13/logging/__init__.py",
+              "context_line": "hdlr.handle(record)"
+            },
+            {
+              "function": "handle",
+              "module": "logging",
+              "filename": "__init__.py",
+              "abs_path": "/usr/local/lib/python3.13/logging/__init__.py",
+              "context_line": "self.emit(record)"
+            },
+            {
+              "function": "connect",
+              "module": "redis.connection",
+              "filename": "redis/connection.py",
+              "abs_path": "/.venv/lib/python3.13/site-packages/redis/connection.py",
+              "context_line": "sock = self._connect()"
+            },
+            {
+              "function": "_connect",
+              "module": "redis.connection",
+              "filename": "redis/connection.py",
+              "abs_path": "/.venv/lib/python3.13/site-packages/redis/connection.py",
+              "context_line": "raise err"
+            },
+            {
+              "function": "_connect",
+              "module": "redis.connection",
+              "filename": "redis/connection.py",
+              "abs_path": "/.venv/lib/python3.13/site-packages/redis/connection.py",
+              "context_line": "sock.connect(socket_address)"
+            }
+          ]
+        },
+        "mechanism": {
+          "type": "logging",
+          "handled": true
+        }
+      }
+    ]
+  },
+  "logentry": {
+    "message": "Failed to process pipeline step %s",
+    "formatted": "Failed to process pipeline step process_rules",
+    "params": ["process_rules"]
+  },
+  "logger": "sentry.tasks.post_process"
+}

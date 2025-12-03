@@ -41,7 +41,9 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         data = sorted(response.data, key=lambda r: r["key"])
         assert data[0]["key"] == "biz"
-        assert len(data[0]["topValues"]) == 1
+        counts = {v["value"]: v["count"] for v in data[0]["topValues"]}
+        assert counts == {"": 1, "baz": 1}
+        assert data[0]["totalValues"] == sum(counts.values())
 
         assert data[1]["key"] == "foo"
         assert len(data[1]["topValues"]) == 2
@@ -78,6 +80,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             fingerprint="group5",
             contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         )
+        assert event.group is not None
 
         self.login_as(user=self.user)
 
@@ -89,7 +92,9 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         data = sorted(response.data, key=lambda r: r["key"])
         assert data[0]["key"] == "biz"
-        assert len(data[0]["topValues"]) == 1
+        counts = {v["value"]: v["count"] for v in data[0]["topValues"]}
+        assert counts == {"": 1, "baz": 1}
+        assert data[0]["totalValues"] == sum(counts.values())
 
         assert data[8]["key"] == "foo"
         assert len(data[8]["topValues"]) == 2
@@ -304,7 +309,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert top_values[1]["value"] == "low"
         assert top_values[2]["value"] == "medium"
 
-    def test_include_empty_values_for_specific_key_with_feature(self) -> None:
+    def test_include_empty_values_for_specific_key(self) -> None:
         event = self.store_event(
             data={
                 "fingerprint": ["group-empty-all"],
@@ -327,23 +332,14 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         url = f"/api/0/issues/{event.group.id}/tags/?key=foo"
 
-        # Off by default: empty should be excluded from topValues
         response = self.client.get(url, format="json")
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        values = {v["value"] for v in response.data[0]["topValues"]}
-        assert values == {"bar"}
-
-        # With feature: empty should be included
-        with self.feature({"organizations:issue-tags-include-empty-values": True}):
-            response = self.client.get(url, format="json")
         assert response.status_code == 200
         values = {v["value"] for v in response.data[0]["topValues"]}
         assert values == {"", "bar"}
         assert response.data[0]["topValues"][0]["count"] == 1
         assert response.data[0]["totalValues"] == 2
 
-    def test_include_empty_values_in_all_tags_with_feature(self) -> None:
+    def test_include_empty_values_in_all_tags(self) -> None:
         event = self.store_event(
             data={
                 "fingerprint": ["group-empty-all-tags"],
@@ -365,16 +361,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         self.login_as(user=self.user)
         url = f"/api/0/issues/{event.group.id}/tags/?limit=10"
 
-        # Off by default: empty should be excluded from the All Tags list
         response = self.client.get(url, format="json")
-        assert response.status_code == 200
-        foo = next((t for t in response.data if t["key"] == "foo"), None)
-        assert foo is not None
-        assert {v["value"] for v in foo["topValues"]} == {"bar"}
-
-        # With feature: empty should be included in the All Tags list
-        with self.feature({"organizations:issue-tags-include-empty-values": True}):
-            response = self.client.get(url, format="json")
         assert response.status_code == 200
         foo = next((t for t in response.data if t["key"] == "foo"), None)
         assert foo is not None
@@ -449,10 +436,9 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         data = sorted(response.data, key=lambda r: r["key"])
 
         assert data[0]["key"] == "goodbye"
-        assert len(data[0]["topValues"]) == 1
-        assert data[0]["topValues"][0]["value"] == "false"
-        assert data[0]["topValues"][0]["count"] == 1
-        assert data[0]["totalValues"] == 1
+        counts = {v["value"]: v["count"] for v in data[0]["topValues"]}
+        assert counts == {"": 2, "false": 1}
+        assert data[0]["totalValues"] == sum(counts.values())
 
         assert data[1]["key"] == "hello"
         assert len(data[1]["topValues"]) == 2
@@ -463,10 +449,9 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert data[1]["totalValues"] == 3
 
         assert data[2]["key"] == "world"
-        assert len(data[2]["topValues"]) == 1
-        assert data[2]["topValues"][0]["value"] == "true"
-        assert data[2]["topValues"][0]["count"] == 1
-        assert data[2]["totalValues"] == 1
+        counts = {v["value"]: v["count"] for v in data[2]["topValues"]}
+        assert counts == {"": 2, "true": 1}
+        assert data[2]["totalValues"] == sum(counts.values())
 
         # Use the key= queryparam to grab results for specific tags
         url = f"/api/0/issues/{event1.group.id}/tags/?key=hello&key=world&useFlagsBackend=1"
