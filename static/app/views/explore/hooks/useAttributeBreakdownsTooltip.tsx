@@ -136,13 +136,35 @@ export function useAttributeBreakdownsTooltip({
       }
     };
 
+    // Handle hover effects via event delegation (CSP-compliant alternative to inline onmouseover/onmouseout)
+    const handleMouseOver = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.classList.contains('attribute-breakdowns-tooltip-action-button')) {
+        const hoverBg = target.getAttribute('data-hover-background');
+        if (hoverBg) {
+          target.style.background = hoverBg;
+        }
+      }
+    };
+
+    const handleMouseOut = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.classList.contains('attribute-breakdowns-tooltip-action-button')) {
+        target.style.background = '';
+      }
+    };
+
     // TODO Abdullah Khan: For now, attaching the listener to document.body
     // Tried using a more specific selector causes weird race conditions, will need to investigate.
     document.addEventListener('click', handleClickActions);
+    document.addEventListener('mouseover', handleMouseOver);
+    document.addEventListener('mouseout', handleMouseOut);
 
     // eslint-disable-next-line consistent-return
     return () => {
       document.removeEventListener('click', handleClickActions);
+      document.removeEventListener('mouseover', handleMouseOver);
+      document.removeEventListener('mouseout', handleMouseOut);
     };
   }, [frozenPosition, copyToClipboard, addSearchFilter, setGroupBys]);
 
