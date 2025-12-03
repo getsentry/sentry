@@ -1,6 +1,5 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -8,10 +7,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Button} from 'sentry/components/core/button/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {ExternalLink, Link} from 'sentry/components/core/link';
-import {
-  makeProjectSeerPreferencesQueryKey,
-  useProjectSeerPreferences,
-} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectAutomation} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectAutomation';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
@@ -27,7 +23,6 @@ interface CursorIntegrationCtaProps {
 
 export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
   const organization = useOrganization();
-  const queryClient = useQueryClient();
 
   const {preference, isFetching: isLoadingPreferences} =
     useProjectSeerPreferences(project);
@@ -64,37 +59,22 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
       });
     }
 
-    updateProjectSeerPreferences(
-      {
-        repositories: preference?.repositories || [],
-        automated_run_stopping_point: 'root_cause',
-        automation_handoff: {
-          handoff_point: 'root_cause',
-          target: 'cursor_background_agent',
-          integration_id: parseInt(cursorIntegration.id, 10),
-        },
+    updateProjectSeerPreferences({
+      repositories: preference?.repositories || [],
+      automated_run_stopping_point: 'root_cause',
+      automation_handoff: {
+        handoff_point: 'root_cause',
+        target: 'cursor_background_agent',
+        integration_id: parseInt(cursorIntegration.id, 10),
       },
-      {
-        onSuccess: () => {
-          // Invalidate queries to update the dropdown in the settings page
-          queryClient.invalidateQueries({
-            queryKey: [
-              makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-            ],
-          });
-        },
-      }
-    );
+    });
   }, [
-    project.slug,
     project.seerScannerAutomation,
     project.autofixAutomationTuning,
-    organization.slug,
     updateProjectSeerPreferences,
     updateProjectAutomation,
     preference?.repositories,
     cursorIntegration,
-    queryClient,
   ]);
 
   if (!hasCursorIntegrationFeatureFlag) {
