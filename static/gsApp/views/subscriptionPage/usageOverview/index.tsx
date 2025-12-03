@@ -10,13 +10,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import {AddOnCategory} from 'getsentry/types';
-import {checkIsAddOn} from 'getsentry/utils/billing';
+import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
+import {checkIsAddOn, getActiveProductTrial} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import UsageOverviewActions from 'getsentry/views/subscriptionPage/usageOverview/components/actions';
 import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 import UsageOverviewTable from 'getsentry/views/subscriptionPage/usageOverview/components/table';
-import {SIDE_PANEL_MIN_SCREEN_BREAKPOINT} from 'getsentry/views/subscriptionPage/usageOverview/constants';
+import {
+  SIDE_PANEL_MIN_SCREEN_BREAKPOINT,
+  USAGE_OVERVIEW_PANEL_HEADER_HEIGHT,
+} from 'getsentry/views/subscriptionPage/usageOverview/constants';
 import type {UsageOverviewProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
 function UsageOverview({subscription, organization, usageData}: UsageOverviewProps) {
@@ -40,12 +43,18 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
       const isAddOn = checkIsAddOn(productFromQuery);
       if (selectedProduct !== productFromQuery) {
         const isSelectable = isAddOn
-          ? Object.keys(subscription.planDetails.addOnCategories).includes(
-              productFromQuery
-            )
-          : subscription.planDetails.categories.includes(
+          ? (subscription.addOns?.[productFromQuery as AddOnCategory]?.enabled ?? false)
+          : (subscription.categories[productFromQuery as DataCategory]?.reserved ?? 0) >
+              0 ||
+            !!getActiveProductTrial(
+              subscription.productTrials ?? null,
               productFromQuery as DataCategory
-            );
+            ) ||
+            (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED
+              ? subscription.onDemandBudgets.sharedMaxBudget
+              : (subscription.onDemandBudgets?.budgets?.[
+                  productFromQuery as DataCategory
+                ] ?? 0)) > 0;
         if (isSelectable) {
           setSelectedProduct(
             isAddOn
@@ -75,13 +84,15 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
     location.pathname,
     location.query,
     navigate,
-    subscription.planDetails.addOnCategories,
-    subscription.planDetails.categories,
+    subscription.addOns,
+    subscription.categories,
+    subscription.onDemandBudgets,
+    subscription.productTrials,
   ]);
 
   return (
     <Grid
-      columns={{xs: '1fr', [SIDE_PANEL_MIN_SCREEN_BREAKPOINT]: '650px auto'}}
+      columns={{xs: '1fr', [SIDE_PANEL_MIN_SCREEN_BREAKPOINT]: '50% 50%'}}
       gap="lg"
       align="start"
     >
@@ -91,7 +102,7 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
           align={{xs: 'start', sm: 'center'}}
           padding="lg xl"
           gap="xl"
-          direction={{xs: 'column', sm: 'row'}}
+          height={USAGE_OVERVIEW_PANEL_HEADER_HEIGHT}
         >
           <Flex direction="column" gap="sm">
             <Heading as="h3" size="lg">
