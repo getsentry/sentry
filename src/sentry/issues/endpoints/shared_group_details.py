@@ -25,6 +25,7 @@ class SharedGroupDetailsEndpoint(Endpoint):
 
     @deprecated(
         deprecation_date=datetime.fromisoformat("2026-06-15T00:00:00+00:00"),
+        # Recommend using sentry-api-0-organization-shared-group-details
         suggested_api="/api/0/organizations/{organization_id_or_slug}/shared/issues/{share_id}/",
         url_names=["sentry-api-0-shared-group-details"],
     )
