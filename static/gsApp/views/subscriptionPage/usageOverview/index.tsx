@@ -1,11 +1,10 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import type {TextProps} from 'sentry/components/core/text/text';
@@ -13,15 +12,9 @@ import useDrawer from 'sentry/components/globalDrawer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
-import {
-  IconChevron,
-  IconDownload,
-  IconGraph,
-  IconLightning,
-  IconLock,
-} from 'sentry/icons';
+import {IconChevron, IconLightning, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -40,7 +33,6 @@ import {
   UNLIMITED,
   UNLIMITED_RESERVED,
 } from 'getsentry/constants';
-import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
 import {
   AddOnCategory,
   OnDemandBudgetMode,
@@ -69,7 +61,9 @@ import {
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
 import CategoryUsageDrawer from 'getsentry/views/subscriptionPage/components/categoryUsageDrawer';
-import {EMPTY_STAT_TOTAL} from 'getsentry/views/subscriptionPage/usageTotals';
+import UsageOverviewActions from 'getsentry/views/subscriptionPage/usageOverview/components/actions';
+import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
+import UsageOverviewTable from 'getsentry/views/subscriptionPage/usageOverview/components/table';
 
 interface UsageOverviewProps {
   organization: Organization;
@@ -111,7 +105,11 @@ function ReservedUsageBar({percentUsed}: {percentUsed: number}) {
   );
 }
 
-function UsageOverviewTable({subscription, organization, usageData}: UsageOverviewProps) {
+function LegacyUsageOverviewTable({
+  subscription,
+  organization,
+  usageData,
+}: UsageOverviewProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [openState, setOpenState] = useState<Partial<Record<AddOnCategory, boolean>>>({});
@@ -189,12 +187,8 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
         () => (
           <CategoryUsageDrawer
             categoryInfo={categoryInfo}
-            stats={usageData.stats[dataCategory] ?? []}
             subscription={subscription}
-            periodStart={usageData.periodStart}
-            periodEnd={usageData.periodEnd}
-            eventTotals={usageData.eventTotals?.[dataCategory] ?? {}}
-            totals={usageData.totals[dataCategory] ?? EMPTY_STAT_TOTAL}
+            usageData={usageData}
           />
         ),
         {
@@ -798,7 +792,6 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
 function UsageOverview({subscription, organization, usageData}: UsageOverviewProps) {
   const hasBillingPerms = organization.access.includes('org:billing');
   const {isCollapsed: navIsCollapsed, layout} = useNavContext();
-  const {currentHistory, isPending, isError} = useCurrentBillingHistory();
   const startDate = moment(subscription.onDemandPeriodStart);
   const endDate = moment(subscription.onDemandPeriodEnd);
   const startsAndEndsSameYear = startDate.year() === endDate.year();
@@ -823,7 +816,6 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
         align={{xs: 'start', sm: 'center'}}
         padding="lg xl"
         gap="xl"
-        direction={{xs: 'column', sm: 'row'}}
       >
         <Flex direction="column" gap="sm">
           <Heading as="h3" size="lg">
@@ -833,40 +825,32 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
             {`${startDate.format(startsAndEndsSameYear ? 'MMM D' : 'MMM D, YYYY')} - ${endDate.format('MMM D, YYYY')}`}
           </Text>
         </Flex>
-        {hasBillingPerms && (
-          <Flex gap="lg" direction={{xs: 'column', sm: 'row'}}>
-            <LinkButton
-              icon={<IconGraph />}
-              aria-label={t('View usage history')}
-              priority="link"
-              to="/settings/billing/usage/"
-            >
-              {t('View usage history')}
-            </LinkButton>
-            <Button
-              icon={<IconDownload />}
-              aria-label={t('Download as CSV')}
-              disabled={isPending || isError}
-              onClick={() => {
-                trackGetsentryAnalytics('subscription_page.download_reports.clicked', {
-                  organization,
-                  reportType: 'summary',
-                });
-                if (currentHistory) {
-                  window.open(currentHistory.links.csv, '_blank');
-                }
-              }}
-            >
-              {t('Download as CSV')}
-            </Button>
-          </Flex>
-        )}
+        {hasBillingPerms && <UsageOverviewActions organization={organization} />}
       </Flex>
-      <UsageOverviewTable
-        subscription={subscription}
-        organization={organization}
-        usageData={usageData}
-      />
+      {/* XXX(isabella): this is temporary until the panel is used in the new usage overview so knip stays happy */}
+      {organization.features.includes('usage-overview-v2') ? (
+        <Fragment>
+          <UsageOverviewTable
+            subscription={subscription}
+            organization={organization}
+            usageData={usageData}
+            onRowClick={() => {}}
+            selectedProduct={DataCategory.ERRORS}
+          />
+          <ProductBreakdownPanel
+            organization={organization}
+            subscription={subscription}
+            usageData={usageData}
+            selectedProduct={DataCategory.ERRORS}
+          />
+        </Fragment>
+      ) : (
+        <LegacyUsageOverviewTable
+          subscription={subscription}
+          organization={organization}
+          usageData={usageData}
+        />
+      )}
     </Container>
   );
 }

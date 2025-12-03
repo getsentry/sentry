@@ -1,7 +1,8 @@
-import {type Theme} from 'sentry/utils/theme';
-// eslint-disable-next-line no-restricted-imports
-import {lightTheme} from 'sentry/utils/theme/theme';
+import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 
-export const ThemeFixture = (): Theme => {
-  return lightTheme;
+import {type Theme} from 'sentry/utils/theme';
+import {DO_NOT_USE_lightChonkTheme} from 'sentry/utils/theme/theme.chonk';
+
+export const ThemeFixture = (): Theme & DO_NOT_USE_ChonkTheme => {
+  return DO_NOT_USE_lightChonkTheme as Theme & DO_NOT_USE_ChonkTheme;
 };
