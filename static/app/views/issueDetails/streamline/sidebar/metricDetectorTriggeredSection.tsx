@@ -1,8 +1,11 @@
 import {Fragment} from 'react';
 
+import {Text} from '@sentry/scraps/text';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t} from 'sentry/locale';
 import type {Event, EventOccurrence} from 'sentry/types/event';
 import type {
@@ -12,6 +15,8 @@ import type {
 import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {getConditionDescription} from 'sentry/views/detectors/components/details/metric/detect';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface MetricDetectorEvidenceData {
@@ -64,21 +69,36 @@ function TriggeredConditionDetails({
     return null;
   }
 
+  const datasetConfig = getDatasetConfig(
+    getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes)
+  );
+
   return (
     <InterimSection title="Triggered Condition" type="triggered_condition">
       <KeyValueList
         shouldSort={false}
         data={[
           {
+            key: 'dataset',
+            value: datasetConfig.name,
+            subject: t('Dataset'),
+          },
+          {
             key: 'aggregate',
-            value: snubaQuery.aggregate,
+            value: datasetConfig.fromApiAggregate(snubaQuery.aggregate),
             subject: t('Aggregate'),
           },
           ...(snubaQuery.query
             ? [
                 {
                   key: 'query',
-                  value: snubaQuery.query,
+                  value: (
+                    <pre>
+                      <Text size="md">
+                        <ProvidedFormattedQuery query={snubaQuery.query} />
+                      </Text>
+                    </pre>
+                  ),
                   subject: t('Query'),
                 },
               ]
@@ -90,14 +110,18 @@ function TriggeredConditionDetails({
           },
           {
             key: 'condition',
-            value: getConditionDescription({
-              aggregate: snubaQuery.aggregate,
-              condition: triggeredCondition,
-              // TODO: Record detector config in issue occurrence and use that here
-              config: {
-                detectionType: 'static',
-              },
-            }),
+            value: (
+              <pre>
+                {getConditionDescription({
+                  aggregate: snubaQuery.aggregate,
+                  condition: triggeredCondition,
+                  // TODO: Record detector config in issue occurrence and use that here
+                  config: {
+                    detectionType: 'static',
+                  },
+                })}
+              </pre>
+            ),
             subject: t('Condition'),
           },
           {

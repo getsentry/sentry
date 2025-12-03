@@ -104,14 +104,16 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(screen.getByText('Subtitle')).toBeInTheDocument();
 
     // Check key-value pairs
-    expect(screen.getByText('Aggregate')).toBeInTheDocument();
-    expect(screen.getByText('count()')).toBeInTheDocument();
-    expect(screen.getByText('Query')).toBeInTheDocument();
-    expect(screen.getByText('is:unresolved')).toBeInTheDocument();
-    expect(screen.getByText('Interval')).toBeInTheDocument();
-    expect(screen.getByText('1 minute')).toBeInTheDocument();
-    expect(screen.getByText('Above 100')).toBeInTheDocument();
-    expect(screen.getByText('Evaluated Value')).toBeInTheDocument();
-    expect(screen.getByText('150')).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'Dataset'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'Errors'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'Aggregate'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'count()'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'Query'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'is:unresolved'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'Interval'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '1 minute'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'Above 100'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'Evaluated Value'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '150'})).toBeInTheDocument();
   });
 });
