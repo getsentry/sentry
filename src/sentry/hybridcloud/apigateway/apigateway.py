@@ -24,7 +24,6 @@ SENTRY_APP_REGION_URL_NAMES = (
     "sentry-api-0-sentry-app-installation-external-issue-actions",
     "sentry-api-0-sentry-app-installation-external-issues",
     "sentry-api-0-sentry-app-installation-external-issue-details",
-    "sentry-api-0-sentry-app-requests",
     "sentry-api-0-sentry-app-interaction",
 )
 
