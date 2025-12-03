@@ -1,4 +1,5 @@
 import {ExternalLink} from 'sentry/components/core/link';
+import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
   DocsParams,
   OnboardingConfig,
@@ -16,10 +17,22 @@ int main(void) {
   sentry_options_t *options = sentry_options_new();
   sentry_options_set_dsn(options, "${params.dsn.public}");
   // This is also the default-path. For further information and recommendations:
-  // https://docs.sentry.io/platforms/native/configuration/options/#database-path
+  // https://docs.sentry.io/platforms/native/configuration/options/#database_path
   sentry_options_set_database_path(options, ".sentry-native");
   sentry_options_set_release(options, "my-project-name@2.3.12");
-  sentry_options_set_debug(options, 1);
+  sentry_options_set_debug(options, 1);${
+    params.isPerformanceSelected
+      ? `
+  // Set traces_sample_rate to 1.0 to capture 100% of transactions for tracing.
+  // We recommend adjusting this value in production.
+  sentry_options_set_traces_sample_rate(options, 1.0);`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+  sentry_options_set_enable_logs(options, 1);`
+      : ''
+  }
   sentry_init(options);
 
   /* ... */
@@ -106,6 +119,92 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
+    ...(params.isPerformanceSelected
+      ? ([
+          {
+            title: t('Tracing'),
+            content: [
+              {
+                type: 'text',
+                text: t(
+                  'You can measure the performance of your code by capturing transactions and spans.'
+                ),
+              },
+              {
+                type: 'code',
+                language: 'c',
+                code: `sentry_transaction_context_t *tx_ctx = sentry_transaction_context_new(
+  "test-transaction",
+  "test-operation"
+);
+sentry_transaction_t *tx = sentry_transaction_start(tx_ctx, NULL);
+
+// Perform your operation
+// ...
+
+sentry_transaction_finish(tx);`,
+              },
+              {
+                type: 'text',
+                text: tct(
+                  'Check out [link:the documentation] to learn more about tracing and custom instrumentation.',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/native/tracing/" />
+                    ),
+                  }
+                ),
+              },
+            ],
+          },
+        ] satisfies OnboardingStep[])
+      : []),
+    ...(params.isLogsSelected
+      ? ([
+          {
+            title: t('Logs'),
+            content: [
+              {
+                type: 'text',
+                text: t(
+                  'Once logging is enabled, you can send logs using the sentry_log_X() APIs:'
+                ),
+              },
+              {
+                type: 'code',
+                language: 'c',
+                code: `sentry_log_info("A simple log message");
+sentry_log_error("A %s log message", "formatted");`,
+              },
+              {
+                type: 'text',
+                text: tct(
+                  'Check out [link:the Logs documentation] to learn more about additional attributes and options.',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/native/logs/" />
+                    ),
+                  }
+                ),
+              },
+            ],
+          },
+        ] satisfies OnboardingStep[])
+      : []),
     ...([getConsoleExtensions(params)].filter(Boolean) as OnboardingStep[]),
+    {
+      title: t('Further Settings'),
+      content: [
+        {
+          type: 'custom',
+          content: (
+            <StoreCrashReportsConfig
+              organization={params.organization}
+              projectSlug={params.project.slug}
+            />
+          ),
+        },
+      ],
+    },
   ],
 };
