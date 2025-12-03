@@ -1,8 +1,11 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboards/widgetBuilder/issueWidget/utils';
 
 describe('generateIssueWidgetFieldOptions', () => {
   it('returns default issue fields', () => {
-    const issueFields = generateIssueWidgetFieldOptions();
+    const issueFields = generateIssueWidgetFieldOptions(OrganizationFixture());
     expect(Object.keys(issueFields)).toEqual([
       'field:assignee',
       'field:events',
@@ -23,11 +26,15 @@ describe('generateIssueWidgetFieldOptions', () => {
       'field:users',
     ]);
   });
-  it('returns supplied issue fields', () => {
-    const issueFields = generateIssueWidgetFieldOptions({
-      assignee: 'string',
-      title: 'string',
-    });
-    expect(Object.keys(issueFields)).toEqual(['field:assignee', 'field:title']);
+  it('returns default issue fields for series display type', () => {
+    const issueFields = generateIssueWidgetFieldOptions(
+      OrganizationFixture(),
+      DisplayType.BAR
+    );
+    expect(Object.keys(issueFields)).toEqual([
+      'field:new_issues',
+      'field:resolved_issues',
+      'function:count',
+    ]);
   });
 });

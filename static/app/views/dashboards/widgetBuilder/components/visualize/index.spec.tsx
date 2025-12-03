@@ -209,6 +209,32 @@ describe('Visualize', () => {
     );
   });
 
+  it('adds the correct default new series when a default is provided for series display type', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              yAxis: ['count(resolved_issues)'],
+              dataset: WidgetType.ISSUE,
+              displayType: DisplayType.BAR,
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    expect(screen.queryByText('new_issues')).not.toBeInTheDocument();
+    await userEvent.click(await screen.findByText('+ Add Series'));
+    expect(screen.getByText('new_issues')).toBeInTheDocument();
+  });
+
   it('maintains the selected aggregate when the column selection is changed and there are parameters', async () => {
     render(
       <WidgetBuilderProvider>

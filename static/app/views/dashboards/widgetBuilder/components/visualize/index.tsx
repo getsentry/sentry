@@ -345,7 +345,13 @@ function Visualize({error, setError}: VisualizeProps) {
         customMeasurements
       );
     }
-    return datasetConfig.getTableFieldOptions(organization, tags, customMeasurements);
+    return datasetConfig.getTableFieldOptions(
+      organization,
+      tags,
+      customMeasurements,
+      undefined,
+      state.displayType
+    );
   }, [
     state.dataset,
     datasetConfig,
@@ -354,6 +360,7 @@ function Visualize({error, setError}: VisualizeProps) {
     customMeasurements,
     numericSpanTags,
     stringSpanTags,
+    state.displayType,
   ]);
 
   const aggregates = useMemo(
@@ -383,6 +390,10 @@ function Visualize({error, setError}: VisualizeProps) {
     'visibility-explore-equations'
   );
   const hasDrillDownFlows = useHasDrillDownFlows();
+
+  // Default field to add to the widget query when adding a new field.
+  const defaultField =
+    (isChartWidget && datasetConfig.defaultSeriesField) || datasetConfig.defaultField;
 
   return (
     <Fragment>
@@ -913,7 +924,7 @@ function Visualize({error, setError}: VisualizeProps) {
           onClick={() => {
             dispatch({
               type: updateAction,
-              payload: [...(fields ?? []), cloneDeep(datasetConfig.defaultField)],
+              payload: [...(fields ?? []), cloneDeep(defaultField)],
             });
 
             trackAnalytics('dashboards_views.widget_builder.change', {
