@@ -4,13 +4,13 @@ from datetime import datetime, timedelta
 from typing import NotRequired, TypedDict
 from urllib import parse
 
-import sentry_sdk
 from django.db.models import Max
 from django.urls import reverse
 from django.utils.translation import gettext as _
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.logic import GetMetricIssueAggregatesParams, get_metric_issue_aggregates
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.incidents.models.incident import (
@@ -239,7 +239,8 @@ def incident_attachment_info(
             if alert_rule_id is None:
                 raise ValueError("Alert rule id not found when querying for AlertRuleDetector")
         except AlertRuleDetector.DoesNotExist:
-            raise ValueError("Alert rule detector not found when querying for AlertRuleDetector")
+            # the corresponding metric detector was not dual written
+            alert_rule_id = get_fake_id_from_object_id(alert_context.action_identifier_id)
 
         workflow_engine_params = title_link_params.copy()
 
@@ -248,8 +249,11 @@ def incident_attachment_info(
                 group_open_period_id=metric_issue_context.open_period_identifier
             )
             workflow_engine_params["alert"] = str(open_period_incident.incident_identifier)
-        except IncidentGroupOpenPeriod.DoesNotExist as e:
-            sentry_sdk.capture_exception(e)
+        except IncidentGroupOpenPeriod.DoesNotExist:
+            # the corresponding metric detector was not dual written
+            workflow_engine_params["alert"] = str(
+                get_fake_id_from_object_id(metric_issue_context.open_period_identifier)
+            )
 
         title_link = build_title_link(alert_rule_id, organization, workflow_engine_params)
 

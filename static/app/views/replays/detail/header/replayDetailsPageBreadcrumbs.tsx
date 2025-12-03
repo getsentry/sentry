@@ -36,16 +36,11 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   const [isHovered, setIsHovered] = useState(false);
   const {currentTime} = useReplayContext();
 
-  const replays = useReplayPlaylist();
+  const {replays, currentReplayIndex} = useReplayPlaylist();
 
   // We use a ref to store the initial location so that we can use it to navigate to the previous and next replays
   // without dirtying the URL with the URL params from the tabs navigation.
   const initialLocation = useRef(location);
-
-  const currentReplayIndex = useMemo(
-    () => replays?.findIndex(r => r.id === replayRecord?.id) ?? -1,
-    [replays, replayRecord]
-  );
 
   const nextReplay = useMemo(
     () =>

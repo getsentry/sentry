@@ -58,7 +58,7 @@ export function PlatformInsightsTable<DataRow extends Record<string, any>>({
           columnSortBy={[]}
           minimumColWidth={COL_WIDTH_MINIMUM}
           emptyMessage={
-            <EmptyMessage size="large" icon={<IconSearch size="xl" />}>
+            <EmptyMessage size="lg" icon={<IconSearch />}>
               {t('No results found')}
             </EmptyMessage>
           }

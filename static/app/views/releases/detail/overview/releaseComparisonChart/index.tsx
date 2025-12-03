@@ -1,7 +1,6 @@
 import React, {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -20,7 +19,6 @@ import {space} from 'sentry/styles/space';
 import {
   SessionFieldWithOperation,
   SessionStatus,
-  type Organization,
   type SessionApiResponse,
 } from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
@@ -38,7 +36,9 @@ import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {getCount, getCrashFreeRate, getSessionStatusRate} from 'sentry/utils/sessions';
 import type {Color} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   displaySessionStatusPercent,
   getReleaseBounds,
@@ -69,8 +69,6 @@ type Props = {
   errored: boolean;
   hasHealthData: boolean;
   loading: boolean;
-  location: Location;
-  organization: Organization;
   platform: PlatformKey;
   project: ReleaseProject;
   release: ReleaseWithHealth;
@@ -98,14 +96,14 @@ export default function ReleaseComparisonChart({
   releaseSessions,
   allSessions,
   platform,
-  location,
   loading,
   reloading,
   errored,
   api,
-  organization,
   hasHealthData,
 }: Props) {
+  const organization = useOrganization();
+  const location = useLocation();
   const navigate = useNavigate();
   const [issuesTotals, setIssuesTotals] = useState<IssuesTotals>(null);
   const [eventsTotals, setEventsTotals] = useState<EventsTotals>(null);

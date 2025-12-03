@@ -4,8 +4,10 @@ import {UserFixture} from 'sentry-fixture/user';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
-import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
-import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {
+  SubscriptionFixture,
+  SubscriptionWithLegacySeerFixture,
+} from 'getsentry-test/fixtures/subscription';
 import {
   renderGlobalModal,
   screen,
@@ -239,7 +241,7 @@ describe('ChangePlanAction', () => {
   });
 
   it('completes form with addOns', async () => {
-    mockOrg.features = ['seer-billing', 'seer-user-billing'];
+    mockOrg.features = ['seer-billing', 'seer-user-billing']; // this won't happen IRL, but doing this for testing multiple addons
     const putMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/subscription/`,
       method: 'PUT',
@@ -266,8 +268,10 @@ describe('ChangePlanAction', () => {
     await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
 
     expect(screen.getByText('Available Products')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Seer'));
-    await userEvent.click(screen.getByText('Prevent'));
+    const seerSelections = screen.getAllByText('Seer');
+    expect(seerSelections).toHaveLength(2);
+    await userEvent.click(seerSelections[0]!);
+    await userEvent.click(seerSelections[1]!);
 
     expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
     await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
@@ -275,8 +279,8 @@ describe('ChangePlanAction', () => {
     expect(putMock).toHaveBeenCalled();
     const requestData = putMock.mock.calls[0][1].data;
     expect(requestData).toHaveProperty('plan', 'am3_business');
+    expect(requestData).toHaveProperty('addOnLegacySeer', true);
     expect(requestData).toHaveProperty('addOnSeer', true);
-    expect(requestData).toHaveProperty('addOnPrevent', true);
   });
 
   it('updates plan list when switching between tiers', async () => {
@@ -378,7 +382,7 @@ describe('ChangePlanAction', () => {
     expect(requestData).toHaveProperty('reservedTransactions', 25000);
   });
 
-  describe('Seer Budget', () => {
+  describe('Legacy Seer', () => {
     beforeEach(() => {
       mockOrg.features = ['seer-billing'];
       jest.clearAllMocks();
@@ -445,21 +449,10 @@ describe('ChangePlanAction', () => {
 
     it('initializes Seer budget checkbox based on current subscription', async () => {
       // Create subscription with Seer budget
-      const subscriptionWithSeer = SubscriptionFixture({
+      const subscriptionWithSeer = SubscriptionWithLegacySeerFixture({
         organization: mockOrg,
         planTier: PlanTier.AM3,
         plan: 'am3_business',
-        billingInterval: 'monthly',
-        contractInterval: 'monthly',
-        reservedBudgets: [SeerReservedBudgetFixture({})],
-        categories: {
-          errors: MetricHistoryFixture({
-            category: DataCategory.ERRORS,
-            reserved: 1000000,
-            prepaid: 1000000,
-            order: 1,
-          }),
-        },
       });
 
       SubscriptionStore.set(mockOrg.slug, subscriptionWithSeer);
@@ -552,10 +545,10 @@ describe('ChangePlanAction', () => {
       // Verify the PUT API was called with seer parameter
       expect(putMock).toHaveBeenCalled();
       const requestData = putMock.mock.calls[0][1].data;
-      expect(requestData).toHaveProperty('addOnSeer', true);
+      expect(requestData).toHaveProperty('addOnLegacySeer', true);
     });
 
-    it('does not include seer parameter in form submission when checkbox is unchecked', async () => {
+    it('does not include add-on parameter in form submission when checkbox is unchecked', async () => {
       // Mock the PUT endpoint response
       const putMock = MockApiClient.addMockResponse({
         url: `/customers/${mockOrg.slug}/subscription/`,
@@ -604,7 +597,7 @@ describe('ChangePlanAction', () => {
       // Verify the PUT API was called with seer parameter set to false
       expect(putMock).toHaveBeenCalled();
       const requestData = putMock.mock.calls[0][1].data;
-      expect(requestData).toHaveProperty('addOnSeer', false);
+      expect(requestData).toHaveProperty('addOnLegacySeer', false);
     });
   });
 });

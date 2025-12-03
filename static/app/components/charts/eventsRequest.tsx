@@ -151,6 +151,10 @@ type EventsRequestPartialProps = {
    */
   expired?: boolean;
   /**
+   * The extrapolation mode to apply to the EAP
+   */
+  extrapolationMode?: string;
+  /**
    * List of fields to group with when doing a topEvents request.
    */
   field?: string[];

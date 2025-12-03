@@ -3,7 +3,6 @@ import {forceCheck} from 'react-lazyload';
 import styled from '@emotion/styled';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -399,7 +398,6 @@ export default function ReleasesList() {
                 />
               </DemoTourElement>
             )}
-            <FloatingFeedbackWidget />
           </Layout.Main>
         </Layout.Body>
       </NoProjectMessage>

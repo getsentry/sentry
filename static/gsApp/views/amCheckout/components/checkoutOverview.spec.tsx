@@ -180,7 +180,7 @@ describe('CheckoutOverview', () => {
       plan: 'am2_team',
       reserved: {errors: 100000, transactions: 500000, attachments: 25},
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: true,
         },
       },
@@ -197,7 +197,7 @@ describe('CheckoutOverview', () => {
       />
     );
 
-    expect(screen.getByTestId('seer-reserved')).toBeInTheDocument();
+    expect(screen.getByTestId('legacySeer-reserved')).toBeInTheDocument();
     expect(screen.getByText('Seer')).toBeInTheDocument();
   });
 
@@ -207,7 +207,7 @@ describe('CheckoutOverview', () => {
       plan: 'am2_team',
       reserved: {errors: 100000, transactions: 500000, attachments: 25},
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: false,
         },
       },
@@ -224,7 +224,7 @@ describe('CheckoutOverview', () => {
       />
     );
 
-    expect(screen.queryByTestId('seer')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('legacySeer-reserved')).not.toBeInTheDocument();
     expect(screen.queryByText('Seer')).not.toBeInTheDocument();
   });
 });

@@ -202,7 +202,7 @@ describe('CronDetectorDetails - check-ins', () => {
 
       // Wait for check-ins to load and find the table after the heading
       const recentCheckInsHeading = await screen.findByText('Recent Check-Ins');
-      const container = recentCheckInsHeading.parentElement!;
+      const container = recentCheckInsHeading.parentElement!.parentElement!;
       const checkInTable = within(container).getByRole('table');
 
       // Find the "Started" column index

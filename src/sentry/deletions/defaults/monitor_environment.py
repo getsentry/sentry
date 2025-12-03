@@ -13,6 +13,11 @@ class MonitorEnvironmentDeletionTask(ModelDeletionTask[MonitorEnvironment]):
 
         return [
             ModelRelation(
+                models.MonitorIncident,
+                {"monitor_environment_id": instance.id},
+            ),
+            # Use BulkModelDeletionTask here since MonitorIncidents are already handled above
+            ModelRelation(
                 models.MonitorCheckIn,
                 {"monitor_environment_id": instance.id},
                 BulkModelDeletionTask,

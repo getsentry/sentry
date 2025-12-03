@@ -103,7 +103,10 @@ function getMultiSelectInputValue(token: TokenResult<Token.FILTER>) {
   return items.join(',') + ',';
 }
 
-function prepareInputValueForSaving(valueType: FieldValueType, inputValue: string) {
+export function prepareInputValueForSaving(
+  valueType: FieldValueType,
+  inputValue: string
+) {
   const parsed = parseMultiSelectFilterValue(inputValue);
 
   if (!parsed) {
@@ -126,7 +129,7 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
     : (uniqueValues[0] ?? '""');
 }
 
-function getSelectedValuesFromText(
+export function getSelectedValuesFromText(
   text: string,
   {escaped = true}: {escaped?: boolean} = {}
 ) {
@@ -525,7 +528,7 @@ function ItemCheckbox({
   );
 }
 
-function getInitialInputValue(
+export function getInitialInputValue(
   token: TokenResult<Token.FILTER>,
   canSelectMultipleValues: boolean
 ) {
