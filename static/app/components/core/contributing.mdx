@@ -1,0 +1,212 @@
+---
+title: Contributing
+layout: document
+description: Guidelines for contributing to Scraps, Sentry's design system.
+---
+
+This guide is for engineers and designers at Sentry who want to contribute to Scraps.
+
+**Scraps** is Sentry's design system. It includes core primitive React components, hooks, design tokens, and patterns that we use to build Sentry's UI. Keep in mind that while we strive to have a 1:1 mapping between Figma and code, some gaps and inconsistencies currently exist.
+
+# Contributing to Core Components
+
+Core components (`static/app/components/core/*`) are the foundational building blocks of Sentry's UI. The Design Engineering team maintains `@sentry/scraps` components to ensure consistency, accessibility, and quality across the product.
+
+## What's Always Welcome
+
+You can contribute the following **without asking first**:
+
+- **Bug fixes** - Fix broken functionality or incorrect behavior
+- **Accessibility improvements** - Enhance keyboard navigation, screen reader support, ARIA attributes, or color contrast
+- **Documentation improvements** - Fix typos, clarify wording, add notes, and generally [improve documentation](#contributing-to-stories-documentation) for core and product-specific components
+
+For these contributions, open a PR directly with your changes.
+
+## What Requires Discussion
+
+Please **ask first in `#discuss-design-engineering`** before working on:
+
+- **API additions to existing components** - New props, methods, or functionality
+- **New components or features** - Proposing entirely new components for `core/*`
+- **Visual or styling changes** - Any changes to appearance, as these need to be coordinated with Product Design
+
+We're still developing a formal request process, but for now, share your proposal in Slack to get feedback before investing time in implementation.
+
+## Review and Approval
+
+All changes to core components:
+
+- Must be reviewed and approved by `@CODEOWNERS`
+- If applicable, update or add documentation (`.mdx` stories)
+- If applicable, update or add tests (unit tests, accessibility tests, or visual regression tests as appropriate)
+
+## Prerequisites
+
+To work with core components locally, you'll need a frontend development environment. If you don't have one set up yet, follow the [frontend development setup guide](https://develop.sentry.dev/development-infrastructure/frontend-development-server/).
+
+Once you have a local development environment setup, run `pnpm run dev-ui` to run the dev server, or `pnpm run dev-ui-storybook` to run the dev server and generate component types at build time (comes at the expense of slower dev server startup).
+
+# Contributing to Design Tokens
+
+Design tokens are the design system's atomic values: colors, spacing, typography, motion, and more. They're defined in the `static/app/utils/theme/scraps/` directory.
+
+## For Most Engineers and Designers
+
+**Do not directly update design tokens.** These files are generated from our Figma library. Instead, request token changes from the Design Engineering team, who will run an import.
+
+1. Post in `#discuss-design-engineering` with your request
+2. Explain the use case and why existing tokens don't work
+3. The Design Engineering team will evaluate and implement if appropriate
+
+## For Design Engineers
+
+If you're maintaining design tokens, Figma is our **single source of truth**. Tokens live in the [🐦 Primitives](https://www.figma.com/design/97XKAiOW0Rg8Rk1hb02R4E/%F0%9F%90%A6-Primitives?node-id=448-117235&p=f&t=7adWUIjDzCMN7Ql6-0) library as [Variables](https://help.figma.com/hc/en-us/articles/15339657135383-Guide-to-variables-in-Figma).
+
+### Update Process
+
+1. **Export from Figma** using the [TokensBrücke plugin](https://figma.com/community/plugin/1254538877056388290)
+   - Ensure settings: Color Mode = HEX, Use DTCG keys format = true
+   - Save as `export.json` in the tokens package
+
+2. **Import and build** in the [`design-engineering`](https://github.com/getsentry/design-engineering/) repo:
+
+   ```bash
+   pnpm --filter @scraps/tokens run import
+   pnpm --filter @scraps/tokens run build
+   ```
+
+3. **Deploy to Sentry** by copying `/packages/tokens/dist` to `static/app/utils/theme/scraps/` in the `getsentry/sentry` repository
+
+For detailed instructions, see the [tokens CONTRIBUTING.md](https://github.com/getsentry/design-engineering/blob/main/packages/tokens/CONTRIBUTING.md) in the `design-engineering` repo.
+
+# Contributing to Stories Documentation
+
+**Stories** is the documentation system for Scraps. Each story describes how to use a React component or hook, its public API, intended behavior, and common usage patterns.
+
+## Ownership
+
+Stories for core components are owned by the Design Engineering team. Stories for product-specific components are maintained by the teams responsible for those product areas. However, **all documentation is a shared responsibility**—if you notice a mistake or omission while reading a story, consider it an opportunity to leave the docs in better shape than you found them.
+
+## Creating New Stories
+
+### File Structure
+
+The easiest way to document a component is to create an `.mdx` file next to the component. For a new `myButton` component, the file should be named `myButton.mdx`.
+
+```
+components/
+└── myButton.tsx
+└── myButton.mdx
+```
+
+### Frontmatter
+
+All `.mdx` files should include frontmatter with metadata about the component. The following fields are supported:
+
+```yaml
+---
+title: My Button
+description: MyButton is a clickable element that triggers an action.
+source: 'sentry/components/myButton'
+# Optionally include links to Figma, source code, and accessibility resources:
+resources:
+  figma: https://www.figma.com/design/...
+  js: https://github.com/getsentry/sentry/...
+  a11y:
+    WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
+    WAI-ARIA Button Practices: https://www.w3.org/WAI/ARIA/apg/patterns/button/
+---
+```
+
+**Required fields:**
+
+- `title`: The display name of the component or pattern
+- `description`: A brief description of what the component does
+
+**Optional fields:**
+
+- `layout`: Use `document` for principle/pattern pages
+- `source`: Path to the component source code
+- `status`: Use `in-progress` for incomplete documentation
+- `resources`: Links to related resources (Figma designs, source code, accessibility references)
+
+### Auto-Generated API Documentation
+
+Components can include auto-generated API documentation using our custom type-loader. Export an object named `documentation` with the loaded types:
+
+```tsx
+import documentation from '!!type-loader!@sentry/scraps/button/linkButton';
+
+export {documentation};
+```
+
+> [!TIP]
+> The [inline loader syntax](https://rspack.rs/api/loader-api/inline) looks unusual, but it's required for Rspack to process the types correctly. Note that the documentation will not be generated unless you run `pnpm run dev-ui-storybook`.
+
+For a complete example, see the [`button.mdx`](https://github.com/getsentry/sentry/blob/master/static/app/components/core/button/index.mdx?plain=1) file.
+
+## Writing Good Documentation
+
+### Structure Your Content
+
+Use clear heading hierarchy to make documentation scannable:
+
+- Use `#` for major sections
+- Use `##` for subsections
+- Use `###` for specific examples or variations
+
+### Include Code Examples
+
+Show real-world usage examples with code snippets:
+
+```tsx
+import {Button} from 'sentry/components/core/button';
+
+function Example() {
+  return <Button onClick={handleClick}>Click Me</Button>;
+}
+```
+
+### Document Common Patterns
+
+Include sections for:
+
+- Basic usage
+- Common variations
+- Props and configuration options
+- Accessibility considerations
+- When to use (and when not to use) the component
+
+### Use Callouts
+
+Emphasize important information with callouts:
+
+```mdx
+> [!TIP]
+> Helpful tips and best practices
+
+> [!WARNING]
+> Important warnings or limitations
+```
+
+## Improving Existing Stories
+
+Stories documentation is a living system. When you encounter documentation that could be improved:
+
+1. **Fix typos and clarity issues** directly in the `.mdx` file
+2. **Add missing examples** to help others understand usage patterns
+3. **Update outdated information** when APIs or patterns change
+4. **Fill in gaps** in documentation coverage
+
+Don't hesitate to make improvements, even to documentation you didn't write originally.
+
+# Getting Help
+
+The Design Engineering team is always available to answer questions and provide guidance on contributing to Scraps.
+
+- **Core components**: Ask in `#discuss-design-engineering` on Slack
+- **Design tokens**: Request changes in `#discuss-design-engineering`
+- **Stories documentation**: Questions or feedback in `#discuss-design-engineering`
+- **Specific components**: Check the component's story for ownership information
+
+All code for Scraps, including the Stories framework, is built and maintained by Sentry's Design Engineering team on behalf of all teams. Contributions are always welcome!
