@@ -6,16 +6,22 @@ import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {
+  DatePageFilter,
+  type DatePageFilterProps,
+} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -60,7 +66,11 @@ import {categorizeProjects} from 'sentry/views/insights/pages/utils';
 import type {SpanProperty} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
-function FrontendOverviewPage() {
+interface FrontendOverviewPageProps {
+  datePageFilterProps: DatePageFilterProps;
+}
+
+function FrontendOverviewPage({datePageFilterProps}: FrontendOverviewPageProps) {
   useOverviewPageTrackPageload();
   const organization = useOrganization();
   const location = useLocation();
@@ -149,7 +159,7 @@ function FrontendOverviewPage() {
                 <PageFilterBar condensed>
                   <InsightsProjectSelector />
                   <InsightsEnvironmentSelector />
-                  <DatePageFilter />
+                  <DatePageFilter {...datePageFilterProps} />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <InsightsSpanTagProvider>
@@ -231,17 +241,28 @@ function FrontendOverviewPage() {
 }
 
 function FrontendOverviewPageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
   const useEap = useInsightsEap();
 
-  let overviewPage = <Am1FrontendOverviewPage />;
+  let overviewPage = (
+    <Am1FrontendOverviewPage datePageFilterProps={datePageFilterProps} />
+  );
   if (isNextJsPageEnabled) {
-    overviewPage = <NextJsOverviewPage />;
+    overviewPage = <NextJsOverviewPage datePageFilterProps={datePageFilterProps} />;
   } else if (useEap) {
-    overviewPage = <FrontendOverviewPage />;
+    overviewPage = <FrontendOverviewPage datePageFilterProps={datePageFilterProps} />;
   }
 
-  return <DomainOverviewPageProviders>{overviewPage}</DomainOverviewPageProviders>;
+  return (
+    <DomainOverviewPageProviders maxPickableDays={maxPickableDays.maxPickableDays}>
+      {overviewPage}
+    </DomainOverviewPageProviders>
+  );
 }
 
 const isPageSpanOp = (op?: string): op is PageSpanOps => {

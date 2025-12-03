@@ -2,6 +2,7 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {type DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -41,7 +42,11 @@ const decodeTableType = (value: any): TableType => {
 const TableControl = SegmentedControl<TableType>;
 const TableControlItem = SegmentedControl.Item<TableType>;
 
-export function LaravelOverviewPage() {
+interface LaravelOverPageProps {
+  datePageFilterProps: DatePageFilterProps;
+}
+
+export function LaravelOverviewPage({datePageFilterProps}: LaravelOverPageProps) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -82,7 +87,7 @@ export function LaravelOverviewPage() {
   }
 
   return (
-    <PlatformLandingPageLayout>
+    <PlatformLandingPageLayout datePageFilterProps={datePageFilterProps}>
       <WidgetGrid>
         <WidgetGrid.Position1>
           <OverviewRequestsChartWidget />

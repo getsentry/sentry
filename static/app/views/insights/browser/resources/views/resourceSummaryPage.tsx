@@ -2,7 +2,9 @@ import React from 'react';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useParams} from 'sentry/utils/useParams';
 import ResourceSummaryCharts from 'sentry/views/insights/browser/resources/components/charts/resourceSummaryCharts';
 import RenderBlockingSelector from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
@@ -173,8 +175,16 @@ function ResourceSummary() {
 }
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
   return (
-    <ModulePageProviders moduleName="resource" pageTitle={`${DATA_TYPE} ${t('Summary')}`}>
+    <ModulePageProviders
+      moduleName="resource"
+      pageTitle={`${DATA_TYPE} ${t('Summary')}`}
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <ResourceSummary />
     </ModulePageProviders>
   );

@@ -12,7 +12,7 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
 interface DomainOverviewPageProvidersProps {
   children: ReactNode;
-  maxPickableDays?: DatePageFilterProps['maxPickableDays'];
+  maxPickableDays: DatePageFilterProps['maxPickableDays'];
 }
 
 export function DomainOverviewPageProviders({

@@ -1,9 +1,13 @@
+import {type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {
+  DatePageFilter,
+  type DatePageFilterProps,
+} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -32,7 +36,15 @@ function getFreeTextFromQuery(query: string) {
   return '';
 }
 
-export function PlatformLandingPageLayout({children}: {children: React.ReactNode}) {
+interface PlatformLandingPageLayoutProps {
+  children: ReactNode;
+  datePageFilterProps: DatePageFilterProps;
+}
+
+export function PlatformLandingPageLayout({
+  children,
+  datePageFilterProps,
+}: PlatformLandingPageLayoutProps) {
   const location = useLocation();
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
@@ -56,7 +68,7 @@ export function PlatformLandingPageLayout({children}: {children: React.ReactNode
                 <PageFilterBar condensed>
                   <InsightsProjectSelector />
                   <InsightsEnvironmentSelector />
-                  <DatePageFilter />
+                  <DatePageFilter {...datePageFilterProps} />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
