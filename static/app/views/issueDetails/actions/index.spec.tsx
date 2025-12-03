@@ -193,6 +193,12 @@ describe('GroupActions', () => {
         method: 'DELETE',
         body: {},
       });
+      const initialRouterConfig = {
+        location: {
+          pathname: `/organizations/${org.slug}/issues/${group.id}/`,
+        },
+        route: `/organizations/:orgId/issues/:groupId/`,
+      };
       const {router} = render(
         <Fragment>
           <GlobalModal />
@@ -200,6 +206,7 @@ describe('GroupActions', () => {
         </Fragment>,
         {
           organization: org,
+          initialRouterConfig,
         }
       );
 
@@ -237,6 +244,12 @@ describe('GroupActions', () => {
         method: 'DELETE',
         body: {},
       });
+      const initialRouterConfig = {
+        location: {
+          pathname: `/organizations/${org.slug}/issues/${issuePlatformGroup.id}/`,
+        },
+        route: `/organizations/:orgId/issues/:groupId/`,
+      };
       const {router} = render(
         <Fragment>
           <GlobalModal />
@@ -249,6 +262,7 @@ describe('GroupActions', () => {
         </Fragment>,
         {
           organization: org,
+          initialRouterConfig,
         }
       );
 
@@ -329,7 +343,6 @@ describe('GroupActions', () => {
       <GroupActions group={group} project={project} disabled={false} event={null} />,
       {
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 
