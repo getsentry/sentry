@@ -625,7 +625,7 @@ describe('WidgetBuilderSlideout', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('should not show the query filter builder if the widget is an issue and a chart display type', async () => {
+  it('should not show the query filter builder if the widget is an issue and a chart display type', () => {
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
@@ -635,11 +635,23 @@ describe('WidgetBuilderSlideout', () => {
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
-          openWidgetTemplates={false}
           setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
-      </WidgetBuilderProvider>
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.ISSUE,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.queryByText('Query Filter Builder')).not.toBeInTheDocument();
