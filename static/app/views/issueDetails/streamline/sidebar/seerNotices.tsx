@@ -1,6 +1,5 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
@@ -15,10 +14,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {ExternalLink, Link} from 'sentry/components/core/link';
-import {
-  makeProjectSeerPreferencesQueryKey,
-  useProjectSeerPreferences,
-} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectAutomation} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectAutomation';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
@@ -95,7 +91,6 @@ function CustomStepButtons({
 
 export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
-  const queryClient = useQueryClient();
   const {repos} = useAutofixRepos(groupId);
   const {
     preference,
@@ -187,26 +182,15 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       });
     }
 
-    updateProjectSeerPreferences(
-      {
-        repositories: preference?.repositories || [],
-        automated_run_stopping_point: 'root_cause',
-        automation_handoff: {
-          handoff_point: 'root_cause',
-          target: 'cursor_background_agent',
-          integration_id: parseInt(cursorIntegration.id, 10),
-        },
+    updateProjectSeerPreferences({
+      repositories: preference?.repositories || [],
+      automated_run_stopping_point: 'root_cause',
+      automation_handoff: {
+        handoff_point: 'root_cause',
+        target: 'cursor_background_agent',
+        integration_id: parseInt(cursorIntegration.id, 10),
       },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({
-            queryKey: [
-              makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-            ],
-          });
-        },
-      }
-    );
+    });
   }, [
     cursorIntegration,
     project.seerScannerAutomation,
@@ -214,9 +198,6 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     updateProjectAutomation,
     updateProjectSeerPreferences,
     preference?.repositories,
-    queryClient,
-    organization.slug,
-    project.slug,
   ]);
 
   const handleSkipCursorStep = useCallback(() => {
