@@ -293,7 +293,7 @@ export function inferFileCategory(path: string): StoryCategory {
     return 'foundations';
   }
 
-  if (isPrinciplesFile(path)) {
+  if (isLegacyPrinciplesFile(path)) {
     return 'principles';
   }
 
@@ -321,6 +321,66 @@ export function inferFileCategory(path: string): StoryCategory {
   return 'shared';
 }
 
+// New hierarchical inference system
+export interface StoryLocation {
+  section: StorySection;
+  subcategory?: ComponentSubcategory;
+}
+
+export function inferStoryLocation(path: string): StoryLocation {
+  // Overview section
+  if (isOverviewFile(path)) {
+    return {section: 'overview'};
+  }
+
+  // Principles (includes old foundations: styles, icons)
+  if (isPrinciplesFile(path)) {
+    return {section: 'principles'};
+  }
+
+  // Patterns
+  if (isPatternsFile(path)) {
+    return {section: 'patterns'};
+  }
+
+  // Components - determine subcategory
+  if (isCoreFile(path)) {
+    const componentName = inferComponentName(path).toLowerCase();
+    const subcategory = inferComponentSubcategory(componentName);
+    return {section: 'components', subcategory};
+  }
+
+  // Shared (non-core components)
+  return {section: 'components', subcategory: 'shared'};
+}
+
+function inferComponentSubcategory(componentName: string): ComponentSubcategory {
+  for (const [subcategory, config] of Object.entries(COMPONENT_SUBCATEGORY_CONFIG)) {
+    if (config.components.includes(componentName)) {
+      return subcategory as ComponentSubcategory;
+    }
+  }
+  return 'shared';
+}
+
+function isOverviewFile(file: string) {
+  return file.includes('components/core/overview');
+}
+
+// New: includes old foundations (styles, icons) merged into principles
+function isPrinciplesFile(file: string) {
+  return (
+    file.includes('app/styles') ||
+    file.includes('app/icons') ||
+    file.includes('components/core/principles')
+  );
+}
+
+// Legacy: kept for backward compatibility with old inferFileCategory
+function isLegacyPrinciplesFile(file: string) {
+  return file.includes('components/core/principles');
+}
+
 function isCoreFile(file: string) {
   return file.includes('components/core');
 }
@@ -335,10 +395,6 @@ function isTypographyFile(file: string) {
 
 function isLayoutFile(file: string) {
   return file.includes('components/core/layout');
-}
-
-function isPrinciplesFile(file: string) {
-  return file.includes('components/core/principles');
 }
 
 function isPatternsFile(file: string) {
