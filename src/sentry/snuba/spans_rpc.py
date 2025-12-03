@@ -330,7 +330,9 @@ class Spans(rpc_dataset_common.RPCBase):
                         continue
 
                     for bucket in attribute.buckets:
-                        name = translate_internal_to_public_alias(attribute.attribute_name)
+                        name = translate_internal_to_public_alias(
+                            attribute.attribute_name, "string", SupportedTraceItemType.SPANS
+                        )
                         attrs[attribute.attribute_name].append(
                             {
                                 "label": name,
