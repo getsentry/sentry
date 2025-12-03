@@ -433,30 +433,6 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         """Get repositories that can't be migrated. Perforce doesn't need migration."""
         return []
 
-    def test_connection(self) -> dict[str, Any]:
-        """
-        Test the Perforce connection with current credentials.
-
-        Returns:
-            Dictionary with connection status and server info
-        """
-        try:
-            client = self.get_client()
-            info = client.get_depot_info()
-
-            return {
-                "status": "success",
-                "message": f"Connected to Perforce server at {info.get('server_address')}",
-                "server_info": info,
-            }
-        except Exception as e:
-            logger.exception("perforce.test_connection.failed")
-            return {
-                "status": "error",
-                "message": f"Failed to connect to Perforce server: {str(e)}",
-                "error": str(e),
-            }
-
     def get_organization_config(self) -> list[dict[str, Any]]:
         """
         Get configuration form fields for organization-level settings.
