@@ -1,18 +1,19 @@
 from __future__ import annotations
 
 from enum import Enum
+from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 
 ###
 # Size analysis results (non-comparison)
+# Keep in sync with https://github.com/getsentry/launchpad/blob/main/src/launchpad/size/models/common.py#L92
 ###
 
 
 class TreemapElement(BaseModel):
-    model_config = ConfigDict(frozen=True)
 
     name: str
     size: int
@@ -32,13 +33,39 @@ class TreemapResults(BaseModel):
     platform: str
 
 
-# Keep in sync with https://github.com/getsentry/launchpad/blob/main/src/launchpad/size/models/common.py#L92
+class FileInfo(BaseModel):
+    """Information about a file or directory in the app bundle."""
+
+    path: str
+
+    # Some FileInfo objects are not always backed by a file (e.g. asset catalog elements), so full_path is None
+    full_path: Path | None
+    size: int
+    file_type: str
+    hash: str
+    treemap_type: str
+    is_dir: bool
+    # Some files can be further broken down, e.g. asset catalog files. We are NOT storing files themselves
+    # in a tree structure, this is only for special cases.
+    children: list[FileInfo]
+    # Asset catalog specific fields
+    idiom: str | None
+    colorspace: str | None
+
+
+class FileAnalysis(BaseModel):
+    """Analysis results for files and directories in the app bundle."""
+
+    items: list[FileInfo]
+
+
 class SizeAnalysisResults(BaseModel):
     analysis_duration: float
     download_size: int
     install_size: int
     treemap: TreemapResults | None
     analysis_version: str | None
+    file_analysis: FileAnalysis | None
 
 
 ###

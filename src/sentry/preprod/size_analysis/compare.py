@@ -10,6 +10,8 @@ from sentry.preprod.size_analysis.models import (
     ComparisonResults,
     DiffItem,
     DiffType,
+    FileAnalysis,
+    FileInfo,
     SizeAnalysisResults,
     SizeMetricDiffItem,
     TreemapElement,
@@ -41,6 +43,11 @@ def compare_size_analysis(
     all_paths = set(head_files.keys()) | set(base_files.keys())
 
     diff_items = []
+
+    head_renamed_paths, base_renamed_paths = _find_renamed_paths(
+        head_size_analysis_results.file_analysis,
+        base_size_analysis_results.file_analysis,
+    )
 
     if not skip_diff_item_comparison:
         for path in sorted(all_paths):
@@ -80,6 +87,10 @@ def compare_size_analysis(
                 if head_size == 0:
                     continue
 
+                # Skip if this is a renamed file (same hash exists in base at different path)
+                if path in head_renamed_paths:
+                    continue
+
                 diff_items.append(
                     DiffItem(
                         size_diff=head_size,
@@ -95,6 +106,10 @@ def compare_size_analysis(
             for base_element in unmatched_base:
                 base_size = base_element.size
                 if base_size == 0:
+                    continue
+
+                # Skip if this is a renamed file (same hash exists in head at different path)
+                if path in base_renamed_paths:
                     continue
 
                 diff_items.append(
@@ -248,3 +263,59 @@ def _flatten_leaf_nodes(
                 items[child_path].extend(child_elements)
 
     return items
+
+
+def _find_renamed_paths(
+    head_file_analysis: FileAnalysis | None,
+    base_file_analysis: FileAnalysis | None,
+) -> tuple[set[str], set[str]]:
+    """Find paths that are likely renames (same hash, different path)."""
+    head_hash_to_paths = _build_hash_to_paths(head_file_analysis)
+    base_hash_to_paths = _build_hash_to_paths(base_file_analysis)
+
+    head_renamed_paths: set[str] = set()
+    base_renamed_paths: set[str] = set()
+
+    # Find files that exist in head but not base (potential "added" that are actually renames)
+    for file_hash, head_paths in head_hash_to_paths.items():
+        base_paths = base_hash_to_paths.get(file_hash, set())
+        # Paths only in head (not in base) with the same hash as paths only in base
+        head_only = head_paths - base_paths
+        base_only = base_paths - head_paths
+
+        if head_only and base_only:
+            # These are renames - same hash exists in both but at different paths
+            head_renamed_paths.update(head_only)
+            base_renamed_paths.update(base_only)
+
+    return head_renamed_paths, base_renamed_paths
+
+
+def _build_hash_to_paths(file_analysis: FileAnalysis | None) -> dict[str, set[str]]:
+    if not file_analysis:
+        return {}
+
+    hash_to_paths: dict[str, set[str]] = {}
+    for file_info in file_analysis.items:
+        _collect_file_hashes(file_info, hash_to_paths)
+    return hash_to_paths
+
+
+def _collect_file_hashes(
+    file_info: FileInfo,
+    hash_to_paths: dict[str, set[str]],
+    parent_path: str = "",
+) -> None:
+    if parent_path and not file_info.path.startswith(parent_path):
+        full_path = f"{parent_path}/{file_info.path}"
+    else:
+        full_path = file_info.path
+
+    if not file_info.children:
+        if file_info.hash not in hash_to_paths:
+            hash_to_paths[file_info.hash] = set()
+        hash_to_paths[file_info.hash].add(full_path)
+    else:
+        # Asset catalogs can have children
+        for child in file_info.children:
+            _collect_file_hashes(child, hash_to_paths, full_path)
