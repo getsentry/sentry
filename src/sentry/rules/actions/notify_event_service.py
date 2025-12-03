@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from typing import Any
 
 from django import forms
@@ -98,17 +98,25 @@ def send_incident_alert_notification(
     return success
 
 
+def _mapping_or_empty(value: Any) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
+
+
+def _sequence_or_empty(value: Any) -> Sequence[Any]:
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        return value
+    return []
+
+
 def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) -> bool:
     """
     Loop through the triggers for the alert rule event. For each trigger, check
     if an action is an alert rule UI Component
     """
-    triggers = (
-        getattr(app_platform_event, "data", {})
-        .get("metric_alert", {})
-        .get("alert_rule", {})
-        .get("triggers", [])
-    )
+    data = _mapping_or_empty(getattr(app_platform_event, "data", {}))
+    metric_alert = _mapping_or_empty(data.get("metric_alert"))
+    alert_rule = _mapping_or_empty(metric_alert.get("alert_rule"))
+    triggers = _sequence_or_empty(alert_rule.get("triggers"))
 
     actions = [
         action
