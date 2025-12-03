@@ -192,10 +192,18 @@ function buildRoutes(): RouteObject[] {
       path: '/account/',
       redirectTo: '/settings/account/details/',
     },
+    {
+      path: '/share/group/:shareId/',
+      redirectTo: '/share/issue/:shareId/',
+    },
     // Add redirect from old user feedback to new feedback
     {
       path: '/user-feedback/',
       redirectTo: '/feedback/',
+    },
+    {
+      path: '/share/issue/:shareId/',
+      component: make(() => import('sentry/views/sharedGroupDetails')),
     },
     {
       path: '/organizations/:orgId/share/issue/:shareId/',
