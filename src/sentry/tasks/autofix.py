@@ -1,4 +1,5 @@
 import logging
+import time
 from datetime import datetime, timedelta
 
 from sentry.models.group import Group
@@ -65,7 +66,11 @@ def generate_issue_summary_only(group_id: int) -> None:
         group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
     )
 
-    _ = get_and_update_group_fixability_score(group, force_generate=True)
+    try:
+        _ = get_and_update_group_fixability_score(group, force_generate=True)
+    except Exception:
+        time.sleep(10)
+        _ = get_and_update_group_fixability_score(group, force_generate=True)
 
 
 @instrumented_task(
