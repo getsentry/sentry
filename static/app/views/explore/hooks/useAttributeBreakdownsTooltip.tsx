@@ -88,11 +88,28 @@ export function useAttributeBreakdownsTooltip({
       }
     };
 
+    const handleMouseLeave = (event: MouseEvent) => {
+      let el = event.relatedTarget as HTMLElement | null;
+
+      // Don't hide actions if the mouse is moving into the tooltip content.
+      while (el) {
+        if (el.dataset?.attributeBreakdownsChartRegion !== undefined) {
+          return;
+        }
+        el = el.parentElement;
+      }
+
+      tooltipParamsRef.current = null;
+      setFrozenPosition(null);
+    };
+
     dom.addEventListener('click', handleClickAnywhere);
+    dom.addEventListener('mouseleave', handleMouseLeave);
 
     // eslint-disable-next-line consistent-return
     return () => {
       dom.removeEventListener('click', handleClickAnywhere);
+      dom.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, [chartRef, frozenPosition]);
 
@@ -101,6 +118,8 @@ export function useAttributeBreakdownsTooltip({
   useEffect(() => {
     if (!frozenPosition) return;
 
+    // TODO Abdullah Khan: Take the actions in as a prop to the hook, to allow other
+    // product areas to use the component feature. This is explore specific for now.
     const handleClickActions = (event: MouseEvent) => {
       event.preventDefault();
 
@@ -175,6 +194,12 @@ export function useAttributeBreakdownsTooltip({
       renderMode: 'html',
       enterable: frozenPosition ? true : false,
       formatter: (params: TooltipComponentFormatterCallbackParams) => {
+        // Wrap the content in a div with the data-attribute-breakdowns-chart-region attribute
+        // to preventthe tooltip from being closed when the mouse is moved to the tooltip content
+        // and clicking actions shouldn't clear the chart selection.
+        const wrapContent = (content: string) =>
+          `<div data-explore-chart-selection-region data-attribute-breakdowns-chart-region>${content}</div>`;
+
         // If the tooltip is NOT frozen, set the tooltip params and return the formatted content,
         // including the tooltip actions placeholder.
         if (!frozenPosition) {
@@ -194,18 +219,18 @@ export function useAttributeBreakdownsTooltip({
           </div>
         `.trim();
 
-          return formatter(params) + actionsPlaceholder;
+          return wrapContent(formatter(params) + actionsPlaceholder);
         }
 
         if (!tooltipParamsRef.current) {
-          return '\u2014';
+          return wrapContent('\u2014');
         }
 
         // If the tooltip is frozen, use the cached tooltip params and
         // return the formatted content, including the tooltip actions.
         const p = tooltipParamsRef.current;
         const value = (Array.isArray(p) ? p[0]?.name : p.name) ?? '';
-        return formatter(p) + (actionsHtmlRenderer?.(value) ?? '');
+        return wrapContent(formatter(p) + (actionsHtmlRenderer?.(value) ?? ''));
       },
       position(
         point: [number, number],

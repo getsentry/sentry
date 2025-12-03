@@ -89,6 +89,7 @@ export function Chart({
             margin: 0 auto;
             padding: 8px 15px;
             min-width: 100px;
+            cursor: default;
             max-width: 300px;
           "
         >
