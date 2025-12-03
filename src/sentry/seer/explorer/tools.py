@@ -903,15 +903,36 @@ def get_issue_and_event_details(
             )
             is None
         ):
+            logger.info(
+                "No spans found for recommended event, trying a different event.",
+                extra={
+                    "organization_id": organization_id,
+                    "issue_id": group.id,
+                    "recommended_event_id": event.event_id if event else None,
+                    "event_trace_id": event.trace_id if event else None,
+                },
+            )
+
             candidate_event = _get_event_with_valid_trace(group, organization_id)
             if candidate_event:
                 event = candidate_event
+
+                logger.info(
+                    "Replaced recommended event with an event with spans.",
+                    extra={
+                        "organization_id": organization_id,
+                        "issue_id": group.id,
+                        "candidate_event_id": candidate_event.event_id,
+                        "candidate_event_trace_id": candidate_event.trace_id,
+                    },
+                )
+
     except Exception:
         logger.exception(
             "Error getting event with valid trace",
             extra={
                 "organization_id": organization_id,
-                "issue_id": issue_id,
+                "issue_id": group.id,
                 "selected_event": selected_event,
             },
         )
