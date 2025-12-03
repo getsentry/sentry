@@ -266,11 +266,13 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'php-laravel': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'php-symfony': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   python: [
