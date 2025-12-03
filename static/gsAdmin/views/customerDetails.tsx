@@ -34,7 +34,6 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import addBillingMetricUsage from 'admin/components/addBillingMetricUsage';
 import addGiftBudgetAction from 'admin/components/addGiftBudgetAction';
 import AddGiftEventsAction from 'admin/components/addGiftEventsAction';
-import {triggerAM2CompatibilityCheck} from 'admin/components/am2CompatibilityCheckModal';
 import CancelSubscriptionAction from 'admin/components/cancelSubscriptionAction';
 import triggerChangeBalanceModal from 'admin/components/changeBalanceAction';
 import triggerChangeDatesModal from 'admin/components/changeDatesAction';
@@ -641,13 +640,6 @@ export default function CustomerDetails() {
                   : null,
                 onSuccess: reloadData,
               }),
-          },
-          {
-            key: 'checkAM2',
-            name: 'Check AM2 Compatibility',
-            help: 'Check if this account can be switched to AM2',
-            skipConfirmModal: true,
-            onAction: () => triggerAM2CompatibilityCheck({organization}),
           },
           {
             key: 'closeAccount',
