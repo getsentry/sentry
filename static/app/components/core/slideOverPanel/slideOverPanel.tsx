@@ -91,7 +91,7 @@ export function SlideOverPanel({
   // Create a fallback render function, in case the parent component passes
   // `React.ReactNode` as `children`. This way, even if they don't pass a render
   // prop they still get the benefit of fast panel opening.
-  const fallbackRenderFunction: ChildRenderFunction = useCallback(
+  const fallbackRenderFunction = useCallback<ChildRenderFunction>(
     ({isOpening}: ChildRenderProps) => {
       return isOpening ? null : (children as React.ReactNode); // This function should only ever run for `React.ReactNode`, its whole purpose is to create a render function for `React.ReactNode`
     },
