@@ -833,11 +833,12 @@ class _SentryEventData(BaseModel):
 class TestGetIssueAndEventDetails(
     APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin, SpanTestCase
 ):
-    def _validate_event_timeseries(self, timeseries: dict):
+    def _validate_event_timeseries(self, timeseries: dict, expected_total: int | None = None):
         assert isinstance(timeseries, dict)
         assert "count()" in timeseries
         assert "data" in timeseries["count()"]
         assert isinstance(timeseries["count()"]["data"], list)
+        total_count = 0
         for item in timeseries["count()"]["data"]:
             assert len(item) == 2
             assert isinstance(item[0], int)
@@ -846,6 +847,11 @@ class TestGetIssueAndEventDetails(
             assert isinstance(item[1][0], dict)
             assert "count" in item[1][0]
             assert isinstance(item[1][0]["count"], int)
+            total_count += item[1][0]["count"]
+        if expected_total is not None:
+            assert (
+                total_count == expected_total
+            ), f"Expected total count {expected_total}, got {total_count}"
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
@@ -968,8 +974,7 @@ class TestGetIssueAndEventDetails(
             else:
                 assert result["event_trace_id"] is None
 
-            # Validate timeseries dict structure.
-            self._validate_event_timeseries(result["event_timeseries"])
+            self._validate_event_timeseries(result["event_timeseries"], expected_total=3)
 
         for selected_event in invalid_selected_events:
             with pytest.raises(ValueError, match="badly formed hexadecimal UUID string"):

@@ -45,7 +45,7 @@ from sentry.constants import (
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import record_latest_release
 from sentry.eventstream.base import GroupState
-from sentry.eventtypes import EventType
+from sentry.eventtypes.base import BaseEvent as EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
