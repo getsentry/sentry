@@ -37,6 +37,9 @@ export function useExploreTracesTable({
     sort: '-timestamp',
     cursor,
     caseInsensitive: queryExtras?.caseInsensitive,
+    logQuery: queryExtras?.logQuery,
+    metricQuery: queryExtras?.metricQuery,
+    spanQuery: queryExtras?.spanQuery,
   });
 
   return useMemo(() => {
