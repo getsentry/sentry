@@ -68,7 +68,7 @@ describe('CustomerInvoices', () => {
       const statusTag = screen
         .getByText('Closed')
         .closest('[data-test-id="tag-background"]');
-      expect(statusTag).toHaveAttribute('type', 'error');
+      expect(statusTag).toHaveAttribute('type', 'danger');
 
       // Should not show Paid or Pending
       expect(screen.queryByText('Paid')).not.toBeInTheDocument();

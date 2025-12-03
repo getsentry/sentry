@@ -1,7 +1,9 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {Alert} from '@sentry/scraps/alert/alert';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text/text';
 
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
@@ -136,48 +138,59 @@ export function AttributeDistribution() {
 
   return (
     <Panel>
-      <Flex direction="column" gap="2xl" padding="xl">
-        <Fragment>
-          <AttributeBreakdownsComponent.ControlsContainer>
-            <AttributeBreakdownsComponent.StyledBaseSearchBar
-              placeholder={t('Search keys')}
-              onChange={q => {
-                setSearchQuery(q);
-              }}
-              query={debouncedSearchQuery}
-              size="sm"
+      <Flex direction="column" gap="xl" padding="xl">
+        <ChartSelectionAlert />
+        <AttributeBreakdownsComponent.ControlsContainer>
+          <AttributeBreakdownsComponent.StyledBaseSearchBar
+            placeholder={t('Search keys')}
+            onChange={q => {
+              setSearchQuery(q);
+            }}
+            query={debouncedSearchQuery}
+            size="sm"
+          />
+          <AttributeBreakdownsComponent.FeedbackButton />
+        </AttributeBreakdownsComponent.ControlsContainer>
+        {isAttributeBreakdownsLoading || isCohortCountLoading ? (
+          <AttributeBreakdownsComponent.LoadingCharts />
+        ) : error ? (
+          <AttributeBreakdownsComponent.ErrorState error={error} />
+        ) : filteredAttributeDistribution.length > 0 ? (
+          <Fragment>
+            <AttributeBreakdownsComponent.ChartsGrid>
+              {filteredAttributeDistribution
+                .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
+                .map(attribute => (
+                  <Chart
+                    key={attribute.name}
+                    attributeDistribution={attribute}
+                    cohortCount={cohortCount}
+                    theme={theme}
+                  />
+                ))}
+            </AttributeBreakdownsComponent.ChartsGrid>
+            <AttributeBreakdownsComponent.Pagination
+              currentPage={page}
+              onPageChange={setPage}
+              totalItems={filteredAttributeDistribution?.length ?? 0}
             />
-            <AttributeBreakdownsComponent.FeedbackButton />
-          </AttributeBreakdownsComponent.ControlsContainer>
-          {isAttributeBreakdownsLoading || isCohortCountLoading ? (
-            <AttributeBreakdownsComponent.LoadingCharts />
-          ) : error ? (
-            <AttributeBreakdownsComponent.ErrorState error={error} />
-          ) : filteredAttributeDistribution.length > 0 ? (
-            <Fragment>
-              <AttributeBreakdownsComponent.ChartsGrid>
-                {filteredAttributeDistribution
-                  .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
-                  .map(attribute => (
-                    <Chart
-                      key={attribute.name}
-                      attributeDistribution={attribute}
-                      cohortCount={cohortCount}
-                      theme={theme}
-                    />
-                  ))}
-              </AttributeBreakdownsComponent.ChartsGrid>
-              <AttributeBreakdownsComponent.Pagination
-                currentPage={page}
-                onPageChange={setPage}
-                totalItems={filteredAttributeDistribution?.length ?? 0}
-              />
-            </Fragment>
-          ) : (
-            <AttributeBreakdownsComponent.EmptySearchState />
-          )}
-        </Fragment>
+          </Fragment>
+        ) : (
+          <AttributeBreakdownsComponent.EmptySearchState />
+        )}
       </Flex>
     </Panel>
+  );
+}
+
+function ChartSelectionAlert() {
+  return (
+    <Alert type="info">
+      <Text>
+        {t(
+          'Drag to select a region in the chart above and see how its breakdowns differ from the baseline.'
+        )}
+      </Text>
+    </Alert>
   );
 }

@@ -421,6 +421,9 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
   'node-hono',
   'node-koa',
   'node-nestjs',
+  'php',
+  'php-laravel',
+  'php-symfony',
   'python',
   'python-aiohttp',
   'python-asgi',
@@ -786,6 +789,14 @@ export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
 ]);
 
 export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+  'javascript-astro',
+  'javascript-nextjs',
+  'javascript-nuxt',
+  'javascript-react-router',
+  'javascript-remix',
+  'javascript-solidstart',
+  'javascript-sveltekit',
+  'javascript-tanstackstart-react',
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
 ]);

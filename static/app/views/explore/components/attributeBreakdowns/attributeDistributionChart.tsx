@@ -76,6 +76,7 @@ export function Chart({
         ? `${value.slice(0, CHART_TOOLTIP_MAX_VALUE_LENGTH)}...`
         : value
       : '\u2014';
+    const escapedTruncatedValue = escape(truncatedValue);
     return `
       <div class="tooltip-series" style="padding: 0;">
         <div
@@ -96,7 +97,7 @@ export function Chart({
               white-space: normal;
               overflow-wrap: anywhere;
             "
-          >${truncatedValue}</strong>
+          >${escapedTruncatedValue}</strong>
           <span>${pct}</span>
         </div>
       </div>

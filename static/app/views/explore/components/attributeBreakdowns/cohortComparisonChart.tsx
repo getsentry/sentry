@@ -7,6 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 import {Flex} from 'sentry/components/core/layout';
 import {tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import {escape} from 'sentry/utils';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
@@ -159,11 +160,12 @@ export function Chart({
         name.length > CHART_TOOLTIP_MAX_VALUE_LENGTH
           ? `${name.slice(0, CHART_TOOLTIP_MAX_VALUE_LENGTH)}...`
           : name;
+      const escapedTruncatedName = escape(truncatedName);
 
       return `
       <div data-explore-chart-selection-region class="tooltip-series" style="padding: 0;">
         <div class="tooltip-label" style="display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin: 0 auto; padding: 8px 15px; min-width: 100px; max-width: 300px;">
-          <strong style="word-break: break-word; white-space: normal; overflow-wrap: anywhere; text-align: center;">${truncatedName}</strong>
+          <strong style="word-break: break-word; white-space: normal; overflow-wrap: anywhere; text-align: center;">${escapedTruncatedName}</strong>
           <span style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
             <span style="display: flex; align-items: center; gap: 6px;">
               <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${cohort1Color}; display: inline-block;"></span>

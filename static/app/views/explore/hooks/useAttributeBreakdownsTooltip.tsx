@@ -11,7 +11,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 
 const TOOLTIP_POSITION_X_OFFSET = 20;
-const TOOLTIP_POSITION_Y_OFFSET = 5;
+const TOOLTIP_POSITION_Y_OFFSET = -10;
 
 type Params = {
   /**
@@ -151,7 +151,7 @@ export function useAttributeBreakdownsTooltip({
       trigger: 'axis',
       appendToBody: true,
       renderMode: 'html',
-      enterable: true,
+      enterable: frozenPosition ? true : false,
       formatter: (params: TooltipComponentFormatterCallbackParams) => {
         // If the tooltip is NOT frozen, set the tooltip params and return the formatted content,
         // including the tooltip actions placeholder.
@@ -183,7 +183,7 @@ export function useAttributeBreakdownsTooltip({
         // return the formatted content, including the tooltip actions.
         const p = tooltipParamsRef.current;
         const value = (Array.isArray(p) ? p[0]?.name : p.name) ?? '';
-        return formatter(p) + actionsHtmlRenderer?.(value);
+        return formatter(p) + (actionsHtmlRenderer?.(value) ?? '');
       },
       position(
         point: [number, number],
@@ -194,8 +194,6 @@ export function useAttributeBreakdownsTooltip({
         const tooltipWidth = dom?.offsetWidth ?? 0;
         const [rawX = 0, rawY = 0] = frozenPosition ?? point;
 
-        // Adding offsets to mitigate users accidentally entering the tooltip,
-        // when trying to hover over the chart for values.
         let x = rawX + TOOLTIP_POSITION_X_OFFSET;
         const y = rawY + TOOLTIP_POSITION_Y_OFFSET;
 
