@@ -188,17 +188,18 @@ def _should_store_segment_name_inner(
 
 
 def _bump_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None:
-    applied_rules = event_data.get("_meta", {}).get("transaction", {}).get("", {}).get("rem", {})
+    applied_rules = event_data.get("_meta", {}).get("transaction", {}).get("", {}).get("rem", [])
     _bump_rule_lifetime_inner(project, applied_rules)
 
 
 def _bump_rule_lifetime_for_segment(project: Project, segment_span: CompatibleSpan) -> None:
-    meta_str: str = attribute_value(
+    meta_str: str | None = attribute_value(
         segment_span, f"sentry._meta.fields.attributes.{ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME}"
     )
-    meta = orjson.loads(meta_str)
-    applied_rules = meta.get("meta", {}).get("", {}).get("rem", [])
-    _bump_rule_lifetime_inner(project, applied_rules)
+    if meta_str:
+        meta = orjson.loads(meta_str)
+        applied_rules = meta.get("meta", {}).get("", {}).get("rem", [])
+        _bump_rule_lifetime_inner(project, applied_rules)
 
 
 def _bump_rule_lifetime_inner(project: Project, applied_rules: Sequence):
