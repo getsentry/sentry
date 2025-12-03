@@ -704,6 +704,44 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                     }
                 )
 
+    def test_create_issue_adds_required_field_defaults(self) -> None:
+        default_option = {"value": "Default Milestone", "id": "20407"}
+        with mock.patch.object(StubJiraApiClient, "get_issue_fields") as mock_get_issue_fields:
+            mock_issue_fields = StubService.get_stub_data("jira", "issue_fields_response.json")
+            mock_issue_fields["values"].append(
+                {
+                    "required": True,
+                    "schema": {"type": "option"},
+                    "name": "Zoox Milestone",
+                    "fieldId": "customfield_20407",
+                    "hasDefaultValue": True,
+                    "defaultValue": default_option,
+                    "operations": ["set"],
+                    "allowedValues": [default_option],
+                }
+            )
+            mock_get_issue_fields.return_value = mock_issue_fields
+
+            with mock.patch.object(StubJiraApiClient, "create_issue") as mock_create_issue:
+                mock_create_issue.return_value = {"key": "APP-123"}
+                with mock.patch.object(self.installation, "get_client", get_client):
+                    self.installation.create_issue(
+                        {
+                            "title": "example summary",
+                            "description": "example bug report",
+                            "issuetype": "1",
+                            "project": "10000",
+                        }
+                    )
+
+        mock_create_issue.assert_called_once()
+        payload = mock_create_issue.call_args[0][0]
+        assert payload["customfield_20407"] == {"value": default_option["value"]}
+        assert payload["project"] == {"id": "10000"}
+        assert payload["issuetype"] == {"id": "1"}
+        assert payload["summary"] == "example summary"
+        assert payload["description"] == "example bug report"
+
     @responses.activate
     def test_create_issue_labels_and_option(self) -> None:
         responses.add(
