@@ -504,16 +504,12 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
         assert len(org_config) == 7  # 7 configuration fields
         field_names = {field["name"] for field in org_config}
         assert field_names == {
-            "auth_mode",
-            "ticket",
-            "host",
-            "port",
+            "p4port",
             "user",
             "auth_type",
             "password",
             "ssl_fingerprint",
             "client",
-            "web_viewer_type",
             "web_url",
         }
 
