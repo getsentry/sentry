@@ -69,7 +69,7 @@ def generate_issue_summary_only(group_id: int) -> None:
     try:
         _ = get_and_update_group_fixability_score(group, force_generate=True)
     except Exception:
-        time.sleep(10)
+        time.sleep(6)  # wait for 6 seconds before retrying for summary to be stored to databse
         _ = get_and_update_group_fixability_score(group, force_generate=True)
 
 
