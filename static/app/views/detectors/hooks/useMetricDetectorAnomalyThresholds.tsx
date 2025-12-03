@@ -96,9 +96,9 @@ export function useMetricDetectorAnomalyThresholds({
       const anomalyPoint = anomalyMap.get(timestamp);
 
       if (anomalyPoint) {
-        upperBoundData.push([timestamp, anomalyPoint.yhat_upper]);
-        lowerBoundData.push([timestamp, anomalyPoint.yhat_lower]);
-        seerValueData.push([timestamp, anomalyPoint.value]);
+        upperBoundData.push([timestamp, Math.round(anomalyPoint.yhat_upper)]);
+        lowerBoundData.push([timestamp, Math.round(anomalyPoint.yhat_lower)]);
+        seerValueData.push([timestamp, Math.round(anomalyPoint.value)]);
       }
     });
 
