@@ -50,32 +50,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   // Get blocks from session data or empty array
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
 
-  useBlockNavigation({
-    isOpen: isVisible,
-    focusedBlockIndex,
-    blocks,
-    blockRefs,
-    textareaRef,
-    setFocusedBlockIndex,
-    isMinimized,
-    onDeleteFromIndex: deleteFromIndex,
-    onKeyPress: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => {
-      const handler = blockEnterHandlers.current.get(blockIndex);
-      const handled = handler?.(key) ?? false;
-
-      // If Enter was pressed and handled (navigation occurred), minimize the panel
-      if (key === 'Enter' && handled) {
-        setIsMinimized(true);
-      }
-
-      return handled;
-    },
-    onNavigate: () => {
-      setIsMinimized(false);
-      userScrolledUpRef.current = true;
-    },
-  });
-
   useEffect(() => {
     // Focus textarea when panel opens and reset focus
     if (isVisible) {
@@ -244,54 +218,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     closeMenu();
   }, [closeMenu, focusInput]);
 
-  useEffect(() => {
-    if (!isVisible || isMinimized || isMenuOpen) {
-      return undefined;
-    }
-
-    // Global keyboard event listeners for when the panel is open and menu is closed.
-    // Menu keyboard listeners are in the menu component.
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
-
-      if (e.key === 'Escape' && isPolling && !interruptRequested) {
-        e.preventDefault();
-        interruptRun();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        setIsMinimized(true);
-      } else if (isPrintableChar) {
-        if (focusedBlockIndex !== -1) {
-          // If a block is focused, auto-focus input when user starts typing.
-          e.preventDefault();
-          setFocusedBlockIndex(-1);
-          textareaRef.current?.focus();
-          setInputValue(prev => prev + e.key);
-        }
-      }
-    };
-
-    // Re-enable hover focus changes when mouse actually moves
-    const handleMouseMove = () => {
-      allowHoverFocusChange.current = true;
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('mousemove', handleMouseMove);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('mousemove', handleMouseMove);
-    };
-  }, [
-    isVisible,
-    isMenuOpen,
-    isPolling,
-    focusedBlockIndex,
-    interruptRun,
-    interruptRequested,
-    isMinimized,
-  ]);
-
   const handleUnminimize = useCallback(() => {
     setIsMinimized(false);
     // Disable hover focus changes until mouse actually moves
@@ -325,6 +251,83 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     respondToUserInput,
     scrollContainerRef,
     userScrolledUpRef,
+  });
+
+  // Global keyboard event listeners for when the panel is open and menu is closed.
+  // Menu keyboard listeners are in the menu component.
+  useEffect(() => {
+    if (!isVisible || isMinimized || isMenuOpen) {
+      return undefined;
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
+
+      if (e.key === 'Escape' && isPolling && !interruptRequested) {
+        e.preventDefault();
+        interruptRun();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsMinimized(true);
+      } else if (isPrintableChar) {
+        // Don't auto-type if file approval is pending (textarea isn't visible)
+        if (focusedBlockIndex !== -1 && !isFileApprovalPending) {
+          // If a block is focused, auto-focus input when user starts typing.
+          e.preventDefault();
+          setFocusedBlockIndex(-1);
+          textareaRef.current?.focus();
+          setInputValue(prev => prev + e.key);
+        }
+      }
+    };
+
+    // Re-enable hover focus changes when mouse actually moves
+    const handleMouseMove = () => {
+      allowHoverFocusChange.current = true;
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [
+    isVisible,
+    isMenuOpen,
+    isPolling,
+    focusedBlockIndex,
+    interruptRun,
+    interruptRequested,
+    isMinimized,
+    isFileApprovalPending,
+  ]);
+
+  useBlockNavigation({
+    isOpen: isVisible,
+    focusedBlockIndex,
+    blocks,
+    blockRefs,
+    textareaRef,
+    setFocusedBlockIndex,
+    isMinimized,
+    isFileApprovalPending,
+    onDeleteFromIndex: deleteFromIndex,
+    onKeyPress: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => {
+      const handler = blockEnterHandlers.current.get(blockIndex);
+      const handled = handler?.(key) ?? false;
+
+      // If Enter was pressed and handled (navigation occurred), minimize the panel
+      if (key === 'Enter' && handled) {
+        setIsMinimized(true);
+      }
+
+      return handled;
+    },
+    onNavigate: () => {
+      setIsMinimized(false);
+      userScrolledUpRef.current = true;
+    },
   });
 
   const panelContent = (
