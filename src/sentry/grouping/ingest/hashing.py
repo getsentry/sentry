@@ -310,21 +310,21 @@ def get_or_create_grouphashes(
     grouping_config_id: str,
 ) -> list[GroupHash]:
     is_secondary = grouping_config_id == project.get_option("sentry:secondary_grouping_config")
+    use_caching = options.get("grouping.use_ingest_grouphash_caching")
     grouphashes: list[GroupHash] = []
 
     if is_secondary:
         # The only utility of secondary hashes is to link new primary hashes to an existing group
         # via an existing grouphash. Secondary hashes which are new are therefore of no value, so
         # filter them out before creating grouphash records.
-        existing_hashes = set(
-            GroupHash.objects.filter(project=project, hash__in=hashes).values_list(
-                "hash", flat=True
-            )
-        )
-        hashes = filter(lambda hash_value: hash_value in existing_hashes, hashes)
+        hashes = [
+            hash_value
+            for hash_value in hashes
+            if _grouphash_exists_for_hash_value(hash_value, project, use_caching)
+        ]
 
     for hash_value in hashes:
-        grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
+        grouphash, created = _get_or_create_single_grouphash(hash_value, project, use_caching)
 
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
             try:
