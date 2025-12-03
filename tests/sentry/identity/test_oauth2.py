@@ -13,6 +13,7 @@ from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.silo import control_silo_test
@@ -156,6 +157,36 @@ class OAuth2CallbackViewTest(TestCase):
         assert "401" in result["error"]
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
+
+    def test_error_parameter_is_sanitized(self, mock_record: MagicMock) -> None:
+        malicious_error = (
+            "${${:::::::::::::::::-j}ndi:dns${:::::::::::::::::-:}${::-/}${::-/}"
+            "dns.log4j.009365.102962-13420.102962.9d0bf${::-.}1${::-.}bxss.me}}\nnext-line"
+        )
+        request = RequestFactory().get("/", {"error": malicious_error})
+        request.subdomain = None
+
+        pipeline = MagicMock()
+        pipeline.provider.key = "dummy"
+        sentinel_response = object()
+        pipeline.error.return_value = sentinel_response
+
+        with patch.object(
+            EventLifecycle, "record_failure", wraps=EventLifecycle.record_failure
+        ) as mock_failure:
+            response = self.view.dispatch(request, pipeline)
+
+        assert response is sentinel_response
+        assert pipeline.error.called
+
+        recorded_extra = mock_failure.call_args.kwargs["extra"]
+        sanitized_error = recorded_extra["error"]
+
+        assert sanitized_error != malicious_error
+        assert "${" not in sanitized_error
+        assert "\n" not in sanitized_error
+        assert sanitized_error
+        assert sanitized_error in pipeline.error.call_args[0][0]
 
 
 @control_silo_test
