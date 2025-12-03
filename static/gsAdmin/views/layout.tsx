@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {ThemeProvider} from '@emotion/react';
+import {ThemeProvider, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -11,13 +11,18 @@ import {IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {space} from 'sentry/styles/space';
 import localStorage from 'sentry/utils/localStorage';
-// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
-import {darkTheme, lightTheme} from 'sentry/utils/theme';
+import {
+  DO_NOT_USE_darkChonkTheme,
+  DO_NOT_USE_lightChonkTheme,
+} from 'sentry/utils/theme/theme.chonk';
 import SystemAlerts from 'sentry/views/app/systemAlerts';
 
 import GlobalStyles from 'admin/globalStyles';
 
-const themes = {darkTheme, lightTheme};
+const themes = {
+  darkTheme: DO_NOT_USE_darkChonkTheme as unknown as Theme,
+  lightTheme: DO_NOT_USE_lightChonkTheme as unknown as Theme,
+};
 
 type ThemeName = keyof typeof themes;
 
@@ -31,11 +36,7 @@ const useToggleTheme = () => {
     localStorage.setItem('getsentryAdminTheme', newThemeName);
   };
 
-  return [
-    themeName === 'darkTheme',
-    themes[themeName] ?? lightTheme,
-    toggleTheme,
-  ] as const;
+  return [themeName === 'darkTheme', themes[themeName], toggleTheme] as const;
 };
 
 type Props = {
