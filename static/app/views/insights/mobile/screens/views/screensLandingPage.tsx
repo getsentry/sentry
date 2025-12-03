@@ -9,10 +9,13 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
@@ -42,6 +45,11 @@ import {
 import {ModuleName} from 'sentry/views/insights/types';
 
 function ScreensLandingPage() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   const moduleName = ModuleName.MOBILE_VITALS;
   const navigate = useNavigate();
   const location = useLocation();
@@ -251,7 +259,10 @@ function ScreensLandingPage() {
   });
 
   return (
-    <ModulePageProviders moduleName={ModuleName.MOBILE_VITALS}>
+    <ModulePageProviders
+      moduleName={ModuleName.MOBILE_VITALS}
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <Layout.Page>
         <PageAlertProvider>
           <ModuleFeature moduleName={moduleName}>
@@ -262,7 +273,7 @@ function ScreensLandingPage() {
                     <PageFilterBar condensed>
                       <InsightsProjectSelector onChange={handleProjectChange} />
                       <InsightsEnvironmentSelector />
-                      <DatePageFilter />
+                      <DatePageFilter {...datePageFilterProps} />
                     </PageFilterBar>
                     <PageFilterBar condensed>
                       <ReleaseComparisonSelector primaryOnly moduleName={moduleName} />

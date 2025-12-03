@@ -4,9 +4,11 @@ import styled from '@emotion/styled';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
@@ -153,8 +155,16 @@ function DestinationSummaryPage() {
 }
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
   return (
-    <ModulePageProviders moduleName="queue" pageTitle={t('Destination Summary')}>
+    <ModulePageProviders
+      moduleName="queue"
+      pageTitle={t('Destination Summary')}
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <DestinationSummaryPage />
     </ModulePageProviders>
   );
