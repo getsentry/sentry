@@ -188,6 +188,7 @@ const ToastIconContainer = chonkStyled('div')<{type: Indicator['type']}>`
     width: 16px;
     height: 16px;
     color: ${p => (p.type === 'success' ? p.theme.colors.black : p.type === 'error' ? p.theme.colors.white : undefined)} !important;
+  }
 `;
 
 const ToastLoadingIndicator = chonkStyled(LoadingIndicator)`
