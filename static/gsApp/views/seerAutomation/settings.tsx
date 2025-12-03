@@ -6,6 +6,7 @@ import {Alert} from 'sentry/components/core/alert';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import SeerSettingsPageWrapper from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
@@ -30,16 +31,9 @@ export default function SeerAutomationSettings() {
         apiEndpoint={`/organizations/${organization.slug}/`}
         allowUndo
         initialData={{
-          // First section
-          defaultSeerScannerAutomation:
-            organization.defaultSeerScannerAutomation ?? false,
-          defaultAutofixAutomationTuning:
-            organization.defaultAutofixAutomationTuning ?? 'off',
-
-          // auto-fix enabled -> boolean
-          // @ts-expect-error: New Field, depends on https://github.com/getsentry/sentry/pull/104049
+          // Project<->Repo settings:
+          defaultAutofixAutomationTuning: organization.defaultAutofixAutomationTuning,
           autoOpenPrs: organization.autoOpenPrs ?? false,
-          // sensitivity -> high/medium/low
 
           // Second section
           enableSeerCoding: organization.enableSeerCoding ?? true,
@@ -64,10 +58,17 @@ export default function SeerAutomationSettings() {
                     'For all new projects, Seer will automatically create a root cause analysis for highly actionable issues and propose a solution without a user needing to prompt it.'
                   ),
                   type: 'boolean',
-                  // This will actually set the value to be "off" or "Moderately Actionable and Above (`medium`)"
+                  // Convert from between enum and boolean
+                  // All values other than 'off' are converted to 'medium'
+                  setValue: (
+                    value: Organization['defaultAutofixAutomationTuning']
+                  ): boolean => Boolean(value && value !== 'off'),
+                  getValue: (
+                    value: boolean
+                  ): Organization['defaultAutofixAutomationTuning'] =>
+                    value ? 'medium' : 'off',
                 },
                 {
-                  // TODO: Depends on https://github.com/getsentry/sentry/pull/104049
                   name: 'autoOpenPrs',
                   label: t('Enable Autofix PR Creation by Default'),
                   help: t(
@@ -77,7 +78,7 @@ export default function SeerAutomationSettings() {
                 },
                 {
                   // TODO: Depends on future PR
-                  name: 'allowProjectAgentDelegation',
+                  name: 'allowSeerScannerAutomation',
                   label: t('Allow Delegation to Background Agents'),
                   help: tct(
                     'Enable this to allow projects to use Agents other than Seer for automation tasks. [docs:Read the docs] to learn more.',

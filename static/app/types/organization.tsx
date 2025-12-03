@@ -56,6 +56,7 @@ export interface Organization extends OrganizationSummary {
   allowSharedIssues: boolean;
   allowSuperuserAccess: boolean;
   attachmentsRole: string;
+  autoOpenPrs: boolean;
   /** @deprecated use orgRoleList instead. */
   availableRoles: Array<{id: string; name: string}>;
   dataScrubber: boolean;
@@ -85,7 +86,6 @@ export interface Organization extends OrganizationSummary {
   safeFields: string[];
   samplingMode: 'organization' | 'project';
   scrapeJavaScript: boolean;
-  scrubIPAddresses: boolean;
   sensitiveFields: string[];
   storeCrashReports: number;
   streamlineOnly: boolean | null;
