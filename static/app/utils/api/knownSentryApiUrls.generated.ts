@@ -527,6 +527,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/search-agent/translate/'
   | '/organizations/$organizationIdOrSlug/searches/'
   | '/organizations/$organizationIdOrSlug/searches/$searchId/'
+  | '/organizations/$organizationIdOrSlug/seer-rpc/$methodName/'
   | '/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId'
   | '/organizations/$organizationIdOrSlug/seer/explorer-runs/'
   | '/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/'
