@@ -1027,12 +1027,7 @@ describe('SearchQueryBuilder', () => {
     it('can add a new token by clicking a key suggestion', async () => {
       const mockOnChange = jest.fn();
       render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />, {
-        organization: {
-          features: [
-            'search-query-builder-input-flow-changes',
-            'search-query-builder-default-to-contains',
-          ],
-        },
+        organization: {features: ['search-query-builder-input-flow-changes']},
       });
 
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
@@ -1098,7 +1093,7 @@ describe('SearchQueryBuilder', () => {
       jest.restoreAllMocks();
 
       // Should have focus on the operator option
-      const operatorOption = await screen.findByRole('option', {name: 'is'});
+      const operatorOption = await screen.findByRole('option', {name: 'contains'});
       expect(operatorOption).toHaveFocus();
       await userEvent.click(operatorOption);
 
@@ -1112,7 +1107,9 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
 
       // Should have a filter token "browser.name:foo"
-      expect(screen.getByRole('row', {name: 'browser.name:foo'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('row', {name: `browser.name:${WildcardOperators.CONTAINS}foo`})
+      ).toBeInTheDocument();
     });
 
     it('can add parens by typing', async () => {
@@ -1184,12 +1181,7 @@ describe('SearchQueryBuilder', () => {
 
     it('converts text to filter when typing <filter>:', async () => {
       render(<SearchQueryBuilder {...defaultProps} />, {
-        organization: {
-          features: [
-            'search-query-builder-input-flow-changes',
-            'search-query-builder-default-to-contains',
-          ],
-        },
+        organization: {features: ['search-query-builder-input-flow-changes']},
       });
       await userEvent.click(getLastInput());
 
@@ -1221,12 +1213,7 @@ describe('SearchQueryBuilder', () => {
 
     it('selects [Filtered] from dropdown', async () => {
       render(<SearchQueryBuilder {...defaultProps} />, {
-        organization: {
-          features: [
-            'search-query-builder-input-flow-changes',
-            'search-query-builder-default-to-contains',
-          ],
-        },
+        organization: {features: ['search-query-builder-input-flow-changes']},
       });
       await userEvent.click(getLastInput());
 
