@@ -195,10 +195,11 @@ class ApiGatewayTest(ApiGatewayTestCase):
         )
 
         with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
-            resp = self.client.get(region_pinned)
-            assert resp.status_code == 200
-            resp_json = json.loads(close_streaming_response(resp))
-            assert resp_json["proxy"] is True
+            with override_settings(ROOT_URLCONF="sentry.web.urls"):
+                resp = self.client.get(region_pinned)
+                assert resp.status_code == 200
+                resp_json = json.loads(close_streaming_response(resp))
+                assert resp_json["proxy"] is True
 
             resp = self.client.get(control_url)
             assert resp.status_code == 200
