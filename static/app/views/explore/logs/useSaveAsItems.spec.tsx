@@ -219,6 +219,8 @@ describe('useSaveAsItems', () => {
         useSaveAsItems({
           visualizes: [new VisualizeFunction('count()')],
           groupBys: ['message.template'],
+          // Note: useSaveQuery uses the value returned by useChartInterval()
+          // not the interval passed in as options.
           interval: '5m',
           mode: Mode.AGGREGATE,
           search: new MutableSearch('message:"test error"'),
