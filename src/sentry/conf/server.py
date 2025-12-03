@@ -1256,6 +1256,8 @@ LOGGING: LoggingConfig = {
             "propagate": False,
         },
         "toronado": {"level": "ERROR", "handlers": ["null"], "propagate": False},
+        "toronado.cssutils": {"level": "ERROR", "handlers": ["null"], "propagate": False},
+        "CSSUTILS": {"level": "ERROR", "handlers": ["null"], "propagate": False},
         "urllib3.connectionpool": {
             "level": "ERROR",
             "handlers": ["console"],
