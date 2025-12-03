@@ -646,7 +646,6 @@ from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
-from .endpoints.check_am2_compatibility import CheckAM2CompatibilityEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
 from .endpoints.custom_rules import CustomRulesEndpoint
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
@@ -3502,11 +3501,6 @@ INTERNAL_URLS = [
         r"^prevent/pr-review/github/sentry-org/$",
         PreventPrReviewSentryOrgEndpoint.as_view(),
         name="sentry-api-0-prevent-pr-review-github-sentry-org",
-    ),
-    re_path(
-        r"^check-am2-compatibility/$",
-        CheckAM2CompatibilityEndpoint.as_view(),
-        name="sentry-api-0-internal-check-am2-compatibility",
     ),
     re_path(
         r"^feature-flags/$",
