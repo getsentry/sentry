@@ -1,7 +1,5 @@
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.preprod.size_analysis.compare import (
-    _build_hash_to_paths,
-    _find_renamed_paths,
     _should_skip_diff_item_comparison,
     compare_size_analysis,
 )
@@ -802,220 +800,6 @@ class CompareWithVersionSkippingTest(TestCase):
         assert result.diff_items[0].type == DiffType.INCREASED
 
 
-class RenameDetectionTest(TestCase):
-    """Tests for file rename detection logic."""
-
-    def _create_file_info(
-        self, path: str, hash_value: str, treemap_type: str = "files", size: int = 100
-    ) -> FileInfo:
-        """Helper to create FileInfo."""
-        return FileInfo(
-            path=path,
-            full_path=None,
-            size=size,
-            file_type="application/octet-stream",
-            hash=hash_value,
-            treemap_type=treemap_type,
-            is_dir=False,
-            children=[],
-            idiom=None,
-            colorspace=None,
-        )
-
-    def test_build_hash_to_paths_empty(self):
-        """Test _build_hash_to_paths with None file_analysis."""
-        result = _build_hash_to_paths(None)
-        assert result == {}
-
-    def test_build_hash_to_paths_basic(self):
-        """Test _build_hash_to_paths builds correct mapping."""
-        file_analysis = FileAnalysis(
-            items=[
-                self._create_file_info("path/to/file1.txt", "hash1"),
-                self._create_file_info("path/to/file2.txt", "hash2"),
-                self._create_file_info("path/to/file3.txt", "hash1"),  # Same hash as file1
-            ]
-        )
-        result = _build_hash_to_paths(file_analysis)
-
-        assert len(result) == 2
-        assert result["hash1"] == {"path/to/file1.txt", "path/to/file3.txt"}
-        assert result["hash2"] == {"path/to/file2.txt"}
-
-    def test_build_hash_to_paths_with_children(self):
-        """Test _build_hash_to_paths collects hashes from nested children (e.g., Assets.car)."""
-        # Create a parent item (Assets.car) with children
-        assets_car = FileInfo(
-            path="Assets.car",
-            full_path=None,
-            size=1000,
-            file_type="car",
-            hash="parent_hash",
-            treemap_type="assets",
-            is_dir=False,
-            children=[
-                self._create_file_info("AppIcon.png", "icon_hash", treemap_type="assets"),
-                self._create_file_info("LaunchImage.png", "launch_hash", treemap_type="assets"),
-            ],
-            idiom=None,
-            colorspace=None,
-        )
-        file_analysis = FileAnalysis(items=[assets_car])
-        result = _build_hash_to_paths(file_analysis)
-
-        # Should collect children's hashes with full paths, not the parent's hash
-        assert len(result) == 2
-        assert result["icon_hash"] == {"Assets.car/AppIcon.png"}
-        assert result["launch_hash"] == {"Assets.car/LaunchImage.png"}
-        # Parent hash should NOT be included since it has children
-        assert "parent_hash" not in result
-
-    def test_find_renamed_paths_no_renames(self):
-        """Test _find_renamed_paths when there are no renames."""
-        head_analysis = FileAnalysis(
-            items=[
-                self._create_file_info("path/to/new_file.txt", "hash_new"),
-            ]
-        )
-        base_analysis = FileAnalysis(
-            items=[
-                self._create_file_info("path/to/old_file.txt", "hash_old"),
-            ]
-        )
-
-        head_renamed, base_renamed = _find_renamed_paths(head_analysis, base_analysis)
-
-        assert head_renamed == set()
-        assert base_renamed == set()
-
-    def test_find_renamed_paths_simple_rename(self):
-        """Test _find_renamed_paths detects a simple file rename."""
-        head_analysis = FileAnalysis(
-            items=[
-                self._create_file_info("path/to/new_name.txt", "same_hash"),
-            ]
-        )
-        base_analysis = FileAnalysis(
-            items=[
-                self._create_file_info("path/to/old_name.txt", "same_hash"),
-            ]
-        )
-
-        head_renamed, base_renamed = _find_renamed_paths(head_analysis, base_analysis)
-
-        assert head_renamed == {"path/to/new_name.txt"}
-        assert base_renamed == {"path/to/old_name.txt"}
-
-    def test_find_renamed_paths_multiple_renames(self):
-        """Test _find_renamed_paths detects multiple file renames."""
-        head_analysis = FileAnalysis(
-            items=[
-                self._create_file_info("new/path/file1.txt", "hash1"),
-                self._create_file_info("new/path/file2.txt", "hash2"),
-            ]
-        )
-        base_analysis = FileAnalysis(
-            items=[
-                self._create_file_info("old/path/file1.txt", "hash1"),
-                self._create_file_info("old/path/file2.txt", "hash2"),
-            ]
-        )
-
-        head_renamed, base_renamed = _find_renamed_paths(head_analysis, base_analysis)
-
-        assert head_renamed == {"new/path/file1.txt", "new/path/file2.txt"}
-        assert base_renamed == {"old/path/file1.txt", "old/path/file2.txt"}
-
-    def test_find_renamed_paths_unchanged_files_not_marked(self):
-        """Test _find_renamed_paths doesn't mark unchanged files as renamed."""
-        head_analysis = FileAnalysis(
-            items=[
-                self._create_file_info("path/unchanged.txt", "same_hash"),
-                self._create_file_info("new/renamed.txt", "renamed_hash"),
-            ]
-        )
-        base_analysis = FileAnalysis(
-            items=[
-                self._create_file_info("path/unchanged.txt", "same_hash"),
-                self._create_file_info("old/renamed.txt", "renamed_hash"),
-            ]
-        )
-
-        head_renamed, base_renamed = _find_renamed_paths(head_analysis, base_analysis)
-
-        # Only the renamed file should be marked
-        assert head_renamed == {"new/renamed.txt"}
-        assert base_renamed == {"old/renamed.txt"}
-
-    def test_find_renamed_paths_none_analysis(self):
-        """Test _find_renamed_paths handles None file_analysis."""
-        head_renamed, base_renamed = _find_renamed_paths(None, None)
-        assert head_renamed == set()
-        assert base_renamed == set()
-
-        head_analysis = FileAnalysis(items=[self._create_file_info("path/file.txt", "hash")])
-        head_renamed, base_renamed = _find_renamed_paths(head_analysis, None)
-        assert head_renamed == set()
-        assert base_renamed == set()
-
-    def test_find_renamed_paths_with_duplicates(self):
-        """Test that when a file is renamed AND duplicated, only min count are marked as renames.
-
-        Scenario: Base has 1 file with hash X, head has 3 files with same hash X at different paths.
-        Expected: 1 rename pair, 2 additions (not 3 renames).
-        """
-        head_analysis = FileAnalysis(
-            items=[
-                self._create_file_info("Framework1/resource.png", "same_hash"),
-                self._create_file_info("Framework2/resource.png", "same_hash"),
-                self._create_file_info("Framework3/resource.png", "same_hash"),
-            ]
-        )
-        base_analysis = FileAnalysis(
-            items=[
-                self._create_file_info("OldFramework/resource.png", "same_hash"),
-            ]
-        )
-
-        head_renamed, base_renamed = _find_renamed_paths(head_analysis, base_analysis)
-
-        # Only 1 path on each side should be marked as renamed (the minimum)
-        assert len(head_renamed) == 1
-        assert len(base_renamed) == 1
-        assert base_renamed == {"OldFramework/resource.png"}
-        # One of the head paths should be marked as renamed
-        assert head_renamed.issubset(
-            {"Framework1/resource.png", "Framework2/resource.png", "Framework3/resource.png"}
-        )
-
-    def test_find_renamed_paths_with_multiple_duplicates_both_sides(self):
-        """Test rename+duplicate when both sides have multiple copies.
-
-        Scenario: Base has 2 files with hash X, head has 4 files with same hash X.
-        Expected: 2 rename pairs (matching the smaller count), 2 additions.
-        """
-        head_analysis = FileAnalysis(
-            items=[
-                self._create_file_info("New1/file.png", "same_hash"),
-                self._create_file_info("New2/file.png", "same_hash"),
-                self._create_file_info("New3/file.png", "same_hash"),
-                self._create_file_info("New4/file.png", "same_hash"),
-            ]
-        )
-        base_analysis = FileAnalysis(
-            items=[
-                self._create_file_info("Old1/file.png", "same_hash"),
-                self._create_file_info("Old2/file.png", "same_hash"),
-            ]
-        )
-
-        head_renamed, base_renamed = _find_renamed_paths(head_analysis, base_analysis)
-
-        # 2 paths on each side should be marked as renamed (the minimum)
-        assert len(head_renamed) == 2
-        assert len(base_renamed) == 2
-
-
 class CompareWithRenameDetectionTest(TestCase):
     """Integration tests for rename detection in compare_size_analysis."""
 
@@ -1245,3 +1029,172 @@ class CompareWithRenameDetectionTest(TestCase):
         assert len(result.diff_items) == 2
         types = {item.type for item in result.diff_items}
         assert types == {DiffType.ADDED, DiffType.REMOVED}
+
+    def test_rename_with_duplication_shows_additions(self):
+        """Test that when a file is renamed AND duplicated, only one rename is detected.
+
+        Scenario: Base has 1 file, head has 3 files with same hash at different paths.
+        Expected: 1 rename (excluded from diff), 2 additions shown.
+        """
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+
+        # Head has 3 copies of the same file in different frameworks
+        head_treemap = self._create_treemap_element(
+            "root",
+            0,
+            children=[
+                self._create_treemap_element(
+                    "resource.png", 100, path="Framework1/resource.png", element_type="files"
+                ),
+                self._create_treemap_element(
+                    "resource.png", 100, path="Framework2/resource.png", element_type="files"
+                ),
+                self._create_treemap_element(
+                    "resource.png", 100, path="Framework3/resource.png", element_type="files"
+                ),
+            ],
+        )
+
+        # Base has 1 copy at a different path
+        base_treemap = self._create_treemap_element(
+            "root",
+            0,
+            children=[
+                self._create_treemap_element(
+                    "resource.png", 100, path="OldFramework/resource.png", element_type="files"
+                ),
+            ],
+        )
+
+        # All files have the same hash
+        head_file_analysis = FileAnalysis(
+            items=[
+                self._create_file_info("Framework1/resource.png", "same_hash"),
+                self._create_file_info("Framework2/resource.png", "same_hash"),
+                self._create_file_info("Framework3/resource.png", "same_hash"),
+            ]
+        )
+        base_file_analysis = FileAnalysis(
+            items=[
+                self._create_file_info("OldFramework/resource.png", "same_hash"),
+            ]
+        )
+
+        head_results = self._create_size_analysis_results(
+            treemap_root=head_treemap, file_analysis=head_file_analysis
+        )
+        base_results = self._create_size_analysis_results(
+            treemap_root=base_treemap, file_analysis=base_file_analysis
+        )
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # Should have 2 additions (3 head files - 1 rename = 2 additions)
+        # The base file and one head file are detected as a rename and excluded
+        assert len(result.diff_items) == 2
+
+        # All should be additions
+        for item in result.diff_items:
+            assert item.type == DiffType.ADDED
+            assert item.size_diff == 100
+
+    def test_rename_detection_with_nested_children(self):
+        """Test rename detection works with nested file_analysis children (e.g., Assets.car).
+
+        Assets.car files contain nested images as children in file_analysis.
+        Rename detection should work for these nested files.
+        """
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+
+        # Treemap shows image moved from old Assets.car path to new path
+        head_treemap = self._create_treemap_element(
+            "Assets.car",
+            100,
+            path="Assets.car",
+            children=[
+                self._create_treemap_element(
+                    "NewIcon.png", 100, path="Assets.car/NewIcon.png", element_type="assets"
+                ),
+            ],
+        )
+        base_treemap = self._create_treemap_element(
+            "Assets.car",
+            100,
+            path="Assets.car",
+            children=[
+                self._create_treemap_element(
+                    "OldIcon.png", 100, path="Assets.car/OldIcon.png", element_type="assets"
+                ),
+            ],
+        )
+
+        # File analysis has Assets.car with children - same hash means it's a rename
+        head_assets_car = FileInfo(
+            path="Assets.car",
+            full_path=None,
+            size=100,
+            file_type="car",
+            hash="parent_hash",
+            treemap_type="assets",
+            is_dir=False,
+            children=[
+                self._create_file_info("NewIcon.png", "icon_hash", treemap_type="assets"),
+            ],
+            idiom=None,
+            colorspace=None,
+        )
+        base_assets_car = FileInfo(
+            path="Assets.car",
+            full_path=None,
+            size=100,
+            file_type="car",
+            hash="parent_hash",
+            treemap_type="assets",
+            is_dir=False,
+            children=[
+                self._create_file_info("OldIcon.png", "icon_hash", treemap_type="assets"),
+            ],
+            idiom=None,
+            colorspace=None,
+        )
+
+        head_file_analysis = FileAnalysis(items=[head_assets_car])
+        base_file_analysis = FileAnalysis(items=[base_assets_car])
+
+        head_results = self._create_size_analysis_results(
+            treemap_root=head_treemap, file_analysis=head_file_analysis
+        )
+        base_results = self._create_size_analysis_results(
+            treemap_root=base_treemap, file_analysis=base_file_analysis
+        )
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # The renamed asset should be excluded - no diff items
+        assert len(result.diff_items) == 0
