@@ -64,6 +64,14 @@ describe('useCrossEventQueries', () => {
     expect(result.current).toBeUndefined();
   });
 
+  it('returns undefined if cross event queries array is empty', () => {
+    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+      additionalWrapper: Wrapper([]),
+    });
+
+    expect(result.current).toBeUndefined();
+  });
+
   it('returns object of array of queries', () => {
     const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
       additionalWrapper: Wrapper([
@@ -73,10 +81,11 @@ describe('useCrossEventQueries', () => {
       ]),
     });
 
+    // Since MAX_CROSS_EVENT_QUERIES is 2, the third query ('spans') will be dropped.
     expect(result.current).toStrictEqual({
       logQuery: ['test:a'],
       metricQuery: ['test:b'],
-      spanQuery: ['test:c'],
+      spanQuery: [],
     });
   });
 
@@ -89,10 +98,44 @@ describe('useCrossEventQueries', () => {
       ]),
     });
 
+    // Only first 2 are kept
     expect(result.current).toStrictEqual({
       logQuery: [],
       metricQuery: [],
-      spanQuery: ['test:a', 'test:b', 'test:c'],
+      spanQuery: ['test:a', 'test:b'],
+    });
+  });
+
+  it('slices queries to MAX_CROSS_EVENT_QUERIES', () => {
+    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+      additionalWrapper: Wrapper([
+        {type: 'logs', query: 'test:a'},
+        {type: 'metrics', query: 'test:b'},
+        {type: 'spans', query: 'test:c'},
+      ]),
+    });
+
+    // Verify explicit behavior for slicing
+    expect(result.current).toStrictEqual({
+      logQuery: ['test:a'],
+      metricQuery: ['test:b'],
+      spanQuery: [],
+    });
+  });
+
+  it('ignores queries with invalid types', () => {
+    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+      additionalWrapper: Wrapper([
+        {type: 'logs', query: 'test:a'},
+        {type: 'invalid' as any, query: 'test:b'},
+        {type: 'spans', query: 'test:c'},
+      ]),
+    });
+
+    expect(result.current).toStrictEqual({
+      logQuery: ['test:a'],
+      metricQuery: [],
+      spanQuery: ['test:c'],
     });
   });
 });
