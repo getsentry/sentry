@@ -5,6 +5,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
+import {STORY_REDIRECTS} from './storyRedirects';
 import type {StoryCategory, StoryTreeNode} from './storyTree';
 import {useFlatStoryList} from './storyTree';
 
@@ -23,13 +24,22 @@ export function useStoryRedirect() {
   const stories = useFlatStoryList();
 
   useLayoutEffect(() => {
+    if (!location.pathname.startsWith('/stories')) {
+      return;
+    }
+
+    // Handle redirects for renamed sections (e.g., foundations -> principles)
+    const newPath = STORY_REDIRECTS[location.pathname];
+    if (newPath) {
+      navigate({pathname: newPath, hash: location.hash}, {replace: true});
+      return;
+    }
+
     // If we already have a `storyPath` in state, bail out
     if (location.state?.storyPath) {
       return;
     }
-    if (!location.pathname.startsWith('/stories')) {
-      return;
-    }
+
     const story = getStory(stories, {query: location.query, params});
     if (!story) {
       return;
