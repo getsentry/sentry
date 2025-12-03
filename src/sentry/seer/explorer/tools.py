@@ -882,6 +882,32 @@ def get_issue_and_event_details(
                 tenant_ids={"organization_id": organization_id},
             )
 
+    # If the recommended event (default when agent doesn't specify an event) doesn't have a useful trace, try finding a different event.
+    try:
+        if selected_event == "recommended" and (
+            event is None
+            or event.trace_id is None
+            or _get_trace_with_spans(
+                [event.trace_id],
+                organization_id,
+                group.first_seen - timedelta(days=1),
+                group.last_seen + timedelta(days=1),
+            )
+            is None
+        ):
+            candidate_event = _get_event_with_valid_trace(group, organization_id)
+            if candidate_event:
+                event = candidate_event
+    except Exception:
+        logger.exception(
+            "Error getting event with valid trace",
+            extra={
+                "organization_id": organization_id,
+                "issue_id": issue_id,
+                "selected_event": selected_event,
+            },
+        )
+
     if event is None:
         logger.warning(
             "Could not find the selected event.",
@@ -892,21 +918,6 @@ def get_issue_and_event_details(
             },
         )
         return None
-
-    # If the recommended event (default when agent doesn't specify an event) doesn't have a useful trace, try finding a different event.
-    if selected_event == "recommended" and (
-        event.trace_id is None
-        or _get_trace_with_spans(
-            [event.trace_id],
-            organization_id,
-            group.first_seen - timedelta(days=1),
-            group.last_seen + timedelta(days=1),
-        )
-        is None
-    ):
-        candidate_event = _get_event_with_valid_trace(group, organization_id)
-        if candidate_event:
-            event = candidate_event
 
     # Serialize event.
     serialized_event: IssueEventSerializerResponse = serialize(
