@@ -167,7 +167,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         # Assert SSL trust after connection (if needed)
         # This must be done after p4.connect() but before p4.run_login()
-        if self.ssl_fingerprint and self.p4port.startswith("ssl:"):
+        if self.ssl_fingerprint and self.p4port.startswith("ssl"):
             try:
                 p4.run_trust("-i", self.ssl_fingerprint)
             except P4Exception as trust_error:
@@ -477,22 +477,21 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
     ) -> list[FileBlameInfo]:
         """
-        Get blame information for multiple files using p4 filelog.
+        Get blame information for multiple files using p4 changes.
 
-        Uses 'p4 filelog' + 'p4 describe' which is much faster than 'p4 annotate'.
-        Returns the most recent changelist that modified each file.
+        Uses 'p4 changes -m 1 -l' to get the most recent changelist that modified each file.
+        This is simpler and faster than using p4 filelog + p4 describe.
 
         Note: This does not provide line-specific blame. It returns the most recent
         changelist for the entire file, which is sufficient for suspect commit detection.
 
         API docs:
-        - p4 filelog: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_filelog.html
-        - p4 describe: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_describe.html
+        - p4 changes: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_changes.html
 
         Returns a list of FileBlameInfo objects containing commit details for each file.
 
         Performance notes:
-        - Makes ~3 P4 API calls per file: filelog, describe, user (cached)
+        - Makes ~2 P4 API calls per file: changes (with -l for description), user (cached)
         - User lookups are cached within the request to minimize redundant calls
         - Perforce doesn't have explicit rate limiting like GitHub
         - Individual file failures are caught and logged without failing entire batch
@@ -507,81 +506,61 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                     # file.ref contains the revision/changelist if available
                     depot_path = self.build_depot_path(file.repo, file.path, file.ref)
 
-                    # Use faster p4 filelog approach to get changelist for specific file revision
-                    # This is much faster than p4 annotate
-                    filelog = p4.run("filelog", "-m1", depot_path)
+                    # Use p4 changes -m 1 -l to get most recent change for this file
+                    # -m 1: limit to 1 result (most recent)
+                    # -l: include full changelist description
+                    changes = p4.run("changes", "-m", "1", "-l", depot_path)
 
-                    changelist = None
-                    if filelog and len(filelog) > 0:
-                        # The 'change' field contains the changelist numbers (as a list of strings)
-                        changelists = filelog[0].get("change", [])
-                        if changelists and len(changelists) > 0:
-                            # Get the first (most recent) changelist number
-                            changelist = changelists[0]
+                    if changes and len(changes) > 0:
+                        change = changes[0]
+                        changelist = change.get("change", "")
+                        username = change.get("user", "unknown")
 
-                    # If we found a changelist, get detailed commit info
-                    if changelist:
+                        # Get author email and name with caching
+                        author_email, author_name = self.get_author_info_from_cache(
+                            username, user_cache
+                        )
+
+                        # Handle potentially null/invalid time field
+                        time_value = change.get("time") or 0
                         try:
-                            change_info = p4.run("describe", "-s", changelist)
-                            if change_info and len(change_info) > 0:
-                                change = change_info[0]
-                                username = change.get("user", "unknown")
-
-                                # Get author email and name with caching
-                                author_email, author_name = self.get_author_info_from_cache(
-                                    username, user_cache
-                                )
-
-                                # Handle potentially null/invalid time field
-                                time_value = change.get("time") or 0
-                                try:
-                                    time_int = int(time_value)
-                                except (TypeError, ValueError) as e:
-                                    logger.warning(
-                                        "perforce.client.get_blame_for_files.invalid_time_value",
-                                        extra={
-                                            **extra,
-                                            "changelist": changelist,
-                                            "time_value": time_value,
-                                            "error": str(e),
-                                            "repo_name": file.repo.name,
-                                            "file_path": file.path,
-                                        },
-                                    )
-                                    time_int = 0
-
-                                commit = CommitInfo(
-                                    commitId=changelist,
-                                    committedDate=datetime.fromtimestamp(time_int, tz=timezone.utc),
-                                    commitMessage=change.get("desc", "").strip(),
-                                    commitAuthorName=author_name,
-                                    commitAuthorEmail=author_email,
-                                )
-
-                                blame_info = FileBlameInfo(
-                                    lineno=file.lineno,
-                                    path=file.path,
-                                    ref=file.ref,
-                                    repo=file.repo,
-                                    code_mapping=file.code_mapping,
-                                    commit=commit,
-                                )
-                                blames.append(blame_info)
-                        except P4Exception as e:
+                            time_int = int(time_value)
+                        except (TypeError, ValueError) as e:
                             logger.warning(
-                                "perforce.client.get_blame_for_files.describe_error",
+                                "perforce.client.get_blame_for_files.invalid_time_value",
                                 extra={
                                     **extra,
                                     "changelist": changelist,
+                                    "time_value": time_value,
                                     "error": str(e),
                                     "repo_name": file.repo.name,
                                     "file_path": file.path,
                                 },
                             )
+                            time_int = 0
+
+                        commit = CommitInfo(
+                            commitId=str(changelist),
+                            committedDate=datetime.fromtimestamp(time_int, tz=timezone.utc),
+                            commitMessage=change.get("desc", "").strip(),
+                            commitAuthorName=author_name,
+                            commitAuthorEmail=author_email,
+                        )
+
+                        blame_info = FileBlameInfo(
+                            lineno=file.lineno,
+                            path=file.path,
+                            ref=file.ref,
+                            repo=file.repo,
+                            code_mapping=file.code_mapping,
+                            commit=commit,
+                        )
+                        blames.append(blame_info)
+
                 except P4Exception as e:
                     # Log but don't fail for individual file errors
                     logger.warning(
-                        "perforce.client.get_blame_for_files.annotate_error",
+                        "perforce.client.get_blame_for_files.error",
                         extra={
                             **extra,
                             "error": str(e),

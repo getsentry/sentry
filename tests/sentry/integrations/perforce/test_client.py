@@ -46,11 +46,9 @@ class PerforceClientTest(TestCase):
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
 
-        # Mock filelog response
+        # Mock p4 changes responses (simpler now - one call per file)
         mock_p4.run.side_effect = [
-            # First call: filelog for file 1
-            [{"change": ["12345"], "depotFile": "//depot/src/main.py"}],
-            # Second call: describe for changelist 12345
+            # First call: changes for file 1
             [
                 {
                     "change": "12345",
@@ -59,11 +57,9 @@ class PerforceClientTest(TestCase):
                     "desc": "Fix bug in main module",
                 }
             ],
-            # Third call: user lookup for johndoe (returns no Update field = doesn't exist)
+            # Second call: user lookup for johndoe
             [{"User": "johndoe", "Email": "", "FullName": ""}],
-            # Fourth call: filelog for file 2
-            [{"change": ["12346"], "depotFile": "//depot/src/utils.py"}],
-            # Fifth call: describe for changelist 12346
+            # Third call: changes for file 2
             [
                 {
                     "change": "12346",
@@ -72,7 +68,7 @@ class PerforceClientTest(TestCase):
                     "desc": "Add utility functions",
                 }
             ],
-            # Sixth call: user lookup for janedoe (returns no Update field = doesn't exist)
+            # Fourth call: user lookup for janedoe
             [{"User": "janedoe", "Email": "", "FullName": ""}],
         ]
 
@@ -119,8 +115,8 @@ class PerforceClientTest(TestCase):
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
 
-        # Mock filelog response with no changelist
-        mock_p4.run.return_value = [{"depotFile": "//depot/src/new_file.py"}]
+        # Mock p4 changes response with empty result (no changes for this file)
+        mock_p4.run.return_value = []
 
         file = SourceLineInfo(
             path="src/new_file.py",
@@ -142,9 +138,7 @@ class PerforceClientTest(TestCase):
         mock_p4_class.return_value = mock_p4
 
         mock_p4.run.side_effect = [
-            # filelog
-            [{"change": ["12345"], "depotFile": "//depot/main/src/main.py"}],
-            # describe
+            # changes for file with stream
             [
                 {
                     "change": "12345",
@@ -168,8 +162,14 @@ class PerforceClientTest(TestCase):
         blames = self.p4_client.get_blame_for_files([file], extra={})
 
         assert len(blames) == 1
-        # Verify filelog was called with the stream path
-        assert mock_p4.run.call_args_list[0][0] == ("filelog", "-m1", "//depot/main/src/main.py")
+        # Verify changes was called with the stream path
+        assert mock_p4.run.call_args_list[0][0] == (
+            "changes",
+            "-m",
+            "1",
+            "-l",
+            "//depot/main/src/main.py",
+        )
 
     @mock.patch("sentry.integrations.perforce.client.P4")
     @mock.patch("sentry.integrations.perforce.client.logger")
@@ -182,9 +182,7 @@ class PerforceClientTest(TestCase):
 
         # First file succeeds, second file throws exception
         mock_p4.run.side_effect = [
-            # File 1 filelog
-            [{"change": ["12345"], "depotFile": "//depot/src/main.py"}],
-            # File 1 describe
+            # File 1 changes
             [
                 {
                     "change": "12345",
@@ -195,7 +193,7 @@ class PerforceClientTest(TestCase):
             ],
             # File 1 user lookup for johndoe
             [{"User": "johndoe", "Email": "", "FullName": ""}],
-            # File 2 filelog - throws exception
+            # File 2 changes - throws exception
             P4Exception("File not found"),
         ]
 
@@ -225,38 +223,6 @@ class PerforceClientTest(TestCase):
 
     @mock.patch("sentry.integrations.perforce.client.P4")
     @mock.patch("sentry.integrations.perforce.client.logger")
-    def test_get_blame_for_files_describe_exception(self, mock_logger, mock_p4_class):
-        """Test get_blame_for_files handles describe exceptions"""
-        from P4 import P4Exception
-
-        mock_p4 = mock.Mock()
-        mock_p4_class.return_value = mock_p4
-
-        mock_p4.run.side_effect = [
-            # filelog succeeds
-            [{"change": ["12345"], "depotFile": "//depot/src/main.py"}],
-            # describe throws exception
-            P4Exception("Changelist not found"),
-        ]
-
-        file = SourceLineInfo(
-            path="src/main.py",
-            lineno=10,
-            ref="",
-            repo=self.repo,
-            code_mapping=None,  # type: ignore[arg-type]
-        )
-
-        blames = self.p4_client.get_blame_for_files([file], extra={})
-
-        # Should return empty list when describe fails
-        assert len(blames) == 0
-        # Should log warning
-        assert mock_logger.warning.called
-        assert "describe_error" in str(mock_logger.warning.call_args)
-
-    @mock.patch("sentry.integrations.perforce.client.P4")
-    @mock.patch("sentry.integrations.perforce.client.logger")
     def test_get_blame_for_files_invalid_time(self, mock_logger, mock_p4_class):
         """Test get_blame_for_files handles invalid time values gracefully"""
         mock_p4 = mock.Mock()
@@ -264,9 +230,7 @@ class PerforceClientTest(TestCase):
 
         # Mock with invalid time value (non-numeric string)
         mock_p4.run.side_effect = [
-            # filelog
-            [{"change": ["12345"], "depotFile": "//depot/src/main.py"}],
-            # describe with invalid time value
+            # changes with invalid time value
             [
                 {
                     "change": "12345",
