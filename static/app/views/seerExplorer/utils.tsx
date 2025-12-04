@@ -243,6 +243,15 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       ? `Scouring Sentry docs: '${question}'...`
       : `Scoured Sentry docs: '${question}'`;
   },
+
+  todo_write: (args, isLoading, toolLinkParams) => {
+    if (isLoading) {
+      const count = args.todos?.length || 0;
+      return count === 1 ? 'Updating todo list...' : `Updating ${count} todos...`;
+    }
+    // Use the summary from metadata if available
+    return toolLinkParams?.summary || 'Updated todo list';
+  },
 };
 
 /**
