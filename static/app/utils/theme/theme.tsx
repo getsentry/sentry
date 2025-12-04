@@ -1678,10 +1678,193 @@ const darkTokens = generateChonkTokens(darkColors);
 const lightAliases = generateAliases(lightTokens, lightColors);
 const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
 
+const deprecatedColorMappings = (colors: Colors) => ({
+  /** @deprecated */
+  get black() {
+    return colors.black;
+  },
+  /** @deprecated */
+  get white() {
+    return colors.white;
+  },
+
+  /** @deprecated */
+  get lightModeBlack() {
+    return colors.black;
+  },
+  /** @deprecated */
+  get lightModeWhite() {
+    return colors.white;
+  },
+
+  /** @deprecated */
+  get surface100() {
+    return colors.surface200;
+  },
+  /** @deprecated */
+  get surface200() {
+    return colors.surface300;
+  },
+  /** @deprecated */
+  get surface300() {
+    return colors.surface400;
+  },
+  /** @deprecated */
+  get surface400() {
+    return colors.surface500;
+  },
+  /** @deprecated */
+  get surface500() {
+    return colors.surface500;
+  },
+
+  /** @deprecated */
+  get translucentSurface100() {
+    return colors.surface100;
+  },
+  /** @deprecated */
+  get translucentSurface200() {
+    return colors.surface200;
+  },
+
+  /** @deprecated */
+  get gray500() {
+    return colors.gray800;
+  },
+  /** @deprecated */
+  get gray400() {
+    return colors.gray500;
+  },
+  /** @deprecated */
+  get gray300() {
+    return colors.gray400;
+  },
+  /** @deprecated */
+  get gray200() {
+    return colors.gray200;
+  },
+  /** @deprecated */
+  get gray100() {
+    return colors.gray100;
+  },
+
+  /** @deprecated */
+  get translucentGray200() {
+    return colors.gray200;
+  },
+  /** @deprecated */
+  get translucentGray100() {
+    return colors.gray100;
+  },
+
+  /** @deprecated */
+  get purple400() {
+    return colors.blue500;
+  },
+  /** @deprecated */
+  get purple300() {
+    return colors.blue400;
+  },
+  /** @deprecated */
+  get purple200() {
+    return colors.blue200;
+  },
+  /** @deprecated */
+  get purple100() {
+    return colors.blue100;
+  },
+
+  /** @deprecated */
+  get blue400() {
+    return colors.blue500;
+  },
+  /** @deprecated */
+  get blue300() {
+    return colors.blue400;
+  },
+  /** @deprecated */
+  get blue200() {
+    return colors.blue200;
+  },
+  /** @deprecated */
+  get blue100() {
+    return colors.blue100;
+  },
+
+  /** @deprecated */
+  get pink400() {
+    return colors.pink500;
+  },
+  /** @deprecated */
+  get pink300() {
+    return colors.pink400;
+  },
+  /** @deprecated */
+  get pink200() {
+    return colors.pink200;
+  },
+  /** @deprecated */
+  get pink100() {
+    return colors.pink100;
+  },
+
+  /** @deprecated */
+  get red400() {
+    return colors.red500;
+  },
+  /** @deprecated */
+  get red300() {
+    return colors.red400;
+  },
+  /** @deprecated */
+  get red200() {
+    return colors.red200;
+  },
+  /** @deprecated */
+  get red100() {
+    return colors.red100;
+  },
+
+  /** @deprecated */
+  get yellow400() {
+    return colors.yellow500;
+  },
+  /** @deprecated */
+  get yellow300() {
+    return colors.yellow400;
+  },
+  /** @deprecated */
+  get yellow200() {
+    return colors.yellow200;
+  },
+  /** @deprecated */
+  get yellow100() {
+    return colors.yellow100;
+  },
+
+  /** @deprecated */
+  get green400() {
+    return colors.green500;
+  },
+  /** @deprecated */
+  get green300() {
+    return colors.green400;
+  },
+  /** @deprecated */
+  get green200() {
+    return colors.green200;
+  },
+  /** @deprecated */
+  get green100() {
+    return colors.green100;
+  },
+});
+
 /**
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const lightTheme = {
+  ...deprecatedColorMappings(lightColors),
   isChonk: true,
   type: 'light',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
@@ -1742,6 +1925,7 @@ export const lightTheme = {
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const darkTheme: SentryTheme = {
+  ...deprecatedColorMappings(darkColors),
   isChonk: true,
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
