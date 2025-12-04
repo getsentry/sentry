@@ -20,7 +20,7 @@ import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOpt
 
 describe('ReleasesList', () => {
   const organization = OrganizationFixture({
-    features: ['search-query-builder-input-flow-changes'],
+    features: ['search-query-builder-input-flow-changes', 'preprod-frontend-routes'],
   });
   const projects = [ProjectFixture({features: ['releases']})];
   const semverVersionInfo = {
@@ -515,6 +515,44 @@ describe('ReleasesList', () => {
 
     expect(await screen.findByTestId('release-card-project-row')).toBeInTheDocument();
     expect(screen.queryByTestId('hidden-projects')).not.toBeInTheDocument();
+  });
+
+  it('renders mobile builds when the mobile dataset is selected', async () => {
+    const mobileProject = ProjectFixture({
+      id: '12',
+      slug: 'mobile-project',
+      platform: 'android',
+      features: ['releases'],
+    });
+
+    ProjectsStore.loadInitialData([mobileProject]);
+    PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
+
+    const buildsMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${mobileProject.slug}/preprodartifacts/list-builds/`,
+      body: {builds: []},
+    });
+
+    render(<ReleasesList />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/releases/`,
+          query: {dataset: 'mobile-builds'},
+        },
+      },
+    });
+
+    expect(
+      await screen.findByText('There are no preprod builds associated with this project.')
+    ).toBeInTheDocument();
+
+    expect(buildsMock).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/${mobileProject.slug}/preprodartifacts/list-builds/`,
+      expect.objectContaining({
+        query: expect.objectContaining({per_page: 25}),
+      })
+    );
   });
 
   it('autocompletes semver search tag', async () => {
