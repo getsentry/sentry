@@ -21,7 +21,7 @@ export default function Section({
 }: SectionProps) {
   return (
     <SectionContainer direction="column" gap="md" className={className}>
-      <Flex justify="between" align="end" gap="md">
+      <Flex justify="between" align="center" gap="md">
         <Heading as="h3">{title}</Heading>
         {trailingItems && <Flex gap="md">{trailingItems}</Flex>}
       </Flex>

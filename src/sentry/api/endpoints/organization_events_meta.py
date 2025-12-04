@@ -8,11 +8,7 @@ from rest_framework.response import Response
 from sentry import features, options, search
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import (
-    NoProjects,
-    OrganizationEventsEndpointBase,
-    OrganizationEventsV2EndpointBase,
-)
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.environments import get_environment_func
 from sentry.api.helpers.group_index import build_query_params_from_request
@@ -185,7 +181,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
 
 
 @region_silo_endpoint
-class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
