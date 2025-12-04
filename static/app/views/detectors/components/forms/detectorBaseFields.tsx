@@ -1,4 +1,3 @@
-import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
@@ -14,7 +13,7 @@ import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/co
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 interface DetectorBaseFieldsProps {
-  envFieldProps?: Partial<ComponentProps<typeof SelectField>>;
+  envFieldProps?: Partial<React.ComponentProps<typeof SelectField>>;
   noEnvironment?: boolean;
 }
 
@@ -90,7 +89,7 @@ function ProjectField() {
   );
 }
 
-function EnvironmentField(props: Partial<ComponentProps<typeof SelectField>>) {
+function EnvironmentField(props: Partial<React.ComponentProps<typeof SelectField>>) {
   const {projects} = useProjects();
   const projectId = useFormField<string>('projectId')!;
 

@@ -1,4 +1,3 @@
-import type {ComponentProps} from 'react';
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
@@ -24,7 +23,7 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   initialFormData: Partial<TFormData>;
   disabledCreate?: string;
-  envFieldProps?: ComponentProps<typeof DetectorBaseFields>['envFieldProps'];
+  envFieldProps?: React.ComponentProps<typeof DetectorBaseFields>['envFieldProps'];
   mapFormErrors?: (error: any) => any;
   noEnvironment?: boolean;
   previewChart?: React.ReactNode;
