@@ -71,15 +71,20 @@ export default function RawContent({
     <Fragment>
       {values.map((exc, excIdx) => {
         if (!isNative) {
+          const exceptionValue =
+            type === 'original' ? exc.value : exc.rawValue || exc.value;
+          const exceptionType = type === 'original' ? exc.type : exc.rawType || exc.type;
+
           const nonNativeContent = exc.stacktrace ? (
             rawStacktraceContent({
               data: type === 'original' ? exc.stacktrace : exc.rawStacktrace,
               platform,
               exception: exc,
+              isMinified: type === 'minified',
             })
           ) : (
             <div>
-              {exc.type}: {exc.value}
+              {exceptionType}: {exceptionValue}
             </div>
           );
           return (
