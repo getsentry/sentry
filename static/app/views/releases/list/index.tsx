@@ -4,17 +4,11 @@ import styled from '@emotion/styled';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {TabList} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
@@ -388,7 +382,13 @@ export default function ReleasesList() {
     <PageFiltersContainer showAbsolute={false} defaultSelection={selection}>
       <SentryDocumentTitle title={t('Releases')} orgSlug={organization.slug} />
       <NoProjectMessage organization={organization}>
-        <Header />
+        <Header
+          activeDataset={activeDataset}
+          shouldShowMobileBuildsTab={shouldShowMobileBuildsTab}
+          releasesDatasetQuery={releasesDatasetQuery}
+          mobileBuildsDatasetQuery={mobileBuildsDatasetQuery}
+          pathname={location.pathname}
+        />
         <Layout.Body data-dataset={activeDataset}>
           <Layout.Main width="full">
             <ReleaseHealthCTA
@@ -397,46 +397,6 @@ export default function ReleasesList() {
               selectedProject={selectedProject}
               selection={selection}
             />
-            <ReleasesPageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter
-                disallowArbitraryRelativeRanges
-                menuFooterMessage={t(
-                  'Changing this date range will recalculate the release metrics. Select a supported date range from the options above.'
-                )}
-              />
-            </ReleasesPageFilterBar>
-            {shouldShowMobileBuildsTab ? (
-              <Layout.HeaderTabs value={activeDataset}>
-                <TabList aria-label={t('Releases dataset selector')}>
-                  <TabList.Item
-                    key="releases"
-                    to={{pathname: location.pathname, query: releasesDatasetQuery}}
-                    textValue={t('Releases')}
-                  >
-                    {t('Releases')}
-                  </TabList.Item>
-                  <TabList.Item
-                    key="mobile-builds"
-                    to={{pathname: location.pathname, query: mobileBuildsDatasetQuery}}
-                    textValue={t('Mobile Builds')}
-                  >
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: space(0.5),
-                      }}
-                    >
-                      {t('Mobile Builds')}
-                      <FeatureBadge type="beta" />
-                    </span>
-                  </TabList.Item>
-                </TabList>
-              </Layout.HeaderTabs>
-            ) : null}
-
             {shouldShowQuickstart ? null : (
               <SortAndFilterWrapper>
                 <StyledSearchQueryBuilder
@@ -496,10 +456,6 @@ export default function ReleasesList() {
     </PageFiltersContainer>
   );
 }
-
-const ReleasesPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(2)};
-`;
 
 const SortAndFilterWrapper = styled('div')`
   display: grid;

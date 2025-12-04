@@ -2,6 +2,8 @@ import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
 
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {TabList} from 'sentry/components/core/tabs';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -10,10 +12,25 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
-export default function Header() {
+type Props = {
+  activeDataset: 'releases' | 'mobile-builds';
+  mobileBuildsDatasetQuery: Record<string, any>;
+  pathname: string;
+  releasesDatasetQuery: Record<string, any>;
+  shouldShowMobileBuildsTab: boolean;
+};
+
+export default function Header({
+  activeDataset,
+  mobileBuildsDatasetQuery,
+  pathname,
+  releasesDatasetQuery,
+  shouldShowMobileBuildsTab,
+}: Props) {
   return (
-    <Layout.Header noActionWrap unified>
+    <Layout.Header noActionWrap unified={!shouldShowMobileBuildsTab}>
       <Layout.HeaderContent unified>
         <Layout.Title>
           {t('Releases')}
@@ -46,6 +63,38 @@ export default function Header() {
             )}
           />
         </ReleasesPageFilterBar>
+        {shouldShowMobileBuildsTab ? (
+          <Layout.HeaderTabs
+            value={activeDataset}
+            aria-label={t('Releases dataset selector')}
+          >
+            <TabList aria-label={t('Releases dataset selector')}>
+              <TabList.Item
+                key="releases"
+                to={{pathname, query: releasesDatasetQuery}}
+                textValue={t('Releases')}
+              >
+                {t('Releases')}
+              </TabList.Item>
+              <TabList.Item
+                key="mobile-builds"
+                to={{pathname, query: mobileBuildsDatasetQuery}}
+                textValue={t('Mobile Builds')}
+              >
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: space(0.5),
+                  }}
+                >
+                  {t('Mobile Builds')}
+                  <FeatureBadge type="beta" />
+                </span>
+              </TabList.Item>
+            </TabList>
+          </Layout.HeaderTabs>
+        ) : null}
       </Container>
     </Layout.Header>
   );
