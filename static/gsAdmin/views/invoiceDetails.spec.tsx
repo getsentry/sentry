@@ -47,12 +47,12 @@ describe('InvoiceDetails', () => {
     it('can close invoice', async () => {
       const invoice = InvoiceFixture({isClosed: false});
       MockApiClient.addMockResponse({
-        url: `/_admin/invoices/${invoice.id}/`,
+        url: `/_admin/cells/us/invoices/${invoice.id}/`,
         body: invoice,
       });
 
       const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${mockOrg.slug}/invoices/${invoice.id}/close/`,
+        url: `/_admin/cells/us/invoices/${invoice.id}/close/`,
         method: 'PUT',
         body: InvoiceFixture({isClosed: true}),
       });
@@ -80,9 +80,8 @@ describe('InvoiceDetails', () => {
     it('cannot close already closed invoice', async () => {
       const invoice = InvoiceFixture({isClosed: true});
       MockApiClient.addMockResponse({
-        url: `/_admin/invoices/${invoice.id}/`,
+        url: `/_admin/cells/de/invoices/${invoice.id}/`,
         body: invoice,
-        host: 'https://de.sentry.io',
       });
 
       render(<InvoiceDetails />, {
@@ -109,9 +108,8 @@ describe('InvoiceDetails', () => {
 
       const invoice = InvoiceFixture({isClosed: false});
       MockApiClient.addMockResponse({
-        url: `/_admin/invoices/${invoice.id}/`,
+        url: `/_admin/cells/us/invoices/${invoice.id}/`,
         body: invoice,
-        host: 'https://us.sentry.io',
       });
 
       render(<InvoiceDetails />, {
@@ -138,9 +136,8 @@ describe('InvoiceDetails', () => {
     it('can retry payment', async () => {
       const invoice = InvoiceFixture({isPaid: false});
       MockApiClient.addMockResponse({
-        url: `/_admin/invoices/${invoice.id}/`,
+        url: `/_admin/cells/us/invoices/${invoice.id}/`,
         body: invoice,
-        host: 'https://us.sentry.io',
       });
 
       const updateMock = MockApiClient.addMockResponse({
@@ -174,9 +171,8 @@ describe('InvoiceDetails', () => {
     it('cannot retry already paid invoice', async () => {
       const invoice = InvoiceFixture({isPaid: true});
       MockApiClient.addMockResponse({
-        url: `/_admin/invoices/${invoice.id}/`,
+        url: `/_admin/cells/us/invoices/${invoice.id}/`,
         body: invoice,
-        host: 'https://us.sentry.io',
       });
 
       render(<InvoiceDetails />, {
