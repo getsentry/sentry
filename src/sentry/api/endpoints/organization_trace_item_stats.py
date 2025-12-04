@@ -111,6 +111,11 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 )
 
         def data_fn(offset: int, limit: int):
+            # Intersecting attributes filter is a best effort operation, and if is not
+            # possible in under 1 second, returns all attributes. This might result in a
+            # negative user experience if the results in the query filter do not actually
+            # contain these attributes. One suggestion would be to request more in the limit
+            # than actually what's visualized in the page.
             with handle_query_errors():
                 attrs_request = TraceItemAttributeNamesRequest(
                     meta=attrs_meta,
