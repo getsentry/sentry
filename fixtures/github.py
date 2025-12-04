@@ -3541,3 +3541,12 @@ ISSUES_REOPENED_EVENT_EXAMPLE = r"""{
     "site_admin": false
   }
 }"""
+
+# Simplified example of a check_run rerequested action event
+CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE = b"""{
+    "action": "rerequested",
+    "check_run": {
+        "external_id": "4663713",
+        "html_url": "https://github.com/test/repo/runs/4"
+    }
+}"""
