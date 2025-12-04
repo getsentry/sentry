@@ -61,10 +61,12 @@ def process_segment(
             "sample_rate": sample_rate,
         },
     ):
-        return _process_segment(unprocessed_spans)
+        return _process_segment(unprocessed_spans, skip_produce)
 
 
-def _process_segment(unprocessed_spans: list[SpanEvent]) -> list[CompatibleSpan]:
+def _process_segment(
+    unprocessed_spans: list[SpanEvent], skip_produce: bool
+) -> list[CompatibleSpan]:
     _verify_compatibility(unprocessed_spans)
     segment_span, spans = _enrich_spans(unprocessed_spans)
     if segment_span is None:
