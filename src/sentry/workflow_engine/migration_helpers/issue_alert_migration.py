@@ -93,6 +93,7 @@ class IssueAlertMigrator:
                 with in_test_hide_transaction_boundary():
                     monitor = Monitor.objects.get(
                         slug=monitor_slug,
+                        project_id=self.project.id,
                         organization_id=self.organization.id,
                     )
                     detector = Detector.objects.get(

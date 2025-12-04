@@ -9,7 +9,7 @@ from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 @pytest.fixture
 def make_exception_snapshot(insta_snapshot):
     def inner(data):
-        mgr = EventManager(data={"exception": data})
+        mgr = EventManager(data={"exception": data}, remove_other=False)
         mgr.normalize()
         evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
 
@@ -166,7 +166,7 @@ def test_context_with_only_app_frames(make_exception_snapshot) -> None:
     make_exception_snapshot(exc)
 
 
-def test_context_with_raw_stacks(make_exception_snapshot) -> None:
+def test_context_with_raw_values(make_exception_snapshot) -> None:
     make_exception_snapshot(
         dict(
             values=[
@@ -174,6 +174,9 @@ def test_context_with_raw_stacks(make_exception_snapshot) -> None:
                     "type": "ValueError",
                     "value": "hello world",
                     "module": "foobar",
+                    "raw_value": "hello world raw",
+                    "raw_module": "foobar raw",
+                    "raw_type": "ValueError raw",
                     "raw_stacktrace": {
                         "frames": [
                             {

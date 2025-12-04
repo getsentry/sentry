@@ -126,6 +126,10 @@ function WidgetBuilderSlideout({
   const isChartWidget = isChartDisplayType(state.displayType);
 
   const showVisualizeSection = state.displayType !== DisplayType.DETAILS;
+  const showQueryFilterBuilder = !(
+    state.dataset === WidgetType.ISSUE && isChartDisplayType(state.displayType)
+  );
+  const showGroupBySelector = isChartWidget && !(state.dataset === WidgetType.ISSUE);
 
   const customPreviewRef = useRef<HTMLDivElement>(null);
   const templatesPreviewRef = useRef<HTMLDivElement>(null);
@@ -346,12 +350,15 @@ function WidgetBuilderSlideout({
                   <Visualize error={error} setError={setError} />
                 </Section>
               )}
-              <Section>
-                <WidgetBuilderQueryFilterBuilder
-                  onQueryConditionChange={onQueryConditionChange}
-                  validatedWidgetResponse={validatedWidgetResponse}
-                />
-              </Section>
+
+              {showQueryFilterBuilder && (
+                <Section>
+                  <WidgetBuilderQueryFilterBuilder
+                    onQueryConditionChange={onQueryConditionChange}
+                    validatedWidgetResponse={validatedWidgetResponse}
+                  />
+                </Section>
+              )}
               {state.displayType === DisplayType.BIG_NUMBER && (
                 <Section>
                   <ThresholdsSection
@@ -362,7 +369,7 @@ function WidgetBuilderSlideout({
                   />
                 </Section>
               )}
-              {isChartWidget && (
+              {showGroupBySelector && (
                 <Section>
                   <WidgetBuilderGroupBySelector
                     validatedWidgetResponse={validatedWidgetResponse}

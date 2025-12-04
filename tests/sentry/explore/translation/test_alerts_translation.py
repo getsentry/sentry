@@ -28,8 +28,13 @@ from sentry.seer.anomaly_detection.types import (
     StoreDataResponse,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
-from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
+from sentry.snuba.models import (
+    ExtrapolationMode,
+    QuerySubscription,
+    SnubaQuery,
+    SnubaQueryEventType,
+)
+from sentry.snuba.subscriptions import create_snuba_query
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -124,15 +129,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         )
         original_dataset = snuba_query.dataset
 
-        create_snuba_subscription(
+        query_subscription = QuerySubscription.objects.create(
             project=self.project,
-            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
         )
 
         data_source = self.create_data_source(
             organization=self.org,
-            source_id=str(snuba_query.id),
+            source_id=str(query_subscription.id),
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
 
@@ -229,15 +235,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             resolution=timedelta(minutes=1),
         )
 
-        create_snuba_subscription(
+        query_subscription = QuerySubscription.objects.create(
             project=self.project,
-            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
         )
 
         data_source = self.create_data_source(
             organization=self.org,
-            source_id=str(snuba_query.id),
+            source_id=str(query_subscription.id),
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
 
@@ -297,15 +304,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             resolution=timedelta(minutes=1),
         )
 
-        create_snuba_subscription(
+        query_subscription = QuerySubscription.objects.create(
             project=self.project,
-            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
         )
 
         data_source = self.create_data_source(
             organization=self.org,
-            source_id=str(snuba_query.id),
+            source_id=str(query_subscription.id),
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
 
@@ -354,15 +362,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             resolution=timedelta(minutes=1),
         )
 
-        create_snuba_subscription(
+        query_subscription = QuerySubscription.objects.create(
             project=self.project,
-            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
         )
 
         data_source = self.create_data_source(
             organization=self.org,
-            source_id=str(snuba_query.id),
+            source_id=str(query_subscription.id),
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
 
@@ -417,15 +426,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             resolution=timedelta(minutes=1),
         )
 
-        create_snuba_subscription(
+        query_subscription = QuerySubscription.objects.create(
             project=self.project,
-            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
         )
 
         data_source = self.create_data_source(
             organization=self.org,
-            source_id=str(snuba_query.id),
+            source_id=str(query_subscription.id),
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
 
@@ -504,15 +514,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             resolution=timedelta(minutes=1),
         )
 
-        create_snuba_subscription(
+        query_subscription = QuerySubscription.objects.create(
             project=self.project,
-            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
         )
 
         data_source = self.create_data_source(
             organization=self.org,
-            source_id=str(snuba_query.id),
+            source_id=str(query_subscription.id),
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
 
@@ -566,15 +577,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             resolution=timedelta(minutes=1),
         )
 
-        create_snuba_subscription(
+        query_subscription = QuerySubscription.objects.create(
             project=self.project,
-            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
         )
 
         data_source = self.create_data_source(
             organization=self.org,
-            source_id=str(snuba_query.id),
+            source_id=str(query_subscription.id),
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
 
@@ -671,15 +683,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             event_types=[SnubaQueryEventType.EventType.TRANSACTION],
             resolution=timedelta(minutes=1),
         )
-        create_snuba_subscription(
+        query_subscription = QuerySubscription.objects.create(
             project=self.project,
-            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
         )
 
         data_source = self.create_data_source(
             organization=self.org,
-            source_id=str(snuba_query.id),
+            source_id=str(query_subscription.id),
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
 
@@ -761,15 +774,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             resolution=timedelta(minutes=1),
         )
 
-        create_snuba_subscription(
+        query_subscription = QuerySubscription.objects.create(
             project=self.project,
-            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
         )
 
         data_source = self.create_data_source(
             organization=self.org,
-            source_id=str(snuba_query.id),
+            source_id=str(query_subscription.id),
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
 
@@ -809,15 +823,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             resolution=timedelta(minutes=1),
         )
 
-        create_snuba_subscription(
+        query_subscription = QuerySubscription.objects.create(
             project=self.project,
-            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
         )
 
         data_source = self.create_data_source(
             organization=self.org,
-            source_id=str(snuba_query.id),
+            source_id=str(query_subscription.id),
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
 
@@ -857,15 +872,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             resolution=timedelta(minutes=1),
         )
 
-        create_snuba_subscription(
+        query_subscription = QuerySubscription.objects.create(
             project=self.project,
-            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
         )
 
         data_source = self.create_data_source(
             organization=self.org,
-            source_id=str(snuba_query.id),
+            source_id=str(query_subscription.id),
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
 
@@ -905,15 +921,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             resolution=timedelta(minutes=1),
         )
 
-        create_snuba_subscription(
+        query_subscription = QuerySubscription.objects.create(
             project=self.project,
-            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
         )
 
         data_source = self.create_data_source(
             organization=self.org,
-            source_id=str(snuba_query.id),
+            source_id=str(query_subscription.id),
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
 
@@ -953,15 +970,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             resolution=timedelta(minutes=1),
         )
 
-        create_snuba_subscription(
+        query_subscription = QuerySubscription.objects.create(
             project=self.project,
-            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
         )
 
         data_source = self.create_data_source(
             organization=self.org,
-            source_id=str(snuba_query.id),
+            source_id=str(query_subscription.id),
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
 
@@ -1001,15 +1019,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             resolution=timedelta(minutes=1),
         )
 
-        create_snuba_subscription(
+        query_subscription = QuerySubscription.objects.create(
             project=self.project,
-            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
         )
 
         data_source = self.create_data_source(
             organization=self.org,
-            source_id=str(snuba_query.id),
+            source_id=str(query_subscription.id),
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
 

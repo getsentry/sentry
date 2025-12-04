@@ -32,15 +32,12 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  CronsLandingPanel,
-  isValidGuide,
-  isValidPlatform,
-} from 'sentry/views/insights/crons/components/cronsLandingPanel';
+import {CronsLandingPanel} from 'sentry/views/insights/crons/components/cronsLandingPanel';
 import {NewMonitorButton} from 'sentry/views/insights/crons/components/newMonitorButton';
 import {OverviewTimeline} from 'sentry/views/insights/crons/components/overviewTimeline';
 import {OwnerFilter} from 'sentry/views/insights/crons/components/ownerFilter';
 import {GlobalMonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/globalMonitorProcessingErrors';
+import {useCronsUpsertGuideState} from 'sentry/views/insights/crons/components/useCronsUpsertGuideState';
 import {MODULE_DESCRIPTION, MODULE_DOC_LINK} from 'sentry/views/insights/crons/settings';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
@@ -53,8 +50,7 @@ function CronsOverview() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const platform = decodeScalar(location.query?.platform) ?? null;
-  const guide = decodeScalar(location.query?.guide);
+  const {guideVisible} = useCronsUpsertGuideState();
   const project = decodeList(location.query?.project);
 
   const queryKey = makeMonitorListQueryKey(organization, location.query);
@@ -80,8 +76,6 @@ function CronsOverview() {
       query: normalizeDateTimeParams({...currentQuery, query}),
     });
   };
-
-  const showAddMonitor = !isValidPlatform(platform) || !isValidGuide(guide);
 
   const page = (
     <Fragment>
@@ -112,7 +106,7 @@ function CronsOverview() {
             >
               {t('Manage Monitors')}
             </Button>
-            {showAddMonitor && (
+            {!guideVisible && (
               <NewMonitorButton size="sm" icon={<IconAdd />}>
                 {t('Add Cron Monitor')}
               </NewMonitorButton>

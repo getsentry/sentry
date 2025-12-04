@@ -49,7 +49,7 @@ function createEventsStatsFromSeries(
   return {
     data: series.data.map(dataUnit => [
       typeof dataUnit.name === 'number'
-        ? dataUnit.name
+        ? dataUnit.name / 1000
         : new Date(dataUnit.name).getTime() / 1000,
       [{count: dataUnit.value, comparisonCount: undefined}],
     ]),

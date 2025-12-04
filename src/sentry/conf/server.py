@@ -389,7 +389,6 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.staff.StaffMiddleware",
-    "sentry.middleware.reporting_endpoint.ReportingEndpointMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -1256,6 +1255,8 @@ LOGGING: LoggingConfig = {
             "propagate": False,
         },
         "toronado": {"level": "ERROR", "handlers": ["null"], "propagate": False},
+        "toronado.cssutils": {"level": "ERROR", "handlers": ["null"], "propagate": False},
+        "CSSUTILS": {"level": "ERROR", "handlers": ["null"], "propagate": False},
         "urllib3.connectionpool": {
             "level": "ERROR",
             "handlers": ["console"],
@@ -3051,9 +3052,6 @@ SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
 # but existing customers have been using these routes
 # on the main domain for a long time.
 REGION_PINNED_URL_NAMES = {
-    # These paths have organization scoped aliases
-    "sentry-api-0-builtin-symbol-sources",
-    "sentry-api-0-grouping-configs",
     # Unprefixed issue URLs
     "sentry-api-0-group-details",
     "sentry-api-0-group-activities",

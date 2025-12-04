@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {type DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
@@ -13,6 +12,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {SuggestedOwnerReason} from 'sentry/types/group';
+import type {DO_NOT_USE_ChonkTheme} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 type AssigneeBadgeProps = {
