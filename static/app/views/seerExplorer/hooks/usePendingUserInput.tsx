@@ -13,7 +13,7 @@ interface FileChangeApprovalData {
   patches: PendingFilePatch[];
 }
 
-export interface QuestionOption {
+interface QuestionOption {
   description: string;
   label: string;
 }
@@ -23,7 +23,7 @@ export interface Question {
   question: string;
 }
 
-export interface AskUserQuestionData {
+interface AskUserQuestionData {
   questions: Question[];
 }
 
