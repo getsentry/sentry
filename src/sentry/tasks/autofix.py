@@ -111,12 +111,12 @@ def run_automation_only_task(group_id: int) -> None:
 )
 def configure_seer_for_existing_org(organization_id: int) -> None:
     """
-    Configure Seer settings for an existing organization migrating to new Seer pricing.
+    Configure Seer settings for an new and existing organization migrating to new Seer pricing.
 
     Sets:
     - Org-level: enable_seer_coding=True - to override old check
-    - Project-level (all projects): seer_scanner_automation=True, autofix_automation_tuning="medium"
-    - Seer API (all projects): automated_run_stopping_point="code_changes"
+    - Project-level (all projects): seer_scanner_automation=True, autofix_automation_tuning="medium" or "off"
+    - Seer API (all projects): automated_run_stopping_point="code_changes" or "open_pr"
     """
     organization = Organization.objects.get(id=organization_id)
 
@@ -131,9 +131,12 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
     # If seer is enabled for an org, every project must have project level settings
     for project in projects:
-        # Set Sentry DB project options
+        # Set seer_scanner_automation True for all projects
         project.update_option("sentry:seer_scanner_automation", True)
-        # For existing projects, if autofix is off we keep it off (user explicitly disabled it)
+
+        # If autofix is "off" (the registered default for all projects), keep it off.
+        # New projects and existing projects that have explicitly set it to "off" will keep it off.
+        # Otherwise, normalize any other tuning value to "medium".
         current_tuning = project.get_option("sentry:autofix_automation_tuning")
         if current_tuning != "off":
             project.update_option("sentry:autofix_automation_tuning", "medium")
@@ -153,16 +156,19 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             get_response.raise_for_status()
             current_prefs = get_response.json()
 
-            # Check if stopping point is already set to open_pr or code_changes
-            # For new projects, preference is None - use empty dict to safely access fields
+            # For new projects, preference is None - use empty dict to safely access fields.
+            # If stopping_point is None (no preference set), the project proceeds to
+            # get configured with "code_changes" as the default.
             existing_pref = current_prefs.get("preference") or {}
             current_stopping_point = existing_pref.get("automated_run_stopping_point")
 
+            # Skip projects that already have an acceptable stopping point configured
             if current_stopping_point in ("open_pr", "code_changes"):
                 skipped_project_ids.append(project.id)
                 continue
 
-            # Preserve existing repositories and automation_handoff, only update stopping point
+            # Preserve existing repositories and automation_handoff (may be None for new
+            # projects), only update the stopping point to enable code_changes automation.
             set_body = orjson.dumps(
                 {
                     "preference": {
