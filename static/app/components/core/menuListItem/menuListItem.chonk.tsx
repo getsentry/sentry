@@ -3,7 +3,7 @@ import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
 
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 
 /**
  * Menu item priority. Determines the text and background color.

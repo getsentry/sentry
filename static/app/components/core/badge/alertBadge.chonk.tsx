@@ -1,7 +1,7 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 
 import type {AlertBadgeProps} from 'sentry/components/core/badge/alertBadge';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 function makeChonkAlertBadgeDiamondBackgroundTheme(

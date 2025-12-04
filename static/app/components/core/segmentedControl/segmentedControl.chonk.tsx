@@ -4,7 +4,7 @@ import {css} from '@emotion/react';
 import {DO_NOT_USE_getChonkButtonStyles} from 'sentry/components/core/button/styles.chonk';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 
 export type Priority = 'default' | 'primary';
 

@@ -2,7 +2,7 @@ import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import {css} from '@emotion/react';
 import type {DOMAttributes, Orientation} from '@react-types/shared';
 
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 
 import {tabsShouldForwardProp} from './utils';
 
