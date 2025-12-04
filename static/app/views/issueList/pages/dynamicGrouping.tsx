@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -355,18 +355,18 @@ function ClusterCard({
   const clusterStats = useClusterStats(cluster.group_ids);
   const {copy} = useCopyToClipboard();
 
-  const handleSendToSeer = useCallback(() => {
+  const handleSendToSeer = () => {
     copy(formatClusterPromptForSeer(cluster), {
       successMessage: t('Copied to clipboard. Paste into Seer Explorer with Cmd+V'),
     });
     setTimeout(() => {
       openSeerExplorerWithClipboard();
     }, 100);
-  }, [cluster, copy]);
+  };
 
-  const handleCopyMarkdown = useCallback(() => {
+  const handleCopyMarkdown = () => {
     copy(formatClusterInfoForClipboard(cluster));
-  }, [cluster, copy]);
+  };
 
   return (
     <CardContainer>
@@ -502,7 +502,7 @@ function DynamicGrouping() {
   const user = useUser();
   const {teams: userTeams} = useUserTeams();
   const {selection} = usePageFilters();
-  const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
+  const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(false);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [showJsonInput, setShowJsonInput] = useState(false);
@@ -523,10 +523,9 @@ function DynamicGrouping() {
     }
   );
 
-  const handleParseJson = useCallback(() => {
+  const handleParseJson = () => {
     try {
       const parsed = JSON.parse(jsonInputValue);
-      // Support both {data: [...]} format and direct array format
       const clusters = Array.isArray(parsed) ? parsed : parsed?.data;
       if (!Array.isArray(clusters)) {
         setJsonError(t('JSON must be an array or have a "data" property with an array'));
@@ -538,16 +537,15 @@ function DynamicGrouping() {
     } catch (e) {
       setJsonError(t('Invalid JSON: %s', e instanceof Error ? e.message : String(e)));
     }
-  }, [jsonInputValue]);
+  };
 
-  const handleClearCustomData = useCallback(() => {
+  const handleClearCustomData = () => {
     setCustomClusterData(null);
     setJsonInputValue('');
     setJsonError(null);
     setDisableFilters(false);
-  }, []);
+  };
 
-  const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
   const isUsingCustomData = customClusterData !== null;
 
   // Extract all unique teams from the cluster data (for dev tools filter UI)
@@ -607,62 +605,77 @@ function DynamicGrouping() {
     setSelectedTags(new Set());
   };
 
-  // Helper to check if a cluster has any of the selected tags
-  const clusterHasSelectedTags = (cluster: ClusterSummary): boolean => {
-    if (selectedTags.size === 0) return true;
+  const filteredAndSortedClusters = useMemo(() => {
+    const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
 
-    const allClusterTags = [
-      ...(cluster.service_tags ?? []),
-      ...(cluster.error_type_tags ?? []),
-      ...(cluster.code_area_tags ?? []),
-    ];
-
-    return Array.from(selectedTags).every(tag => allClusterTags.includes(tag));
-  };
-
-  // Helper to check if a cluster has any of the selected projects
-  const clusterHasSelectedProjects = (cluster: ClusterSummary): boolean => {
-    // If "All Projects" is selected (indicated by -1) or no specific projects are selected, show all clusters
-    if (
-      selection.projects.length === 0 ||
-      selection.projects.includes(ALL_ACCESS_PROJECTS)
-    ) {
-      return true;
+    if (isUsingCustomData && disableFilters) {
+      return clusterData;
     }
-    return cluster.project_ids.some(projectId => selection.projects.includes(projectId));
-  };
 
-  // When using custom JSON data with filters disabled, skip all filtering and sorting
-  const shouldSkipFilters = isUsingCustomData && disableFilters;
-  const filteredAndSortedClusters = shouldSkipFilters
-    ? clusterData
-    : clusterData
-        .filter(cluster => {
-          // Filter by selected tags
-          if (!clusterHasSelectedTags(cluster)) return false;
+    // Apply tag and project filters
+    const baseFiltered = clusterData.filter(cluster => {
+      if (selectedTags.size > 0) {
+        const allClusterTags = [
+          ...(cluster.service_tags ?? []),
+          ...(cluster.error_type_tags ?? []),
+          ...(cluster.code_area_tags ?? []),
+        ];
+        if (!Array.from(selectedTags).every(tag => allClusterTags.includes(tag))) {
+          return false;
+        }
+      }
 
-          // Filter by selected projects
-          if (!clusterHasSelectedProjects(cluster)) return false;
+      if (
+        selection.projects.length > 0 &&
+        !selection.projects.includes(ALL_ACCESS_PROJECTS)
+      ) {
+        if (!cluster.project_ids.some(pid => selection.projects.includes(pid))) {
+          return false;
+        }
+      }
 
-          if (filterByAssignedToMe) {
-            if (!cluster.assignedTo?.length) return false;
-            return cluster.assignedTo.some(
-              entity =>
-                (entity.type === 'user' && entity.id === user.id) ||
-                (entity.type === 'team' && userTeams.some(team => team.id === entity.id))
-            );
-          }
+      return true;
+    });
 
-          if (isTeamFilterActive) {
-            if (!cluster.assignedTo?.length) return false;
-            return cluster.assignedTo.some(
-              entity => entity.type === 'team' && selectedTeamIds.has(entity.id)
-            );
-          }
+    // Find clusters assigned to current user or their teams
+    const assignedToMe = baseFiltered.filter(cluster =>
+      cluster.assignedTo?.some(
+        entity =>
+          (entity.type === 'user' && entity.id === user.id) ||
+          (entity.type === 'team' && userTeams.some(team => team.id === entity.id))
+      )
+    );
 
-          return true;
-        })
-        .sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
+    // By default, show only clusters assigned to me if there are enough (>=10)
+    const MIN_CLUSTERS_THRESHOLD = 10;
+    let result =
+      assignedToMe.length >= MIN_CLUSTERS_THRESHOLD ? assignedToMe : baseFiltered;
+
+    // Manual filters override the default
+    if (filterByAssignedToMe) {
+      result = assignedToMe;
+    } else if (isTeamFilterActive) {
+      result = baseFiltered.filter(cluster =>
+        cluster.assignedTo?.some(
+          entity => entity.type === 'team' && selectedTeamIds.has(entity.id)
+        )
+      );
+    }
+
+    return result.sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
+  }, [
+    customClusterData,
+    topIssuesResponse?.data,
+    isUsingCustomData,
+    disableFilters,
+    selectedTags,
+    selection.projects,
+    filterByAssignedToMe,
+    user.id,
+    userTeams,
+    isTeamFilterActive,
+    selectedTeamIds,
+  ]);
 
   const totalIssues = filteredAndSortedClusters.flatMap(c => c.group_ids).length;
 
@@ -777,7 +790,7 @@ function DynamicGrouping() {
                   filteredAndSortedClusters.length,
                   totalIssues
                 )}
-                {shouldSkipFilters && ` ${t('(filters disabled)')}`}
+                {isUsingCustomData && disableFilters && ` ${t('(filters disabled)')}`}
               </Text>
 
               {selectedTags.size > 0 && (
@@ -805,7 +818,7 @@ function DynamicGrouping() {
                 </ActiveTagFilters>
               )}
 
-              {showDevTools && !shouldSkipFilters && (
+              {showDevTools && !(isUsingCustomData && disableFilters) && (
                 <Container
                   padding="sm"
                   border="primary"
