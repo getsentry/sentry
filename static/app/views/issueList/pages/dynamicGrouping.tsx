@@ -44,6 +44,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
+const CLUSTERS_PER_PAGE = 20;
+
 /**
  * Parses a string and renders backtick-wrapped text as inline code elements.
  * Example: "Error in `Contains` filter" becomes ["Error in ", <InlineCode>Contains</InlineCode>, " filter"]
@@ -514,6 +516,7 @@ function DynamicGrouping() {
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [disableFilters, setDisableFilters] = useState(false);
   const [showDevTools, setShowDevTools] = useState(false);
+  const [visibleClusterCount, setVisibleClusterCount] = useState(CLUSTERS_PER_PAGE);
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
@@ -678,7 +681,18 @@ function DynamicGrouping() {
     selectedTeamIds,
   ]);
 
+  const hasMoreClusters = filteredAndSortedClusters.length > visibleClusterCount;
+  const displayedClusters = hasMoreClusters
+    ? filteredAndSortedClusters.slice(0, visibleClusterCount)
+    : filteredAndSortedClusters;
+
   const totalIssues = filteredAndSortedClusters.flatMap(c => c.group_ids).length;
+  const remainingClusterCount =
+    filteredAndSortedClusters.length - displayedClusters.length;
+
+  const handleShowMore = () => {
+    setVisibleClusterCount(prev => prev + CLUSTERS_PER_PAGE);
+  };
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
   if (!hasTopIssuesUI) {
@@ -895,23 +909,30 @@ function DynamicGrouping() {
         <CardsSection>
           {isPending ? (
             <LoadingIndicator />
-          ) : filteredAndSortedClusters.length === 0 ? (
+          ) : displayedClusters.length === 0 ? (
             <Container padding="lg" border="primary" radius="md" background="primary">
               <Text variant="muted" align="center" as="div">
                 {t('No clusters match the current filters')}
               </Text>
             </Container>
           ) : (
-            <CardsGrid>
-              {filteredAndSortedClusters.map(cluster => (
-                <ClusterCard
-                  key={cluster.cluster_id}
-                  cluster={cluster}
-                  onTagClick={handleTagClick}
-                  selectedTags={selectedTags}
-                />
-              ))}
-            </CardsGrid>
+            <Fragment>
+              <CardsGrid>
+                {displayedClusters.map(cluster => (
+                  <ClusterCard
+                    key={cluster.cluster_id}
+                    cluster={cluster}
+                    onTagClick={handleTagClick}
+                    selectedTags={selectedTags}
+                  />
+                ))}
+              </CardsGrid>
+              {hasMoreClusters && (
+                <ShowMoreButton onClick={handleShowMore}>
+                  {t('Show more clusters (%s more)', remainingClusterCount)}
+                </ShowMoreButton>
+              )}
+            </Fragment>
           )}
         </CardsSection>
       </PageWrapper>
@@ -1155,6 +1176,29 @@ const DescriptionText = styled('p')`
 const FilterLabel = styled('span')<{disabled?: boolean}>`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.subText)};
+`;
+
+const ShowMoreButton = styled('button')`
+  display: block;
+  width: 100%;
+  margin-top: ${space(3)};
+  padding: ${space(2)} ${space(3)};
+  background: ${p => p.theme.backgroundSecondary};
+  border: 1px dashed ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.md};
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+
+  &:hover {
+    background: ${p => p.theme.backgroundTertiary};
+    border-color: ${p => p.theme.purple300};
+    color: ${p => p.theme.textColor};
+  }
 `;
 
 const JsonInputContainer = styled('div')`
