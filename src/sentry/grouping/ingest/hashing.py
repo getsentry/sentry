@@ -219,9 +219,6 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
     with metrics.timer(
         "grouping.get_or_create_grouphashes.check_secondary_hash_existence"
     ) as metrics_tags:
-        # If caching is used, these will get overridden below
-        metrics_tags.update({"cache_get": False, "cache_set": False})
-
         if use_caching:
             cache_key = get_grouphash_existence_cache_key(hash_value, project.id)
             cache_expiry_seconds = options.get("grouping.ingest_grouphash_existence_cache_expiry")
@@ -243,9 +240,9 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
                 return grouphash_exists
 
         grouphash_exists = GroupHash.objects.filter(project=project, hash=hash_value).exists()
-        metrics_tags["grouphash_exists"] = grouphash_exists
 
         if use_caching:
+            metrics_tags["grouphash_exists"] = grouphash_exists
             cache.set(cache_key, grouphash_exists, cache_expiry_seconds)
             metrics_tags["cache_set"] = True
 
@@ -266,9 +263,6 @@ def _get_or_create_single_grouphash(
     with metrics.timer(
         "grouping.get_or_create_grouphashes.get_or_create_grouphash"
     ) as metrics_tags:
-        # If caching is used, these will get overridden below
-        metrics_tags.update({"cache_get": False, "cache_set": False})
-
         if use_caching:
             cache_key = get_grouphash_object_cache_key(hash_value, project.id)
             cache_expiry_seconds = options.get("grouping.ingest_grouphash_object_cache_expiry")
