@@ -503,6 +503,7 @@ def project_is_seer_eligible(project: Project) -> bool:
 def set_default_project_autofix_automation_tuning(
     organization: Organization, project: Project
 ) -> None:
+    """Called once at project creation time to set the initial autofix automation tuning."""
     org_default = organization.get_option("sentry:default_autofix_automation_tuning")
 
     if org_default == "off":
@@ -522,13 +523,15 @@ def set_default_project_autofix_automation_tuning(
 def set_default_project_seer_scanner_automation(
     organization: Organization, project: Project
 ) -> None:
-    org_default_seer_scanner_automation = organization.get_option(
-        "sentry:default_seer_scanner_automation"
-    )
-    if org_default_seer_scanner_automation:
-        project.update_option(
-            "sentry:default_seer_scanner_automation", org_default_seer_scanner_automation
-        )
+    """Called once at project creation time to set the initial seer scanner automation."""
+    if features.has("organizations:triage-signals-v0-org", organization):
+        # Feature flag ON always sets scanner to True
+        project.update_option("sentry:seer_scanner_automation", True)
+    else:
+        # Feature flag OFF, use org's explicit value if set
+        org_default = organization.get_option("sentry:default_seer_scanner_automation")
+        if org_default is not None:
+            project.update_option("sentry:seer_scanner_automation", org_default)
 
 
 def report_token_count_metric(
