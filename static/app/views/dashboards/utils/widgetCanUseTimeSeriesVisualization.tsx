@@ -3,6 +3,7 @@ import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/type
 const SUPPORTED_WIDGET_TYPES = new Set<WidgetType>([
   WidgetType.RELEASE,
   WidgetType.SPANS,
+  WidgetType.ISSUE,
 ]);
 
 const SUPPORTED_DISPLAY_TYPES = new Set<DisplayType>([
