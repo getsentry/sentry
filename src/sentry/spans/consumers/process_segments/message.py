@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 import sentry_sdk
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
@@ -49,6 +50,22 @@ outcome_aggregator = OutcomeAggregator()
 @metrics.wraps("spans.consumers.process_segments.process_segment")
 def process_segment(
     unprocessed_spans: list[SpanEvent], skip_produce: bool = False
+) -> list[CompatibleSpan]:
+    sample_rate = (
+        settings.SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE
+        * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING
+    )
+    with sentry_sdk.start_transaction(
+        name="spans.consumers.process_segments.process_segment",
+        custom_sampling_context={
+            "sample_rate": sample_rate,
+        },
+    ):
+        return _process_segment(unprocessed_spans, skip_produce)
+
+
+def _process_segment(
+    unprocessed_spans: list[SpanEvent], skip_produce: bool
 ) -> list[CompatibleSpan]:
     _verify_compatibility(unprocessed_spans)
     segment_span, spans = _enrich_spans(unprocessed_spans)
@@ -147,6 +164,7 @@ def _enrich_spans(
 
 
 @metrics.wraps("spans.consumers.process_segments.normalize_segment_name")
+@sentry_sdk.trace
 def _normalize_segment_name(segment_span: CompatibleSpan, project: Project) -> None:
     if not features.has(
         "organizations:normalize_segment_names_in_span_enrichment", project.organization
