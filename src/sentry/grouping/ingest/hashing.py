@@ -238,8 +238,9 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
 
         if use_caching:
             metrics_tags["grouphash_exists"] = grouphash_exists
-            cache.set(cache_key, grouphash_exists, cache_expiry_seconds)
             metrics_tags["cache_set"] = True
+
+            cache.set(cache_key, grouphash_exists, cache_expiry_seconds)
 
         return grouphash_exists
 
@@ -278,8 +279,9 @@ def _get_or_create_single_grouphash(
         # without a group will only stay current in the cache for a few milliseconds (until they get
         # their own group), so there's no point in bothering to cache them.
         if use_caching and grouphash.group_id is not None:
-            cache.set(cache_key, grouphash, cache_expiry_seconds)
             metrics_tags["cache_set"] = True
+
+            cache.set(cache_key, grouphash, cache_expiry_seconds)
 
         return (grouphash, created)
 
