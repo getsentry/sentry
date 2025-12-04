@@ -135,18 +135,17 @@ function buildRoutes(): RouteObject[] {
     {
       index: true,
       component: make(() => import('sentry/views/auth/login')),
-      deprecatedRouteProps: true,
     },
     {
       path: ':orgId/',
       component: make(() => import('sentry/views/auth/login')),
-      deprecatedRouteProps: true,
     },
   ];
   const experimentalSpaRoutes: SentryRouteObject = EXPERIMENTAL_SPA
     ? {
         path: '/auth/login/',
         component: errorHandler(AuthLayout),
+        deprecatedRouteProps: true,
         children: experimentalSpaChildRoutes,
       }
     : {};
