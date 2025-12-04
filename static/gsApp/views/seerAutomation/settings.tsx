@@ -1,4 +1,3 @@
-import {Container} from '@sentry/scraps/layout/container';
 import {ExternalLink} from '@sentry/scraps/link/link';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -96,61 +95,49 @@ export default function SeerAutomationSettings() {
                 },
                 {
                   name: '',
-                  label: '',
-                  type: 'custom',
-                  Component: () => {
-                    return (
-                      <Container padding="lg">
-                        <JsonForm
-                          disabled={!canWrite}
-                          collapsible
-                          initiallyCollapsed
-                          title="additional settings"
-                          fields={[
-                            {
-                              name: 'defaultProjectPRSensitivity',
-                              label: t('Error Prediction Sensitivity'),
-                              help: t('Set the sensitivity level for error prediction.'),
-                              type: 'select',
-                              options: [
-                                {
-                                  label: t('Low'),
-                                  value: 'low',
-                                },
-                                {
-                                  label: t('Medium'),
-                                  value: 'medium',
-                                },
-                                {
-                                  label: t('High'),
-                                  value: 'high',
-                                },
-                              ],
-                            },
-                            {
-                              name: 'defaultRepoPRRunOnOpenedPullRequests',
-                              label: t('Auto Run on Opened Pull Requests'),
-                              help: t(
-                                'Run when a new pull request is published, ignoring subsequent pushes.'
-                              ),
-                              type: 'boolean',
-                            },
-                            {
-                              name: 'defaultRepoPRRunWhenMentioned',
-                              label: t('Run When Mentioned'),
-                              help: tct(
-                                'Run when [code:@sentry review] is commented on a pull request.',
-                                {
-                                  code: <code />,
-                                }
-                              ),
-                              type: 'boolean',
-                            },
-                          ]}
-                        />
-                      </Container>
-                    );
-                  },
+                  type: 'collapsible',
+                  label: t('additional settings'),
+                  fields: [
+                    {
+                      name: 'defaultProjectPRSensitivity',
+                      label: t('Error Prediction Sensitivity'),
+                      help: t('Set the sensitivity level for error prediction.'),
+                      type: 'select',
+                      options: [
+                        {
+                          label: t('Low'),
+                          value: 'low',
+                        },
+                        {
+                          label: t('Medium'),
+                          value: 'medium',
+                        },
+                        {
+                          label: t('High'),
+                          value: 'high',
+                        },
+                      ],
+                    },
+                    {
+                      name: 'defaultRepoPRRunOnOpenedPullRequests',
+                      label: t('Auto Run on Opened Pull Requests'),
+                      help: t(
+                        'Run when a new pull request is published, ignoring subsequent pushes.'
+                      ),
+                      type: 'boolean',
+                    },
+                    {
+                      name: 'defaultRepoPRRunWhenMentioned',
+                      label: t('Run When Mentioned'),
+                      help: tct(
+                        'Run when [code:@sentry review] is commented on a pull request.',
+                        {
+                          code: <code />,
+                        }
+                      ),
+                      type: 'boolean',
+                    },
+                  ],
                 },
               ],
             },
