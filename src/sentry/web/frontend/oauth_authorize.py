@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import logging
+import re
 from typing import Any, Literal
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
@@ -21,6 +23,11 @@ from sentry.utils import metrics
 from sentry.web.frontend.auth_login import AuthLoginView
 
 logger = logging.getLogger("sentry.oauth")
+
+# RFC 7636 §4.1: code_verifier is 43-128 unreserved characters
+# ABNF: code-verifier = 43*128unreserved
+# unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
+CODE_CHALLENGE_REGEX = re.compile(r"^[A-Za-z0-9\-._~]{43,128}$")
 
 
 class OAuthAuthorizeView(AuthLoginView):
@@ -192,6 +199,43 @@ class OAuthAuthorizeView(AuthLoginView):
                     state=state,
                 )
 
+        # PKCE support (RFC 7636): accept code_challenge and code_challenge_method.
+        # OAuth 2.1 mandates S256 method only (plain method removed for security)
+        # Reference: https://datatracker.ietf.org/doc/html/rfc7636#section-4.2
+        code_challenge = request.GET.get("code_challenge")
+        code_challenge_method = request.GET.get("code_challenge_method")
+
+        if code_challenge:
+            # Validate code_challenge format per RFC 7636 §4.2: 43-128 unreserved chars
+            if not CODE_CHALLENGE_REGEX.match(code_challenge):
+                return self.error(
+                    request=request,
+                    client_id=client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="invalid_request",
+                    state=state,
+                )
+
+            # OAuth 2.1: Only S256 method is allowed (plain method deprecated for security)
+            if code_challenge_method != "S256":
+                logger.error(
+                    "oauth.pkce.invalid-method",
+                    extra={
+                        "client_id": client_id,
+                        "application_id": application.id if application else None,
+                        "method": code_challenge_method,
+                    },
+                )
+                return self.error(
+                    request=request,
+                    client_id=client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="invalid_request",
+                    state=state,
+                )
+
         payload = {
             "rt": response_type,
             "cid": client_id,
@@ -199,8 +243,15 @@ class OAuthAuthorizeView(AuthLoginView):
             "sc": scopes,
             "st": state,
             "uid": request.user.id if request.user.is_authenticated else "",
+            "cc": code_challenge,
+            "ccm": code_challenge_method if code_challenge else None,
         }
         request.session["oa2"] = payload
+
+        # Store hash of state for CSRF protection validation during POST
+        # This ensures the session cannot be tampered with between GET and POST
+        if state:
+            request.session["oa2_state_hash"] = hashlib.sha256(state.encode()).hexdigest()
 
         if not request.user.is_authenticated:
             return super().get(request, application=application)
@@ -218,6 +269,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 # if we've already approved all of the required scopes
                 # we can skip prompting the user
                 if all(existing_auth.has_scope(s) for s in scopes):
+                    # Use PKCE parameters from session to prevent injection attacks
                     return self.approve(
                         request=request,
                         user=request.user,
@@ -226,17 +278,9 @@ class OAuthAuthorizeView(AuthLoginView):
                         response_type=response_type,
                         redirect_uri=redirect_uri,
                         state=state,
+                        code_challenge=payload.get("cc"),
+                        code_challenge_method=payload.get("ccm"),
                     )
-
-        payload = {
-            "rt": response_type,
-            "cid": client_id,
-            "ru": redirect_uri,
-            "sc": scopes,
-            "st": state,
-            "uid": request.user.id,
-        }
-        request.session["oa2"] = payload
 
         permissions = []
         if scopes:
@@ -288,7 +332,21 @@ class OAuthAuthorizeView(AuthLoginView):
         response = super().post(request, application=application, **kwargs)
         # once they login, bind their user ID
         if request.user.is_authenticated:
-            request.session["oa2"]["uid"] = request.user.id
+            # Regenerate session to prevent session fixation attacks
+            # Save the OAuth payload before rotating the session key
+            old_payload = request.session.get("oa2")
+            old_state_hash = request.session.get("oa2_state_hash")
+
+            # Rotate session key (creates new session ID)
+            request.session.cycle_key()
+
+            # Restore OAuth data with authenticated user ID
+            if old_payload:
+                old_payload["uid"] = request.user.id
+                request.session["oa2"] = old_payload
+            if old_state_hash:
+                request.session["oa2_state_hash"] = old_state_hash
+
             request.session.modified = True
         return response
 
@@ -324,9 +382,26 @@ class OAuthAuthorizeView(AuthLoginView):
                 },
             )
 
+        # Validate state parameter to prevent CSRF and session tampering
+        client_state = payload.get("st")
+        state_hash = request.session.get("oa2_state_hash")
+        if state_hash:
+            # Verify the state hasn't been tampered with in the session
+            if not client_state or hashlib.sha256(client_state.encode()).hexdigest() != state_hash:
+                return self.error(
+                    request=request,
+                    response_type=payload["rt"],
+                    redirect_uri=payload["ru"],
+                    name="invalid_request",
+                    state=client_state,
+                    client_id=payload["cid"],
+                )
+
         response_type = payload["rt"]
         redirect_uri = payload["ru"]
         scopes = payload["sc"]
+        code_challenge = payload.get("cc")
+        code_challenge_method = payload.get("ccm")
 
         op = request.POST.get("op")
         if op == "approve":
@@ -338,6 +413,8 @@ class OAuthAuthorizeView(AuthLoginView):
                 response_type=response_type,
                 redirect_uri=redirect_uri,
                 state=payload["st"],
+                code_challenge=code_challenge,
+                code_challenge_method=code_challenge_method,
             )
 
         elif op == "deny":
@@ -362,6 +439,8 @@ class OAuthAuthorizeView(AuthLoginView):
         response_type: Literal["code", "token"],
         redirect_uri,
         state,
+        code_challenge=None,
+        code_challenge_method=None,
     ) -> HttpResponseBase:
         # Some applications require org level access, so user who approves only gives
         # access to that organization by selecting one. If None, means the application
@@ -384,6 +463,8 @@ class OAuthAuthorizeView(AuthLoginView):
                 )
 
             # Validate that user is a member of the selected organization
+            # This prevents privilege escalation attacks where a user tries to authorize access
+            # to an organization they don't belong to
             user_orgs = user_service.get_organizations(user_id=user.id, only_visible=True)
             org_ids = {org.id for org in user_orgs}
 
@@ -444,6 +525,8 @@ class OAuthAuthorizeView(AuthLoginView):
                 redirect_uri=redirect_uri,
                 scope_list=scopes,
                 organization_id=selected_organization_id,
+                code_challenge=code_challenge,
+                code_challenge_method=code_challenge_method,
             )
             logger.info(
                 "approve.grant",

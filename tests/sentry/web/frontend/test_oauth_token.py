@@ -638,3 +638,327 @@ class OAuthTokenOrganizationScopedTest(TestCase):
         assert token.user == self.grant.user
         assert token.get_scopes() == self.grant.get_scopes()
         assert token.organization_id == self.organization.id
+
+
+@control_silo_test
+class OAuthTokenPKCETest(TestCase):
+    """Tests for PKCE (Proof Key for Code Exchange) verification per RFC 7636."""
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/token/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.application = ApiApplication.objects.create(
+            owner=self.user, redirect_uris="https://example.com"
+        )
+        self.client_secret = self.application.client_secret
+
+    def test_pkce_s256_valid_verifier(self) -> None:
+        """Test that valid S256 PKCE verifier is accepted."""
+        # code_verifier that generates the challenge below when hashed with SHA256
+        code_verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+        # BASE64URL(SHA256(code_verifier)) without padding
+        code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+            code_challenge=code_challenge,
+            code_challenge_method="S256",
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant.code,
+                "code_verifier": code_verifier,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        assert "access_token" in data
+        assert data["token_type"] == "Bearer"
+
+    def test_pkce_missing_verifier_when_challenge_exists(self) -> None:
+        """Test that missing code_verifier is rejected when challenge exists."""
+        code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+            code_challenge=code_challenge,
+            code_challenge_method="S256",
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant.code,
+                # Missing code_verifier
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 400
+        data = json.loads(resp.content)
+        assert data["error"] == "invalid_grant"
+
+    def test_pkce_invalid_verifier_s256(self) -> None:
+        """Test that incorrect code_verifier is rejected for S256."""
+        code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+            code_challenge=code_challenge,
+            code_challenge_method="S256",
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant.code,
+                "code_verifier": "wrong_verifier_that_does_not_match_challenge_at_all",
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 400
+        data = json.loads(resp.content)
+        assert data["error"] == "invalid_grant"
+
+    def test_pkce_verifier_too_short(self) -> None:
+        """Test that code_verifier shorter than 43 chars is rejected."""
+        code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+            code_challenge=code_challenge,
+            code_challenge_method="S256",
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant.code,
+                "code_verifier": "too_short",  # Only 9 chars, min is 43
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 400
+        data = json.loads(resp.content)
+        assert data["error"] == "invalid_grant"
+
+    def test_pkce_plain_method_rejected(self) -> None:
+        """Test that 'plain' PKCE method is rejected per OAuth 2.1."""
+        code_verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+            code_challenge=code_verifier,
+            code_challenge_method="plain",
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant.code,
+                "code_verifier": code_verifier,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 400
+        data = json.loads(resp.content)
+        assert data["error"] == "invalid_grant"
+        # Verify the grant was deleted
+        assert not ApiGrant.objects.filter(code=grant.code).exists()
+
+    def test_pkce_verifier_invalid_characters(self) -> None:
+        """Test that code_verifier with invalid characters is rejected."""
+        code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+            code_challenge=code_challenge,
+            code_challenge_method="S256",
+        )
+
+        # Invalid characters (spaces, !) - only unreserved chars allowed
+        invalid_verifier = "invalid verifier! with spaces and special chars@#$"
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant.code,
+                "code_verifier": invalid_verifier,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 400
+        data = json.loads(resp.content)
+        assert data["error"] == "invalid_grant"
+
+    def test_pkce_no_challenge_no_verifier_works(self) -> None:
+        """Test that grants without PKCE work when no verifier is provided."""
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+            # No code_challenge or code_challenge_method
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant.code,
+                # No code_verifier
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        assert "access_token" in data
+
+    def test_pkce_failed_verifier_invalidates_grant(self) -> None:
+        """Test that failed PKCE verification immediately invalidates the grant (RFC 6749 §10.5)."""
+        code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+            code_challenge=code_challenge,
+            code_challenge_method="S256",
+        )
+
+        # Attempt with wrong verifier
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant.code,
+                "code_verifier": "wrong_verifier_that_does_not_match_challenge",
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 400
+        data = json.loads(resp.content)
+        assert data["error"] == "invalid_grant"
+
+        # Grant should be immediately deleted (single-use per RFC 6749)
+        assert not ApiGrant.objects.filter(id=grant.id).exists()
+
+    def test_pkce_second_attempt_after_failure_rejected(self) -> None:
+        """Test that authorization code cannot be reused after failed PKCE attempt."""
+        code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+        code_verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+            code_challenge=code_challenge,
+            code_challenge_method="S256",
+        )
+
+        grant_code = grant.code
+
+        # First attempt with wrong verifier
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant_code,
+                "code_verifier": "wrong_verifier_that_does_not_match_challenge",
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 400
+
+        # Second attempt with correct verifier should fail (code already consumed)
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant_code,
+                "code_verifier": code_verifier,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 400
+        data = json.loads(resp.content)
+        assert data["error"] == "invalid_grant"
+
+    def test_failed_redirect_uri_invalidates_grant(self) -> None:
+        """Test that invalid redirect_uri immediately invalidates the grant (RFC 6749 §10.5)."""
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+        )
+
+        # Attempt with wrong redirect_uri
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://evil.com",
+                "code": grant.code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 400
+        data = json.loads(resp.content)
+        assert data["error"] == "invalid_grant"
+
+        # Grant should be immediately deleted
+        assert not ApiGrant.objects.filter(id=grant.id).exists()

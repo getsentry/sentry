@@ -82,6 +82,11 @@ class ApiGrant(Model):
         null=True,
         on_delete="CASCADE",
     )
+    # PKCE (RFC 7636): code_challenge and method for Proof Key for Code Exchange.
+    # If present, the token endpoint MUST verify the code_verifier against this challenge.
+    # Reference: https://datatracker.ietf.org/doc/html/rfc7636
+    code_challenge = models.CharField(max_length=128, null=True)
+    code_challenge_method = models.CharField(max_length=10, null=True)
 
     class Meta:
         app_label = "sentry"
