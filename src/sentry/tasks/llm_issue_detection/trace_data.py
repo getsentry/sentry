@@ -46,7 +46,7 @@ def get_evidence_trace_for_llm_detection(
 
     random_offset = random.randint(1, 8)
     end_time = datetime.now(UTC)
-    start_time = end_time - timedelta(minutes=30 + random_offset)
+    start_time = end_time - timedelta(minutes=30 - random_offset)
 
     snuba_params = SnubaParams(
         start=start_time,
