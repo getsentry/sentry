@@ -154,7 +154,10 @@ type AlertColors = Record<
   }
 >;
 
-const generateThemeUtils = (colors: Colors, aliases: Aliases) => ({
+const generateThemeUtils = (
+  colors: ReturnType<typeof deprecatedColorMappings>,
+  aliases: Aliases
+) => ({
   tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
     textDecoration: 'underline' as const,
     textDecorationThickness: '0.75px',
@@ -1794,7 +1797,7 @@ export const lightTheme = {
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(lightColors, lightAliases),
+  ...generateThemeUtils(deprecatedColorMappings(lightColors), lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
@@ -1854,7 +1857,7 @@ export const darkTheme: SentryTheme = {
   }),
 
   // @TODO: these colors need to be ported
-  ...generateThemeUtils(darkColors, darkAliases),
+  ...generateThemeUtils(deprecatedColorMappings(darkColors), darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
