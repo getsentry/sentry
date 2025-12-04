@@ -1183,67 +1183,67 @@ const lightColors = {
   white: color.white,
 
   surface500: color.white, // background.primary
-  surface400: color.neutral.light.opaque[100], // background.secondary
-  surface300: color.neutral.light.opaque[200], // background.tertiary
-  surface200: color.neutral.light.opaque[300], // border.muted
-  surface100: color.neutral.light.opaque[400], // border.primary
+  surface400: color.neutral.light.opaque100, // background.secondary
+  surface300: color.neutral.light.opaque200, // background.tertiary
+  surface200: color.neutral.light.opaque300, // border.muted
+  surface100: color.neutral.light.opaque400, // border.primary
 
-  gray800: color.neutral.light.opaque[1400], // content.primary
-  gray700: color.neutral.light.opaque[1300], // ⚠ link.muted.active only
-  gray600: color.neutral.light.opaque[1200], // ⚠ link.muted.hover only
-  gray500: color.neutral.light.opaque[1100], // content.secondary, link.muted.default
-  gray400: color.neutral.light.opaque[1000], // graphics.muted
-  gray300: color.neutral.light.transparent[300],
-  gray200: color.neutral.light.transparent[200],
-  gray100: color.neutral.light.transparent[100],
+  gray800: color.neutral.light.opaque1400, // content.primary
+  gray700: color.neutral.light.opaque1300, // ⚠ link.muted.active only
+  gray600: color.neutral.light.opaque1200, // ⚠ link.muted.hover only
+  gray500: color.neutral.light.opaque1100, // content.secondary, link.muted.default
+  gray400: color.neutral.light.opaque1000, // graphics.muted
+  gray300: color.neutral.light.transparent300,
+  gray200: color.neutral.light.transparent200,
+  gray100: color.neutral.light.transparent100,
 
-  blue700: color.blue.light.opaque[1400], // ⚠ link.accent.active only
-  blue600: color.blue.light.opaque[1300], // ⚠ link.accent.hover only
-  blue500: color.blue.light.opaque[1200], // content.accent, link.accent.default
-  blue400: color.blue.light.opaque[1000], // graphics.muted, border.accent
-  blue300: color.blue.light.transparent[300],
-  blue200: color.blue.light.transparent[200],
-  blue100: color.blue.light.transparent[100],
+  blue700: color.blue.light.opaque1400, // ⚠ link.accent.active only
+  blue600: color.blue.light.opaque1300, // ⚠ link.accent.hover only
+  blue500: color.blue.light.opaque1200, // content.accent, link.accent.default
+  blue400: color.blue.light.opaque1000, // graphics.muted, border.accent
+  blue300: color.blue.light.transparent300,
+  blue200: color.blue.light.transparent200,
+  blue100: color.blue.light.transparent100,
 
-  pink700: color.pink.light.opaque[1300], // ⚠ link.promotion.active only
-  pink600: color.pink.light.opaque[1200], // ⚠ link.promotion.hover only
-  pink500: color.pink.light.opaque[1100], // content.promotion, link.promotion.default
-  pink400: color.pink.light.opaque[1000], // graphics.promotion, border.promotion
-  pink300: color.pink.light.transparent[300],
-  pink200: color.pink.light.transparent[200],
-  pink100: color.pink.light.transparent[100],
+  pink700: color.pink.light.opaque1300, // ⚠ link.promotion.active only
+  pink600: color.pink.light.opaque1200, // ⚠ link.promotion.hover only
+  pink500: color.pink.light.opaque1100, // content.promotion, link.promotion.default
+  pink400: color.pink.light.opaque1000, // graphics.promotion, border.promotion
+  pink300: color.pink.light.transparent300,
+  pink200: color.pink.light.transparent200,
+  pink100: color.pink.light.transparent100,
 
-  red700: color.red.light.opaque[1300], // ⚠ link.danger.active only
-  red600: color.red.light.opaque[1200], // ⚠ link.danger.hover only
-  red500: color.red.light.opaque[1100], // ⚠ content.danger, link.danger.default
-  red400: color.red.light.opaque[1000], // graphics.danger, border.danger
-  red300: color.red.light.transparent[300],
-  red200: color.red.light.transparent[200],
-  red100: color.red.light.transparent[100],
+  red700: color.red.light.opaque1300, // ⚠ link.danger.active only
+  red600: color.red.light.opaque1200, // ⚠ link.danger.hover only
+  red500: color.red.light.opaque1100, // ⚠ content.danger, link.danger.default
+  red400: color.red.light.opaque1000, // graphics.danger, border.danger
+  red300: color.red.light.transparent300,
+  red200: color.red.light.transparent200,
+  red100: color.red.light.transparent100,
 
-  yellow700: color.yellow.light.opaque[1300], // ⚠ link.warning.active only
-  yellow600: color.yellow.light.opaque[1200], // ⚠ link.warning.hover only
-  yellow500: color.yellow.light.opaque[1100], // content.warning, link.warning.default
-  yellow400: color.yellow.light.opaque[600], // graphics.warning, border.warning
-  yellow300: color.yellow.light.transparent[300],
-  yellow200: color.yellow.light.transparent[200],
-  yellow100: color.yellow.light.transparent[100],
+  yellow700: color.yellow.light.opaque1300, // ⚠ link.warning.active only
+  yellow600: color.yellow.light.opaque1200, // ⚠ link.warning.hover only
+  yellow500: color.yellow.light.opaque1100, // content.warning, link.warning.default
+  yellow400: color.yellow.light.opaque600, // graphics.warning, border.warning
+  yellow300: color.yellow.light.transparent300,
+  yellow200: color.yellow.light.transparent200,
+  yellow100: color.yellow.light.transparent100,
 
-  green700: color.green.light.opaque[1300], // ⚠ link.success.active only
-  green600: color.green.light.opaque[1200], // ⚠ link.success.hover only
-  green500: color.green.light.opaque[1100], // content.success, link.success.default
-  green400: color.green.light.opaque[800], // graphics.success, border.success
-  green300: color.green.light.transparent[300],
-  green200: color.green.light.transparent[200],
-  green100: color.green.light.transparent[100],
+  green700: color.green.light.opaque1300, // ⚠ link.success.active only
+  green600: color.green.light.opaque1200, // ⚠ link.success.hover only
+  green500: color.green.light.opaque1100, // content.success, link.success.default
+  green400: color.green.light.opaque800, // graphics.success, border.success
+  green300: color.green.light.transparent300,
+  green200: color.green.light.transparent200,
+  green100: color.green.light.transparent100,
 
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
-    blue400: color.blue.light.opaque[1000],
-    pink400: color.pink.light.opaque[800],
-    red400: color.red.light.opaque[1000],
-    yellow400: color.yellow.light.opaque[600],
-    green400: color.green.light.opaque[800],
+    blue400: color.blue.light.opaque1000,
+    pink400: color.pink.light.opaque800,
+    red400: color.red.light.opaque1000,
+    yellow400: color.yellow.light.opaque600,
+    green400: color.green.light.opaque800,
   },
 };
 
@@ -1251,68 +1251,68 @@ const darkColors: Colors = {
   black: color.black,
   white: color.white,
 
-  surface500: color.neutral.dark.opaque[500], // background.primary
-  surface400: color.neutral.dark.opaque[400], // background.secondary
-  surface300: color.neutral.dark.opaque[300], // background.teritary
-  surface200: color.neutral.dark.opaque[200], // border.muted
-  surface100: color.neutral.dark.opaque[100], // border.primary
+  surface500: color.neutral.dark.opaque500, // background.primary
+  surface400: color.neutral.dark.opaque400, // background.secondary
+  surface300: color.neutral.dark.opaque300, // background.teritary
+  surface200: color.neutral.dark.opaque200, // border.muted
+  surface100: color.neutral.dark.opaque100, // border.primary
 
-  gray800: color.neutral.dark.opaque[1600], // content.primary
-  gray700: color.neutral.dark.opaque[1300], // ⚠ link.muted.active only
-  gray600: color.neutral.dark.opaque[1200], // ⚠ link.muted.hover only
-  gray500: color.neutral.dark.opaque[1100], // content.secondary, link.muted.default
-  gray400: color.neutral.dark.opaque[900], // // graphics.muted
-  gray300: color.neutral.dark.transparent[800],
-  gray200: color.neutral.dark.transparent[600],
-  gray100: color.neutral.dark.transparent[400],
+  gray800: color.neutral.dark.opaque1600, // content.primary
+  gray700: color.neutral.dark.opaque1300, // ⚠ link.muted.active only
+  gray600: color.neutral.dark.opaque1200, // ⚠ link.muted.hover only
+  gray500: color.neutral.dark.opaque1100, // content.secondary, link.muted.default
+  gray400: color.neutral.dark.opaque900, // // graphics.muted
+  gray300: color.neutral.dark.transparent800,
+  gray200: color.neutral.dark.transparent600,
+  gray100: color.neutral.dark.transparent400,
 
-  blue700: color.blue.dark.opaque[1200], // ⚠ link.accent.active only
-  blue600: color.blue.dark.opaque[1100], // ⚠ link.accent.hover only
-  blue500: color.blue.dark.opaque[1000], // content.accent, link.accent.default
-  blue400: color.blue.dark.opaque[900], // // graphics.accent, border.accent
-  blue300: color.blue.dark.transparent[300],
-  blue200: color.blue.dark.transparent[200],
-  blue100: color.blue.dark.transparent[100],
+  blue700: color.blue.dark.opaque1200, // ⚠ link.accent.active only
+  blue600: color.blue.dark.opaque1100, // ⚠ link.accent.hover only
+  blue500: color.blue.dark.opaque1000, // content.accent, link.accent.default
+  blue400: color.blue.dark.opaque900, // // graphics.accent, border.accent
+  blue300: color.blue.dark.transparent300,
+  blue200: color.blue.dark.transparent200,
+  blue100: color.blue.dark.transparent100,
 
-  pink700: color.pink.dark.opaque[1300], // ⚠ link.promotion.active only
-  pink600: color.pink.dark.opaque[1200], // ⚠ link.promotion.hover only
-  pink500: color.pink.dark.opaque[1100], // content.promotion, link.promotion.default
-  pink400: color.pink.dark.opaque[1000], // // graphics.promotion, border.promotion
-  pink300: color.pink.dark.transparent[300],
-  pink200: color.pink.dark.transparent[200],
-  pink100: color.pink.dark.transparent[100],
+  pink700: color.pink.dark.opaque1300, // ⚠ link.promotion.active only
+  pink600: color.pink.dark.opaque1200, // ⚠ link.promotion.hover only
+  pink500: color.pink.dark.opaque1100, // content.promotion, link.promotion.default
+  pink400: color.pink.dark.opaque1000, // // graphics.promotion, border.promotion
+  pink300: color.pink.dark.transparent300,
+  pink200: color.pink.dark.transparent200,
+  pink100: color.pink.dark.transparent100,
 
-  red700: color.red.dark.opaque[1200], // ⚠ link.danger.active only
-  red600: color.red.dark.opaque[1100], // ⚠ link.danger.hover only
-  red500: color.red.dark.opaque[1000], // content.danger, link.danger.default
-  red400: color.red.dark.opaque[900], // // graphics.danger, border.danger
-  red300: color.red.dark.transparent[300],
-  red200: color.red.dark.transparent[200],
-  red100: color.red.dark.transparent[100],
+  red700: color.red.dark.opaque1200, // ⚠ link.danger.active only
+  red600: color.red.dark.opaque1100, // ⚠ link.danger.hover only
+  red500: color.red.dark.opaque1000, // content.danger, link.danger.default
+  red400: color.red.dark.opaque900, // // graphics.danger, border.danger
+  red300: color.red.dark.transparent300,
+  red200: color.red.dark.transparent200,
+  red100: color.red.dark.transparent100,
 
-  yellow700: color.yellow.dark.opaque[1500], // ⚠ link.warning.active only
-  yellow600: color.yellow.dark.opaque[1400], // ⚠ link.warning.hover only
-  yellow500: color.yellow.dark.opaque[1300], // content.warning, link.warning.default
-  yellow400: color.yellow.dark.opaque[1200], // graphics.warning, border.warning
-  yellow300: color.yellow.dark.transparent[300],
-  yellow200: color.yellow.dark.transparent[200],
-  yellow100: color.yellow.dark.transparent[100],
+  yellow700: color.yellow.dark.opaque1500, // ⚠ link.warning.active only
+  yellow600: color.yellow.dark.opaque1400, // ⚠ link.warning.hover only
+  yellow500: color.yellow.dark.opaque1300, // content.warning, link.warning.default
+  yellow400: color.yellow.dark.opaque1200, // graphics.warning, border.warning
+  yellow300: color.yellow.dark.transparent300,
+  yellow200: color.yellow.dark.transparent200,
+  yellow100: color.yellow.dark.transparent100,
 
-  green700: color.green.dark.opaque[1400], // ⚠ link.success.active only
-  green600: color.green.dark.opaque[1300], // ⚠ link.success.hover only
-  green500: color.green.dark.opaque[1200], // content.success, link.success.default
-  green400: color.green.dark.opaque[1100], // graphics.success, border.success
-  green300: color.green.dark.transparent[600],
-  green200: color.green.dark.transparent[500],
-  green100: color.green.dark.transparent[400],
+  green700: color.green.dark.opaque1400, // ⚠ link.success.active only
+  green600: color.green.dark.opaque1300, // ⚠ link.success.hover only
+  green500: color.green.dark.opaque1200, // content.success, link.success.default
+  green400: color.green.dark.opaque1100, // graphics.success, border.success
+  green300: color.green.dark.transparent600,
+  green200: color.green.dark.transparent500,
+  green100: color.green.dark.transparent400,
 
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
-    blue400: color.blue.dark.opaque[900],
-    pink400: color.pink.dark.opaque[1000],
-    red400: color.red.dark.opaque[900],
-    yellow400: color.yellow.dark.opaque[1200],
-    green400: color.green.dark.opaque[1100],
+    blue400: color.blue.dark.opaque900,
+    pink400: color.pink.dark.opaque1000,
+    red400: color.red.dark.opaque900,
+    yellow400: color.yellow.dark.opaque1200,
+    green400: color.green.dark.opaque1100,
   },
 };
 
