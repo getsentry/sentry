@@ -9,7 +9,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {UseApiQueryOptions, UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -67,11 +66,11 @@ interface UseTracesOptions
   enabled?: boolean;
   keepPreviousData?: boolean;
   limit?: number;
-  logQuery?: Array<MutableSearch | string>;
-  metricQuery?: Array<MutableSearch | string>;
+  logQuery?: string[];
+  metricQuery?: string[];
   query?: string | string[];
   sort?: 'timestamp' | '-timestamp';
-  spanQuery?: Array<MutableSearch | string>;
+  spanQuery?: string[];
 }
 
 type UseTracesResult = Omit<UseApiQueryResult<TraceResults, RequestError>, 'error'> & {

@@ -5,7 +5,7 @@ import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
-import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -139,6 +139,29 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     );
   }
 
+  let queryParam: string | undefined;
+  let logQueryParams: string[] | undefined;
+  let metricQueryParams: string[] | undefined;
+  let spanQueryParams: string[] | undefined;
+  if (query) {
+    queryParam = query instanceof MutableSearch ? query.formatString() : query;
+  }
+  if (Array.isArray(logQuery) && logQuery.length) {
+    logQueryParams = logQuery.map(q =>
+      q instanceof MutableSearch ? q.formatString() : q
+    );
+  }
+  if (Array.isArray(metricQuery) && metricQuery.length) {
+    metricQueryParams = metricQuery.map(q =>
+      q instanceof MutableSearch ? q.formatString() : q
+    );
+  }
+  if (Array.isArray(spanQuery) && spanQuery.length) {
+    spanQueryParams = spanQuery.map(q =>
+      q instanceof MutableSearch ? q.formatString() : q
+    );
+  }
+
   return useApiQuery<EventsTimeSeriesResponse>(
     [
       `/organizations/${organization.slug}/events-timeseries/`,
@@ -153,11 +176,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           project: selection.projects,
           environment: selection.environments,
           interval,
-          query: query
-            ? typeof query === 'string'
-              ? query
-              : query.formatString()
-            : undefined,
+          query: queryParam,
           sampling: sampling ?? DEFAULT_SAMPLING_MODE,
           topEvents,
           groupBy,
@@ -168,9 +187,9 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
               : '1'
             : undefined,
           caseInsensitive: caseInsensitive ? 1 : 0,
-          ...(Array.isArray(logQuery) && logQuery.length > 0 ? {logQuery} : {}),
-          ...(Array.isArray(metricQuery) && metricQuery.length > 0 ? {metricQuery} : {}),
-          ...(Array.isArray(spanQuery) && spanQuery.length > 0 ? {spanQuery} : {}),
+          logQuery: logQueryParams,
+          metricQuery: metricQueryParams,
+          spanQuery: spanQueryParams,
         },
       },
     ],

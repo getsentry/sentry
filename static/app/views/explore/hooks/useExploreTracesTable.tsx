@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 
@@ -12,9 +11,9 @@ interface UseExploreTracesTableOptions {
   query: string;
   queryExtras?: {
     caseInsensitive?: CaseInsensitive;
-    logQuery?: Array<MutableSearch | string>;
-    metricQuery?: Array<MutableSearch | string>;
-    spanQuery?: Array<MutableSearch | string>;
+    logQuery?: string[];
+    metricQuery?: string[];
+    spanQuery?: string[];
   };
 }
 
