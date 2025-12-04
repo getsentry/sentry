@@ -79,7 +79,7 @@ function ReleaseHeader({
   const numberOfMobileBuilds = releaseMeta.preprodBuildCount;
 
   const buildsTab = {
-    title: tct('Builds [count]', {
+    title: tct('Mobile Builds [count]', {
       count:
         numberOfMobileBuilds === 0 ? (
           <BadgeWrapper>
@@ -96,7 +96,7 @@ function ReleaseHeader({
           </React.Fragment>
         ),
     }),
-    textValue: t('Builds %s', numberOfMobileBuilds),
+    textValue: t('Mobile Builds %s', numberOfMobileBuilds),
     to: `builds/`,
   };
 
