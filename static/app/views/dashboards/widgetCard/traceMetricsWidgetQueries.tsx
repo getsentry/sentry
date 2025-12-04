@@ -94,6 +94,9 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
     });
   };
 
+  // This is a sentinel value
+  const disabled = widget.queries.some(q => q.aggregates.includes('avg(value,,,-)'));
+
   return getDynamicText({
     value: (
       <GenericWidgetQueries<SeriesResult, TableResult>
@@ -110,6 +113,8 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
         onDataFetchStart={onDataFetchStart}
         afterFetchSeriesData={afterFetchSeriesData}
         samplingMode={SAMPLING_MODE.NORMAL}
+        disabled={disabled}
+        loading={disabled}
       >
         {props =>
           children({

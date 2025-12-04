@@ -40,10 +40,10 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: [''],
+  fields: [],
   columns: [],
   fieldAliases: [],
-  aggregates: [''],
+  aggregates: ['avg(value,,,-)'], // This is just a placeholder to make the default state work
   conditions: '',
   orderby: '',
 };
