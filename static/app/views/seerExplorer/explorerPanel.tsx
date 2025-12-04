@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import {createPortal} from 'react-dom';
 
 import useOrganization from 'sentry/utils/useOrganization';
+import AskUserQuestionBlock from 'sentry/views/seerExplorer/askUserQuestionBlock';
 import BlockComponent from 'sentry/views/seerExplorer/blockComponents';
 import EmptyState from 'sentry/views/seerExplorer/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/explorerMenu';
@@ -256,6 +257,21 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     fileApprovalTotalPatches,
     handleFileApprovalApprove,
     handleFileApprovalReject,
+    // Question state
+    isQuestionPending,
+    questionIndex,
+    totalQuestions,
+    currentQuestion,
+    selectedOption,
+    isOtherSelected,
+    customText,
+    canSubmitQuestion,
+    handleQuestionNext,
+    handleQuestionBack,
+    handleQuestionSelectOption,
+    handleQuestionMoveUp,
+    handleQuestionMoveDown,
+    handleQuestionCustomTextChange,
   } = usePendingUserInput({
     isAwaitingUserInput,
     pendingInput,
@@ -281,8 +297,8 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         e.preventDefault();
         setIsMinimized(true);
       } else if (isPrintableChar) {
-        // Don't auto-type if file approval is pending (textarea isn't visible)
-        if (focusedBlockIndex !== -1 && !isFileApprovalPending) {
+        // Don't auto-type if file approval or question is pending (textarea isn't visible)
+        if (focusedBlockIndex !== -1 && !isFileApprovalPending && !isQuestionPending) {
           // If a block is focused, auto-focus input when user starts typing.
           e.preventDefault();
           setFocusedBlockIndex(-1);
@@ -312,6 +328,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     interruptRequested,
     isMinimized,
     isFileApprovalPending,
+    isQuestionPending,
   ]);
 
   useBlockNavigation({
@@ -323,6 +340,8 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     setFocusedBlockIndex,
     isMinimized,
     isFileApprovalPending,
+    isPolling,
+    isQuestionPending,
     onDeleteFromIndex: deleteFromIndex,
     onKeyPress: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => {
       const handler = blockEnterHandlers.current.get(blockIndex);
@@ -363,6 +382,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                 block={block}
                 blockIndex={index}
                 isAwaitingFileApproval={isFileApprovalPending}
+                isAwaitingQuestion={isQuestionPending}
                 isLatestTodoBlock={index === latestTodoBlockIndex}
                 isLast={
                   index === blocks.length - 1 && !(isAwaitingUserInput && pendingInput)
@@ -403,6 +423,18 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                 pendingInput={pendingInput!}
               />
             )}
+            {isQuestionPending && currentQuestion && (
+              <AskUserQuestionBlock
+                currentQuestion={currentQuestion}
+                customText={customText}
+                isLast
+                isOtherSelected={isOtherSelected}
+                onCustomTextChange={handleQuestionCustomTextChange}
+                onSelectOption={handleQuestionSelectOption}
+                questionIndex={questionIndex}
+                selectedOption={selectedOption}
+              />
+            )}
           </Fragment>
         )}
       </BlocksContainer>
@@ -427,6 +459,19 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                 totalPatches: fileApprovalTotalPatches,
                 onApprove: handleFileApprovalApprove,
                 onReject: handleFileApprovalReject,
+              }
+            : undefined
+        }
+        questionActions={
+          isQuestionPending && currentQuestion
+            ? {
+                currentIndex: questionIndex,
+                totalQuestions,
+                canSubmit: canSubmitQuestion,
+                onNext: handleQuestionNext,
+                onBack: handleQuestionBack,
+                onMoveUp: handleQuestionMoveUp,
+                onMoveDown: handleQuestionMoveDown,
               }
             : undefined
         }

@@ -18,6 +18,16 @@ interface FileApprovalActions {
   totalPatches: number;
 }
 
+interface QuestionActions {
+  canSubmit: boolean;
+  currentIndex: number;
+  onBack: () => void;
+  onMoveDown: () => void;
+  onMoveUp: () => void;
+  onNext: () => void;
+  totalQuestions: number;
+}
+
 interface InputSectionProps {
   focusedBlockIndex: number;
   inputValue: string;
@@ -33,6 +43,7 @@ interface InputSectionProps {
   fileApprovalActions?: FileApprovalActions;
   isMinimized?: boolean;
   isVisible?: boolean;
+  questionActions?: QuestionActions;
 }
 
 function InputSection({
@@ -49,6 +60,7 @@ function InputSection({
   onKeyDown,
   textAreaRef,
   fileApprovalActions,
+  questionActions,
 }: InputSectionProps) {
   const getPlaceholder = () => {
     if (focusedBlockIndex !== -1) {
@@ -91,6 +103,46 @@ function InputSection({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [fileApprovalActions, isVisible, isMinimized]);
 
+  // Handle keyboard shortcuts for questions
+  useEffect(() => {
+    if (!questionActions || !isVisible || isMinimized) {
+      return undefined;
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if user is typing in the custom text input
+      const isTypingInCustomInput = e.target instanceof HTMLInputElement;
+
+      if (e.key === 'ArrowUp') {
+        // Always allow ArrowUp to move selection (exits custom input back to options)
+        e.preventDefault();
+        questionActions.onMoveUp();
+      } else if (e.key === 'ArrowDown' && !isTypingInCustomInput) {
+        // Only allow ArrowDown when not in custom input (nowhere to go down from "Other")
+        e.preventDefault();
+        questionActions.onMoveDown();
+      } else if (e.key === 'Enter') {
+        // Submit on Enter
+        if (questionActions.canSubmit) {
+          e.preventDefault();
+          questionActions.onNext();
+        }
+      } else if (
+        (e.key === 'Backspace' || e.key === 'Delete') &&
+        !isTypingInCustomInput
+      ) {
+        // Go back on Backspace/Delete when not typing
+        if (questionActions.currentIndex > 0) {
+          e.preventDefault();
+          questionActions.onBack();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [questionActions, isVisible, isMinimized]);
+
   // Render file approval action bar instead of entire input section
   if (fileApprovalActions) {
     const {currentIndex, totalPatches, onApprove, onReject} = fileApprovalActions;
@@ -121,6 +173,47 @@ function InputSection({
               </Button>
               <Button size="md" priority="primary" onClick={onApprove}>
                 {t('Approve')} ⏎
+              </Button>
+            </ButtonBar>
+          </Flex>
+        </Container>
+      </ActionBar>
+    );
+  }
+
+  // Render question action bar
+  if (questionActions) {
+    const {currentIndex, totalQuestions, onBack, onNext, canSubmit} = questionActions;
+    const hasMultiple = totalQuestions > 1;
+    const isLastQuestion = currentIndex >= totalQuestions - 1;
+
+    return (
+      <ActionBar
+        initial={{opacity: 0, y: 10}}
+        animate={{opacity: 1, y: 0}}
+        exit={{opacity: 0, y: 10}}
+        transition={{duration: 0.12, delay: 0.1, ease: 'easeOut'}}
+      >
+        <Container borderTop="primary" padding="md" background="secondary">
+          <Flex justify="between" align="center">
+            <Flex align="center" gap="md" paddingLeft="md">
+              <Text size="md" bold>
+                {t('Asking some questions...')}
+              </Text>
+              {hasMultiple && (
+                <Text size="md" variant="muted">
+                  {t('(%s of %s)', currentIndex + 1, totalQuestions)}
+                </Text>
+              )}
+            </Flex>
+            <ButtonBar gap="md">
+              {currentIndex > 0 && (
+                <Button size="md" onClick={onBack}>
+                  {t('Back')} ⌫
+                </Button>
+              )}
+              <Button size="md" priority="primary" onClick={onNext} disabled={!canSubmit}>
+                {isLastQuestion ? t('Submit') : t('Next')} ⏎
               </Button>
             </ButtonBar>
           </Flex>
