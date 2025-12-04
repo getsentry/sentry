@@ -77,7 +77,12 @@ export function StepsManager() {
 
   return (
     <Fragment>
-      <ConnectGithubStep provider={provider} isProviderPending={isProviderPending} />
+      <ConnectGithubStep
+        installationData={installationData}
+        isInstallationPending={isInstallationPending}
+        provider={provider}
+        isProviderPending={isProviderPending}
+      />
 
       <ConfigureCodeReviewStep
         provider={provider}

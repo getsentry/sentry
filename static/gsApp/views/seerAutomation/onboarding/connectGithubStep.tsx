@@ -5,7 +5,7 @@ import {Flex} from 'sentry/components/core/layout';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,15 +16,25 @@ import {ActionSection, MaxWidthPanel, StepContent} from './common';
 import {Steps} from './types';
 
 interface Props {
+  installationData: OrganizationIntegration[] | undefined;
+  isInstallationPending: boolean;
   isProviderPending: boolean;
   provider: IntegrationProvider | undefined;
 }
 
-export function ConnectGithubStep({isProviderPending, provider}: Props) {
+export function ConnectGithubStep({
+  installationData,
+  isInstallationPending,
+  isProviderPending,
+  provider,
+}: Props) {
   const organization = useOrganization();
   const handleAddIntegration = useCallback(() => {
     window.location.reload();
   }, []);
+  const hasInstallation = installationData?.find(
+    installation => installation.provider.key === 'github'
+  );
   return (
     <GuidedSteps.Step stepKey={Steps.CONNECT_GITHUB} title={t('Connect GitHub')}>
       <StepContent>
@@ -36,7 +46,7 @@ export function ConnectGithubStep({isProviderPending, provider}: Props) {
               )}
             </p>
             <ActionSection>
-              {!provider || isProviderPending ? (
+              {!provider || isProviderPending || isInstallationPending ? (
                 <Placeholder />
               ) : (
                 <IntegrationContext
@@ -58,8 +68,10 @@ export function ConnectGithubStep({isProviderPending, provider}: Props) {
                           onAddIntegration={handleAddIntegration}
                           onExternalClick={() => {}}
                           buttonProps={{
-                            icon: <IconAdd />,
-                            buttonText: t('Connect GitHub'),
+                            icon: hasInstallation ? <IconSettings /> : <IconAdd />,
+                            buttonText: hasInstallation
+                              ? t('Manage GitHub integration')
+                              : t('Connect GitHub'),
                             priority: 'primary',
                           }}
                         />
