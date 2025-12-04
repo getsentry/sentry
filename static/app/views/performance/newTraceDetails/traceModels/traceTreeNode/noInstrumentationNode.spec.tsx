@@ -375,7 +375,7 @@ describe('NoInstrumentationNode', () => {
 
       expect(node.makeBarColor(mockTheme as Theme)).toEqual({
         color: '#a0a0a0',
-        type: 'dark',
+        type: 'light',
       });
     });
   });
