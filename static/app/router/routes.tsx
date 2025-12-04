@@ -1234,7 +1234,7 @@ function buildRoutes(): RouteObject[] {
         {
           path: 'onboarding-v2/',
           name: t('Setup Wizard'),
-          component: make(() => import('getsentry/views/seerAutomation/onboardingNew')),
+          component: make(() => import('getsentry/views/seerAutomation/onboardingV2')),
         },
       ],
     },

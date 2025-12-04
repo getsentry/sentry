@@ -1,17 +1,16 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
-import sortBy from 'lodash/sortBy';
 
-import type {SelectOptionOrSection} from 'sentry/components/core/compactSelect';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {Flex} from 'sentry/components/core/layout/flex';
+import {Select} from 'sentry/components/core/select';
 import {Switch} from 'sentry/components/core/switch';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {IconGithub} from 'sentry/icons';
+import {IconArrow, IconRepository} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import type {SelectValue} from 'sentry/types/core';
 import type {Repository, RepositoryProjectPathConfig} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -77,53 +76,73 @@ export function RepositoryToProjectConfiguration({
     }
   }, [codeMappingsMap, repositories, repositoryProjectMappings]);
 
-  const handleProjectsChange = useCallback((repoId: string, projectSlugs: string[]) => {
-    setRepositoryProjectMappings(prev => ({
-      ...prev,
-      [repoId]: projectSlugs,
-    }));
-  }, []);
+  const handleProjectChange = useCallback(
+    (repoId: string, index: number, newValue: string | undefined) => {
+      setRepositoryProjectMappings(prev => {
+        const currentProjects = prev[repoId] || [];
+        const newProjects = [...currentProjects];
 
-  // Convert projects to options for HybridFilter
-  const projectOptions = useMemo<Array<SelectOptionOrSection<string>>>(() => {
+        if (newValue === undefined) {
+          // Remove the project at this index
+          newProjects.splice(index, 1);
+        } else if (index >= newProjects.length) {
+          // Adding a new project
+          newProjects.push(newValue);
+        } else {
+          // Replacing an existing project
+          newProjects[index] = newValue;
+        }
+
+        return {
+          ...prev,
+          [repoId]: newProjects,
+        };
+      });
+    },
+    []
+  );
+
+  // Convert projects to options for Select
+  const projectOptions = useMemo(() => {
     const getProjectItem = (project: Project) => ({
       value: project.slug,
-      label: project.slug,
-      leadingItems: (
-        <ProjectBadge project={project} avatarSize={16} hideName disableLink />
+      textValue: project.slug,
+      label: (
+        <ProjectBadge
+          project={project}
+          avatarSize={16}
+          hideOverflow
+          disableLink
+          avatarProps={{consistentWidth: true}}
+        />
       ),
     });
-
-    const listSort = (project: Project) => [!project.isBookmarked, project.slug];
 
     return nonMemberProjects.length > 0
       ? [
           {
-            key: 'my-projects',
             label: t('My Projects'),
-            options: sortBy(memberProjects, listSort).map(getProjectItem),
-            showToggleAllButton: true,
+            options: memberProjects.map(getProjectItem),
           },
           {
-            key: 'other-projects',
             label: t('Other Projects'),
-            options: sortBy(nonMemberProjects, listSort).map(getProjectItem),
+            options: nonMemberProjects.map(getProjectItem),
           },
         ]
-      : sortBy(memberProjects, listSort).map(getProjectItem);
+      : memberProjects.map(getProjectItem);
   }, [memberProjects, nonMemberProjects]);
 
   return (
     <Fragment>
       <FormField>
-        <FormFieldContent>
+        <Flex direction="column" flex="1" gap="xs">
           <FormFieldLabel>{t('Propose Fixes For Root Cause Analysis')}</FormFieldLabel>
           <FormFieldDescription>
             {t(
               'For all projects below, Seer will automatically analyze highly actionable issues, and create a root cause analysis and proposed solution without a user needing to prompt it.'
             )}
           </FormFieldDescription>
-        </FormFieldContent>
+        </Flex>
         <Switch
           size="lg"
           checked={proposeFixesEnabled}
@@ -132,12 +151,12 @@ export function RepositoryToProjectConfiguration({
       </FormField>
 
       <FormField>
-        <FormFieldContent>
+        <Flex direction="column" flex="1" gap="xs">
           <FormFieldLabel>{t('Automatic PR Creation')}</FormFieldLabel>
           <FormFieldDescription>
             {t('For all projects below, Seer will be able to make a pull request.')}
           </FormFieldDescription>
-        </FormFieldContent>
+        </Flex>
         <Switch
           size="lg"
           checked={autoCreatePREnabled}
@@ -153,7 +172,7 @@ export function RepositoryToProjectConfiguration({
             <MappingItem key={repository.id}>
               <RepositoryInputGroup>
                 <InputGroup.LeadingItems>
-                  <IconGithub size="sm" />
+                  <IconRepository size="sm" />
                 </InputGroup.LeadingItems>
                 <InputGroup.Input
                   type="text"
@@ -163,27 +182,48 @@ export function RepositoryToProjectConfiguration({
                 />
               </RepositoryInputGroup>
 
-              <ProjectSelectorWrapper>
-                <HybridFilter
-                  multiple
-                  checkboxPosition="trailing"
-                  size="sm"
-                  searchable
-                  value={selectedProjects}
-                  defaultValue={[]}
-                  onChange={projectSlugs =>
-                    handleProjectsChange(repository.id, projectSlugs)
-                  }
-                  options={projectOptions}
-                  disabled={!projectsLoaded}
-                  emptyMessage={t('No projects found')}
-                  menuTitle={t('Select Projects')}
-                  menuWidth="auto"
-                  sizeLimit={25}
-                  sizeLimitMessage={t('Use search to find more projects…')}
-                  strategy="fixed"
-                />
-              </ProjectSelectorWrapper>
+              <Arrow direction="right" size="lg" />
+
+              <Flex direction="column" gap="md" width="100%">
+                {/* Render a dropdown for each selected project */}
+                {selectedProjects.map((projectSlug, index) => (
+                  <ProjectDropdownRow key={`${repository.id}-${index}`}>
+                    <Select
+                      size="sm"
+                      searchable
+                      clearable
+                      value={projectSlug}
+                      onChange={(option: SelectValue<string> | null) =>
+                        handleProjectChange(repository.id, index, option?.value)
+                      }
+                      options={projectOptions}
+                      disabled={!projectsLoaded}
+                      noOptionsMessage={() => t('No projects found')}
+                      menuPortalTarget={document.body}
+                    />
+                  </ProjectDropdownRow>
+                ))}
+                {/* Always show one empty dropdown for adding new projects */}
+                <ProjectDropdownRow>
+                  <Select
+                    size="sm"
+                    searchable
+                    value={null}
+                    onChange={(option: SelectValue<string> | null) =>
+                      handleProjectChange(
+                        repository.id,
+                        selectedProjects.length,
+                        option?.value
+                      )
+                    }
+                    options={projectOptions}
+                    disabled={!projectsLoaded}
+                    placeholder={t('Add project')}
+                    noOptionsMessage={() => t('No projects found')}
+                    menuPortalTarget={document.body}
+                  />
+                </ProjectDropdownRow>
+              </Flex>
             </MappingItem>
           );
         })}
@@ -192,20 +232,13 @@ export function RepositoryToProjectConfiguration({
 }
 
 const FormField = styled(PanelItem)`
-  display: flex;
   align-items: start;
   justify-content: space-between;
-  gap: ${space(2)};
-  padding: ${space(2)} ${space(2)};
-`;
-
-const FormFieldContent = styled('div')`
-  flex: 1;
+  gap: ${p => p.theme.space.xl};
 `;
 
 const FormFieldLabel = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
-  margin-bottom: ${space(0.5)};
 `;
 
 const FormFieldDescription = styled('div')`
@@ -214,18 +247,23 @@ const FormFieldDescription = styled('div')`
   line-height: 1.4;
 `;
 
+// Centers the arrow vertically for the first row
+// (can't use align-items: center because projects can have multiple rows)
+const Arrow = styled(IconArrow)`
+  margin-top: ${p => p.theme.space.xs};
+`;
+
 const MappingItem = styled(PanelItem)`
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
-  align-items: center;
-  padding: ${space(2)};
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: ${p => p.theme.space.xl};
 `;
 
 const RepositoryInputGroup = styled(InputGroup)`
   width: 100%;
 `;
 
-const ProjectSelectorWrapper = styled('div')`
+const ProjectDropdownRow = styled('div')`
   width: 100%;
 `;
