@@ -86,13 +86,13 @@ export interface Organization extends OrganizationSummary {
   safeFields: string[];
   samplingMode: 'organization' | 'project';
   scrapeJavaScript: boolean;
+  scrubIPAddresses: boolean;
   sensitiveFields: string[];
   storeCrashReports: number;
   streamlineOnly: boolean | null;
   targetSampleRate: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
-  autoOpenPrs?: boolean;
   defaultAutofixAutomationTuning?:
     | 'off'
     | 'super_low'
