@@ -50,6 +50,17 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   // Get blocks from session data or empty array
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
 
+  // Find the index of the last block that has todos (for special rendering)
+  const latestTodoBlockIndex = useMemo(() => {
+    for (let i = blocks.length - 1; i >= 0; i--) {
+      const block = blocks[i];
+      if (block && Array.isArray(block.todos) && block.todos.length > 0) {
+        return i;
+      }
+    }
+    return -1;
+  }, [blocks]);
+
   useEffect(() => {
     // Focus textarea when panel opens and reset focus
     if (isVisible) {
@@ -352,6 +363,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                 block={block}
                 blockIndex={index}
                 isAwaitingFileApproval={isFileApprovalPending}
+                isLatestTodoBlock={index === latestTodoBlockIndex}
                 isLast={
                   index === blocks.length - 1 && !(isAwaitingUserInput && pendingInput)
                 }
