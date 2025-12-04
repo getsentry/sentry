@@ -419,7 +419,7 @@ Error: an error occurred`
     it('renders java example', () => {
       expect(displayRawContent({data, platform: 'java', exception})).toBe(
         `example.application.Error: an error occurred
-    at example.application.doThing3
+    at example.application.doThing3(:12)
     at example.application.(src/application.code:1)
     at doThing1(src/application.code:5)
     at example.application.main(src/application.code:1)`
