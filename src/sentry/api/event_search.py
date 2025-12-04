@@ -283,8 +283,10 @@ def wrap_free_text(string: str, autowrap: bool) -> str:
     if string.startswith("*") or string.endswith("*"):
         return string
     # Otherwise always wrap it with wildcarding
+    if string.startswith('"') and string.endswith('"'):
+        return string
     else:
-        return f"*{string}*"
+        return f"*{string.replace(" ", "*")}*"
 
 
 def translate_escape_sequences(string: str) -> str:
