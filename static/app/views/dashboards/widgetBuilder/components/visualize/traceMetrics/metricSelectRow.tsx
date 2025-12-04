@@ -1,20 +1,13 @@
 import cloneDeep from 'lodash/cloneDeep';
 
-import {t} from 'sentry/locale';
+import {type QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
-  type AggregationKeyWithAlias,
-  type QueryFieldValue,
-} from 'sentry/utils/discover/fields';
-import {DisplayType} from 'sentry/views/dashboards/types';
-import {
-  AggregateCompactSelect,
   GroupedSelectControl,
   PrimarySelectRow,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize';
-import {renderDropdownMenuFooter} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
+import {AggregateSelector} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/aggregateSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 
 export function MetricSelectRow({
@@ -33,7 +26,6 @@ export function MetricSelectRow({
       ? {name: field.function[2], type: field.function[3]}
       : (state.traceMetrics?.[index] ?? {name: '', type: ''});
 
-  const aggregateOptions = OPTIONS_BY_TYPE[traceMetric?.type ?? ''] ?? [];
   return (
     <PrimarySelectRow hasColumnParameter={false} isTraceMetrics>
       <GroupedSelectControl fullWidth>
@@ -66,42 +58,11 @@ export function MetricSelectRow({
         />
       </GroupedSelectControl>
       <GroupedSelectControl fullWidth={false}>
-        <AggregateCompactSelect
-          searchable
-          hasColumnParameter={false}
-          disabled={disabled || aggregateOptions.length <= 1}
-          options={aggregateOptions}
-          value={
-            state.yAxis?.[index]?.kind === 'function'
-              ? (state.yAxis?.[index]?.function?.[0] ?? '')
-              : ''
-          }
-          position="bottom-start"
-          menuFooter={
-            state.displayType === DisplayType.TABLE ? renderDropdownMenuFooter : undefined
-          }
-          onChange={option => {
-            if (field.kind === 'function' || !field) {
-              const newYAxes = cloneDeep(state.yAxis) ?? [];
-              newYAxes[index] = {
-                function: [
-                  option.value as AggregationKeyWithAlias,
-                  'value',
-                  undefined,
-                  undefined,
-                ],
-                alias: undefined,
-                kind: 'function',
-              };
-              dispatch({
-                type: BuilderStateAction.SET_Y_AXIS,
-                payload: newYAxes,
-              });
-            }
-          }}
-          triggerProps={{
-            'aria-label': t('Aggregate Selection'),
-          }}
+        <AggregateSelector
+          disabled={disabled}
+          traceMetric={traceMetric}
+          field={field}
+          index={index}
         />
       </GroupedSelectControl>
     </PrimarySelectRow>
