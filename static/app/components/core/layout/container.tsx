@@ -110,6 +110,7 @@ export type ContainerElement =
   | 'figure'
   | 'footer'
   | 'header'
+  | 'label'
   | 'li'
   | 'main'
   | 'nav'
