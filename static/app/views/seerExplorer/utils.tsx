@@ -1,5 +1,7 @@
 import type {LocationDescriptor} from 'history';
 
+import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import type {Block, ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
 
 /**
@@ -51,6 +53,12 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       return isLoading
         ? `Searching for errors${projectInfo}: '${question}'...`
         : `Searched for errors${projectInfo}: '${question}'`;
+    }
+
+    if (dataset === 'logs') {
+      return isLoading
+        ? `Querying logs${projectInfo}: '${question}'...`
+        : `Queried logs${projectInfo}: '${question}'`;
     }
 
     // Default to spans
@@ -446,6 +454,36 @@ export function buildToolLinkUrl(
 
         return {
           pathname: `/organizations/${orgSlug}/explore/discover/homepage/`,
+          query: queryParams,
+        };
+      }
+
+      if (dataset === 'logs') {
+        const queryParams: Record<string, any> = {
+          [LOGS_QUERY_KEY]: query || '',
+          project: null,
+        };
+
+        if (stats_period) {
+          queryParams.statsPeriod = stats_period;
+        }
+
+        // If project_slugs is provided, look up the project IDs
+        if (project_slugs && project_slugs.length > 0 && projects) {
+          const projectIds = project_slugs
+            .map((slug: string) => projects.find(p => p.slug === slug)?.id)
+            .filter((id: string | undefined) => id !== undefined);
+          if (projectIds.length > 0) {
+            queryParams.project = projectIds;
+          }
+        }
+
+        if (sort) {
+          queryParams[LOGS_SORT_BYS_KEY] = sort;
+        }
+
+        return {
+          pathname: `/organizations/${orgSlug}/explore/logs/`,
           query: queryParams,
         };
       }
