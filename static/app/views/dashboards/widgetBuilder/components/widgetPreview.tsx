@@ -137,6 +137,7 @@ function WidgetPreview({
       onWidgetTableSort={handleWidgetTableSort}
       onWidgetTableResizeColumn={handleWidgetTableResizeColumn}
       disableTableActions
+      useTimeseriesVisualization
     />
   );
 }

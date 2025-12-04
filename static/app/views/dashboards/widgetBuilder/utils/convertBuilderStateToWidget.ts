@@ -22,17 +22,34 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     defined(state.legendAlias) && state.legendAlias.length > 0 ? state.legendAlias : [];
 
   const fieldAliases = state.fields?.map(field => field.alias ?? '');
-  const aggregates =
-    (state.yAxis?.length ?? 0) > 0
-      ? state.yAxis?.map(generateFieldAsString)
-      : state.fields
-          ?.filter(field =>
-            [FieldValueKind.FUNCTION, FieldValueKind.EQUATION].includes(
-              field.kind as FieldValueKind
-            )
+  let aggregates = [];
+  if ((state.yAxis?.length ?? 0) > 0) {
+    if (state.dataset === WidgetType.TRACEMETRICS) {
+      // HACK: Inject the trace metric name and type into the aggregate function
+      // prior to making the request because the current types for y-axes do not support
+      // the correct number of arguments required for trace metrics
+      aggregates =
+        state.yAxis?.map((axis, index) => {
+          const traceMetric = state.traceMetrics?.[index] ?? {name: '', type: ''};
+          if (axis.kind === 'function') {
+            return `${axis.function[0]}(value,${traceMetric.name},${traceMetric.type},-)`;
+          }
+          return axis.field;
+        }) ?? [];
+    } else {
+      aggregates = state.yAxis?.map(generateFieldAsString) ?? [];
+    }
+  } else {
+    aggregates =
+      state.fields
+        ?.filter(field =>
+          [FieldValueKind.FUNCTION, FieldValueKind.EQUATION].includes(
+            field.kind as FieldValueKind
           )
-          .map(generateFieldAsString)
-          .filter(Boolean);
+        )
+        .map(generateFieldAsString)
+        .filter(Boolean) ?? [];
+  }
   const columns = state.fields
     ?.filter(field => field.kind === FieldValueKind.FIELD)
     .map(generateFieldAsString)

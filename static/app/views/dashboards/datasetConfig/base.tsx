@@ -45,6 +45,7 @@ export type WidgetBuilderSearchBarProps = {
   widgetQuery: WidgetQuery;
   dataset?: DiscoverDatasets;
   disabled?: boolean;
+  index?: number;
   portalTarget?: HTMLElement | null;
 };
 

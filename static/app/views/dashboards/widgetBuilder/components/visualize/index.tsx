@@ -686,7 +686,11 @@ function Visualize({error, setError}: VisualizeProps) {
                           ) : (
                             <Fragment>
                               {state.dataset === WidgetType.TRACEMETRICS ? (
-                                <MetricSelectRow disabled={disableTransactionWidget} />
+                                <MetricSelectRow
+                                  disabled={disableTransactionWidget}
+                                  field={field}
+                                  index={index}
+                                />
                               ) : (
                                 <SelectRow
                                   field={field}

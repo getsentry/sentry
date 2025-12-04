@@ -1,29 +1,18 @@
 import pickBy from 'lodash/pickBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
-import type {Client} from 'sentry/api';
+import type {ApiResult, Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
-import toArray from 'sentry/utils/array/toArray';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {
-  doDiscoverQuery,
-  type DiscoverQueryExtras,
-  type DiscoverQueryRequestParams,
-} from 'sentry/utils/discover/genericDiscoverQuery';
+import {parseFunction, type QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   handleOrderByReset,
@@ -32,17 +21,12 @@ import {
   type SearchBarDataProviderProps,
   type WidgetBuilderSearchBarProps,
 } from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  getTableSortOptions,
-  getTimeseriesSortOptions,
-  transformEventsResponseToTable,
-} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import {getTimeseriesSortOptions} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
-import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -83,7 +67,12 @@ function TraceMetricsSearchBar({
   } = usePageFilters();
   const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
   const {state: widgetBuilderState} = useWidgetBuilderContext();
-  const traceMetric = widgetBuilderState.traceMetric;
+
+  // TODO: Make decision on how filtering works with multiple trace metrics
+  // We should probably limit it to only one metric for now because there's no way
+  // to filter by multiple metrics at the same time, unless the filter _ONLY_ includes
+  // tags for both metrics.
+  const traceMetric = widgetBuilderState.traceMetrics?.[0];
 
   // TODO: Implement proper trace metrics attributes
   const traceItemAttributeConfig = {
@@ -150,10 +139,7 @@ function useTraceMetricsSearchBarDataProvider(
   };
 }
 
-export const TraceMetricsConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
-  TableData | EventsTableData
-> = {
+export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> = {
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
@@ -163,50 +149,28 @@ export const TraceMetricsConfig: DatasetConfig<
   filterYAxisOptions,
   filterSeriesSortOptions,
   getTableFieldOptions: getPrimaryFieldOptions,
-  getTableSortOptions,
+  // TODO: For some reason the aggregate isn't included in the sort options, add it.
   getTimeseriesSortOptions: (organization, widgetQuery, tags) =>
     getTimeseriesSortOptions(organization, widgetQuery, tags, getPrimaryFieldOptions),
   getGroupByFieldOptions,
   handleOrderByReset,
-  supportedDisplayTypes: [
-    DisplayType.AREA,
-    DisplayType.BAR,
-    DisplayType.BIG_NUMBER,
-    DisplayType.LINE,
-    DisplayType.TABLE,
-    DisplayType.TOP_N,
-  ],
-  getTableRequest: (
-    api: Client,
-    _widget: Widget,
-    query: WidgetQuery,
-    organization: Organization,
-    pageFilters: PageFilters,
-    _onDemandControlContext?: OnDemandControlContext,
-    limit?: number,
-    cursor?: string,
-    referrer?: string,
-    _mepSetting?: MEPState | null,
-    samplingMode?: SamplingMode,
-    queryExtras?: DiscoverQueryExtras
-  ) => {
-    // TODO: Implement actual trace metrics request logic
-    return getEventsRequest(
-      api,
-      query,
-      organization,
-      pageFilters,
-      limit,
-      cursor,
-      referrer,
-      undefined,
-      queryExtras,
-      samplingMode
-    );
-  },
+  supportedDisplayTypes: [DisplayType.AREA, DisplayType.BAR, DisplayType.LINE],
   getSeriesRequest,
-  transformTable: transformEventsResponseToTable,
-  transformSeries: transformEventsResponseToSeries,
+  transformTable: () => ({data: []}),
+  transformSeries: (data, _widgetQuery) =>
+    data.timeSeries.map(timeSeries => {
+      const func = parseFunction(timeSeries.yAxis);
+      if (func) {
+        timeSeries.yAxis = `${func.name}(…)`;
+      }
+      return {
+        data: timeSeries.values.map(value => ({
+          name: value.timestamp / 1000, // Account for nanoseconds to milliseconds precision
+          value: value.value ?? 0,
+        })),
+        seriesName: formatTimeSeriesLabel(timeSeries),
+      };
+    }),
   filterAggregateParams,
   getCustomFieldRenderer: (field, meta, _organization) => {
     return getFieldRenderer(field, meta, false);
@@ -265,51 +229,6 @@ function filterYAxisOptions() {
   };
 }
 
-function getEventsRequest(
-  api: Client,
-  query: WidgetQuery,
-  organization: Organization,
-  pageFilters: PageFilters,
-  limit?: number,
-  cursor?: string,
-  referrer?: string,
-  _mepSetting?: MEPState | null,
-  queryExtras?: DiscoverQueryExtras,
-  samplingMode?: SamplingMode
-) {
-  // TODO: Update to use appropriate dataset for trace metrics
-  const url = `/organizations/${organization.slug}/events/`;
-  const eventView = eventViewFromWidget('', query, pageFilters);
-
-  const params: DiscoverQueryRequestParams = {
-    per_page: limit,
-    cursor,
-    referrer,
-    dataset: DiscoverDatasets.TRACEMETRICS,
-    ...queryExtras,
-  };
-
-  if (query.orderby) {
-    params.sort = toArray(query.orderby);
-  }
-
-  return doDiscoverQuery<EventsTableData>(
-    api,
-    url,
-    {
-      ...eventView.generateQueryStringObject(),
-      ...params,
-      ...(samplingMode ? {sampling: samplingMode} : {}),
-    },
-    {
-      retry: {
-        statusCodes: [429],
-        tries: 10,
-      },
-    }
-  );
-}
-
 function getGroupByFieldOptions(
   organization: Organization,
   tags?: TagCollection,
@@ -347,11 +266,26 @@ function getSeriesRequest(
     referrer
   );
 
+  requestData.generatePathname = () =>
+    `/organizations/${organization.slug}/events-timeseries/`;
+
+  if (
+    [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(widget.displayType) &&
+    (widget.queries[0]?.columns?.length ?? 0) > 0
+  ) {
+    requestData.queryExtras = {
+      ...requestData.queryExtras,
+      groupBy: widget.queries[0]!.columns,
+    };
+  }
+
   if (samplingMode) {
     requestData.sampling = samplingMode;
   }
 
-  return doEventsRequest<true>(api, requestData);
+  return doEventsRequest<true>(api, requestData) as unknown as Promise<
+    ApiResult<EventsTimeSeriesResponse>
+  >;
 }
 
 function filterSeriesSortOptions(columns: Set<string>) {
