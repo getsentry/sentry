@@ -4,7 +4,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 import {
-  isMissingInstrumentationNode,
+  isNoInstrumentationNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
   isSpanNode,
@@ -1926,7 +1926,7 @@ describe('TraceTree', () => {
       TraceTree.DetectMissingInstrumentation(tree.root);
 
       const missingInstrumentationNode = tree.root.findChild(node =>
-        isMissingInstrumentationNode(node)
+        isNoInstrumentationNode(node)
       )!;
 
       const path = missingInstrumentationNode.pathToNode();

@@ -373,7 +373,10 @@ describe('NoInstrumentationNode', () => {
         gray300: '#a0a0a0',
       };
 
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#a0a0a0');
+      expect(node.makeBarColor(mockTheme as Theme)).toEqual({
+        color: '#a0a0a0',
+        type: 'dark',
+      });
     });
   });
 

@@ -100,8 +100,8 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
     return this.findParent(p => !!p.projectSlug)?.projectSlug ?? 'default';
   }
 
-  makeBarColor(theme: Theme): string {
-    return pickBarColor(this.op, theme);
+  makeBarColor(theme: Theme): {color: string; type: 'light' | 'dark'} {
+    return {color: pickBarColor(this.op, theme), type: 'dark'};
   }
 
   analyticsName(): string {

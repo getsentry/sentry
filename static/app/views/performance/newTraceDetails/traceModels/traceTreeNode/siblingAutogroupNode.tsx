@@ -91,12 +91,12 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
     return this.op?.includes(query) || this.description?.includes(query);
   }
 
-  makeBarColor(theme: Theme): string {
+  makeBarColor(theme: Theme): {color: string; type: 'light' | 'dark'} {
     if (this.errors.size > 0) {
-      return theme.red300;
+      return {color: theme.red300, type: 'dark'};
     }
 
-    return theme.blue300;
+    return {color: theme.blue300, type: 'dark'};
   }
 
   resolveValueFromSearchKey(_key: string): any | null {

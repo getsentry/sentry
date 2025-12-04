@@ -197,10 +197,11 @@ describe('UptimeCheckTimingNode', () => {
 
       const node = new UptimeCheckTimingNode(null, timingValue, extra);
 
-      const color = node.makeBarColor(ThemeFixture());
+      const result = node.makeBarColor(ThemeFixture());
 
-      expect(color).toBeDefined();
-      expect(typeof color).toBe('string');
+      expect(result.color).toBeDefined();
+      expect(typeof result.color).toBe('string');
+      expect(result.type).toBe('dark');
     });
   });
 });

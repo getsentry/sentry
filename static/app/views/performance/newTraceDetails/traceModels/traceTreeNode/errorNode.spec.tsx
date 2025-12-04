@@ -476,7 +476,10 @@ describe('ErrorNode', () => {
       const node = new ErrorNode(null, value, extra);
 
       // ErrorNode specifically returns red300 for errors, not theme.level.error
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
+      expect(node.makeBarColor(mockTheme as Theme)).toEqual({
+        color: '#ff6b6b',
+        type: 'dark',
+      });
     });
 
     it('should return red300 for fatal level (overriding theme.level.fatal)', () => {
@@ -489,7 +492,10 @@ describe('ErrorNode', () => {
       const node = new ErrorNode(null, value, extra);
 
       // ErrorNode specifically returns red300 for fatal, not theme.level.fatal
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
+      expect(node.makeBarColor(mockTheme as Theme)).toEqual({
+        color: '#ff6b6b',
+        type: 'dark',
+      });
     });
 
     it('should return theme level color for warning', () => {
@@ -501,7 +507,10 @@ describe('ErrorNode', () => {
 
       const node = new ErrorNode(null, value, extra);
 
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ffa502');
+      expect(node.makeBarColor(mockTheme as Theme)).toEqual({
+        color: '#ffa502',
+        type: 'dark',
+      });
     });
 
     it('should return theme level color for info', () => {
@@ -513,7 +522,10 @@ describe('ErrorNode', () => {
 
       const node = new ErrorNode(null, value, extra);
 
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#3742fa');
+      expect(node.makeBarColor(mockTheme as Theme)).toEqual({
+        color: '#3742fa',
+        type: 'dark',
+      });
     });
 
     it('should return theme level color for sample', () => {
@@ -525,7 +537,10 @@ describe('ErrorNode', () => {
 
       const node = new ErrorNode(null, value, extra);
 
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
+      expect(node.makeBarColor(mockTheme as Theme)).toEqual({
+        color: '#ff6b6b',
+        type: 'dark',
+      });
     });
 
     it('should return red fallback for level not in theme.level', () => {
@@ -537,7 +552,10 @@ describe('ErrorNode', () => {
 
       const node = new ErrorNode(null, value, extra);
 
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
+      expect(node.makeBarColor(mockTheme as Theme)).toEqual({
+        color: '#ff6b6b',
+        type: 'dark',
+      });
     });
 
     it('should return red fallback for undefined level', () => {
@@ -549,7 +567,10 @@ describe('ErrorNode', () => {
 
       const node = new ErrorNode(null, value, extra);
 
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
+      expect(node.makeBarColor(mockTheme as Theme)).toEqual({
+        color: '#ff6b6b',
+        type: 'dark',
+      });
     });
 
     it('should handle EAPError levels correctly', () => {
@@ -566,8 +587,14 @@ describe('ErrorNode', () => {
       const warningNode = new ErrorNode(null, warningValue, extra);
       const errorNode = new ErrorNode(null, errorValue, extra);
 
-      expect(warningNode.makeBarColor(mockTheme as Theme)).toBe('#ffa502');
-      expect(errorNode.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b'); // red300 for error
+      expect(warningNode.makeBarColor(mockTheme as Theme)).toEqual({
+        color: '#ffa502',
+        type: 'dark',
+      });
+      expect(errorNode.makeBarColor(mockTheme as Theme)).toEqual({
+        color: '#ff6b6b',
+        type: 'dark',
+      }); // red300 for error
     });
 
     it('should prioritize red300 over theme.level for error/fatal', () => {
@@ -593,8 +620,14 @@ describe('ErrorNode', () => {
       const fatalNode = new ErrorNode(null, fatalValue, extra);
 
       // Should use red300, not theme.level colors
-      expect(errorNode.makeBarColor(themeWithDifferentColors)).toBe('#custom-red');
-      expect(fatalNode.makeBarColor(themeWithDifferentColors)).toBe('#custom-red');
+      expect(errorNode.makeBarColor(themeWithDifferentColors)).toEqual({
+        color: '#custom-red',
+        type: 'dark',
+      });
+      expect(fatalNode.makeBarColor(themeWithDifferentColors)).toEqual({
+        color: '#custom-red',
+        type: 'dark',
+      });
     });
   });
 });

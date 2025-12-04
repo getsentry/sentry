@@ -495,8 +495,8 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   /**
    * Makes the color of the node's bar in the waterfall.
    */
-  makeBarColor(theme: Theme): string {
-    return pickBarColor('default', theme);
+  makeBarColor(theme: Theme): {color: string; type: 'light' | 'dark'} {
+    return {color: pickBarColor('default', theme), type: 'dark'};
   }
 
   /**

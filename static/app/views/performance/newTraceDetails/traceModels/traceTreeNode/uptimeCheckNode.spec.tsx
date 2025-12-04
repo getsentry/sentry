@@ -335,10 +335,11 @@ describe('UptimeCheckNode', () => {
       const parentNode = new RootNode(null, null, extra);
       const node = new UptimeCheckNode(parentNode, uptimeValue, extra);
 
-      const color = node.makeBarColor(ThemeFixture());
+      const result = node.makeBarColor(ThemeFixture());
 
-      expect(color).toBeDefined();
-      expect(typeof color).toBe('string');
+      expect(result.color).toBeDefined();
+      expect(typeof result.color).toBe('string');
+      expect(result.type).toBe('dark');
     });
   });
 });
