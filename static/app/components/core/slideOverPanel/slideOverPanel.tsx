@@ -42,8 +42,8 @@ type SlideOverPanelProps = {
    */
   onOpen?: () => void;
   panelWidth?: string;
+  position?: 'right' | 'bottom' | 'left';
   ref?: React.Ref<HTMLDivElement>;
-  slidePosition?: 'right' | 'bottom' | 'left';
   /**
    * A Framer Motion `Transition` object that specifies the transition properties that apply when the panel opens and closes.
    */
@@ -57,7 +57,7 @@ export function SlideOverPanel({
   children,
   className,
   onOpen,
-  slidePosition,
+  position,
   transitionProps = {},
   panelWidth,
   ref,
@@ -100,11 +100,9 @@ export function SlideOverPanel({
     isOpening: isOpen !== isContentVisible && !isContentVisible,
   };
 
-  const openStyle = slidePosition ? OPEN_STYLES[slidePosition] : OPEN_STYLES.right;
+  const openStyle = position ? OPEN_STYLES[position] : OPEN_STYLES.right;
 
-  const collapsedStyle = slidePosition
-    ? COLLAPSED_STYLES[slidePosition]
-    : COLLAPSED_STYLES.right;
+  const collapsedStyle = position ? COLLAPSED_STYLES[position] : COLLAPSED_STYLES.right;
 
   return isOpen ? (
     <_SlideOverPanel
@@ -112,7 +110,7 @@ export function SlideOverPanel({
       initial={collapsedStyle}
       animate={openStyle}
       exit={collapsedStyle}
-      slidePosition={slidePosition}
+      slidePosition={position}
       transition={{
         ...theme.motion.framer.spring.moderate,
         ...transitionProps,

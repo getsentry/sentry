@@ -96,7 +96,7 @@ export function AppSizeInsightsSidebar({
       </AnimatePresence>
       <SlideOverPanel
         open={isOpen}
-        slidePosition="right"
+        position="right"
         panelWidth={`${constrainedWidth}px`}
         ariaLabel={t('App size insights details')}
       >

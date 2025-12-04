@@ -74,7 +74,7 @@ function DrawerPanel({
       <DrawerWidthContext.Provider value={actualDrawerWidth}>
         <DrawerSlidePanel
           ariaLabel={ariaLabel}
-          slidePosition="right"
+          position="right"
           open
           ref={mergeRefs(panelRef, ref)}
           transitionProps={transitionProps}
