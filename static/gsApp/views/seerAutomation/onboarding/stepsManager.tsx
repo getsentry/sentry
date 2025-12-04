@@ -77,9 +77,8 @@ export function StepsManager() {
 
   return (
     <Fragment>
-      {/* Step 1: Connect GitHub */}
       <ConnectGithubStep provider={provider} isProviderPending={isProviderPending} />
-      {/* Step 2: Configure AI Code Review */}
+
       <ConfigureCodeReviewStep
         provider={provider}
         repositories={repositories}
@@ -87,10 +86,9 @@ export function StepsManager() {
         selectedRepositoriesMap={selectedRepositoriesMap}
         onRepositorySelectionChange={handleRepositorySelectionChange}
       />
-      {/* Step 3: Configure Root Cause Analysis */}
+
       <ConfigureRootCauseAnalysisStep selectedRepositories={selectedRepositories} />
 
-      {/* Step 5: Next Steps */}
       <NextStepsStep repositories={repositories} />
     </Fragment>
   );
