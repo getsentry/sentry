@@ -119,7 +119,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         return {
             "name": depot_path,
             "external_id": data["external_id"],
-            "url": f"p4://{depot_path}",
+            "url": f"p4:{depot_path}",
             "config": {
                 "depot_path": depot_path,
                 "name": depot_path,
