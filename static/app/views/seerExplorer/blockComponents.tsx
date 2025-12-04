@@ -322,7 +322,7 @@ function BlockComponent({
           ) : (
             <BlockRow>
               <ResponseDot
-                status={getToolStatus(block, isAwaitingFileApproval)}
+                status={getToolStatus(block)}
                 hasOnlyTools={!hasContent && hasTools}
               />
               <BlockContentWrapper hasOnlyTools={!hasContent && hasTools}>
