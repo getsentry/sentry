@@ -501,7 +501,7 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
 
         # Test get_organization_config returns form schema
         org_config = installation.get_organization_config()
-        assert len(org_config) == 7  # 7 configuration fields (added auth_type)
+        assert len(org_config) == 7  # 7 configuration fields
         field_names = {field["name"] for field in org_config}
         assert field_names == {
             "p4port",
@@ -515,9 +515,13 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
 
         # Verify field types
         field_types = {field["name"]: field["type"] for field in org_config}
-        assert field_types["password"] == "secret"
         assert field_types["p4port"] == "string"
         assert field_types["user"] == "string"
+        assert field_types["auth_type"] == "choice"
+        assert field_types["password"] == "secret"
+        assert field_types["ssl_fingerprint"] == "string"
+        assert field_types["client"] == "string"
+        assert field_types["web_url"] == "string"
 
         # Test get_config_data returns current values
         config_data = installation.get_config_data()

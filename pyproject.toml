@@ -445,6 +445,7 @@ module = [
     "sentry.integrations.msteams.handlers.*",
     "sentry.integrations.opsgenie.handlers.*",
     "sentry.integrations.pagerduty.*",
+    "sentry.integrations.perforce.*",
     "sentry.integrations.project_management.*",
     "sentry.integrations.repository.*",
     "sentry.integrations.services.*",
