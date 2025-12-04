@@ -677,7 +677,7 @@ describe('WidgetBuilderSlideout', () => {
         router: RouterFixture({
           location: LocationFixture({
             query: {
-              dataset: WidgetType.SPANS,
+              dataset: WidgetType.ISSUE,
               displayType: DisplayType.LINE,
             },
           }),
