@@ -15,12 +15,12 @@ from sentry.testutils.silo import create_test_regions, region_silo_test
 
 
 # Pydantic models for tool parameters
-class TestCustomToolParams(BaseModel):
+class CustomToolParams(BaseModel):
     message: str = Field(description="Message to repeat")
     count: int = Field(default=1, description="Number of times")
 
 
-class TestToolWithDefaultParams(BaseModel):
+class ToolWithDefaultParams(BaseModel):
     value: str = Field(description="Value")
     suffix: str = Field(default="!", description="Suffix")
 
@@ -45,27 +45,27 @@ class ProcessItemsParams(BaseModel):
 
 
 # Test helper tool classes (defined in module scope so they can be imported by call_custom_tool)
-class TestCustomTool(ExplorerTool[TestCustomToolParams]):
-    params_model = TestCustomToolParams
+class SampleCustomTool(ExplorerTool[CustomToolParams]):
+    params_model = CustomToolParams
 
     @classmethod
     def get_description(cls) -> str:
         return "A test tool"
 
     @classmethod
-    def execute(cls, organization, params: TestCustomToolParams) -> str:
+    def execute(cls, organization, params: CustomToolParams) -> str:
         return params.message * params.count
 
 
-class TestToolWithDefault(ExplorerTool[TestToolWithDefaultParams]):
-    params_model = TestToolWithDefaultParams
+class SampleToolWithDefault(ExplorerTool[ToolWithDefaultParams]):
+    params_model = ToolWithDefaultParams
 
     @classmethod
     def get_description(cls) -> str:
         return "Test tool with default parameter"
 
     @classmethod
-    def execute(cls, organization, params: TestToolWithDefaultParams) -> str:
+    def execute(cls, organization, params: ToolWithDefaultParams) -> str:
         return params.value + params.suffix
 
 
@@ -182,7 +182,7 @@ class CustomToolUtilsTest(TestCase):
     def test_call_custom_tool_success(self):
         """Test calling a custom tool successfully."""
         # Use test tool from this test module
-        module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.TestCustomTool"
+        module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.SampleCustomTool"
 
         # Call via the utility function
         result = call_custom_tool(
@@ -196,7 +196,7 @@ class CustomToolUtilsTest(TestCase):
 
     def test_call_custom_tool_with_optional_param(self):
         """Test calling a custom tool with default parameter."""
-        module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.TestToolWithDefault"
+        module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.SampleToolWithDefault"
         result = call_custom_tool(
             module_path=module_path,
             allowed_prefixes=("sentry.", "tests.sentry."),
