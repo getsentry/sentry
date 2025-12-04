@@ -6,11 +6,20 @@ from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
 
 from django import forms
+from django.http import HttpRequest, HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
-from sentry.integrations.base import FeatureDescription, IntegrationFeatures, IntegrationMetadata
+from sentry.integrations.base import (
+    FeatureDescription,
+    IntegrationData,
+    IntegrationFeatures,
+    IntegrationMetadata,
+    IntegrationProvider,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.perforce.client import PerforceClient
+from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.repository import Repository
