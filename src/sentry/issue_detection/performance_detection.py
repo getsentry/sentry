@@ -249,11 +249,6 @@ def get_detection_settings(
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
-        DetectorType.EXPERIMENTAL_N_PLUS_ONE_DB_QUERIES: {
-            "count": settings["n_plus_one_db_count"],
-            "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
-            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
-        },
         DetectorType.CONSECUTIVE_DB_OP: {
             # time saved by running all queries in parallel
             "min_time_saved": settings["consecutive_db_min_time_saved_threshold"],  # ms
@@ -281,22 +276,7 @@ def get_detection_settings(
             "allowed_span_ops": ["http.client"],
             "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
         },
-        DetectorType.EXPERIMENTAL_N_PLUS_ONE_API_CALLS: {
-            "total_duration": settings["n_plus_one_api_calls_total_duration_threshold"],  # ms
-            "concurrency_threshold": 15,  # ms
-            "count": 5,
-            "allowed_span_ops": ["http.client"],
-            "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
-        },
         DetectorType.M_N_PLUS_ONE_DB: {
-            "total_duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
-            "minimum_occurrences_of_pattern": 3,
-            "max_sequence_length": 8,
-            "max_allowable_depth": 3,  # This should not be user-configurable, to avoid O(n^2) complexity and load issues.
-            "min_percentage_of_db_spans": 0.05,
-            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
-        },
-        DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES: {
             "total_duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "minimum_occurrences_of_pattern": 3,
             "max_sequence_length": 8,
