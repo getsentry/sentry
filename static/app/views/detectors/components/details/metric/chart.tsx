@@ -173,7 +173,7 @@ export function useMetricDetectorChart({
     extrapolationMode: snubaQuery.extrapolationMode,
     aggregate,
     interval: snubaQuery.timeWindow,
-    query: snubaQuery.query,
+    query: datasetConfig.toSnubaQueryString(snubaQuery),
     environment: snubaQuery.environment,
     projectId: detector.projectId,
     eventTypes: snubaQuery.eventTypes,
