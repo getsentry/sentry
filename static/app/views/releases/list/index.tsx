@@ -6,12 +6,8 @@ import {fetchTagValues} from 'sentry/actionCreators/tags';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ReleasesSortOption} from 'sentry/constants/releases';
@@ -334,16 +330,6 @@ export default function ReleasesList() {
               selectedProject={selectedProject}
               selection={selection}
             />
-            <ReleasesPageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter
-                disallowArbitraryRelativeRanges
-                menuFooterMessage={t(
-                  'Changing this date range will recalculate the release metrics. Select a supported date range from the options above.'
-                )}
-              />
-            </ReleasesPageFilterBar>
 
             {shouldShowQuickstart ? null : (
               <SortAndFilterWrapper>
@@ -404,10 +390,6 @@ export default function ReleasesList() {
     </PageFiltersContainer>
   );
 }
-
-const ReleasesPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(2)};
-`;
 
 const SortAndFilterWrapper = styled('div')`
   display: grid;
