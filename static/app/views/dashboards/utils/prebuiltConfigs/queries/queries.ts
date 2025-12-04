@@ -11,7 +11,7 @@ import {
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-const BASE_FILTERS = {
+export const BASE_FILTERS = {
   [SpanFields.SPAN_CATEGORY]: ModuleName.DB,
   has: SpanFields.NORMALIZED_DESCRIPTION,
 };
