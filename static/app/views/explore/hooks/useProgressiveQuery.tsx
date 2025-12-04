@@ -1,4 +1,5 @@
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 export const SAMPLING_MODE = {
   NORMAL: 'NORMAL',
@@ -23,10 +24,10 @@ export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
 export type RPCQueryExtras = {
   caseInsensitive?: CaseInsensitive;
   disableAggregateExtrapolation?: string;
-  logQuery?: string[];
-  metricQuery?: string[];
+  logQuery?: Array<MutableSearch | string>;
+  metricQuery?: Array<MutableSearch | string>;
   samplingMode?: SamplingMode;
-  spanQuery?: string[];
+  spanQuery?: Array<MutableSearch | string>;
 };
 
 interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {

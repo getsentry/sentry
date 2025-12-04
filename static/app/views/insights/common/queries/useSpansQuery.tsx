@@ -12,6 +12,7 @@ import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuer
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {keepPreviousData as keepPreviousDataFn} from 'sentry/utils/queryClient';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -130,12 +131,12 @@ type WrappedDiscoverTimeseriesQueryProps = {
   cursor?: string;
   enabled?: boolean;
   initialData?: any;
-  logQuery?: string[];
-  metricQuery?: string[];
+  logQuery?: Array<MutableSearch | string>;
+  metricQuery?: Array<MutableSearch | string>;
   overriddenRoute?: string;
   referrer?: string;
   samplingMode?: SamplingMode;
-  spanQuery?: string[];
+  spanQuery?: Array<MutableSearch | string>;
 };
 
 function useWrappedDiscoverTimeseriesQueryBase<T>({
@@ -251,13 +252,13 @@ type WrappedDiscoverQueryProps<T> = {
   initialData?: T;
   keepPreviousData?: boolean;
   limit?: number;
-  logQuery?: string[];
-  metricQuery?: string[];
+  logQuery?: Array<MutableSearch | string>;
+  metricQuery?: Array<MutableSearch | string>;
   noPagination?: boolean;
   referrer?: string;
   refetchInterval?: number;
   samplingMode?: SamplingMode;
-  spanQuery?: string[];
+  spanQuery?: Array<MutableSearch | string>;
 };
 
 function useWrappedDiscoverQueryBase<T>({
@@ -305,15 +306,21 @@ function useWrappedDiscoverQueryBase<T>({
   }
 
   if (Array.isArray(logQuery) && logQuery.length > 0) {
-    queryExtras.logQuery = logQuery;
+    queryExtras.logQuery = logQuery.map(query =>
+      query instanceof MutableSearch ? query.formatString() : query
+    );
   }
 
   if (Array.isArray(metricQuery) && metricQuery.length > 0) {
-    queryExtras.metricQuery = metricQuery;
+    queryExtras.metricQuery = metricQuery.map(query =>
+      query instanceof MutableSearch ? query.formatString() : query
+    );
   }
 
   if (Array.isArray(spanQuery) && spanQuery.length > 0) {
-    queryExtras.spanQuery = spanQuery;
+    queryExtras.spanQuery = spanQuery.map(query =>
+      query instanceof MutableSearch ? query.formatString() : query
+    );
   }
 
   if (allowAggregateConditions !== undefined) {

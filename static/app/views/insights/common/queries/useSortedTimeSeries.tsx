@@ -43,13 +43,13 @@ interface Options<Fields> {
   enabled?: boolean;
   fields?: string[];
   interval?: string;
-  logQuery?: string[];
-  metricQuery?: string[];
+  logQuery?: Array<MutableSearch | string>;
+  metricQuery?: Array<MutableSearch | string>;
   orderby?: string | string[];
   referrer?: string;
   samplingMode?: SamplingMode;
   search?: MutableSearch;
-  spanQuery?: string[];
+  spanQuery?: Array<MutableSearch | string>;
   topEvents?: number;
   yAxis?: Fields;
 }

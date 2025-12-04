@@ -50,13 +50,13 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   interval?: string;
   /**
-   * Query to apply to the log data set. Is an array of `MutableSearch.formatString()` strings.
+   * Query to apply in addition to the base `query` to the log data set, used for cross-event querying. Can be either an array of `MutableSearch` objects (preferred) or plain strings.
    */
-  logQuery?: string[];
+  logQuery?: Array<MutableSearch | string>;
   /**
-   * Query to apply to the metric data set. Is an array of `MutableSearch.formatString()` strings.
+   * Query to apply in addition to the base `query` to the metric data set, used for cross-event querying. Can be either an array of `MutableSearch` objects (preferred) or plain strings.
    */
-  metricQuery?: string[];
+  metricQuery?: Array<MutableSearch | string>;
   /**
    * Page filters to apply to the request. This applies the date selection, projects, and environments. By default uses the currently applied filters after waiting for them to become available. If `pageFilters` are passed as a prop, does not wait for readiness.
    */
@@ -78,9 +78,9 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   sort?: Sort;
   /**
-   * Query to apply to the span data set. Is an array of `MutableSearch.formatString()` strings.
+   * Query to apply in addition to the base `query` to the span data set, used for cross-event querying. Can be either an array of `MutableSearch` objects (preferred) or plain strings.
    */
-  spanQuery?: string[];
+  spanQuery?: Array<MutableSearch | string>;
   /**
    * Number of groups for a `groupBy` request. e.g., if `topEvents` is `5` and `groupBy` is `["transaction"]` this will group the results by `transaction` and fetch the top 5 results
    */
