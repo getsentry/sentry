@@ -577,7 +577,7 @@ export type CodeOwner = {
     users_without_access: string[];
   };
   id: string;
-  provider: 'github' | 'gitlab';
+  provider: 'github' | 'gitlab' | 'perforce';
   raw: string;
   codeMapping?: RepositoryProjectPathConfig;
   ownershipSyntax?: string;

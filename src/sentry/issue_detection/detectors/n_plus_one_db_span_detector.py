@@ -3,22 +3,20 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-from sentry import features
+from sentry.issue_detection.base import DetectorType, PerformanceDetector
+from sentry.issue_detection.detectors.utils import (
+    get_notification_attachment_body,
+    get_span_evidence_value,
+    total_span_time,
+)
+from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issue_detection.types import Span
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
-
-from ..base import DetectorType, PerformanceDetector
-from ..detectors.utils import (
-    get_notification_attachment_body,
-    get_span_evidence_value,
-    total_span_time,
-)
-from ..performance_problem import PerformanceProblem
-from ..types import Span
 
 
 class NPlusOneDBSpanDetector(PerformanceDetector):
@@ -62,7 +60,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         super().__init__(settings, event)
 
         self.potential_parents = {}
-        self.n_hash: str | None = None
+        self.previous_span: Span | None = None
         self.n_spans: list[Span] = []
         self.source_span: Span | None = None
         root_span = get_path(self._event, "contexts", "trace")
@@ -70,9 +68,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             self.potential_parents[root_span.get("span_id")] = root_span
 
     def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return not features.has(
-            "organizations:experimental-n-plus-one-db-detector-rollout", organization
-        )
+        return True
 
     def is_creation_allowed_for_project(self, project: Project | None) -> bool:
         return self.settings["detection_enabled"]
@@ -119,7 +115,11 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         self._maybe_store_problem()
 
     def _is_db_op(self, op: str) -> bool:
-        return op.startswith("db") and not op.startswith("db.redis")
+        return (
+            op.startswith("db")
+            and not op.startswith("db.redis")
+            and not op.startswith("db.connection")
+        )
 
     def _maybe_use_as_source(self, span: Span) -> None:
         parent_span_id = span.get("parent_span_id", None)
@@ -145,11 +145,11 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             # The source span and n repeating spans must have different queries.
             return False
 
-        if not self.n_hash:
-            self.n_hash = span_hash
+        if not self.previous_span:
+            self.previous_span = span
             return True
 
-        return span_hash == self.n_hash
+        return are_spans_equivalent(a=span, b=self.previous_span)
 
     def _maybe_store_problem(self) -> None:
         if not self.source_span or not self.n_spans:
@@ -180,25 +180,25 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             metrics.incr("performance.performance_issue.truncated_np1_db")
             return
 
-        if not self._contains_valid_repeating_query(self.n_spans[0]):
-            metrics.incr("performance.performance_issue.unparametrized_first_span")
-            return
-
         fingerprint = self._fingerprint(
-            parent_span.get("op", None),
-            parent_span.get("hash", None),
-            self.source_span.get("hash", None),
-            self.n_spans[0].get("hash", None),
+            parent_op=parent_span.get("op", ""),
+            parent_hash=parent_span.get("hash", ""),
+            source_hash=self.source_span.get("hash", ""),
+            n_hash=self.n_spans[0].get("hash", ""),
         )
         if fingerprint not in self.stored_problems:
             self._metrics_for_extra_matching_spans()
 
             offender_span_ids = [span["span_id"] for span in self.n_spans]
+            first_span_description = get_valid_db_span_description(self.n_spans[0])
+            if not first_span_description:
+                metrics.incr("performance.performance_issue.invalid_description")
+                return
 
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
                 op="db",
-                desc=self.n_spans[0].get("description", ""),
+                desc=first_span_description,
                 type=PerformanceNPlusOneGroupType,
                 parent_span_ids=[parent_span_id],
                 cause_span_ids=[self.source_span["span_id"]],
@@ -206,10 +206,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 evidence_display=[
                     IssueEvidence(
                         name="Offending Spans",
-                        value=get_notification_attachment_body(
-                            "db",
-                            self.n_spans[0].get("description", ""),
-                        ),
+                        value=get_notification_attachment_body("db", first_span_description),
                         # Has to be marked important to be displayed in the notifications
                         important=True,
                     )
@@ -221,10 +218,8 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                     "parent_span": get_span_evidence_value(parent_span),
                     "cause_span_ids": [self.source_span.get("span_id", None)],
                     "offender_span_ids": offender_span_ids,
-                    "repeating_spans": get_span_evidence_value(self.n_spans[0]),
-                    "repeating_spans_compact": get_span_evidence_value(
-                        self.n_spans[0], include_op=False
-                    ),
+                    "repeating_spans": f"{self.n_spans[0].get('op', 'db')} - {first_span_description}",
+                    "repeating_spans_compact": first_span_description,
                     "num_repeating_spans": str(len(offender_span_ids)),
                 },
             )
@@ -233,12 +228,6 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         duration_threshold = self.settings.get("duration_threshold")
         return total_span_time(self.n_spans) >= duration_threshold
 
-    def _contains_valid_repeating_query(self, span: Span) -> bool:
-        # Make sure we at least have a space, to exclude e.g. MongoDB and
-        # Prisma's `rawQuery`.
-        query = span.get("description")
-        return bool(query and " " in query)
-
     def _metrics_for_extra_matching_spans(self) -> None:
         # Checks for any extra spans that match the detected problem but are not part of affected spans.
         # Temporary check since we eventually want to capture extra perf problems on the initial pass while walking spans.
@@ -246,7 +235,8 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         all_matching_spans = [
             span
             for span in self._event.get("spans", [])
-            if self.n_hash is not None and span["span_id"] == self.n_hash
+            if self.previous_span
+            and span.get("span_id", None) == self.previous_span.get("span_id", None)
         ]
         all_count = len(all_matching_spans)
         if n_count > 0 and n_count != all_count:
@@ -254,13 +244,10 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
     def _reset_detection(self) -> None:
         self.source_span = None
-        self.n_hash = None
+        self.previous_span = None
         self.n_spans = []
 
-    def _fingerprint(
-        self, parent_op: str, parent_hash: str, source_hash: str | None, n_hash: str | None
-    ) -> str:
-        # XXX: this has to be a hardcoded string otherwise grouping will break
+    def _fingerprint(self, parent_op: str, parent_hash: str, source_hash: str, n_hash: str) -> str:
         problem_class = "GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES"
         full_fingerprint = hashlib.sha1(
             (str(parent_op) + str(parent_hash) + str(source_hash) + str(n_hash)).encode("utf8"),
@@ -275,3 +262,46 @@ def contains_complete_query(span: Span, is_source: bool | None = False) -> bool:
         return True
     else:
         return bool(query and not query.endswith("..."))
+
+
+def get_valid_db_span_description(span: Span) -> str | None:
+    """
+    For MongoDB spans, we use the `description` provided by Relay since it re-includes the collection name.
+    See https://github.com/getsentry/relay/blob/25.3.0/relay-event-normalization/src/normalize/span/description/mod.rs#L68-L82
+    Explicitly require a '{' in MongoDB spans to only trigger on queries rather than client calls.
+    """
+    default_description = span.get("description", "")
+    db_system = span.get("sentry_tags", {}).get("system", "")
+
+    # Connection spans can have `op` as `db` but we don't want to trigger on them.
+    if "pg-pool.connect" in default_description:
+        return None
+
+    # Trigger pathway on `mongodb`, `mongoose`, etc...
+    if "mongo" in db_system:
+        description = span.get("sentry_tags", {}).get("description")
+        if not description or "{" not in description:
+            return None
+        return description
+    return default_description
+
+
+def are_spans_equivalent(a: Span, b: Span) -> bool:
+    """
+    Returns True if two DB spans are sufficiently similar for grouping N+1 DB Spans
+    """
+    hash_match = a.get("hash") == b.get("hash")
+    has_description = bool(a.get("description"))
+    description_match = a.get("description") == b.get("description")
+    base_checks = all([hash_match, has_description, description_match])
+
+    a_db_system = a.get("sentry_tags", {}).get("system")
+    # We perform more checks for MongoDB spans
+    if a_db_system == "mongodb":
+        # Relay augments MongoDB span descriptions with more collection data.
+        # We can use this for more accurate grouping.
+        a_relay_description = a.get("sentry_tags", {}).get("description")
+        b_relay_description = b.get("sentry_tags", {}).get("description")
+        return a_relay_description == b_relay_description and base_checks
+
+    return base_checks

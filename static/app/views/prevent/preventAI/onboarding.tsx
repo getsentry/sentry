@@ -24,7 +24,7 @@ function OnboardingStep({step, title, description}: OnboardingStepProps) {
   return (
     <Flex gap="md" align="start" position="relative">
       <StepNumber>{step}</StepNumber>
-      <StepContent isLastStep={step === 3}>
+      <StepContent isLastStep={step === 2}>
         <Flex direction="column" gap="md">
           <Heading as="h3">{title}</Heading>
           <Text variant="muted" size="md">
@@ -190,7 +190,7 @@ export default function PreventAIOnboarding() {
               step={2}
               title={t(`Setup GitHub Integration`)}
               description={tct(
-                'To grant Seer access to your codebase, install the [sentryGitHubApp:Sentry GitHub App] to connect your GitHub repositories. Learn more about [gitHubIntegration:GitHub integration].',
+                'Install the [sentryGitHubApp:Sentry GitHub App] to connect your GitHub repositories and enable AI Code Review to access your codebase. Learn more about [gitHubIntegration:GitHub integration].',
                 {
                   sentryGitHubApp: (
                     <Link
@@ -210,25 +210,6 @@ export default function PreventAIOnboarding() {
                       href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/#installing-github"
                       onClick={() => {
                         trackAnalytics('prevent.ai_onboarding.github_docs_link.clicked', {
-                          organization,
-                        });
-                      }}
-                    />
-                  ),
-                }
-              )}
-            />
-            <OnboardingStep
-              step={3}
-              title={t(`Setup Seer`)}
-              description={tct(
-                'AI Code Review uses the Sentry Seer agent to power its core functionalities. Install the [link:Seer by Sentry GitHub App] within the same GitHub organization.',
-                {
-                  link: (
-                    <ExternalLink
-                      href="https://github.com/apps/seer-by-sentry"
-                      onClick={() => {
-                        trackAnalytics('prevent.ai_onboarding.seer_app_link.clicked', {
                           organization,
                         });
                       }}

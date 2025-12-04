@@ -7,7 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -32,15 +32,12 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  CronsLandingPanel,
-  isValidGuide,
-  isValidPlatform,
-} from 'sentry/views/insights/crons/components/cronsLandingPanel';
+import {CronsLandingPanel} from 'sentry/views/insights/crons/components/cronsLandingPanel';
 import {NewMonitorButton} from 'sentry/views/insights/crons/components/newMonitorButton';
 import {OverviewTimeline} from 'sentry/views/insights/crons/components/overviewTimeline';
 import {OwnerFilter} from 'sentry/views/insights/crons/components/ownerFilter';
 import {GlobalMonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/globalMonitorProcessingErrors';
+import {useCronsUpsertGuideState} from 'sentry/views/insights/crons/components/useCronsUpsertGuideState';
 import {MODULE_DESCRIPTION, MODULE_DOC_LINK} from 'sentry/views/insights/crons/settings';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
@@ -53,8 +50,7 @@ function CronsOverview() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const platform = decodeScalar(location.query?.platform) ?? null;
-  const guide = decodeScalar(location.query?.guide);
+  const {guideVisible} = useCronsUpsertGuideState();
   const project = decodeList(location.query?.project);
 
   const queryKey = makeMonitorListQueryKey(organization, location.query);
@@ -81,8 +77,6 @@ function CronsOverview() {
     });
   };
 
-  const showAddMonitor = !isValidPlatform(platform) || !isValidGuide(guide);
-
   const page = (
     <Fragment>
       <CronsListPageHeader organization={organization} />
@@ -98,7 +92,7 @@ function CronsOverview() {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar>
-            <FeedbackWidgetButton />
+            <FeedbackButton />
             <Button
               icon={<IconList />}
               size="sm"
@@ -112,8 +106,8 @@ function CronsOverview() {
             >
               {t('Manage Monitors')}
             </Button>
-            {showAddMonitor && (
-              <NewMonitorButton size="sm" icon={<IconAdd isCircled />}>
+            {!guideVisible && (
+              <NewMonitorButton size="sm" icon={<IconAdd />}>
                 {t('Add Cron Monitor')}
               </NewMonitorButton>
             )}

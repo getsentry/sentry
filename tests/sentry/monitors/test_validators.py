@@ -19,6 +19,7 @@ from sentry.monitors.models import (
     is_monitor_muted,
 )
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
+from sentry.monitors.utils import get_detector_for_monitor
 from sentry.monitors.validators import (
     MonitorDataSourceValidator,
     MonitorIncidentDetectorValidator,
@@ -261,6 +262,11 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert assign_seat.called
         monitor.refresh_from_db()
         assert monitor.status == ObjectStatus.DISABLED
+
+        # Verify the detector is also disabled when quota is exceeded
+        detector = get_detector_for_monitor(monitor)
+        assert detector is not None
+        assert detector.enabled is False
 
     def test_invalid_schedule(self):
         data = {
@@ -1194,6 +1200,27 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         validator = self._create_validator(data)
         assert not validator.is_valid()
         assert "dataSources" in validator.errors
+
+    def test_rejects_multiple_data_sources(self):
+        """Test that multiple data sources are rejected for cron monitors."""
+        data = self._get_valid_detector_data(
+            dataSources=[
+                {
+                    "name": "Test Monitor 1",
+                    "slug": "test-monitor-1",
+                    "config": self._get_base_config(),
+                },
+                {
+                    "name": "Test Monitor 2",
+                    "slug": "test-monitor-2",
+                    "config": self._get_base_config(),
+                },
+            ]
+        )
+        validator = self._create_validator(data)
+        assert not validator.is_valid()
+        assert "dataSources" in validator.errors
+        assert "Only one data source is allowed" in str(validator.errors["dataSources"])
 
     def test_create_detector_validates_data_source(self):
         condition_group = DataConditionGroup.objects.create(

@@ -353,7 +353,7 @@ const PlatformCard = styled(
       <h3>{platform.name}</h3>
       {selected && visibleSelection && (
         <ClearButton
-          icon={<IconClose isCircled />}
+          icon={<IconClose />}
           borderless
           size="xs"
           onClick={onClear}

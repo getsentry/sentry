@@ -1,6 +1,7 @@
 from unittest import mock
 
 import pytest
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
@@ -13,16 +14,19 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
     get_active_projects,
     get_redis_client,
     get_transaction_names,
+    record_segment_name,
     record_transaction_name,
 )
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
 from sentry.ingest.transaction_clusterer.rules import (
     ProjectOptionRuleStore,
     RedisRuleStore,
+    _sort,
     bump_last_used,
     get_redis_rules,
     get_rules,
     get_sorted_rules,
+    get_sorted_rules_from_redis,
     update_rules,
 )
 from sentry.ingest.transaction_clusterer.tasks import cluster_projects, spawn_clusterers
@@ -209,13 +213,54 @@ def test_record_transactions(
     assert len(mocked_record.mock_calls) == expected
 
 
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
+@django_db_all
+@pytest.mark.parametrize(
+    "source, segment_name, attributes, expected",
+    [
+        ("url", "/a/b/c", {}, 1),
+        (
+            "url",
+            "/a/b/c",
+            {ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: {"type": "integer", "value": 200}},
+            1,
+        ),
+        ("route", "/", {}, 0),
+        ("url", None, {}, 0),
+        (
+            "url",
+            "/a/b/c",
+            {ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: {"type": "integer", "value": 404}},
+            0,
+        ),
+        (None, "/a/b/c", {}, 1),
+        (None, "foo", {}, 0),
+    ],
+)
+def test_record_segment_name(
+    mocked_record, default_organization, source, segment_name, attributes, expected
+) -> None:
+    project = Project(id=111, name="project", organization_id=default_organization.id)
+    record_segment_name(
+        project,
+        {
+            "name": segment_name,
+            "attributes": {
+                ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE: {"type": "string", "value": source},
+                **attributes,
+            },
+        },  # type: ignore[typeddict-item]
+    )
+    assert len(mocked_record.mock_calls) == expected
+
+
 def test_sort_rules() -> None:
     rules = {
         ReplacementRule("/a/*/**"): 1,
         ReplacementRule("/a/**"): 2,
         ReplacementRule("/a/*/c/**"): 3,
     }
-    assert ProjectOptionRuleStore(ClustererNamespace.TRANSACTIONS)._sort(rules) == [
+    assert _sort(rules) == [
         ("/a/*/c/**", 3),
         ("/a/*/**", 1),
         ("/a/**", 2),
@@ -610,3 +655,26 @@ def test_stored_invalid_rules_dropped_on_update(default_project) -> None:
     with freeze_time("2000-01-01 01:00:00"):
         update_rules(ClustererNamespace.TRANSACTIONS, default_project, [rule])
     assert get_sorted_rules(ClustererNamespace.TRANSACTIONS, default_project) == []
+
+
+@django_db_all
+def test_get_sorted_rules_from_redis(default_project: Project) -> None:
+    with freeze_time("2000-01-01 01:00:00"):
+        update_rules(
+            ClustererNamespace.TRANSACTIONS,
+            default_project,
+            [
+                ReplacementRule("/a/*/**"),
+                ReplacementRule("/a/**"),
+                ReplacementRule("/a/*/c/**"),
+            ],
+        )
+
+    assert get_sorted_rules_from_redis(ClustererNamespace.TRANSACTIONS, default_project) == [
+        ("/a/*/c/**", 946688400),
+        ("/a/*/**", 946688400),
+        ("/a/**", 946688400),
+    ]
+    assert get_sorted_rules_from_redis(
+        ClustererNamespace.TRANSACTIONS, default_project
+    ) == get_sorted_rules(ClustererNamespace.TRANSACTIONS, default_project)

@@ -31,7 +31,9 @@ class BaseQuerySet(QuerySet[M, R]):
         qs._with_post_update_signal = self._with_post_update_signal
         return qs
 
-    def update_with_returning(self, returned_fields: list[str], **kwargs: Any) -> list[tuple[int]]:
+    def update_with_returning(
+        self, returned_fields: list[str], **kwargs: Any
+    ) -> list[tuple[Any, ...]]:
         """
         Copied and modified from `Queryset.update()` to support `RETURNING <returned_fields>`
         """

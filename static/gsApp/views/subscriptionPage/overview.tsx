@@ -146,7 +146,7 @@ function Overview({location, subscription, promotionData}: Props) {
   // Whilst self-serve accounts do.
   if (!hasBillingPerms && !subscription.canSelfServe) {
     return (
-      <SubscriptionPageContainer background="secondary" organization={organization}>
+      <SubscriptionPageContainer background="primary" organization={organization}>
         <ContactBillingMembers />
       </SubscriptionPageContainer>
     );
@@ -311,10 +311,9 @@ function Overview({location, subscription, promotionData}: Props) {
       <Flex
         direction="column"
         gap="sm"
-        padding="xl"
+        padding="xl 0"
         background="primary"
-        radius="md"
-        border="primary"
+        borderTop="primary"
       >
         <Flex align="center" gap="sm">
           <Text bold>{t('Having trouble?')}</Text>
@@ -410,7 +409,7 @@ function Overview({location, subscription, promotionData}: Props) {
 
   return (
     <SubscriptionPageContainer
-      background="secondary"
+      background="primary"
       organization={organization}
       header={
         isNewBillingUI ? (
@@ -428,7 +427,7 @@ function Overview({location, subscription, promotionData}: Props) {
       ) : isError ? (
         <LoadingError onRetry={refetchUsage} />
       ) : (
-        <Flex direction="column" gap="xl">
+        <Flex direction="column" gap="xl" paddingTop="xl">
           {hasBillingPerms
             ? contentWithBillingPerms(usage, subscription.planDetails)
             : contentWithoutBillingPerms(usage)}
