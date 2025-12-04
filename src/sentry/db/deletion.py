@@ -93,6 +93,13 @@ class BulkDeleteQuery:
     def iterator(
         self, chunk_size: int = 100, batch_size: int = 10000
     ) -> Generator[tuple[int, ...]]:
+        """
+        Iterate through matching record IDs using keyset pagination.
+
+        Uses RangeQuerySetWrapper with compound order_by (order_field, id) to handle
+        non-unique order fields correctly. This ensures all rows are returned even
+        when multiple rows share the same order_field value (e.g., same last_seen).
+        """
         assert self.days is not None
         assert self.dtfield is not None
 
@@ -104,25 +111,27 @@ class BulkDeleteQuery:
         if self.organization_id:
             queryset = queryset.filter(organization_id=self.organization_id)  # type: ignore[misc]
 
-        step = batch_size
+        # Determine order field (strip leading '-' for descending)
         order_field = "id"
         if self.order_by:
-            if self.order_by[0] == "-":
-                step = -batch_size
-                order_field = self.order_by[1:]
-            else:
-                order_field = self.order_by
+            order_field = self.order_by.lstrip("-")
 
-        # values_list returns tuples of (id, order_field_value)
-        queryset_values: QuerySet[Any, tuple[Any, Any]] = queryset.values_list("id", order_field)
+        # Use compound order_by for keyset pagination: (order_field, id)
+        # This handles non-unique order fields correctly
+        order_by_fields = [order_field, "id"] if order_field != "id" else ["id"]
 
+        # For values_list tuples, map field index to field name for cursor
+        def result_value_getter(item: tuple[Any, ...]) -> dict[str, Any]:
+            if order_field == "id":
+                return {"id": item[0]}
+            return {"id": item[0], order_field: item[1]}
+
+        values_qs: QuerySet[Any, tuple[Any, ...]] = queryset.values_list("id", order_field)
         wrapper = RangeQuerySetWrapper(
-            queryset_values,
-            step=step,
-            order_by=order_field,
-            override_unique_safety_check=True,
-            result_value_getter=lambda item: item[1],
-            query_timeout_retries=10,
+            values_qs,
+            step=batch_size,
+            order_by=order_by_fields,
+            result_value_getter=result_value_getter,
         )
 
         for batch in itertools.batched(wrapper, chunk_size):
