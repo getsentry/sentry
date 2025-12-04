@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from sentry.api import client
 from sentry.constants import ALL_ACCESS_PROJECT_ID
@@ -56,7 +57,7 @@ def get_attribute_names(
 
     # Fetch both string and number attributes from the public API
     for attr_type in ["string", "number"]:
-        query_params = {
+        query_params: dict[str, Any] = {
             "attributeType": attr_type,
             "itemType": item_type,
             "project": project_ids or [ALL_ACCESS_PROJECT_ID],
@@ -129,7 +130,7 @@ def get_attribute_values_with_substring(
         field = field_with_substring["field"]
         substring = field_with_substring.get("substring", "")
 
-        query_params = {
+        query_params: dict[str, Any] = {
             "itemType": item_type,
             "attributeType": "string",
             "project": project_ids or [ALL_ACCESS_PROJECT_ID],

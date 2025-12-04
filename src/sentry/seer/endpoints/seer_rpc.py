@@ -394,8 +394,9 @@ def get_attributes_and_values(
         end_dt = datetime.datetime.now()
         start_dt = end_dt - period
     else:
-        end_dt = datetime.fromisoformat(end)
-        start_dt = datetime.fromisoformat(start)
+        # end and start should both be not None after validate_date_params
+        end_dt = datetime.datetime.fromisoformat(end or "")
+        start_dt = datetime.datetime.fromisoformat(start or "")
 
     start_time_proto = ProtobufTimestamp()
     start_time_proto.FromDatetime(start_dt)
