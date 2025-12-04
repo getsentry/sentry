@@ -358,15 +358,16 @@ class IntegrationRepositoryProvider:
     ) -> RepositoryConfig:
         """
         Builds final dict containing all necessary data to create the repository
-            {
-               'name': data['name'],
-               'external_id': data['external_id'],
-               'url': data['url'],
-               'config': {
-                   # Any additional data
-               },
-               'integration_id': data['installation'],
-            }
+
+            >>> {
+            >>>    'name': data['name'],
+            >>>    'external_id': data['external_id'],
+            >>>    'url': data['url'],
+            >>>    'config': {
+            >>>        # Any additional data
+            >>>    },
+            >>>    'integration_id': data['installation'],
+            >>> }
         """
         raise NotImplementedError
 
@@ -382,15 +383,15 @@ class IntegrationRepositoryProvider:
         """
         Generate a list of commits between the start & end sha
         Commits should be of the following format:
-            {
-                'id': commit['id'],
-                'repository': repo.name,
-                'author_email': commit['author']['email'],
-                'author_name': commit['author']['name'],
-                'message': commit['message'],
-                'timestamp': self.format_date(commit['timestamp']),
-                'patch_set': commit['patch_set'],
-            }
+            >>> {
+            >>>     'id': commit['id'],
+            >>>     'repository': repo.name,
+            >>>     'author_email': commit['author']['email'],
+            >>>     'author_name': commit['author']['name'],
+            >>>     'message': commit['message'],
+            >>>     'timestamp': self.format_date(commit['timestamp']),
+            >>>     'patch_set': commit['patch_set'],
+            >>> }
         """
         raise NotImplementedError
 
