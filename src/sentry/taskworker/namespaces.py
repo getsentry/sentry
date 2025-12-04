@@ -255,6 +255,11 @@ workflow_engine_tasks = app.taskregistry.create_namespace(
     app_feature="workflow_engine",
 )
 
+bulk_backfill_tasks = app.taskregistry.create_namespace(
+    "bulk_backfill",
+    app_feature="shared",
+)
+
 
 # Namespaces for testing taskworker tasks
 exampletasks = app.taskregistry.create_namespace(name="examples")
