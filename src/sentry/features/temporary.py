@@ -284,8 +284,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:performance-remove-metrics-compatibility-fallback", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace explorer features
     manager.add("organizations:performance-trace-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable spot checking of `/events-timeseries/` endpoint in Explore
-    manager.add("organizations:explore-events-time-series-spot-check", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable session health overview to dashboard platform migration
     manager.add("organizations:performance-session-health-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable session health overview to dashboard platform migration
@@ -452,6 +450,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:insights-mobile-screens-module", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Seer Webhooks to be sent and listened to
     manager.add("organizations:seer-webhooks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable public RPC endpoint for local seer development
+    manager.add("organizations:seer-public-rpc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable new SentryApp webhook request endpoint
     manager.add("organizations:sentry-app-webhook-requests", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable standalone span ingestion
@@ -551,6 +551,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:workflow-engine-single-process-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable logging to debug workflow engine process workflows
     manager.add("organizations:workflow-engine-process-workflows-logs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable logging workflow evaluations (bypasses sample rate when enabled)
+    manager.add("organizations:workflow-engine-log-evaluations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable firing actions for workflow engine issue alerts
     manager.add("organizations:workflow-engine-trigger-actions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable logs to debug metric alert dual processing

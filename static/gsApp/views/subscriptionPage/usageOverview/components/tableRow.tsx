@@ -1,8 +1,10 @@
 import {Fragment, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Tag} from '@sentry/scraps/badge';
+
+import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import ProgressRing from 'sentry/components/progressRing';
 import {IconLock, IconWarning} from 'sentry/icons';
@@ -68,7 +70,7 @@ function UsageOverviewTableRow({
     usageExceeded,
     activeProductTrial,
     potentialProductTrial,
-  } = useProductBillingMetadata(subscription, product, parentProduct, isChildProduct);
+  } = useProductBillingMetadata(subscription, product, parentProduct);
   if (!billedCategory) {
     return null;
   }
@@ -86,6 +88,7 @@ function UsageOverviewTableRow({
   let percentUsed = 0;
   let formattedUsage = '';
   let formattedPrepaid = null;
+  let formattedFree = null;
   let paygSpend = 0;
   let isUnlimited = false;
 
@@ -101,6 +104,7 @@ function UsageOverviewTableRow({
     const reservedBudget = subscription.reservedBudgets?.find(
       budget => budget.apiName === reservedBudgetCategory
     );
+    const free = reservedBudget?.freeBudget ?? 0;
     percentUsed = reservedBudget
       ? getPercentage(reservedBudget.totalReservedSpend, reservedBudget.reservedBudget)
       : 0;
@@ -119,6 +123,7 @@ function UsageOverviewTableRow({
       formattedPrepaid = formatReservedWithUnits(UNLIMITED_RESERVED, billedCategory);
     } else if (reservedBudget) {
       formattedPrepaid = displayPriceWithCents({cents: reservedBudget.reservedBudget});
+      formattedFree = free ? displayPriceWithCents({cents: free}) : null;
     }
 
     paygSpend = isChildProduct
@@ -128,7 +133,7 @@ function UsageOverviewTableRow({
         }, 0);
   } else {
     // convert prepaid amount to the same unit as usage to accurately calculate percent used
-    const {prepaid} = metricHistory;
+    const {prepaid, free} = metricHistory;
     isUnlimited = prepaid === UNLIMITED_RESERVED || !!activeProductTrial;
     const rawPrepaid = isUnlimited
       ? prepaid
@@ -147,6 +152,12 @@ function UsageOverviewTableRow({
       useUnitScaling: true,
       isAbbreviated: true,
     });
+    formattedFree = free
+      ? formatReservedWithUnits(free, billedCategory, {
+          useUnitScaling: true,
+          isAbbreviated: true,
+        })
+      : null;
 
     paygSpend = subscription.categories[billedCategory]?.onDemandSpendUsed ?? 0;
   }
@@ -168,19 +179,17 @@ function UsageOverviewTableRow({
   const isPaygOnly =
     !isAddOn && supportsPayg(subscription) && metricHistory.reserved === 0;
 
-  const isClickable = !!potentialProductTrial || isEnabled;
   const isSelected = selectedProduct === product;
 
   return (
     <Fragment>
       <Row
-        onMouseEnter={() => isClickable && setIsHovered(true)}
-        onMouseLeave={() => isClickable && setIsHovered(false)}
-        isClickable={isClickable}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         isSelected={isSelected}
-        onClick={() => (isClickable ? onRowClick(product) : undefined)}
+        onClick={() => onRowClick(product)}
         onKeyDown={e => {
-          if ((e.key === 'Enter' || e.key === ' ') && isClickable) {
+          if (e.key === 'Enter' || e.key === ' ') {
             onRowClick(product);
           }
         }}
@@ -197,10 +206,10 @@ function UsageOverviewTableRow({
         <td>
           <Flex
             paddingLeft={
-              activeProductTrial || potentialProductTrial
-                ? 'lg'
-                : isChildProduct
-                  ? '2xl'
+              isChildProduct
+                ? '2xl'
+                : activeProductTrial || potentialProductTrial
+                  ? 'lg'
                   : undefined
             }
             wrap="nowrap"
@@ -220,21 +229,31 @@ function UsageOverviewTableRow({
             <td>
               <Flex align="center" gap="xs" wrap="wrap">
                 {usageExceeded ? (
-                  <IconWarning size="sm" color="danger" />
+                  <Container width="18px" height="18px">
+                    <IconWarning size="md" color="danger" />
+                  </Container>
                 ) : isPaygOnly || isChildProduct || isUnlimited ? null : (
-                  <ProgressRing
-                    value={percentUsed}
-                    progressColor={
-                      !usageExceeded && percentUsed === 100
-                        ? theme.warningFocus
-                        : undefined
-                    }
-                  />
+                  <Container width="18px" height="18px">
+                    <ProgressRing
+                      size={18}
+                      value={percentUsed}
+                      progressColor={
+                        !usageExceeded && percentUsed === 100
+                          ? theme.warningFocus
+                          : undefined
+                      }
+                    />
+                  </Container>
                 )}
                 <Text textWrap="balance">
-                  {isPaygOnly || isChildProduct || !formattedPrepaid
-                    ? formattedUsage
-                    : `${formattedUsage} / ${formattedPrepaid}`}
+                  {isUnlimited ? (
+                    <Tag type="highlight">{t('Unlimited')}</Tag>
+                  ) : isPaygOnly || isChildProduct || !formattedPrepaid ? (
+                    formattedUsage
+                  ) : (
+                    `${formattedUsage} / ${formattedPrepaid}`
+                  )}
+                  {formattedFree && ` (${formattedFree} gifted)`}
                 </Text>
               </Flex>
             </td>
@@ -268,7 +287,7 @@ function UsageOverviewTableRow({
 
 export default UsageOverviewTableRow;
 
-const Row = styled('tr')<{isClickable: boolean; isSelected: boolean}>`
+const Row = styled('tr')<{isSelected: boolean}>`
   position: relative;
   background: ${p => (p.isSelected ? p.theme.backgroundSecondary : p.theme.background)};
   padding: ${p => p.theme.space.xl};
@@ -282,17 +301,9 @@ const Row = styled('tr')<{isClickable: boolean; isSelected: boolean}>`
     border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   }
 
-  cursor: default;
-
-  ${p =>
-    p.isClickable &&
-    css`
-      cursor: pointer;
-
-      &:hover {
-        background: ${p.theme.backgroundSecondary};
-      }
-    `}
+  &:hover {
+    background: ${p => p.theme.backgroundSecondary};
+  }
 `;
 
 const MobilePanelContainer = styled('td')`

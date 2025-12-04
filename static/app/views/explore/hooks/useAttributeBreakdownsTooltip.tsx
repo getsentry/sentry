@@ -11,7 +11,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 
 const TOOLTIP_POSITION_X_OFFSET = 20;
-const TOOLTIP_POSITION_Y_OFFSET = 5;
+const TOOLTIP_POSITION_Y_OFFSET = -10;
 
 type Params = {
   /**
@@ -88,11 +88,28 @@ export function useAttributeBreakdownsTooltip({
       }
     };
 
+    const handleMouseLeave = (event: MouseEvent) => {
+      let el = event.relatedTarget as HTMLElement | null;
+
+      // Don't hide actions if the mouse is moving into the tooltip content.
+      while (el) {
+        if (el.dataset?.attributeBreakdownsChartRegion !== undefined) {
+          return;
+        }
+        el = el.parentElement;
+      }
+
+      tooltipParamsRef.current = null;
+      setFrozenPosition(null);
+    };
+
     dom.addEventListener('click', handleClickAnywhere);
+    dom.addEventListener('mouseleave', handleMouseLeave);
 
     // eslint-disable-next-line consistent-return
     return () => {
       dom.removeEventListener('click', handleClickAnywhere);
+      dom.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, [chartRef, frozenPosition]);
 
@@ -101,6 +118,8 @@ export function useAttributeBreakdownsTooltip({
   useEffect(() => {
     if (!frozenPosition) return;
 
+    // TODO Abdullah Khan: Take the actions in as a prop to the hook, to allow other
+    // product areas to use the component feature. This is explore specific for now.
     const handleClickActions = (event: MouseEvent) => {
       event.preventDefault();
 
@@ -136,13 +155,35 @@ export function useAttributeBreakdownsTooltip({
       }
     };
 
+    // Handle hover effects via event delegation (CSP-compliant alternative to inline onmouseover/onmouseout)
+    const handleMouseOver = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.classList.contains('attribute-breakdowns-tooltip-action-button')) {
+        const hoverBg = target.getAttribute('data-hover-background');
+        if (hoverBg) {
+          target.style.background = hoverBg;
+        }
+      }
+    };
+
+    const handleMouseOut = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.classList.contains('attribute-breakdowns-tooltip-action-button')) {
+        target.style.background = '';
+      }
+    };
+
     // TODO Abdullah Khan: For now, attaching the listener to document.body
     // Tried using a more specific selector causes weird race conditions, will need to investigate.
     document.addEventListener('click', handleClickActions);
+    document.addEventListener('mouseover', handleMouseOver);
+    document.addEventListener('mouseout', handleMouseOut);
 
     // eslint-disable-next-line consistent-return
     return () => {
       document.removeEventListener('click', handleClickActions);
+      document.removeEventListener('mouseover', handleMouseOver);
+      document.removeEventListener('mouseout', handleMouseOut);
     };
   }, [frozenPosition, copyToClipboard, addSearchFilter, setGroupBys]);
 
@@ -151,8 +192,14 @@ export function useAttributeBreakdownsTooltip({
       trigger: 'axis',
       appendToBody: true,
       renderMode: 'html',
-      enterable: true,
+      enterable: frozenPosition ? true : false,
       formatter: (params: TooltipComponentFormatterCallbackParams) => {
+        // Wrap the content in a div with the data-attribute-breakdowns-chart-region attribute
+        // to preventthe tooltip from being closed when the mouse is moved to the tooltip content
+        // and clicking actions shouldn't clear the chart selection.
+        const wrapContent = (content: string) =>
+          `<div data-explore-chart-selection-region data-attribute-breakdowns-chart-region>${content}</div>`;
+
         // If the tooltip is NOT frozen, set the tooltip params and return the formatted content,
         // including the tooltip actions placeholder.
         if (!frozenPosition) {
@@ -172,18 +219,18 @@ export function useAttributeBreakdownsTooltip({
           </div>
         `.trim();
 
-          return formatter(params) + actionsPlaceholder;
+          return wrapContent(formatter(params) + actionsPlaceholder);
         }
 
         if (!tooltipParamsRef.current) {
-          return '\u2014';
+          return wrapContent('\u2014');
         }
 
         // If the tooltip is frozen, use the cached tooltip params and
         // return the formatted content, including the tooltip actions.
         const p = tooltipParamsRef.current;
         const value = (Array.isArray(p) ? p[0]?.name : p.name) ?? '';
-        return formatter(p) + (actionsHtmlRenderer?.(value) ?? '');
+        return wrapContent(formatter(p) + (actionsHtmlRenderer?.(value) ?? ''));
       },
       position(
         point: [number, number],
@@ -194,8 +241,6 @@ export function useAttributeBreakdownsTooltip({
         const tooltipWidth = dom?.offsetWidth ?? 0;
         const [rawX = 0, rawY = 0] = frozenPosition ?? point;
 
-        // Adding offsets to mitigate users accidentally entering the tooltip,
-        // when trying to hover over the chart for values.
         let x = rawX + TOOLTIP_POSITION_X_OFFSET;
         const y = rawY + TOOLTIP_POSITION_Y_OFFSET;
 
