@@ -84,13 +84,16 @@ def compare_size_analysis(
             # Process unmatched head elements (added)
             for head_element in unmatched_head:
                 head_size = head_element.size
-                if head_size == 0:
-                    continue
 
                 # Skip if this is a renamed file (same hash exists in base at different path)
                 # Only skip up to the rename count - remaining elements are true additions
+                # NOTE: This check must come BEFORE size==0 check, otherwise zero-size renamed
+                # elements don't decrement the counter, causing non-renamed elements to be skipped
                 if head_renamed_paths.get(path, 0) > 0:
                     head_renamed_paths[path] -= 1
+                    continue
+
+                if head_size == 0:
                     continue
 
                 diff_items.append(
@@ -107,13 +110,16 @@ def compare_size_analysis(
             # Process unmatched base elements (removed)
             for base_element in unmatched_base:
                 base_size = base_element.size
-                if base_size == 0:
-                    continue
 
                 # Skip if this is a renamed file (same hash exists in head at different path)
                 # Only skip up to the rename count - remaining elements are true removals
+                # NOTE: This check must come BEFORE size==0 check, otherwise zero-size renamed
+                # elements don't decrement the counter, causing non-renamed elements to be skipped
                 if base_renamed_paths.get(path, 0) > 0:
                     base_renamed_paths[path] -= 1
+                    continue
+
+                if base_size == 0:
                     continue
 
                 diff_items.append(

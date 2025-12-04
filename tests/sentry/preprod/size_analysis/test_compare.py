@@ -1354,3 +1354,106 @@ class CompareWithRenameDetectionTest(TestCase):
 
         # The renamed asset should be excluded - no diff items
         assert len(result.diff_items) == 0
+
+    def test_zero_size_renamed_file_does_not_consume_counter_for_additions(self):
+        """Test that zero-size elements with rename counter don't incorrectly skip real additions.
+
+        Bug scenario:
+        1. file_analysis detects a rename for a file
+        2. That file corresponds to a zero-size treemap element
+        3. There's also a non-zero element at the same path that is NOT a rename
+        4. The zero-size element is processed, hits size==0 check first, skips without decrementing
+        5. Non-zero element sees counter > 0, gets decremented, incorrectly skipped as rename
+
+        Fix: The rename counter check must happen BEFORE the size==0 check.
+        """
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+
+        # Head has 2 elements at same path "Assets.car/icon.png":
+        # - One with size 0 (corresponds to the rename in file_analysis)
+        # - One with size 100 (a true addition, NOT a rename)
+        head_treemap = self._create_treemap_element(
+            "Assets.car",
+            100,
+            path="Assets.car",
+            children=[
+                # Zero-size element - this is the one being "renamed" per file_analysis
+                self._create_treemap_element(
+                    "icon.png", 0, path="Assets.car/icon.png", element_type="assets"
+                ),
+                # Non-zero element at same path - this is a TRUE addition
+                self._create_treemap_element(
+                    "icon.png", 100, path="Assets.car/icon.png", element_type="assets"
+                ),
+            ],
+        )
+
+        # Base has the old file at different path
+        base_treemap = self._create_treemap_element(
+            "Assets.car",
+            0,
+            path="Assets.car",
+            children=[
+                self._create_treemap_element(
+                    "old_icon.png", 0, path="Assets.car/old_icon.png", element_type="assets"
+                ),
+            ],
+        )
+
+        # File analysis: head has renamed file (same hash as base)
+        head_file_analysis = FileAnalysis(
+            items=[
+                FileInfo(
+                    path="Assets.car",
+                    hash="parent_hash",
+                    children=[
+                        self._create_file_info("icon.png", "renamed_hash"),  # Same as base
+                    ],
+                ),
+            ]
+        )
+        base_file_analysis = FileAnalysis(
+            items=[
+                FileInfo(
+                    path="Assets.car",
+                    hash="parent_hash",
+                    children=[
+                        self._create_file_info("old_icon.png", "renamed_hash"),
+                    ],
+                ),
+            ]
+        )
+
+        head_results = self._create_size_analysis_results(
+            treemap_root=head_treemap, file_analysis=head_file_analysis
+        )
+        base_results = self._create_size_analysis_results(
+            treemap_root=base_treemap, file_analysis=base_file_analysis
+        )
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # Expected:
+        # - The zero-size element should be skipped (rename + zero size)
+        # - The 100-size element should be added as ADDED (it's NOT a rename)
+        # Bug: size==0 check runs first, doesn't decrement counter, then 100-size
+        #      element sees counter > 0 and gets incorrectly skipped
+        added_items = [item for item in result.diff_items if item.type == DiffType.ADDED]
+        assert len(added_items) == 1, (
+            f"Expected 1 addition (the non-renamed 100-size element), got {len(added_items)}. "
+            "Bug: zero-size rename didn't decrement counter, causing real addition to be skipped."
+        )
+        assert added_items[0].size_diff == 100
