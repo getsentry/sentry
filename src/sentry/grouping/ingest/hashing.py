@@ -221,7 +221,7 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
     ) as metrics_tags:
         if use_caching:
             cache_key = get_grouphash_existence_cache_key(hash_value, project.id)
-            cache_expiry_seconds = options.get("grouping.ingest_grouphash_existence_cache_expiry")
+            cache_expiry = options.get("grouping.ingest_grouphash_existence_cache_expiry")
 
             grouphash_exists = cache.get(cache_key)
             got_cache_hit = grouphash_exists is not None
@@ -230,7 +230,7 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
             if got_cache_hit:
                 metrics_tags["grouphash_exists"] = grouphash_exists
                 # TODO: Temporary tag to let us compare hit rates across different retention periods
-                metrics_tags["expiry_seconds"] = cache_expiry_seconds
+                metrics_tags["expiry_seconds"] = cache_expiry
 
                 return grouphash_exists
 
@@ -240,7 +240,7 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
             metrics_tags["grouphash_exists"] = grouphash_exists
             metrics_tags["cache_set"] = True
 
-            cache.set(cache_key, grouphash_exists, cache_expiry_seconds)
+            cache.set(cache_key, grouphash_exists, cache_expiry)
 
         return grouphash_exists
 
@@ -261,7 +261,7 @@ def _get_or_create_single_grouphash(
     ) as metrics_tags:
         if use_caching:
             cache_key = get_grouphash_object_cache_key(hash_value, project.id)
-            cache_expiry_seconds = options.get("grouping.ingest_grouphash_object_cache_expiry")
+            cache_expiry = options.get("grouping.ingest_grouphash_object_cache_expiry")
 
             grouphash = cache.get(cache_key)
             got_cache_hit = grouphash is not None
@@ -269,7 +269,7 @@ def _get_or_create_single_grouphash(
 
             if got_cache_hit:
                 # TODO: Temporary tag to let us compare hit rates across different retention periods
-                metrics_tags["expiry_seconds"] = cache_expiry_seconds
+                metrics_tags["expiry_seconds"] = cache_expiry
 
                 return (grouphash, False)
 
@@ -281,7 +281,7 @@ def _get_or_create_single_grouphash(
         if use_caching and grouphash.group_id is not None:
             metrics_tags["cache_set"] = True
 
-            cache.set(cache_key, grouphash, cache_expiry_seconds)
+            cache.set(cache_key, grouphash, cache_expiry)
 
         return (grouphash, created)
 
