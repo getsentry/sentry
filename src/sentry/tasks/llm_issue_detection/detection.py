@@ -30,7 +30,7 @@ SEER_ANALYZE_ISSUE_ENDPOINT_PATH = "/v1/automation/issue-detection/analyze"
 SEER_TIMEOUT_S = 120
 SEER_RETRIES = 1
 
-NUM_TRANSACTIONS_TO_PROCESS = 10
+NUM_TRANSACTIONS_TO_PROCESS = 20
 LOWER_SPAN_LIMIT = 20
 UPPER_SPAN_LIMIT = 500
 
@@ -191,7 +191,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         return
 
     transactions = get_transactions_for_project(
-        project_id, limit=50, start_time_delta={"minutes": 30}
+        project_id, limit=100, start_time_delta={"minutes": 30}
     )
     if not transactions:
         return
