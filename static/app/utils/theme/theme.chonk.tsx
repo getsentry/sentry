@@ -263,39 +263,62 @@ export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColor
 
 export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   info: {
+    // old: colors.blue200 -> mapped: colors.blue200
     border: colors.blue200,
-    background: colors.blue300,
-    color: colors.blue400,
+    // old: colors.blue300 -> mapped: light/darkColors.blue400
+    background: colors.blue400,
+    // old: colors.blue400 -> mapped: light/darkColors.blue500
+    color: colors.blue500,
+    // old: colors.blue100 -> mapped: colors.blue100
     backgroundLight: colors.blue100,
-    borderHover: colors.blue300,
+    // old: colors.blue300 -> mapped: colors.blue400
+    borderHover: colors.blue400,
   },
   success: {
-    background: colors.green300,
+    // old: colors.green300 -> mapped: colors.green400
+    background: colors.green400,
+    // old: colors.green100 -> mapped: colors.green100
     backgroundLight: colors.green100,
+    // old: colors.green200 -> mapped: colors.green200
     border: colors.green200,
-    borderHover: colors.green300,
-    color: colors.green400,
+    // old: colors.green300 -> mapped: colors.green400
+    borderHover: colors.green400,
+    // old: colors.green400 -> mapped: colors.green500
+    color: colors.green500,
   },
   muted: {
+    // old: colors.gray200 -> mapped: colors.gray200
     background: colors.gray200,
+    // already using alias (which is derived from new theme)
     backgroundLight: alias.backgroundSecondary,
     border: alias.border,
     borderHover: alias.border,
     color: 'inherit',
   },
   warning: {
-    background: colors.yellow300,
+    // old: colors.yellow300 -> mapped: colors.yellow400
+    background: colors.yellow400,
+    // old: colors.yellow100 -> mapped: colors.yellow100
     backgroundLight: colors.yellow100,
+    // old: colors.yellow200 -> mapped: colors.yellow200
     border: colors.yellow200,
-    borderHover: colors.yellow300,
-    color: colors.yellow400,
+    // old: colors.yellow300 -> mapped: colors.yellow400
+    borderHover: colors.yellow400,
+    // old: colors.yellow400 -> mapped: colors.yellow500
+    color: colors.yellow500,
   },
   error: {
-    background: colors.red300,
+    // old: colors.red300 -> mapped: colors.red400
+    background: colors.red400,
+    // old: colors.red100 -> mapped: colors.red100
     backgroundLight: colors.red100,
+    // old: colors.red200 -> mapped: colors.red200
     border: colors.red200,
-    borderHover: colors.red300,
-    color: colors.red400,
+    // old: colors.red300 -> mapped: colors.red400
+    borderHover: colors.red400,
+    // old: colors.red400 -> mapped: colors.red500
+    color: colors.red500,
+    // old: colors.red200 -> mapped: colors.red200
     textLight: colors.red200,
   },
 });
