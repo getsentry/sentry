@@ -89,6 +89,7 @@ class Spans(rpc_dataset_common.RPCBase):
         config: SearchResolverConfig,
         sampling_mode: SAMPLING_MODES | None,
         comparison_delta: timedelta | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> SnubaTSResult:
         """Make the query"""
         cls.validate_granularity(params)
@@ -101,6 +102,7 @@ class Spans(rpc_dataset_common.RPCBase):
             groupby=[],
             referrer=referrer,
             sampling_mode=sampling_mode,
+            additional_queries=additional_queries,
         )
 
         """Run the query"""
