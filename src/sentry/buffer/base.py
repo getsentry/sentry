@@ -198,41 +198,47 @@ class Buffer(Service):
                     # continue
                     pass
                 else:
-                    try:
-                        group.update(using=None, **update_kwargs)
-                    except DataError as e:
-                        # Catch NumericValueOutOfRange when times_seen exceeds 32-bit limit
-                        # This happens when current_times_seen + increment > MAX_INT32
-                        if (
-                            isinstance(e.__cause__, psycopg2.errors.NumericValueOutOfRange)
-                            and "times_seen" in columns
-                        ):
-                            # Cap times_seen to MAX_INT32 and retry the update
-                            update_kwargs["times_seen"] = MAX_INT32
-                            try:
-                                group.update(using=None, **update_kwargs)
-                                metrics.incr(
-                                    "buffer.times_seen_capped",
-                                    tags={"reason": "integer_overflow"},
-                                )
-                            except Exception as retry_error:
-                                # If the capped update also fails, log and skip
-                                metrics.incr(
-                                    "buffer.times_seen_cap_failed",
-                                    tags={"reason": "retry_failed"},
-                                )
-                                logger.exception(
-                                    "buffer.skip_group_update_after_cap_failed",
-                                    extra={
-                                        "group_id": getattr(group, "id", None),
-                                        "original_error": str(e),
-                                        "retry_error": str(retry_error),
-                                        "filters": filters,
-                                    },
-                                )
-                        else:
-                            # Re-raise if it's not an integer overflow error
-                            raise
+                    # Skip times_seen increment if already at MAX_INT32, but still update other fields
+                    if "times_seen" in update_kwargs and group.times_seen == MAX_INT32:
+                        del update_kwargs["times_seen"]
+                        metrics.incr(
+                            "buffer.times_seen_already_max",
+                            tags={"reason": "skip_increment"},
+                        )
+
+                    if update_kwargs:
+                        try:
+                            group.update(using=None, **update_kwargs)
+                        except DataError as e:
+                            # Catch NumericValueOutOfRange when times_seen exceeds 32-bit limit
+                            if (
+                                isinstance(e.__cause__, psycopg2.errors.NumericValueOutOfRange)
+                                and "times_seen" in columns
+                            ):
+                                # Cap times_seen to MAX_INT32 and retry the update
+                                update_kwargs["times_seen"] = MAX_INT32
+                                try:
+                                    group.update(using=None, **update_kwargs)
+                                    metrics.incr(
+                                        "buffer.times_seen_capped",
+                                        tags={"reason": "integer_overflow"},
+                                    )
+                                except Exception:
+                                    # If the capped update also fails, log and skip
+                                    metrics.incr(
+                                        "buffer.times_seen_cap_failed",
+                                        tags={"reason": "retry_failed"},
+                                    )
+                                    logger.exception(
+                                        "buffer.skip_group_update_after_cap_failed",
+                                        extra={
+                                            "group_id": getattr(group, "id", None),
+                                            "filters": filters,
+                                        },
+                                    )
+                            else:
+                                # Re-raise if it's not an integer overflow error
+                                raise
                 created = False
             elif model:
                 _, created = model.objects.create_or_update(values=update_kwargs, **filters)

@@ -97,29 +97,37 @@ class BufferTest(TestCase):
         columns = {"times_seen": 1}
         filters = {"id": group.id, "project_id": 1}
 
-        # Mock the group.update to raise NumericValueOutOfRange on first call,
-        # then succeed on retry with capped value
-        original_update = Group.update
-        call_count = 0
-
-        def mock_update(self, *args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            if call_count == 1:
-                # First call raises the overflow error
-                cause = psycopg2.errors.NumericValueOutOfRange()
-                error = DataError("integer out of range")
-                error.__cause__ = cause
-                raise error
-            # Second call (retry with capped value) succeeds
-            return original_update(self, *args, **kwargs)
+        # First call raises overflow error, second call succeeds
+        cause = psycopg2.errors.NumericValueOutOfRange()
+        error = DataError("integer out of range")
+        error.__cause__ = cause
+        mock_update = mock.MagicMock(side_effect=[error, None])
 
         with mock.patch.object(Group, "update", mock_update):
             self.buf.process(Group, columns, filters)
 
         # Verify it retried (called twice)
-        assert call_count == 2
+        assert mock_update.call_count == 2
 
-        # Verify the group was updated with MAX_INT32
-        group.refresh_from_db()
-        assert group.times_seen == MAX_INT32
+        # Verify the second call had times_seen capped to MAX_INT32
+        second_call_kwargs = mock_update.call_args_list[1][1]
+        assert second_call_kwargs["times_seen"] == MAX_INT32
+
+    def test_process_skips_times_seen_increment_when_already_max(self) -> None:
+        """Test that we skip times_seen increment but still update other fields when at MAX_INT32."""
+        group = Group.objects.create(project=Project(id=1))
+        Group.objects.filter(id=group.id).update(times_seen=MAX_INT32)
+        columns = {"times_seen": 1}
+        filters = {"id": group.id, "project_id": 1}
+        the_date = timezone.now() + timedelta(days=5)
+
+        mock_update = mock.MagicMock()
+
+        with mock.patch.object(Group, "update", mock_update):
+            self.buf.process(Group, columns, filters, {"last_seen": the_date})
+
+        # Verify update was called once with last_seen but without times_seen
+        assert mock_update.call_count == 1
+        call_kwargs = mock_update.call_args[1]
+        assert "times_seen" not in call_kwargs
+        assert call_kwargs["last_seen"] == the_date
