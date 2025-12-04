@@ -24,10 +24,11 @@ from sentry.replays.query import query_replay_instance
 from sentry.replays.validators import ReplayValidator
 
 
-def _format_eap_timestamps(data: list[dict]) -> list[dict]:
-    """Convert EAP float timestamps to ISO strings for frontend compatibility.
-    sentry.timestamp returns Unix timestamps as floats (seconds since epoch).
-    The frontend expects ISO date strings for started_at and finished_at.
+def _normalize_eap_response(data: list[dict]) -> list[dict]:
+    """Normalize EAP response data for frontend compatibility.
+
+    - Convert float timestamps to ISO strings
+    - Convert agg_project_id from float to int
     """
     for item in data:
         if "started_at" in item and isinstance(item["started_at"], float):
@@ -38,6 +39,10 @@ def _format_eap_timestamps(data: list[dict]) -> list[dict]:
             item["finished_at"] = datetime.fromtimestamp(
                 item["finished_at"], tz=timezone.utc
             ).isoformat()
+
+        # Convert project_id from float to int to avoid ".0" in output
+        if "agg_project_id" in item and isinstance(item["agg_project_id"], float):
+            item["agg_project_id"] = int(item["agg_project_id"])
     return data
 
 
@@ -131,7 +136,10 @@ def query_replay_instance_eap(
         request_id=str(uuid.uuid4().hex),
         trace_item_type="replay",
     )
-    return eap_read.query(snuba_query, settings, request_meta, [])
+    result = eap_read.query(snuba_query, settings, request_meta, [])
+    # Normalize EAP-specific data types (floats -> ints/ISO strings)
+    result["data"] = _normalize_eap_response(result["data"])
+    return result
 
 
 @region_silo_endpoint
@@ -186,7 +194,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
 
         # Use EAP query if feature flag is enabled
         if features.has("organizations:replay-details-eap-query", organization, actor=request.user):
-            eap_result = query_replay_instance_eap(
+            snuba_response = query_replay_instance_eap(
                 project_ids=project_ids,
                 replay_ids=[replay_id],
                 start=filter_params["start"],
@@ -194,7 +202,6 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
                 organization_id=organization.id,
                 request_user_id=request.user.id,
             )["data"]
-            snuba_response = _format_eap_timestamps(eap_result)
         else:
             snuba_response = query_replay_instance(
                 project_id=project_ids,
