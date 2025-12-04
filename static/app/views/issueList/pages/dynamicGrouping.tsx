@@ -353,7 +353,6 @@ function ClusterCard({
   selectedTags?: Set<string>;
 }) {
   const organization = useOrganization();
-  const issueCount = cluster.group_ids.length;
   const [showDescription, setShowDescription] = useState(false);
   const clusterStats = useClusterStats(cluster.group_ids);
   const {copy} = useCopyToClipboard();
@@ -445,16 +444,11 @@ function ClusterCard({
       <IssuesSection>
         <IssuesSectionHeader>
           <Text size="sm" bold uppercase>
-            {tn('%s Issue', '%s Issues', issueCount)}
+            {t('Preview Issues')}
           </Text>
         </IssuesSectionHeader>
         <IssuesList>
           <ClusterIssues groupIds={cluster.group_ids} />
-          {cluster.group_ids.length > 3 && (
-            <MoreIssuesIndicator>
-              {t('+ %s more similar issues', cluster.group_ids.length - 3)}
-            </MoreIssuesIndicator>
-          )}
         </IssuesList>
       </IssuesSection>
 
@@ -493,7 +487,9 @@ function ClusterCard({
         <Link
           to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
         >
-          <Button size="sm">{t('View All Issues')}</Button>
+          <Button size="sm">
+            {t('View All Issues') + ` (${cluster.group_ids.length})`}
+          </Button>
         </Link>
       </CardFooter>
     </CardContainer>
@@ -916,23 +912,37 @@ function DynamicGrouping() {
               </Text>
             </Container>
           ) : (
-            <Fragment>
-              <CardsGrid>
-                {displayedClusters.map(cluster => (
-                  <ClusterCard
-                    key={cluster.cluster_id}
-                    cluster={cluster}
-                    onTagClick={handleTagClick}
-                    selectedTags={selectedTags}
-                  />
-                ))}
-              </CardsGrid>
-              {hasMoreClusters && (
-                <ShowMoreButton onClick={handleShowMore}>
-                  {t('Show more clusters (%s more)', remainingClusterCount)}
-                </ShowMoreButton>
-              )}
-            </Fragment>
+            <CardsGrid>
+              <CardsColumn>
+                {displayedClusters
+                  .filter((_, index) => index % 2 === 0)
+                  .map(cluster => (
+                    <ClusterCard
+                      key={cluster.cluster_id}
+                      cluster={cluster}
+                      onTagClick={handleTagClick}
+                      selectedTags={selectedTags}
+                    />
+                  ))}
+              </CardsColumn>
+              <CardsColumn>
+                {displayedClusters
+                  .filter((_, index) => index % 2 === 1)
+                  .map(cluster => (
+                    <ClusterCard
+                      key={cluster.cluster_id}
+                      cluster={cluster}
+                      onTagClick={handleTagClick}
+                      selectedTags={selectedTags}
+                    />
+                  ))}
+              </CardsColumn>
+            </CardsGrid>
+          )}
+          {hasMoreClusters && (
+            <ShowMoreButton onClick={handleShowMore}>
+              {t('Show more clusters (%s more)', remainingClusterCount)}
+            </ShowMoreButton>
           )}
         </CardsSection>
       </PageWrapper>
@@ -961,14 +971,20 @@ const CardsSection = styled('div')`
 `;
 
 const CardsGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
   gap: ${space(3)};
-  align-items: stretch;
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
+`;
+
+const CardsColumn = styled('div')`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(3)};
+  min-width: 0;
 `;
 
 // Card with subtle hover effect
@@ -1071,14 +1087,6 @@ const IssuesList = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1.5)};
-`;
-
-const MoreIssuesIndicator = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  text-align: center;
-  font-style: italic;
-  padding-top: ${space(1)};
 `;
 
 // Zone 4: Footer with actions
