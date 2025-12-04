@@ -27,17 +27,23 @@ class GroupReprocessingEndpoint(GroupEndpoint):
         """
 
         max_events = request.data.get("maxEvents")
-        if max_events:
-            max_events = int(max_events)
+        if max_events is not None:
+            try:
+                max_events = int(max_events)
+            except (ValueError, TypeError):
+                return self.respond({"error": "maxEvents must be at least 1"}, status=400)
 
             if max_events <= 0:
                 return self.respond({"error": "maxEvents must be at least 1"}, status=400)
-        else:
-            max_events = None
 
         remaining_events = request.data.get("remainingEvents")
         if remaining_events not in ("delete", "keep"):
             return self.respond({"error": "remainingEvents must be delete or keep"}, status=400)
+
+        if remaining_events == "delete" and not request.access.has_scope("event:admin"):
+            return self.respond(
+                {"error": "you do not have permission to delete remaining events"}, status=403
+            )
 
         reprocess_group.delay(
             project_id=group.project_id,
