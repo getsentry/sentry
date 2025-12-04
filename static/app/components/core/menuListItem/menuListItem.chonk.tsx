@@ -1,8 +1,8 @@
 import isPropValid from '@emotion/is-prop-valid';
-import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 
 import {space} from 'sentry/styles/space';
-import type {FormSize} from 'sentry/utils/theme';
+import type {FormSize, Theme} from 'sentry/utils/theme';
 import {chonkStyled} from 'sentry/utils/theme/theme';
 
 /**
@@ -17,7 +17,7 @@ function getTextColor({
 }: {
   disabled: boolean;
   priority: Priority;
-  theme: DO_NOT_USE_ChonkTheme;
+  theme: Theme;
 }) {
   if (disabled) {
     return theme.subText;
