@@ -64,36 +64,38 @@ export default function Header({
           />
         </ReleasesPageFilterBar>
         {shouldShowMobileBuildsTab ? (
-          <Layout.HeaderTabs
-            value={activeDataset}
-            aria-label={t('Releases dataset selector')}
-          >
-            <TabList aria-label={t('Releases dataset selector')}>
-              <TabList.Item
-                key="releases"
-                to={{pathname, query: releasesDatasetQuery}}
-                textValue={t('Releases')}
-              >
-                {t('Releases')}
-              </TabList.Item>
-              <TabList.Item
-                key="mobile-builds"
-                to={{pathname, query: mobileBuildsDatasetQuery}}
-                textValue={t('Mobile Builds')}
-              >
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: space(0.5),
-                  }}
+          <Container paddingTop="xl">
+            <Layout.HeaderTabs
+              value={activeDataset}
+              aria-label={t('Releases dataset selector')}
+            >
+              <TabList aria-label={t('Releases dataset selector')}>
+                <TabList.Item
+                  key="releases"
+                  to={{pathname, query: releasesDatasetQuery}}
+                  textValue={t('Releases')}
                 >
-                  {t('Mobile Builds')}
-                  <FeatureBadge type="beta" />
-                </span>
-              </TabList.Item>
-            </TabList>
-          </Layout.HeaderTabs>
+                  {t('Releases')}
+                </TabList.Item>
+                <TabList.Item
+                  key="mobile-builds"
+                  to={{pathname, query: mobileBuildsDatasetQuery}}
+                  textValue={t('Mobile Builds')}
+                >
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: space(0.5),
+                    }}
+                  >
+                    {t('Mobile Builds')}
+                    <FeatureBadge type="beta" />
+                  </span>
+                </TabList.Item>
+              </TabList>
+            </Layout.HeaderTabs>
+          </Container>
         ) : null}
       </Container>
     </Layout.Header>
