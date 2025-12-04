@@ -101,7 +101,7 @@ def test_no_meta_changes_if_no_name_changes(default_project: mock.MagicMock):
 
 @django_db_all
 @mock.patch(
-    "sentry.ingest.transaction_clusterer.normalization.get_sorted_rules",
+    "sentry.ingest.transaction_clusterer.normalization.get_sorted_rules_from_redis",
     return_value=[("/users/*/posts/*/**", 0), ("/users/*/**", 0), ("GET /users/*/**", 0)],
 )
 @pytest.mark.parametrize(
@@ -248,7 +248,7 @@ def test_clusterer_applies_rules(
 
 @django_db_all
 @mock.patch(
-    "sentry.ingest.transaction_clusterer.normalization.get_sorted_rules",
+    "sentry.ingest.transaction_clusterer.normalization.get_sorted_rules_from_redis",
     return_value=[("/users/*/**", 0)],
 )
 def test_clusterer_works_with_scrubbing(

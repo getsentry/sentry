@@ -21,10 +21,12 @@ from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
 from sentry.ingest.transaction_clusterer.rules import (
     ProjectOptionRuleStore,
     RedisRuleStore,
+    _sort,
     bump_last_used,
     get_redis_rules,
     get_rules,
     get_sorted_rules,
+    get_sorted_rules_from_redis,
     update_rules,
 )
 from sentry.ingest.transaction_clusterer.tasks import cluster_projects, spawn_clusterers
@@ -258,7 +260,7 @@ def test_sort_rules() -> None:
         ReplacementRule("/a/**"): 2,
         ReplacementRule("/a/*/c/**"): 3,
     }
-    assert ProjectOptionRuleStore(ClustererNamespace.TRANSACTIONS)._sort(rules) == [
+    assert _sort(rules) == [
         ("/a/*/c/**", 3),
         ("/a/*/**", 1),
         ("/a/**", 2),
@@ -653,3 +655,26 @@ def test_stored_invalid_rules_dropped_on_update(default_project) -> None:
     with freeze_time("2000-01-01 01:00:00"):
         update_rules(ClustererNamespace.TRANSACTIONS, default_project, [rule])
     assert get_sorted_rules(ClustererNamespace.TRANSACTIONS, default_project) == []
+
+
+@django_db_all
+def test_get_sorted_rules_from_redis(default_project: Project) -> None:
+    with freeze_time("2000-01-01 01:00:00"):
+        update_rules(
+            ClustererNamespace.TRANSACTIONS,
+            default_project,
+            [
+                ReplacementRule("/a/*/**"),
+                ReplacementRule("/a/**"),
+                ReplacementRule("/a/*/c/**"),
+            ],
+        )
+
+    assert get_sorted_rules_from_redis(ClustererNamespace.TRANSACTIONS, default_project) == [
+        ("/a/*/c/**", 946688400),
+        ("/a/*/**", 946688400),
+        ("/a/**", 946688400),
+    ]
+    assert get_sorted_rules_from_redis(
+        ClustererNamespace.TRANSACTIONS, default_project
+    ) == get_sorted_rules(ClustererNamespace.TRANSACTIONS, default_project)
