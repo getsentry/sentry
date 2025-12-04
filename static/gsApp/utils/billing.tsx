@@ -610,6 +610,23 @@ export function supportsPayg(subscription: Subscription) {
 }
 
 /**
+ * Whether the category can use PAYG on the subscription given existing budgets.
+ * Does not check if there is PAYG left.
+ */
+export function hasPaygBudgetForCategory(
+  subscription: Subscription,
+  category: DataCategory
+) {
+  if (!subscription.onDemandBudgets) {
+    return false;
+  }
+  if (subscription.onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+    return (subscription.onDemandBudgets.budgets?.[category] ?? 0) > 0;
+  }
+  return subscription.onDemandBudgets.sharedMaxBudget > 0;
+}
+
+/**
  * Returns true if the current user has billing perms.
  */
 export function hasBillingAccess(organization: Organization) {

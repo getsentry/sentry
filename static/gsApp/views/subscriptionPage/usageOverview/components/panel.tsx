@@ -25,12 +25,14 @@ import {
   ProductTrialCta,
   UpgradeCta,
 } from 'getsentry/views/subscriptionPage/usageOverview/components/upgradeOrTrialCta';
+import {USAGE_OVERVIEW_PANEL_HEADER_HEIGHT} from 'getsentry/views/subscriptionPage/usageOverview/constants';
 import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
 function PanelHeader({
   selectedProduct,
   subscription,
-}: Pick<BreakdownPanelProps, 'selectedProduct' | 'subscription'>) {
+  isInline,
+}: Pick<BreakdownPanelProps, 'selectedProduct' | 'subscription' | 'isInline'>) {
   const {onDemandBudgets: paygBudgets} = subscription;
 
   const {
@@ -75,9 +77,19 @@ function PanelHeader({
     </Tag>
   ) : null;
 
+  if (isInline && !status) {
+    return null;
+  }
+
   return (
-    <Flex gap="md" align="center" borderBottom="primary" padding="xl">
-      <Heading as="h3">{displayName}</Heading>
+    <Flex
+      gap="md"
+      align="center"
+      borderBottom="primary"
+      padding="xl"
+      height={USAGE_OVERVIEW_PANEL_HEADER_HEIGHT}
+    >
+      {!isInline && <Heading as="h3">{displayName}</Heading>}
       {status}
     </Flex>
   );
@@ -141,7 +153,7 @@ function ProductBreakdownPanel({
     );
   }
 
-  const isEmpty = !potentialProductTrial && !isEnabled;
+  const shouldShowUpgradeCta = !potentialProductTrial && !isEnabled;
 
   return (
     <Container
@@ -157,7 +169,11 @@ function ProductBreakdownPanel({
           : undefined
       }
     >
-      <PanelHeader selectedProduct={selectedProduct} subscription={subscription} />
+      <PanelHeader
+        selectedProduct={selectedProduct}
+        subscription={subscription}
+        isInline={isInline}
+      />
       {potentialProductTrial && (
         <ProductTrialCta
           organization={organization}
@@ -178,7 +194,9 @@ function ProductBreakdownPanel({
           />
         </Fragment>
       )}
-      {isEmpty && <UpgradeCta organization={organization} subscription={subscription} />}
+      {shouldShowUpgradeCta && (
+        <UpgradeCta organization={organization} subscription={subscription} />
+      )}
     </Container>
   );
 }

@@ -1,16 +1,14 @@
 import {Fragment, useState} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button/linkButton';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconLightning, IconOpen} from 'sentry/icons';
+import {IconLightning, IconLock, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {useNavContext} from 'sentry/views/nav/context';
-import {NavLayout} from 'sentry/views/nav/types';
 
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import {
@@ -23,6 +21,7 @@ import {checkIsAddOn, getBilledCategory} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 
 function Cta({
+  icon,
   title,
   subtitle,
   buttons,
@@ -32,40 +31,39 @@ function Cta({
   subtitle: React.ReactNode;
   title: React.ReactNode;
   buttons?: React.ReactNode;
+  icon?: React.ReactNode;
 }) {
-  const {isCollapsed: navIsCollapsed, layout: navLayout} = useNavContext();
-  const isMobile = navLayout === NavLayout.MOBILE;
-
   return (
-    <Grid
+    <Flex
       background="secondary"
       padding="xl"
-      columns={
-        buttons
-          ? {
-              '2xs': 'auto',
-              xs: navIsCollapsed || isMobile ? 'repeat(2, 1fr)' : 'auto',
-            }
-          : '1fr'
-      }
-      gap="3xl"
+      direction="column"
+      gap="xl"
       borderBottom={hasContentBelow ? 'primary' : undefined}
       radius={hasContentBelow ? undefined : '0 0 md md'}
+      align="center"
     >
-      <Flex direction="column" gap="sm">
-        <Text bold textWrap="balance">
+      <Flex direction="column" gap="lg" align="center">
+        {icon && (
+          <Flex align="center" gap="sm">
+            {icon}
+          </Flex>
+        )}
+        <Text bold align="center" size="lg" textWrap="balance">
           {title}
         </Text>
-        <Text variant="muted" size="sm" textWrap="balance">
-          {subtitle}
-        </Text>
+        <Container maxWidth="300px">
+          <Text variant="muted" size="sm" align="center" textWrap="balance">
+            {subtitle}
+          </Text>
+        </Container>
       </Flex>
       {buttons && (
-        <Flex direction="column" gap="lg">
+        <Flex direction="column" gap="lg" align="center">
           {buttons}
         </Flex>
       )}
-    </Grid>
+    </Flex>
   );
 }
 
@@ -174,6 +172,7 @@ function UpgradeCta({
 
   return (
     <Cta
+      icon={<IconLock locked size="sm" />}
       title={t('Upgrade required')}
       subtitle={tct('You currently do not have access to this feature. [action]', {
         action: subscription.canSelfServe
