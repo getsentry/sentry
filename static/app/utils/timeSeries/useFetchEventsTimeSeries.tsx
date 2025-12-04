@@ -50,11 +50,11 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   interval?: string;
   /**
-   * Query to apply to the log data set. Can be either a `MutableSearch` object (preferred) or a plain string.
+   * Query to apply to the log data set. Is an array of `MutableSearch.formatString()` strings.
    */
   logQuery?: string[];
   /**
-   * Query to apply to the metric data set. Can be either a `MutableSearch` object (preferred) or a plain string.
+   * Query to apply to the metric data set. Is an array of `MutableSearch.formatString()` strings.
    */
   metricQuery?: string[];
   /**
@@ -78,7 +78,7 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   sort?: Sort;
   /**
-   * Query to apply to the span data set. Can be either a `MutableSearch` object (preferred) or a plain string.
+   * Query to apply to the span data set. Is an array of `MutableSearch.formatString()` strings.
    */
   spanQuery?: string[];
   /**
