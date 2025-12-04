@@ -10,7 +10,7 @@ import {NODE_ENV} from 'sentry/constants';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 import testableTransition from 'sentry/utils/testableTransition';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 type OriginPoint = Partial<{x: number; y: number}>;

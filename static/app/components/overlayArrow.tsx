@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ColorOrAlias} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 export interface OverlayArrowProps extends React.ComponentPropsWithRef<'div'> {

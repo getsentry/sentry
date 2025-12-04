@@ -14,7 +14,7 @@ import localStorage from 'sentry/utils/localStorage';
 import {
   DO_NOT_USE_darkChonkTheme,
   DO_NOT_USE_lightChonkTheme,
-} from 'sentry/utils/theme/theme.chonk';
+} from 'sentry/utils/theme/theme';
 import SystemAlerts from 'sentry/views/app/systemAlerts';
 
 import GlobalStyles from 'admin/globalStyles';

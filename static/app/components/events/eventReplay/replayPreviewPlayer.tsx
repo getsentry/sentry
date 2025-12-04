@@ -25,7 +25,7 @@ import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';

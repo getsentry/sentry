@@ -1,4 +1,4 @@
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 
 export const ChonkNativeHiddenCheckbox = chonkStyled('input')`
   position: absolute;

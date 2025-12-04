@@ -19,7 +19,7 @@ import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/gr
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';

@@ -1,5 +1,6 @@
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import color from 'color';
+
+import type {DO_NOT_USE_ChonkTheme} from 'sentry/utils/theme';
 
 const chonkCache = new Map<{baseColor: string; type: 'light' | 'dark'}, string>();
 

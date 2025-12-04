@@ -8,7 +8,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';

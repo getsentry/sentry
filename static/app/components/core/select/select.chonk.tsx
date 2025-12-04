@@ -1,4 +1,4 @@
-import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/core/button';
@@ -8,8 +8,8 @@ import {components as selectComponents} from 'sentry/components/forms/controls/r
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {FormSize} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import type {DO_NOT_USE_ChonkTheme, FormSize} from 'sentry/utils/theme';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 
 // We don't care about any options for the styles config
 export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
