@@ -26,12 +26,16 @@ import Redirect from 'sentry/components/redirect';
 import TimeSince from 'sentry/components/timeSince';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {
+  IconCalendar,
   IconChevron,
+  IconClock,
   IconClose,
   IconCopy,
   IconFire,
+  IconFix,
   IconSeer,
   IconUpload,
+  IconUser,
 } from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -201,6 +205,7 @@ interface ClusterStats {
   isPending: boolean;
   lastSeen: string | null;
   totalEvents: number;
+  totalUsers: number;
 }
 
 function useClusterStats(groupIds: number[]): ClusterStats {
@@ -226,6 +231,7 @@ function useClusterStats(groupIds: number[]): ClusterStats {
     if (isPending || !groups || groups.length === 0) {
       return {
         totalEvents: 0,
+        totalUsers: 0,
         firstSeen: null,
         lastSeen: null,
         isPending,
@@ -233,11 +239,13 @@ function useClusterStats(groupIds: number[]): ClusterStats {
     }
 
     let totalEvents = 0;
+    let totalUsers = 0;
     let earliestFirstSeen: Date | null = null;
     let latestLastSeen: Date | null = null;
 
     for (const group of groups) {
       totalEvents += parseInt(group.count, 10) || 0;
+      totalUsers += group.userCount || 0;
 
       if (group.firstSeen) {
         const firstSeenDate = new Date(group.firstSeen);
@@ -256,6 +264,7 @@ function useClusterStats(groupIds: number[]): ClusterStats {
 
     return {
       totalEvents,
+      totalUsers,
       firstSeen: earliestFirstSeen?.toISOString() ?? null,
       lastSeen: latestLastSeen?.toISOString() ?? null,
       isPending,
@@ -394,51 +403,71 @@ function ClusterCard({
       </CardHeader>
 
       {/* Zone 2: Stats (Secondary Context) */}
-      <StatsSection>
-        <PrimaryStats>
-          <EventsMetric>
-            <IconFire size="sm" />
-            {clusterStats.isPending ? (
-              <Text size="md" variant="muted">
-                –
-              </Text>
-            ) : (
-              <EventsCount>{clusterStats.totalEvents.toLocaleString()}</EventsCount>
-            )}
-            <Text size="sm" variant="muted">
+      <ClusterStatsBar>
+        {cluster.fixability_score !== null && cluster.fixability_score !== undefined && (
+          <StatItem>
+            <IconFix size="xs" color="gray300" />
+            <Text size="xs">
+              <Text size="xs" bold as="span">
+                {Math.round(cluster.fixability_score * 100)}%
+              </Text>{' '}
+              {t('relevance')}
+            </Text>
+          </StatItem>
+        )}
+        <StatItem>
+          <IconFire size="xs" color="gray300" />
+          {clusterStats.isPending ? (
+            <Text size="xs" variant="muted">
+              –
+            </Text>
+          ) : (
+            <Text size="xs">
+              <Text size="xs" bold as="span">
+                {clusterStats.totalEvents.toLocaleString()}
+              </Text>{' '}
               {tn('event', 'events', clusterStats.totalEvents)}
             </Text>
-          </EventsMetric>
-        </PrimaryStats>
-        <SecondaryStats>
-          {!clusterStats.isPending && clusterStats.lastSeen && (
-            <SecondaryStatItem>
-              <Text size="xs" variant="muted">
-                {t('Last seen')}
-              </Text>
-              <TimeSince
-                tooltipPrefix={t('Last Seen')}
-                date={clusterStats.lastSeen}
-                suffix={t('ago')}
-                unitStyle="short"
-              />
-            </SecondaryStatItem>
           )}
-          {!clusterStats.isPending && clusterStats.firstSeen && (
-            <SecondaryStatItem>
-              <Text size="xs" variant="muted">
-                {t('Age')}
-              </Text>
-              <TimeSince
-                tooltipPrefix={t('First Seen')}
-                date={clusterStats.firstSeen}
-                suffix={t('old')}
-                unitStyle="short"
-              />
-            </SecondaryStatItem>
+        </StatItem>
+        <StatItem>
+          <IconUser size="xs" color="gray300" />
+          {clusterStats.isPending ? (
+            <Text size="xs" variant="muted">
+              –
+            </Text>
+          ) : (
+            <Text size="xs">
+              <Text size="xs" bold as="span">
+                {clusterStats.totalUsers.toLocaleString()}
+              </Text>{' '}
+              {tn('user', 'users', clusterStats.totalUsers)}
+            </Text>
           )}
-        </SecondaryStats>
-      </StatsSection>
+        </StatItem>
+        {!clusterStats.isPending && clusterStats.lastSeen && (
+          <StatItem>
+            <IconClock size="xs" color="gray300" />
+            <TimeSince
+              tooltipPrefix={t('Last Seen')}
+              date={clusterStats.lastSeen}
+              suffix={t('ago')}
+              unitStyle="short"
+            />
+          </StatItem>
+        )}
+        {!clusterStats.isPending && clusterStats.firstSeen && (
+          <StatItem>
+            <IconCalendar size="xs" color="gray300" />
+            <TimeSince
+              tooltipPrefix={t('First Seen')}
+              date={clusterStats.firstSeen}
+              suffix={t('old')}
+              unitStyle="short"
+            />
+          </StatItem>
+        )}
+      </ClusterStatsBar>
 
       {/* Zone 3: Nested Issues (Detail Content) */}
       <IssuesSection>
@@ -1023,50 +1052,23 @@ const ClusterTitle = styled('h3')`
   word-break: break-word;
 `;
 
-// Zone 2: Stats section with visual hierarchy
-const StatsSection = styled('div')`
-  padding: ${space(2)} ${space(3)};
-  background: ${p => p.theme.backgroundSecondary};
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+// Horizontal stats bar below header
+const ClusterStatsBar = styled('div')`
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: center;
   gap: ${space(2)};
-  flex-wrap: wrap;
-`;
-
-const PrimaryStats = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(3)};
-`;
-
-const EventsMetric = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  color: ${p => p.theme.red300};
-`;
-
-const EventsCount = styled('span')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: 700;
-  color: ${p => p.theme.textColor};
-  font-variant-numeric: tabular-nums;
-`;
-
-const SecondaryStats = styled('div')`
-  display: flex;
-  gap: ${space(3)};
-`;
-
-const SecondaryStatItem = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.25)};
+  padding: ${space(1.5)} ${space(3)};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.subText};
+`;
+
+const StatItem = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 // Zone 3: Issues list with clear containment
