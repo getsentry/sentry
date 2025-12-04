@@ -717,7 +717,7 @@ export type Color = keyof typeof lightColors;
 export type IconSize = keyof typeof iconSizes;
 type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
-export interface Theme extends Omit<typeof lightTheme, 'chart'> {
+interface SentryTheme extends Omit<typeof lightTheme, 'chart'> {
   chart: {
     colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
@@ -1739,7 +1739,7 @@ export const lightTheme = {
 /**
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
-export const darkTheme: Theme = {
+export const darkTheme: SentryTheme = {
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
@@ -1791,6 +1791,13 @@ export const darkTheme: Theme = {
     superuser: '#880808',
   },
 };
+
+declare module '@emotion/react' {
+  /**
+   * Configure Emotion to use our theme
+   */
+  export interface Theme extends SentryTheme {}
+}
 
 // tkdodo: kept for backwards compatibility, to be deleted
 
