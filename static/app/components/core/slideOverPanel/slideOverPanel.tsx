@@ -110,7 +110,7 @@ export function SlideOverPanel({
       initial={collapsedStyle}
       animate={openStyle}
       exit={collapsedStyle}
-      slidePosition={position}
+      position={position}
       transition={{
         ...theme.motion.framer.spring.moderate,
         ...transitionProps,
@@ -139,14 +139,14 @@ const _SlideOverPanel = styled(motion.div, {
     (prop !== 'isOpen' && isPropValid(prop)),
 })<{
   panelWidth?: string;
-  slidePosition?: 'right' | 'bottom' | 'left';
+  position?: 'right' | 'bottom' | 'left';
 }>`
   position: fixed;
 
-  top: ${p => (p.slidePosition === 'left' ? '54px' : space(2))};
-  right: ${p => (p.slidePosition === 'left' ? space(2) : 0)};
+  top: ${p => (p.position === 'left' ? '54px' : space(2))};
+  right: ${p => (p.position === 'left' ? space(2) : 0)};
   bottom: ${space(2)};
-  left: ${p => (p.slidePosition === 'left' ? 0 : space(2))};
+  left: ${p => (p.position === 'left' ? 0 : space(2))};
 
   overflow: auto;
   pointer-events: auto;
@@ -162,7 +162,7 @@ const _SlideOverPanel = styled(motion.div, {
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     ${p =>
-      p.slidePosition === 'bottom'
+      p.position === 'bottom'
         ? css`
             position: sticky;
 
@@ -173,7 +173,7 @@ const _SlideOverPanel = styled(motion.div, {
             bottom: 0;
             left: 0;
           `
-        : p.slidePosition === 'right'
+        : p.position === 'right'
           ? css`
               position: fixed;
 
