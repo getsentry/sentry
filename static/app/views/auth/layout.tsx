@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Link} from 'sentry/components/core/link';
@@ -9,7 +10,7 @@ import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 
 const BODY_CLASSES = ['narrow'];
 
-function Layout({children}: any) {
+function Layout() {
   useEffect(() => {
     document.body.classList.add(...BODY_CLASSES);
     return () => document.body.classList.remove(...BODY_CLASSES);
@@ -24,7 +25,9 @@ function Layout({children}: any) {
             <AuthSidebar>
               <SentryButton />
             </AuthSidebar>
-            <div>{children}</div>
+            <div>
+              <Outlet />
+            </div>
           </AuthPanel>
         </AuthContainer>
       </AppBodyContent>
