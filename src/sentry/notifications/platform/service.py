@@ -21,6 +21,7 @@ from sentry.notifications.platform.types import (
     NotificationTarget,
     NotificationTemplate,
 )
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -39,7 +40,7 @@ class NotificationService[T: NotificationData]:
         self.data: Final[T] = data
 
     @staticmethod
-    def has_access(organization: Organization, source: str) -> bool:
+    def has_access(organization: Organization | RpcOrganization, source: str) -> bool:
         if not features.has("organizations:notification-platform", organization):
             return False
 
