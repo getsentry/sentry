@@ -24,6 +24,7 @@ export function PrebuiltDashboardRenderer({prebuiltId}: PrebuiltDashboardRendere
 
   const dashboard: DashboardDetails = {
     id: `prebuilt-dashboard-${prebuiltId}`,
+    prebuiltId,
     title,
     widgets,
     dateCreated: '',
