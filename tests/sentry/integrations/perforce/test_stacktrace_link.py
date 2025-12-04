@@ -56,7 +56,12 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
 
     def test_get_stacktrace_config_python_path(self):
         """Test stacktrace link generation for Python SDK path"""
-        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.py"}
+        self.check_file_patcher.stop()
+        self.check_file_patcher = patch(
+            "sentry.integrations.perforce.client.PerforceClient.check_file",
+            return_value={"depotFile": "//depot/app/services/processor.py"},
+        )
+        self.check_file_patcher.start()
         ctx: StacktraceLinkContext = {
             "file": "depot/app/services/processor.py",
             "filename": "depot/app/services/processor.py",
@@ -373,7 +378,12 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
 
     def test_stacktrace_link_empty_stack_root(self):
         """Test stacktrace link with empty stack_root (shouldn't match anything)"""
-        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.py"}
+        self.check_file_patcher.stop()
+        self.check_file_patcher = patch(
+            "sentry.integrations.perforce.client.PerforceClient.check_file",
+            return_value={"depotFile": "//depot/app/services/processor.py"},
+        )
+        self.check_file_patcher.start()
         repo = Repository.objects.create(
             name="//depot",
             organization_id=self.organization.id,
