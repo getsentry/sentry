@@ -230,12 +230,11 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
                 {
                     "cache_result": "hit" if got_cache_hit else "miss",
                     "expiry_seconds": cache_expiry_seconds,
-                    # If there's a cache miss this will be overridden below
-                    "grouphash_exists": grouphash_exists,
                 }
             )
 
             if got_cache_hit:
+                metrics_tags["grouphash_exists"] = grouphash_exists
                 return grouphash_exists
 
         grouphash_exists = GroupHash.objects.filter(project=project, hash=hash_value).exists()
