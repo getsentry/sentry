@@ -11,8 +11,9 @@ import type {CSSProperties} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import modifyColor from 'color';
-import {color} from 'sentry/utils/theme/scraps/color';
 import {spring, type Transition} from 'framer-motion';
+
+import {color} from 'sentry/utils/theme/scraps/color';
 
 type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
 
