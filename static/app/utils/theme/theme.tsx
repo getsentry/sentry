@@ -154,7 +154,7 @@ type AlertColors = Record<
   }
 >;
 
-export const generateThemeUtils = (colors: Colors, aliases: Aliases) => ({
+const generateThemeUtils = (colors: Colors, aliases: Aliases) => ({
   tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
     textDecoration: 'underline' as const,
     textDecorationThickness: '0.75px',
@@ -182,7 +182,7 @@ export const generateThemeUtils = (colors: Colors, aliases: Aliases) => ({
   `,
 });
 
-export const generateThemePrismVariables = (
+const generateThemePrismVariables = (
   prismColors: typeof prismLight,
   blockBackground: string
 ) =>
@@ -193,7 +193,7 @@ export const generateThemePrismVariables = (
     ...prismColors,
   });
 
-export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
+const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
   default: {
     // all alias-based, already derived from new theme
     color: alias.textColor,
@@ -263,7 +263,7 @@ export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColor
   },
 });
 
-export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
+const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   info: {
     border: colors.blue200,
     background: colors.blue400,
@@ -302,7 +302,7 @@ export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors 
   },
 });
 
-export const generateLevelTheme = (colors: Colors): LevelColors => ({
+const generateLevelTheme = (colors: Colors): LevelColors => ({
   sample: colors.blue400,
   info: colors.blue400,
   warning: colors.yellow400,
@@ -315,7 +315,7 @@ export const generateLevelTheme = (colors: Colors): LevelColors => ({
   unknown: colors.gray200,
 });
 
-export const generateTagTheme = (colors: Colors): TagColors => ({
+const generateTagTheme = (colors: Colors): TagColors => ({
   default: {
     background: colors.surface500,
     border: colors.gray200,
@@ -452,7 +452,7 @@ export type FormSize = 'xs' | 'sm' | 'md';
 
 export type Space = keyof typeof space;
 
-export type FormTheme = {
+type FormTheme = {
   form: Record<
     FormSize,
     {
@@ -648,17 +648,6 @@ export interface SentryTheme extends Omit<typeof lightTheme, 'chart'> {
     neutral: string;
   };
 }
-
-/**
- * Do not import theme values directly as they only define light color theme.
- * Consuming it directly means that you won't get the correct colors in dark mode.
- * @deprecated use useTheme hook instead.
- */
-const commonThemeExport = {...commonTheme};
-/**
- * @deprecated Do not import the theme directly, use useTheme hook instead.
- */
-export default commonThemeExport;
 
 const CHART_PALETTE_LIGHT = [
   ['#7553FF'],
@@ -1919,5 +1908,7 @@ export type StrictCSSObject = {
 
 export const chonkStyled = styled;
 export const useChonkTheme = useTheme;
+/** @alias */
 export const DO_NOT_USE_lightChonkTheme = lightTheme;
+/** @alias */
 export const DO_NOT_USE_darkChonkTheme = darkTheme;
