@@ -107,7 +107,7 @@ function UsageBreakdownInfo({
     return null;
   }
 
-  const interval = plan.contractInterval === 'monthly' ? t('month') : 'year';
+  const interval = plan.contractInterval === 'monthly' ? t('month') : t('year');
 
   return (
     <Grid columns="repeat(2, 1fr)" gap="md lg" padding="xl">
