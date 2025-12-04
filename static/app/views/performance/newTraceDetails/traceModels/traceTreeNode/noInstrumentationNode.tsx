@@ -17,8 +17,6 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
   previous: BaseNode;
   next: BaseNode;
 
-  isLightBarColor = true;
-
   constructor(
     previous: BaseNode,
     next: BaseNode,
