@@ -5,6 +5,7 @@ Functions for fetching trace data optimized for LLM issue detection.
 from __future__ import annotations
 
 import logging
+import random
 import re
 from datetime import UTC, datetime, timedelta
 
@@ -43,8 +44,9 @@ def get_evidence_trace_for_llm_detection(
         )
         return None
 
+    random_offset = random.randint(1, 8)
     end_time = datetime.now(UTC)
-    start_time = end_time - timedelta(hours=24)
+    start_time = end_time - timedelta(minutes=30 - random_offset)
 
     snuba_params = SnubaParams(
         start=start_time,

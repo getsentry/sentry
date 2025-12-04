@@ -1,4 +1,3 @@
-import {type DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
 import {motion, type HTMLMotionProps} from 'framer-motion';
@@ -13,7 +12,8 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconCheckmark, IconRefresh, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import type {DO_NOT_USE_ChonkTheme} from 'sentry/utils/theme';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 
 export interface ToastProps {
   indicator: Indicator;
