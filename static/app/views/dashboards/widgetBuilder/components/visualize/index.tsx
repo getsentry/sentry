@@ -41,6 +41,7 @@ import {
   WidgetType,
   type LinkedDashboard,
 } from 'sentry/views/dashboards/types';
+import {isChartDisplayType} from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import SortableVisualizeFieldWrapper from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
@@ -277,9 +278,7 @@ function Visualize({error, setError}: VisualizeProps) {
   const isEditing = useIsEditingWidget();
   const disableTransactionWidget = useDisableTransactionWidget();
 
-  const isChartWidget =
-    state.displayType !== DisplayType.TABLE &&
-    state.displayType !== DisplayType.BIG_NUMBER;
+  const isChartWidget = isChartDisplayType(state.displayType);
   const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
   const isTableWidget = state.displayType === DisplayType.TABLE;
   const {tags: numericSpanTags} = useTraceItemTags('number');
@@ -346,7 +345,13 @@ function Visualize({error, setError}: VisualizeProps) {
         customMeasurements
       );
     }
-    return datasetConfig.getTableFieldOptions(organization, tags, customMeasurements);
+    return datasetConfig.getTableFieldOptions(
+      organization,
+      tags,
+      customMeasurements,
+      undefined,
+      state.displayType
+    );
   }, [
     state.dataset,
     datasetConfig,
@@ -355,6 +360,7 @@ function Visualize({error, setError}: VisualizeProps) {
     customMeasurements,
     numericSpanTags,
     stringSpanTags,
+    state.displayType,
   ]);
 
   const aggregates = useMemo(
@@ -384,6 +390,10 @@ function Visualize({error, setError}: VisualizeProps) {
     'visibility-explore-equations'
   );
   const hasDrillDownFlows = useHasDrillDownFlows();
+
+  // Default field to add to the widget query when adding a new field.
+  const defaultField =
+    (isChartWidget && datasetConfig.defaultSeriesField) || datasetConfig.defaultField;
 
   return (
     <Fragment>
@@ -440,7 +450,11 @@ function Visualize({error, setError}: VisualizeProps) {
                 const isOnlyFieldOrAggregate =
                   fields.length === 2 &&
                   field.kind !== FieldValueKind.EQUATION &&
-                  fields.some(fieldItem => fieldItem.kind === FieldValueKind.EQUATION);
+                  fields.some(fieldItem => fieldItem.kind === FieldValueKind.EQUATION) &&
+                  // The spans dataset can have a single equation, so isOnlyFieldOrAggregate
+                  // is not applicable. The errors dataset requires one series to be
+                  // selected for equations to work.
+                  state.dataset !== WidgetType.SPANS;
 
                 // Depending on the dataset and the display type, we use different options for
                 // displaying in the column select.
@@ -910,7 +924,7 @@ function Visualize({error, setError}: VisualizeProps) {
           onClick={() => {
             dispatch({
               type: updateAction,
-              payload: [...(fields ?? []), cloneDeep(datasetConfig.defaultField)],
+              payload: [...(fields ?? []), cloneDeep(defaultField)],
             });
 
             trackAnalytics('dashboards_views.widget_builder.change', {

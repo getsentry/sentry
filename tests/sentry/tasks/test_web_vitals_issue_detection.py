@@ -231,7 +231,7 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
             lcp_call = call_args_list[0]
             lcp_occurrence = lcp_call.kwargs["occurrence"]
             assert lcp_occurrence.fingerprint == ["d94185e6d794589212c74476702515734b703f86"]
-            assert lcp_occurrence.issue_title == "Render time Web Vital scores need improvement"
+            assert lcp_occurrence.issue_title == "The page /home was slow to load and render"
             assert (
                 lcp_occurrence.subtitle == "/home has an LCP score of 0.5 and an FCP score of 0.8"
             )
@@ -242,7 +242,9 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
             inp_call = call_args_list[1]
             inp_occurrence = inp_call.kwargs["occurrence"]
             assert inp_occurrence.fingerprint == ["d8b421cb6e5476121654d1383e80f4515a7f58b9"]
-            assert inp_occurrence.issue_title == "INP score needs improvement"
+            assert (
+                inp_occurrence.issue_title == "The page /home responded slowly to user interactions"
+            )
             assert inp_occurrence.subtitle == "/home has an INP score of 0.85"
             inp_event_data = inp_call.kwargs["event_data"]
             assert inp_event_data["tags"]["inp_score"] == "0.85"
@@ -347,7 +349,7 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
             lcp_call = call_args_list[0]
             lcp_occurrence = lcp_call.kwargs["occurrence"]
             assert lcp_occurrence.fingerprint == ["d94185e6d794589212c74476702515734b703f86"]
-            assert lcp_occurrence.issue_title == "Render time Web Vital scores need improvement"
+            assert lcp_occurrence.issue_title == "The page /home was slow to load and render"
             assert (
                 lcp_occurrence.subtitle
                 == "/home has an LCP score of 0.5, an FCP score of 0.8 and a TTFB score of 0.6"

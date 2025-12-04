@@ -893,8 +893,8 @@ class SnubaQueryParams:
     def __init__(
         self,
         dataset=None,
-        start=None,
-        end=None,
+        start: datetime | None = None,
+        end: datetime | None = None,
         groupby=None,
         conditions=None,
         filter_keys=None,
@@ -1501,8 +1501,8 @@ def _raw_snql_query(request: Request, headers: Mapping[str, str]) -> urllib3.res
 
 def query(
     dataset=None,
-    start=None,
-    end=None,
+    start: datetime | None = None,
+    end: datetime | None = None,
     groupby=None,
     conditions=None,
     filter_keys=None,

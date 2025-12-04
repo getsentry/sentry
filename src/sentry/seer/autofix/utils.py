@@ -4,19 +4,28 @@ from enum import StrEnum
 from typing import TypedDict
 
 import orjson
+import pydantic
 import requests
 from django.conf import settings
 from pydantic import BaseModel
+from urllib3 import Retry
 
 from sentry import features, options, ratelimits
 from sentry.constants import DataCategory
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
-from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
+from sentry.seer.models import (
+    PreferenceResponse,
+    SeerApiError,
+    SeerApiResponseValidationError,
+    SeerPermissionError,
+    SeerRepoDefinition,
+)
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -130,6 +139,37 @@ class CodingAgentStateUpdateRequest(BaseModel):
 autofix_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
 )
+
+
+def get_project_seer_preferences(project_id: int):
+    """
+    Fetch Seer project preferences from the Seer API.
+
+    Args:
+        project_id: The project ID to fetch preferences for
+
+    Returns:
+        PreferenceResponse object if successful, None otherwise
+    """
+    path = "/v1/project-preference"
+    body = orjson.dumps({"project_id": project_id})
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=5,
+        retries=Retry(total=2, backoff_factor=0.5),
+    )
+
+    if response.status == 200:
+        try:
+            result = orjson.loads(response.data)
+            return PreferenceResponse.validate(result)
+        except (pydantic.ValidationError, orjson.JSONDecodeError, UnicodeDecodeError) as e:
+            raise SeerApiResponseValidationError(str(e)) from e
+
+    raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
@@ -286,6 +326,54 @@ def is_seer_scanner_rate_limited(project: Project, organization: Organization) -
     return is_rate_limited
 
 
+def is_issue_eligible_for_seer_automation(group: Group) -> bool:
+    """Check if Seer automation is allowed for a given group based on permissions and issue type."""
+    from sentry import quotas
+    from sentry.issues.grouptype import GroupCategory
+
+    # check currently supported issue categories for Seer
+    if group.issue_category not in [
+        GroupCategory.ERROR,
+        GroupCategory.PERFORMANCE,
+        GroupCategory.MOBILE,
+        GroupCategory.FRONTEND,
+        GroupCategory.DB_QUERY,
+        GroupCategory.HTTP_CLIENT,
+    ] or group.issue_category in [
+        GroupCategory.REPLAY,
+        GroupCategory.FEEDBACK,
+    ]:
+        return False
+
+    if not features.has("organizations:gen-ai-features", group.organization):
+        return False
+
+    gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")
+    if not gen_ai_allowed:
+        return False
+
+    project = group.project
+    if (
+        not project.get_option("sentry:seer_scanner_automation")
+        and not group.issue_type.always_trigger_seer_automation
+    ):
+        return False
+
+    from sentry.seer.seer_setup import get_seer_org_acknowledgement_for_scanner
+
+    seer_enabled = get_seer_org_acknowledgement_for_scanner(group.organization)
+    if not seer_enabled:
+        return False
+
+    has_budget: bool = quotas.backend.has_available_reserved_budget(
+        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
+    )
+    if not has_budget:
+        return False
+
+    return True
+
+
 AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS = {
     AutofixAutomationTuningSettings.OFF: 5,
     AutofixAutomationTuningSettings.SUPER_LOW: 5,
@@ -378,7 +466,9 @@ def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: 
     return response_data.get("prompt")
 
 
-def get_coding_agent_prompt(run_id: int, trigger_source: AutofixTriggerSource) -> str:
+def get_coding_agent_prompt(
+    run_id: int, trigger_source: AutofixTriggerSource, instruction: str | None = None
+) -> str:
     """Get the coding agent prompt with prefix from Seer API."""
     include_root_cause = trigger_source in [
         AutofixTriggerSource.ROOT_CAUSE,
@@ -388,7 +478,12 @@ def get_coding_agent_prompt(run_id: int, trigger_source: AutofixTriggerSource) -
 
     autofix_prompt = get_autofix_prompt(run_id, include_root_cause, include_solution)
 
-    return f"Please fix the following issue:\n\n{autofix_prompt}"
+    base_prompt = "Please fix the following issue. Ensure that your fix is fully working."
+
+    if instruction and instruction.strip():
+        base_prompt = f"{base_prompt}\n\n{instruction.strip()}"
+
+    return f"{base_prompt}\n\n{autofix_prompt}"
 
 
 def update_coding_agent_state(

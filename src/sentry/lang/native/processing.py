@@ -11,7 +11,7 @@ from symbolic.exceptions import ParseDebugIdError
 
 from sentry import options
 from sentry.lang.native.error import SymbolicationFailed, write_error
-from sentry.lang.native.symbolicator import Symbolicator
+from sentry.lang.native.symbolicator import FrameOrder, Symbolicator
 from sentry.lang.native.utils import (
     get_event_attachment,
     get_os_from_event,
@@ -471,7 +471,13 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
     metrics.incr("process.native.symbolicate.request")
     response = symbolicator.process_payload(
-        platform=data.get("platform"), stacktraces=stacktraces, modules=modules, signal=signal
+        platform=data.get("platform"),
+        stacktraces=stacktraces,
+        modules=modules,
+        # Frames were reversed in `get_frames_for_symbolication`,
+        # so this has to be "callee_first".
+        frame_order=FrameOrder.callee_first,
+        signal=signal,
     )
 
     if not _handle_response_status(data, response):

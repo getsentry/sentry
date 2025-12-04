@@ -195,7 +195,7 @@ function IntegrationExternalMappings(props: Props) {
             data-test-id="add-mapping-button"
             onClick={() => onCreate()}
             size="xs"
-            icon={<IconAdd isCircled />}
+            icon={<IconAdd />}
           >
             {tct('Add [type] Mapping', {type})}
           </AddButton>,

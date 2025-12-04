@@ -986,6 +986,7 @@ class DashboardDetail extends Component<Props, State> {
                           onUpdate={this.onUpdateWidget}
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
+                          isEmbedded={this.isEmbedded}
                           isPreview={this.isPreview}
                           widgetLegendState={this.state.widgetLegendState}
                         />
@@ -1186,6 +1187,7 @@ class DashboardDetail extends Component<Props, State> {
                                 isPreview={this.isPreview}
                                 onDashboardFilterChange={this.handleChangeFilter}
                                 shouldBusySaveButton={this.state.isSavingDashboardFilters}
+                                isPrebuiltDashboard={defined(dashboard.prebuiltId)}
                                 onCancel={() => {
                                   resetPageFilters(dashboard, location);
                                   trackAnalytics('dashboards2.filter.cancel', {
@@ -1269,6 +1271,7 @@ class DashboardDetail extends Component<Props, State> {
                                       onAddWidget={this.onAddWidget}
                                       newWidget={newWidget}
                                       onSetNewWidget={onSetNewWidget}
+                                      isEmbedded={this.isEmbedded}
                                       isPreview={this.isPreview}
                                       widgetLegendState={this.state.widgetLegendState}
                                       onEditWidget={this.onEditWidget}

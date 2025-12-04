@@ -57,9 +57,10 @@ export const metrics = ({
       ],
     },
   ],
-  configure: (params: DocsParams) => [
+  configure: () => [],
+  verify: (params: DocsParams) => [
     {
-      type: StepType.CONFIGURE,
+      type: StepType.VERIFY,
       content: [
         {
           type: 'text',
@@ -80,7 +81,6 @@ sentry_sdk.init(
   dsn="${params.dsn.public}",
 )
 
-# Emit custom metrics
 metrics.count("checkout.failed", 1)
 metrics.gauge("queue.depth", 42)
 metrics.distribution("cart.amount_usd", 187.5)`,
@@ -97,12 +97,6 @@ metrics.distribution("cart.amount_usd", 187.5)`,
           ),
         },
       ],
-    },
-  ],
-  verify: (params: DocsParams) => [
-    {
-      type: StepType.VERIFY,
-      content: [metricsVerify(params)],
     },
   ],
 });

@@ -479,13 +479,14 @@ def _assemble_preprod_artifact_size_analysis(
             except (ValueError, AttributeError):
                 artifact_type_name = "unknown"
 
+        # TODO: Remove project_id_value once this metric's volume get too big to avoid high cardinality cost issues
         metrics.distribution(
             "preprod.size_analysis.results_e2e",
             e2e_size_analysis_duration.total_seconds(),
             sample_rate=1.0,
             tags={
-                "project_id": project.id,
-                "organization_id": org_id,
+                "project_id_value": project.id,
+                "organization_id_value": org_id,
                 "artifact_type": artifact_type_name,
             },
         )

@@ -27,7 +27,7 @@ export interface BuildDetailsAppInfo {
 }
 
 interface AppleAppInfo {
-  missing_dsym_binaries?: string[];
+  has_missing_dsym_binaries?: boolean;
 }
 
 interface AndroidAppInfo {
@@ -45,7 +45,7 @@ export interface BuildDetailsVcsInfo {
   provider?: string | null;
 }
 
-interface BuildDetailsSizeInfoSizeMetric {
+export interface BuildDetailsSizeInfoSizeMetric {
   metrics_artifact_type: MetricsArtifactType;
   install_size_bytes: number;
   download_size_bytes: number;

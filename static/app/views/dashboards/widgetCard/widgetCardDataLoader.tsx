@@ -80,8 +80,22 @@ export function WidgetCardDataLoader({
         dashboardFilters={dashboardFilters}
         onDataFetchStart={onDataFetchStart}
       >
-        {({tableResults, errorMessage, loading}) => (
-          <Fragment>{children({tableResults, errorMessage, loading})}</Fragment>
+        {({
+          tableResults,
+          timeseriesResults,
+          timeseriesResultsTypes,
+          errorMessage,
+          loading,
+        }) => (
+          <Fragment>
+            {children({
+              tableResults,
+              timeseriesResults,
+              timeseriesResultsTypes,
+              errorMessage,
+              loading,
+            })}
+          </Fragment>
         )}
       </IssueWidgetQueries>
     );
@@ -91,6 +105,7 @@ export function WidgetCardDataLoader({
     return (
       <ReleaseWidgetQueries
         widget={widget}
+        queue={queue}
         selection={selection}
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
@@ -126,6 +141,7 @@ export function WidgetCardDataLoader({
   return (
     <WidgetQueries
       api={api}
+      queue={queue}
       organization={organization}
       widget={widget}
       selection={selection}

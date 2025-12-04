@@ -51,6 +51,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             fingerprint="group1",
             contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         )
+        assert event.group is not None
 
         self.login_as(user=self.user)
 
@@ -209,6 +210,39 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
         values = {item["value"]: item["count"] for item in response.data}
         assert values.get("bar") == 1
         assert values.get("") == 1
+
+    def test_user_tag_with_empty_values(self) -> None:
+        """Test that user tags with empty values don't cause AttributeError."""
+        project = self.create_project()
+
+        # Event with user data
+        self.store_event(
+            data={
+                "user": {"id": "user123"},
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=project.id,
+        )
+        # Event without user data (will have empty user tag)
+        event = self.store_event(
+            data={
+                "timestamp": before_now(seconds=2).isoformat(),
+            },
+            project_id=project.id,
+        )
+
+        group = event.group
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{group.id}/tags/user/values/"
+
+        # This should not crash with AttributeError: 'NoneType' object has no attribute 'split'
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        # Should return at least the user with id, empty values may or may not be included
+        assert len(response.data) >= 1
 
     def test_count_sort(self) -> None:
         project = self.create_project()

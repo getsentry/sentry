@@ -59,6 +59,7 @@ function DropdownActions({actions, label}: Props) {
     <CompactSelect
       searchable
       options={mapActionsToCompactSelect(actions)}
+      value={undefined}
       onChange={option => {
         const action = actions.find(a => a.key === option.value);
         if (!action || action.disabled) {

@@ -1,13 +1,17 @@
 import type {LocationDescriptor} from 'history';
 
-import type {Block, ToolLink} from './types';
+import type {Block, ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
 
 /**
  * Tool formatter function type.
- * Takes parsed args and loading state, returns the display message.
+ * Takes parsed args, loading state, and optional tool link metadata.
  * Implement one for each tool that needs custom display.
  */
-type ToolFormatter = (args: Record<string, any>, isLoading: boolean) => string;
+type ToolFormatter = (
+  args: Record<string, any>,
+  isLoading: boolean,
+  toolLinkParams?: Record<string, any> | null
+) => string;
 
 /**
  * Registry of custom tool formatters.
@@ -41,6 +45,12 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       return isLoading
         ? `Searching for issues${projectInfo}: '${question}'...`
         : `Searched for issues${projectInfo}: '${question}'`;
+    }
+
+    if (dataset === 'errors') {
+      return isLoading
+        ? `Searching for errors${projectInfo}: '${question}'...`
+        : `Searched for errors${projectInfo}: '${question}'`;
     }
 
     // Default to spans
@@ -161,6 +171,71 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       ? `Watching replay ${shortReplayId}...`
       : `Watched replay ${shortReplayId}`;
   },
+
+  get_profile_flamegraph: (args, isLoading) => {
+    const profileId = args.profile_id || '';
+    const shortProfileId = profileId.slice(0, 8);
+    return isLoading
+      ? `Sampling profile ${shortProfileId}...`
+      : `Sampled profile ${shortProfileId}`;
+  },
+
+  get_metric_attributes: (args, isLoading) => {
+    const metricName = args.metric_name || '';
+    const traceId = args.trace_id || '';
+    const shortTraceId = traceId.slice(0, 8);
+    return isLoading
+      ? `Double-clicking on metric '${metricName}' in trace ${shortTraceId}...`
+      : `Double-clicked on metric '${metricName}' in trace ${shortTraceId}`;
+  },
+
+  get_log_attributes: (args, isLoading) => {
+    const message = args.log_message_substring || '';
+    const traceId = args.trace_id || '';
+    const shortTraceId = traceId.slice(0, 8);
+    return isLoading
+      ? `Examining logs matching '*${message.slice(0, 20)}*' in trace ${shortTraceId}...`
+      : `Examined logs matching '*${message.slice(0, 20)}*' in trace ${shortTraceId}`;
+  },
+
+  code_file_edit: (args, isLoading, toolLinkParams) => {
+    const repoName = args.repo_name || 'repository';
+    const path = args.path || 'file';
+
+    if (toolLinkParams?.empty_results) {
+      return `Edit to ${path} in ${repoName} was rejected`;
+    }
+    return isLoading
+      ? `Editing ${path} in ${repoName}...`
+      : `Edited ${path} in ${repoName}`;
+  },
+
+  code_file_write: (args, isLoading, toolLinkParams) => {
+    const repoName = args.repo_name || 'repository';
+    const path = args.path || 'file';
+    const content = args.content;
+
+    // Determine action based on content
+    const isDelete = content === '';
+    const action = isDelete ? 'Delete' : 'Write';
+    const actionPast = isDelete ? 'Deleted' : 'Wrote';
+    const actionPresent = isDelete ? 'Deleting' : 'Writing';
+
+    if (toolLinkParams?.empty_results) {
+      return `${action} to ${path} in ${repoName} was rejected`;
+    }
+
+    return isLoading
+      ? `${actionPresent} ${path} in ${repoName}...`
+      : `${actionPast} ${path} in ${repoName}`;
+  },
+
+  search_sentry_docs: (args, isLoading) => {
+    const question = args.question || 'query';
+    return isLoading
+      ? `Scouring Sentry docs: '${question}'...`
+      : `Scoured Sentry docs: '${question}'`;
+  },
 };
 
 /**
@@ -177,18 +252,23 @@ function parseToolArgs(argsString: string): Record<string, any> {
 /**
  * Get display strings for all tool calls in a block.
  * Uses custom formatters from TOOL_FORMATTERS registry, falls back to generic message.
+ * Tool links are aligned with tool calls by index and contain metadata like rejection status.
  */
 export function getToolsStringFromBlock(block: Block): string[] {
   const tools: string[] = [];
   const isLoading = block.loading ?? false;
+  const toolCalls = block.message.tool_calls || [];
+  const toolLinks = block.tool_links || [];
 
-  for (const tool of block.message.tool_calls || []) {
+  for (let i = 0; i < toolCalls.length; i++) {
+    const tool = toolCalls[i] as ToolCall;
+    const toolLink = toolLinks[i];
     const formatter = TOOL_FORMATTERS[tool.function];
 
     if (formatter) {
-      // Use custom formatter
+      // Use custom formatter with tool link params for metadata like rejection status
       const args = parseToolArgs(tool.args);
-      tools.push(formatter(args, isLoading));
+      tools.push(formatter(args, isLoading, toolLink?.params));
     } else {
       // Fall back to generic message
       const verb = isLoading ? 'Using' : 'Used';
@@ -207,7 +287,8 @@ export function getToolsStringFromBlock(block: Block): string[] {
 function linkifyIssueShortIds(text: string): string {
   // Pattern matches: PROJECT_SLUG-SHORT_ID (uppercase only, case-sensitive)
   // Requires at least 2 chars before hyphen and 1+ chars after
-  const shortIdPattern = /\b([A-Z0-9_]{2,}-[A-Z0-9]+)\b/g;
+  // First segment must contain at least one uppercase letter (all letters must be uppercase)
+  const shortIdPattern = /\b((?:[A-Z][A-Z0-9_]{1,}|[0-9_]+[A-Z][A-Z0-9_]*)-[A-Z0-9]+)\b/g;
 
   // Track positions that should be excluded (inside code blocks, links, or URLs)
   const excludedRanges: Array<{end: number; start: number}> = [];
@@ -316,6 +397,43 @@ export function buildToolLinkUrl(
         };
       }
 
+      if (dataset === 'errors') {
+        const queryParams: Record<string, any> = {
+          dataset: 'errors',
+          queryDataset: 'error-events',
+          query: query || '',
+          project: null,
+        };
+
+        if (stats_period) {
+          queryParams.statsPeriod = stats_period;
+        }
+
+        // If project_slugs is provided, look up the project IDs
+        if (project_slugs && project_slugs.length > 0 && projects) {
+          const projectIds = project_slugs
+            .map((slug: string) => projects.find(p => p.slug === slug)?.id)
+            .filter((id: string | undefined) => id !== undefined);
+          if (projectIds.length > 0) {
+            queryParams.project = projectIds;
+          }
+        }
+
+        const {y_axes} = toolLink.params;
+        if (y_axes) {
+          queryParams.yAxis = y_axes;
+        }
+
+        if (sort) {
+          queryParams.sort = sort;
+        }
+
+        return {
+          pathname: `/organizations/${orgSlug}/explore/discover/homepage/`,
+          query: queryParams,
+        };
+      }
+
       // Default to spans (traces) search
       const {y_axes, group_by, mode} = toolLink.params;
 
@@ -401,6 +519,70 @@ export function buildToolLinkUrl(
 
       return {
         pathname: `/organizations/${orgSlug}/replays/${replay_id}/`,
+      };
+    }
+    case 'get_profile_flamegraph': {
+      const {profile_id, project_id, is_continuous, start_ts, end_ts, thread_id} =
+        toolLink.params;
+      if (!profile_id || !project_id) {
+        return null;
+      }
+
+      // Look up project slug from project_id
+      const project = projects?.find(p => p.id === String(project_id));
+      if (!project) {
+        return null;
+      }
+
+      if (is_continuous) {
+        // Continuous profiles need start/end timestamps as query params
+        if (!start_ts || !end_ts) {
+          return null;
+        }
+
+        // Convert Unix timestamps to ISO date strings
+        const startDate = new Date(start_ts * 1000).toISOString();
+        const endDate = new Date(end_ts * 1000).toISOString();
+
+        return {
+          pathname: `/explore/profiling/profile/${project.slug}/flamegraph/`,
+          query: {
+            start: startDate,
+            end: endDate,
+            profilerId: profile_id,
+            ...(thread_id && {tid: thread_id}),
+          },
+        };
+      }
+
+      // Transaction profiles use profile_id in the path
+      return {
+        pathname: `/organizations/${orgSlug}/explore/profiling/profile/${project.slug}/${profile_id}/flamegraph/`,
+        ...(thread_id && {query: {tid: thread_id}}),
+      };
+    }
+    case 'get_log_attributes': {
+      const {trace_id} = toolLink.params;
+      if (!trace_id) {
+        return null;
+      }
+
+      // TODO: Currently no way to pass substring filter to this page, update with params.log_message_substring when it's supported.
+      return {
+        pathname: `/organizations/${orgSlug}/explore/logs/trace/${trace_id}/`,
+        query: {tab: 'logs'},
+      };
+    }
+    case 'get_metric_attributes': {
+      const {trace_id} = toolLink.params;
+      if (!trace_id) {
+        return null;
+      }
+
+      // TODO: Currently no way to pass name filter to this page, update with params.metric_name when it's supported.
+      return {
+        pathname: `/organizations/${orgSlug}/explore/metrics/trace/${trace_id}/`,
+        query: {tab: 'metrics'},
       };
     }
     default:

@@ -12,7 +12,7 @@ from snuba_sdk import Column, Condition, Function, Op
 from sentry import features, tagstore
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
@@ -39,7 +39,7 @@ TAG_ALIASES = {"release": "sentry:release", "dist": "sentry:dist", "user": "sent
 DEFAULT_TAG_KEY_LIMIT = 5
 
 
-class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2EndpointBase):
+class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

@@ -131,6 +131,7 @@ const metricConfig: IssueCategoryConfigMapping = {
     stats: {enabled: true},
     tags: {enabled: false},
     issueSummary: {enabled: false},
+    groupingInfo: {enabled: false},
   },
 };
 

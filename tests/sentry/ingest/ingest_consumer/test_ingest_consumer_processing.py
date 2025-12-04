@@ -29,7 +29,7 @@ from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
-from sentry.objectstore import get_attachments_client
+from sentry.objectstore import get_attachments_session
 from sentry.services import eventstore
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.features import Feature
@@ -343,19 +343,21 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner, live_server) -
 
 
 @django_db_all
+@requires_objectstore
 @requires_symbolicator
 @pytest.mark.symbolicator
 @thread_leak_allowlist(reason="django dev server", issue=97036)
-def test_deobfuscate_view_hierarchy_processingstore(
-    default_project, task_runner, live_server
-) -> None:
+def test_deobfuscate_view_hierarchy_objectstore(default_project, task_runner, live_server) -> None:
     with override_options(
-        {"system.url-prefix": live_server.url, "objectstore.processing_store.attachments": 1}
+        {"system.url-prefix": live_server.url, "objectstore.enable_for.cached_attachments": 1}
     ):
+        # this stores the attachment during processing because of the feature flag above:
         do_process_view_hierarchy(default_project, task_runner)
+        # this passes an already stored attachment to the ingest consumer:
+        do_process_view_hierarchy(default_project, task_runner, use_objectstore=True)
 
 
-def do_process_view_hierarchy(project, task_runner):
+def do_process_view_hierarchy(project, task_runner, use_objectstore=False):
     payload = get_normalized_event(
         {
             "message": "hello world",
@@ -389,16 +391,30 @@ def do_process_view_hierarchy(project, task_runner):
         ],
     }
     attachment_payload = orjson.dumps(obfuscated_view_hierarchy)
+    attachment_metadata = {
+        "id": attachment_id,
+        "name": "view_hierarchy.json",
+        "content_type": "application/json",
+        "attachment_type": "event.view_hierarchy",
+        "size": len(attachment_payload),
+    }
 
-    process_attachment_chunk(
-        {
-            "payload": attachment_payload,
-            "event_id": event_id,
-            "project_id": project.id,
-            "id": attachment_id,
-            "chunk_index": 0,
-        }
-    )
+    stored_id = None
+    if not use_objectstore:
+        process_attachment_chunk(
+            {
+                "payload": attachment_payload,
+                "event_id": event_id,
+                "project_id": project.id,
+                "id": attachment_id,
+                "chunk_index": 0,
+            }
+        )
+        attachment_metadata["chunks"] = 1
+    else:
+        session = get_attachments_session(project.organization_id, project.id)
+        stored_id = session.put(attachment_payload)
+        attachment_metadata["stored_id"] = stored_id
 
     with task_runner():
         process_event(
@@ -409,16 +425,7 @@ def do_process_view_hierarchy(project, task_runner):
                 "event_id": event_id,
                 "project_id": project.id,
                 "remote_addr": "127.0.0.1",
-                "attachments": [
-                    {
-                        "id": attachment_id,
-                        "name": "view_hierarchy.json",
-                        "content_type": "application/json",
-                        "attachment_type": "event.view_hierarchy",
-                        "chunks": 1,
-                        "size": len(attachment_payload),
-                    }
-                ],
+                "attachments": [attachment_metadata],
             },
             project=project,
         )
@@ -431,6 +438,8 @@ def do_process_view_hierarchy(project, task_runner):
     assert attachment.name == "view_hierarchy.json"
     with attachment.getfile() as file:
         assert file.read() == expected_response
+    if stored_id:
+        assert session.get(stored_id).payload.read() == expected_response
 
 
 @django_db_all
@@ -467,10 +476,8 @@ def test_process_stored_attachment(
         with open(get_fixture_path("native", "threadnames.dmp"), "rb") as f:
             attachment_payload = f.read()
 
-        stored_id = (
-            get_attachments_client()
-            .for_project(default_project.organization_id, project_id)
-            .put(attachment_payload)
+        stored_id = get_attachments_session(default_project.organization_id, project_id).put(
+            attachment_payload
         )
 
         with task_runner():

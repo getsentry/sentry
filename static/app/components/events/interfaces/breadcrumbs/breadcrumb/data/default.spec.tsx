@@ -15,10 +15,7 @@ describe('Breadcrumb Data Default', () => {
     id: '0',
   });
 
-  const {organization, router} = initializeOrg({
-    router: {
-      location: {query: {project: '0'}},
-    },
+  const {organization} = initializeOrg({
     projects: [project],
   });
 
@@ -70,8 +67,13 @@ describe('Breadcrumb Data Default', () => {
       />,
       {
         organization,
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {project: '0'},
+          },
+          route: '/organizations/:orgId/issues/',
+        },
       }
     );
 
@@ -113,8 +115,13 @@ describe('Breadcrumb Data Default', () => {
       />,
       {
         organization,
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {project: '0'},
+          },
+          route: '/organizations/:orgId/issues/',
+        },
       }
     );
 

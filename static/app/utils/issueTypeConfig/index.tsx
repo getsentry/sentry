@@ -87,6 +87,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   usesIssuePlatform: true,
   issueSummary: {enabled: false},
   useOpenPeriodChecks: false,
+  groupingInfo: {enabled: true},
 };
 
 const issueTypeConfig: Config = {
@@ -111,7 +112,7 @@ const issueTypeConfig: Config = {
  * errors that may otherwise be difficult to debug. For example, common framework
  * errors that have no stack trace.
  */
-export function shouldShowCustomErrorResourceConfig(
+function shouldShowCustomErrorResourceConfig(
   params: GetConfigForIssueTypeParams,
   project: Project
 ): boolean {

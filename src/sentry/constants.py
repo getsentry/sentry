@@ -122,6 +122,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "corp",
         "customers",
         "de",
+        "de2",
         "debug",
         "devinfra",
         "docs",
@@ -213,6 +214,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "themonitor",
         "trust",
         "us",
+        "us2",
         "vs",
         "welcome",
         "www",
@@ -704,8 +706,8 @@ REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
 JOIN_REQUESTS_DEFAULT = True
 HIDE_AI_FEATURES_DEFAULT = False
-GITHUB_COMMENT_BOT_DEFAULT = True
-GITLAB_COMMENT_BOT_DEFAULT = True
+GITHUB_COMMENT_BOT_DEFAULT = False
+GITLAB_COMMENT_BOT_DEFAULT = False
 ISSUE_ALERTS_THREAD_DEFAULT = True
 METRIC_ALERTS_THREAD_DEFAULT = True
 DATA_CONSENT_DEFAULT = False
@@ -717,6 +719,8 @@ DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT = AutofixAutomationTuningSettings.OFF
 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = True
 ENABLE_SEER_ENHANCED_ALERTS_DEFAULT = True
 ENABLE_SEER_CODING_DEFAULT = True
+# Org level Seer UI will use this to set default for automated_run_stopping_point in project preferences
+AUTO_OPEN_PRS_DEFAULT = False
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
 ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = False
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"

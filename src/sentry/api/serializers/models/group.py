@@ -13,7 +13,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -362,11 +362,7 @@ class GroupSerializerBase(Serializer, ABC):
         is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
         share_id = attrs["share_id"]
         priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
-        issue_category = (
-            obj.issue_category_v2.name.lower()
-            if features.has("organizations:issue-taxonomy", obj.project.organization, actor=user)
-            else obj.issue_category.name.lower()
-        )
+        issue_category = obj.issue_category_v2.name.lower()
         group_dict: BaseGroupSerializerResponse = {
             "id": str(obj.id),
             "shareId": share_id,
@@ -1185,11 +1181,7 @@ class SimpleGroupSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> SimpleGroupSerializerResponse:
-        issue_category = (
-            obj.issue_category_v2.name.lower()
-            if features.has("organizations:issue-taxonomy", obj.project.organization, actor=user)
-            else obj.issue_category.name.lower()
-        )
+        issue_category = obj.issue_category_v2.name.lower()
 
         return SimpleGroupSerializerResponse(
             id=str(obj.id),

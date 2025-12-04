@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -24,20 +24,40 @@ from sentry.replays.query import query_replay_instance
 from sentry.replays.validators import ReplayValidator
 
 
+def _format_eap_timestamps(data: list[dict]) -> list[dict]:
+    """Convert EAP float timestamps to ISO strings for frontend compatibility.
+    sentry.timestamp returns Unix timestamps as floats (seconds since epoch).
+    The frontend expects ISO date strings for started_at and finished_at.
+    """
+    for item in data:
+        if "started_at" in item and isinstance(item["started_at"], float):
+            item["started_at"] = datetime.fromtimestamp(
+                item["started_at"], tz=timezone.utc
+            ).isoformat()
+        if "finished_at" in item and isinstance(item["finished_at"], float):
+            item["finished_at"] = datetime.fromtimestamp(
+                item["finished_at"], tz=timezone.utc
+            ).isoformat()
+    return data
+
+
 def query_replay_instance_eap(
     project_ids: list[int],
     replay_ids: list[str],
     start: datetime,
     end: datetime,
     organization_id: int,
-    request_user_id: int,
+    request_user_id: int | None,
     referrer: str = "replays.query.details_query",
 ):
+    # EAP stores replay_id in hex without dashes
+    replay_ids_no_dashes = [replay_id.replace("-", "") for replay_id in replay_ids]
+
     select = [
         Column("replay_id"),
-        Function("min", parameters=[Column("project_id")], alias="agg_project_id"),
-        Function("min", parameters=[Column("replay_start_timestamp")], alias="started_at"),
-        Function("max", parameters=[Column("timestamp")], alias="finished_at"),
+        Function("min", parameters=[Column("sentry.project_id")], alias="agg_project_id"),
+        Function("min", parameters=[Column("sentry.timestamp")], alias="started_at"),
+        Function("max", parameters=[Column("sentry.timestamp")], alias="finished_at"),
         Function("count", parameters=[Column("segment_id")], alias="count_segments"),
         Function("sum", parameters=[Column("count_error_events")], alias="count_errors"),
         Function("sum", parameters=[Column("count_warning_events")], alias="count_warnings"),
@@ -48,7 +68,10 @@ def query_replay_instance_eap(
                 Column("click_is_dead"),
                 Function(
                     "greaterOrEquals",
-                    [Column("timestamp"), int(datetime(year=2023, month=7, day=24).timestamp())],
+                    [
+                        Column("sentry.timestamp"),
+                        int(datetime(year=2023, month=7, day=24).timestamp()),
+                    ],
                 ),
             ],
             alias="count_dead_clicks",
@@ -59,19 +82,22 @@ def query_replay_instance_eap(
                 Column("click_is_rage"),
                 Function(
                     "greaterOrEquals",
-                    [Column("timestamp"), int(datetime(year=2023, month=7, day=24).timestamp())],
+                    [
+                        Column("sentry.timestamp"),
+                        int(datetime(year=2023, month=7, day=24).timestamp()),
+                    ],
                 ),
             ],
             alias="count_rage_clicks",
         ),
-        Function("max", parameters=[Column("is_archived")], alias="is_archived"),
+        Function("max", parameters=[Column("is_archived")], alias="isArchived"),
     ]
 
     snuba_query = Query(
         match=Entity("replays"),
         select=select,
         where=[
-            Condition(Column("replay_id"), Op.IN, replay_ids),
+            Condition(Column("replay_id"), Op.IN, replay_ids_no_dashes),
         ],
         groupby=[Column("replay_id")],
         granularity=Granularity(3600),
@@ -80,9 +106,8 @@ def query_replay_instance_eap(
     settings = Settings(
         attribute_types={
             "replay_id": str,
-            "project_id": int,
-            "timestamp": int,
-            "replay_start_timestamp": int,
+            "sentry.project_id": int,
+            "sentry.timestamp": float,
             "segment_id": int,
             "is_archived": int,
             "count_error_events": int,
@@ -159,14 +184,26 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization, include_all_accessible=True)
         project_ids = [project.id for project in projects]
 
-        snuba_response = query_replay_instance(
-            project_id=project_ids,
-            replay_id=replay_id,
-            start=filter_params["start"],
-            end=filter_params["end"],
-            organization=organization,
-            request_user_id=request.user.id,
-        )
+        # Use EAP query if feature flag is enabled
+        if features.has("organizations:replay-details-eap-query", organization, actor=request.user):
+            eap_result = query_replay_instance_eap(
+                project_ids=project_ids,
+                replay_ids=[replay_id],
+                start=filter_params["start"],
+                end=filter_params["end"],
+                organization_id=organization.id,
+                request_user_id=request.user.id,
+            )["data"]
+            snuba_response = _format_eap_timestamps(eap_result)
+        else:
+            snuba_response = query_replay_instance(
+                project_id=project_ids,
+                replay_id=replay_id,
+                start=filter_params["start"],
+                end=filter_params["end"],
+                organization=organization,
+                request_user_id=request.user.id,
+            )
 
         response = process_raw_response(
             snuba_response,

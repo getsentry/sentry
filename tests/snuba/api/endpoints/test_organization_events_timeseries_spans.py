@@ -527,6 +527,69 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "order": 2,
         }
 
+    def test_top_events_orderby_not_in_groupby(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                    duration=2001,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "bar", "status": "success"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                    duration=2000,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "baz", "status": "success"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                    duration=1999,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "qux", "status": "success"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                    duration=1998,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        self.end = self.start + timedelta(minutes=6)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": "count()",
+                "groupBy": ["transaction"],
+                "orderby": ["-sum(span.self_time)"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "excludeOther": 0,
+                "topEvents": 2,
+            },
+        )
+        assert response.status_code == 400, response.content
+        assert "orderby must also be in the selected columns or groupby" == response.data["detail"]
+
+    def test_top_events_orderby_is_timestamp(self) -> None:
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": "count()",
+                "groupBy": ["transaction"],
+                "orderby": ["timestamp"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "excludeOther": 0,
+                "topEvents": 2,
+            },
+        )
+        assert response.status_code == 400, response.content
+        assert "Cannot order by timestamp" == response.data["detail"]
+
     def test_top_events_with_none_as_groupby(self) -> None:
         self.store_spans(
             [

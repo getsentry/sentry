@@ -206,7 +206,7 @@ class CommitContextIntegration(ABC):
         if not OrganizationOption.objects.get_value(
             organization=project.organization,
             key=pr_comment_workflow.organization_option_key,
-            default=True,
+            default=False,
         ):
             return
 

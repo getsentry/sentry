@@ -18,6 +18,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.snuba.models import SnubaQuery
 from sentry.users.models.user import User
+from sentry.web.frontend.base import internal_region_silo_view
 
 from .mail import MailPreviewView
 
@@ -26,6 +27,7 @@ class MockedIncidentTrigger:
     date_added = timezone.now()
 
 
+@internal_region_silo_view
 class DebugIncidentTriggerEmailView(MailPreviewView):
     @mock.patch(
         "sentry.incidents.models.incident.IncidentTrigger.objects.get",

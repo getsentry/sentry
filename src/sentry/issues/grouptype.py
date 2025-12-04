@@ -673,20 +673,6 @@ class FeedbackGroup(GroupType):
 
 
 @dataclass(frozen=True)
-class MetricIssuePOC(GroupType):
-    # DEPRECATED, use metric_issue (8001) instead
-    type_id = 8002
-    slug = "metric_issue_poc"
-    description = "DEPRECATED Metric Issue POC"
-    category = GroupCategory.METRIC_ALERT.value
-    category_v2 = GroupCategory.METRIC.value
-    default_priority = PriorityLevel.HIGH
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-    enable_status_change_workflow_notifications = False
-
-
-@dataclass(frozen=True)
 class WebVitalsGroup(GroupType):  # TODO: Rename to WebVitalsGroupType
     type_id = 10001
     slug = "web_vitals"

@@ -764,6 +764,76 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         self.detector.refresh_from_db()
         assert self.detector.config != invalid_config
 
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch("sentry.seer.anomaly_detection.delete_rule.delete_rule_in_seer")
+    def test_anomaly_detection_to_static(self, mock_seer_request: mock.MagicMock) -> None:
+        self.detector.config = {"detection_type": AlertRuleDetectionType.DYNAMIC}
+        self.detector.save()
+
+        updated_config = {"detection_type": AlertRuleDetectionType.STATIC}
+        data = {"config": updated_config}
+        mock_seer_request.return_value = True
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+        self.detector.refresh_from_db()
+        # Verify config was updated in database (snake_case)
+        assert self.detector.config == updated_config
+        # API returns camelCase
+        assert response.data["config"] == {"detectionType": "static"}
+        mock_seer_request.assert_called_once_with(
+            source_id=int(self.data_source.source_id), organization=self.organization
+        )
+
+    @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
+    def test_update_data_source_marks_user_updated_when_snapshot_exists(
+        self, mock_schedule_update_project_config: mock.MagicMock
+    ) -> None:
+        data_source_detector = DataSourceDetector.objects.get(detector=self.detector)
+        data_source = DataSource.objects.get(id=data_source_detector.data_source.id)
+        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
+
+        snuba_query.query_snapshot = {
+            "type": snuba_query.type,
+            "dataset": snuba_query.dataset,
+            "query": snuba_query.query,
+            "aggregate": snuba_query.aggregate,
+        }
+        snuba_query.save()
+
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": self.snuba_query.type,
+                    "dataset": self.snuba_query.dataset,
+                    "query": "user modified query",
+                    "aggregate": self.snuba_query.aggregate,
+                    "timeWindow": 300,
+                    "environment": self.environment.name,
+                    "eventTypes": [event_type.name for event_type in self.snuba_query.event_types],
+                }
+            ],
+        }
+
+        with self.tasks():
+            self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        snuba_query.refresh_from_db()
+        assert snuba_query.query_snapshot is not None
+        assert snuba_query.query_snapshot.get("user_updated") is True
+
 
 @region_silo_test
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
@@ -843,3 +913,19 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         mock_seer_request.assert_called_once_with(
             source_id=int(self.data_source.source_id), organization=self.organization
         )
+
+    def test_cannot_delete_system_created_detector(self) -> None:
+        error_detector = self.create_detector(
+            project=self.project,
+            name="Error Detector",
+            type=ErrorGroupType.slug,
+        )
+
+        self.get_error_response(self.organization.slug, error_detector.id, status_code=403)
+
+        # Verify detector was not deleted
+        error_detector.refresh_from_db()
+        assert error_detector.status != ObjectStatus.PENDING_DELETION
+        assert not RegionScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=error_detector.id
+        ).exists()

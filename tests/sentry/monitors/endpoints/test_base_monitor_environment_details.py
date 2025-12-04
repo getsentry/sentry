@@ -1,6 +1,6 @@
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
-from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, is_monitor_muted
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -72,7 +72,7 @@ class BaseUpdateMonitorEnvironmentTest(MonitorTestCase):
 
         # Initially monitor should be unmuted
         monitor.refresh_from_db()
-        assert monitor.is_muted is False
+        assert is_monitor_muted(monitor) is False
 
         # Mute first environment
         self.get_success_response(
@@ -85,7 +85,7 @@ class BaseUpdateMonitorEnvironmentTest(MonitorTestCase):
 
         # Monitor should still be unmuted (one environment is unmuted)
         monitor.refresh_from_db()
-        assert monitor.is_muted is False
+        assert is_monitor_muted(monitor) is False
 
         # Mute second environment
         self.get_success_response(
@@ -98,23 +98,20 @@ class BaseUpdateMonitorEnvironmentTest(MonitorTestCase):
 
         # Now monitor should be muted (all environments are muted)
         monitor.refresh_from_db()
-        assert monitor.is_muted is True
+        assert is_monitor_muted(monitor) is True
 
     def test_unmuting_one_environment_unmutes_monitor(self) -> None:
         """Test that unmuting one environment when all were muted also unmutes the monitor."""
-        # Start with a muted monitor
+        # Start with a monitor that has all environments muted
         monitor = self._create_monitor(status=MonitorStatus.ACTIVE)
-        monitor.update(is_muted=True)
 
         # Create two muted environments
-        env1 = self._create_monitor_environment(monitor, name="production")
-        env1.update(is_muted=True)
-        env2 = self._create_monitor_environment(monitor, name="staging")
-        env2.update(is_muted=True)
+        env1 = self._create_monitor_environment(monitor, name="production", is_muted=True)
+        env2 = self._create_monitor_environment(monitor, name="staging", is_muted=True)
 
         # Verify initial state
         monitor.refresh_from_db()
-        assert monitor.is_muted is True
+        assert is_monitor_muted(monitor) is True
 
         # Unmute one environment via the endpoint
         self.get_success_response(
@@ -127,7 +124,7 @@ class BaseUpdateMonitorEnvironmentTest(MonitorTestCase):
 
         # Monitor should now be unmuted
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.is_muted is False
+        assert is_monitor_muted(monitor) is False
         env1.refresh_from_db()
         assert env1.is_muted is False
         env2.refresh_from_db()

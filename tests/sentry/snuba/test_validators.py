@@ -76,6 +76,30 @@ class SnubaQueryValidatorTest(TestCase):
                 )
             ]
 
+    def test_validated_create_source_limits_with_override(self) -> None:
+        with self.settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=2):
+            with self.options(
+                {
+                    "metric_alerts.extended_max_subscriptions_orgs": [self.organization.id],
+                    "metric_alerts.extended_max_subscriptions": 4,
+                }
+            ):
+                validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+                assert validator.is_valid()
+                validator.validated_create_source(validator.validated_data)
+                validator.validated_create_source(validator.validated_data)
+                validator.validated_create_source(validator.validated_data)
+                validator.validated_create_source(validator.validated_data)
+
+                with pytest.raises(serializers.ValidationError) as e:
+                    validator.validated_create_source(validator.validated_data)
+                assert e.value.detail == [
+                    ErrorDetail(
+                        string="You may not exceed 4 data sources of this type.",
+                        code="invalid",
+                    )
+                ]
+
     @with_feature("organizations:workflow-engine-metric-alert-group-by-creation")
     def test_valid_group_by(self) -> None:
         """Test that valid group_by data is accepted."""

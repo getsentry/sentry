@@ -96,7 +96,6 @@ export enum IssueCategory {
    */
   METRIC_ALERT = 'metric_alert',
 
-  // New issue categories (under the issue-taxonomy flag)
   OUTAGE = 'outage',
   METRIC = 'metric',
   FRONTEND = 'frontend',
@@ -108,9 +107,11 @@ export enum IssueCategory {
 }
 
 /**
- * Valid issue categories for the new issue-taxonomy flag
+ * These are issue categories that are generally filterable in the UI.
+ * Do not include deprecated or test categories.
  */
-export const VALID_ISSUE_CATEGORIES_V2 = [
+
+export const VALID_ISSUE_CATEGORIES = [
   IssueCategory.ERROR,
   IssueCategory.OUTAGE,
   IssueCategory.METRIC,

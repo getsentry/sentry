@@ -31,7 +31,7 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
   const {optionProps, labelProps, isFocused, isPressed} = useOption(
     {
       key: ASK_SEER_ITEM_KEY,
-      'aria-label': 'Ask Seer to build your query',
+      'aria-label': 'Ask AI to build your query',
       shouldFocusOnHover: true,
       shouldSelectOnPressUp: true,
       isDisabled: optionDisableOverride,
@@ -63,7 +63,7 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
         disabled={!hasAskSeerConsentFlowChanges}
       >
         <AskSeerLabel {...labelProps}>
-          {t('Ask Seer to build your query')} <FeatureBadge type="beta" />
+          {t('Ask AI to build your query')} <FeatureBadge type="beta" />
         </AskSeerLabel>
       </AiPrivacyTooltip>
     </AskSeerListItem>

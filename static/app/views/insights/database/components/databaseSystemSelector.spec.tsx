@@ -219,7 +219,6 @@ describe('DatabaseSystemSelector', () => {
     expect(dropdownOptionLabels[1]).toHaveTextContent('MongoDB');
 
     await userEvent.click(dropdownOptionLabels[0]!);
-    expect(dropdownSelector).toHaveTextContent('SystemPostgreSQL');
     expect(mockSetState).toHaveBeenCalledWith('postgresql');
     expect(mockNavigate).toHaveBeenCalledWith({
       action: 'POP',

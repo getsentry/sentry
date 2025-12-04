@@ -10,14 +10,22 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import useAsciiSnapshot from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block} from 'sentry/views/seerExplorer/types';
+
+export type PendingUserInput = {
+  data: Record<string, any>;
+  id: string;
+  input_type: 'file_change_approval';
+};
 
 export type SeerExplorerResponse = {
   session: {
     blocks: Block[];
-    status: 'processing' | 'completed' | 'error';
+    status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
     updated_at: string;
+    pending_user_input?: PendingUserInput | null;
     run_id?: number;
   } | null;
 };
@@ -94,7 +102,10 @@ export const useSeerExplorer = () => {
   const orgSlug = organization?.slug;
   const captureAsciiSnapshot = useAsciiSnapshot();
 
-  const [runId, setRunId] = useState<number | null>(null);
+  const [runId, setRunId] = useSessionStorage<number | null>(
+    'seer-explorer-run-id',
+    null
+  );
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
   const [interruptRequested, setInterruptRequested] = useState<boolean>(false);
@@ -247,6 +258,45 @@ export const useSeerExplorer = () => {
     }
   }, [api, orgSlug, runId, interruptRequested]);
 
+  const respondToUserInput = useCallback(
+    async (inputId: string, responseData?: Record<string, any>) => {
+      if (!orgSlug || !runId) {
+        return;
+      }
+
+      setWaitingForResponse(true);
+
+      try {
+        await api.requestPromise(
+          `/organizations/${orgSlug}/seer/explorer-update/${runId}/`,
+          {
+            method: 'POST',
+            data: {
+              payload: {
+                type: 'user_input_response',
+                input_id: inputId,
+                response_data: responseData,
+              },
+            },
+          }
+        );
+
+        // Invalidate queries to fetch fresh data
+        queryClient.invalidateQueries({
+          queryKey: makeSeerExplorerQueryKey(orgSlug, runId),
+        });
+      } catch (e: any) {
+        setWaitingForResponse(false);
+        setApiQueryData<SeerExplorerResponse>(
+          queryClient,
+          makeSeerExplorerQueryKey(orgSlug, runId),
+          makeErrorSeerExplorerData(e?.responseJSON?.detail ?? 'An error occurred')
+        );
+      }
+    },
+    [api, orgSlug, runId, queryClient]
+  );
+
   // Always filter messages based on optimistic state and deletedFromIndex before any other processing
   const sessionData = apiData?.session ?? null;
 
@@ -381,5 +431,6 @@ export const useSeerExplorer = () => {
     deletedFromIndex,
     interruptRun,
     interruptRequested,
+    respondToUserInput,
   };
 };

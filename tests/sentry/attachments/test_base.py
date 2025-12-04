@@ -1,6 +1,7 @@
 import copy
 
 from sentry.attachments.base import BaseAttachmentCache, CachedAttachment
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 class InMemoryCache:
@@ -69,35 +70,31 @@ def test_basic_chunked() -> None:
     cache.set_chunk("c:foo", 123, 2, b"Bye.")
 
     att = CachedAttachment(key="c:foo", id=123, name="lol.txt", content_type="text/plain", chunks=3)
-    cache.set("c:foo", [att])
+    (meta,) = cache.set("c:foo", [att])
+    att2 = CachedAttachment(cache=cache, **meta)
 
-    (att2,) = cache.get("c:foo")
     assert att2.key == att.key == "c:foo"
     assert att2.id == att.id == 123
-    assert att2.data == att.data == b"Hello World! Bye."
+    assert att2.load_data() == att.load_data() == b"Hello World! Bye."
     assert att2.rate_limited is None
 
-    cache.delete("c:foo")
-    assert not list(cache.get("c:foo"))
 
-
+@django_db_all
 def test_basic_unchunked() -> None:
     data = InMemoryCache()
     cache = BaseAttachmentCache(data)
 
     att = CachedAttachment(name="lol.txt", content_type="text/plain", data=b"Hello World! Bye.")
-    cache.set("c:foo", [att])
+    (meta,) = cache.set("c:foo", [att])
+    att2 = CachedAttachment(cache=cache, **meta)
 
-    (att2,) = cache.get("c:foo")
     assert att2.key == att.key == "c:foo"
     assert att2.id == att.id == 0
-    assert att2.data == att.data == b"Hello World! Bye."
+    assert att2.load_data() == att.load_data() == b"Hello World! Bye."
     assert att2.rate_limited is None
 
-    cache.delete("c:foo")
-    assert not list(cache.get("c:foo"))
 
-
+@django_db_all
 def test_zstd_chunks() -> None:
     data = InMemoryCache()
     cache = BaseAttachmentCache(data)
@@ -107,15 +104,16 @@ def test_zstd_chunks() -> None:
     cache.set_chunk("mixed_chunks", 123, 2, b"Bye.")
 
     mixed_chunks = cache.get_from_chunks(key="mixed_chunks", id=123, chunks=3)
-    assert mixed_chunks.data == b"Hello World! Just visiting. Bye."
+    assert mixed_chunks.load_data() == b"Hello World! Just visiting. Bye."
 
     att = CachedAttachment(key="not_chunked", id=456, data=b"Hello World! Bye.")
-    cache.set("not_chunked", [att])
+    (meta,) = cache.set("not_chunked", [att])
+    not_chunked = CachedAttachment(cache=cache, **meta)
 
-    (not_chunked,) = cache.get("not_chunked")
-    assert not_chunked.data == b"Hello World! Bye."
+    assert not_chunked.load_data() == b"Hello World! Bye."
 
 
+@django_db_all
 def test_basic_rate_limited() -> None:
     data = InMemoryCache()
     cache = BaseAttachmentCache(data)
@@ -123,10 +121,10 @@ def test_basic_rate_limited() -> None:
     att = CachedAttachment(
         name="lol.txt", content_type="text/plain", data=b"Hello World! Bye.", rate_limited=True
     )
-    cache.set("c:foo", [att])
+    (meta,) = cache.set("c:foo", [att])
+    att2 = CachedAttachment(cache=cache, **meta)
 
-    (att2,) = cache.get("c:foo")
     assert att2.key == att.key == "c:foo"
     assert att2.id == att.id == 0
-    assert att2.data == att.data == b"Hello World! Bye."
+    assert att2.load_data() == att.load_data() == b"Hello World! Bye."
     assert att2.rate_limited is True

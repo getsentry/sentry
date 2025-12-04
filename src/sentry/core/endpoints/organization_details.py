@@ -42,6 +42,7 @@ from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
+    AUTO_OPEN_PRS_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
@@ -195,12 +196,6 @@ ORG_OPTIONS = (
         GITLAB_COMMENT_BOT_DEFAULT,
     ),
     (
-        "gitlabOpenPRBot",
-        "sentry:gitlab_open_pr_bot",
-        bool,
-        GITLAB_COMMENT_BOT_DEFAULT,
-    ),
-    (
         "issueAlertsThreadFlag",
         "sentry:issue_alerts_thread_flag",
         bool,
@@ -245,6 +240,13 @@ ORG_OPTIONS = (
         "sentry:enable_seer_coding",
         bool,
         ENABLE_SEER_CODING_DEFAULT,
+    ),
+    (
+        # Informs UI default for automated_run_stopping_point in project preferences
+        "autoOpenPrs",
+        "sentry:auto_open_prs",
+        bool,
+        AUTO_OPEN_PRS_DEFAULT,
     ),
     (
         "ingestThroughTrustedRelaysOnly",
@@ -307,7 +309,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
     gitlabPRBot = serializers.BooleanField(required=False)
-    gitlabOpenPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
@@ -333,6 +334,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     enablePrReviewTestGeneration = serializers.BooleanField(required=False)
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
+    autoOpenPrs = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
     )
@@ -717,6 +719,7 @@ def create_console_platform_audit_log(
         "genAIConsent",
         "defaultAutofixAutomationTuning",
         "defaultSeerScannerAutomation",
+        "autoOpenPrs",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
     ]
@@ -892,10 +895,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     # gitlab features
     gitlabPRBot = serializers.BooleanField(
         help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitLab integration.",
-        required=False,
-    )
-    gitlabOpenPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on open pull requests to show recent error issues for the code being changed. Requires a GitLab integration.",
         required=False,
     )
 

@@ -7,8 +7,10 @@ import type {
   BaseDetectorUpdatePayload,
   Detector,
 } from 'sentry/types/workflowEngine/detectors';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getDetectorAnalyticsPayload} from 'sentry/views/detectors/components/forms/common/getDetectorAnalyticsPayload';
 import {useUpdateDetector} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
@@ -52,6 +54,11 @@ export function useEditDetectorFormSubmit<
 
         const resultDetector = await updateDetector(updatedData);
 
+        trackAnalytics('monitor.updated', {
+          organization,
+          ...getDetectorAnalyticsPayload(resultDetector),
+        });
+
         addSuccessMessage(t('Monitor updated successfully'));
 
         if (onSuccess) {
@@ -75,7 +82,7 @@ export function useEditDetectorFormSubmit<
       detector,
       formDataToEndpointPayload,
       updateDetector,
-      organization.slug,
+      organization,
       navigate,
       onSuccess,
       onError,

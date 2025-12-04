@@ -62,7 +62,7 @@ function createFieldWithSuffix({suffix}: {suffix: React.ReactNode}) {
       <InputGroup>
         <InputGroup.Input
           onBlur={e => onBlur(e.target.value, e)}
-          onKeyDown={e => onKeyDown((e.target as any).value, e)}
+          onKeyDown={e => onKeyDown((e.target as HTMLInputElement).value, e)}
           onChange={e => onChange(e.target.value, e)}
           name={name}
           {...rest}
