@@ -640,7 +640,9 @@ const commonTheme = {
 export type Color = keyof typeof lightColors;
 export type IconSize = keyof typeof iconSizes;
 type Aliases = typeof lightAliases;
-export type ColorOrAlias = keyof Aliases | Color;
+export type ColorOrAlias =
+  | keyof Aliases
+  | keyof ReturnType<typeof deprecatedColorMappings>;
 export interface SentryTheme extends Omit<typeof lightTheme, 'chart'> {
   chart: {
     colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
