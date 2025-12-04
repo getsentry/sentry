@@ -38,7 +38,7 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
           conditions: '',
           fields: ['issue', 'project', 'title'],
           aggregates: [],
-          columns: [],
+          columns: ['issue', 'project', 'title'],
           orderby: '',
         },
       ],
