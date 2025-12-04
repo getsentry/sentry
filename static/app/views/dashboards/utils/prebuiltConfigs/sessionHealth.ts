@@ -9,6 +9,42 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
   title: 'Frontend Session Health',
   widgets: [
     {
+      id: 'issue-counts',
+      title: t('Issue Counts'),
+      displayType: DisplayType.BAR,
+      widgetType: WidgetType.ISSUE,
+      interval: '',
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['count(new_issues)', 'count(resolved_issues)'],
+          aggregates: ['count(new_issues)', 'count(resolved_issues)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+      layout: {x: 0, y: 0, w: 3, h: 2, minH: 2},
+    },
+    {
+      id: 'issues',
+      title: t('Issues'),
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.ISSUE,
+      interval: '',
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['issue', 'project', 'title'],
+          aggregates: [],
+          columns: ['issue', 'project', 'title'],
+          orderby: '',
+        },
+      ],
+      layout: {x: 3, y: 0, w: 3, h: 2, minH: 2},
+    },
+    {
       id: 'unhealthy-sessions',
       title: t('Unhealthy Sessions'),
       displayType: DisplayType.LINE,
@@ -24,7 +60,7 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
-      layout: {x: 0, y: 0, w: 3, h: 3, minH: 2},
+      layout: {x: 0, y: 2, w: 3, h: 3, minH: 2},
     },
     {
       id: 'user-health',
@@ -52,7 +88,7 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
-      layout: {x: 3, y: 0, w: 3, h: 3, minH: 2},
+      layout: {x: 3, y: 2, w: 3, h: 3, minH: 2},
     },
     {
       id: 'session-health',
@@ -80,7 +116,7 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
-      layout: {x: 0, y: 3, w: 2, h: 3, minH: 2},
+      layout: {x: 0, y: 5, w: 2, h: 3, minH: 2},
     },
     {
       id: 'session-counts',
@@ -98,7 +134,7 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
-      layout: {x: 2, y: 3, w: 2, h: 3, minH: 2},
+      layout: {x: 2, y: 5, w: 2, h: 3, minH: 2},
     },
     {
       id: 'user-counts',
@@ -116,7 +152,7 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
-      layout: {x: 4, y: 3, w: 2, h: 3, minH: 2},
+      layout: {x: 4, y: 5, w: 2, h: 3, minH: 2},
     },
   ],
 };
