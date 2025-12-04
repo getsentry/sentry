@@ -6,10 +6,8 @@ import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {parseFunction, type QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
@@ -145,8 +143,6 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
   enableEquations: false,
   SearchBar: TraceMetricsSearchBar,
   useSearchBarDataProvider: useTraceMetricsSearchBarDataProvider,
-  filterYAxisAggregateParams: () => filterAggregateParams,
-  filterYAxisOptions,
   filterSeriesSortOptions,
   getTableFieldOptions: getPrimaryFieldOptions,
   // TODO: For some reason the aggregate isn't included in the sort options, add it.
@@ -171,10 +167,6 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
         seriesName: formatTimeSeriesLabel(timeSeries),
       };
     }),
-  filterAggregateParams,
-  getCustomFieldRenderer: (field, meta, _organization) => {
-    return getFieldRenderer(field, meta, false);
-  },
 };
 
 function getPrimaryFieldOptions(
@@ -182,7 +174,6 @@ function getPrimaryFieldOptions(
   tags?: TagCollection,
   _customMeasurements?: CustomMeasurementCollection
 ): Record<string, FieldValueOption> {
-  // TODO: Implement proper field options for trace metrics
   const baseFieldOptions = generateFieldOptions({
     organization,
     tagKeys: [],
@@ -190,37 +181,26 @@ function getPrimaryFieldOptions(
     aggregations: {},
   });
 
-  const metricsTags = Object.values(tags ?? {}).reduce(
-    (acc, tag) => ({
-      ...acc,
-      [`${tag.kind}:${tag.key}`]: {
+  const metricTags = Object.values(tags ?? {}).reduce(
+    function combineTag(acc, tag) {
+      acc[`${tag.kind}:${tag.key}`] = {
         label: tag.name,
         value: {
           kind: FieldValueKind.TAG,
+
+          // We have numeric and string tags which have the same
+          // display name, but one is used for aggregates and the other
+          // is used for grouping.
           meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
         },
-      },
-    }),
-    {}
+      };
+
+      return acc;
+    },
+    {} as Record<string, FieldValueOption>
   );
 
-  return {...baseFieldOptions, ...metricsTags};
-}
-
-function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
-  // TODO: Implement proper aggregate parameter filtering
-  if ('unknown' in option.value.meta && option.value.meta.unknown) {
-    return true;
-  }
-
-  if (
-    fieldValue?.kind === 'function' &&
-    fieldValue?.function[0] === AggregationKey.COUNT
-  ) {
-    return true;
-  }
-
-  return true;
+  return {...baseFieldOptions, ...metricTags};
 }
 
 function filterYAxisOptions() {
