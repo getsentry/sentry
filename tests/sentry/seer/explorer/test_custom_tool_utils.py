@@ -240,7 +240,7 @@ class CustomToolUtilsTest(TestCase):
         """Test that a tool without params_model raises an error at class definition time."""
         with pytest.raises(TypeError) as cm:
             # This should raise when the class is defined, not when extract_tool_schema is called
-            class NoParamsTool(ExplorerTool[BaseModel]):  # type: ignore[type-arg]
+            class NoParamsTool(ExplorerTool[BaseModel]):
                 @classmethod
                 def get_description(cls) -> str:
                     return "Tool without params_model"
