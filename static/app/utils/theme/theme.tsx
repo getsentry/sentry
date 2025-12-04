@@ -207,14 +207,10 @@ export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColor
     focusShadow: alias.focus,
   },
   primary: {
-    // old: colors.white -> mapped: colors.white
     color: colors.white,
     colorActive: colors.white,
-    // old: colors.purple300 -> mapped: colors.blue400
     background: colors.blue400,
-    // old: colors.purple400 -> mapped: colors.blue500
     backgroundActive: colors.blue500,
-    // old: colors.purple300 -> mapped: colors.blue400
     border: colors.blue400,
     borderActive: colors.blue400,
     borderTranslucent: colors.blue400,
@@ -222,20 +218,14 @@ export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColor
     focusShadow: alias.focus,
   },
   danger: {
-    // old: colors.white -> mapped: colors.white
     color: colors.white,
     colorActive: colors.white,
-    // old: colors.red300 -> mapped: colors.red400
     background: colors.red400,
-    // old: colors.red400 -> mapped: colors.red500
     backgroundActive: colors.red500,
-    // old: colors.red300 -> mapped: colors.red400
     border: colors.red400,
     borderActive: colors.red400,
     borderTranslucent: colors.red400,
-    // old: colors.red300 -> mapped: colors.red400
     focusBorder: colors.red400,
-    // old: colors.red200 -> mapped: colors.red200 (same in light & dark)
     focusShadow: colors.red200,
   },
   link: {
@@ -275,173 +265,106 @@ export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColor
 
 export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   info: {
-    // old: colors.blue200 -> mapped: colors.blue200
     border: colors.blue200,
-    // old: colors.blue300 -> mapped: light/darkColors.blue400
     background: colors.blue400,
-    // old: colors.blue400 -> mapped: light/darkColors.blue500
     color: colors.blue500,
-    // old: colors.blue100 -> mapped: colors.blue100
     backgroundLight: colors.blue100,
-    // old: colors.blue300 -> mapped: colors.blue400
     borderHover: colors.blue400,
   },
   success: {
-    // old: colors.green300 -> mapped: colors.green400
     background: colors.green400,
-    // old: colors.green100 -> mapped: colors.green100
     backgroundLight: colors.green100,
-    // old: colors.green200 -> mapped: colors.green200
     border: colors.green200,
-    // old: colors.green300 -> mapped: colors.green400
     borderHover: colors.green400,
-    // old: colors.green400 -> mapped: colors.green500
     color: colors.green500,
   },
   muted: {
-    // old: colors.gray200 -> mapped: colors.gray200
     background: colors.gray200,
-    // already using alias (which is derived from new theme)
     backgroundLight: alias.backgroundSecondary,
     border: alias.border,
     borderHover: alias.border,
     color: 'inherit',
   },
   warning: {
-    // old: colors.yellow300 -> mapped: colors.yellow400
     background: colors.yellow400,
-    // old: colors.yellow100 -> mapped: colors.yellow100
     backgroundLight: colors.yellow100,
-    // old: colors.yellow200 -> mapped: colors.yellow200
     border: colors.yellow200,
-    // old: colors.yellow300 -> mapped: colors.yellow400
     borderHover: colors.yellow400,
-    // old: colors.yellow400 -> mapped: colors.yellow500
     color: colors.yellow500,
   },
   error: {
-    // old: colors.red300 -> mapped: colors.red400
     background: colors.red400,
-    // old: colors.red100 -> mapped: colors.red100
     backgroundLight: colors.red100,
-    // old: colors.red200 -> mapped: colors.red200
     border: colors.red200,
-    // old: colors.red300 -> mapped: colors.red400
     borderHover: colors.red400,
-    // old: colors.red400 -> mapped: colors.red500
     color: colors.red500,
-    // old: colors.red200 -> mapped: colors.red200
     textLight: colors.red200,
   },
 });
 
 export const generateLevelTheme = (colors: Colors): LevelColors => ({
-  // old: colors.purple300 -> mapped: colors.blue400
   sample: colors.blue400,
-
-  // old: colors.blue300 -> mapped: colors.blue400
   info: colors.blue400,
-
-  // old: colors.yellow300 -> mapped: colors.yellow400
   warning: colors.yellow400,
-
   // Hardcoded legacy color (orange400). We no longer use orange anywhere
   // else in the app (except for the chart palette). This needs to be harcoded
   // here because existing users may still associate orange with the "error" level.
   error: '#FF7738',
-
-  // old: colors.red300 -> mapped: colors.red400
   fatal: colors.red400,
-
-  // old: colors.gray300
-  // mapping: light -> gray400, dark -> gray300
-  // we inline the mapped token used for light (gray400),
-  // which is what the mapping function produced there.
   default: colors.gray400,
-
-  // old: colors.gray200 -> mapped: colors.gray200
   unknown: colors.gray200,
 });
 
 export const generateTagTheme = (colors: Colors): TagColors => ({
   default: {
-    // old: colors.surface400 -> mapped: colors.surface500
     background: colors.surface500,
-
-    // old: colors.translucentGray200 -> mapped: colors.gray200
     border: colors.gray200,
-
-    // ⚠ MAPPING DIFF IN DARK MODE:
-    // light-mapping: gray400 -> gray500 (we use this)
-    // dark-mapping: gray400 -> gray400
-    //
-    // old: colors.gray400 -> mapped: colors.gray500
     color: colors.gray500,
   },
 
   promotion: {
-    // old: colors.pink100 -> mapped: colors.pink100
     background: colors.pink100,
     border: colors.pink100,
-
-    // old: colors.pink400 -> mapped: colors.pink500
     color: colors.pink500,
   },
 
   highlight: {
-    // old: colors.purple100 -> mapped: colors.blue100
     background: colors.blue100,
     border: colors.blue100,
-
-    // old: colors.purple400 -> mapped: colors.blue500
     color: colors.blue500,
   },
 
   warning: {
-    // old: colors.yellow100 -> mapped: colors.yellow100
     background: colors.yellow100,
     border: colors.yellow100,
-
-    // old: colors.yellow400 -> mapped: colors.yellow500
     color: colors.yellow500,
   },
 
   success: {
-    // old: colors.green100 -> mapped: colors.green100
     background: colors.green100,
     border: colors.green100,
-
-    // old: colors.green400 -> mapped: colors.green500
     color: colors.green500,
   },
 
   error: {
-    // old: colors.red100 -> mapped: colors.red100
     background: colors.red100,
     border: colors.red100,
-
-    // old: colors.red400 -> mapped: colors.red500
     color: colors.red500,
   },
 
   info: {
-    // old: colors.purple100 -> mapped: colors.blue100
     background: colors.blue100,
     border: colors.blue100,
-
-    // old: colors.purple400 -> mapped: colors.blue500
     color: colors.blue500,
   },
 
   white: {
-    // unchanged
     background: colors.white,
     border: colors.white,
     color: colors.black,
   },
 
   black: {
-    // unchanged
     background: colors.black,
     border: colors.black,
     color: colors.white,
