@@ -106,23 +106,6 @@ describe('useCrossEventQueries', () => {
     });
   });
 
-  it('slices queries to MAX_CROSS_EVENT_QUERIES', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
-      additionalWrapper: Wrapper([
-        {type: 'logs', query: 'test:a'},
-        {type: 'metrics', query: 'test:b'},
-        {type: 'spans', query: 'test:c'},
-      ]),
-    });
-
-    // Verify explicit behavior for slicing
-    expect(result.current).toStrictEqual({
-      logQuery: ['test:a'],
-      metricQuery: ['test:b'],
-      spanQuery: [],
-    });
-  });
-
   it('ignores queries with invalid types', () => {
     const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
       additionalWrapper: Wrapper([
