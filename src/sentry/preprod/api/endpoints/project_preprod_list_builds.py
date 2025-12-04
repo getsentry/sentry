@@ -77,8 +77,8 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
 
         try:
             start, end = get_date_range_from_params(request.GET, optional=True)
-        except InvalidParams as error:
-            raise ParseError(detail=f"Invalid date range: {error}")
+        except InvalidParams:
+            raise ParseError(detail="Invalid date range")
 
         queryset = PreprodArtifact.objects.filter(project=project)
 
