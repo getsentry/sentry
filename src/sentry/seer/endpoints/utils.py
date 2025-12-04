@@ -1,5 +1,8 @@
+import datetime
 from collections.abc import Callable
 from typing import Any
+
+from sentry.utils.dates import parse_stats_period
 
 
 def map_org_id_param(func: Callable) -> Callable:
@@ -33,9 +36,10 @@ def validate_date_params(
     default_stats_period: str | None = None,
 ) -> tuple[str | None, str | None, str | None]:
     """
-    Validate that either stats_period or both start and end are provided, but not both. Raises ValueError if the wrong combination is provided.
-    Returns the same params, with stats_period = default_stats_period if all params are None.
-    Does not validate format (start and end should be ISO strings).
+    Validate the format and combinations of date params. Raises ValueError.
+    On success, returns a tuple of (stats_period, start, end), where either
+    - stats_period is valid and start and end are None
+    - start and end are valid and stats_period is None
     """
     if not any([bool(stats_period), bool(start), bool(end)]):
         if default_stats_period:
@@ -43,10 +47,16 @@ def validate_date_params(
         else:
             raise ValueError("either stats_period or start and end must be provided")
 
-    if stats_period and (start or end):
-        raise ValueError("stats_period and start/end cannot be provided together")
+    if start and end:
+        start_dt = datetime.datetime.fromisoformat(start)
+        end_dt = datetime.datetime.fromisoformat(end)
+        if start_dt >= end_dt:
+            raise ValueError("start must be before end")
+        return None, start, end
 
-    if not stats_period and not all([bool(start), bool(end)]):
-        raise ValueError("start and end must be provided together")
+    if stats_period:
+        if parse_stats_period(stats_period) is None:
+            raise ValueError(f"Invalid stats_period: {stats_period}")
+        return stats_period, None, None
 
-    return stats_period, start, end
+    raise ValueError("an invalid combination of date params was provided")

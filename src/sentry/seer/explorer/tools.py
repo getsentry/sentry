@@ -120,7 +120,7 @@ def execute_table_query(
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
         Providing start or end with stats_period will result in a ValueError.
     """
-    validate_date_params(stats_period, start, end)
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -145,8 +145,8 @@ def execute_table_query(
         "sort": sort if sort else ("-timestamp" if "timestamp" in fields else None),
         "per_page": per_page,
         "statsPeriod": stats_period,
-        "start": start,
-        "end": end,
+        "start": start.isoformat() if start else None,
+        "end": end.isoformat() if end else None,
         "project": project_ids,
         "projectSlug": project_slugs,
         "sampling": sampling_mode,
@@ -206,7 +206,7 @@ def execute_timeseries_query(
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
         Providing start or end with stats_period will result in a ValueError.
     """
-    validate_date_params(stats_period, start, end)
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -1259,7 +1259,7 @@ def get_log_attributes_for_trace(
         - attributes: A dict[str, dict[str, Any]] where the keys are the attribute names. See _make_get_trace_request for more details.
     """
 
-    validate_date_params(stats_period, start, end)
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -1334,7 +1334,7 @@ def get_metric_attributes_for_trace(
         - attributes: A dict[str, dict[str, Any]] where the keys are the attribute names. See _make_get_trace_request for more details.
     """
 
-    validate_date_params(stats_period, start, end)
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     try:
         organization = Organization.objects.get(id=org_id)
