@@ -299,7 +299,7 @@ class OrganizationExamples:
                 "enableSeerCoding": True,
                 "enableSeerEnhancedAlerts": True,
                 "autoOpenPrs": False,
-                "allowSeerScannerAutomation": False,
+                "allowBackgroundAgentDelegation": True,
                 "enablePrReviewTestGeneration": True,
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,

@@ -722,7 +722,7 @@ ENABLE_SEER_CODING_DEFAULT = True
 # Org level Seer UI will use this to set default for automated_run_stopping_point in project preferences
 AUTO_OPEN_PRS_DEFAULT = False
 # Org level setting to allow/disallow Projects to delegate Seer scanner automation to other LLMS
-ALLOW_PROJECT_SEER_SCANNER_AUTOMATION_DELEGATION = True
+ALLOW_BACKGROUND_AGENT_DELEGATION = True
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
 ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = False
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"

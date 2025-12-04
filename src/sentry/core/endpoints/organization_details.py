@@ -41,7 +41,7 @@ from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
-    ALLOW_PROJECT_SEER_SCANNER_AUTOMATION_DELEGATION,
+    ALLOW_BACKGROUND_AGENT_DELEGATION,
     ATTACHMENTS_ROLE_DEFAULT,
     AUTO_OPEN_PRS_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
@@ -250,10 +250,10 @@ ORG_OPTIONS = (
         AUTO_OPEN_PRS_DEFAULT,
     ),
     (
-        "allowSeerScannerAutomation",
-        "sentry:allow_seer_scanner_automation",
+        "allowBackgroundAgentDelegation",
+        "sentry:allow_background_agent_delegation",
         bool,
-        ALLOW_PROJECT_SEER_SCANNER_AUTOMATION_DELEGATION,
+        ALLOW_BACKGROUND_AGENT_DELEGATION,
     ),
     (
         "ingestThroughTrustedRelaysOnly",
@@ -342,7 +342,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
     autoOpenPrs = serializers.BooleanField(required=False)
-    allowSeerScannerAutomation = serializers.BooleanField(required=False)
+    allowBackgroundAgentDelegation = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
     )
@@ -728,7 +728,7 @@ def create_console_platform_audit_log(
         "defaultAutofixAutomationTuning",
         "defaultSeerScannerAutomation",
         "autoOpenPrs",
-        "allowSeerScannerAutomation",
+        "allowBackgroundAgentDelegation",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
     ]
