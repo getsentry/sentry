@@ -194,6 +194,7 @@ export const generateThemePrismVariables = (
 
 export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
   default: {
+    // all alias-based, already derived from new theme
     color: alias.textColor,
     colorActive: alias.textColor,
     background: alias.background,
@@ -205,25 +206,35 @@ export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColor
     focusShadow: alias.focus,
   },
   primary: {
+    // old: colors.white -> mapped: colors.white
     color: colors.white,
     colorActive: colors.white,
-    background: colors.purple300,
-    backgroundActive: colors.purple400,
-    border: colors.purple300,
-    borderActive: colors.purple300,
-    borderTranslucent: colors.purple300,
+    // old: colors.purple300 -> mapped: colors.blue400
+    background: colors.blue400,
+    // old: colors.purple400 -> mapped: colors.blue500
+    backgroundActive: colors.blue500,
+    // old: colors.purple300 -> mapped: colors.blue400
+    border: colors.blue400,
+    borderActive: colors.blue400,
+    borderTranslucent: colors.blue400,
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
   },
   danger: {
+    // old: colors.white -> mapped: colors.white
     color: colors.white,
     colorActive: colors.white,
-    background: colors.red300,
-    backgroundActive: colors.red400,
-    border: colors.red300,
-    borderActive: colors.red300,
-    borderTranslucent: colors.red300,
-    focusBorder: colors.red300,
+    // old: colors.red300 -> mapped: colors.red400
+    background: colors.red400,
+    // old: colors.red400 -> mapped: colors.red500
+    backgroundActive: colors.red500,
+    // old: colors.red300 -> mapped: colors.red400
+    border: colors.red400,
+    borderActive: colors.red400,
+    borderTranslucent: colors.red400,
+    // old: colors.red300 -> mapped: colors.red400
+    focusBorder: colors.red400,
+    // old: colors.red200 -> mapped: colors.red200 (same in light & dark)
     focusShadow: colors.red200,
   },
   link: {
