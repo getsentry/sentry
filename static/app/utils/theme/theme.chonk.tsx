@@ -324,15 +324,30 @@ export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors 
 });
 
 export const generateLevelTheme = (colors: Colors): LevelColors => ({
-  sample: colors.purple300,
-  info: colors.blue300,
-  warning: colors.yellow300,
+  // old: colors.purple300 -> mapped: colors.blue400
+  sample: colors.blue400,
+
+  // old: colors.blue300 -> mapped: colors.blue400
+  info: colors.blue400,
+
+  // old: colors.yellow300 -> mapped: colors.yellow400
+  warning: colors.yellow400,
+
   // Hardcoded legacy color (orange400). We no longer use orange anywhere
   // else in the app (except for the chart palette). This needs to be harcoded
   // here because existing users may still associate orange with the "error" level.
   error: '#FF7738',
-  fatal: colors.red300,
-  default: colors.gray300,
+
+  // old: colors.red300 -> mapped: colors.red400
+  fatal: colors.red400,
+
+  // old: colors.gray300
+  // mapping: light -> gray400, dark -> gray300
+  // we inline the mapped token used for light (gray400),
+  // which is what the mapping function produced there.
+  default: colors.gray400,
+
+  // old: colors.gray200 -> mapped: colors.gray200
   unknown: colors.gray200,
 });
 
