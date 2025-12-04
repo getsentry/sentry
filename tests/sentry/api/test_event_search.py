@@ -367,9 +367,11 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             )
         ]
         # wrapped in quotes should only have surrounding wildcards
-        assert parse_search_query('"foo"', config=config) == [
+        assert parse_search_query('"foo bar"', config=config) == [
             SearchFilter(
-                key=SearchKey(name="message"), operator="=", value=SearchValue(raw_value='*"foo"*')
+                key=SearchKey(name="message"),
+                operator="=",
+                value=SearchValue(raw_value='*"foo bar"*'),
             )
         ]
         # not wrapped in quotes with spaces should be wrapped and spaces replaced with wildcards
