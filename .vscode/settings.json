@@ -84,6 +84,13 @@
     "editor.formatOnSave": true
   },
 
+  // TypeScript Configuration
+  // NOTE: This repository uses tsgo (@typescript/native-preview) for authoritative
+  // type checking in CI. VSCode uses the workspace TypeScript for IDE features.
+  // To run tsgo locally: pnpm exec tsgo -p tsconfig.json
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsc": true,
+
   // Exclude Specific Files from Auto-Imports
   "typescript.preferences.autoImportFileExcludePatterns": [
     "**/config/chartcuterie/*",
