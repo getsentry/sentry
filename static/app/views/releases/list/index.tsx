@@ -403,7 +403,7 @@ export default function ReleasesList() {
             />
             <ReleasesPageFilterBar condensed>
               <ProjectPageFilter />
-              <EnvironmentPageFilter />
+              <EnvironmentPageFilter disabled={activeDataset === 'mobile-builds'} />
               <DatePageFilter
                 disallowArbitraryRelativeRanges
                 menuFooterMessage={t(
