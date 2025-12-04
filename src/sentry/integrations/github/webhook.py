@@ -24,7 +24,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
-from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.integrations.github.webhook_types import GitHubWebhookCheckRunEvent, GithubWebhookType
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
@@ -82,10 +82,10 @@ class GitHubWebhook(SCMWebhook, ABC):
         return IntegrationProviderSlug.GITHUB.value
 
     @abstractmethod
-    def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs) -> None:
+    def _handle(self, integration: RpcIntegration, event: GitHubWebhookEvent, **kwargs) -> None:
         pass
 
-    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
+    def __call__(self, event: GitHubWebhookEvent, **kwargs: object) -> None:
         external_id = get_github_external_id(event=event, host=kwargs.get("host"))
 
         result = integration_service.organization_contexts(
@@ -784,6 +784,57 @@ class PullRequestEventWebhook(GitHubWebhook):
         handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
 
 
+class CheckRunEventWebhook(GitHubWebhook):
+    """
+    Handles GitHub check_run webhook events.
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#check_run
+    """
+
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.INBOUND_SYNC
+
+    def _handle(
+        self,
+        integration: RpcIntegration,
+        event: GitHubWebhookEvent,
+        **kwargs,
+    ) -> None:
+        check_run = event.get("check_run", {})
+        action = event.get("action")
+        assert action is not None
+        extra = {
+            "action": action,
+            "check_run_url": check_run.get("html_url"),
+            "check_run_name": check_run.get("name"),
+            "check_run_external_id": check_run.get("external_id"),
+        }
+
+        # Get organization from kwargs (populated by GitHubWebhook base class)
+        organization = kwargs.get("organization")
+        if not organization:
+            logger.warning("github.webhook.check_run.no-organization", extra=extra)
+            return
+
+        logger.info("github.webhook.check_run.received", extra=extra)
+
+        try:
+            # XXX: A better interface would be to register methods
+            # that need to implement an interface to handle the webhook.
+            from sentry.seer.error_prediction.webhooks import (
+                handle_github_check_run_for_error_prediction,
+            )
+
+            handle_github_check_run_for_error_prediction(
+                organization=organization,
+                check_run=check_run,
+                action=action,
+                integration=integration,
+            )
+        except Exception:
+            logger.exception("github.webhook.check_run", extra=extra)
+
+
 @all_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(Endpoint):
     """
@@ -804,6 +855,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
         GithubWebhookType.INSTALLATION: InstallationEventWebhook,
         GithubWebhookType.ISSUE: IssuesEventWebhook,
+        GithubWebhookType.CHECK_RUN: CheckRunEventWebhook,
     }
 
     def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:
