@@ -8,7 +8,7 @@ from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import TRANSACTION_SOURCE_SANITIZED
-from sentry.ingest.transaction_clusterer.rules import get_sorted_rules
+from sentry.ingest.transaction_clusterer.rules import get_sorted_rules_from_redis
 from sentry.models.project import Project
 from sentry.spans.consumers.process_segments.types import CompatibleSpan, attribute_value
 
@@ -137,7 +137,7 @@ def _apply_clustering_rules(
     assert segment_name is not None
     segment_name_parts = segment_name.split("/")
 
-    rules = get_sorted_rules(ClustererNamespace.TRANSACTIONS, project)
+    rules = get_sorted_rules_from_redis(ClustererNamespace.TRANSACTIONS, project)
     for rule, _ in rules:
         if clustered_name := _apply_clustering_rule_to_segment_name(segment_name_parts, rule):
             segment_span["name"] = clustered_name
