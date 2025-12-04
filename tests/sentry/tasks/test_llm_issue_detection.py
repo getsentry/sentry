@@ -43,7 +43,7 @@ class LLMIssueDetectionTest(TestCase):
         detect_llm_issues_for_project(self.project.id)
 
         mock_get_transactions.assert_called_once_with(
-            self.project.id, limit=50, start_time_delta={"minutes": 30}
+            self.project.id, limit=100, start_time_delta={"minutes": 30}
         )
 
     @with_feature("organizations:gen-ai-features")

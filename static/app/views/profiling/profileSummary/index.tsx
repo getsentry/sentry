@@ -15,7 +15,10 @@ import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {
+  DatePageFilter,
+  type DatePageFilterProps,
+} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -30,6 +33,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import type {DeepPartial} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
@@ -52,8 +56,10 @@ import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -64,7 +70,6 @@ import {
 import {ProfilesSummaryChart} from 'sentry/views/profiling/landing/profilesSummaryChart';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfilesTable} from 'sentry/views/profiling/profileSummary/profilesTable';
-import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {MostRegressedProfileFunctions} from './regressedProfileFunctions';
 import {SlowestProfileFunctions} from './slowestProfileFunctions';
@@ -195,6 +200,7 @@ const ProfilingTitleContainer = styled('div')`
 `;
 
 interface ProfileFiltersProps {
+  datePageFilterProps: DatePageFilterProps;
   projectIds: EventView['project'];
   query: string;
 }
@@ -222,7 +228,7 @@ function ProfileFilters(props: ProfileFiltersProps) {
     <ActionBar>
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
-        <DatePageFilter />
+        <DatePageFilter {...props.datePageFilterProps} />
       </PageFilterBar>
       <TransactionSearchQueryBuilder
         projects={projectIds}
@@ -360,6 +366,11 @@ function ProfileSummaryPage() {
     return setHideRegressions(!hideRegressions);
   }, [hideRegressions, setHideRegressions]);
 
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   return (
     <SentryDocumentTitle
       title={t('Profiling \u2014 Profile Summary')}
@@ -370,7 +381,19 @@ function ProfileSummaryPage() {
           shouldForceProject={defined(project)}
           forceProject={project}
           specificProjectSlugs={projectSlugs}
-          defaultSelection={{datetime: DEFAULT_PROFILING_DATETIME_SELECTION}}
+          maxPickableDays={datePageFilterProps.maxPickableDays}
+          defaultSelection={
+            datePageFilterProps.defaultPeriod
+              ? {
+                  datetime: {
+                    period: datePageFilterProps.defaultPeriod,
+                    start: null,
+                    end: null,
+                    utc: null,
+                  },
+                }
+              : undefined
+          }
         >
           <ProfileSummaryHeader
             view={view}
@@ -379,7 +402,11 @@ function ProfileSummaryPage() {
             query={rawQuery}
             transaction={transaction}
           />
-          <ProfileFilters projectIds={projectIds} query={rawQuery} />
+          <ProfileFilters
+            projectIds={projectIds}
+            query={rawQuery}
+            datePageFilterProps={datePageFilterProps}
+          />
           <ProfilesSummaryChart
             referrer="api.profiling.profile-summary-chart"
             query={query}

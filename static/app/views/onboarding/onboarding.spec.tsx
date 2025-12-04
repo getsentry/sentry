@@ -1,13 +1,14 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
@@ -27,22 +28,11 @@ describe('Onboarding', () => {
   });
 
   it('renders the welcome page', () => {
-    const routeParams = {
-      step: 'welcome',
-    };
-
-    const {routerProps, organization} = initializeOrg({
-      router: {
-        params: routeParams,
-      },
-    });
-
     render(
       <OnboardingContextProvider>
-        <OnboardingWithoutContext {...routerProps} />
+        <OnboardingWithoutContext />
       </OnboardingContextProvider>,
       {
-        organization,
         initialRouterConfig: {
           location: {
             pathname: '/onboarding/org-slug/welcome/',
@@ -56,22 +46,11 @@ describe('Onboarding', () => {
   });
 
   it('renders the select platform step', async () => {
-    const routeParams = {
-      step: 'select-platform',
-    };
-
-    const {routerProps, organization} = initializeOrg({
-      router: {
-        params: routeParams,
-      },
-    });
-
     render(
       <OnboardingContextProvider>
-        <OnboardingWithoutContext {...routerProps} />
+        <OnboardingWithoutContext />
       </OnboardingContextProvider>,
       {
-        organization,
         initialRouterConfig: {
           location: {
             pathname: '/onboarding/org-slug/select-platform/',
@@ -87,20 +66,11 @@ describe('Onboarding', () => {
   });
 
   it('renders the setup docs step', async () => {
+    const organization = OrganizationFixture();
     const nextJsProject: Project = ProjectFixture({
       platform: 'javascript-nextjs',
       id: '2',
       slug: 'javascript-nextjs-slug',
-    });
-
-    const routeParams = {
-      step: 'setup-docs',
-    };
-
-    const {routerProps, organization} = initializeOrg({
-      router: {
-        params: routeParams,
-      },
     });
 
     MockApiClient.addMockResponse({
@@ -114,7 +84,7 @@ describe('Onboarding', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${nextJsProject.slug}/`,
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/`,
       body: [nextJsProject],
     });
 
@@ -124,7 +94,7 @@ describe('Onboarding', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${nextJsProject.slug}/keys/`,
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/keys/`,
       method: 'GET',
       body: [ProjectKeysFixture()[0]],
     });
@@ -151,13 +121,12 @@ describe('Onboarding', () => {
           },
         }}
       >
-        <OnboardingWithoutContext {...routerProps} />
+        <OnboardingWithoutContext />
       </OnboardingContextProvider>,
       {
-        organization,
         initialRouterConfig: {
           location: {
-            pathname: '/onboarding/org-slug/setup-docs/',
+            pathname: `/onboarding/${organization.slug}/setup-docs/`,
           },
           route: '/onboarding/:orgId/:step/',
         },
@@ -168,20 +137,11 @@ describe('Onboarding', () => {
   });
 
   it('does not render SDK data removal modal when going back', async () => {
+    const organization = OrganizationFixture();
     const reactProject: Project = ProjectFixture({
       platform: 'javascript-react',
       id: '2',
       slug: 'javascript-react-slug',
-    });
-
-    const routeParams = {
-      step: 'setup-docs',
-    };
-
-    const {routerProps, organization} = initializeOrg({
-      router: {
-        params: routeParams,
-      },
     });
 
     MockApiClient.addMockResponse({
@@ -190,12 +150,12 @@ describe('Onboarding', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${reactProject.slug}/`,
+      url: `/projects/${organization.slug}/${reactProject.slug}/`,
       body: [reactProject],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${reactProject.slug}/keys/`,
+      url: `/projects/${organization.slug}/${reactProject.slug}/keys/`,
       method: 'GET',
       body: [ProjectKeysFixture()[0]],
     });
@@ -227,13 +187,12 @@ describe('Onboarding', () => {
           },
         }}
       >
-        <OnboardingWithoutContext {...routerProps} />
+        <OnboardingWithoutContext />
       </OnboardingContextProvider>,
       {
-        organization,
         initialRouterConfig: {
           location: {
-            pathname: '/onboarding/org-slug/setup-docs/',
+            pathname: `/onboarding/${organization.slug}/setup-docs/`,
           },
           route: '/onboarding/:orgId/:step/',
         },
@@ -255,22 +214,11 @@ describe('Onboarding', () => {
   });
 
   it('renders framework selection modal if vanilla js is selected', async () => {
-    const routeParams = {
-      step: 'select-platform',
-    };
-
-    const {routerProps, organization} = initializeOrg({
-      router: {
-        params: routeParams,
-      },
-    });
-
     render(
       <OnboardingContextProvider>
-        <OnboardingWithoutContext {...routerProps} />
+        <OnboardingWithoutContext />
       </OnboardingContextProvider>,
       {
-        organization,
         initialRouterConfig: {
           location: {
             pathname: '/onboarding/org-slug/select-platform/',
@@ -290,20 +238,11 @@ describe('Onboarding', () => {
   });
 
   it('no longer display SDK data removal modal when going back', async () => {
+    const organization = OrganizationFixture();
     const reactProject: Project = ProjectFixture({
       platform: 'javascript-react',
       id: '2',
       slug: 'javascript-react-slug',
-    });
-
-    const routeParams = {
-      step: 'setup-docs',
-    };
-
-    const {routerProps, organization} = initializeOrg({
-      router: {
-        params: routeParams,
-      },
     });
 
     MockApiClient.addMockResponse({
@@ -312,12 +251,12 @@ describe('Onboarding', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${reactProject.slug}/`,
+      url: `/projects/${organization.slug}/${reactProject.slug}/`,
       body: [reactProject],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${reactProject.slug}/keys/`,
+      url: `/projects/${organization.slug}/${reactProject.slug}/keys/`,
       method: 'GET',
       body: [ProjectKeysFixture()[0]],
     });
@@ -349,13 +288,12 @@ describe('Onboarding', () => {
           },
         }}
       >
-        <OnboardingWithoutContext {...routerProps} />
+        <OnboardingWithoutContext />
       </OnboardingContextProvider>,
       {
-        organization,
         initialRouterConfig: {
           location: {
-            pathname: '/onboarding/org-slug/setup-docs/',
+            pathname: `/onboarding/${organization.slug}/setup-docs/`,
           },
           route: '/onboarding/:orgId/:step/',
         },
@@ -377,6 +315,7 @@ describe('Onboarding', () => {
   });
 
   it('loads doc on platform click', async () => {
+    const organization = OrganizationFixture();
     const nextJsProject: Project = ProjectFixture({
       platform: 'javascript-nextjs',
       id: '2',
@@ -384,16 +323,6 @@ describe('Onboarding', () => {
     });
 
     ProjectsStore.loadInitialData([nextJsProject]);
-
-    const routeParams = {
-      step: 'select-platform',
-    };
-
-    const {routerProps, router, organization} = initializeOrg({
-      router: {
-        params: routeParams,
-      },
-    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
@@ -406,15 +335,38 @@ describe('Onboarding', () => {
       body: [nextJsProject],
     });
 
-    render(
+    // Mock for useRecentCreatedProject hook
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/overview/`,
+      body: [nextJsProject],
+    });
+
+    // Minimal mocks needed for SetupDocs to render without errors
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdks/`,
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/keys/`,
+      method: 'GET',
+      body: [ProjectKeysFixture()[0]],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/javascript-react-slug/keys/`,
+      method: 'GET',
+      body: [ProjectKeysFixture()[0]],
+    });
+
+    const {router} = render(
       <OnboardingContextProvider>
-        <OnboardingWithoutContext {...routerProps} />
+        <OnboardingWithoutContext />
       </OnboardingContextProvider>,
       {
-        organization,
         initialRouterConfig: {
           location: {
-            pathname: '/onboarding/org-slug/select-platform/',
+            pathname: `/onboarding/${organization.slug}/select-platform/`,
           },
           route: '/onboarding/:orgId/:step/',
         },
@@ -428,6 +380,10 @@ describe('Onboarding', () => {
     expect(screen.queryByText('Do you use a framework?')).not.toBeInTheDocument();
 
     // Load docs for the selected platform
-    expect(router.push).toHaveBeenCalledWith('/onboarding/org-slug/setup-docs/');
+    await waitFor(() => {
+      expect(router.location.pathname).toBe(
+        `/onboarding/${organization.slug}/setup-docs/`
+      );
+    });
   });
 });
