@@ -173,6 +173,44 @@ function getAISpanAttributes({
     });
   }
 
+  // Emit a message if the span is missing any required gen_ai attributes,
+  // but only if the origin starts with "auto.ai"
+  const requiredGenAIAttributes = [
+    'gen_ai.system',
+    'gen_ai.request.model',
+    'gen_ai.operation.name',
+    'gen_ai.agent.name',
+  ];
+
+  const missingGenAIAttributes = requiredGenAIAttributes.filter(
+    attr => !attributes[attr]
+  );
+
+  const origin = attributes['gen_ai.origin'];
+  if (
+    missingGenAIAttributes.length > 0 &&
+    typeof origin === 'string' &&
+    origin.startsWith('auto.ai')
+  ) {
+    const sdkName = attributes['sdk.name'];
+    const sdkVersion = attributes['sdk.version'];
+
+    Sentry.captureMessage('Gen AI span missing required attributes', {
+      level: 'warning',
+      tags: {
+        feature: 'agent-monitoring',
+        span_type: 'gen_ai',
+        span_operation: op || 'unknown',
+        missing_attributes: missingGenAIAttributes.join(','),
+        origin,
+        sdk:
+          [sdkName?.toString(), sdkVersion?.toString()].filter(Boolean).join('@') ||
+          'unknown',
+        span_id: spanId,
+      },
+    });
+  }
+
   return highlightedAttributes;
 }
 
