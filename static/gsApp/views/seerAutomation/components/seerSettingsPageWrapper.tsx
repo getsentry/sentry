@@ -4,7 +4,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import Feature from 'sentry/components/acl/feature';
 import {NoAccess} from 'sentry/components/noAccess';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -24,6 +24,7 @@ export default function SeerSettingsPageWrapper({children}: Props) {
       organization={organization}
       renderDisabled={NoAccess}
     >
+      <SentryDocumentTitle title={t('Seer')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Seer')}
         subtitle={tct(
@@ -47,12 +48,10 @@ export default function SeerSettingsPageWrapper({children}: Props) {
         }
       />
 
-      <NoProjectMessage organization={organization}>
-        <Stack gap="lg">
-          <SettingsPageTabs />
-          {children}
-        </Stack>
-      </NoProjectMessage>
+      <Stack gap="lg">
+        <SettingsPageTabs />
+        {children}
+      </Stack>
     </Feature>
   );
 }

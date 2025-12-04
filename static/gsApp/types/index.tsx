@@ -149,7 +149,7 @@ export type AddOnCategoryInfo = {
   productName: string;
 };
 
-type AddOn = AddOnCategoryInfo & {
+export type AddOn = AddOnCategoryInfo & {
   enabled: boolean;
 };
 
@@ -337,6 +337,15 @@ export type Subscription = {
   dataRetention: string | null;
   // Event details
   dateJoined: string;
+  effectiveRetentions: Partial<
+    Record<
+      'span' | 'log' | 'traceMetric',
+      {
+        downsampled: number;
+        standard: number;
+      }
+    >
+  >;
   // GDPR Info
   gdprDetails: GDPRDetails | null;
   gracePeriodEnd: string | null;

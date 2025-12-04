@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -24,6 +24,28 @@ from sentry.replays.query import query_replay_instance
 from sentry.replays.validators import ReplayValidator
 
 
+def _normalize_eap_response(data: list[dict]) -> list[dict]:
+    """Normalize EAP response data for frontend compatibility.
+
+    - Convert float timestamps to ISO strings
+    - Convert agg_project_id from float to int
+    """
+    for item in data:
+        if "started_at" in item and isinstance(item["started_at"], float):
+            item["started_at"] = datetime.fromtimestamp(
+                item["started_at"], tz=timezone.utc
+            ).isoformat()
+        if "finished_at" in item and isinstance(item["finished_at"], float):
+            item["finished_at"] = datetime.fromtimestamp(
+                item["finished_at"], tz=timezone.utc
+            ).isoformat()
+
+        # Convert project_id from float to int to avoid ".0" in output
+        if "agg_project_id" in item and isinstance(item["agg_project_id"], float):
+            item["agg_project_id"] = int(item["agg_project_id"])
+    return data
+
+
 def query_replay_instance_eap(
     project_ids: list[int],
     replay_ids: list[str],
@@ -38,9 +60,9 @@ def query_replay_instance_eap(
 
     select = [
         Column("replay_id"),
-        Function("min", parameters=[Column("project_id")], alias="agg_project_id"),
-        Function("min", parameters=[Column("timestamp")], alias="started_at"),
-        Function("max", parameters=[Column("timestamp")], alias="finished_at"),
+        Function("min", parameters=[Column("sentry.project_id")], alias="agg_project_id"),
+        Function("min", parameters=[Column("sentry.timestamp")], alias="started_at"),
+        Function("max", parameters=[Column("sentry.timestamp")], alias="finished_at"),
         Function("count", parameters=[Column("segment_id")], alias="count_segments"),
         Function("sum", parameters=[Column("count_error_events")], alias="count_errors"),
         Function("sum", parameters=[Column("count_warning_events")], alias="count_warnings"),
@@ -51,7 +73,10 @@ def query_replay_instance_eap(
                 Column("click_is_dead"),
                 Function(
                     "greaterOrEquals",
-                    [Column("timestamp"), int(datetime(year=2023, month=7, day=24).timestamp())],
+                    [
+                        Column("sentry.timestamp"),
+                        int(datetime(year=2023, month=7, day=24).timestamp()),
+                    ],
                 ),
             ],
             alias="count_dead_clicks",
@@ -62,7 +87,10 @@ def query_replay_instance_eap(
                 Column("click_is_rage"),
                 Function(
                     "greaterOrEquals",
-                    [Column("timestamp"), int(datetime(year=2023, month=7, day=24).timestamp())],
+                    [
+                        Column("sentry.timestamp"),
+                        int(datetime(year=2023, month=7, day=24).timestamp()),
+                    ],
                 ),
             ],
             alias="count_rage_clicks",
@@ -83,9 +111,8 @@ def query_replay_instance_eap(
     settings = Settings(
         attribute_types={
             "replay_id": str,
-            "project_id": int,
-            "timestamp": int,
-            "replay_start_timestamp": int,
+            "sentry.project_id": int,
+            "sentry.timestamp": float,
             "segment_id": int,
             "is_archived": int,
             "count_error_events": int,
@@ -109,7 +136,10 @@ def query_replay_instance_eap(
         request_id=str(uuid.uuid4().hex),
         trace_item_type="replay",
     )
-    return eap_read.query(snuba_query, settings, request_meta, [])
+    result = eap_read.query(snuba_query, settings, request_meta, [])
+    # Normalize EAP-specific data types (floats -> ints/ISO strings)
+    result["data"] = _normalize_eap_response(result["data"])
+    return result
 
 
 @region_silo_endpoint

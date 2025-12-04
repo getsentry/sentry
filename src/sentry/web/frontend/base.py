@@ -57,6 +57,12 @@ audit_logger = logging.getLogger("sentry.audit.ui")
 
 
 class ViewSiloLimit(SiloLimit):
+    def __init__(self, modes: SiloMode | Iterable[SiloMode], internal: bool = False) -> None:
+        if isinstance(modes, SiloMode):
+            modes = [modes]
+        self.modes = frozenset(modes)
+        self.internal = internal
+
     def modify_endpoint_class(self, decorated_class: type[View]) -> type:
         dispatch_override = self.create_override(decorated_class.dispatch)
         new_class = type(
@@ -71,7 +77,10 @@ class ViewSiloLimit(SiloLimit):
         return new_class
 
     def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
-        return self.create_override(decorated_method)
+        decorated = self.create_override(decorated_method)
+        setattr(decorated, "silo_limit", self)
+
+        return decorated
 
     def handle_when_unavailable(
         self,
@@ -115,23 +124,30 @@ class ViewSiloLimit(SiloLimit):
         raise TypeError("`@ViewSiloLimit` must decorate a class or method")
 
 
-control_silo_view = ViewSiloLimit(SiloMode.CONTROL)
+control_silo_view = ViewSiloLimit([SiloMode.CONTROL])
 """
 Apply to frontend views that exist in CONTROL Silo
 If a request is received and the application is not in CONTROL/MONOLITH
 mode a 404 will be returned.
 """
 
-region_silo_view = ViewSiloLimit(SiloMode.REGION)
+region_silo_view = ViewSiloLimit([SiloMode.REGION])
 """
 Apply to frontend views that exist in REGION Silo
 If a request is received and the application is not in REGION/MONOLITH
 mode a 404 will be returned.
 """
 
-all_silo_view = ViewSiloLimit(SiloMode.REGION, SiloMode.CONTROL, SiloMode.MONOLITH)
+all_silo_view = ViewSiloLimit([SiloMode.REGION, SiloMode.CONTROL, SiloMode.MONOLITH])
 """
 Apply to frontend views that respond in both CONTROL and REGION mode.
+"""
+
+internal_region_silo_view = ViewSiloLimit([SiloMode.REGION], internal=True)
+"""
+Apply to frontend views that exist in REGION Silo
+and are not accessible via cell routing.
+This is generally for debug/development views.
 """
 
 
