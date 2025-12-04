@@ -95,7 +95,6 @@ export default function FocusTabs({isVideoReplay}: Props) {
     if (isAiTabAvailable) {
       trackAnalytics('replay.ai_tab_shown', {
         organization,
-        isSeerSetup: setupAcknowledgement.orgHasAcknowledged,
       });
     }
   }, [
