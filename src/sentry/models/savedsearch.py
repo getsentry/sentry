@@ -27,6 +27,7 @@ class SortOptions(StrEnum):
     FREQ = "freq"
     USER = "user"
     INBOX = "inbox"
+    FIXABILITY = "fixability"
 
     @classmethod
     def as_choices(cls) -> tuple[tuple[SortOptions, _StrPromise], ...]:
@@ -37,10 +38,11 @@ class SortOptions(StrEnum):
             (cls.FREQ, _("Events")),
             (cls.USER, _("Users")),
             (cls.INBOX, _("Date Added")),
+            (cls.FIXABILITY, _("Fixability")),
         )
 
 
-SORT_LITERALS = Literal["date", "new", "trends", "freq", "user", "inbox"]
+SORT_LITERALS = Literal["date", "new", "trends", "freq", "user", "inbox", "fixability"]
 
 
 class Visibility:

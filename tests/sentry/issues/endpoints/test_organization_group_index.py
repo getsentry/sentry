@@ -389,6 +389,60 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(sort="meow", query="is:unresolved")
         assert response.status_code == 400
 
+    def test_sort_by_fixability_without_feature_flag(self) -> None:
+        """Test that fixability sort returns an error when the feature flag is not enabled."""
+        self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_response(sort="fixability", query="is:unresolved")
+        assert response.status_code == 400
+
+    @with_feature("organizations:issue-sort-by-fixability")
+    def test_sort_by_fixability(self) -> None:
+        """Test that issues are sorted by fixability score (highest first, NULLs last)."""
+        # Create groups with different fixability scores
+        group_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": before_now(seconds=1).isoformat(),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        ).group
+        group_1.update(seer_fixability_score=0.9)  # High fixability
+
+        group_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": before_now(seconds=1).isoformat(),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        ).group
+        group_2.update(seer_fixability_score=0.5)  # Medium fixability
+
+        group_3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": before_now(seconds=1).isoformat(),
+                "fingerprint": ["group-3"],
+            },
+            project_id=self.project.id,
+        ).group
+        # group_3 has no fixability score (NULL)
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(sort="fixability", query="is:unresolved")
+
+        # Should be sorted: highest fixability first, then NULLs last
+        assert len(response.data) == 3
+        assert response.data[0]["id"] == str(group_1.id)  # 0.9
+        assert response.data[1]["id"] == str(group_2.id)  # 0.5
+        assert response.data[2]["id"] == str(group_3.id)  # NULL
+
     def test_simple_pagination(self) -> None:
         event1 = self.store_event(
             data={"timestamp": before_now(seconds=2).isoformat(), "fingerprint": ["group-1"]},

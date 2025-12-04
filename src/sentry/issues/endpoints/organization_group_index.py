@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
+from django.db.models import F
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -12,7 +13,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import start_span
 
-from sentry import analytics, search
+from sentry import analytics, features, search
 from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -164,6 +165,81 @@ def inbox_search(
     return results
 
 
+def fixability_search(
+    projects: Sequence[Project],
+    environments: Sequence[Environment] | None = None,
+    limit: int = 100,
+    cursor: Cursor | None = None,
+    count_hits: bool = False,
+    search_filters: Sequence[SearchFilter] | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    max_hits: int | None = None,
+    actor: Any | None = None,
+) -> CursorResult[Group]:
+    """
+    Search for issues sorted by Seer fixability score (highest first, NULLs last).
+    This is a Postgres-only search that sorts by the seer_fixability_score field on Group.
+    """
+    from sentry.api.paginator import OffsetPaginator
+
+    now: datetime = timezone.now()
+    end: datetime | None = None
+    end_params: list[datetime] = [
+        _f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f
+    ]
+    if end_params:
+        end = min(end_params)
+
+    end = end if end else now + ALLOWED_FUTURE_DELTA
+
+    # Default to searching back 90 days
+    earliest_date = now - timedelta(days=90)
+    start_params = [date_from, earliest_date, get_search_filter(search_filters, "date", ">")]
+    start = max(_f for _f in start_params if _f)
+    end = max([earliest_date, end])
+
+    if start >= end:
+        return Paginator(Group.objects.none()).get_result()
+
+    # Build the base queryset
+    group_qs = Group.objects.filter(
+        project__in=projects,
+        last_seen__gte=start,
+        last_seen__lte=end,
+    ).exclude(
+        status__in=[
+            GroupStatus.PENDING_DELETION,
+            GroupStatus.DELETION_IN_PROGRESS,
+            GroupStatus.PENDING_MERGE,
+        ]
+    )
+
+    # Apply environment filter
+    if environments is not None:
+        environment_ids: list[int] = [environment.id for environment in environments]
+        group_qs = group_qs.filter(
+            id__in=GroupEnvironment.objects.filter(environment_id__in=environment_ids)
+            .values_list("group_id", flat=True)
+            .distinct()
+        )
+
+    # Apply status filter from search_filters
+    status_filter = get_search_filter(search_filters, "status", "=")
+    if status_filter is not None:
+        group_qs = group_qs.filter(status=status_filter)
+    status_in_filter = get_search_filter(search_filters, "status", "IN")
+    if status_in_filter is not None:
+        group_qs = group_qs.filter(status__in=status_in_filter)
+
+    # Sort by fixability score descending (highest first), with NULLs last
+    group_qs = group_qs.order_by(F("seer_fixability_score").desc(nulls_last=True))
+
+    paginator = OffsetPaginator(group_qs)
+    results = paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
+    return results
+
+
 @extend_schema(tags=["Events"])
 @region_silo_endpoint
 class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
@@ -199,6 +275,14 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 query_kwargs.pop("sort_by")
                 query_kwargs.pop("referrer")
                 result = inbox_search(**query_kwargs)
+            elif query_kwargs["sort_by"] == "fixability":
+                if not features.has(
+                    "organizations:issue-sort-by-fixability", organization, actor=request.user
+                ):
+                    raise InvalidSearchQuery("Sort key 'fixability' is not available.")
+                query_kwargs.pop("sort_by")
+                query_kwargs.pop("referrer")
+                result = fixability_search(**query_kwargs)
             else:
                 result = search.backend.query(**query_kwargs)
             return result, query_kwargs
