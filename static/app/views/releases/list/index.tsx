@@ -229,12 +229,22 @@ export default function ReleasesList() {
   const isMobileBuildsDataset = activeDataset === 'mobile-builds';
 
   const releasesDatasetQuery = useMemo(() => {
-    const {dataset: _removed, ...restQuery} = location.query;
+    const {
+      dataset: _removed,
+      query: _removedQuery,
+      cursor: _removedCursor,
+      ...restQuery
+    } = location.query;
     return restQuery;
   }, [location.query]);
 
   const mobileBuildsDatasetQuery = useMemo(() => {
-    const {dataset: _removed, ...restQuery} = location.query;
+    const {
+      dataset: _removed,
+      query: _removedQuery,
+      cursor: _removedCursor,
+      ...restQuery
+    } = location.query;
     return {...restQuery, dataset: 'mobile-builds'};
   }, [location.query]);
 
