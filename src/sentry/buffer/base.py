@@ -9,6 +9,7 @@ from django.db.models import F
 from sentry.db import models
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
+from sentry.utils import metrics
 from sentry.utils.services import Service
 
 logger = logging.getLogger(__name__)
@@ -210,17 +211,17 @@ class Buffer(Service):
                             update_kwargs["times_seen"] = MAX_INT32
                             try:
                                 group.update(using=None, **update_kwargs)
-                                logger.warning(
-                                    "buffer.cap_times_seen_integer_overflow",
-                                    extra={
-                                        "group_id": getattr(group, "id", None),
-                                        "increment": columns.get("times_seen", 0),
-                                        "capped_times_seen": MAX_INT32,
-                                    },
+                                metrics.incr(
+                                    "buffer.times_seen_capped",
+                                    tags={"reason": "integer_overflow"},
                                 )
                             except Exception as retry_error:
                                 # If the capped update also fails, log and skip
-                                logger.warning(
+                                metrics.incr(
+                                    "buffer.times_seen_cap_failed",
+                                    tags={"reason": "retry_failed"},
+                                )
+                                logger.exception(
                                     "buffer.skip_group_update_after_cap_failed",
                                     extra={
                                         "group_id": getattr(group, "id", None),
@@ -228,7 +229,6 @@ class Buffer(Service):
                                         "retry_error": str(retry_error),
                                         "filters": filters,
                                     },
-                                    exc_info=True,
                                 )
                         else:
                             # Re-raise if it's not an integer overflow error
