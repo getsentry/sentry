@@ -17,20 +17,13 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
 import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {isMobileRelease} from 'sentry/views/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import ReleaseActions from './releaseActions';
-
-const MOBILE_PLATFORMS: PlatformKey[] = [
-  'android',
-  'apple-ios',
-  'flutter',
-  'react-native',
-];
 
 type Props = {
   location: Location;
@@ -109,7 +102,7 @@ function ReleaseHeader({
 
   if (
     organization.features?.includes('preprod-frontend-routes') &&
-    (numberOfMobileBuilds || MOBILE_PLATFORMS.includes(project.platform))
+    (numberOfMobileBuilds || isMobileRelease(project.platform, false))
   ) {
     tabs.push(buildsTab);
   }
