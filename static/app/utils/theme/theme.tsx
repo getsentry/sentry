@@ -7,6 +7,7 @@
  * - Light and dark theme definitions
  * - Theme type exports
  */
+import type {CSSProperties} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
@@ -717,7 +718,7 @@ export type Color = keyof typeof lightColors;
 export type IconSize = keyof typeof iconSizes;
 type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
-interface SentryTheme extends Omit<typeof lightTheme, 'chart'> {
+export interface SentryTheme extends Omit<typeof lightTheme, 'chart'> {
   chart: {
     colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
@@ -1800,6 +1801,14 @@ declare module '@emotion/react' {
    */
   export interface Theme extends SentryTheme {}
 }
+
+export type StrictCSSObject = {
+  [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
+} & Partial<{
+  [key: `&${string}`]: StrictCSSObject; // Allow nested selectors
+  [key: `> ${string}:last-child`]: StrictCSSObject; // Allow some nested selectors
+  [key: `> ${string}:first-child`]: StrictCSSObject; // Allow some nested selectors
+}>;
 
 // tkdodo: kept for backwards compatibility, to be deleted
 
