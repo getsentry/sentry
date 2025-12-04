@@ -452,6 +452,14 @@ def _assemble_preprod_artifact_size_analysis(
                     was_created = created or was_created
                     metrics_in_transaction.append(size_metrics)
 
+            # Delete any stale metrics that are no longer in the current analysis results.
+            # This prevents inconsistent analysis_file_id values when components are removed
+            # between analysis runs, which would otherwise cause a 409 error on download.
+            current_metric_ids = [m.id for m in metrics_in_transaction]
+            PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=preprod_artifact).exclude(
+                id__in=current_metric_ids
+            ).delete()
+
         # Transaction committed successfully, now safe to reference these objects
         size_metrics_updated = metrics_in_transaction
 
