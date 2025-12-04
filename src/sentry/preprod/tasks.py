@@ -391,6 +391,10 @@ def _assemble_preprod_artifact_size_analysis(
         raise Exception(f"PreprodArtifact with id {artifact_id} does not exist")
 
     size_metrics_updated: list[PreprodArtifactSizeMetrics] = []
+    # Track whether the metrics transaction completed successfully. Once metrics are
+    # committed as COMPLETED, they should NOT be changed to FAILED even if subsequent
+    # operations fail - the analysis data is valid.
+    metrics_committed_successfully = False
     try:
         size_analysis_results = SizeAnalysisResults.parse_raw(
             assemble_result.bundle_temp_file.read()
@@ -460,11 +464,10 @@ def _assemble_preprod_artifact_size_analysis(
                 id__in=current_metric_ids
             ).delete()
 
-        # Transaction committed successfully, now safe to reference these objects
-        # Note: We delay assigning to size_metrics_updated until after all operations
-        # complete successfully. This ensures the exception handler doesn't incorrectly
-        # mark already-COMPLETED metrics as FAILED if a later operation (like extras
-        # update) fails.
+        # Transaction committed - metrics are now COMPLETED and valid. Any subsequent
+        # failures should NOT invalidate these metrics.
+        metrics_committed_successfully = True
+        size_metrics_updated = metrics_in_transaction
 
         if size_analysis_results.analysis_duration is not None:
             with transaction.atomic(router.db_for_write(PreprodArtifact)):
@@ -475,9 +478,6 @@ def _assemble_preprod_artifact_size_analysis(
                     {"analysis_duration": size_analysis_results.analysis_duration}
                 )
                 preprod_artifact.save(update_fields=["extras"])
-
-        # Only set size_metrics_updated after all operations succeed
-        size_metrics_updated = metrics_in_transaction
 
         # Trigger size analysis comparison if eligible
         logger.info(
@@ -502,25 +502,16 @@ def _assemble_preprod_artifact_size_analysis(
             },
         )
 
-        with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
-            try:
-                if size_metrics_updated:
-                    # Update metrics that were already created/updated
-                    for size_metrics in size_metrics_updated:
-                        PreprodArtifactSizeMetrics.objects.update_or_create(
-                            preprod_artifact=preprod_artifact,
-                            identifier=size_metrics.identifier,
-                            metrics_artifact_type=size_metrics.metrics_artifact_type,
-                            defaults={
-                                "state": PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
-                                "error_code": PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR,
-                                "error_message": str(e),
-                            },
-                        )
-                else:
-                    # No metrics were processed yet - update MAIN_ARTIFACT to FAILED
-                    # to avoid leaving any existing PENDING metrics stuck
-                    # Don't include identifier in lookup to match old behavior
+        # Only mark metrics as FAILED if the metrics transaction didn't complete.
+        # If metrics were successfully committed as COMPLETED, they contain valid
+        # analysis data and should not be overwritten due to subsequent failures
+        # (like extras update).
+        if not metrics_committed_successfully:
+            with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
+                try:
+                    # Mark the PENDING MAIN_ARTIFACT as FAILED to avoid leaving it stuck.
+                    # Note: We always update MAIN_ARTIFACT here because that's what gets
+                    # created initially in PENDING state when the artifact is uploaded.
                     PreprodArtifactSizeMetrics.objects.update_or_create(
                         preprod_artifact=preprod_artifact,
                         metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -531,15 +522,15 @@ def _assemble_preprod_artifact_size_analysis(
                             "error_message": str(e),
                         },
                     )
-            except Exception:
-                logger.exception(
-                    "Failed to update preprod artifact size metrics",
-                    extra={
-                        "preprod_artifact_id": artifact_id,
-                        "project_id": project.id,
-                        "organization_id": org_id,
-                    },
-                )
+                except Exception:
+                    logger.exception(
+                        "Failed to update preprod artifact size metrics",
+                        extra={
+                            "preprod_artifact_id": artifact_id,
+                            "project_id": project.id,
+                            "organization_id": org_id,
+                        },
+                    )
 
         # Re-raise to trigger further error handling if needed
         raise
