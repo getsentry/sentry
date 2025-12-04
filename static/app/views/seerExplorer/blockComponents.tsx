@@ -19,6 +19,7 @@ import {buildToolLinkUrl, getToolsStringFromBlock, postProcessLLMMarkdown} from 
 interface BlockProps {
   block: Block;
   blockIndex: number;
+  isAwaitingFileApproval?: boolean;
   isFocused?: boolean;
   isLast?: boolean;
   isPolling?: boolean;
@@ -45,17 +46,23 @@ function hasValidContent(content: string): boolean {
  * Determine the dot color based on tool execution status
  */
 function getToolStatus(
-  block: Block
-): 'loading' | 'content' | 'success' | 'failure' | 'mixed' {
+  block: Block,
+  isAwaitingFileApproval?: boolean
+): 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending' {
   if (block.loading) {
     return 'loading';
   }
 
   // Check tool_links for empty_results metadata
   const toolLinks = block.tool_links || [];
-  const hasTools = (block.message.tool_calls?.length || 0) > 0;
+  const toolCalls = block.message.tool_calls || [];
+  const hasTools = toolCalls.length > 0;
 
   if (hasTools) {
+    if (isAwaitingFileApproval) {
+      return 'pending';
+    }
+
     if (toolLinks.length === 0) {
       // No metadata available, assume success
       return 'success';
@@ -93,6 +100,7 @@ function getToolStatus(
 function BlockComponent({
   block,
   blockIndex: _blockIndex,
+  isAwaitingFileApproval,
   isLast,
   isFocused,
   isPolling,
@@ -263,7 +271,7 @@ function BlockComponent({
     }
   };
 
-  const showActions = isFocused && !block.loading;
+  const showActions = isFocused && !block.loading && !isAwaitingFileApproval;
 
   return (
     <Block
@@ -288,7 +296,7 @@ function BlockComponent({
           ) : (
             <BlockRow>
               <ResponseDot
-                status={getToolStatus(block)}
+                status={getToolStatus(block, isAwaitingFileApproval)}
                 hasOnlyTools={!hasContent && hasTools}
               />
               <BlockContentWrapper hasOnlyTools={!hasContent && hasTools}>
@@ -415,7 +423,7 @@ const BlockChevronIcon = styled(IconChevron)`
 `;
 
 const ResponseDot = styled('div')<{
-  status: 'loading' | 'content' | 'success' | 'failure' | 'mixed';
+  status: 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending';
   hasOnlyTools?: boolean;
 }>`
   width: 8px;
@@ -427,6 +435,8 @@ const ResponseDot = styled('div')<{
   background: ${p => {
     switch (p.status) {
       case 'loading':
+        return p.theme.pink400;
+      case 'pending':
         return p.theme.pink400;
       case 'content':
         return p.theme.purple400;
