@@ -14,10 +14,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.endpoints.organization_trace_item_attributes import (
-    TraceItemAttributesNamesPaginator,
-    adjust_start_end_window,
-)
+from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
@@ -30,11 +27,39 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils import snuba_rpc
+from sentry.utils.cursors import Cursor, CursorResult
 
 logger = logging.getLogger(__name__)
 
 
 MAX_THREADS = 4
+
+
+class TraceItemStatsPaginator:
+    """
+    Custom paginator for trace item stats that properly handles pagination
+    based on the number of attributes fetched, not the number of stats types.
+    Similar to TraceItemAttributesNamesPaginator, with some extra code to make
+    it work for stats results/
+    """
+
+    def __init__(self, data_fn):
+        self.data_fn = data_fn
+
+    def get_result(self, limit, cursor=None):
+        if limit <= 0:
+            raise ValueError(f"invalid limit for paginator, expected >0, got {limit}")
+
+        offset = cursor.offset if cursor is not None else 0
+        # Request 1 more than limit so we can tell if there is another page
+        data = self.data_fn(offset=offset, limit=limit + 1)
+        has_more = data[1] >= limit + 1
+
+        return CursorResult(
+            data,
+            prev=Cursor(0, max(0, offset - limit), True, offset > 0),
+            next=Cursor(0, max(0, offset + limit), False, has_more),
+        )
 
 
 class OrganizationTraceItemsStatsSerializer(serializers.Serializer):
@@ -155,12 +180,14 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                         for stats_type, data in stats.items():
                             stats_results[stats_type]["data"].update(data["data"])
 
-            return [{k: v} for k, v in stats_results.items()]
+            return {"data": [{k: v} for k, v in stats_results.items()]}, len(
+                attrs_response.attributes
+            )
 
         return self.paginate(
             request=request,
-            paginator=TraceItemAttributesNamesPaginator(data_fn=data_fn),
-            on_results=lambda results: {"data": serialize(results, request.user)},
+            paginator=TraceItemStatsPaginator(data_fn=data_fn),
+            on_results=lambda results: serialize(results[0], request.user),
             default_per_page=serialized.get("limit") or max_attributes,
             max_per_page=max_attributes,
         )
