@@ -1789,14 +1789,13 @@ const deprecatedColorMappings = (colors: Colors) => ({
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const lightTheme = {
-  ...deprecatedColorMappings(lightColors),
   isChonk: true,
   type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   fontSize,
   ...formTheme,
-  ...lightColors,
+  ...deprecatedColorMappings(lightColors),
   ...lightAliases,
   ...lightShadows,
 
@@ -1850,14 +1849,13 @@ export const lightTheme = {
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const darkTheme: SentryTheme = {
-  ...deprecatedColorMappings(darkColors),
   isChonk: true,
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   fontSize,
   ...formTheme,
-  ...darkColors,
+  ...deprecatedColorMappings(darkColors),
   ...darkAliases,
   ...darkShadows,
   tokens: darkTokens,
