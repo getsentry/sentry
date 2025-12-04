@@ -32,8 +32,10 @@ import {
   IconClose,
   IconCopy,
   IconFire,
+  IconFix,
   IconSeer,
   IconUpload,
+  IconUser,
 } from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -203,6 +205,7 @@ interface ClusterStats {
   isPending: boolean;
   lastSeen: string | null;
   totalEvents: number;
+  totalUsers: number;
 }
 
 function useClusterStats(groupIds: number[]): ClusterStats {
@@ -228,6 +231,7 @@ function useClusterStats(groupIds: number[]): ClusterStats {
     if (isPending || !groups || groups.length === 0) {
       return {
         totalEvents: 0,
+        totalUsers: 0,
         firstSeen: null,
         lastSeen: null,
         isPending,
@@ -235,11 +239,13 @@ function useClusterStats(groupIds: number[]): ClusterStats {
     }
 
     let totalEvents = 0;
+    let totalUsers = 0;
     let earliestFirstSeen: Date | null = null;
     let latestLastSeen: Date | null = null;
 
     for (const group of groups) {
       totalEvents += parseInt(group.count, 10) || 0;
+      totalUsers += group.userCount || 0;
 
       if (group.firstSeen) {
         const firstSeenDate = new Date(group.firstSeen);
@@ -258,6 +264,7 @@ function useClusterStats(groupIds: number[]): ClusterStats {
 
     return {
       totalEvents,
+      totalUsers,
       firstSeen: earliestFirstSeen?.toISOString() ?? null,
       lastSeen: latestLastSeen?.toISOString() ?? null,
       isPending,
@@ -397,6 +404,17 @@ function ClusterCard({
 
       {/* Zone 2: Stats (Secondary Context) */}
       <ClusterStatsBar>
+        {cluster.fixability_score !== null && cluster.fixability_score !== undefined && (
+          <StatItem>
+            <IconFix size="xs" color="gray300" />
+            <Text size="xs">
+              <Text size="xs" bold as="span">
+                {Math.round(cluster.fixability_score * 100)}%
+              </Text>{' '}
+              {t('relevance')}
+            </Text>
+          </StatItem>
+        )}
         <StatItem>
           <IconFire size="xs" color="gray300" />
           {clusterStats.isPending ? (
@@ -409,6 +427,21 @@ function ClusterCard({
                 {clusterStats.totalEvents.toLocaleString()}
               </Text>{' '}
               {tn('event', 'events', clusterStats.totalEvents)}
+            </Text>
+          )}
+        </StatItem>
+        <StatItem>
+          <IconUser size="xs" color="gray300" />
+          {clusterStats.isPending ? (
+            <Text size="xs" variant="muted">
+              –
+            </Text>
+          ) : (
+            <Text size="xs">
+              <Text size="xs" bold as="span">
+                {clusterStats.totalUsers.toLocaleString()}
+              </Text>{' '}
+              {tn('user', 'users', clusterStats.totalUsers)}
             </Text>
           )}
         </StatItem>
