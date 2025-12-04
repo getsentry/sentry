@@ -5,7 +5,6 @@ from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
-from sentry.silo.base import SiloMode
 
 
 @all_silo_endpoint
@@ -18,10 +17,5 @@ class UptimeIpsEndpoint(Endpoint):
     permission_classes = ()
 
     def get(self, _request: Request) -> HttpResponse:
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            response = HttpResponse(status=302)
-            response["Location"] = "https://sentry.io/api/0/uptime-ips/"
-            return response
-
         ips: list[str] = list(options.get("uptime.uptime-ips-api-response"))
         return HttpResponse("\n".join(ips), content_type="text/plain")
