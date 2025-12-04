@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 import {Badge, type BadgeProps} from './badge';

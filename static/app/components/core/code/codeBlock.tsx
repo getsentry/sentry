@@ -8,7 +8,7 @@ import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {loadPrismLanguage} from 'sentry/utils/prism';
-import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme.chonk';
+import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme';
 
 interface CodeBlockProps {
   children: string;

@@ -4,5 +4,6 @@ export type {
   FormSize,
   IconSize,
   StrictCSSObject,
-  Theme,
+  SentryTheme as Theme,
+  SentryTheme as DO_NOT_USE_ChonkTheme,
 } from './theme';

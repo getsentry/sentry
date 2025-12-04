@@ -1,9 +1,9 @@
 import type React from 'react';
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
 
+import type {DO_NOT_USE_ChonkTheme} from 'sentry/utils/theme';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import {baseAvatarStyles, type BaseAvatarStyleProps} from './baseAvatarComponentStyles';

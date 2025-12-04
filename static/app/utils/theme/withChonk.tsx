@@ -1,6 +1,8 @@
-import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import type {DO_NOT_USE_ChonkTheme} from 'sentry/utils/theme';
 
 export type ChonkPropMapping<LegacyProps, ChonkProps> = (
   props: Omit<LegacyProps, 'theme' | 'ref'>
@@ -50,8 +52,6 @@ function identity<T, U>(props: T): U {
   return props as unknown as U;
 }
 
-export function isChonkTheme(
-  theme: Theme | DO_NOT_USE_ChonkTheme
-): theme is DO_NOT_USE_ChonkTheme {
+export function isChonkTheme(theme: Theme) {
   return theme.isChonk;
 }

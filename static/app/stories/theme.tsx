@@ -11,7 +11,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {
   DO_NOT_USE_darkChonkTheme,
   DO_NOT_USE_lightChonkTheme,
-} from 'sentry/utils/theme/theme.chonk';
+} from 'sentry/utils/theme/theme';
 
 interface ThemeToggleProps {
   children: React.ReactNode;

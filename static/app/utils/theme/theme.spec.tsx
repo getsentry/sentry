@@ -20,7 +20,10 @@ describe('theme', () => {
 
       const colors = theme.chart.getColorPalette(2);
 
-      expectTypeOf(colors).toEqualTypeOf<readonly ['#444674', '#d6567f', '#f2b712']>();
+      expectTypeOf(colors).toEqualTypeOf<
+        | readonly ['#7553FF', '#3A1873', '#F0369A']
+        | readonly ['#7553FF', '#5D3EB2', '#F0369A']
+      >();
     });
   });
 });

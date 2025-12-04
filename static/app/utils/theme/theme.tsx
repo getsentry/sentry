@@ -8,250 +8,10 @@
  * - Theme type exports
  */
 import type {CSSProperties} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import color from 'color';
 import {spring, type Transition} from 'framer-motion';
-
-// palette generated via: https://gka.github.io/palettes/#colors=444674,69519A,E1567C,FB7D46,F2B712|steps=20|bez=1|coL=1
-const CHART_PALETTE = [
-  ['#444674'],
-  ['#444674', '#f2b712'],
-  ['#444674', '#d6567f', '#f2b712'],
-  ['#444674', '#a35488', '#ef7061', '#f2b712'],
-  ['#444674', '#895289', '#d6567f', '#f38150', '#f2b712'],
-  ['#444674', '#7a5088', '#b85586', '#e9626e', '#f58c46', '#f2b712'],
-  ['#444674', '#704f87', '#a35488', '#d6567f', '#ef7061', '#f59340', '#f2b712'],
-  [
-    '#444674',
-    '#694e86',
-    '#955389',
-    '#c15584',
-    '#e65d73',
-    '#f27a58',
-    '#f6983b',
-    '#f2b712',
-  ],
-  [
-    '#444674',
-    '#644d85',
-    '#895289',
-    '#b05587',
-    '#d6567f',
-    '#ec6868',
-    '#f38150',
-    '#f69b38',
-    '#f2b712',
-  ],
-  [
-    '#444674',
-    '#614c84',
-    '#815189',
-    '#a35488',
-    '#c65683',
-    '#e35a78',
-    '#ef7061',
-    '#f4884b',
-    '#f59f34',
-    '#f2b712',
-  ],
-  [
-    '#444674',
-    '#5c4c82',
-    '#7a5088',
-    '#9a5389',
-    '#b85586',
-    '#d7567f',
-    '#e9626e',
-    '#f1785a',
-    '#f58c46',
-    '#f5a132',
-    '#f2b712',
-  ],
-  [
-    '#444674',
-    '#5b4b82',
-    '#764f88',
-    '#925289',
-    '#ae5487',
-    '#c85682',
-    '#e2587a',
-    '#ec6b66',
-    '#f37d54',
-    '#f59143',
-    '#f5a42f',
-    '#f2b712',
-  ],
-  [
-    '#444674',
-    '#584b80',
-    '#704f87',
-    '#895289',
-    '#a35488',
-    '#bd5585',
-    '#d6567f',
-    '#e75f71',
-    '#ef7061',
-    '#f38150',
-    '#f59340',
-    '#f5a52d',
-    '#f2b712',
-  ],
-  [
-    '#444674',
-    '#574b80',
-    '#6d4e87',
-    '#855189',
-    '#9d5389',
-    '#b35586',
-    '#ca5682',
-    '#e2577b',
-    '#eb666a',
-    '#f0765b',
-    '#f4854d',
-    '#f6953e',
-    '#f5a62c',
-    '#f2b712',
-  ],
-  [
-    '#444674',
-    '#564a7f',
-    '#694e86',
-    '#805089',
-    '#955389',
-    '#ab5487',
-    '#c15584',
-    '#d6567f',
-    '#e65d73',
-    '#ed6c65',
-    '#f27a58',
-    '#f5894a',
-    '#f6983b',
-    '#f5a72b',
-    '#f2b712',
-  ],
-  [
-    '#444674',
-    '#544a7f',
-    '#674d85',
-    '#7a5088',
-    '#8f5289',
-    '#a35488',
-    '#b85586',
-    '#cd5681',
-    '#e1567c',
-    '#e9626e',
-    '#ef7061',
-    '#f37d54',
-    '#f58c46',
-    '#f69a39',
-    '#f5a829',
-    '#f2b712',
-  ],
-  [
-    '#444674',
-    '#524a7e',
-    '#644d85',
-    '#784f88',
-    '#895289',
-    '#9e5389',
-    '#b05587',
-    '#c45683',
-    '#d6567f',
-    '#e55b76',
-    '#ec6868',
-    '#f0745c',
-    '#f38150',
-    '#f58e44',
-    '#f69b38',
-    '#f4a928',
-    '#f2b712',
-  ],
-  [
-    '#444674',
-    '#524a7e',
-    '#624d84',
-    '#744f88',
-    '#865189',
-    '#985389',
-    '#aa5488',
-    '#bc5585',
-    '#cd5681',
-    '#df567c',
-    '#e86070',
-    '#ed6c64',
-    '#f17959',
-    '#f4854e',
-    '#f59242',
-    '#f59e35',
-    '#f4aa27',
-    '#f2b712',
-  ],
-] as const;
-
-type ChartColorPalette = typeof CHART_PALETTE;
-type ColorLength = (typeof CHART_PALETTE)['length'];
-
-// eslint-disable-next-line @typescript-eslint/no-restricted-types
-type TupleOf<N extends number, A extends unknown[] = []> = A['length'] extends N
-  ? A
-  : TupleOf<N, [...A, A['length']]>;
-
-type ValidLengthArgument = TupleOf<ColorLength>[number];
-
-/**
- * Returns the color palette for a given number of series.
- * If length argument is statically analyzable, the return type will be narrowed
- * to the specific color palette index.
- * @TODO(jonasbadalic) Clarify why we return length+1. For a given length of 1, we should
- * return a single color, not two colors. It smells like either a bug or off by one error.
- * @param length - The number of series to return a color palette for?
- */
-function makeChartColorPalette<T extends ChartColorPalette>(
-  palette: T
-): <Length extends ValidLengthArgument>(length: Length | number) => T[Length] {
-  return function getChartColorPalette<Length extends ValidLengthArgument>(
-    length: Length | number
-  ): T[Length] {
-    // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
-    // the palette is not sparse, but we should probably add a runtime check here as well.
-    const index = Math.max(0, Math.min(palette.length - 1, length));
-    return palette[index] as T[Length];
-  };
-}
-
-const generateTokens = (colors: Colors) => ({
-  content: {
-    primary: colors.gray400, // theme.textColor
-    muted: colors.gray300, // theme.subText
-    accent: colors.purple400, // new
-    promotion: colors.pink400, // new
-    danger: colors.red400, // theme.errorText
-    warning: colors.yellow400, // theme.warningText
-    success: colors.green400, // theme.successText
-  },
-  graphics: {
-    muted: colors.gray300,
-    accent: colors.blue300,
-    promotion: colors.pink300,
-    danger: colors.red300,
-    warning: colors.yellow300,
-    success: colors.green300,
-  },
-  background: {
-    primary: colors.surface300, // theme.background
-    secondary: colors.surface200, // theme.backgroundSecondary
-    tertiary: colors.surface100, // theme.backgroundTertiary
-  },
-  border: {
-    primary: colors.gray200, // theme.border
-    muted: colors.gray100, // theme.innerBorder
-    accent: colors.purple300, // theme.focusBorder
-    promotion: colors.pink400, // new
-    danger: colors.red200, // theme.errorFocus
-    warning: colors.yellow200, // theme.warningFocus
-    success: colors.green200, // theme.successFocus
-  },
-});
 
 type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
 
@@ -380,193 +140,6 @@ function generateMotion() {
   };
 }
 
-const generateThemeAliases = (colors: Colors) => ({
-  /**
-   * Heading text color
-   */
-  headingColor: colors.gray500,
-
-  /**
-   * Primary text color
-   */
-  textColor: colors.gray400,
-
-  /**
-   * Text that should not have as much emphasis
-   */
-  subText: colors.gray300,
-
-  /**
-   * Background for the main content area of a page?
-   */
-  bodyBackground: colors.surface200,
-
-  /**
-   * Primary background color
-   */
-  background: colors.surface300,
-
-  /**
-   * Elevated background color
-   */
-  backgroundElevated: colors.surface400,
-
-  /**
-   * Secondary background color used as a slight contrast against primary background
-   */
-  backgroundSecondary: colors.surface200,
-
-  /**
-   * Tertiary background color used as a stronger contrast against primary background
-   */
-  backgroundTertiary: colors.surface100,
-
-  /**
-   * Background for the header of a page
-   */
-  headerBackground: colors.surface300,
-
-  /**
-   * Primary border color
-   */
-  border: colors.gray200,
-  translucentBorder: colors.translucentGray200,
-
-  /**
-   * Inner borders, e.g. borders inside of a grid
-   */
-  innerBorder: colors.gray100,
-  translucentInnerBorder: colors.translucentGray100,
-
-  /**
-   * A color that denotes a "success", or something good
-   */
-  success: colors.green300,
-  successText: colors.green400,
-  successFocus: colors.green200,
-
-  /**
-   * A color that denotes an error, or something that is wrong
-   */
-  error: colors.red300,
-  errorText: colors.red400,
-  errorFocus: colors.red200,
-
-  /**
-   * A color that denotes danger, for dangerous actions like deletion
-   */
-  danger: colors.red300,
-  dangerText: colors.red400,
-  dangerFocus: colors.red200,
-
-  /**
-   * A color that denotes a warning
-   */
-  warning: colors.yellow300,
-  warningText: colors.yellow400,
-  warningFocus: colors.yellow200,
-
-  /**
-   * A color that indicates something is disabled where user can not interact or use
-   * it in the usual manner (implies that there is an "enabled" state)
-   */
-  disabled: colors.gray300,
-  disabledBorder: colors.gray200,
-
-  /**
-   * Hover color. Deprecated – use core components with built-in interaction states
-   * @deprecated
-   */
-  hover: colors.surface500,
-
-  /**
-   * Indicates that something is "active" or "selected"
-   */
-  active: colors.purple300,
-  activeHover: colors.purple400,
-  activeText: colors.purple400,
-
-  /**
-   * Indicates that something has "focus", which is different than "active" state as it is more temporal
-   * and should be a bit subtler than active
-   */
-  focus: colors.purple200,
-  focusBorder: colors.purple300,
-
-  /**
-   * Link color indicates that something is clickable
-   */
-  linkColor: colors.blue400,
-  linkHoverColor: colors.blue400,
-  linkUnderline: colors.blue200,
-  linkFocus: colors.blue300,
-
-  /**
-   * Form placeholder text color
-   */
-  formPlaceholder: colors.gray300,
-
-  /**
-   *
-   */
-  rowBackground: colors.surface400,
-
-  /**
-   * Color of lines that flow across the background of the chart to indicate axes levels
-   * (This should only be used for yAxis)
-   */
-  chartLineColor: colors.gray100,
-
-  /**
-   * Color for chart label text
-   */
-  chartLabel: colors.gray300,
-
-  /**
-   * Color for the 'others' series in topEvent charts
-   */
-  chartOther: colors.gray200,
-
-  /**
-   * Hover color of the drag handle used in the content slider diff view.
-   */
-  diffSliderDragHandleHover: colors.purple400,
-
-  /**
-   * Default Progressbar color
-   */
-  progressBar: colors.purple300,
-
-  /**
-   * Default Progressbar color
-   */
-  progressBackground: colors.gray100,
-
-  /**
-   * Search filter "token" background
-   */
-  searchTokenBackground: {
-    valid: colors.blue100,
-    validActive: color(colors.blue100).opaquer(1.0).string(),
-    invalid: colors.red100,
-    invalidActive: color(colors.red100).opaquer(0.8).string(),
-    warning: colors.yellow100,
-    warningActive: color(colors.yellow100).opaquer(0.8).string(),
-  },
-
-  /**
-   * Search filter "token" border
-   */
-  searchTokenBorder: {
-    valid: colors.blue200,
-    validActive: color(colors.blue200).opaquer(1).string(),
-    invalid: colors.red200,
-    invalidActive: color(colors.red200).opaquer(1).string(),
-    warning: colors.yellow200,
-    warningActive: color(colors.yellow200).opaquer(1).string(),
-  },
-});
-
 type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
 type AlertColors = Record<
   Alert,
@@ -581,7 +154,10 @@ type AlertColors = Record<
   }
 >;
 
-export const generateThemeUtils = (colors: Colors, aliases: Aliases) => ({
+const generateThemeUtils = (
+  colors: ReturnType<typeof deprecatedColorMappings>,
+  aliases: Aliases
+) => ({
   tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
     textDecoration: 'underline' as const,
     textDecorationThickness: '0.75px',
@@ -609,7 +185,7 @@ export const generateThemeUtils = (colors: Colors, aliases: Aliases) => ({
   `,
 });
 
-export const generateThemePrismVariables = (
+const generateThemePrismVariables = (
   prismColors: typeof prismLight,
   blockBackground: string
 ) =>
@@ -620,8 +196,9 @@ export const generateThemePrismVariables = (
     ...prismColors,
   });
 
-export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
+const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
   default: {
+    // all alias-based, already derived from new theme
     color: alias.textColor,
     colorActive: alias.textColor,
     background: alias.background,
@@ -635,23 +212,23 @@ export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColor
   primary: {
     color: colors.white,
     colorActive: colors.white,
-    background: colors.purple300,
-    backgroundActive: colors.purple400,
-    border: colors.purple300,
-    borderActive: colors.purple300,
-    borderTranslucent: colors.purple300,
+    background: colors.blue400,
+    backgroundActive: colors.blue500,
+    border: colors.blue400,
+    borderActive: colors.blue400,
+    borderTranslucent: colors.blue400,
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
   },
   danger: {
     color: colors.white,
     colorActive: colors.white,
-    background: colors.red300,
-    backgroundActive: colors.red400,
-    border: colors.red300,
-    borderActive: colors.red300,
-    borderTranslucent: colors.red300,
-    focusBorder: colors.red300,
+    background: colors.red400,
+    backgroundActive: colors.red500,
+    border: colors.red400,
+    borderActive: colors.red400,
+    borderTranslucent: colors.red400,
+    focusBorder: colors.red400,
     focusShadow: colors.red200,
   },
   link: {
@@ -689,20 +266,20 @@ export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColor
   },
 });
 
-export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
+const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   info: {
     border: colors.blue200,
-    background: colors.blue300,
-    color: colors.blue400,
+    background: colors.blue400,
+    color: colors.blue500,
     backgroundLight: colors.blue100,
-    borderHover: colors.blue300,
+    borderHover: colors.blue400,
   },
   success: {
-    background: colors.green300,
+    background: colors.green400,
     backgroundLight: colors.green100,
     border: colors.green200,
-    borderHover: colors.green300,
-    color: colors.green400,
+    borderHover: colors.green400,
+    color: colors.green500,
   },
   muted: {
     background: colors.gray200,
@@ -712,76 +289,84 @@ export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors 
     color: 'inherit',
   },
   warning: {
-    background: colors.yellow300,
+    background: colors.yellow400,
     backgroundLight: colors.yellow100,
     border: colors.yellow200,
-    borderHover: colors.yellow300,
-    color: colors.yellow400,
+    borderHover: colors.yellow400,
+    color: colors.yellow500,
   },
   error: {
-    background: colors.red300,
+    background: colors.red400,
     backgroundLight: colors.red100,
     border: colors.red200,
-    borderHover: colors.red300,
-    color: colors.red400,
+    borderHover: colors.red400,
+    color: colors.red500,
     textLight: colors.red200,
   },
 });
 
-export const generateLevelTheme = (colors: Colors): LevelColors => ({
-  sample: colors.purple300,
-  info: colors.blue300,
-  warning: colors.yellow300,
+const generateLevelTheme = (colors: Colors): LevelColors => ({
+  sample: colors.blue400,
+  info: colors.blue400,
+  warning: colors.yellow400,
   // Hardcoded legacy color (orange400). We no longer use orange anywhere
   // else in the app (except for the chart palette). This needs to be harcoded
   // here because existing users may still associate orange with the "error" level.
   error: '#FF7738',
-  fatal: colors.red300,
-  default: colors.gray300,
+  fatal: colors.red400,
+  default: colors.gray400,
   unknown: colors.gray200,
 });
 
-export const generateTagTheme = (colors: Colors): TagColors => ({
+const generateTagTheme = (colors: Colors): TagColors => ({
   default: {
-    background: colors.surface400,
-    border: colors.translucentGray200,
-    color: colors.gray400,
+    background: colors.surface500,
+    border: colors.gray200,
+    color: colors.gray500,
   },
+
   promotion: {
     background: colors.pink100,
     border: colors.pink100,
-    color: colors.pink400,
+    color: colors.pink500,
   },
+
   highlight: {
-    background: colors.purple100,
-    border: colors.purple100,
-    color: colors.purple400,
+    background: colors.blue100,
+    border: colors.blue100,
+    color: colors.blue500,
   },
+
   warning: {
     background: colors.yellow100,
     border: colors.yellow100,
-    color: colors.yellow400,
+    color: colors.yellow500,
   },
+
   success: {
     background: colors.green100,
     border: colors.green100,
-    color: colors.green400,
+    color: colors.green500,
   },
+
   error: {
     background: colors.red100,
     border: colors.red100,
-    color: colors.red400,
+    color: colors.red500,
   },
+
   info: {
-    background: colors.purple100,
-    border: colors.purple100,
-    color: colors.purple400,
+    background: colors.blue100,
+    border: colors.blue100,
+    color: colors.blue500,
   },
+
   white: {
     background: colors.white,
     border: colors.white,
     color: colors.black,
   },
+
   black: {
     background: colors.black,
     border: colors.black,
@@ -793,248 +378,7 @@ export const generateTagTheme = (colors: Colors): TagColors => ({
  * Theme definition
  */
 
-/* eslint-disable typescript-sort-keys/interface */
-interface Colors {
-  black: string;
-  white: string;
-
-  lightModeBlack: string;
-  lightModeWhite: string;
-
-  surface100: string;
-  surface200: string;
-  surface300: string;
-  surface400: string;
-
-  translucentSurface100: string;
-  translucentSurface200: string;
-
-  /**
-   * Hover color. Deprecated – use core components with built-in interaction states
-   * @deprecated
-   */
-  surface500: string;
-
-  gray500: string;
-  gray400: string;
-  gray300: string;
-  gray200: string;
-  gray100: string;
-
-  /**
-   * Alternative version of gray200 that's translucent.
-   * Useful for borders on tooltips, popovers, and dialogs.
-   */
-  translucentGray200: string;
-  translucentGray100: string;
-
-  purple400: string;
-  purple300: string;
-  purple200: string;
-  purple100: string;
-
-  blue400: string;
-  blue300: string;
-  blue200: string;
-  blue100: string;
-
-  green400: string;
-  green300: string;
-  green200: string;
-  green100: string;
-
-  yellow400: string;
-  yellow300: string;
-  yellow200: string;
-  yellow100: string;
-
-  red400: string;
-  red300: string;
-  red200: string;
-  red100: string;
-
-  pink400: string;
-  pink300: string;
-  pink200: string;
-  pink100: string;
-}
-/* eslint-enable typescript-sort-keys/interface */
-
-const lightColors: Colors = {
-  black: '#1D1127',
-  white: '#FFFFFF',
-
-  lightModeBlack: '#1D1127',
-  lightModeWhite: '#FFFFFF',
-
-  surface100: '#F5F3F7',
-  surface200: '#F7F6F9',
-  surface300: '#FFFFFF',
-  surface400: '#FFFFFF',
-
-  translucentSurface100: '#F5F3F7B6',
-  translucentSurface200: '#FAF9FBE6',
-
-  /**
-   * Hover color. Deprecated – use core components with built-in interaction states
-   * @deprecated
-   */
-  surface500: '#F5F3F7',
-
-  gray500: '#2B2233',
-  gray400: '#3E3446',
-  gray300: '#71637E',
-  gray200: '#E0DCE5',
-  gray100: '#F0ECF3',
-
-  /**
-   * Alternative version of gray200 that's translucent.
-   * Useful for borders on tooltips, popovers, and dialogs.
-   */
-  translucentGray200: 'rgba(58, 17, 95, 0.14)',
-  translucentGray100: 'rgba(45, 0, 85, 0.06)',
-
-  purple400: '#6559C5',
-  purple300: '#6C5FC7',
-  purple200: 'rgba(108, 95, 199, 0.5)',
-  purple100: 'rgba(108, 95, 199, 0.09)',
-
-  blue400: '#2562D4',
-  blue300: '#3C74DD',
-  blue200: 'rgba(60, 116, 221, 0.5)',
-  blue100: 'rgba(60, 116, 221, 0.09)',
-
-  green400: '#207964',
-  green300: '#2BA185',
-  green200: 'rgba(43, 161, 133, 0.55)',
-  green100: 'rgba(43, 161, 133, 0.11)',
-
-  yellow400: '#856C00',
-  yellow300: '#EBC000',
-  yellow200: 'rgba(235, 192, 0, 0.7)',
-  yellow100: 'rgba(235, 192, 0, 0.14)',
-
-  red400: '#CF2126',
-  red300: '#F55459',
-  red200: 'rgba(245, 84, 89, 0.5)',
-  red100: 'rgba(245, 84, 89, 0.1)',
-
-  pink400: '#D1056B',
-  pink300: '#F14499',
-  pink200: 'rgba(249, 26, 138, 0.5)',
-  pink100: 'rgba(249, 26, 138, 0.09)',
-};
-
-const darkColors: Colors = {
-  black: '#1D1127',
-  white: '#FFFFFF',
-
-  lightModeBlack: '#FFFFFF',
-  lightModeWhite: '#1D1127',
-
-  surface100: '#18121C',
-  surface200: '#1A141F',
-  surface300: '#241D2A',
-  surface400: '#2C2433',
-
-  translucentSurface100: '#18121CB3',
-  translucentSurface200: '#1A141FB3',
-
-  /**
-   * Hover color. Deprecated – use core components with built-in interaction states
-   * @deprecated
-   */
-  surface500: '#362E3E',
-
-  gray500: '#EBE6EF',
-  gray400: '#D6D0DC',
-  gray300: '#A398AE',
-  gray200: '#393041',
-  gray100: '#302735',
-
-  /**
-   * Alternative version of gray200 that's translucent.
-   * Useful for borders on tooltips, popovers, and dialogs.
-   */
-  translucentGray200: 'rgba(218, 184, 245, 0.16)',
-  translucentGray100: 'rgba(208, 168, 240, 0.07)',
-
-  purple400: '#ABA0F8',
-  purple300: '#7669D3',
-  purple200: 'rgba(118, 105, 211, 0.27)',
-  purple100: 'rgba(118, 105, 211, 0.11)',
-
-  blue400: '#80ACFF',
-  blue300: '#3070E8',
-  blue200: 'rgba(48, 112, 232, 0.25)',
-  blue100: 'rgba(48, 112, 232, 0.12)',
-
-  green400: '#1CC49D',
-  green300: '#1D876E',
-  green200: 'rgba(29, 135, 110, 0.3)',
-  green100: 'rgba(29, 135, 110, 0.12)',
-
-  yellow400: '#C7B000',
-  yellow300: '#A89500',
-  yellow200: 'rgba(168, 149, 0, 0.25)',
-  yellow100: 'rgba(168, 149, 0, 0.09)',
-
-  red400: '#F98A8F',
-  red300: '#E12D33',
-  red200: 'rgba(225, 45, 51, 0.25)',
-  red100: 'rgba(225, 45, 51, 0.15)',
-
-  pink400: '#EB8FBC',
-  pink300: '#CE3B85',
-  pink200: 'rgba(206, 59, 133, 0.25)',
-  pink100: 'rgba(206, 59, 133, 0.13)',
-};
-
-const prismLight = {
-  '--prism-base': '#332B3B',
-  '--prism-inline-code': '#332B3B',
-  '--prism-inline-code-background': '#F5F3F7',
-  '--prism-highlight-background': '#5C78A31C',
-  '--prism-highlight-accent': '#5C78A344',
-  '--prism-comment': '#80708F',
-  '--prism-punctuation': '#332B3B',
-  '--prism-property': '#18408B',
-  '--prism-selector': '#177861',
-  '--prism-operator': '#235CC8',
-  '--prism-variable': '#332B3B',
-  '--prism-function': '#235CC8',
-  '--prism-keyword': '#BB3A3D',
-};
-
-const prismDark = {
-  '--prism-base': '#D6D0DC',
-  '--prism-inline-code': '#D6D0DC',
-  '--prism-inline-code-background': '#18121C',
-  '--prism-highlight-background': '#A8A2C31C',
-  '--prism-highlight-accent': '#A8A2C344',
-  '--prism-comment': '#998DA5',
-  '--prism-punctuation': '#D6D0DC',
-  '--prism-property': '#70A2FF',
-  '--prism-selector': '#1DCDA4',
-  '--prism-operator': '#70A2FF',
-  '--prism-variable': '#D6D0DC',
-  '--prism-function': '#70A2FF',
-  '--prism-keyword': '#F8777C',
-};
-
-const lightShadows = {
-  dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
-  dropShadowMedium: '0 1px 2px rgba(43, 34, 51, 0.04)',
-  dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.12)',
-  dropShadowHeavyTop: '0 -4px 24px rgba(43, 34, 51, 0.12)',
-};
-
-const darkShadows = {
-  dropShadowLight: '0 0 1px rgba(10, 8, 12, 0.2)',
-  dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
-  dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
-  dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
-};
+type Colors = typeof lightColors;
 
 type Tag =
   | 'default'
@@ -1109,9 +453,9 @@ const iconDirectionToAngle: Record<IconDirection, number> = {
  */
 export type FormSize = 'xs' | 'sm' | 'md';
 
-export type Space = keyof Theme['space'];
+export type Space = keyof typeof space;
 
-export type FormTheme = {
+type FormTheme = {
   form: Record<
     FormSize,
     {
@@ -1137,74 +481,6 @@ export type FormTheme = {
     }
   >;
   formSpacing: Record<FormSize, string>;
-};
-
-const formTheme: FormTheme = {
-  /**
-   * Common styles for form inputs & buttons, separated by size.
-   * Should be used to ensure consistent sizing among form elements.
-   */
-  form: {
-    md: {
-      height: '38px',
-      minHeight: '38px',
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-    },
-    sm: {
-      height: '32px',
-      minHeight: '32px',
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-    },
-    xs: {
-      height: '26px',
-      minHeight: '26px',
-      fontSize: '0.75rem',
-      lineHeight: '0.875rem',
-    },
-  },
-
-  /**
-   * Padding for form inputs
-   * @TODO(jonasbadalic) This should exist on form component
-   */
-  formPadding: {
-    md: {
-      paddingLeft: 16,
-      paddingRight: 12,
-      paddingTop: 10,
-      paddingBottom: 10,
-    },
-    sm: {
-      paddingLeft: 12,
-      paddingRight: 10,
-      paddingTop: 8,
-      paddingBottom: 8,
-    },
-    xs: {
-      paddingLeft: 8,
-      paddingRight: 6,
-      paddingTop: 6,
-      paddingBottom: 6,
-    },
-  },
-  formRadius: {
-    md: {
-      borderRadius: '6px',
-    },
-    sm: {
-      borderRadius: '6px',
-    },
-    xs: {
-      borderRadius: '6px',
-    },
-  },
-  formSpacing: {
-    md: '8px',
-    sm: '6px',
-    xs: '4px',
-  },
 };
 
 const iconSizes: Record<Size, string> = {
@@ -1257,9 +533,6 @@ const space = {
  */
 const commonTheme = {
   breakpoints,
-
-  ...lightColors,
-  ...lightShadows,
 
   space,
   motion: generateMotion(),
@@ -1365,42 +638,1177 @@ const commonTheme = {
     lineHeightHeading: 1.2,
     lineHeightBody: 1.4,
   },
-
-  tag: generateTagTheme(lightColors),
-  level: generateLevelTheme(lightColors),
 };
 
-const lightTokens = generateTokens(lightColors);
-const darkTokens = generateTokens(darkColors);
+export type Color = keyof ReturnType<typeof deprecatedColorMappings>;
+export type IconSize = keyof typeof iconSizes;
+type Aliases = typeof lightAliases;
+export type ColorOrAlias = keyof Aliases | Color;
+export interface SentryTheme extends Omit<typeof lightTheme, 'chart'> {
+  chart: {
+    colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
+    getColorPalette: ReturnType<typeof makeChartColorPalette>;
+    neutral: string;
+  };
+}
 
-// Light and dark theme definitions
-const lightAliases = generateThemeAliases(lightColors);
-const darkAliases = generateThemeAliases(darkColors);
+const CHART_PALETTE_LIGHT = [
+  ['#7553FF'],
+  ['#7553FF', '#3A1873'],
+  ['#7553FF', '#3A1873', '#F0369A'],
+  ['#7553FF', '#3A1873', '#F0369A', '#FF9838'],
+  ['#7553FF', '#3A1873', '#F0369A', '#FF9838', '#FFD00E'],
+  ['#7553FF', '#3A1873', '#F0369A', '#FF9838', '#FFD00E', '#67C800'],
+  ['#7553FF', '#5533B2', '#3A1873', '#F0369A', '#FF9838', '#FFD00E', '#67C800'],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#7C2282',
+    '#F0369A',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#7553FF',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#7553FF',
+    '#5533B2',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#7C2282',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#7C2282',
+    '#B82D90',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
+  ],
+] as const;
+
+const CHART_PALETTE_DARK = [
+  ['#7553FF'],
+  ['#7553FF', '#5D3EB2'],
+  ['#7553FF', '#5D3EB2', '#F0369A'],
+  ['#7553FF', '#5D3EB2', '#F0369A', '#FF9838'],
+  ['#7553FF', '#5D3EB2', '#F0369A', '#FF9838', '#FFD00E'],
+  ['#7553FF', '#5D3EB2', '#F0369A', '#FF9838', '#FFD00E', '#67C800'],
+  ['#7553FF', '#5D3EB2', '#50219C', '#F0369A', '#FF9838', '#FFD00E', '#67C800'],
+  [
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+    '#F0369A',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+  ],
+  [
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+    '#B0009C',
+    '#F0369A',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+  ],
+  [
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+    '#B0009C',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+  ],
+  [
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+    '#B0009C',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+  ],
+  [
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+    '#B0009C',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#7553FF',
+  ],
+  [
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+    '#B0009C',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#7553FF',
+    '#5D3EB2',
+  ],
+  [
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+    '#B0009C',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+  ],
+  [
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+    '#B0009C',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+  ],
+  [
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+    '#B0009C',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+    '#B0009C',
+  ],
+  [
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+    '#B0009C',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+    '#B0009C',
+    '#F0369A',
+  ],
+  [
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+    '#B0009C',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+    '#B0009C',
+    '#F0369A',
+    '#FA6769',
+  ],
+] as const;
+
+type ChartColorPalette = typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
+type ColorLength = (typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK)['length'];
+
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
+type TupleOf<N extends number, A extends unknown[] = []> = A['length'] extends N
+  ? A
+  : TupleOf<N, [...A, A['length']]>;
+
+type ValidLengthArgument = TupleOf<ColorLength>[number];
+
+/**
+ * Returns the color palette for a given number of series.
+ * If length argument is statically analyzable, the return type will be narrowed
+ * to the specific color palette index.
+ * @TODO(jonasbadalic) Clarify why we return length+1. For a given length of 1, we should
+ * return a single color, not two colors. It smells like either a bug or off by one error.
+ * @param length - The number of series to return a color palette for?
+ */
+function makeChartColorPalette<T extends ChartColorPalette>(
+  palette: T
+): <Length extends ValidLengthArgument>(length: Length | number) => T[Length] {
+  return function getChartColorPalette<Length extends ValidLengthArgument>(
+    length: Length | number
+  ): T[Length] {
+    // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
+    // the palette is not sparse, but we should probably add a runtime check here as well.
+    const index = Math.max(0, Math.min(palette.length - 1, length));
+    return palette[index] as T[Length];
+  };
+}
+
+const formTheme: FormTheme = {
+  /**
+   * Common styles for form inputs & buttons, separated by size.
+   * Should be used to ensure consistent sizing among form elements.
+   */
+  form: {
+    md: {
+      height: '36px',
+      minHeight: '36px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    sm: {
+      height: '32px',
+      minHeight: '32px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    xs: {
+      height: '28px',
+      minHeight: '28px',
+      fontSize: '0.75rem',
+      lineHeight: '1rem',
+    },
+  },
+
+  /**
+   * Padding for form inputs
+   * @TODO(jonasbadalic) This should exist on form component
+   */
+  formPadding: {
+    md: {
+      paddingLeft: 16,
+      paddingRight: 16,
+      paddingTop: 12,
+      paddingBottom: 12,
+    },
+    sm: {
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingTop: 8,
+      paddingBottom: 8,
+    },
+    xs: {
+      paddingLeft: 8,
+      paddingRight: 8,
+      paddingTop: 6,
+      paddingBottom: 6,
+    },
+  },
+  formRadius: {
+    md: {
+      borderRadius: '8px',
+    },
+    sm: {
+      borderRadius: '6px',
+    },
+    xs: {
+      borderRadius: '5px',
+    },
+  },
+  formSpacing: {
+    md: '8px',
+    sm: '6px',
+    xs: '4px',
+  },
+};
+
+// @TODO(jonasbadalic): eventually, we should port component usage to these values
+function generateChonkTokens(colorScheme: typeof lightColors) {
+  return {
+    content: {
+      primary: colorScheme.gray800,
+      muted: colorScheme.gray500,
+      accent: colorScheme.blue500,
+      promotion: colorScheme.pink500,
+      danger: colorScheme.red500,
+      warning: colorScheme.yellow500,
+      success: colorScheme.green500,
+    },
+    graphics: {
+      muted: colorScheme.gray400,
+      accent: colorScheme.blue400,
+      promotion: colorScheme.pink400,
+      danger: colorScheme.red400,
+      warning: colorScheme.yellow400,
+      success: colorScheme.green400,
+    },
+    background: {
+      primary: colorScheme.surface500,
+      secondary: colorScheme.surface400,
+      tertiary: colorScheme.surface300,
+    },
+    border: {
+      primary: colorScheme.surface100,
+      muted: colorScheme.surface200,
+      accent: colorScheme.blue400,
+      promotion: colorScheme.pink400,
+      danger: colorScheme.red400,
+      warning: colorScheme.yellow400,
+      success: colorScheme.green400,
+    },
+    component: {
+      link: {
+        muted: {
+          default: colorScheme.gray500,
+          hover: colorScheme.gray600,
+          active: colorScheme.gray700,
+        },
+        accent: {
+          default: colorScheme.blue500,
+          hover: colorScheme.blue600,
+          active: colorScheme.blue700,
+        },
+        promotion: {
+          default: colorScheme.pink500,
+          hover: colorScheme.pink600,
+          active: colorScheme.pink700,
+        },
+        danger: {
+          default: colorScheme.red500,
+          hover: colorScheme.red600,
+          active: colorScheme.red700,
+        },
+        warning: {
+          default: colorScheme.yellow500,
+          hover: colorScheme.yellow600,
+          active: colorScheme.yellow700,
+        },
+        success: {
+          default: colorScheme.green500,
+          hover: colorScheme.green600,
+          active: colorScheme.green700,
+        },
+      },
+    },
+  };
+}
+
+const radius = {
+  '0': '0px',
+  '2xs': '2px',
+  xs: '3px',
+  sm: '4px',
+  md: '6px',
+  lg: '8px',
+  xl: '12px',
+  '2xl': '16px',
+  full: 'calc(infinity*1px)',
+} as const;
+
+const lightColors = {
+  black: '#181423',
+  white: '#FFFFFF',
+
+  surface500: '#FFFFFF', // background.primary
+  surface400: '#F7F6FB', // background.secondary
+  surface300: '#F1EEF9', // background.tertiary
+  surface200: '#EAE7F6', // border.muted
+  surface100: '#DFDBEF', // border.primary
+
+  gray800: '#181423', // content.primary
+  gray700: '#3B434E', // ⚠ link.muted.active only
+  gray600: '#48515B', // ⚠ link.muted.hover only
+  gray500: '#57606B', // content.secondary, link.muted.default
+  gray400: '#707C89', // graphics.muted
+  gray300: 'rgba(112, 124, 137, 0.12)',
+  gray200: 'rgba(112, 124, 137, 0.09)',
+  gray100: 'rgba(112, 124, 137, 0.05)',
+
+  blue700: '#4E09BC', // ⚠ link.accent.active only
+  blue600: '#5D0CDC', // ⚠ link.accent.hover only
+  blue500: '#6C02FF', // content.accent, link.accent.default
+  blue400: '#8466FF', // graphics.muted, border.accent
+  blue300: 'rgba(132, 102, 255, 0.13)',
+  blue200: 'rgba(132, 102, 255, 0.09)',
+  blue100: 'rgba(132, 102, 255, 0.05)',
+
+  pink700: '#A11B6C', // ⚠ link.promotion.active only
+  pink600: '#B60979', // ⚠ link.promotion.hover only
+  pink500: '#D5008D', // content.promotion, link.promotion.default
+  pink400: '#FF4EB3', // graphics.promotion, border.promotion
+  pink300: 'rgba(255, 78, 179, 0.17)',
+  pink200: 'rgba(255, 78, 179, 0.12)',
+  pink100: 'rgba(255, 78, 179, 0.06)',
+
+  red700: '#9C0819', // ⚠ link.danger.active only
+  red600: '#B1001B', // ⚠ link.danger.hover only
+  red500: '#CB0020', // ⚠ content.danger, link.danger.default
+  red400: '#FF002B', // graphics.danger, border.danger
+  red300: 'rgba(255, 0, 43, 0.10)',
+  red200: 'rgba(255, 0, 43, 0.08)',
+  red100: 'rgba(255, 0, 43, 0.04)',
+
+  yellow700: '#AD4A0D', // ⚠ link.warning.active only
+  yellow600: '#C55200', // ⚠ link.warning.hover only
+  yellow500: '#E66000', // content.warning, link.warning.default
+  yellow400: '#F3B01B', // graphics.warning, border.warning
+  yellow300: 'rgba(243, 176, 27, 0.24)',
+  yellow200: 'rgba(243, 176, 27, 0.17)',
+  yellow100: 'rgba(243, 176, 27, 0.07)',
+
+  green700: '#01651F', // ⚠ link.success.active only
+  green600: '#017526', // ⚠ link.success.hover only
+  green500: '#06892F', // content.success, link.success.default
+  green400: '#06AC3D', // graphics.success, border.success
+  green300: 'rgba(6, 172, 61, 0.10)',
+  green200: 'rgba(6, 172, 61, 0.07)',
+  green100: 'rgba(6, 172, 61, 0.04)',
+
+  // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
+  chonk: {
+    blue400: '#7553FF',
+    pink400: '#FF70BC',
+    red400: '#E50045',
+    yellow400: '#FFD00E',
+    green400: '#00F261',
+  },
+};
+
+const darkColors: Colors = {
+  black: '#181423',
+  white: '#FFFFFF',
+
+  surface500: '#272433', // background.primary
+  surface400: '#231E2F', // background.secondary
+  surface300: '#191621', // background.teritary
+  surface200: '#0D071A', // border.muted
+  surface100: '#000000', // border.primary
+
+  gray800: '#F6F5FA', // content.primary
+  gray700: '#C6C0D6', // ⚠ link.muted.active only
+  gray600: '#B3ADC3', // ⚠ link.muted.hover only
+  gray500: '#A39EB3', // content.secondary, link.muted.default
+  gray400: '#6F6F78', // // graphics.muted
+  gray300: 'rgba(110, 110, 119, 0.38)',
+  gray200: 'rgba(110, 110, 119, 0.28)',
+  gray100: 'rgba(110, 110, 119, 0.20)',
+
+  blue700: '#BBB6FC', // ⚠ link.accent.active only
+  blue600: '#A89EFC', // ⚠ link.accent.hover only
+  blue500: '#9B8DFF', // content.accent, link.accent.default
+  blue400: '#8970FF', // // graphics.accent, border.accent
+  blue300: 'rgba(137, 112, 255, 0.26)',
+  blue200: 'rgba(137, 112, 255, 0.20)',
+  blue100: 'rgba(137, 112, 255, 0.14)',
+
+  pink700: '#FFC4DF', // ⚠ link.promotion.active only
+  pink600: '#FFA3CF', // ⚠ link.promotion.hover only
+  pink500: '#FF8BC6', // content.promotion, link.promotion.default
+  pink400: '#FF5CB6', // // graphics.promotion, border.promotion
+  pink300: 'rgba(255, 92, 182, 0.20)',
+  pink200: 'rgba(255, 92, 182, 0.15)',
+  pink100: 'rgba(255, 92, 182, 0.11)',
+
+  red700: '#FFB0A8', // ⚠ link.danger.active only
+  red600: '#FF8A82', // ⚠ link.danger.hover only
+  red500: '#FF6B65', // content.danger, link.danger.default
+  red400: '#FF333C', // // graphics.danger, border.danger
+  red300: 'rgba(255, 51, 60, 0.26)',
+  red200: 'rgba(255, 51, 60, 0.20)',
+  red100: 'rgba(255, 51, 60, 0.16)',
+
+  yellow700: '#FCEBB7', // ⚠ link.warning.active only
+  yellow600: '#F8DC86', // ⚠ link.warning.hover only
+  yellow500: '#FDCF20', // content.warning, link.warning.default
+  yellow400: '#F7B31C', // graphics.warning, border.warning
+  yellow300: 'rgba(247, 179, 28, 0.17)',
+  yellow200: 'rgba(247, 179, 28, 0.13)',
+  yellow100: 'rgba(247, 179, 28, 0.09)',
+
+  green700: '#4AE969', // ⚠ link.success.active only
+  green600: '#32D859', // ⚠ link.success.hover only
+  green500: '#0CC848', // content.success, link.success.default
+  green400: '#09B340', // graphics.success, border.success
+  green300: 'rgba(9, 179, 64, 0.33)',
+  green200: 'rgba(9, 179, 64, 0.26)',
+  green100: 'rgba(9, 179, 64, 0.20)',
+
+  // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
+  chonk: {
+    blue400: '#7553FF',
+    pink400: '#FF70BC',
+    red400: '#E50045',
+    yellow400: '#FFD00E',
+    green400: '#00F261',
+  },
+};
+
+// Prism colors
+// @TODO(jonasbadalic): are these final?
+const prismLight = {
+  /**
+   * NOTE: Missing Palette All together
+   * COMPONENTS AFFECTED: Unknown
+   * TODO: Nothing yet, Low Prio
+   */
+  '--prism-base': '#332B3B',
+  '--prism-inline-code': '#332B3B',
+  '--prism-inline-code-background': '#F5F3F7',
+  '--prism-highlight-background': '#5C78A31C',
+  '--prism-highlight-accent': '#5C78A344',
+  '--prism-comment': '#80708F',
+  '--prism-punctuation': '#332B3B',
+  '--prism-property': '#18408B',
+  '--prism-selector': '#177861',
+  '--prism-operator': '#235CC8',
+  '--prism-variable': '#332B3B',
+  '--prism-function': '#235CC8',
+  '--prism-keyword': '#BB3A3D',
+};
+
+// @TODO(jonasbadalic): are these final?
+const prismDark = {
+  /**
+   * NOTE: Missing Palette All together
+   * COMPONENTS AFFECTED: Unknown
+   * TODO: Nothing yet, Low Prio
+   */
+  '--prism-base': '#D6D0DC',
+  '--prism-inline-code': '#D6D0DC',
+  '--prism-inline-code-background': '#18121C',
+  '--prism-highlight-background': '#A8A2C31C',
+  '--prism-highlight-accent': '#A8A2C344',
+  '--prism-comment': '#998DA5',
+  '--prism-punctuation': '#D6D0DC',
+  '--prism-property': '#70A2FF',
+  '--prism-selector': '#1DCDA4',
+  '--prism-operator': '#70A2FF',
+  '--prism-variable': '#D6D0DC',
+  '--prism-function': '#70A2FF',
+  '--prism-keyword': '#F8777C',
+};
+
+// @TODO(jonasbadalic): are these final?
+const lightShadows = {
+  dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
+  dropShadowMedium: '0 1px 2px rgba(43, 34, 51, 0.04)',
+  dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.12)',
+  dropShadowHeavyTop: '0 -4px 24px rgba(43, 34, 51, 0.12)',
+};
+
+// @TODO(jonasbadalic): are these final?
+const darkShadows = {
+  dropShadowLight: '0 0 1px rgba(10, 8, 12, 0.2)',
+  dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
+  dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
+  dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
+};
+
+const generateAliases = (
+  tokens: ReturnType<typeof generateChonkTokens>,
+  colors: typeof lightColors
+) => ({
+  /**
+   * Heading text color
+   */
+  headingColor: tokens.content.primary,
+
+  /**
+   * Primary text color
+   */
+  textColor: tokens.content.primary,
+
+  /**
+   * Text that should not have as much emphasis
+   */
+  subText: tokens.content.muted,
+
+  /**
+   * Background for the main content area of a page?
+   */
+  bodyBackground: tokens.background.secondary,
+
+  /**
+   * Primary background color
+   */
+  background: tokens.background.primary,
+
+  /**
+   * Elevated background color
+   */
+  backgroundElevated: tokens.background.primary,
+
+  /**
+   * Secondary background color used as a slight contrast against primary background
+   */
+  backgroundSecondary: tokens.background.secondary,
+
+  /**
+   * Tertiary background color used as a stronger contrast against primary background
+   */
+  backgroundTertiary: tokens.background.tertiary,
+
+  /**
+   * Background for the header of a page
+   */
+  headerBackground: tokens.background.primary,
+
+  /**
+   * Primary border color
+   */
+  border: tokens.border.primary,
+  translucentBorder: tokens.border.primary,
+
+  /**
+   * Inner borders, e.g. borders inside of a grid
+   */
+  innerBorder: tokens.border.muted,
+  translucentInnerBorder: tokens.border.muted,
+
+  /**
+   * A color that denotes a "success", or something good
+   */
+  success: tokens.content.success,
+  successText: tokens.content.success,
+  // @TODO(jonasbadalic): should this reference a chonk color?
+  successFocus: tokens.border.success, // Not being used
+
+  /**
+   * A color that denotes an error, or something that is wrong
+   */
+  error: tokens.content.danger,
+  errorText: tokens.content.danger,
+  errorFocus: tokens.border.danger,
+
+  /**
+   * A color that denotes danger, for dangerous actions like deletion
+   */
+  danger: tokens.content.danger,
+  dangerText: tokens.content.danger,
+  // @TODO(jonasbadalic): should this reference a chonk color?
+  dangerFocus: tokens.border.danger, // Not being used
+
+  /**
+   * A color that denotes a warning
+   */
+  warning: tokens.content.warning,
+  warningText: tokens.content.warning,
+  // @TODO(jonasbadalic): should this reference a chonk color?
+  warningFocus: tokens.border.warning, // Not being used
+
+  /**
+   * A color that indicates something is disabled where user can not interact or use
+   * it in the usual manner (implies that there is an "enabled" state)
+   * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
+   */
+  disabled: colors.gray400,
+  disabledBorder: colors.gray400,
+
+  /**
+   * Indicates a "hover" state. Deprecated – use `InteractionStateLayer` instead for
+   * interaction (hover/press) states.
+   * @deprecated
+   */
+  hover: colors.gray100,
+
+  /**
+   * Indicates that something is "active" or "selected"
+   * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
+   */
+  active: tokens.component.link.accent.active,
+  activeHover: tokens.component.link.accent.hover,
+  activeText: tokens.component.link.accent.default,
+
+  /**
+   * Indicates that something has "focus", which is different than "active" state as it is more temporal
+   * and should be a bit subtler than active
+   */
+  focus: tokens.border.accent,
+  focusBorder: tokens.border.accent,
+
+  /**
+   * Link color indicates that something is clickable
+   */
+  linkColor: tokens.component.link.accent.default,
+  linkHoverColor: tokens.component.link.accent.hover,
+  linkUnderline: tokens.component.link.accent.default,
+  linkFocus: tokens.border.accent,
+
+  /**
+   * Form placeholder text color
+   */
+  formPlaceholder: colors.gray300,
+
+  /**
+   *
+   */
+  rowBackground: tokens.background.primary,
+
+  /**
+   * Color of lines that flow across the background of the chart to indicate axes levels
+   * (This should only be used for yAxis)
+   */
+  chartLineColor: colors.gray300,
+
+  /**
+   * Color for chart label text
+   */
+  chartLabel: tokens.content.muted,
+
+  /**
+   * Color for the 'others' series in topEvent charts
+   */
+  chartOther: tokens.content.muted,
+
+  /**
+   * Hover color of the drag handle used in the content slider diff view.
+   */
+  diffSliderDragHandleHover: colors.blue500,
+
+  /**
+   * Default Progressbar color
+   */
+  progressBar: colors.chonk.blue400,
+
+  /**
+   * Default Progressbar color
+   */
+  progressBackground: colors.gray100,
+
+  // @todo(jonasbadalic) should these reference chonk colors?
+  searchTokenBackground: {
+    valid: colors.blue100,
+    validActive: color(colors.blue100).opaquer(1.0).string(),
+    invalid: colors.red100,
+    invalidActive: color(colors.red100).opaquer(0.8).string(),
+    warning: colors.yellow100,
+    warningActive: color(colors.yellow100).opaquer(0.8).string(),
+  },
+
+  /**
+   * Search filter "token" border
+   * NOTE: Not being used anymore in the new Search UI
+   */
+  searchTokenBorder: {
+    valid: colors.blue200,
+    validActive: color(colors.blue200).opaquer(1).string(),
+    invalid: colors.red200,
+    invalidActive: color(colors.red200).opaquer(1).string(),
+    warning: colors.yellow200,
+    warningActive: color(colors.yellow200).opaquer(1).string(),
+  },
+});
+
+const fontSize = {
+  xs: '11px' as const,
+  sm: '12px' as const,
+  md: '14px' as const,
+  lg: '16px' as const,
+  xl: '20px' as const,
+  '2xl': '24px' as const,
+} satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>;
+
+const lightTokens = generateChonkTokens(lightColors);
+const darkTokens = generateChonkTokens(darkColors);
+
+const lightAliases = generateAliases(lightTokens, lightColors);
+const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
+
+const deprecatedColorMappings = (colors: Colors) => ({
+  /** @deprecated */
+  get black() {
+    return colors.black;
+  },
+  /** @deprecated */
+  get white() {
+    return colors.white;
+  },
+
+  /** @deprecated */
+  get lightModeBlack() {
+    return colors.black;
+  },
+  /** @deprecated */
+  get lightModeWhite() {
+    return colors.white;
+  },
+
+  /** @deprecated */
+  get surface100() {
+    return colors.surface200;
+  },
+  /** @deprecated */
+  get surface200() {
+    return colors.surface300;
+  },
+  /** @deprecated */
+  get surface300() {
+    return colors.surface400;
+  },
+  /** @deprecated */
+  get surface400() {
+    return colors.surface500;
+  },
+  /** @deprecated */
+  get surface500() {
+    return colors.surface500;
+  },
+
+  /** @deprecated */
+  get translucentSurface100() {
+    return colors.surface100;
+  },
+  /** @deprecated */
+  get translucentSurface200() {
+    return colors.surface200;
+  },
+
+  /** @deprecated */
+  get gray500() {
+    return colors.gray800;
+  },
+  /** @deprecated */
+  get gray400() {
+    return colors.gray500;
+  },
+  /** @deprecated */
+  get gray300() {
+    return colors.gray400;
+  },
+  /** @deprecated */
+  get gray200() {
+    return colors.gray200;
+  },
+  /** @deprecated */
+  get gray100() {
+    return colors.gray100;
+  },
+
+  /** @deprecated */
+  get translucentGray200() {
+    return colors.gray200;
+  },
+  /** @deprecated */
+  get translucentGray100() {
+    return colors.gray100;
+  },
+
+  /** @deprecated */
+  get purple400() {
+    return colors.blue500;
+  },
+  /** @deprecated */
+  get purple300() {
+    return colors.blue400;
+  },
+  /** @deprecated */
+  get purple200() {
+    return colors.blue200;
+  },
+  /** @deprecated */
+  get purple100() {
+    return colors.blue100;
+  },
+
+  /** @deprecated */
+  get blue400() {
+    return colors.blue500;
+  },
+  /** @deprecated */
+  get blue300() {
+    return colors.blue400;
+  },
+  /** @deprecated */
+  get blue200() {
+    return colors.blue200;
+  },
+  /** @deprecated */
+  get blue100() {
+    return colors.blue100;
+  },
+
+  /** @deprecated */
+  get pink400() {
+    return colors.pink500;
+  },
+  /** @deprecated */
+  get pink300() {
+    return colors.pink400;
+  },
+  /** @deprecated */
+  get pink200() {
+    return colors.pink200;
+  },
+  /** @deprecated */
+  get pink100() {
+    return colors.pink100;
+  },
+
+  /** @deprecated */
+  get red400() {
+    return colors.red500;
+  },
+  /** @deprecated */
+  get red300() {
+    return colors.red400;
+  },
+  /** @deprecated */
+  get red200() {
+    return colors.red200;
+  },
+  /** @deprecated */
+  get red100() {
+    return colors.red100;
+  },
+
+  /** @deprecated */
+  get yellow400() {
+    return colors.yellow500;
+  },
+  /** @deprecated */
+  get yellow300() {
+    return colors.yellow400;
+  },
+  /** @deprecated */
+  get yellow200() {
+    return colors.yellow200;
+  },
+  /** @deprecated */
+  get yellow100() {
+    return colors.yellow100;
+  },
+
+  /** @deprecated */
+  get green400() {
+    return colors.green500;
+  },
+  /** @deprecated */
+  get green300() {
+    return colors.green400;
+  },
+  /** @deprecated */
+  get green200() {
+    return colors.green200;
+  },
+  /** @deprecated */
+  get green100() {
+    return colors.green100;
+  },
+});
 
 /**
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const lightTheme = {
+  isChonk: true,
   type: 'light' as 'light' | 'dark',
-  isChonk: false,
+  // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
+  fontSize,
   ...formTheme,
-  ...lightColors,
+  ...deprecatedColorMappings(lightColors),
   ...lightAliases,
   ...lightShadows,
+
   tokens: lightTokens,
-  ...generateThemeUtils(lightColors, lightAliases),
+  radius,
+  focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
+    outline: 'none',
+    boxShadow: `${baseShadow}, 0 0 0 2px ${lightAliases.focusBorder}`,
+  }),
+
+  // @TODO: these colors need to be ported
+  ...generateThemeUtils(deprecatedColorMappings(lightColors), lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
-  stacktraceActiveBackground: lightColors.gray500,
-  stacktraceActiveText: lightColors.white,
+
   chart: {
-    neutral: lightColors.gray200,
-    colors: CHART_PALETTE,
-    getColorPalette: makeChartColorPalette(CHART_PALETTE),
+    neutral: color(lightColors.gray400).lighten(0.8).toString(),
+    colors: CHART_PALETTE_LIGHT,
+    getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
+
   prismVariables: generateThemePrismVariables(
     prismLight,
     lightAliases.backgroundSecondary
@@ -1409,13 +1817,20 @@ export const lightTheme = {
     prismDark,
     darkAliases.backgroundElevated
   ),
+
+  colors: {
+    ...lightColors,
+    content: generateChonkTokens(lightColors).content,
+    background: generateChonkTokens(lightColors).background,
+    border: generateChonkTokens(lightColors).border,
+  },
+
   sidebar: {
-    // @TODO(jonasbadalic) What are these colors and where do they come from?
-    background: '#2f1937',
+    background: lightAliases.background,
     scrollbarThumbColor: '#A0A0A0',
     scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
-    gradient: `linear-gradient(294.17deg, #2f1937 35.57%,#452650 92.42%,#452650 92.42%)`,
-    border: 'transparent',
+    gradient: lightAliases.background,
+    border: lightAliases.border,
     superuser: '#880808',
   },
 };
@@ -1423,49 +1838,66 @@ export const lightTheme = {
 /**
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
-export const darkTheme: typeof lightTheme = {
+export const darkTheme: SentryTheme = {
+  isChonk: true,
   type: 'dark',
-  isChonk: false,
+  // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
+  fontSize,
   ...formTheme,
-  ...darkColors,
+  ...deprecatedColorMappings(darkColors),
   ...darkAliases,
   ...darkShadows,
   tokens: darkTokens,
-  ...generateThemeUtils(darkColors, darkAliases),
+
+  radius,
+  focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
+    outline: 'none',
+    boxShadow: `${baseShadow}, 0 0 0 2px ${darkAliases.focusBorder}`,
+  }),
+
+  // @TODO: these colors need to be ported
+  ...generateThemeUtils(deprecatedColorMappings(darkColors), darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkColors),
+
+  chart: {
+    neutral: color(darkColors.gray400).darken(0.35).toString(),
+    colors: CHART_PALETTE_DARK,
+    getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
+  },
+
   prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
-    darkAliases.backgroundSecondary
+    darkAliases.backgroundElevated
   ),
-  stacktraceActiveBackground: darkColors.gray200,
-  stacktraceActiveText: darkColors.white,
-  chart: {
-    neutral: darkColors.gray200,
-    colors: CHART_PALETTE,
-    getColorPalette: makeChartColorPalette(CHART_PALETTE),
+
+  colors: {
+    ...darkColors,
+    content: generateChonkTokens(darkColors).content,
+    background: generateChonkTokens(darkColors).background,
+    border: generateChonkTokens(darkColors).border,
   },
+
   sidebar: {
-    // @TODO(jonasbadalic) What are these colors and where do they come from?
-    background: '#181622',
-    scrollbarThumbColor: '#808080',
-    scrollbarColorTrack: '#1B1825', // end of the gradient which is used for background
-    gradient: `linear-gradient(180deg, #181622 0%, #1B1825 100%)`,
+    background: darkAliases.background,
+    scrollbarThumbColor: '#A0A0A0',
+    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
+    gradient: darkAliases.background,
     border: darkAliases.border,
-    superuser: '#620808',
+    superuser: '#880808',
   },
 };
 
-export type ColorMapping = typeof lightColors;
-export type Color = keyof typeof lightColors;
-export type IconSize = keyof typeof iconSizes;
-type Aliases = typeof lightAliases;
-export type ColorOrAlias = keyof Aliases | Color;
-export type Theme = typeof lightTheme;
+declare module '@emotion/react' {
+  /**
+   * Configure Emotion to use our theme
+   */
+  export interface Theme extends SentryTheme {}
+}
 
 export type StrictCSSObject = {
   [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
@@ -1475,13 +1907,11 @@ export type StrictCSSObject = {
   [key: `> ${string}:first-child`]: StrictCSSObject; // Allow some nested selectors
 }>;
 
-/**
- * Do not import theme values directly as they only define light color theme.
- * Consuming it directly means that you won't get the correct colors in dark mode.
- * @deprecated use useTheme hook instead.
- */
-const commonThemeExport = {...commonTheme};
-/**
- * @deprecated Do not import the theme directly, use useTheme hook instead.
- */
-export default commonThemeExport;
+// tkdodo: kept for backwards compatibility, to be deleted
+
+export const chonkStyled = styled;
+export const useChonkTheme = useTheme;
+/** @alias */
+export const DO_NOT_USE_lightChonkTheme = lightTheme;
+/** @alias */
+export const DO_NOT_USE_darkChonkTheme = darkTheme;

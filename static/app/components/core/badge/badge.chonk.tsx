@@ -1,4 +1,4 @@
-import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 

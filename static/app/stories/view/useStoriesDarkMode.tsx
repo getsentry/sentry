@@ -3,7 +3,7 @@ import {ThemeProvider, type Theme} from '@emotion/react';
 
 // these utils are for stories that have forced dark mode
 // which is a very specific sanctioned use case
-import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme.chonk';
+import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme';
 
 /**
  * Access the raw values from the dark theme

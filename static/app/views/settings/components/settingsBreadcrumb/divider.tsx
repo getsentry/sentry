@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {IconChevron} from 'sentry/icons';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 const ChonkDivider = chonkStyled(IconChevron)`

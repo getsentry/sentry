@@ -2,7 +2,7 @@ import {useState, type CSSProperties} from 'react';
 
 import {chonkFor} from 'sentry/components/core/chonk';
 import {space} from 'sentry/styles/space';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 
 import type {SliderProps} from './index';
 

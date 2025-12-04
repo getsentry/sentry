@@ -12,7 +12,7 @@ import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 import {
   DO_NOT_USE_darkChonkTheme,
   DO_NOT_USE_lightChonkTheme,
-} from 'sentry/utils/theme/theme.chonk';
+} from 'sentry/utils/theme/theme';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 const SentryComponentInspector =
