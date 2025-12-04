@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {TabList} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -388,7 +386,13 @@ export default function ReleasesList() {
     <PageFiltersContainer showAbsolute={false} defaultSelection={selection}>
       <SentryDocumentTitle title={t('Releases')} orgSlug={organization.slug} />
       <NoProjectMessage organization={organization}>
-        <Header />
+        <Header
+          activeDataset={activeDataset}
+          mobileBuildsDatasetQuery={mobileBuildsDatasetQuery}
+          pathname={location.pathname}
+          releasesDatasetQuery={releasesDatasetQuery}
+          shouldShowMobileBuildsTab={shouldShowMobileBuildsTab}
+        />
         <Layout.Body data-dataset={activeDataset}>
           <Layout.Main width="full">
             <ReleaseHealthCTA
@@ -407,35 +411,6 @@ export default function ReleasesList() {
                 )}
               />
             </ReleasesPageFilterBar>
-            {shouldShowMobileBuildsTab ? (
-              <Layout.HeaderTabs value={activeDataset}>
-                <TabList aria-label={t('Releases dataset selector')}>
-                  <TabList.Item
-                    key="releases"
-                    to={{pathname: location.pathname, query: releasesDatasetQuery}}
-                    textValue={t('Releases')}
-                  >
-                    {t('Releases')}
-                  </TabList.Item>
-                  <TabList.Item
-                    key="mobile-builds"
-                    to={{pathname: location.pathname, query: mobileBuildsDatasetQuery}}
-                    textValue={t('Mobile Builds')}
-                  >
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: space(0.5),
-                      }}
-                    >
-                      {t('Mobile Builds')}
-                      <FeatureBadge type="beta" />
-                    </span>
-                  </TabList.Item>
-                </TabList>
-              </Layout.HeaderTabs>
-            ) : null}
 
             {shouldShowQuickstart ? null : (
               <SortAndFilterWrapper>
