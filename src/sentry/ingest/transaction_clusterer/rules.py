@@ -200,7 +200,7 @@ def get_sorted_rules_from_redis(
     Typically `get_sorted_rules` is preferred, but for high throughput scenarios
     it may be appropriate to use Redis instead.
 
-    The rules are ordered by specifity, meaning that rules that go deeper
+    The rules are ordered by specificity, meaning that rules that go deeper
     into the URL tree occur first.
     """
     return RedisRuleStore(namespace).read_sorted(project)
@@ -214,7 +214,7 @@ def get_sorted_rules(
     The rules are fetched from project options rather than redis, because
     project options is the more persistent store.
 
-    The rules are ordered by specifity, meaning that rules that go deeper
+    The rules are ordered by specificity, meaning that rules that go deeper
     into the URL tree occur first.
     """
     return ProjectOptionRuleStore(namespace).read_sorted(project)
