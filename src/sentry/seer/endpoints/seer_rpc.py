@@ -79,6 +79,7 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.endpoints.utils import validate_date_params
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
@@ -373,7 +374,9 @@ def get_attributes_and_values(
     *,
     org_id: int,
     project_ids: list[int],
-    stats_period: str,
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
     max_values: int = 100,
     max_attributes: int = 1000,
     sampled: bool = True,
@@ -382,17 +385,23 @@ def get_attributes_and_values(
     """
     Fetches all string attributes and the corresponding values with counts for a given period.
     """
-    period = parse_stats_period(stats_period)
-    if period is None:
-        period = datetime.timedelta(days=7)
+    stats_period, start, end = validate_date_params(
+        stats_period, start, end, default_stats_period="7d"
+    )
 
-    end = datetime.datetime.now()
-    start = end - period
+    if stats_period:
+        period = parse_stats_period(stats_period) or datetime.timedelta(days=7)
+        end_dt = datetime.datetime.now()
+        start_dt = end_dt - period
+    else:
+        # end and start should both be not None after validate_date_params
+        end_dt = datetime.datetime.fromisoformat(end or "")
+        start_dt = datetime.datetime.fromisoformat(start or "")
 
     start_time_proto = ProtobufTimestamp()
-    start_time_proto.FromDatetime(start)
+    start_time_proto.FromDatetime(start_dt)
     end_time_proto = ProtobufTimestamp()
-    end_time_proto.FromDatetime(end)
+    end_time_proto.FromDatetime(end_dt)
 
     sampling_mode = (
         DownsampledStorageConfig.MODE_NORMAL
@@ -444,8 +453,8 @@ def get_attributes_and_values(
 
     resolver = SearchResolver(
         params=SnubaParams(
-            start=start,
-            end=end,
+            start=start_dt,
+            end=end_dt,
         ),
         config=SearchResolverConfig(),
         definitions=SPAN_DEFINITIONS,
