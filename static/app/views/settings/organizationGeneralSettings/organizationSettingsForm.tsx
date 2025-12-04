@@ -23,7 +23,6 @@ import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeHideAiFeaturesField} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
-import {makePreventAiField} from 'sentry/views/settings/organizationGeneralSettings/preventAiSettings';
 
 const HookCodecovSettingsLink = HookOrDefault({
   hookName: 'component:codecov-integration-settings-link',
@@ -121,7 +120,6 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
           </PoweredByCodecov>
         ),
       },
-      makePreventAiField(),
     ];
     return formsConfig;
   }, [access, organization]);
