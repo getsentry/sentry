@@ -114,6 +114,29 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         # Clean up
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
 
+    def test_create_preprod_artifact_with_date_built(self) -> None:
+        """Test that create_preprod_artifact stores date_built field"""
+        content = b"test preprod artifact with date_built"
+        total_checksum = sha1(content).hexdigest()
+        date_built_str = "2025-11-26T10:30:00"
+
+        # Create preprod artifact with date_built
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration_name="release",
+            date_built=date_built_str,
+        )
+        assert artifact is not None
+
+        # Verify the artifact was created with date_built
+        assert artifact.date_built is not None
+        assert artifact.date_built.isoformat() == date_built_str
+
+        # Clean up
+        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
+
     def test_assemble_preprod_artifact_with_commit_comparison(self) -> None:
         content = b"test preprod artifact with commit comparison"
         fileobj = ContentFile(content)

@@ -178,6 +178,7 @@ def create_preprod_artifact(
     checksum: str,
     build_configuration_name: str | None = None,
     release_notes: str | None = None,
+    date_built: str | None = None,
     head_sha: str | None = None,
     base_sha: str | None = None,
     provider: str | None = None,
@@ -236,13 +237,29 @@ def create_preprod_artifact(
             if release_notes:
                 extras = {"release_notes": release_notes}
 
-            preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
+            # Parse date_built if provided
+            parsed_date_built = None
+            if date_built:
+                try:
+                    parsed_date_built = datetime.datetime.fromisoformat(date_built)
+                except (ValueError, TypeError) as e:
+                    logger.warning(
+                        "Failed to parse date_built",
+                        extra={"date_built": date_built, "error": str(e)},
+                    )
+
+            preprod_artifact, created = PreprodArtifact.objects.get_or_create(
                 project=project,
                 build_configuration=build_config,
                 state=PreprodArtifact.ArtifactState.UPLOADING,
                 commit_comparison=commit_comparison,
                 extras=extras,
             )
+
+            # Set date_built if provided and artifact was just created
+            if created and parsed_date_built:
+                preprod_artifact.date_built = parsed_date_built
+                preprod_artifact.save(update_fields=["date_built"])
 
             # TODO(preprod): add gating to only create if has quota
             PreprodArtifactSizeMetrics.objects.get_or_create(
