@@ -29,6 +29,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.endpoints.utils import validate_date_params
 from sentry.seer.explorer.index_data import UNESCAPED_QUOTE_RE
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.sentry_data_models import EAPTrace
@@ -43,22 +44,6 @@ from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba_rpc import get_trace_rpc
 
 logger = logging.getLogger(__name__)
-
-
-def _validate_date_params(
-    *, stats_period: str | None = None, start: str | None = None, end: str | None = None
-) -> None:
-    """
-    Validate that either stats_period or both start and end are provided, but not both.
-    """
-    if not any([bool(stats_period), bool(start), bool(end)]):
-        raise ValueError("either stats_period or start and end must be provided")
-
-    if stats_period and (start or end):
-        raise ValueError("stats_period and start/end cannot be provided together")
-
-    if not stats_period and not all([bool(start), bool(end)]):
-        raise ValueError("start and end must be provided together")
 
 
 def _get_full_trace_id(
@@ -135,7 +120,7 @@ def execute_table_query(
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
         Providing start or end with stats_period will result in a ValueError.
     """
-    _validate_date_params(stats_period=stats_period, start=start, end=end)
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -221,7 +206,7 @@ def execute_timeseries_query(
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
         Providing start or end with stats_period will result in a ValueError.
     """
-    _validate_date_params(stats_period=stats_period, start=start, end=end)
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -1274,7 +1259,7 @@ def get_log_attributes_for_trace(
         - attributes: A dict[str, dict[str, Any]] where the keys are the attribute names. See _make_get_trace_request for more details.
     """
 
-    _validate_date_params(stats_period=stats_period, start=start, end=end)
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -1349,7 +1334,7 @@ def get_metric_attributes_for_trace(
         - attributes: A dict[str, dict[str, Any]] where the keys are the attribute names. See _make_get_trace_request for more details.
     """
 
-    _validate_date_params(stats_period=stats_period, start=start, end=end)
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     try:
         organization = Organization.objects.get(id=org_id)

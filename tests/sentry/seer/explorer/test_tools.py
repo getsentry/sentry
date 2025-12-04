@@ -151,19 +151,32 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         total_count = sum(point[1][0]["count"] for point in data_points if point[1])
         assert total_count == 3  # Should exclude the span created at 1 minute ago
 
-    def test_spans_timeseries_count_metric_start_end_errors_with_stats_period(self):
-        with pytest.raises(
-            ValueError, match="stats_period and start/end cannot be provided together"
-        ):
-            execute_timeseries_query(
-                org_id=self.organization.id,
-                dataset="spans",
-                query="",
-                stats_period="1h",
-                start=_get_utc_iso_without_timezone(self.ten_mins_ago),
-                end=_get_utc_iso_without_timezone(self.two_mins_ago),
-                y_axes=["count()"],
-            )
+    @patch("sentry.seer.explorer.tools.client")
+    def test_spans_timeseries_count_metric_start_end_prioritized_over_stats_period(
+        self, mock_client
+    ):
+        mock_client.get.side_effect = client.get
+
+        start_iso = _get_utc_iso_without_timezone(self.ten_mins_ago)
+        end_iso = _get_utc_iso_without_timezone(self.two_mins_ago)
+
+        execute_timeseries_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            query="",
+            stats_period="1h",
+            interval="1m",
+            start=start_iso,
+            end=end_iso,
+            y_axes=["count()"],
+        )
+
+        params: dict[str, Any] = mock_client.get.call_args.kwargs["params"]
+        assert params["start"] is not None
+        assert params["start"] == start_iso
+        assert params["end"] is not None
+        assert params["end"] == end_iso
+        assert "stats_period" not in params
 
     def test_spans_timeseries_multiple_metrics(self):
         """Test timeseries query with multiple metrics"""
@@ -250,21 +263,31 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         http_rows = [row for row in rows if row.get("span.op") == "http.client"]
         assert len(http_rows) == 1  # One HTTP span
 
-    def test_spans_table_query_start_end_errors_with_stats_period(self):
-        with pytest.raises(
-            ValueError, match="stats_period and start/end cannot be provided together"
-        ):
-            execute_table_query(
-                org_id=self.organization.id,
-                dataset="spans",
-                fields=self.default_span_fields,
-                query="",
-                stats_period="1h",
-                start=_get_utc_iso_without_timezone(self.ten_mins_ago),
-                end=_get_utc_iso_without_timezone(self.two_mins_ago),
-                sort="-timestamp",
-                per_page=10,
-            )
+    @patch("sentry.seer.explorer.tools.client")
+    def test_spans_table_query_start_end_errors_with_stats_period(self, mock_client):
+        mock_client.get.side_effect = client.get
+
+        start_iso = _get_utc_iso_without_timezone(self.ten_mins_ago)
+        end_iso = _get_utc_iso_without_timezone(self.two_mins_ago)
+
+        execute_table_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
+            query="",
+            stats_period="1h",
+            start=start_iso,
+            end=end_iso,
+            sort="-timestamp",
+            per_page=10,
+        )
+
+        params: dict[str, Any] = mock_client.get.call_args.kwargs["params"]
+        assert params["start"] is not None
+        assert params["start"] == start_iso
+        assert params["end"] is not None
+        assert params["end"] == end_iso
+        assert "stats_period" not in params
 
     def test_spans_table_specific_operation(self):
         """Test table query filtering by specific operation"""

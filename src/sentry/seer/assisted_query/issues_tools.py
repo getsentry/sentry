@@ -6,6 +6,7 @@ from sentry.issues.grouptype import registry as group_type_registry
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
+from sentry.seer.endpoints.utils import validate_date_params
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.types.group import PriorityLevel
@@ -244,7 +245,12 @@ def _get_built_in_issue_fields(
 
 
 def get_issue_filter_keys(
-    *, org_id: int, project_ids: list[int], stats_period: str = "7d"
+    *,
+    org_id: int,
+    project_ids: list[int],
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
 ) -> dict[str, Any] | None:
     """
     Get available issue filter keys (tags, feature flags, and built-in fields).
@@ -257,7 +263,9 @@ def get_issue_filter_keys(
     Args:
         org_id: Organization ID
         project_ids: List of project IDs to query
-        stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Defaults to "7d".
+        stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Cannot be provided with start and end.
+        start: Start date for the query (ISO string). Must be provided with end.
+        end: End date for the query (ISO string). Must be provided with start.
 
     Returns:
         Dictionary containing three arrays:
@@ -272,13 +280,21 @@ def get_issue_filter_keys(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
+    stats_period, start, end = validate_date_params(
+        stats_period, start, end, default_stats_period="7d"
+    )
+
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
     base_params: dict[str, Any] = {
-        "statsPeriod": stats_period,
         "project": project_ids,
         "referrer": Referrer.SEER_RPC,
     }
+    if stats_period:
+        base_params["statsPeriod"] = stats_period
+    else:
+        base_params["start"] = start
+        base_params["end"] = end
 
     # Get event tags
     event_params = {**base_params, "dataset": Dataset.Events.value, "useCache": "1"}
@@ -344,7 +360,9 @@ def get_filter_key_values(
     project_ids: list[int],
     attribute_key: str,
     substring: str | None = None,
-    stats_period: str = "7d",
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
 ) -> list[dict[str, Any]] | None:
     """
     Get values for a specific filter key.
@@ -360,7 +378,9 @@ def get_filter_key_values(
         project_ids: List of project IDs to query
         attribute_key: The attribute/tag key to get values for (e.g., "is", "issue.priority", "organization.slug")
         substring: Optional substring to filter values. Only values containing this substring will be returned.
-        stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Defaults to "7d".
+        stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Cannot be provided with start and end.
+        start: Start date for the query (ISO string). Must be provided with end.
+        end: End date for the query (ISO string). Must be provided with start.
 
     Returns:
         List of dicts containing:
@@ -376,13 +396,17 @@ def get_filter_key_values(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
+    stats_period, start, end = validate_date_params(
+        stats_period, start, end, default_stats_period="7d"
+    )
+
     # Check if this is a built-in field first
     # For 'has' field, we need to get tag keys first
     tag_keys: list[str] | None = None
     if attribute_key == "has":
         # Get tag keys for the 'has' field
         filter_keys_result = get_issue_filter_keys(
-            org_id=org_id, project_ids=project_ids, stats_period=stats_period
+            org_id=org_id, project_ids=project_ids, stats_period=stats_period, start=start, end=end
         )
         if filter_keys_result:
             tag_keys = [
@@ -402,11 +426,15 @@ def get_filter_key_values(
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
     base_params: dict[str, Any] = {
-        "statsPeriod": stats_period,
         "project": project_ids,
         "sort": "-count",
         "referrer": Referrer.SEER_RPC,
     }
+    if stats_period:
+        base_params["statsPeriod"] = stats_period
+    else:
+        base_params["start"] = start
+        base_params["end"] = end
 
     # Add query parameter for substring filtering if provided
     if substring:
@@ -476,7 +504,9 @@ def execute_issues_query(
     org_id: int,
     project_ids: list[int],
     query: str,
-    stats_period: str = "7d",
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
     sort: str | None = None,
     limit: int = 25,
 ) -> list[dict[str, Any]] | dict[str, Any] | None:
@@ -487,7 +517,9 @@ def execute_issues_query(
         org_id: Organization ID
         project_ids: List of project IDs to query
         query: Search query string (e.g., "is:unresolved")
-        stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Defaults to "7d".
+        stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Cannot be provided with start and end.
+        start: Start date for the query (ISO string). Must be provided with end.
+        end: End date for the query (ISO string). Must be provided with start.
         sort: Optional sort field (e.g., "date", "new", "freq", "priority")
         limit: Number of results to return (default 25)
 
@@ -500,17 +532,25 @@ def execute_issues_query(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
+    stats_period, start, end = validate_date_params(
+        stats_period, start, end, default_stats_period="7d"
+    )
+
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
     params: dict[str, Any] = {
         "query": query,
-        "statsPeriod": stats_period,
         "project": project_ids,
         "limit": limit,
         "collapse": ["stats", "unhandled"],
         "shortIdLookup": 1,
         "referrer": Referrer.SEER_RPC,
     }
+    if stats_period:
+        params["statsPeriod"] = stats_period
+    else:
+        params["start"] = start
+        params["end"] = end
 
     if sort:
         params["sort"] = sort
@@ -536,7 +576,9 @@ def get_issues_stats(
     issue_ids: list[str],
     project_ids: list[int],
     query: str,
-    stats_period: str = "7d",
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
 ) -> list[dict[str, Any]] | None:
     """
     Get stats for specific issues by calling the issues-stats endpoint.
@@ -549,7 +591,9 @@ def get_issues_stats(
         issue_ids: List of issue IDs to get stats for
         project_ids: List of project IDs
         query: Search query string (e.g., "is:unresolved")
-        stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Defaults to "7d".
+        stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Cannot be provided with start and end.
+        start: Start date for the query (ISO string). Must be provided with end.
+        end: End date for the query (ISO string). Must be provided with start.
 
     Returns:
         List of issue stats, or None if organization doesn't exist.
@@ -561,6 +605,10 @@ def get_issues_stats(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
+    stats_period, start, end = validate_date_params(
+        stats_period, start, end, default_stats_period="7d"
+    )
+
     if not issue_ids:
         return []
 
@@ -570,9 +618,13 @@ def get_issues_stats(
         "project": project_ids,
         "groups": issue_ids,
         "query": query,
-        "statsPeriod": stats_period,
         "referrer": Referrer.SEER_RPC,
     }
+    if stats_period:
+        params["statsPeriod"] = stats_period
+    else:
+        params["start"] = start
+        params["end"] = end
 
     resp = client.get(
         auth=api_key,
