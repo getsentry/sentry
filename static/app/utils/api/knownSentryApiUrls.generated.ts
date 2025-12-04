@@ -757,8 +757,6 @@ export type KnownSentryApiUrls =
   | '/sentry-apps/$sentryAppIdOrSlug/rotate-secret/'
   | '/sentry-apps/$sentryAppIdOrSlug/stats/'
   | '/sentry-apps/$sentryAppIdOrSlug/webhook-requests/'
-  | '/shared/groups/$shareId/'
-  | '/shared/issues/$shareId/'
   | '/teams/$organizationIdOrSlug/$teamIdOrSlug/'
   | '/teams/$organizationIdOrSlug/$teamIdOrSlug/alerts-triggered-index/'
   | '/teams/$organizationIdOrSlug/$teamIdOrSlug/alerts-triggered/'
