@@ -1,9 +1,9 @@
 import {Children} from 'react';
-import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
+import type {DO_NOT_USE_ChonkTheme} from 'sentry/utils/theme';
 
 // Note: This component is also used in Explore multi-query mode
 // static/app/views/explore/multiQueryMode/queryConstructors/sortBy.tsx

@@ -269,6 +269,7 @@ export function TraceEventDataSection({
                 hasSimilarityEmbeddingsFeature: false,
                 includeLocation: true,
                 rawTrace: true,
+                isMinified: useMinified,
               });
             })
             .filter(Boolean)
@@ -282,6 +283,7 @@ export function TraceEventDataSection({
           hasSimilarityEmbeddingsFeature: false,
           includeLocation: true,
           rawTrace: true,
+          isMinified: useMinified,
         });
       }
       if (entry.type === EntryType.THREADS) {
@@ -302,6 +304,7 @@ export function TraceEventDataSection({
                 hasSimilarityEmbeddingsFeature: false,
                 includeLocation: true,
                 rawTrace: true,
+                isMinified: useMinified,
               })
             );
           }

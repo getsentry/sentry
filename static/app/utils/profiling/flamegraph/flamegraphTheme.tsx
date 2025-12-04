@@ -1,4 +1,4 @@
-import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 
 import {
   makeColorMapByApplicationFrame,
@@ -180,9 +180,7 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   CHART_PX_PADDING: 30,
 };
 
-function makeFlamegraphFonts(
-  theme: Theme | DO_NOT_USE_ChonkTheme
-): FlamegraphTheme['FONTS'] {
+function makeFlamegraphFonts(theme: Theme): FlamegraphTheme['FONTS'] {
   return {
     FONT: MONOSPACE_FONT,
     FRAME_FONT: theme.text.familyMono,
@@ -322,9 +320,7 @@ const SPAN_LCH_LIGHT_CHONK = {
   L_d: 0.15,
 };
 
-export const makeLightChonkFlamegraphTheme = (
-  theme: DO_NOT_USE_ChonkTheme
-): FlamegraphTheme => {
+export const makeLightChonkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
   const chartColors = theme.chart.getColorPalette(12);
 
   return {
@@ -416,9 +412,7 @@ const SPANS_LCH_DARK_CHONK = {
   L_d: 0.2,
 };
 
-export const makeDarkChonkFlamegraphTheme = (
-  theme: DO_NOT_USE_ChonkTheme
-): FlamegraphTheme => {
+export const makeDarkChonkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
   const chartColors = theme.chart.getColorPalette(12);
   return {
     LCH: LCH_DARK_CHONK,
