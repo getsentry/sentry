@@ -55,7 +55,8 @@ function PlanSubstep({
     // TODO(isabella): Remove this once Developer is surfaced
     const plans = billingConfig.planList.filter(
       ({contractInterval, id}) =>
-        contractInterval === activePlan.contractInterval && id !== billingConfig.freePlan
+        contractInterval === activePlan.contractInterval &&
+        !id.includes(billingConfig.freePlan)
     );
 
     if (plans.length === 0) {

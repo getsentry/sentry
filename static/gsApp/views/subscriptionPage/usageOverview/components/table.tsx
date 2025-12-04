@@ -5,7 +5,6 @@ import {Text} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
-import {AddOnCategory} from 'getsentry/types';
 import {getBilledCategory, supportsPayg} from 'getsentry/utils/billing';
 import {sortCategories} from 'getsentry/utils/dataCategory';
 import UsageOverviewTableRow from 'getsentry/views/subscriptionPage/usageOverview/components/tableRow';
@@ -75,18 +74,14 @@ function UsageOverviewTable({
         {Object.values(subscription.planDetails.addOnCategories)
           .filter(
             // show add-ons regardless of whether they're enabled
-            // as long as they're launched for the org
+            // as long as they're available
             // and none of their sub-categories are unlimited
-            // Also do not show Seer if the legacy Seer add-on is enabled
             addOnInfo =>
-              (!addOnInfo.billingFlag ||
-                organization.features.includes(addOnInfo.billingFlag)) &&
+              (subscription.addOns?.[addOnInfo.apiName]?.isAvailable ?? false) &&
               !addOnInfo.dataCategories.some(
                 category =>
                   subscription.categories[category]?.reserved === UNLIMITED_RESERVED
-              ) &&
-              (addOnInfo.apiName !== AddOnCategory.SEER ||
-                !subscription.addOns?.[AddOnCategory.LEGACY_SEER]?.enabled)
+              )
           )
           .map(addOnInfo => {
             const {apiName, dataCategories} = addOnInfo;

@@ -137,8 +137,12 @@ describe('Cart', () => {
         sharedMaxBudget: 50_00,
       },
       onDemandMaxSpend: 50_00,
+      // this would not happen IRL, but for testing purposes we can add both add-ons
       addOns: {
         [AddOnCategory.LEGACY_SEER]: {
+          enabled: true,
+        },
+        [AddOnCategory.SEER]: {
           enabled: true,
         },
       },
@@ -165,9 +169,13 @@ describe('Cart', () => {
     expect(planItem).toHaveTextContent('Continuous profile hours');
     expect(planItem).toHaveTextContent('Available');
 
-    const seerItem = screen.getByTestId('summary-item-product-legacySeer');
+    const legacySeerItem = screen.getByTestId('summary-item-product-legacySeer');
+    expect(legacySeerItem).toHaveTextContent('Seer');
+    expect(legacySeerItem).toHaveTextContent('$216/yr');
+
+    const seerItem = screen.getByTestId('summary-item-product-seer');
     expect(seerItem).toHaveTextContent('Seer');
-    expect(seerItem).toHaveTextContent('$216/yr');
+    expect(seerItem).toHaveTextContent('Variable cost');
 
     const spendCapItem = screen.getByTestId('summary-item-spend-limit');
     expect(spendCapItem).toHaveTextContent('up to $50/mo');
