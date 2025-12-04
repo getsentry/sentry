@@ -228,7 +228,6 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
 
             metrics_tags.update(
                 {
-                    "cache_get": True,
                     "cache_result": "hit" if got_cache_hit else "miss",
                     "expiry_seconds": cache_expiry_seconds,
                     # If there's a cache miss this will be overridden below
@@ -272,11 +271,8 @@ def _get_or_create_single_grouphash(
 
             metrics_tags.update(
                 {
-                    "cache_get": True,
                     "cache_result": "hit" if got_cache_hit else "miss",
                     "expiry_seconds": cache_expiry_seconds,
-                    # If there's a cache miss this will be overridden below
-                    "created": False,
                 }
             )
 
@@ -284,7 +280,6 @@ def _get_or_create_single_grouphash(
                 return (grouphash, False)
 
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
-        metrics_tags["created"] = created
 
         # We only want to cache grouphashes which already have a group assigned, because we know any
         # without a group will only stay current in the cache for a few milliseconds (until they get
