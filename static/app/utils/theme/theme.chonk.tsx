@@ -713,7 +713,6 @@ const commonTheme = {
   },
 };
 
-export type ColorMapping = typeof lightColors;
 export type Color = keyof typeof lightColors;
 export type IconSize = keyof typeof iconSizes;
 type Aliases = typeof lightAliases;
@@ -1086,121 +1085,6 @@ const CHART_PALETTE_DARK = [
     '#FA6769',
   ],
 ] as const;
-
-// Mapping of chonk theme to sentry theme
-const chonkLightColorMapping: ColorMapping = {
-  black: lightColors.black,
-  white: lightColors.white,
-
-  // @TODO(jonasbadalic): why is this needed?
-  lightModeBlack: lightColors.black,
-  lightModeWhite: lightColors.white,
-
-  surface100: lightColors.surface200,
-  surface200: lightColors.surface300,
-  surface300: lightColors.surface400,
-  surface400: lightColors.surface500,
-
-  translucentSurface100: lightColors.surface100,
-  translucentSurface200: lightColors.surface200,
-
-  surface500: lightColors.surface500,
-
-  gray500: lightColors.gray800,
-  gray400: lightColors.gray500,
-  gray300: lightColors.gray400,
-  gray200: lightColors.gray200,
-  gray100: lightColors.gray100,
-
-  translucentGray200: lightColors.gray200,
-  translucentGray100: lightColors.gray100,
-
-  purple400: lightColors.blue500,
-  purple300: lightColors.blue400,
-  purple200: lightColors.blue200,
-  purple100: lightColors.blue100,
-
-  blue400: lightColors.blue500,
-  blue300: lightColors.blue400,
-  blue200: lightColors.blue200,
-  blue100: lightColors.blue100,
-
-  pink400: lightColors.pink500,
-  pink300: lightColors.pink400,
-  pink200: lightColors.pink200,
-  pink100: lightColors.pink100,
-
-  red400: lightColors.red500,
-  red300: lightColors.red400,
-  red200: lightColors.red200,
-  red100: lightColors.red100,
-
-  yellow400: lightColors.yellow500,
-  yellow300: lightColors.yellow400,
-  yellow200: lightColors.yellow200,
-  yellow100: lightColors.yellow100,
-
-  green400: lightColors.green500,
-  green300: lightColors.green400,
-  green200: lightColors.green200,
-  green100: lightColors.green100,
-};
-
-const chonkDarkColorMapping: ColorMapping = {
-  black: darkColors.black,
-  white: darkColors.white,
-
-  lightModeBlack: darkColors.black,
-  lightModeWhite: darkColors.white,
-
-  surface100: darkColors.surface200,
-  surface200: darkColors.surface300,
-  surface300: darkColors.surface400,
-  surface400: darkColors.surface500,
-  surface500: darkColors.surface500,
-
-  translucentSurface100: darkColors.surface100,
-  translucentSurface200: darkColors.surface200,
-
-  gray500: darkColors.gray500,
-  gray400: darkColors.gray400,
-  gray300: darkColors.gray300,
-  gray200: darkColors.gray200,
-  gray100: darkColors.gray100,
-
-  translucentGray200: darkColors.gray200,
-  translucentGray100: darkColors.gray100,
-
-  purple400: darkColors.blue500,
-  purple300: darkColors.blue400,
-  purple200: darkColors.blue200,
-  purple100: darkColors.blue100,
-
-  blue400: darkColors.blue500,
-  blue300: darkColors.blue400,
-  blue200: darkColors.blue200,
-  blue100: darkColors.blue100,
-
-  pink400: darkColors.pink500,
-  pink300: darkColors.pink400,
-  pink200: darkColors.pink200,
-  pink100: darkColors.pink100,
-
-  green400: darkColors.green500,
-  green300: darkColors.green400,
-  green200: darkColors.green200,
-  green100: darkColors.green100,
-
-  yellow400: darkColors.yellow500,
-  yellow300: darkColors.yellow400,
-  yellow200: darkColors.yellow200,
-  yellow100: darkColors.yellow100,
-
-  red400: darkColors.red500,
-  red300: darkColors.red400,
-  red200: darkColors.red200,
-  red100: darkColors.red100,
-};
 
 type ChartColorPalette = typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
 type ColorLength = (typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK)['length'];
@@ -1908,9 +1792,9 @@ export const darkTheme: Theme = {
   },
 };
 
-// Emotion has no override available for styled, so we create our own,
-// which allows us to use chonkStyled and access the chonk theme and write
-// our components with a future type API.
-export const chonkStyled = styled;
+// tkdodo: kept for backwards compatibility, to be deleted
 
+export const chonkStyled = styled;
 export const useChonkTheme = useTheme;
+export const DO_NOT_USE_lightChonkTheme = lightTheme;
+export const DO_NOT_USE_darkChonkTheme = darkTheme;
