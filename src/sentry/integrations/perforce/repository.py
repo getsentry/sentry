@@ -304,12 +304,12 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
             )
             return []
 
-    def pull_request_url(self, repo: Repository, pull_request: PullRequest) -> str:
+    def pull_request_url(self, repo: Repository, pull_request: PullRequest) -> str | None:
         """
         Get URL for pull request.
         Perforce doesn't have native pull requests.
         """
-        raise NotImplementedError("Perforce does not have native pull requests")
+        return None
 
     def repository_external_slug(self, repo: Repository) -> str:
         """Get external slug for repository."""
