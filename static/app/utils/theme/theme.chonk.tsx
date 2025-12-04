@@ -353,46 +353,83 @@ export const generateLevelTheme = (colors: Colors): LevelColors => ({
 
 export const generateTagTheme = (colors: Colors): TagColors => ({
   default: {
-    background: colors.surface400,
-    border: colors.translucentGray200,
-    color: colors.gray400,
+    // old: colors.surface400 -> mapped: colors.surface500
+    background: colors.surface500,
+
+    // old: colors.translucentGray200 -> mapped: colors.gray200
+    border: colors.gray200,
+
+    // ⚠ MAPPING DIFF IN DARK MODE:
+    // light-mapping: gray400 -> gray500 (we use this)
+    // dark-mapping: gray400 -> gray400
+    //
+    // old: colors.gray400 -> mapped: colors.gray500
+    color: colors.gray500,
   },
+
   promotion: {
+    // old: colors.pink100 -> mapped: colors.pink100
     background: colors.pink100,
     border: colors.pink100,
-    color: colors.pink400,
+
+    // old: colors.pink400 -> mapped: colors.pink500
+    color: colors.pink500,
   },
+
   highlight: {
-    background: colors.purple100,
-    border: colors.purple100,
-    color: colors.purple400,
+    // old: colors.purple100 -> mapped: colors.blue100
+    background: colors.blue100,
+    border: colors.blue100,
+
+    // old: colors.purple400 -> mapped: colors.blue500
+    color: colors.blue500,
   },
+
   warning: {
+    // old: colors.yellow100 -> mapped: colors.yellow100
     background: colors.yellow100,
     border: colors.yellow100,
-    color: colors.yellow400,
+
+    // old: colors.yellow400 -> mapped: colors.yellow500
+    color: colors.yellow500,
   },
+
   success: {
+    // old: colors.green100 -> mapped: colors.green100
     background: colors.green100,
     border: colors.green100,
-    color: colors.green400,
+
+    // old: colors.green400 -> mapped: colors.green500
+    color: colors.green500,
   },
+
   error: {
+    // old: colors.red100 -> mapped: colors.red100
     background: colors.red100,
     border: colors.red100,
-    color: colors.red400,
+
+    // old: colors.red400 -> mapped: colors.red500
+    color: colors.red500,
   },
+
   info: {
-    background: colors.purple100,
-    border: colors.purple100,
-    color: colors.purple400,
+    // old: colors.purple100 -> mapped: colors.blue100
+    background: colors.blue100,
+    border: colors.blue100,
+
+    // old: colors.purple400 -> mapped: colors.blue500
+    color: colors.blue500,
   },
+
   white: {
+    // unchanged
     background: colors.white,
     border: colors.white,
     color: colors.black,
   },
+
   black: {
+    // unchanged
     background: colors.black,
     border: colors.black,
     color: colors.white,
