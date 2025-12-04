@@ -22,7 +22,7 @@ declare module '!!type-loader!*' {
         exports: Record<string, {name: string; typeOnly: boolean}[]>;
       }
     // If the type loader is not enabled, the return value is an empty module
-    | undefined;
+    | Record<string, undefined>;
 
   export default TypeLoaderResult;
 }
