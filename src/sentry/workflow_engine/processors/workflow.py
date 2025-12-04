@@ -442,7 +442,6 @@ def process_workflows(
 
     Finally, each of the triggered workflows will have their actions evaluated and executed.
     """
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
     from sentry.workflow_engine.processors.action import (
         filter_recently_fired_workflow_actions,
         fire_actions,
@@ -546,11 +545,9 @@ def process_workflows(
             data=workflow_evaluation_data,
         )
 
-    should_trigger_actions = should_fire_workflow_actions(organization, event_data.group.type)
     create_workflow_fire_histories(
         actions,
         event_data,
-        should_trigger_actions,
         is_delayed=False,
         start_timestamp=event_start_time,
     )

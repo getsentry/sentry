@@ -594,8 +594,6 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
 
         assert not mock_process_service_hook.delay.mock_calls
 
-    @with_feature("organizations:workflow-engine-single-process-workflows")
-    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     @patch("sentry.rules.processing.processor.RuleProcessor")
     @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
     def test_workflow_engine_single_processing(
@@ -621,8 +619,6 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
         # Call the function inside process_workflow_engine
         assert mock_process_event.apply_async.call_count == 1
 
-    @with_feature("organizations:workflow-engine-single-process-workflows")
-    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     @patch("sentry.rules.processing.processor.RuleProcessor")
     @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
     def test_workflow_engine_single_processing__ignore_archived(
