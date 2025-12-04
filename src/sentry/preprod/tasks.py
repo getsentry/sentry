@@ -461,7 +461,10 @@ def _assemble_preprod_artifact_size_analysis(
             ).delete()
 
         # Transaction committed successfully, now safe to reference these objects
-        size_metrics_updated = metrics_in_transaction
+        # Note: We delay assigning to size_metrics_updated until after all operations
+        # complete successfully. This ensures the exception handler doesn't incorrectly
+        # mark already-COMPLETED metrics as FAILED if a later operation (like extras
+        # update) fails.
 
         if size_analysis_results.analysis_duration is not None:
             with transaction.atomic(router.db_for_write(PreprodArtifact)):
@@ -472,6 +475,9 @@ def _assemble_preprod_artifact_size_analysis(
                     {"analysis_duration": size_analysis_results.analysis_duration}
                 )
                 preprod_artifact.save(update_fields=["extras"])
+
+        # Only set size_metrics_updated after all operations succeed
+        size_metrics_updated = metrics_in_transaction
 
         # Trigger size analysis comparison if eligible
         logger.info(
