@@ -4,8 +4,7 @@ from typing import Any
 
 from sentry.debug_files.artifact_bundles import maybe_renew_artifact_bundles_from_processing
 from sentry.lang.javascript.utils import JAVASCRIPT_PLATFORMS
-from sentry.lang.native.error import SymbolicationFailed, write_error
-from sentry.lang.native.symbolicator import FrameOrder, Symbolicator
+from sentry.lang.native.symbolicator import FrameOrder, Symbolicator, handle_response_status
 from sentry.models.eventerror import EventError
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils import metrics
@@ -72,23 +71,6 @@ def _merge_frame(new_frame, symbolicated):
     # frame_meta["symbolicator_status"] = symbolicated["status"]
 
     return new_frame
-
-
-# TODO: Change this error handling to be JS-specific?
-def _handle_response_status(event_data, response_json):
-    if not response_json:
-        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
-    elif response_json["status"] == "completed":
-        return True
-    elif response_json["status"] == "failed":
-        error = SymbolicationFailed(
-            message=response_json.get("message") or None, type=EventError.NATIVE_SYMBOLICATOR_FAILED
-        )
-    else:
-        logger.error("Unexpected symbolicator status: %s", response_json["status"])
-        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
-
-    write_error(error, event_data)
 
 
 def is_sourcemap_image(image):
@@ -257,7 +239,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         frame_order=FrameOrder.caller_first,
     )
 
-    if not _handle_response_status(data, response):
+    if not handle_response_status(data, response):
         return data
 
     used_artifact_bundles = response.get("used_artifact_bundles", [])

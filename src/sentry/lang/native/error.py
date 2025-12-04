@@ -34,10 +34,11 @@ logger = logging.getLogger(__name__)
 
 
 class SymbolicationFailed(Exception):
-    def __init__(self, message=None, type=None, obj=None):
+    def __init__(self, message=None, type=None, event_id=None, obj=None):
         Exception.__init__(self)
         self.message = str(message)
         self.type = type
+        self.event_id = event_id
         self.image_name: str | None = None
         self.image_path: str | None = None
         if obj is not None:
@@ -68,6 +69,8 @@ class SymbolicationFailed(Exception):
     def get_data(self):
         """Returns the event data."""
         rv = {"message": self.message, "type": self.type}
+        if self.event_id is not None:
+            rv["sentry_event_id"] = self.event_id
         if self.image_path is not None:
             rv["image_path"] = self.image_path
         if self.image_uuid is not None:
@@ -85,6 +88,8 @@ class SymbolicationFailed(Exception):
             rv.append(" image-uuid=%s" % self.image_uuid)
         if self.image_name is not None:
             rv.append(" image-name=%s" % self.image_name)
+        if self.event_id is not None:
+            rv.append(" sentry-event-id=%s" % self.event_id)
         return "".join(rv)
 
 
