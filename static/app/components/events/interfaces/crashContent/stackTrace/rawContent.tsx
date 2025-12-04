@@ -111,6 +111,8 @@ export function getJavaFrame(frame: Frame, includeLocation: boolean): string {
       result += ':' + frame.lineNo;
     }
     result += ')';
+  } else if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+    result += '(:' + frame.lineNo + ')';
   }
   return result;
 }
