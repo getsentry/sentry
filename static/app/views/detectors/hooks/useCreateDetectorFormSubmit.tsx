@@ -42,13 +42,15 @@ export function useCreateDetectorFormSubmit<
         return;
       }
 
+      const payload = formDataToEndpointPayload(data as TFormData);
+
       try {
-        const payload = formDataToEndpointPayload(data as TFormData);
         const resultDetector = await createDetector(payload);
 
         trackAnalytics('monitor.created', {
           organization,
           ...getDetectorAnalyticsPayload(resultDetector),
+          success: true,
         });
 
         addSuccessMessage(t('Monitor created successfully'));
@@ -61,6 +63,12 @@ export function useCreateDetectorFormSubmit<
 
         onSubmitSuccess?.(resultDetector);
       } catch (error) {
+        trackAnalytics('monitor.created', {
+          organization,
+          detector_type: payload.type,
+          success: false,
+        });
+
         addErrorMessage(t('Unable to create monitor'));
 
         if (onError) {

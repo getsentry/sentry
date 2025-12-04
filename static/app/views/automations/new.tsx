@@ -108,16 +108,24 @@ export default function AutomationNewSettings() {
     async (data, _, __, ___, ____) => {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
+      const newAutomationData = getNewAutomationData(data as AutomationFormData, state);
 
       if (Object.keys(errors).length === 0) {
-        const automation = await createAutomation(
-          getNewAutomationData(data as AutomationFormData, state)
-        );
-        trackAnalytics('automation.created', {
-          organization,
-          ...getAutomationAnalyticsPayload(automation),
-        });
-        navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
+        try {
+          const automation = await createAutomation(newAutomationData);
+          trackAnalytics('automation.created', {
+            organization,
+            ...getAutomationAnalyticsPayload(newAutomationData),
+            success: true,
+          });
+          navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
+        } catch {
+          trackAnalytics('automation.created', {
+            organization,
+            ...getAutomationAnalyticsPayload(newAutomationData),
+            success: false,
+          });
+        }
       }
     },
     [createAutomation, state, navigate, organization]
