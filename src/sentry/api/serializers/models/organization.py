@@ -558,7 +558,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
     autoOpenPrs: bool
-    allowSeerScannerAutomation: bool
+    allowBackgroundAgentDelegation: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
