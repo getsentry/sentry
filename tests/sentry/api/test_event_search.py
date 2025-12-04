@@ -366,6 +366,20 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 key=SearchKey(name="message"), operator="=", value=SearchValue(raw_value="*foo")
             )
         ]
+        # wrapped in quotes should only have surrounding wildcards
+        assert parse_search_query('"foo"', config=config) == [
+            SearchFilter(
+                key=SearchKey(name="message"), operator="=", value=SearchValue(raw_value='*"foo"*')
+            )
+        ]
+        # not wrapped in quotes with spaces should be wrapped and spaces replaced with wildcards
+        assert parse_search_query("foo bar", config=config) == [
+            SearchFilter(
+                key=SearchKey(name="message"),
+                operator="=",
+                value=SearchValue(raw_value="*foo*bar*"),
+            )
+        ]
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_size_filter(self, mock_type: MagicMock) -> None:
