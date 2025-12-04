@@ -205,6 +205,9 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     if (toolLinkParams?.empty_results) {
       return `Edit to ${path} in ${repoName} was rejected`;
     }
+    if (toolLinkParams?.pending_approval) {
+      return `Edit to ${path} in ${repoName} is pending your approval`;
+    }
     return isLoading
       ? `Editing ${path} in ${repoName}...`
       : `Edited ${path} in ${repoName}`;
@@ -220,9 +223,13 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     const action = isDelete ? 'Delete' : 'Write';
     const actionPast = isDelete ? 'Deleted' : 'Wrote';
     const actionPresent = isDelete ? 'Deleting' : 'Writing';
+    const actionPending = isDelete ? 'Delete' : 'Write';
 
     if (toolLinkParams?.empty_results) {
       return `${action} to ${path} in ${repoName} was rejected`;
+    }
+    if (toolLinkParams?.pending_approval) {
+      return `${actionPending} to ${path} in ${repoName} is pending your approval`;
     }
 
     return isLoading

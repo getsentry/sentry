@@ -1,13 +1,14 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 
 import useOrganization from 'sentry/utils/useOrganization';
 import BlockComponent from 'sentry/views/seerExplorer/blockComponents';
 import EmptyState from 'sentry/views/seerExplorer/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/explorerMenu';
-import FileChangeApproval from 'sentry/views/seerExplorer/fileChangeApproval';
+import FileChangeApprovalBlock from 'sentry/views/seerExplorer/fileChangeApprovalBlock';
 import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
 import {usePanelSizing} from 'sentry/views/seerExplorer/hooks/usePanelSizing';
+import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import InputSection from 'sentry/views/seerExplorer/inputSection';
 import PanelContainers, {
@@ -48,32 +49,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   // Get blocks from session data or empty array
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
-
-  useBlockNavigation({
-    isOpen: isVisible,
-    focusedBlockIndex,
-    blocks,
-    blockRefs,
-    textareaRef,
-    setFocusedBlockIndex,
-    isMinimized,
-    onDeleteFromIndex: deleteFromIndex,
-    onKeyPress: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => {
-      const handler = blockEnterHandlers.current.get(blockIndex);
-      const handled = handler?.(key) ?? false;
-
-      // If Enter was pressed and handled (navigation occurred), minimize the panel
-      if (key === 'Enter' && handled) {
-        setIsMinimized(true);
-      }
-
-      return handled;
-    },
-    onNavigate: () => {
-      setIsMinimized(false);
-      userScrolledUpRef.current = true;
-    },
-  });
 
   useEffect(() => {
     // Focus textarea when panel opens and reset focus
@@ -243,13 +218,48 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     closeMenu();
   }, [closeMenu, focusInput]);
 
+  const handleUnminimize = useCallback(() => {
+    setIsMinimized(false);
+    // Disable hover focus changes until mouse actually moves
+    allowHoverFocusChange.current = false;
+    // Restore focus to the previously focused block if it exists and is valid
+    if (focusedBlockIndex >= 0 && focusedBlockIndex < blocks.length) {
+      setTimeout(() => {
+        blockRefs.current[focusedBlockIndex]?.scrollIntoView({block: 'nearest'});
+      }, 100);
+    } else {
+      // No valid block focus, focus input
+      setTimeout(() => {
+        setFocusedBlockIndex(-1);
+        textareaRef.current?.focus();
+      }, 100);
+    }
+  }, [focusedBlockIndex, blocks.length]);
+
+  const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
+  const pendingInput = sessionData?.pending_user_input;
+
+  const {
+    isFileApprovalPending,
+    fileApprovalIndex,
+    fileApprovalTotalPatches,
+    handleFileApprovalApprove,
+    handleFileApprovalReject,
+  } = usePendingUserInput({
+    isAwaitingUserInput,
+    pendingInput,
+    respondToUserInput,
+    scrollContainerRef,
+    userScrolledUpRef,
+  });
+
+  // Global keyboard event listeners for when the panel is open and menu is closed.
+  // Menu keyboard listeners are in the menu component.
   useEffect(() => {
     if (!isVisible || isMinimized || isMenuOpen) {
       return undefined;
     }
 
-    // Global keyboard event listeners for when the panel is open and menu is closed.
-    // Menu keyboard listeners are in the menu component.
     const handleKeyDown = (e: KeyboardEvent) => {
       const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 
@@ -260,7 +270,8 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         e.preventDefault();
         setIsMinimized(true);
       } else if (isPrintableChar) {
-        if (focusedBlockIndex !== -1) {
+        // Don't auto-type if file approval is pending (textarea isn't visible)
+        if (focusedBlockIndex !== -1 && !isFileApprovalPending) {
           // If a block is focused, auto-focus input when user starts typing.
           e.preventDefault();
           setFocusedBlockIndex(-1);
@@ -289,39 +300,35 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     interruptRun,
     interruptRequested,
     isMinimized,
+    isFileApprovalPending,
   ]);
 
-  const handleUnminimize = useCallback(() => {
-    setIsMinimized(false);
-    // Disable hover focus changes until mouse actually moves
-    allowHoverFocusChange.current = false;
-    // Restore focus to the previously focused block if it exists and is valid
-    if (focusedBlockIndex >= 0 && focusedBlockIndex < blocks.length) {
-      setTimeout(() => {
-        blockRefs.current[focusedBlockIndex]?.scrollIntoView({block: 'nearest'});
-      }, 100);
-    } else {
-      // No valid block focus, focus input
-      setTimeout(() => {
-        setFocusedBlockIndex(-1);
-        textareaRef.current?.focus();
-      }, 100);
-    }
-  }, [focusedBlockIndex, blocks.length]);
+  useBlockNavigation({
+    isOpen: isVisible,
+    focusedBlockIndex,
+    blocks,
+    blockRefs,
+    textareaRef,
+    setFocusedBlockIndex,
+    isMinimized,
+    isFileApprovalPending,
+    onDeleteFromIndex: deleteFromIndex,
+    onKeyPress: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => {
+      const handler = blockEnterHandlers.current.get(blockIndex);
+      const handled = handler?.(key) ?? false;
 
-  const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
-  const pendingInput = sessionData?.pending_user_input;
-
-  const handleSubmitFileChanges = useCallback(
-    (decisions: boolean[]) => {
-      if (pendingInput?.id) {
-        respondToUserInput(pendingInput.id, {
-          decisions,
-        });
+      // If Enter was pressed and handled (navigation occurred), minimize the panel
+      if (key === 'Enter' && handled) {
+        setIsMinimized(true);
       }
+
+      return handled;
     },
-    [pendingInput?.id, respondToUserInput]
-  );
+    onNavigate: () => {
+      setIsMinimized(false);
+      userScrolledUpRef.current = true;
+    },
+  });
 
   const panelContent = (
     <PanelContainers
@@ -331,18 +338,12 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       panelSize={panelSize}
       onUnminimize={handleUnminimize}
     >
-      {isAwaitingUserInput && pendingInput ? (
-        <FileChangeApproval
-          pendingInput={pendingInput}
-          onSubmit={handleSubmitFileChanges}
-          isMinimized={isMinimized}
-        />
-      ) : (
-        <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
-          {blocks.length === 0 ? (
-            <EmptyState />
-          ) : (
-            blocks.map((block: Block, index: number) => (
+      <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
+        {blocks.length === 0 && !(isAwaitingUserInput && pendingInput) ? (
+          <EmptyState />
+        ) : (
+          <Fragment>
+            {blocks.map((block: Block, index: number) => (
               <BlockComponent
                 key={block.id}
                 ref={el => {
@@ -350,7 +351,10 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                 }}
                 block={block}
                 blockIndex={index}
-                isLast={index === blocks.length - 1}
+                isAwaitingFileApproval={isFileApprovalPending}
+                isLast={
+                  index === blocks.length - 1 && !(isAwaitingUserInput && pendingInput)
+                }
                 isFocused={focusedBlockIndex === index}
                 isPolling={isPolling}
                 onClick={() => handleBlockClick(index)}
@@ -379,25 +383,42 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                   blockEnterHandlers.current.set(index, handler);
                 }}
               />
-            ))
-          )}
-        </BlocksContainer>
-      )}
-      {!(isAwaitingUserInput && pendingInput) && (
-        <InputSection
-          menu={menu}
-          onMenuButtonClick={onMenuButtonClick}
-          focusedBlockIndex={focusedBlockIndex}
-          inputValue={inputValue}
-          interruptRequested={interruptRequested}
-          isPolling={isPolling}
-          onClear={() => setInputValue('')}
-          onInputChange={handleInputChange}
-          onInputClick={handleInputClick}
-          textAreaRef={textareaRef}
-          onKeyDown={handleInputKeyDown}
-        />
-      )}
+            ))}
+            {isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches && (
+              <FileChangeApprovalBlock
+                currentIndex={fileApprovalIndex}
+                isLast
+                pendingInput={pendingInput!}
+              />
+            )}
+          </Fragment>
+        )}
+      </BlocksContainer>
+      <InputSection
+        menu={menu}
+        onMenuButtonClick={onMenuButtonClick}
+        focusedBlockIndex={focusedBlockIndex}
+        inputValue={inputValue}
+        interruptRequested={interruptRequested}
+        isMinimized={isMinimized}
+        isPolling={isPolling}
+        isVisible={isVisible}
+        onClear={() => setInputValue('')}
+        onInputChange={handleInputChange}
+        onInputClick={handleInputClick}
+        textAreaRef={textareaRef}
+        onKeyDown={handleInputKeyDown}
+        fileApprovalActions={
+          isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
+            ? {
+                currentIndex: fileApprovalIndex,
+                totalPatches: fileApprovalTotalPatches,
+                onApprove: handleFileApprovalApprove,
+                onReject: handleFileApprovalReject,
+              }
+            : undefined
+        }
+      />
     </PanelContainers>
   );
 
