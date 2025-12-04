@@ -8,9 +8,7 @@ export type ReplayEventParameters = {
   'replay.ai-summary.regenerate-requested': {
     area: string;
   };
-  'replay.ai_tab_shown': {
-    isSeerSetup: boolean;
-  };
+  'replay.ai_tab_shown': Record<string, unknown>;
   'replay.canvas-detected-banner-clicked': {
     sdk_needs_update?: boolean;
   };
