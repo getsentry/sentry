@@ -24,10 +24,11 @@ export default function SeerAutomationSettings() {
           // Project<->Repo settings:
           defaultAutofixAutomationTuning: organization.defaultAutofixAutomationTuning,
           autoOpenPrs: organization.autoOpenPrs ?? false,
+          allowBackgroundAgentDelegation:
+            organization.allowBackgroundAgentDelegation ?? false,
 
           // Second section
           enableSeerCoding: organization.enableSeerCoding ?? true,
-          // sensitivity -> high/medium/low
           // run on opened PRs -> boolean
           // run when mentioned -> boolean
 
@@ -67,8 +68,9 @@ export default function SeerAutomationSettings() {
                   type: 'boolean',
                 },
                 {
-                  // TODO: Depends on future PR
-                  name: 'allowSeerScannerAutomation',
+                  // TODO: Depends on https://github.com/getsentry/sentry/pull/104362
+                  visible: false, // TODO(ryan953): Disabled until the backend is fully ready
+                  name: 'allowBackgroundAgentDelegation',
                   label: t('Allow Delegation to Background Agents'),
                   help: tct(
                     'Enable this to allow projects to use Agents other than Seer for automation tasks. [docs:Read the docs] to learn more.',
