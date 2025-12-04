@@ -2,7 +2,7 @@ import type {SerializedStyles} from '@emotion/react';
 import {css} from '@emotion/react';
 
 import type {AlertProps} from 'sentry/components/core/alert';
-import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 

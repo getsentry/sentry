@@ -87,6 +87,3 @@ class AdditionalQueries:
     span: list[str] | None
     log: list[str] | None
     metric: list[str] | None
-
-
-MetricType = Literal["counter", "gauge", "distribution"]

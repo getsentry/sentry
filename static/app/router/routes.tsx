@@ -201,7 +201,6 @@ function buildRoutes(): RouteObject[] {
       path: '/user-feedback/',
       redirectTo: '/feedback/',
     },
-    // TODO: remove share/issue orgless url
     {
       path: '/share/issue/:shareId/',
       component: make(() => import('sentry/views/sharedGroupDetails')),
@@ -300,8 +299,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
-          component: make(() => import('sentry/views/onboarding')),
-          deprecatedRouteProps: true,
+          component: make(() => import('sentry/views/onboarding/onboarding')),
         },
       ],
     },
@@ -316,8 +314,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
-          component: make(() => import('sentry/views/onboarding')),
-          deprecatedRouteProps: true,
+          component: make(() => import('sentry/views/onboarding/onboarding')),
         },
       ],
     },
@@ -1213,7 +1210,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'seer/',
-      name: t('Seer Automation'),
+      name: t('Seer'),
       component: make(() => import('getsentry/views/seerAutomation/index')),
       children: [
         {
@@ -1226,9 +1223,9 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('getsentry/views/seerAutomation/projects')),
         },
         {
-          path: 'repositories/',
+          path: 'repos/',
           name: t('Seer'),
-          component: make(() => import('getsentry/views/seerAutomation/repositories')),
+          component: make(() => import('getsentry/views/seerAutomation/repos')),
         },
         {
           path: 'onboarding/',

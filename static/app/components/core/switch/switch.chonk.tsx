@@ -1,6 +1,6 @@
 import {chonkFor} from 'sentry/components/core/chonk';
 import type {SwitchProps} from 'sentry/components/core/switch';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 
 const toggleWrapperSize = {
   sm: {width: 36, height: 20},

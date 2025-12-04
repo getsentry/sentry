@@ -321,7 +321,6 @@ from sentry.issues.endpoints import (
     SourceMapDebugEndpoint,
     TeamGroupsOldEndpoint,
 )
-from sentry.issues.endpoints.browser_reporting_collector import BrowserReportingCollectorEndpoint
 from sentry.issues.endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from sentry.issues.endpoints.event_owners import EventOwnersEndpoint
 from sentry.issues.endpoints.event_reprocessable import EventReprocessableEndpoint
@@ -336,7 +335,6 @@ from sentry.issues.endpoints.group_tagkey_details import GroupTagKeyDetailsEndpo
 from sentry.issues.endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
 from sentry.issues.endpoints.group_user_reports import GroupUserReportsEndpoint
-from sentry.issues.endpoints.grouping_configs import GroupingConfigsEndpoint
 from sentry.issues.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
@@ -525,6 +523,7 @@ from sentry.seer.endpoints.organization_seer_explorer_runs import (
 from sentry.seer.endpoints.organization_seer_explorer_update import (
     OrganizationSeerExplorerUpdateEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheck
 from sentry.seer.endpoints.organization_trace_summary import OrganizationTraceSummaryEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
@@ -570,7 +569,6 @@ from sentry.sentry_apps.api.endpoints.sentry_app_interaction import SentryAppInt
 from sentry.sentry_apps.api.endpoints.sentry_app_publish_request import (
     SentryAppPublishRequestEndpoint,
 )
-from sentry.sentry_apps.api.endpoints.sentry_app_requests import SentryAppRequestsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_rotate_secret import SentryAppRotateSecretEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_stats_details import SentryAppStatsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_webhook_requests import (
@@ -648,7 +646,6 @@ from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
-from .endpoints.check_am2_compatibility import CheckAM2CompatibilityEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
 from .endpoints.custom_rules import CustomRulesEndpoint
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
@@ -2334,6 +2331,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-setup-check",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer-rpc/(?P<method_name>\w+)/$",
+        OrganizationSeerRpcEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-rpc",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sentry-app-components/$",
         OrganizationSentryAppComponentsEndpoint.as_view(),
         name="sentry-api-0-organization-sentry-app-components",
@@ -2612,7 +2614,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-conduit-demo",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/objectstore/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/objectstore/(?P<path>.*)$",
         OrganizationObjectstoreEndpoint.as_view(),
         name="sentry-api-0-organization-objectstore",
     ),
@@ -3381,11 +3383,6 @@ SENTRY_APP_URLS = [
     # The following a region endpoints as interactions and request logs
     # are per-region.
     re_path(
-        r"^(?P<sentry_app_id_or_slug>[^/]+)/requests/$",
-        SentryAppRequestsEndpoint.as_view(),
-        name="sentry-api-0-sentry-app-requests",
-    ),
-    re_path(
         r"^(?P<sentry_app_id_or_slug>[^/]+)/interaction/$",
         SentryAppInteractionEndpoint.as_view(),
         name="sentry-api-0-sentry-app-interaction",
@@ -3504,11 +3501,6 @@ INTERNAL_URLS = [
         r"^prevent/pr-review/github/sentry-org/$",
         PreventPrReviewSentryOrgEndpoint.as_view(),
         name="sentry-api-0-prevent-pr-review-github-sentry-org",
-    ),
-    re_path(
-        r"^check-am2-compatibility/$",
-        CheckAM2CompatibilityEndpoint.as_view(),
-        name="sentry-api-0-internal-check-am2-compatibility",
     ),
     re_path(
         r"^feature-flags/$",
@@ -3708,18 +3700,6 @@ urlpatterns = [
         IntegrationFeaturesEndpoint.as_view(),
         name="sentry-api-0-integration-features",
     ),
-    # Grouping configs
-    re_path(
-        r"^grouping-configs/$",
-        GroupingConfigsEndpoint.as_view(),
-        name="sentry-api-0-grouping-configs",
-    ),
-    # Symbolicator Builtin Sources
-    re_path(
-        r"^builtin-symbol-sources/$",
-        BuiltinSymbolSourcesEndpoint.as_view(),
-        name="sentry-api-0-builtin-symbol-sources",
-    ),
     # Project Wizard
     re_path(
         r"^wizard/$",
@@ -3763,12 +3743,6 @@ urlpatterns = [
         r"^secret-scanning/github/$",
         SecretScanningGitHubEndpoint.as_view(),
         name="sentry-api-0-secret-scanning-github",
-    ),
-    # Temporary public endpoint for proxying browser reports to GCP, to gather real-world data
-    re_path(
-        r"^reporting-api-experiment/$",
-        BrowserReportingCollectorEndpoint.as_view(),
-        name="sentry-api-0-reporting-api-experiment",
     ),
     # Catch all
     re_path(

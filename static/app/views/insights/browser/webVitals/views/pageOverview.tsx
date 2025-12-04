@@ -7,10 +7,12 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -32,6 +34,7 @@ import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/c
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
@@ -156,6 +159,7 @@ function PageOverview() {
             <TopMenuContainer>
               <ModulePageFilterBar moduleName={ModuleName.VITAL} />
               <BrowserTypeSelector />
+              <SubregionSelector />
             </TopMenuContainer>
             <Flex>
               <ChartContainer>
@@ -202,8 +206,15 @@ function PageOverview() {
 }
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
   return (
-    <ModulePageProviders moduleName="vital">
+    <ModulePageProviders
+      moduleName="vital"
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <PageOverview />
     </ModulePageProviders>
   );

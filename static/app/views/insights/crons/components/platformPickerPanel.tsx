@@ -5,42 +5,11 @@ import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
 import {Button} from 'sentry/components/core/button';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {NewMonitorButton} from './newMonitorButton';
-
-export type SupportedPlatform =
-  | 'python-celery'
-  | 'php'
-  | 'php-laravel'
-  | 'python'
-  | 'node'
-  | 'go'
-  | 'java'
-  | 'java-spring-boot'
-  | 'ruby'
-  | 'ruby-rails'
-  | 'dotnet';
-
-interface SDKPlatformInfo {
-  label: string;
-  platform: SupportedPlatform;
-}
-
-export const CRON_SDK_PLATFORMS: SDKPlatformInfo[] = [
-  {platform: 'python-celery', label: 'Celery'},
-  {platform: 'php', label: 'PHP'},
-  {platform: 'php-laravel', label: 'Laravel'},
-  {platform: 'python', label: 'Python'},
-  {platform: 'node', label: 'Node'},
-  {platform: 'go', label: 'Go'},
-  {platform: 'java', label: 'Java'},
-  {platform: 'java-spring-boot', label: 'Spring Boot'},
-  {platform: 'ruby', label: 'Ruby'},
-  {platform: 'ruby-rails', label: 'Rails'},
-  {platform: 'dotnet', label: '.NET'},
-];
+import {platformGuides, type SupportedPlatform} from './upsertPlatformGuides';
 
 interface Props {
   onSelect: (platform: SupportedPlatform | null) => void;
@@ -57,27 +26,29 @@ export function PlatformPickerPanel({onSelect}: Props) {
       </p>
       <SectionTitle>{t('Platforms')}</SectionTitle>
       <Actions>
-        {CRON_SDK_PLATFORMS.map(({platform, label}) => (
-          <PlatformOption key={platform}>
-            <PlatformButton
-              priority="default"
-              onClick={() => onSelect(platform)}
-              aria-label={t('Create %s Monitor', platform)}
-            >
-              <PlatformIcon platform={platform} format="lg" size="100%" />
-            </PlatformButton>
-            <div>{label}</div>
-          </PlatformOption>
-        ))}
+        {platformGuides
+          .filter(({platform}) => !['cli', 'http'].includes(platform))
+          .map(({platform, label}) => (
+            <PlatformOption key={platform}>
+              <PlatformButton
+                priority="default"
+                onClick={() => onSelect(platform)}
+                aria-label={t('Create %s Monitor', platform)}
+              >
+                <PlatformIcon platform={platform} format="lg" size="100%" />
+              </PlatformButton>
+              <div>{label}</div>
+            </PlatformOption>
+          ))}
       </Actions>
       <SectionTitle>{t('Generic')}</SectionTitle>
       <Actions>
-        <NewMonitorButton size="sm" priority="default">
+        <Button size="sm" icon={<IconTerminal />} onClick={() => onSelect('cli')}>
           Sentry CLI
-        </NewMonitorButton>
-        <NewMonitorButton size="sm" priority="default">
+        </Button>
+        <Button size="sm" icon={<IconGlobe />} onClick={() => onSelect('http')}>
           HTTP (cURL)
-        </NewMonitorButton>
+        </Button>
       </Actions>
     </OnboardingPanel>
   );

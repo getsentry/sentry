@@ -435,9 +435,9 @@ describe('Subscription > UsageHistory', () => {
     render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
     // Per-category Soft Cap On-demand should show up
-    expect(await screen.findAllByText('Errors (On Demand)')).toHaveLength(2);
-    expect(screen.getAllByText('Transactions (On Demand)')).toHaveLength(2);
-    expect(screen.getAllByText('Attachments (On Demand)')).toHaveLength(2);
+    expect(await screen.findAllByText('Errors (On-Demand)')).toHaveLength(2);
+    expect(screen.getAllByText('Transactions (On-Demand)')).toHaveLength(2);
+    expect(screen.getAllByText('Attachments (On-Demand)')).toHaveLength(2);
     expect(mockCall).toHaveBeenCalled();
   });
 
