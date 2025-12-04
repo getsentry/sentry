@@ -18,6 +18,10 @@ from sentry.seer.explorer.client_utils import (
     poll_until_done,
 )
 from sentry.seer.explorer.custom_tool_utils import ExplorerTool, extract_tool_schema
+from sentry.seer.explorer.on_completion_hook import (
+    ExplorerOnCompletionHook,
+    extract_hook_definition,
+)
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.users.models.user import User
@@ -97,6 +101,22 @@ class SeerExplorerClient:
             custom_tools=[DeploymentStatusTool]
         )
         run_id = client.start_run("Check if payment-service is deployed in production")
+
+        # WITH ON-COMPLETION HOOK
+        from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
+
+        class NotifyOnComplete(ExplorerOnCompletionHook):
+            @classmethod
+            def execute(cls, organization: Organization, run_id: int) -> None:
+                # Called when the agent completes (regardless of status)
+                send_notification(organization, f"Explorer run {run_id} completed")
+
+        client = SeerExplorerClient(
+            organization,
+            user,
+            on_completion=NotifyOnComplete
+        )
+        run_id = client.start_run("Analyze this issue")
     ```
 
         Args:
@@ -105,6 +125,7 @@ class SeerExplorerClient:
             category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
             category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
             custom_tools: Optional list of `ExplorerTool` classes to make available as tools to the agent. Each tool must inherit from ExplorerTool, define a params_model (Pydantic BaseModel), and implement execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
+            on_completion_hook: Optional `ExplorerOnCompletionHook` class to call when the agent completes. The hook's execute() method receives the organization and run ID. This is called whether or not the agent was successful. Hook classes must be module-level (not nested classes).
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
             is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
     """
@@ -116,12 +137,14 @@ class SeerExplorerClient:
         category_key: str | None = None,
         category_value: str | None = None,
         custom_tools: list[type[ExplorerTool[Any]]] | None = None,
+        on_completion_hook: type[ExplorerOnCompletionHook] | None = None,
         intelligence_level: Literal["low", "medium", "high"] = "medium",
         is_interactive: bool = False,
     ):
         self.organization = organization
         self.user = user
         self.custom_tools = custom_tools or []
+        self.on_completion_hook = on_completion_hook
         self.intelligence_level = intelligence_level
         self.category_key = category_key
         self.category_value = category_value
@@ -187,6 +210,10 @@ class SeerExplorerClient:
             payload["custom_tools"] = [
                 extract_tool_schema(tool).dict() for tool in self.custom_tools
             ]
+
+        # Add on-completion hook if provided
+        if self.on_completion_hook:
+            payload["on_completion_hook"] = extract_hook_definition(self.on_completion_hook).dict()
 
         if self.category_key and self.category_value:
             payload["category_key"] = self.category_key
