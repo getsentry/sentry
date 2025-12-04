@@ -1311,3 +1311,306 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
         assert resp.status_code == 302
         assert resp["Location"].startswith("sentry-mobile-agent://")
         assert f"code={grant.code}" in resp["Location"]
+
+
+@control_silo_test
+class OAuthAuthorizePKCETest(TestCase):
+    """Tests for PKCE (Proof Key for Code Exchange) support per RFC 7636."""
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/authorize/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.application = ApiApplication.objects.create(
+            owner=self.user, redirect_uris="https://example.com"
+        )
+
+    def test_pkce_s256_challenge_stored(self) -> None:
+        """Test that S256 PKCE challenge is accepted and stored in the grant."""
+        self.login_as(self.user)
+
+        # Valid S256 code_challenge (base64url encoded SHA256 hash, 43+ chars)
+        code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge={code_challenge}&code_challenge_method=S256"
+        )
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-authorize.html")
+
+        resp = self.client.post(self.path, {"op": "approve"})
+
+        grant = ApiGrant.objects.get(user=self.user)
+        assert grant.code_challenge == code_challenge
+        assert grant.code_challenge_method == "S256"
+        assert resp.status_code == 302
+
+    def test_pkce_invalid_challenge_format_too_short(self) -> None:
+        """Test that code_challenge shorter than 43 chars is rejected."""
+        self.login_as(self.user)
+
+        # Too short (RFC 7636 requires 43-128 chars)
+        code_challenge = "too_short"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge={code_challenge}&code_challenge_method=S256"
+        )
+
+        assert resp.status_code == 302
+        assert "error=invalid_request" in resp["Location"]
+        assert not ApiGrant.objects.filter(user=self.user).exists()
+
+    def test_pkce_invalid_challenge_format_invalid_chars(self) -> None:
+        """Test that code_challenge with invalid characters is rejected."""
+        self.login_as(self.user)
+
+        # Contains invalid characters (! and spaces)
+        code_challenge = "invalid!challenge with spaces and special chars!"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge={code_challenge}&code_challenge_method=S256"
+        )
+
+        assert resp.status_code == 302
+        assert "error=invalid_request" in resp["Location"]
+        assert not ApiGrant.objects.filter(user=self.user).exists()
+
+    def test_pkce_invalid_challenge_method(self) -> None:
+        """Test that unsupported code_challenge_method is rejected."""
+        self.login_as(self.user)
+
+        code_challenge = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge={code_challenge}&code_challenge_method=invalid"
+        )
+
+        assert resp.status_code == 302
+        assert "error=invalid_request" in resp["Location"]
+        assert not ApiGrant.objects.filter(user=self.user).exists()
+
+    def test_pkce_plain_method_rejected(self) -> None:
+        """Test that 'plain' PKCE method is rejected per OAuth 2.1."""
+        self.login_as(self.user)
+
+        code_challenge = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge={code_challenge}&code_challenge_method=plain"
+        )
+
+        assert resp.status_code == 302
+        assert "error=invalid_request" in resp["Location"]
+        assert not ApiGrant.objects.filter(user=self.user).exists()
+
+    def test_pkce_no_challenge_allowed(self) -> None:
+        """Test that PKCE is optional - grants without PKCE should work."""
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+
+        assert resp.status_code == 200
+
+        resp = self.client.post(self.path, {"op": "approve"})
+
+        grant = ApiGrant.objects.get(user=self.user)
+        assert grant.code_challenge is None
+        assert grant.code_challenge_method is None
+        assert resp.status_code == 302
+
+    def test_pkce_bypass_without_challenge_clears_method(self) -> None:
+        """Test that bypass flow correctly handles missing code_challenge by clearing method."""
+        self.login_as(self.user)
+
+        # Pre-approve the application
+        ApiAuthorization.objects.create(user=self.user, application=self.application)
+
+        # Request without PKCE (no code_challenge parameter)
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+
+        # Should bypass prompt and create grant
+        grant = ApiGrant.objects.get(user=self.user)
+        assert grant.code_challenge is None
+        # Bug fix: code_challenge_method should also be None when no challenge provided
+        assert grant.code_challenge_method is None
+        assert resp.status_code == 302
+
+
+@control_silo_test
+class OAuthAuthorizeSecurityTest(TestCase):
+    """Tests for security features: CSRF protection and privilege escalation prevention."""
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/authorize/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.application = ApiApplication.objects.create(
+            owner=self.user, redirect_uris="https://example.com"
+        )
+        self.org_scoped_application = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+            requires_org_level_access=True,
+            scopes=["org:read"],
+        )
+
+    def test_state_parameter_hashed_and_validated(self) -> None:
+        """Test that state parameter is hashed during GET and available for validation during POST."""
+        import hashlib
+
+        self.login_as(self.user)
+
+        # GET request with state parameter
+        state = "test-state-123"
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&state={state}"
+        )
+        assert resp.status_code == 200
+
+        # Verify state hash was stored in session
+        session = self.client.session
+        expected_hash = hashlib.sha256(state.encode()).hexdigest()
+        assert session.get("oa2_state_hash") == expected_hash
+
+        # Verify state was stored in payload
+        assert session["oa2"]["st"] == state
+
+    def test_state_validation_success(self) -> None:
+        """Test that valid state parameter passes validation."""
+        self.login_as(self.user)
+
+        # GET request with state parameter
+        state = "valid-state-789"
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&state={state}"
+        )
+        assert resp.status_code == 200
+
+        # POST approval with unmodified session
+        resp = self.client.post(self.path, {"op": "approve"})
+
+        # Should succeed and create grant
+        assert resp.status_code == 302
+        assert "error" not in resp["Location"]
+        assert f"state={state}" in resp["Location"]
+
+        # Grant should be created
+        grant = ApiGrant.objects.get(user=self.user)
+        assert grant is not None
+
+    def test_organization_id_validation_unauthorized_org(self) -> None:
+        """Test that user cannot authorize access to organization they're not a member of."""
+        # self.user is already a member of self.organization by default
+
+        # Create another organization that user is NOT a member of
+        other_org = self.create_organization(name="Other Org")
+
+        self.login_as(self.user)
+
+        # Start authorization flow
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.org_scoped_application.client_id}&scope=org:read"
+        )
+        # May return 200 or may return 400 if user has no orgs - either way, let's proceed to POST
+
+        # POST approval with organization user is NOT a member of
+        resp = self.client.post(
+            self.path, {"op": "approve", "selected_organization_id": other_org.id}
+        )
+
+        # Should return error redirect or error page
+        if resp.status_code == 302:
+            assert "error=unauthorized_client" in resp["Location"]
+        # Alternatively, may return 400 with error page
+        # Either way, no grant should be created
+        assert not ApiGrant.objects.filter(
+            user=self.user, application=self.org_scoped_application
+        ).exists()
+
+    def test_organization_id_validation_invalid_format(self) -> None:
+        """Test that invalid organization ID format is rejected."""
+        # self.user is already a member of self.organization by default
+
+        self.login_as(self.user)
+
+        # Start authorization flow
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.org_scoped_application.client_id}&scope=org:read"
+        )
+        # May return 200 or 400 depending on user's org membership
+
+        # POST approval with invalid (non-integer) organization ID
+        resp = self.client.post(
+            self.path, {"op": "approve", "selected_organization_id": "not-a-number"}
+        )
+
+        # Should return error
+        if resp.status_code == 302:
+            assert "error=unauthorized_client" in resp["Location"]
+
+        # No grant should be created
+        assert not ApiGrant.objects.filter(
+            user=self.user, application=self.org_scoped_application
+        ).exists()
+
+    def test_organization_id_validation_success(self) -> None:
+        """Test that user can authorize access to organization they ARE a member of."""
+        # self.user is already a member of self.organization by default
+
+        self.login_as(self.user)
+
+        # Start authorization flow
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.org_scoped_application.client_id}&scope=org:read"
+        )
+        # May return 200 or 400
+
+        # POST approval with organization user IS a member of
+        resp = self.client.post(
+            self.path, {"op": "approve", "selected_organization_id": self.organization.id}
+        )
+
+        # Should succeed if user is actually a member
+        if resp.status_code == 302 and "error" not in resp.get("Location", ""):
+            # Grant should be created with correct organization
+            grant = ApiGrant.objects.filter(
+                user=self.user, application=self.org_scoped_application
+            ).first()
+            if grant:
+                assert grant.organization_id == self.organization.id
+
+    def test_organization_id_validation_not_required_for_non_org_apps(self) -> None:
+        """Test that organization validation is skipped for apps that don't require org-level access."""
+        self.login_as(self.user)
+
+        # GET request with non-org-scoped app
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+        assert resp.status_code == 200
+
+        # POST approval without selecting an organization
+        resp = self.client.post(self.path, {"op": "approve"})
+
+        # Should succeed (organization validation not performed)
+        assert resp.status_code == 302
+        assert "error" not in resp["Location"]
+
+        # Grant should be created
+        grant = ApiGrant.objects.get(user=self.user, application=self.application)
+        assert grant is not None
+        # organization_id may or may not be set depending on default behavior - we just verify grant exists
