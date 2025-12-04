@@ -143,6 +143,7 @@ function openSeerExplorerWithClipboard(): void {
 
 interface TopIssuesResponse {
   data: ClusterSummary[];
+  last_updated?: string;
 }
 
 function CompactIssuePreview({group}: {group: Group}) {
@@ -783,15 +784,27 @@ function DynamicGrouping() {
 
           {isPending ? null : (
             <Fragment>
-              <Text size="sm" variant="muted">
-                {tn(
-                  'Viewing %s cluster containing %s issue',
-                  'Viewing %s clusters containing %s issues',
-                  filteredAndSortedClusters.length,
-                  totalIssues
+              <Flex justify="between" align="center">
+                <Text size="sm" variant="muted">
+                  {tn(
+                    'Viewing %s cluster containing %s issue',
+                    'Viewing %s clusters containing %s issues',
+                    filteredAndSortedClusters.length,
+                    totalIssues
+                  )}
+                  {isUsingCustomData && disableFilters && ` ${t('(filters disabled)')}`}
+                </Text>
+                {topIssuesResponse?.last_updated && (
+                  <LastUpdatedText>
+                    {t('Updated')}{' '}
+                    <StyledTimeSince
+                      date={topIssuesResponse.last_updated}
+                      suffix={t('ago')}
+                      unitStyle="short"
+                    />
+                  </LastUpdatedText>
                 )}
-                {isUsingCustomData && disableFilters && ` ${t('(filters disabled)')}`}
-              </Text>
+              </Flex>
 
               {selectedTags.size > 0 && (
                 <ActiveTagFilters>
@@ -1210,6 +1223,21 @@ const ActiveTagChip = styled('div')`
   border: 1px solid ${p => p.theme.purple200};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.purple400};
+`;
+
+const LastUpdatedText = styled('span')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  white-space: nowrap;
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: none;
+  }
 `;
 
 export default DynamicGrouping;
