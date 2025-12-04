@@ -42,6 +42,12 @@ class PreprodListBuildsValidator(serializers.Serializer[Any]):
         help_text="Number of results per page",
     )
     cursor = serializers.CharField(required=False, help_text="Cursor for pagination")
+    start = serializers.DateTimeField(required=False, help_text="Filter start date")
+    end = serializers.DateTimeField(required=False, help_text="Filter end date")
+    statsPeriod = serializers.CharField(
+        required=False,
+        help_text="Relative period for filtering (e.g., '7d')",
+    )
 
     def validate_state(self, value: str | None) -> int | None:
         """Convert state string to integer enum value."""

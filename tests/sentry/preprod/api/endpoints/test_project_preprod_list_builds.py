@@ -1,6 +1,9 @@
+from datetime import timedelta
 from unittest.mock import patch
+from urllib.parse import urlencode
 
 from django.urls import reverse
+from django.utils import timezone
 
 from sentry import analytics
 from sentry.preprod.analytics import PreprodArtifactApiListBuildsEvent
@@ -199,6 +202,43 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         resp_data = response.json()
         assert len(resp_data["builds"]) == 0
         assert "Link" in response  # Pagination headers still present
+
+    def test_list_builds_with_date_filtering(self) -> None:
+        url = self._get_url()
+        now = timezone.now()
+
+        self.artifact1.date_added = now - timedelta(days=10)
+        self.artifact1.save()
+        self.artifact2.date_added = now - timedelta(days=5)
+        self.artifact2.save()
+        self.artifact3.date_added = now - timedelta(days=1)
+        self.artifact3.save()
+
+        response = self.client.get(
+            f"{url}?statsPeriod=7d",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        returned_ids = {build["id"] for build in resp_data["builds"]}
+        assert returned_ids == {str(self.artifact2.id), str(self.artifact3.id)}
+
+    def test_list_builds_with_invalid_date_range(self) -> None:
+        url = self._get_url()
+        now = timezone.now()
+
+        params = {"start": now.isoformat(), "end": (now - timedelta(days=1)).isoformat()}
+        response = self.client.get(
+            f"{url}?{urlencode(params)}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 400
+        resp = response.json()
+        assert "Invalid date range" in str(resp)
 
     # Search functionality tests
     def test_list_builds_search_by_app_name(self) -> None:
