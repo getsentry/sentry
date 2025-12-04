@@ -8,7 +8,7 @@ import heroImg from 'sentry-images/debug/notifications/hero.png';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Heading, Text} from 'sentry/components/core/text';
 // Mimicking useStoriesDarkMode -> Don't use these elsewhere please 🙏
-import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme.chonk';
+import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme';
 
 function DarkModeProvider(props: PropsWithChildren) {
   return (
