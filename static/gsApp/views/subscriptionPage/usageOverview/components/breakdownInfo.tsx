@@ -107,6 +107,8 @@ function UsageBreakdownInfo({
     return null;
   }
 
+  const interval = plan.contractInterval === 'monthly' ? t('month') : 'year';
+
   return (
     <Grid columns="repeat(2, 1fr)" gap="md lg" padding="xl">
       {shouldShowIncludedVolume && (
@@ -168,7 +170,7 @@ function UsageBreakdownInfo({
           {shouldShowReservedSpend && (
             <UsageBreakdownField
               field={t('Reserved spend')}
-              value={displayPriceWithCents({cents: recurringReservedSpend})}
+              value={`${displayPriceWithCents({cents: recurringReservedSpend})} / ${interval}`}
               help={t(
                 'The amount you spend on additional reserved volume for this product per billing cycle.'
               )}

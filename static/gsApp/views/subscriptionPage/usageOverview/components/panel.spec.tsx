@@ -67,7 +67,7 @@ describe('ProductBreakdownPanel', () => {
     expect(screen.getByText('Pay-as-you-go')).toBeInTheDocument();
     expect(screen.getByText('$10.00')).toBeInTheDocument();
     expect(screen.getByText('Reserved spend')).toBeInTheDocument();
-    expect(screen.getByText('$245.00')).toBeInTheDocument();
+    expect(screen.getByText('$245.00 / month')).toBeInTheDocument();
   });
 
   it('renders for data category with per-category PAYG set', async () => {
@@ -111,7 +111,7 @@ describe('ProductBreakdownPanel', () => {
     expect(screen.getByText('$10.00 /')).toBeInTheDocument();
     expect(screen.getByText('$100.00')).toBeInTheDocument(); // shows per-category individual budget
     expect(screen.getByText('Reserved spend')).toBeInTheDocument();
-    expect(screen.getByText('$245.00')).toBeInTheDocument();
+    expect(screen.getByText('$245.00 / month')).toBeInTheDocument();
   });
 
   it('renders for reserved budget add-on', async () => {
@@ -159,7 +159,7 @@ describe('ProductBreakdownPanel', () => {
     expect(screen.getByText('Pay-as-you-go')).toBeInTheDocument();
     expect(screen.getByText('$2.00')).toBeInTheDocument();
     expect(screen.getByText('Reserved spend')).toBeInTheDocument();
-    expect(screen.getByText('$20.00')).toBeInTheDocument();
+    expect(screen.getByText('$20.00 / month')).toBeInTheDocument();
   });
 
   it('renders for reserved budget add-on data category', async () => {

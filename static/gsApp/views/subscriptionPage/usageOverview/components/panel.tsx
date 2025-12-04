@@ -4,7 +4,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {IconClock, IconLock, IconWarning} from 'sentry/icons';
+import {IconClock, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -42,7 +42,6 @@ function PanelHeader({
     addOnInfo,
     usageExceeded,
     activeProductTrial,
-    isEnabled,
   } = useProductBillingMetadata(subscription, selectedProduct);
 
   if (
@@ -76,9 +75,7 @@ function PanelHeader({
           })
         : t('Usage exceeded')}
     </Tag>
-  ) : isEnabled ? null : (
-    <IconLock locked size="sm" />
-  );
+  ) : null;
 
   if (isInline && !status) {
     return null;
