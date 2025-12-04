@@ -13,7 +13,7 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
       title: t('Issue Counts'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.ISSUE,
-      interval: '',
+      interval: '5m',
       queries: [
         {
           name: '',
@@ -31,7 +31,7 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
       title: t('Issues'),
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.ISSUE,
-      interval: '',
+      interval: '5m',
       queries: [
         {
           name: '',
@@ -49,7 +49,7 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
       title: t('Unhealthy Sessions'),
       displayType: DisplayType.LINE,
       widgetType: WidgetType.RELEASE,
-      interval: '',
+      interval: '5m',
       queries: [
         {
           name: '',
@@ -67,7 +67,7 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
       title: t('User Health'),
       displayType: DisplayType.AREA,
       widgetType: WidgetType.RELEASE,
-      interval: '',
+      interval: '5m',
       queries: [
         {
           name: '',
@@ -95,7 +95,7 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
       title: t('Session Health'),
       displayType: DisplayType.AREA,
       widgetType: WidgetType.RELEASE,
-      interval: '',
+      interval: '5m',
       queries: [
         {
           name: '',
@@ -123,7 +123,7 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
       title: t('Session Counts'),
       displayType: DisplayType.LINE,
       widgetType: WidgetType.RELEASE,
-      interval: '',
+      interval: '5m',
       queries: [
         {
           name: '',
@@ -141,7 +141,7 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
       title: t('User Counts'),
       displayType: DisplayType.LINE,
       widgetType: WidgetType.RELEASE,
-      interval: '4h',
+      interval: '5m',
       queries: [
         {
           name: '',
