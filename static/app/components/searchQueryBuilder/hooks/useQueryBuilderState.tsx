@@ -732,13 +732,22 @@ export function replaceFreeTextTokens(
     }
 
     const value = escapeTagValue(token.text.trim());
-    replacedQuery.push(
-      // We don't want to break user flows, so if they include an asterisk in their free
-      // text value, leave it as an `is` filter.
-      value.includes('*')
-        ? `${primarySearchKey}:${value}`
-        : `${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`
-    );
+
+    const valueIsQuoted =
+      value.startsWith('"') && value.endsWith('"') && value.includes(' ');
+
+    if (!token.quoted && valueIsQuoted) {
+      const temp = `"*${value.slice(1, -1).replaceAll(' ', ' * ')}*"`;
+      replacedQuery.push(`${primarySearchKey}:${temp}`);
+    } else {
+      replacedQuery.push(
+        // We don't want to break user flows, so if they include an asterisk in their free
+        // text value, leave it as an `is` filter.
+        value.includes('*')
+          ? `${primarySearchKey}:${value}`
+          : `${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`
+      );
+    }
   }
 
   const finalQuery = replacedQuery.join(' ').trim();
