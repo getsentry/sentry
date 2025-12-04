@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {MetricDetectorChart} from 'sentry/views/detectors/components/forms/metric/metricDetectorChart';
 import {
   createConditions,
@@ -9,7 +10,13 @@ import {
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 
-export function MetricDetectorPreviewChart() {
+interface MetricDetectorPreviewChartProps {
+  detector?: MetricDetector;
+}
+
+export function MetricDetectorPreviewChart({
+  detector,
+}: MetricDetectorPreviewChartProps = {}) {
   // Get all the form fields needed for the chart
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
   const aggregateFunction = useMetricDetectorFormField(
@@ -92,6 +99,7 @@ export function MetricDetectorPreviewChart() {
       sensitivity={sensitivity}
       thresholdType={thresholdType}
       extrapolationMode={extrapolationMode}
+      detectorId={detector?.id}
     />
   );
 }

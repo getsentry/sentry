@@ -5,7 +5,12 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
-export function NewDetectorFooter({maxWidth}: {maxWidth?: string}) {
+interface NewDetectorFooterProps {
+  disabledCreate?: string;
+  maxWidth?: string;
+}
+
+export function NewDetectorFooter({maxWidth, disabledCreate}: NewDetectorFooterProps) {
   const organization = useOrganization();
 
   return (
@@ -16,7 +21,12 @@ export function NewDetectorFooter({maxWidth}: {maxWidth?: string}) {
       >
         {t('Back')}
       </LinkButton>
-      <Button priority="primary" type="submit">
+      <Button
+        priority="primary"
+        type="submit"
+        disabled={!!disabledCreate}
+        title={disabledCreate}
+      >
         {t('Create Monitor')}
       </Button>
     </EditLayout.Footer>

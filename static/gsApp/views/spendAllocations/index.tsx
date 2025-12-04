@@ -380,7 +380,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                 priority="primary"
                 size="sm"
                 data-test-id="new-allocation"
-                icon={<IconAdd size="xs" isCircled />}
+                icon={<IconAdd size="xs" />}
                 onClick={openForm()}
               >
                 {t('New Allocation')}

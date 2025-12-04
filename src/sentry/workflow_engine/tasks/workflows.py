@@ -73,7 +73,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
             batch_client, event_data, event_start_time=activity.datetime, detector=detector
         )
 
-    evaluation.to_log(logger)
+    evaluation.log_to(logger)
 
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update.executed",
@@ -103,7 +103,7 @@ def process_workflows_event(
     has_reappeared: bool,
     has_escalated: bool,
     start_timestamp_seconds: float | None = None,
-    project_id: int | None = None,
+    project_id: int | None = None,  # TODO: remove
     **kwargs: dict[str, Any],
 ) -> None:
     from sentry.workflow_engine.processors.workflow import process_workflows
@@ -137,7 +137,7 @@ def process_workflows_event(
                 batch_client, event_data, event_start_time=event_start_time
             )
 
-    evaluation.to_log(logger)
+    evaluation.log_to(logger)
     duration = time.time() - start_time
     is_slow = duration > 1.0
     # We want full coverage for particularly slow cases, plus a random sampling.

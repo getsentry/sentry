@@ -9,12 +9,10 @@ import {
   QUERIES_PER_MINUTE_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/constants';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {EXCLUDED_DB_OPS} from 'sentry/views/insights/database/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const BASE_FILTERS = {
   [SpanFields.SPAN_CATEGORY]: ModuleName.DB,
-  [`!${SpanFields.SPAN_OP}`]: `[${EXCLUDED_DB_OPS.join(',')}]`,
   has: SpanFields.NORMALIZED_DESCRIPTION,
 };
 
@@ -23,7 +21,7 @@ const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString()
 export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'Backend Queries',
+  title: 'Queries',
   filters: {
     globalFilter: [
       {
@@ -33,7 +31,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
           name: 'span.system',
           kind: FieldKind.TAG,
         },
-        value: 'span.system:postgresql',
+        value: '',
       },
       {
         dataset: WidgetType.SPANS,
@@ -110,6 +108,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.SPANS,
       interval: '',
+      tableWidths: [-1, -1, -1, -1],
       queries: [
         {
           name: '',
@@ -126,7 +125,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
             `sum(${SpanFields.SPAN_SELF_TIME})`,
           ],
           columns: [SpanFields.NORMALIZED_DESCRIPTION],
-          orderby: `sum(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
           fieldAliases: [
             t('Query Description'),
             `${t('Queries')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,

@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
     transform_orderby_for_error_upsampling,
@@ -85,7 +85,7 @@ class EventsApiResponse(TypedDict):
 
 @extend_schema(tags=["Discover"])
 @region_silo_endpoint
-class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
@@ -163,14 +163,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Retrieves discover (also known as events) data for a given organization.
-
-        **Eventsv2 Deprecation Note**: Users who may be using the `eventsv2` endpoint should update their requests to the `events` endpoint outline in this document.
-        The `eventsv2` endpoint is not a public endpoint and has no guaranteed availability. If you are not making any API calls to `eventsv2`, you can safely ignore this.
-        Changes between `eventsv2` and `events` include:
-        - Field keys in the response now match the keys in the requested `field` param exactly.
-        - The `meta` object in the response now shows types in the nested `field` object.
-
-        Aside from the url change, there are no changes to the request payload itself.
 
         **Note**: This endpoint is intended to get a table of results, and is not for doing a full export of data sent to
         Sentry.
@@ -504,9 +496,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
             discover_saved_query_id = request.GET.get("discoverSavedQueryId", None)
             additional_queries = AdditionalQueries(
-                span=request.GET.getlist("spanQueries"),
-                log=request.GET.getlist("logQueries"),
-                metric=request.GET.getlist("metricQueries"),
+                span=request.GET.getlist("spanQuery"),
+                log=request.GET.getlist("logQuery"),
+                metric=request.GET.getlist("metricQuery"),
             )
 
             def get_rpc_config():
@@ -536,12 +528,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     )
                 elif scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
-                    metric_name, metric_type, metric_unit = get_trace_metric_from_request(request)
+                    metric = get_trace_metric_from_request(request)
 
                     return TraceMetricsSearchResolverConfig(
-                        metric_name=metric_name,
-                        metric_type=metric_type,
-                        metric_unit=metric_unit,
+                        metric=metric,
                         use_aggregate_conditions=use_aggregate_conditions,
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,

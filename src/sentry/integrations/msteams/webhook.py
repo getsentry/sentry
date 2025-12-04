@@ -148,12 +148,17 @@ def verify_signature(request) -> bool:
     kid = jwt.peek_header(token)["kid"]
     key = public_keys[kid]
 
+    # OpenID standard for `id_token_signing_alg_values_supported` is a JSON Array.
+    # Please take a look at the OpenID Provider Metadata:
+    # https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
+    algorithms: list[str] = open_id_config["id_token_signing_alg_values_supported"]
+
     try:
         decoded = jwt.decode(
             token,
             key,
             audience=options.get("msteams.client-id"),
-            algorithms=open_id_config["id_token_signing_alg_values_supported"],
+            algorithms=algorithms,
         )
     except Exception as err:
         logger.exception("msteams.webhook.invalid-token-with-verify")

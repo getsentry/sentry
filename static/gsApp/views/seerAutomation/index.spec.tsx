@@ -5,7 +5,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-import SeerAutomationRoot from './index';
+import SeerAutomation from 'getsentry/views/seerAutomation/seerAutomation';
 
 describe('SeerAutomation', () => {
   beforeEach(() => {
@@ -61,7 +61,7 @@ describe('SeerAutomation', () => {
       },
     });
 
-    render(<SeerAutomationRoot />, {organization});
+    render(<SeerAutomation />, {organization});
 
     // Project details populate the project list
     const projectItem = await screen.findByText(project.slug);
@@ -124,7 +124,7 @@ describe('SeerAutomation', () => {
       },
     });
 
-    render(<SeerAutomationRoot />, {organization});
+    render(<SeerAutomation />, {organization});
 
     // Find the toggle for Default for Issue Scans
     const toggle = await screen.findByRole('checkbox', {

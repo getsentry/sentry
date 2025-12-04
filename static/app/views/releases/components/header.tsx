@@ -1,8 +1,9 @@
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 
-function Header() {
+export default function Header() {
   return (
     <Layout.Header noActionWrap unified>
       <Layout.HeaderContent unified>
@@ -16,8 +17,16 @@ function Header() {
           />
         </Layout.Title>
       </Layout.HeaderContent>
+      <Layout.HeaderActions>
+        <FeedbackButton
+          feedbackOptions={{
+            messagePlaceholder: t('How can we improve the Releases experience?'),
+            tags: {
+              ['feedback.source']: 'releases-list-header',
+            },
+          }}
+        />
+      </Layout.HeaderActions>
     </Layout.Header>
   );
 }
-
-export default Header;

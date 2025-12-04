@@ -1,5 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {parseAsStringEnum, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
@@ -9,8 +10,6 @@ import Hook from 'sentry/components/hook';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   makeAutomationBasePathname,
@@ -44,9 +43,28 @@ export function DetectorTypeForm() {
   );
 }
 
+type SelectableDetectorType = Extract<
+  DetectorType,
+  'metric_issue' | 'monitor_check_in_failure' | 'uptime_domain_failure'
+>;
+
+const ALLOWED_DETECTOR_TYPES = [
+  'metric_issue',
+  'monitor_check_in_failure',
+  'uptime_domain_failure',
+] as const satisfies SelectableDetectorType[];
+
+const detectorTypeParser = parseAsStringEnum(ALLOWED_DETECTOR_TYPES)
+  .withOptions({history: 'replace', clearOnDefault: false})
+  .withDefault(ALLOWED_DETECTOR_TYPES[0]);
+
+export function useDetectorTypeQueryState() {
+  return useQueryState('detectorType', detectorTypeParser);
+}
+
 interface DetectorTypeOption {
   description: string;
-  id: DetectorType;
+  id: SelectableDetectorType;
   name: string;
   visualization: React.ReactNode;
   disabled?: boolean;
@@ -54,23 +72,15 @@ interface DetectorTypeOption {
 }
 
 function MonitorTypeField() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const selectedDetectorType = location.query.detectorType as DetectorType;
+  const [selectedDetectorType, setDetectorType] = useDetectorTypeQueryState();
 
   const useMetricDetectorLimit =
     HookStore.get('react-hook:use-metric-detector-limit')[0] ?? (() => null);
   const quota = useMetricDetectorLimit();
   const canCreateMetricDetector = !quota?.hasReachedLimit;
 
-  const handleChange = (value: DetectorType) => {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        detectorType: value,
-      },
-    });
+  const handleChange = (value: SelectableDetectorType) => {
+    setDetectorType(value);
   };
 
   const options: DetectorTypeOption[] = [

@@ -12,7 +12,6 @@ from sentry import options
 from sentry import ratelimits as ratelimiter
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.silo.base import control_silo_function
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json
 from sentry.utils.email import MessageBuilder
@@ -257,7 +256,7 @@ class TwoFactorAuthView(BaseView):
         )
 
 
-@control_silo_function
+@control_silo_view
 def u2f_appid(request):
     facets = options.get("u2f.facets")
     if not facets:

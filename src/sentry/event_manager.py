@@ -45,7 +45,7 @@ from sentry.constants import (
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import record_latest_release
 from sentry.eventstream.base import GroupState
-from sentry.eventtypes import EventType
+from sentry.eventtypes.base import BaseEvent as EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
@@ -1918,7 +1918,7 @@ def _process_existing_aggregate(
     # We pass `times_seen` separately from all of the other columns so that `buffer_inr` knows to
     # increment rather than overwrite the existing value
     times_seen = 1
-    if group.project.id in options.get("issues.client_error_sampling.project_allowlist"):
+    if group.project_id in options.get("issues.client_error_sampling.project_allowlist"):
         times_seen = _get_error_weighted_times_seen(event)
 
     buffer_incr(Group, {"times_seen": times_seen}, {"id": group.id}, updated_group_values)
