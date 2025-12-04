@@ -716,9 +716,6 @@ def test_enrich_gen_ai_agent_name_from_immediate_parent_fallback_to_span_op() ->
         start_timestamp=1609455601.0,
         end_timestamp=1609455602.0,
         span_op="gen_ai.execute_tool",
-        attributes={
-            "gen_ai.operation.name": {"type": "string", "value": "execute_tool"},
-        },
     )
 
     spans = [parent_span, child_span]
