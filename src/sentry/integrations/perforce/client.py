@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
+from contextlib import contextmanager
 from typing import Any
 
 from P4 import P4, P4Exception
 
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextClient,
     FileBlameInfo,
@@ -14,6 +18,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 
 logger = logging.getLogger(__name__)
 
@@ -29,41 +34,134 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
     def __init__(
         self,
-        p4port: str | None = None,
-        user: str | None = None,
-        password: str | None = None,
-        client: str | None = None,
-        ssl_fingerprint: str | None = None,
+        integration: Integration | RpcIntegration,
+        org_integration: OrganizationIntegration | RpcOrganizationIntegration | None = None,
     ):
         """
         Initialize Perforce client.
 
         Args:
-            p4port: P4PORT string (e.g., 'ssl:host:port', 'tcp:host:port', or 'host:port')
-            user: Perforce username
-            password: Perforce password OR P4 ticket (both are supported)
-            client: Client/workspace name
-            ssl_fingerprint: SSL trust fingerprint for secure connections
+            integration: Integration instance containing credentials in metadata
+            org_integration: Organization integration instance (required for API compatibility)
         """
-        self.p4port = p4port
-        self.ssl_fingerprint = ssl_fingerprint
-        self.user = user or ""
-        self.password = password
-        self.client_name = client
-        self.P4 = P4
-        self.P4Exception = P4Exception
+        self.integration = integration
+        self.org_integration = org_integration
 
+        # Extract configuration from integration.metadata
+        if not org_integration:
+            raise IntegrationError("Organization Integration is required for Perforce")
+
+        metadata = integration.metadata
+        self.p4port = metadata.get("p4port", "localhost:1666")
+        self.user = metadata.get("user", "")
+        self.password = metadata.get("password")
+        self.auth_type = metadata.get(
+            "auth_type", "password"
+        )  # Default to password for backwards compat
+        self.client_name = metadata.get("client")
+        self.ssl_fingerprint = metadata.get("ssl_fingerprint")
+
+    @contextmanager
     def _connect(self):
-        """Create and connect a P4 instance with SSL support."""
-        pass
+        """
+        Context manager for P4 connections with automatic cleanup.
 
-    def _disconnect(self, p4):
-        """Disconnect P4 instance."""
-        pass
+        Yields a connected P4 instance and ensures disconnection on exit.
+
+        Uses P4Python API:
+        - p4.connect(): https://www.perforce.com/manuals/p4python/Content/P4Python/python.programming.html#python.programming.connecting
+        - p4.run_trust(): https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_trust.html
+        - p4.run_login(): https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_login.html
+
+        Example:
+            with self._connect() as p4:
+                result = p4.run("info")
+        """
+        p4 = P4()
+        p4.port = self.p4port
+        p4.user = self.user
+        p4.password = self.password
+
+        if self.client_name:
+            p4.client = self.client_name
+
+        p4.exception_level = 1  # Only errors raise exceptions
+
+        # Connect to Perforce server
+        try:
+            p4.connect()
+        except P4Exception as e:
+            error_msg = str(e)
+            # Provide helpful error message for connection failures
+            if "SSL" in error_msg or "trust" in error_msg.lower():
+                raise ApiError(
+                    f"Failed to connect to Perforce (SSL issue): {error_msg}. "
+                    f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
+                )
+            raise ApiError(f"Failed to connect to Perforce: {error_msg}")
+
+        # Assert SSL trust after connection (if needed)
+        # This must be done after p4.connect() but before p4.run_login()
+        if self.ssl_fingerprint and self.p4port.startswith("ssl:"):
+            try:
+                p4.run_trust("-i", self.ssl_fingerprint)
+            except P4Exception as trust_error:
+                try:
+                    p4.disconnect()
+                except Exception:
+                    pass
+                raise ApiError(
+                    f"Failed to establish SSL trust: {trust_error}. "
+                    f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
+                )
+
+        # Authenticate based on auth_type
+        # - password: Requires run_login() to exchange password for session ticket
+        # - ticket: Already authenticated via p4.password, no login needed
+        if self.password and self.auth_type == "password":
+            try:
+                p4.run_login()
+            except P4Exception as login_error:
+                try:
+                    p4.disconnect()
+                except Exception:
+                    pass
+                raise ApiUnauthorized(
+                    f"Failed to authenticate with Perforce: {login_error}. "
+                    "Verify your password is correct."
+                )
+        elif self.password and self.auth_type == "ticket":
+            # Ticket authentication: p4.password is already set to the ticket
+            # Verify ticket works by running a test command
+            try:
+                p4.run("info")
+            except P4Exception as e:
+                try:
+                    p4.disconnect()
+                except Exception:
+                    pass
+                raise ApiUnauthorized(
+                    f"Failed to authenticate with Perforce ticket: {e}. "
+                    "Verify your P4 ticket is valid. Obtain a new ticket with: p4 login -p"
+                )
+
+        try:
+            yield p4
+        finally:
+            # Ensure cleanup
+            try:
+                if p4.connected():
+                    p4.disconnect()
+            except Exception as e:
+                # Log disconnect failures as they may indicate connection leaks
+                logger.warning("Failed to disconnect from Perforce: %s", e, exc_info=True)
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         """
         Check if a file exists in the depot.
+
+        Uses p4 files command to list file(s) in the depot.
+        API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_files.html
 
         Args:
             repo: Repository object containing depot path (includes stream if specified)
@@ -73,16 +171,128 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Returns:
             File info dict if exists, None otherwise
         """
-        return None
+        with self._connect() as p4:
+            try:
+                depot_path = self.build_depot_path(repo, path)
+                result = p4.run("files", depot_path)
+
+                # Verify result contains actual file data (not just warnings)
+                # When exception_level=1, warnings are returned in result list
+                if result and len(result) > 0 and "depotFile" in result[0]:
+                    return result[0]
+                return None
+
+            except P4Exception:
+                return None
+
+    def build_depot_path(self, repo: Repository, path: str, stream: str | None = None) -> str:
+        """
+        Build full depot path from repo config and file path.
+
+        Handles both relative and absolute paths:
+        - Relative: "depot/app/file.py" or "app/file.py" → "//depot/app/file.py"
+        - Absolute: "//depot/app/file.py" → "//depot/app/file.py" (unchanged)
+        - With stream: "app/file.py" + stream="main" → "//depot/main/app/file.py"
+
+        Args:
+            repo: Repository object
+            path: File path (may include #revision for file revisions like "file.cpp#1")
+            stream: Optional stream name to insert after depot (e.g., "main", "dev")
+
+        Returns:
+            Full depot path with #revision preserved if present
+        """
+        # Extract file revision if present (# syntax only)
+        revision = None
+        path_without_rev = path
+
+        if "#" in path:
+            path_without_rev, revision = path.rsplit("#", 1)
+
+        # If already absolute depot path, use as-is
+        if path_without_rev.startswith("//"):
+            full_path = path_without_rev
+        else:
+            depot_root = repo.config.get("depot_path", repo.name).rstrip("/")
+
+            # Normalize depot_root to ensure it starts with //
+            if not depot_root.startswith("//"):
+                depot_root = f"//{depot_root}"
+
+            # Strip depot name from path if it duplicates depot_root
+            # e.g., depot_root="//depot", path="depot/app/file.py" → "app/file.py"
+            depot_name = depot_root.lstrip("/")  # "depot"
+            if path_without_rev.startswith(depot_name + "/") or path_without_rev == depot_name:
+                path_without_rev = path_without_rev[len(depot_name) :].lstrip("/")
+
+            # Remove leading slashes from relative path
+            path_without_rev = path_without_rev.lstrip("/")
+
+            # Handle Perforce streams: insert stream after depot
+            # Format: //depot/stream/path/to/file
+            if stream:
+                full_path = f"{depot_root}/{stream}/{path_without_rev}"
+            else:
+                full_path = f"{depot_root}/{path_without_rev}"
+
+        # Add file revision back if present
+        if revision:
+            full_path = f"{full_path}#{revision}"
+
+        return full_path
 
     def get_depots(self) -> list[dict[str, Any]]:
         """
         List all depots accessible to the user.
 
+        Uses p4 depots command to display a list of all depots.
+        API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_depots.html
+
         Returns:
             List of depot info dictionaries
         """
-        return []
+        with self._connect() as p4:
+            depots = p4.run("depots")
+            return [
+                {
+                    "name": depot.get("name"),
+                    "type": depot.get("type"),
+                    "description": depot.get("desc", ""),
+                }
+                for depot in depots
+            ]
+
+    def get_user(self, username: str) -> dict[str, Any] | None:
+        """
+        Get user information from Perforce.
+
+        Uses p4 user command to fetch user details including email and full name.
+        API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_user.html
+
+        Args:
+            username: Perforce username
+
+        Returns:
+            User info dictionary with Email and FullName fields, or None if not found
+
+        Raises:
+            P4Exception: For connection or transient errors that may be retryable
+        """
+        with self._connect() as p4:
+            result = p4.run("user", "-o", username)
+            if result and len(result) > 0:
+                user_info = result[0]
+                # p4 user -o returns a template for non-existent users
+                # Check if user actually exists by verifying Update field is set
+                if not user_info.get("Update"):
+                    return None
+                return {
+                    "email": user_info.get("Email", ""),
+                    "full_name": user_info.get("FullName", ""),
+                    "username": user_info.get("User", username),
+                }
+            # User not found - return None (not an error condition)
+            return None
 
     def get_changes(
         self, depot_path: str, max_changes: int = 20, start_cl: str | None = None
