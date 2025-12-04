@@ -110,7 +110,7 @@ function ManageReposPanel({
 
   return (
     <SlideOverPanel
-      isOpen={!collapsed}
+      open={!collapsed}
       slidePosition="right"
       ariaLabel="Settings Panel"
       data-test-id="manage-repos-panel"

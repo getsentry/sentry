@@ -14,7 +14,7 @@ export function SlideOverPanelPlayground() {
     <Fragment>
       <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
 
-      <SlideOverPanel isOpen={isPanelOpen} slidePosition="right">
+      <SlideOverPanel open={isPanelOpen} slidePosition="right">
         <Container border="primary" height="100%" padding="md">
           <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
         </Container>
@@ -34,7 +34,7 @@ export function SlideOverPanelSkeletonPlayground() {
     <Fragment>
       <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
 
-      <SlideOverPanel isOpen={isPanelOpen} slidePosition="right">
+      <SlideOverPanel open={isPanelOpen} slidePosition="right">
         {(options: {isOpening: boolean}) => {
           return options.isOpening ? (
             <SkeletonPanelContents onClick={closePanel} />

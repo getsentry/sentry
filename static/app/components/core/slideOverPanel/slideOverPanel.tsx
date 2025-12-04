@@ -33,7 +33,7 @@ type SlideOverPanelProps = {
   /**
    * Whether the panel is visible. In most cases it's better to use this prop rather than render the panel conditionally, since it'll defer rendering the contents of the panel to a lower priority React lane.
    */
-  isOpen: boolean;
+  open: boolean;
   ariaLabel?: string;
   className?: string;
   'data-test-id'?: string;
@@ -53,7 +53,7 @@ type SlideOverPanelProps = {
 export function SlideOverPanel({
   'data-test-id': testId,
   ariaLabel,
-  isOpen,
+  open: isOpen,
   children,
   className,
   onOpen,
