@@ -126,6 +126,12 @@ export default function AutomationNewSettings() {
             success: false,
           });
         }
+      } else {
+        trackAnalytics('automation.created', {
+          organization,
+          ...getAutomationAnalyticsPayload(newAutomationData),
+          success: false,
+        });
       }
     },
     [createAutomation, state, navigate, organization]

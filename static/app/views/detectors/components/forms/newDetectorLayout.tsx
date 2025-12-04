@@ -44,6 +44,7 @@ export function NewDetectorLayout<
   const maxWidth = theme.breakpoints.xl;
 
   const formSubmitHandler = useCreateDetectorFormSubmit({
+    detectorType,
     formDataToEndpointPayload,
   });
 
