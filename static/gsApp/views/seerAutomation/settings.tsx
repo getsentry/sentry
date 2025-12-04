@@ -2,7 +2,6 @@ import {Container} from '@sentry/scraps/layout/container';
 import {ExternalLink} from '@sentry/scraps/link/link';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/core/alert';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {t, tct} from 'sentry/locale';
@@ -17,14 +16,6 @@ export default function SeerAutomationSettings() {
 
   return (
     <SeerSettingsPageWrapper>
-      {canWrite ? null : (
-        <Alert data-test-id="org-permission-alert" type="warning">
-          {t(
-            'These settings can only be edited by users with the organization owner or manager role.'
-          )}
-        </Alert>
-      )}
-
       <Form
         saveOnBlur
         apiMethod="PUT"
