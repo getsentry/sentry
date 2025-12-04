@@ -19,6 +19,7 @@ class NotificationCategory(StrEnum):
     DEBUG = "debug"
     DATA_EXPORT = "data-export"
     DYNAMIC_SAMPLING = "dynamic-sampling"
+    REPOSITORY = "repository"
 
     def get_sources(self) -> list[str]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -39,6 +40,9 @@ NOTIFICATION_SOURCE_MAP = {
     ],
     NotificationCategory.DYNAMIC_SAMPLING: [
         "custom-rule-samples-fulfilled",
+    ],
+    NotificationCategory.REPOSITORY: [
+        "unable-to-delete-repository",
     ],
 }
 
