@@ -142,5 +142,4 @@ function UsageCharts({
     </Container>
   );
 }
-
 export default UsageCharts;

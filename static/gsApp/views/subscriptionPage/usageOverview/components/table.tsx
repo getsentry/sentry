@@ -144,9 +144,9 @@ const Table = styled('table')`
   width: 100%;
   margin: 0;
 
-  thead,
-  tbody,
-  tr {
+  & > thead,
+  & > tbody,
+  & > * > tr {
     display: grid;
     grid-template-columns: subgrid;
     grid-column: 1 / -1;

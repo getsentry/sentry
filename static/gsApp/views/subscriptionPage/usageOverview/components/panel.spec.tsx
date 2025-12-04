@@ -67,7 +67,7 @@ describe('ProductBreakdownPanel', () => {
     expect(screen.getByText('Pay-as-you-go')).toBeInTheDocument();
     expect(screen.getByText('$10.00')).toBeInTheDocument();
     expect(screen.getByText('Reserved spend')).toBeInTheDocument();
-    expect(screen.getByText('$245.00')).toBeInTheDocument();
+    expect(screen.getByText('$245.00 / month')).toBeInTheDocument();
   });
 
   it('renders for data category with per-category PAYG set', async () => {
@@ -111,13 +111,19 @@ describe('ProductBreakdownPanel', () => {
     expect(screen.getByText('$10.00 /')).toBeInTheDocument();
     expect(screen.getByText('$100.00')).toBeInTheDocument(); // shows per-category individual budget
     expect(screen.getByText('Reserved spend')).toBeInTheDocument();
-    expect(screen.getByText('$245.00')).toBeInTheDocument();
+    expect(screen.getByText('$245.00 / month')).toBeInTheDocument();
   });
 
   it('renders for reserved budget add-on', async () => {
     const legacySeerSubscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
+      onDemandBudgets: {
+        enabled: true,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 100_00,
+        onDemandSpendUsed: 0,
+      },
     });
     legacySeerSubscription.reservedBudgets![0] = {
       ...legacySeerSubscription.reservedBudgets![0]!,
@@ -153,13 +159,19 @@ describe('ProductBreakdownPanel', () => {
     expect(screen.getByText('Pay-as-you-go')).toBeInTheDocument();
     expect(screen.getByText('$2.00')).toBeInTheDocument();
     expect(screen.getByText('Reserved spend')).toBeInTheDocument();
-    expect(screen.getByText('$20.00')).toBeInTheDocument();
+    expect(screen.getByText('$20.00 / month')).toBeInTheDocument();
   });
 
   it('renders for reserved budget add-on data category', async () => {
     const legacySeerSubscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
+      onDemandBudgets: {
+        enabled: true,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 100_00,
+        onDemandSpendUsed: 0,
+      },
     });
     legacySeerSubscription.reservedBudgets![0] = {
       ...legacySeerSubscription.reservedBudgets![0]!,
@@ -299,5 +311,25 @@ describe('ProductBreakdownPanel', () => {
 
     await screen.findByRole('heading', {name: 'Errors'});
     expect(screen.getByText('Pay-as-you-go limit reached')).toBeInTheDocument();
+  });
+
+  it('hides irrelevant breakdown fields', async () => {
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+    await screen.findByRole('heading', {name: 'Errors'});
+    expect(screen.getByText('Included volume')).toBeInTheDocument();
+    expect(screen.getByText('Business plan')).toBeInTheDocument();
+    expect(screen.getByText('50,000')).toBeInTheDocument();
+    expect(screen.queryByText('Additional reserved')).not.toBeInTheDocument();
+    expect(screen.queryByText('Gifted')).not.toBeInTheDocument();
+    expect(screen.queryByText('Additional spend')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pay-as-you-go')).not.toBeInTheDocument();
+    expect(screen.queryByText('Reserved spend')).not.toBeInTheDocument();
   });
 });
