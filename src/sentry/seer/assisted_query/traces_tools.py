@@ -4,6 +4,7 @@ from sentry.api import client
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.seer.endpoints.utils import validate_date_params
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +12,13 @@ API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
 
 
 def get_attribute_names(
-    *, org_id: int, project_ids: list[int], stats_period: str, item_type: str = "spans"
+    *,
+    org_id: int,
+    project_ids: list[int],
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+    item_type: str = "spans",
 ) -> dict:
     """
     Get attribute names for trace items by calling the public API endpoint.
@@ -23,7 +30,9 @@ def get_attribute_names(
     Args:
         org_id: Organization ID
         project_ids: List of project IDs to query
-        stats_period: Time period string (e.g., "7d", "24h", "30d")
+        stats_period: Time period string (e.g., "7d", "24h", "30d"). Cannot be provided with start and end.
+        start: Start date for the query (ISO string). Must be provided with end.
+        end: End date for the query (ISO string). Must be provided with start.
         item_type: Type of trace item (default: "spans", can be "spans", "logs", etc.)
 
     Returns:
@@ -36,6 +45,11 @@ def get_attribute_names(
         }
     """
     organization = Organization.objects.get(id=org_id)
+
+    stats_period, start, end = validate_date_params(
+        stats_period, start, end, default_stats_period="7d"
+    )
+
     api_key = ApiKey(organization_id=org_id, scope_list=API_KEY_SCOPES)
 
     fields: dict[str, list[str]] = {"string": [], "number": []}
@@ -45,9 +59,13 @@ def get_attribute_names(
         query_params = {
             "attributeType": attr_type,
             "itemType": item_type,
-            "statsPeriod": stats_period,
             "project": project_ids or [ALL_ACCESS_PROJECT_ID],
         }
+        if stats_period:
+            query_params["statsPeriod"] = stats_period
+        else:
+            query_params["start"] = start
+            query_params["end"] = end
 
         # API returns: [{"key": "...", "name": "span.op", "attributeSource": {...}}, ...]
         resp = client.get(
@@ -67,7 +85,9 @@ def get_attribute_values_with_substring(
     org_id: int,
     project_ids: list[int],
     fields_with_substrings: list[dict[str, str]],
-    stats_period: str = "7d",
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
     limit: int = 100,
     item_type: str = "spans",
 ) -> dict:
@@ -79,7 +99,9 @@ def get_attribute_values_with_substring(
         project_ids: List of project IDs to query
         fields_with_substrings: List of dicts with "field" and optional "substring" keys
             Example: [{"field": "span.status", "substring": "error"}]
-        stats_period: Time period string (e.g., "7d", "24h", "30d")
+        stats_period: Time period string (e.g., "7d", "24h", "30d"). Cannot be provided with start and end.
+        start: Start date for the query (ISO string). Must be provided with end.
+        end: End date for the query (ISO string). Must be provided with start.
         limit: Maximum number of values to return per field (API default is 1000)
         item_type: Type of trace item (default: "spans")
 
@@ -94,6 +116,11 @@ def get_attribute_values_with_substring(
         return {}
 
     organization = Organization.objects.get(id=org_id)
+
+    stats_period, start, end = validate_date_params(
+        stats_period, start, end, default_stats_period="7d"
+    )
+
     api_key = ApiKey(organization_id=org_id, scope_list=API_KEY_SCOPES)
 
     values: dict[str, set[str]] = {}
@@ -105,9 +132,13 @@ def get_attribute_values_with_substring(
         query_params = {
             "itemType": item_type,
             "attributeType": "string",
-            "statsPeriod": stats_period,
             "project": project_ids or [ALL_ACCESS_PROJECT_ID],
         }
+        if stats_period:
+            query_params["statsPeriod"] = stats_period
+        else:
+            query_params["start"] = start
+            query_params["end"] = end
         if substring:
             query_params["substringMatch"] = substring
 
