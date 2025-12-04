@@ -22,7 +22,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import type {Color} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 import {AddOnCategory} from 'getsentry/types';
 import {getProductIcon, getReservedBudgetCategoryForAddOn} from 'getsentry/utils/billing';
@@ -45,9 +45,9 @@ interface ProductCheckoutInfo {
       }
     >
   >;
-  buttonBorderColor?: Color;
-  color?: Color;
-  gradientEndColor?: Color;
+  buttonBorderColor?: string;
+  color?: ColorOrAlias;
+  gradientEndColor?: string;
 }
 
 export function getProductCheckoutDescription({
@@ -109,9 +109,9 @@ function ProductSelect({
   const theme = useTheme();
   const PRODUCT_CHECKOUT_INFO = {
     [AddOnCategory.LEGACY_SEER]: {
-      color: theme.pink400 as Color,
-      gradientEndColor: theme.pink100 as Color,
-      buttonBorderColor: theme.pink200 as Color,
+      color: theme.pink400 as ColorOrAlias,
+      gradientEndColor: theme.pink100,
+      buttonBorderColor: theme.pink200,
       categoryInfo: {
         [DataCategory.SEER_AUTOFIX]: {
           description: t(
@@ -261,7 +261,7 @@ function ProductSelect({
                           data-test-id={`product-option-feature-${category}`}
                         >
                           <IconContainer>
-                            <IconCheckmark color={theme.successText as Color} />
+                            <IconCheckmark color={theme.successText as never} />
                           </IconContainer>
                           <Flex direction="column" gap="xs">
                             <Text size="md">

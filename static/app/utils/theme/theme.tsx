@@ -1791,7 +1791,7 @@ const deprecatedColorMappings = (colors: Colors) => ({
 export const lightTheme = {
   ...deprecatedColorMappings(lightColors),
   isChonk: true,
-  type: 'light',
+  type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   fontSize,

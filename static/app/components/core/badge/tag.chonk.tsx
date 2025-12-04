@@ -1,7 +1,6 @@
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
-
 import type {TagProps} from 'sentry/components/core/badge/tag';
 import {space} from 'sentry/styles/space';
+import type {DO_NOT_USE_ChonkTheme} from 'sentry/utils/theme';
 import {chonkStyled} from 'sentry/utils/theme/theme';
 import {unreachable} from 'sentry/utils/unreachable';
 
