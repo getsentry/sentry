@@ -133,7 +133,11 @@ class PerforceClientTest(TestCase):
 
     @mock.patch("sentry.integrations.perforce.client.P4")
     def test_get_blame_for_files_with_stream(self, mock_p4_class):
-        """Test get_blame_for_files handles files with stream (ref)"""
+        """Test get_blame_for_files handles files with stream (ref).
+
+        Note: The stream name in ref is ignored because the path from SourceLineInfo
+        already contains the full depot path including any stream/branch information.
+        """
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
 
@@ -154,7 +158,7 @@ class PerforceClientTest(TestCase):
         file = SourceLineInfo(
             path="src/main.py",
             lineno=10,
-            ref="main",  # Stream name
+            ref="main",  # Stream name (ignored - path already contains full depot path)
             repo=self.repo,
             code_mapping=None,  # type: ignore[arg-type]
         )
@@ -162,13 +166,13 @@ class PerforceClientTest(TestCase):
         blames = self.p4_client.get_blame_for_files([file], extra={})
 
         assert len(blames) == 1
-        # Verify changes was called with the stream path
+        # Verify changes was called with the depot path (stream from ref is not used)
         assert mock_p4.run.call_args_list[0][0] == (
             "changes",
             "-m",
             "1",
             "-l",
-            "//depot/main/src/main.py",
+            "//depot/src/main.py",
         )
 
     @mock.patch("sentry.integrations.perforce.client.P4")

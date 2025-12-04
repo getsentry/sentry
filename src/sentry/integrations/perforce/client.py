@@ -503,8 +503,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             for file in files:
                 try:
                     # Build depot path for the file (includes stream if specified)
-                    # file.ref contains the revision/changelist if available
-                    depot_path = self.build_depot_path(file.repo, file.path, file.ref)
+                    # file.ref contains the stream but we are ignoring it since it's
+                    # already part of the depot path we get from stacktrace (SourceLineInfo)
+                    depot_path = self.build_depot_path(file.repo, file.path, None)
 
                     # Use p4 changes -m 1 -l to get most recent change for this file
                     # -m 1: limit to 1 result (most recent)
