@@ -7,6 +7,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   activeDataset: 'mobile-builds' | 'releases';
@@ -23,6 +25,7 @@ export default function Header({
   mobileBuildsDatasetQuery,
   pathname,
 }: Props) {
+  const organization = useOrganization();
   return (
     <Layout.Header noActionWrap unified={!shouldShowMobileBuildsTab}>
       <Layout.HeaderContent unified>
@@ -47,7 +50,16 @@ export default function Header({
         />
       </Layout.HeaderActions>
       {shouldShowMobileBuildsTab ? (
-        <Layout.HeaderTabs value={activeDataset}>
+        <Layout.HeaderTabs
+          value={activeDataset}
+          onChange={key => {
+            if (key === 'mobile-builds') {
+              trackAnalytics('preprod.releases.mobile-builds.tab-clicked', {
+                organization,
+              });
+            }
+          }}
+        >
           <TabList aria-label={t('Releases dataset selector')}>
             <TabList.Item
               key="releases"
