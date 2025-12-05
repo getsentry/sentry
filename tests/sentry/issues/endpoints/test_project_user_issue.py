@@ -32,7 +32,6 @@ class ProjectUserIssueEndpointTest(APITestCase):
         )
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
-    @with_feature("organizations:issue-web-vitals-ingest")
     def test_create_web_vitals_issue_success(self) -> None:
         data = {
             "transaction": "/test-transaction",
@@ -112,7 +111,6 @@ class ProjectUserIssueEndpointTest(APITestCase):
         assert response.status_code == 404
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
-    @with_feature("organizations:issue-web-vitals-ingest")
     def test_missing_required_fields(self) -> None:
         data = {
             "transaction": "/test-transaction",
@@ -129,7 +127,6 @@ class ProjectUserIssueEndpointTest(APITestCase):
         assert "issueType" in response.data
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
-    @with_feature("organizations:issue-web-vitals-ingest")
     def test_invalid_web_vitals_fields(self) -> None:
         data = {
             "transaction": "/test-transaction",
@@ -150,7 +147,6 @@ class ProjectUserIssueEndpointTest(APITestCase):
         assert "score" in response.data or "vital" in response.data
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
-    @with_feature("organizations:issue-web-vitals-ingest")
     def test_web_vitals_issue_fingerprint_uniqueness(self) -> None:
         data = {
             "transaction": "/test-transaction",
