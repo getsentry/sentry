@@ -13,6 +13,8 @@ import styled from '@emotion/styled';
 import color from 'color';
 import {spring, type Transition} from 'framer-motion';
 
+import {typography} from 'sentry/utils/theme/scraps/typography';
+
 type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
 
 type PhysicsMotionName = 'spring';
@@ -528,6 +530,20 @@ const space = {
   '3xl': '32px',
 } as const;
 
+const legacyTypography = {
+  fontSize: typography.font.size,
+  fontWeight: {
+    normal: typography.font.weight.regular,
+    bold: typography.font.weight.medium,
+  },
+  text: {
+    family: typography.font.family.sans,
+    familyMono: typography.font.family.mono,
+    lineHeightHeading: typography.font.lineHeight.default,
+    lineHeightBody: typography.font.lineHeight.comfortable,
+  },
+} as const;
+
 /**
  * Values shared between light and dark theme
  */
@@ -610,26 +626,8 @@ const commonTheme = {
   },
 
   borderRadius: '6px',
-  fontSize: {
-    xs: '11px',
-    sm: '12px',
-    md: '14px',
-    lg: '16px',
-    xl: '18px',
-    '2xl': '20px',
-  } satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>,
-
-  fontWeight: {
-    normal: 400 as const,
-    bold: 600 as const,
-  },
-
-  text: {
-    family: "'Rubik', 'Avenir Next', sans-serif",
-    familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
-    lineHeightHeading: 1.2,
-    lineHeightBody: 1.4,
-  },
+  ...legacyTypography,
+  ...typography,
 };
 
 export type Color = keyof ReturnType<typeof deprecatedColorMappings>;
@@ -1570,15 +1568,6 @@ const generateAliases = (
   },
 });
 
-const fontSize = {
-  xs: '11px' as const,
-  sm: '12px' as const,
-  md: '14px' as const,
-  lg: '16px' as const,
-  xl: '20px' as const,
-  '2xl': '24px' as const,
-} satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>;
-
 const lightTokens = generateChonkTokens(lightColors);
 const darkTokens = generateChonkTokens(darkColors);
 
@@ -1772,7 +1761,7 @@ const lightThemeDefinition = {
   type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-  fontSize,
+
   ...formTheme,
   ...deprecatedColorMappings(lightColors),
   ...lightAliases,
@@ -1832,7 +1821,7 @@ export const darkTheme: SentryTheme = {
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-  fontSize,
+
   ...formTheme,
   ...deprecatedColorMappings(darkColors),
   ...darkAliases,
