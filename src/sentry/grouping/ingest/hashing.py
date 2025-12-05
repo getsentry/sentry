@@ -228,7 +228,6 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
     ) as metrics_tags:
         if use_caching:
             cache_key = get_grouphash_existence_cache_key(hash_value, project.id)
-            cache_expiry = options.get("grouping.ingest_grouphash_existence_cache_expiry")
 
             grouphash_exists = cache.get(cache_key)
             cache_expiry_used_when_setting = cache.get(
@@ -241,7 +240,7 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
             if got_cache_hit:
                 metrics_tags["grouphash_exists"] = grouphash_exists
                 # TODO: Temporary tag to let us compare hit rates across different retention periods
-                metrics_tags["expiry_seconds"] = cache_expiry
+                metrics_tags["expiry_seconds"] = cache_expiry_used_when_setting
 
                 return grouphash_exists
 
@@ -278,7 +277,6 @@ def _get_or_create_single_grouphash(
     ) as metrics_tags:
         if use_caching:
             cache_key = get_grouphash_object_cache_key(hash_value, project.id)
-            cache_expiry = options.get("grouping.ingest_grouphash_object_cache_expiry")
 
             grouphash = cache.get(cache_key)
             cache_expiry_used_when_setting = cache.get(
@@ -290,7 +288,7 @@ def _get_or_create_single_grouphash(
 
             if got_cache_hit:
                 # TODO: Temporary tag to let us compare hit rates across different retention periods
-                metrics_tags["expiry_seconds"] = cache_expiry
+                metrics_tags["expiry_seconds"] = cache_expiry_used_when_setting
 
                 return (grouphash, False)
 
