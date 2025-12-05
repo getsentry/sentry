@@ -16,17 +16,15 @@ if TYPE_CHECKING:
 
 def has_replay_permission(organization: Organization, user: User | AnonymousUser | None) -> bool:
     """
-    Check if a user has permission to access replay data for an organization. This
-    change is backwards compatible with the existing behavior and introduces the
-    ability to granularly control replay access for organization members, irrespective
-    of their role.
+    Determine whether a user has permission to access replay data for a given organization.
 
-    Logic:
-    - If feature flag is disabled, return True (existing behavior, everyone has access)
-    - User must be authenticated and a member of the org
-    - If no allowlist records exist for org, return True for all members
-    - If allowlist records exist, check if user's org membership is in the allowlist
-    - Return True if user is in allowlist, False otherwise
+    Rules:
+    - User must be authenticated and an active org member.
+    - If the 'organizations:granular-replay-permissions' feature flag is OFF, all users have access.
+    - If the 'sentry:granular-replay-permissions' org option is not set or falsy, all org members have access.
+    - If no allowlist records exist for the organization but the feature flag is on, no one has access.
+    - If allowlist records exist, only users explicitly present in the OrganizationMemberReplayAccess allowlist have access.
+    - Returns True if allowed, False otherwise.
     """
     if not features.has("organizations:granular-replay-permissions", organization):
         return True
@@ -51,7 +49,7 @@ def has_replay_permission(organization: Organization, user: User | AnonymousUser
     ).exists()
 
     if not allowlist_exists:
-        return True
+        return False
 
     has_access = OrganizationMemberReplayAccess.objects.filter(
         organization=organization, organizationmember=member

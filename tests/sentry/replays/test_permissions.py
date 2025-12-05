@@ -38,12 +38,12 @@ class TestReplayPermissions(TestCase):
             )
             assert has_replay_permission(self.organization, self.user2) is True
 
-    def test_empty_allowlist_returns_true(self) -> None:
-        """When allowlist is empty, all members should have access"""
+    def test_empty_allowlist_returns_false(self) -> None:
+        """When allowlist is empty access control is active, no one should have access"""
         with self.feature("organizations:granular-replay-permissions"):
             self._enable_granular_permissions()
-            assert has_replay_permission(self.organization, self.user1) is True
-            assert has_replay_permission(self.organization, self.user2) is True
+            assert has_replay_permission(self.organization, self.user1) is False
+            assert has_replay_permission(self.organization, self.user2) is False
 
     def test_member_in_allowlist_returns_true(self) -> None:
         """When member is in allowlist, they should have access"""
