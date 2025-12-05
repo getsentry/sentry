@@ -43,10 +43,13 @@ interface Options<Fields> {
   enabled?: boolean;
   fields?: string[];
   interval?: string;
+  logQuery?: string[];
+  metricQuery?: string[];
   orderby?: string | string[];
   referrer?: string;
   samplingMode?: SamplingMode;
   search?: MutableSearch;
+  spanQuery?: string[];
   topEvents?: number;
   yAxis?: Fields;
 }
@@ -69,6 +72,9 @@ export const useSortedTimeSeries = <
     samplingMode,
     disableAggregateExtrapolation,
     caseInsensitive,
+    logQuery,
+    metricQuery,
+    spanQuery,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -110,6 +116,9 @@ export const useSortedTimeSeries = <
       pageFilters: pageFilters.selection,
       sort: decodeSorts(orderby)[0],
       caseInsensitive: Boolean(caseInsensitive),
+      logQuery,
+      metricQuery,
+      spanQuery,
       interval,
       sampling: samplingMode,
       extrapolate: !disableAggregateExtrapolation,

@@ -1,6 +1,6 @@
 import type {TagProps} from 'sentry/components/core/badge/tag';
 import {space} from 'sentry/styles/space';
-import type {DO_NOT_USE_ChonkTheme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 import {chonkStyled} from 'sentry/utils/theme/theme';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -43,10 +43,7 @@ export const TagPill = chonkStyled('div')<{
   }
 `;
 
-function makeTagPillTheme(
-  type: TagType | undefined,
-  theme: DO_NOT_USE_ChonkTheme
-): React.CSSProperties {
+function makeTagPillTheme(type: TagType | undefined, theme: Theme): React.CSSProperties {
   switch (type) {
     case undefined:
     case 'default':
