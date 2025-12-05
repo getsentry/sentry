@@ -117,8 +117,7 @@ class CustomToolDefinition(BaseModel):
     name: str
     module_path: str
     description: str
-    parameters: list[dict[str, Any]]
-    required: list[str]
+    param_schema: dict[str, Any]  # JSON schema from Pydantic model
 
 
 class ExplorerRun(BaseModel):
