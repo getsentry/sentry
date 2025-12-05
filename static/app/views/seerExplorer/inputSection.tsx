@@ -8,7 +8,6 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea/textarea';
 
-import {IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface FileApprovalActions {
@@ -33,12 +32,10 @@ interface InputSectionProps {
   inputValue: string;
   interruptRequested: boolean;
   isPolling: boolean;
-  menu: React.ReactElement;
   onClear: () => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onInputClick: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  onMenuButtonClick: () => void;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   fileApprovalActions?: FileApprovalActions;
   isMinimized?: boolean;
@@ -47,8 +44,6 @@ interface InputSectionProps {
 }
 
 function InputSection({
-  menu,
-  onMenuButtonClick,
   inputValue,
   focusedBlockIndex,
   isMinimized = false,
@@ -224,16 +219,7 @@ function InputSection({
 
   return (
     <InputBlock>
-      {menu}
       <InputRow>
-        <ButtonContainer>
-          <Button
-            priority="default"
-            aria-label="Toggle Menu"
-            onClick={onMenuButtonClick}
-            icon={<IconMenu size="md" />}
-          />
-        </ButtonContainer>
         <InputTextarea
           ref={textAreaRef}
           value={inputValue}
@@ -266,21 +252,9 @@ const InputRow = styled('div')`
   padding: 0;
 `;
 
-const ButtonContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: ${p => p.theme.space.sm};
-  padding-top: ${p => p.theme.space.md};
-
-  button {
-    width: auto;
-    padding: ${p => p.theme.space.md};
-  }
-`;
-
 const InputTextarea = styled(TextArea)`
   width: 100%;
-  margin: ${p => p.theme.space.sm} ${p => p.theme.space.sm} ${p => p.theme.space.sm} 0;
+  margin: ${p => p.theme.space.sm};
   color: ${p => p.theme.textColor};
   resize: none;
   overflow-y: auto;

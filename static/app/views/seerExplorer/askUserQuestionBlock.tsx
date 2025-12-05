@@ -111,6 +111,7 @@ function AskUserQuestionBlock({
                           checked={isOtherSelected}
                           onChange={() => handleOptionClick(optionsCount)}
                           name={`question-${questionIndex}`}
+                          size="sm"
                         />
                         <CustomInputWrapper>
                           <CustomInput
