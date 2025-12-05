@@ -27,11 +27,11 @@ export function NextStepsStep({repositories}: NextStepsStepProps) {
           <PanelBody>
             <PanelDescription>
               <Text bold>{t('Congratulations, you’ve finished setting up Seer!')}</Text>
-              <Text>
+              <p>
                 {t(
                   'For connected projects and repos, you will now be able to have Seer:'
                 )}
-              </Text>
+              </p>
               <NextStepsList>
                 <li>Do AI Code Review</li>
                 <li>Perform root cause analysis on your issues and propose fixes</li>
