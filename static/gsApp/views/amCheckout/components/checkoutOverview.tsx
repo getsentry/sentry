@@ -389,7 +389,7 @@ const Currency = styled('div')`
 `;
 
 const BillingInterval = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   padding-bottom: ${space(1.5)};
   align-self: end;
 `;

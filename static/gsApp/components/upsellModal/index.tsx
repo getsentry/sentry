@@ -69,7 +69,7 @@ function UpsellModal({source, organization, subscription}: Props) {
 }
 
 const Header = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
   margin: ${space(1)} 0;
 `;

@@ -402,7 +402,7 @@ const Description = styled(SpaceBetweenGrid)<{isNewCheckout: boolean}>`
 `;
 
 const Events = styled('div')<{isLegacy: boolean}>`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   margin: 0;
   font-weight: ${p => (p.isLegacy ? 'normal' : '600')};
 `;

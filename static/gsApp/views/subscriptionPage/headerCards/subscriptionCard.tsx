@@ -133,7 +133,7 @@ const PlanHeader = styled('div')<{isPastDue?: boolean}>`
   gap: ${space(0.5)};
   align-items: center;
   color: ${p => (p.isPastDue ? p.theme.red300 : p.theme.textColor)};
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
   white-space: nowrap;
 `;

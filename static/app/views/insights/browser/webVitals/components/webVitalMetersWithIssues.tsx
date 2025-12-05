@@ -325,7 +325,7 @@ const MeterHeader = styled('div')`
 const MeterValueText = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.textColor};
   flex: 1;
@@ -341,7 +341,7 @@ const MeterValueText = styled('div')`
 
 const NoValueContainer = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 function NoValue() {
