@@ -18,7 +18,7 @@ export const chonkInputStyles = ({
     ...debossedBackground(theme),
     boxShadow,
     border: `1px solid ${theme.tokens.border.primary}`,
-    fontWeight: theme.fontWeight.normal,
+    fontWeight: theme.font.weight.regular,
     resize: 'vertical',
     transition: `border ${theme.motion.smooth.fast}, box-shadow ${theme.motion.smooth.fast}`,
     ...(monospace ? {fontFamily: theme.font.family.mono} : {}),

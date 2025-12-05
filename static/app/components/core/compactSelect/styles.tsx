@@ -107,7 +107,7 @@ export const SectionTitle = styled('p')`
 export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   padding: 0 ${space(0.5)};
   margin: 0 -${space(0.5)} 0 ${space(2)};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.regular};
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.subText};
   transition: opacity 0.1s;
