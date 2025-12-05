@@ -17,7 +17,7 @@ import type {Block} from 'sentry/views/seerExplorer/types';
 export type PendingUserInput = {
   data: Record<string, any>;
   id: string;
-  input_type: 'file_change_approval';
+  input_type: 'file_change_approval' | 'ask_user_question';
 };
 
 export type SeerExplorerResponse = {

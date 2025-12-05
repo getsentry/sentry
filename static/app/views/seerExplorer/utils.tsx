@@ -260,6 +260,20 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     // Use the summary from metadata if available
     return toolLinkParams?.summary || 'Updated todo list';
   },
+
+  ask_user_question: (args, isLoading, toolLinkParams) => {
+    const count = Array.isArray(args.questions) ? args.questions.length : 1;
+    const questionWord = count === 1 ? 'question' : 'questions';
+
+    // Show pending state when awaiting user response
+    if (toolLinkParams?.pending_question) {
+      return `Asking ${count} ${questionWord}...`;
+    }
+
+    return isLoading
+      ? `Asking ${count} ${questionWord}...`
+      : `Asked ${count} ${questionWord}`;
+  },
 };
 
 /**
