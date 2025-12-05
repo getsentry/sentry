@@ -1,16 +1,15 @@
 import logging
 from datetime import datetime, timedelta
 
-import orjson
-import requests
-from django.conf import settings
-
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
-from sentry.seer.autofix.utils import get_autofix_state
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.autofix.utils import (
+    bulk_get_project_preferences,
+    bulk_set_project_preferences,
+    get_autofix_state,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
 from sentry.taskworker.retry import Retry
@@ -139,41 +138,18 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     if not project_ids:
         return
 
-    # Bulk GET all project preferences
-    get_body = orjson.dumps({"organization_id": organization_id, "project_ids": project_ids})
-    try:
-        get_response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}/v1/project-preference/bulk",
-            data=get_body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(get_body),
-            },
-            timeout=30,
-        )
-        get_response.raise_for_status()
-        preferences_by_id = get_response.json().get("preferences", {})
-    except requests.RequestException:
-        logger.exception(
-            "Failed to bulk get Seer preferences",
-            extra={"organization_id": organization_id},
-        )
-        raise
+    preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)
 
     # Determine which projects need updates
     preferences_to_set = []
     for project_id in project_ids:
-        # preferences_by_id keys are strings from JSON
-        existing_pref = preferences_by_id.get(str(project_id))
-        if not isinstance(existing_pref, dict):
-            existing_pref = {}
+        existing_pref = preferences_by_id.get(str(project_id), {})
 
         # Skip projects that already have an acceptable stopping point configured
         if existing_pref.get("automated_run_stopping_point") in ("open_pr", "code_changes"):
             continue
 
-        # Preserve existing repositories and automation_handoff (may be None for new
-        # projects), only update the stopping point to enable code_changes automation.
+        # Preserve existing repositories and automation_handoff, only update the stopping point
         preferences_to_set.append(
             {
                 "organization_id": organization_id,
@@ -183,26 +159,5 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 "automation_handoff": existing_pref.get("automation_handoff"),
             }
         )
-
-    # Bulk SET all project preferences that need updating
     if preferences_to_set:
-        set_body = orjson.dumps(
-            {"organization_id": organization_id, "preferences": preferences_to_set}
-        )
-        try:
-            set_response = requests.post(
-                f"{settings.SEER_AUTOFIX_URL}/v1/project-preference/bulk-set",
-                data=set_body,
-                headers={
-                    "content-type": "application/json;charset=utf-8",
-                    **sign_with_seer_secret(set_body),
-                },
-                timeout=30,
-            )
-            set_response.raise_for_status()
-        except requests.RequestException:
-            logger.exception(
-                "Failed to bulk set Seer preferences",
-                extra={"organization_id": organization_id},
-            )
-            raise
+        bulk_set_project_preferences(organization_id, preferences_to_set)
