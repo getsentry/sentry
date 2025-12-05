@@ -11,8 +11,8 @@ import {
   isEAPTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceEAPSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceEAPSpanRow';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
-import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceSpanRow';
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {traceChronologicalSort} from './utils';
@@ -282,7 +282,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<T>
   ): React.ReactNode {
-    return <TraceSpanRow {...props} node={this} />;
+    return <TraceEAPSpanRow {...props} node={this} />;
   }
 
   renderDetails<T extends BaseNode>(

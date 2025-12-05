@@ -2,6 +2,7 @@ import type {Theme} from '@emotion/react';
 
 import type {Client} from 'sentry/api';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import type {Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -323,6 +324,12 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   get transactionId(): string | undefined {
     return this.value && 'transaction_id' in this.value
       ? this.value.transaction_id
+      : undefined;
+  }
+
+  get measurements(): Record<string, number> | Record<string, Measurement> | undefined {
+    return this.value && 'measurements' in this.value
+      ? this.value.measurements
       : undefined;
   }
 
