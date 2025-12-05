@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -22,11 +22,31 @@ export function ConfigureRootCauseAnalysisStep({
   selectedRepositories,
 }: ConfigureRootCauseAnalysisStepProps) {
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
+  const [repositoryProjectMappings, setRepositoryProjectMappings] = useState<
+    Record<string, string[]>
+  >({});
 
   const handleNextStep = useCallback(() => {
     // TODO: Save to backend
     setCurrentStep(currentStep + 1);
   }, [setCurrentStep, currentStep]);
+
+  const handleRepositoryProjectMappingsChange = useCallback(
+    (newRepositoryProjectMappings: Record<string, string[]>) => {
+      setRepositoryProjectMappings(newRepositoryProjectMappings);
+    },
+    [setRepositoryProjectMappings]
+  );
+
+  const isFinishDisabled = useMemo(() => {
+    const mappings = Object.values(repositoryProjectMappings);
+    return (
+      !mappings.length ||
+      mappings.length !== selectedRepositories.length ||
+      Boolean(mappings.some(projects => projects.length === 0)) ||
+      selectedRepositories.length === 0
+    );
+  }, [repositoryProjectMappings, selectedRepositories.length]);
 
   return (
     <GuidedSteps.Step
@@ -44,7 +64,10 @@ export function ConfigureRootCauseAnalysisStep({
               </p>
             </PanelDescription>
 
-            <RepositoryToProjectConfiguration repositories={selectedRepositories} />
+            <RepositoryToProjectConfiguration
+              repositories={selectedRepositories}
+              onChange={handleRepositoryProjectMappingsChange}
+            />
           </PanelBody>
         </MaxWidthPanel>
       </StepContent>
@@ -55,7 +78,7 @@ export function ConfigureRootCauseAnalysisStep({
           size="md"
           onClick={handleNextStep}
           priority={selectedRepositories.length > 0 ? 'primary' : 'default'}
-          disabled={selectedRepositories.length === 0}
+          disabled={isFinishDisabled}
           aria-label={t('Finish Setup')}
         >
           {t('Finish Setup')}

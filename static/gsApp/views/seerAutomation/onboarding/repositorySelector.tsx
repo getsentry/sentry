@@ -92,7 +92,7 @@ export function RepositorySelector({
           <Description>
             {tct(
               'For all [count] repos selected, Seer will review your PRs and flag potential bugs ',
-              {count: filteredRepositories.length}
+              {count: selectedIds.size}
             )}
           </Description>
         </Label>

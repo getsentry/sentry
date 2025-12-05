@@ -18,11 +18,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 interface RepositoryToProjectConfigurationProps {
+  onChange: (repositoryProjectMappings: Record<string, string[]>) => void;
   repositories: Repository[];
 }
 
 export function RepositoryToProjectConfiguration({
   repositories,
+  onChange,
 }: RepositoryToProjectConfigurationProps) {
   const organization = useOrganization();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
@@ -93,13 +95,17 @@ export function RepositoryToProjectConfiguration({
           newProjects[index] = newValue;
         }
 
-        return {
+        const result = {
           ...prev,
           [repoId]: newProjects,
         };
+
+        onChange(result);
+
+        return result;
       });
     },
-    []
+    [onChange]
   );
 
   // Convert projects to options for Select
