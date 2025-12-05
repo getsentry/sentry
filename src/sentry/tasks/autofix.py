@@ -158,7 +158,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             "Failed to bulk get Seer preferences",
             extra={"organization_id": organization_id},
         )
-        return
+        raise
 
     # Determine which projects need updates
     preferences_to_set = []
@@ -205,3 +205,4 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 "Failed to bulk set Seer preferences",
                 extra={"organization_id": organization_id},
             )
+            raise

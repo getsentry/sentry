@@ -210,53 +210,45 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         assert mock_post.call_count == 1
 
     @patch("sentry.tasks.autofix.requests.post")
-    def test_handles_bulk_get_api_failure(self, mock_post: MagicMock) -> None:
-        """Test that task handles bulk GET API failure gracefully."""
+    def test_raises_on_bulk_get_api_failure(self, mock_post: MagicMock) -> None:
+        """Test that task raises on bulk GET API failure to trigger retry."""
+        import pytest
         import requests
 
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
 
-        # Bulk GET fails
         mock_post.side_effect = [requests.RequestException("API error")]
 
-        configure_seer_for_existing_org(organization_id=self.organization.id)
+        with pytest.raises(requests.RequestException):
+            configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        # Both projects should still have their Sentry DB options set
+        # Sentry DB options should still be set before the API call
         assert project1.get_option("sentry:seer_scanner_automation") is True
         assert project2.get_option("sentry:seer_scanner_automation") is True
-
-        # Only 1 failed bulk GET call
         assert mock_post.call_count == 1
 
     @patch("sentry.tasks.autofix.requests.post")
-    def test_handles_bulk_set_api_failure(self, mock_post: MagicMock) -> None:
-        """Test that task handles bulk SET API failure gracefully."""
+    def test_raises_on_bulk_set_api_failure(self, mock_post: MagicMock) -> None:
+        """Test that task raises on bulk SET API failure to trigger retry."""
+        import pytest
         import requests
 
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
 
-        # Bulk GET succeeds, bulk SET fails
         mock_bulk_get_response = MagicMock()
         mock_bulk_get_response.json.return_value = {
-            "preferences": {
-                str(project1.id): None,
-                str(project2.id): None,
-            }
+            "preferences": {str(project1.id): None, str(project2.id): None}
         }
-        mock_post.side_effect = [
-            mock_bulk_get_response,
-            requests.RequestException("API error"),
-        ]
+        mock_post.side_effect = [mock_bulk_get_response, requests.RequestException("API error")]
 
-        configure_seer_for_existing_org(organization_id=self.organization.id)
+        with pytest.raises(requests.RequestException):
+            configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        # Both projects should still have their Sentry DB options set
+        # Sentry DB options should still be set before the API call
         assert project1.get_option("sentry:seer_scanner_automation") is True
         assert project2.get_option("sentry:seer_scanner_automation") is True
-
-        # 1 bulk GET + 1 failed bulk SET
         assert mock_post.call_count == 2
 
     @patch("sentry.tasks.autofix.requests.post")
