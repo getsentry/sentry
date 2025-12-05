@@ -216,7 +216,6 @@ def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQ
 
     old_query_type, old_dataset, old_query, old_aggregate = _get_old_query_info(snuba_query)
 
-    # wrap everything with atomic transaction to ensure queries don't get 'half updated'
     with atomic_transaction(
         using=(
             router.db_for_write(SnubaQuery),
