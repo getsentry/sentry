@@ -10,7 +10,7 @@ from typing import Any
 
 import orjson
 from dateutil.parser import parse as parse_date
-from django.db import IntegrityError, router, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
@@ -38,6 +38,10 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import (
+    OrganizationContributionStatus,
+    OrganizationContributors,
+)
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -45,8 +49,10 @@ from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
+from sentry.preprod.pull_request.comment_types import AuthorAssociation
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
@@ -71,6 +77,13 @@ def get_file_language(filename: str) -> str | None:
         language = EXTENSION_LANGUAGE_MAP.get(extension)
 
     return language
+
+
+def is_contributor_eligible_for_seat_assignment(user_type: str, author_association: str) -> bool:
+    return user_type != "Bot" and author_association in (
+        AuthorAssociation.MEMBER,
+        AuthorAssociation.OWNER,
+    )
 
 
 class GitHubWebhook(SCMWebhook, ABC):
@@ -695,7 +708,9 @@ class PullRequestEventWebhook(GitHubWebhook):
         number = pull_request["number"]
         title = pull_request["title"]
         body = pull_request["body"]
+        author_association = pull_request["author_association"]
         user = pull_request["user"]
+        user_type = user["type"]
         action = event["action"]
 
         """
@@ -778,6 +793,20 @@ class PullRequestEventWebhook(GitHubWebhook):
                             "repository_id": repo.id,
                         },
                     )
+                    contributor, _ = OrganizationContributors.objects.get_or_create(
+                        organization_id=organization.id,
+                        integration_id=integration.id,
+                        external_identifier=self.get_external_id(user["login"]),
+                    )
+                    updated_num_actions = OrganizationContributors.objects.filter(
+                        id=contributor.id
+                    ).update(num_actions=models.F("num_actions") + 1)
+
+                    if (
+                        is_contributor_eligible_for_seat_assignment(user_type, author_association)
+                        and updated_num_actions == OrganizationContributionStatus.ACTIVE
+                    ):
+                        assign_seat_to_organization_contributor.delay(contributor)
 
                 metrics.incr(
                     "github.webhook.pull_request.created",
