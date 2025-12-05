@@ -1,9 +1,11 @@
+import {useMemo} from 'react';
+
 import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
+import type {Tag} from 'sentry/types/group';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -39,38 +41,39 @@ function KeyField() {
 
   // Select all the tags for an organization to generate a list of the most likely tags
   const organization = useOrganization();
-  const {data: tagOptions, isLoading} = useFetchOrganizationTags(
+  const {data: tagOptions = []} = useFetchOrganizationTags(
     {
       orgSlug: organization.slug,
       projectIds: ['-1'],
-      dataset: Dataset.ERRORS,
+      dataset: Dataset.ISSUE_PLATFORM,
       useCache: true,
-      enabled: true,
       keepPreviousData: true,
     },
     {}
   );
 
-  if (!tagOptions || isLoading) {
-    return <LoadingIndicator mini size={24} style={{alignItems: 'center'}} />;
-  }
+  const sortedTags = useMemo(() => {
+    const sorted = tagOptions.toSorted((a, b) => a.key.localeCompare(b.key));
 
-  const tags = tagOptions.sort((a, b) => a.key.localeCompare(b.key));
-  if (
-    condition.comparison.key &&
-    !tags.some(tag => tag.key === condition.comparison.key)
-  ) {
-    tags.unshift(condition.comparison);
-  }
+    if (
+      condition.comparison.key &&
+      !sorted.some(tag => tag.key === condition.comparison.key)
+    ) {
+      sorted.unshift(condition.comparison);
+    }
+
+    return sorted;
+  }, [tagOptions, condition.comparison]);
 
   return (
     <AutomationBuilderSelect
+      async
       creatable
       name={`${condition_id}.comparison.key`}
       aria-label={t('Tag')}
       placeholder={t('tag')}
       value={condition.comparison.key}
-      options={Object.values(tags).map(tag => ({
+      options={Object.values(sortedTags).map((tag: Tag) => ({
         value: tag.key,
         label: tag.key,
       }))}
