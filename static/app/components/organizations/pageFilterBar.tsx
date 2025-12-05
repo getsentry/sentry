@@ -3,7 +3,6 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import type {DO_NOT_USE_ChonkTheme} from 'sentry/utils/theme';
 
 // Note: This component is also used in Explore multi-query mode
 // static/app/views/explore/multiQueryMode/queryConstructors/sortBy.tsx
@@ -124,7 +123,7 @@ const getChildTransforms = (count: number) => {
 
 const chonkPageFilterBarStyles = (p: {
   listSize: number;
-  theme: DO_NOT_USE_ChonkTheme;
+  theme: Theme;
   condensed?: boolean;
 }) => css`
   /* No idea what this is supposed to style, but I am afraid to remove it */

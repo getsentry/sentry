@@ -12,7 +12,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconCheckmark, IconRefresh, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
-import type {DO_NOT_USE_ChonkTheme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 import {chonkStyled} from 'sentry/utils/theme/theme';
 
 export interface ToastProps {
@@ -93,10 +93,7 @@ function ToastIcon({type}: {type: Indicator['type']}) {
   }
 }
 
-function getContainerTheme(
-  theme: DO_NOT_USE_ChonkTheme,
-  type: Indicator['type']
-): React.CSSProperties {
+function getContainerTheme(theme: Theme, type: Indicator['type']): React.CSSProperties {
   switch (type) {
     case 'success':
       return {
@@ -155,7 +152,7 @@ const ToastInnerContainer = chonkStyled('div')<{type: Indicator['type']}>`
 `;
 
 function getToastIconContainerTheme(
-  theme: DO_NOT_USE_ChonkTheme,
+  theme: Theme,
   type: Indicator['type']
 ): React.CSSProperties {
   switch (type) {

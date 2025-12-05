@@ -54,7 +54,7 @@ function StripeWrapper({
             '.Input': {
               fontSize: theme.fontSize.md,
               boxShadow: `0px 2px 0px 0px ${theme.tokens.border.primary} inset`,
-              backgroundColor: debossedBackground(theme as any).backgroundColor,
+              backgroundColor: debossedBackground(theme).backgroundColor,
               padding: `${theme.space.lg} ${theme.space.xl}`,
             },
             '.Label': {

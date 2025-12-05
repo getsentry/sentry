@@ -1,6 +1,6 @@
 import type {RadioProps} from 'sentry/components/core/radio';
 import {growIn} from 'sentry/styles/animations';
-import type {DO_NOT_USE_ChonkTheme, StrictCSSObject} from 'sentry/utils/theme';
+import type {StrictCSSObject, Theme} from 'sentry/utils/theme';
 
 const radioConfig = {
   sm: {
@@ -14,7 +14,7 @@ const radioConfig = {
 };
 
 export const chonkRadioStyles = (
-  props: RadioProps & {theme: DO_NOT_USE_ChonkTheme}
+  props: RadioProps & {theme: Theme}
 ): StrictCSSObject => ({
   width: radioConfig[props.size ?? 'md'].outerSize,
   height: radioConfig[props.size ?? 'md'].outerSize,
