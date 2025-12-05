@@ -30,7 +30,7 @@ function BilledSeats({
   selectedProduct: DataCategory | AddOnCategory;
   subscription: Subscription;
 }) {
-  const {billedCategory, activeProductTrial} = useProductBillingMetadata(
+  const {billedCategory, activeProductTrial, isEnabled} = useProductBillingMetadata(
     subscription,
     selectedProduct
   );
@@ -48,7 +48,7 @@ function BilledSeats({
     enabled: selectedProduct === AddOnCategory.SEER,
   });
 
-  if (selectedProduct !== AddOnCategory.SEER) {
+  if (selectedProduct !== AddOnCategory.SEER || !isEnabled) {
     // eventually we should expand this to support other seat-based products
     return null;
   }
