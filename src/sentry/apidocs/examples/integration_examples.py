@@ -875,9 +875,9 @@ class IntegrationExamples:
         )
     ]
 
-    CREATE_DATA_FORWARDER = [
+    SINGLE_DATA_FORWARDER = [
         OpenApiExample(
-            "Create a data forwarder for an organization",
+            "A data forwarder for an organization",
             value={
                 "id": "1",
                 "organizationId": "1",

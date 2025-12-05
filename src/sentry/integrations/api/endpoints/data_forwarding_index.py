@@ -81,7 +81,7 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
-        examples=IntegrationExamples.CREATE_DATA_FORWARDER,
+        examples=IntegrationExamples.SINGLE_DATA_FORWARDER,
     )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
