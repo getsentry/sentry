@@ -166,7 +166,7 @@ describe('Subscription > UsageTotals', () => {
     expect(
       screen.getByText('Continuous profile hours usage this period')
     ).toBeInTheDocument();
-    expect(screen.getByText('15')).toBeInTheDocument();
+    expect(screen.getByText('15 hours')).toBeInTheDocument();
 
     // Expand usage table
     await userEvent.click(screen.getByRole('button'));
@@ -176,15 +176,15 @@ describe('Subscription > UsageTotals', () => {
         name: 'Continuous Profile Hours Quantity % of Continuous Profile Hours',
       })
     ).toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Accepted 15 60%'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Accepted 15 hours 60%'})).toBeInTheDocument();
     expect(
-      screen.getByRole('row', {name: 'Total Dropped (estimated) 10 40%'})
+      screen.getByRole('row', {name: 'Total Dropped (estimated) 10 hours 40%'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Over Quota 0 0%'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Over Quota 0 hours 0%'})).toBeInTheDocument();
     expect(
-      screen.queryByRole('row', {name: 'Spike Protection 0 0%'})
+      screen.queryByRole('row', {name: 'Spike Protection 0 hours 0%'})
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Other 0 0%'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Other 0 hours 0%'})).toBeInTheDocument();
   });
 
   it('does not include profiles for estimates on non-AM3 plans', async () => {
@@ -235,7 +235,7 @@ describe('Subscription > UsageTotals', () => {
     expect(
       screen.getByText('Continuous profile hours usage this period')
     ).toBeInTheDocument();
-    expect(screen.getByText('15')).toBeInTheDocument();
+    expect(screen.getByText('15 hours')).toBeInTheDocument();
 
     // Expand usage table
     await userEvent.click(screen.getByRole('button'));
@@ -245,15 +245,15 @@ describe('Subscription > UsageTotals', () => {
         name: 'Continuous Profile Hours Quantity % of Continuous Profile Hours',
       })
     ).toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Accepted 15 75%'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Accepted 15 hours 75%'})).toBeInTheDocument();
     expect(
-      screen.getByRole('row', {name: 'Total Dropped (estimated) 5 25%'})
+      screen.getByRole('row', {name: 'Total Dropped (estimated) 5 hours 25%'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Over Quota 0 0%'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Over Quota 0 hours 0%'})).toBeInTheDocument();
     expect(
-      screen.queryByRole('row', {name: 'Spike Protection 0 0%'})
+      screen.queryByRole('row', {name: 'Spike Protection 0 hours 0%'})
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Other 0 0%'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Other 0 hours 0%'})).toBeInTheDocument();
   });
 
   it('does not render transaction event totals without feature', async () => {

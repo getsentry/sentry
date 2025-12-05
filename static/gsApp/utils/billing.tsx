@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -206,14 +206,10 @@ export function formatUsageWithUnits(
   }
   if (isContinuousProfiling(dataCategory)) {
     const usageProfileHours = usageQuantity / MILLISECONDS_IN_HOUR;
-    if (usageProfileHours === 0) {
-      return t('0 hours');
-    }
     return options.isAbbreviated
-      ? tn('%s hour', '%s hours', displayNumber(usageProfileHours, 1))
-      : tn(
-          '%s hour',
-          '%s hours',
+      ? formatWithHours(usageProfileHours, displayNumber(usageProfileHours, 1))
+      : formatWithHours(
+          usageProfileHours,
           usageProfileHours.toLocaleString(undefined, {maximumFractionDigits: 1})
         );
   }
@@ -230,6 +226,10 @@ export function formatUsageWithUnits(
   return options.isAbbreviated
     ? displayNumber(usageQuantity, 0)
     : usageQuantity.toLocaleString();
+}
+
+function formatWithHours(quantityInHours: number, formattedHours: string) {
+  return `${formattedHours} ${tn('hour', 'hours', quantityInHours)}`;
 }
 
 export function convertUsageToReservedUnit(
