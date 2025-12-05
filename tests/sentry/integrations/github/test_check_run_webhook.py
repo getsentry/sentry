@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from fixtures.github import (
     CHECK_RUN_COMPLETED_EVENT_EXAMPLE,
-    CHECK_RUN_REQUESTED_ACTION_EVENT_EXAMPLE,
+    CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
 )
 from sentry import options
 from sentry.silo.base import SiloMode
@@ -30,15 +30,10 @@ class CheckRunEventWebhookTest(APITestCase):
             )
             integration.add_organization(self.project.organization.id, self.user)
 
-        # Signatures computed for CHECK_RUN_COMPLETED_EVENT_EXAMPLE
+        # Signatures computed for CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE
         # If using different event data, signatures need to be recomputed
-        if event_data == CHECK_RUN_COMPLETED_EVENT_EXAMPLE:
-            sha1_sig = "sha1=b4094fea7a98e82f508191a34d3f92d646b76e7d"
-            sha256_sig = "sha256=b1d21a975b158ce2ebb04538af7aab22373be3dc4193fc47c5feb555462a77f5"
-        else:
-            # For CHECK_RUN_REQUESTED_ACTION_EVENT_EXAMPLE
-            sha1_sig = "sha1=e5069c934b7e82ed4cb5e2c53ce0cf2e80982c1f"
-            sha256_sig = "sha256=b1cc854b6f8074beb5b8575122922d01609c81606a5ed551fc93ac0145a39170"
+        sha1_sig = "sha1=b4094fea7a98e82f508191a34d3f92d646b76e7d"
+        sha256_sig = "sha256=b1d21a975b158ce2ebb04538af7aab22373be3dc4193fc47c5feb555462a77f5"
 
         response = self.client.post(
             path=self.url,
@@ -54,19 +49,13 @@ class CheckRunEventWebhookTest(APITestCase):
         return response
 
     @patch("sentry.integrations.github.webhook.CheckRunEventWebhook.__call__")
-    def test_check_run_completed_event_triggers_handler(
-        self, mock_event_handler: MagicMock
-    ) -> None:
-        """Test that check_run completed events trigger the webhook handler."""
-        self._create_integration_and_send_check_run_event(CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
-        assert mock_event_handler.called
-
-    @patch("sentry.integrations.github.webhook.CheckRunEventWebhook.__call__")
     def test_check_run_requested_action_event_triggers_handler(
         self, mock_event_handler: MagicMock
     ) -> None:
         """Test that check_run requested_action events trigger the webhook handler."""
-        self._create_integration_and_send_check_run_event(CHECK_RUN_REQUESTED_ACTION_EVENT_EXAMPLE)
+        self._create_integration_and_send_check_run_event(
+            CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE
+        )
         assert mock_event_handler.called
 
     @patch("sentry.seer.error_prediction.webhooks.handle_github_check_run_for_error_prediction")

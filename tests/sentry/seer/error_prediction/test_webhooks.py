@@ -3,7 +3,7 @@ from unittest.mock import patch
 import responses
 from django.conf import settings
 
-from sentry.seer.error_prediction.webhooks import forward_github_check_run_for_error_prediction
+from sentry.seer.error_prediction.webhooks import forward_github_event_for_error_prediction
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -12,18 +12,20 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization()
-        self.check_run = {
-            "external_id": "4663713",
-            "html_url": "https://github.com/test/repo/runs/4",
+        self.event = {
+            "action": "rerequested",
+            "check_run": {
+                "external_id": "4663713",
+                "html_url": "https://github.com/test/repo/runs/4",
+            },
         }
 
     def test_skips_when_feature_not_enabled(self):
         """Test that the handler returns early when gen-ai-features is not enabled."""
         with patch("sentry.seer.error_prediction.webhooks.logger") as mock_logger:
-            forward_github_check_run_for_error_prediction(
+            forward_github_event_for_error_prediction(
                 organization=self.organization,
-                check_run=self.check_run,
-                action="rerequested",
+                event=self.event,
             )
 
             # Verify debug log for disabled feature
@@ -37,10 +39,16 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
 
         for action in non_handled_actions:
             with patch("sentry.seer.error_prediction.webhooks.logger") as mock_logger:
-                forward_github_check_run_for_error_prediction(
+                event = {
+                    "action": action,
+                    "check_run": {
+                        "external_id": "4663713",
+                        "html_url": "https://github.com/test/repo/runs/4",
+                    },
+                }
+                forward_github_event_for_error_prediction(
                     organization=self.organization,
-                    check_run=self.check_run,
-                    action=action,
+                    event=event,
                 )
 
                 # Verify debug log for skipped action
@@ -51,8 +59,6 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
     @responses.activate
     def test_forwards_rerequested_action_to_seer(self):
         """Test that rerequested action forwards payload to Seer."""
-        from django.conf import settings
-
         responses.add(
             responses.POST,
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/github",
@@ -60,10 +66,9 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
             status=200,
         )
 
-        forward_github_check_run_for_error_prediction(
+        forward_github_event_for_error_prediction(
             organization=self.organization,
-            check_run=self.check_run,
-            action="rerequested",
+            event=self.event,
         )
 
         # Verify request was made
@@ -73,9 +78,10 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
     @responses.activate
     def test_handles_minimal_check_run_payload(self):
         """Test that minimal check_run with missing fields is handled."""
-        from django.conf import settings
-
-        minimal_check_run = {}  # No external_id or html_url
+        minimal_event = {
+            "action": "rerequested",
+            "check_run": {},  # No external_id or html_url
+        }
 
         responses.add(
             responses.POST,
@@ -84,10 +90,9 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
             status=200,
         )
 
-        forward_github_check_run_for_error_prediction(
+        forward_github_event_for_error_prediction(
             organization=self.organization,
-            check_run=minimal_check_run,
-            action="rerequested",
+            event=minimal_event,
         )
 
         # Should succeed even with minimal payload
@@ -97,8 +102,6 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
     @responses.activate
     def test_handles_seer_error_response(self):
         """Test that Seer errors are caught and logged."""
-        from django.conf import settings
-
         responses.add(
             responses.POST,
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/github",
@@ -107,10 +110,9 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
         )
 
         with patch("sentry.seer.error_prediction.webhooks.logger") as mock_logger:
-            forward_github_check_run_for_error_prediction(
+            forward_github_event_for_error_prediction(
                 organization=self.organization,
-                check_run=self.check_run,
-                action="rerequested",
+                event=self.event,
             )
 
             # Verify exception logging
@@ -128,10 +130,9 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
             status=200,
         )
 
-        forward_github_check_run_for_error_prediction(
+        forward_github_event_for_error_prediction(
             organization=self.organization,
-            check_run=self.check_run,
-            action="rerequested",
+            event=self.event,
         )
 
         # Verify request has content-type header

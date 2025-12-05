@@ -85,7 +85,7 @@ class GitHubWebhook(SCMWebhook, ABC):
     def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs) -> None:
         pass
 
-    def __call__(self, event: Mapping[str, Any], **kwargs: object) -> None:
+    def __call__(self, event: Mapping[str, Any], **kwargs: Mapping[str, Any]) -> None:
         external_id = get_github_external_id(event=event, host=kwargs.get("host"))
 
         result = integration_service.organization_contexts(
@@ -807,11 +807,9 @@ class CheckRunEventWebhook(GitHubWebhook):
             return
 
         # XXX: Add support for registering functions to call
-        from sentry.seer.error_prediction.webhooks import (
-            forward_github_check_run_for_error_prediction,
-        )
+        from sentry.seer.error_prediction.webhooks import forward_github_event_for_error_prediction
 
-        forward_github_check_run_for_error_prediction(organization=organization, event=event)
+        forward_github_event_for_error_prediction(organization=organization, event=event)
 
 
 @all_silo_endpoint

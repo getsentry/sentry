@@ -25,7 +25,7 @@ HANDLED_ACTIONS = [CheckRunAction.REREQUESTED]
 SEER_ERROR_PREDICTION_PATH = "/v1/automation/codegen/pr-review/github"
 
 
-def forward_github_check_run_for_error_prediction(
+def forward_github_event_for_error_prediction(
     organization: Organization,
     event: Mapping[str, Any],
 ) -> None:
