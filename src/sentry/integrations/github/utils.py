@@ -8,7 +8,12 @@ from urllib.parse import urlparse
 
 from rest_framework.response import Response
 
-from sentry import options
+from sentry import features, options
+from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, HIDE_AI_FEATURES_DEFAULT
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
+from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.utils import jwt
 
 logger = logging.getLogger(__name__)
@@ -78,3 +83,34 @@ def parse_github_blob_url(repo_url: str, source_url: str) -> tuple[str, str]:
 
     branch, _, remainder = after_blob.partition("/")
     return branch, remainder.lstrip("/")
+
+
+def has_seer_and_ai_features_enabled_for_repo(organization: Organization, repo: Repository) -> bool:
+    """
+    Check if Seer is enabled and AI features are configured for a repository.
+
+    Returns:
+        True if Seer and AI features are enabled for the repository else False
+    """
+
+    seer_enabled = get_seer_org_acknowledgement(organization)
+    if not seer_enabled:
+        return False
+
+    repo_enabled = RepositoryProjectPathConfig.objects.filter(
+        repository=repo,
+        organization_id=organization.id,
+    ).exists()
+    if not repo_enabled:
+        return False
+
+    gen_ai_features = features.has(
+        "organizations:gen-ai-features", organization
+    ) and not organization.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
+
+    ai_code_review_enabled = organization.get_option(
+        "sentry:enable_pr_review_test_generation",
+        ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    )
+
+    return gen_ai_features or ai_code_review_enabled
