@@ -8,7 +8,7 @@ import {
 } from 'sentry/actionCreators/developmentAlerts';
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
-import {initApiClientErrorHandling} from 'sentry/api';
+import {initApiClientErrorHandling, initApiClientWarningHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalModal from 'sentry/components/globalModal';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
@@ -158,6 +158,7 @@ function App() {
     }
 
     initApiClientErrorHandling();
+    initApiClientWarningHandling();
     fetchGuides();
 
     // When the app is unloaded clear the organizationst list
