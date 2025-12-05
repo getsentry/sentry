@@ -2914,6 +2914,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# TODO: Temporary options to let us play around with expiry times and see what hit rates they give
+# us. Once we've decided, we can stick our values into the two expiry options above and get rid of
+# these two options.
+register(
+    "grouping.ingest_grouphash_existence_cache_expiry.trial_values",
+    type=Sequence,
+    default=[60, 120, 600],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "grouping.ingest_grouphash_object_cache_expiry.trial_values",
+    type=Sequence,
+    default=[60, 120, 600],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Sample rate for double writing to experimental dsn
 register(
