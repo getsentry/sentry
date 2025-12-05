@@ -165,7 +165,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             queryset = queryset.order_by("slug").select_related("organization")
 
             # Fetch MAX + 1 to detect if there are more without expensive count()
-            max_projects = options.get("api.organization-projects-all-max")
+            max_projects = options.get("api.organization-projects-max-results")
             projects = list(queryset[: max_projects + 1])
             has_more = len(projects) > max_projects
 
