@@ -372,7 +372,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   const defaultStyles = useMemo(() => {
     return theme.isChonk
       ? getChonkStylesConfig({
-          theme: theme as any,
+          theme,
           size,
           maxMenuWidth,
           isInsideModal,

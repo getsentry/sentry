@@ -8,7 +8,7 @@ import {components as selectComponents} from 'sentry/components/forms/controls/r
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DO_NOT_USE_ChonkTheme, FormSize} from 'sentry/utils/theme';
+import type {FormSize, Theme} from 'sentry/utils/theme';
 import {chonkStyled} from 'sentry/utils/theme/theme';
 
 // We don't care about any options for the styles config
@@ -42,7 +42,7 @@ export const getChonkStylesConfig = ({
   isSearchable: boolean | undefined;
   maxMenuWidth: string | number | undefined;
   size: FormSize | undefined;
-  theme: DO_NOT_USE_ChonkTheme;
+  theme: Theme;
 }) => {
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.

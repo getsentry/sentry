@@ -1,5 +1,5 @@
 import type {AlertBadgeProps} from 'sentry/components/core/badge/alertBadge';
-import type {DO_NOT_USE_ChonkTheme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 import {chonkStyled} from 'sentry/utils/theme/theme';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
@@ -7,7 +7,7 @@ function makeChonkAlertBadgeDiamondBackgroundTheme(
   status: AlertBadgeProps['status'],
   isIssue: AlertBadgeProps['isIssue'],
   isDisabled: AlertBadgeProps['isDisabled'],
-  theme: DO_NOT_USE_ChonkTheme
+  theme: Theme
 ): React.CSSProperties {
   if (isDisabled) {
     return {

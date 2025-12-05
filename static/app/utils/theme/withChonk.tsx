@@ -2,8 +2,6 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {DO_NOT_USE_ChonkTheme} from 'sentry/utils/theme';
-
 export type ChonkPropMapping<LegacyProps, ChonkProps> = (
   props: Omit<LegacyProps, 'theme' | 'ref'>
 ) => Omit<ChonkProps, 'theme' | 'ref'>;
@@ -22,7 +20,7 @@ export function withChonk<
   LegacyProps extends {children?: React.ReactNode} & React.RefAttributes<any>,
   ChonkProps extends {
     children?: React.ReactNode;
-    theme?: DO_NOT_USE_ChonkTheme;
+    theme?: Theme;
   } & React.RefAttributes<any>,
 >(
   legacyComponent: React.ComponentType<LegacyProps>,

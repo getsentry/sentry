@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import type {DOMAttributes, Orientation} from '@react-types/shared';
 
-import type {DO_NOT_USE_ChonkTheme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 import {chonkStyled} from 'sentry/utils/theme/theme';
 
 import {tabsShouldForwardProp} from './utils';
@@ -48,7 +48,7 @@ export const ChonkStyledTabWrap = chonkStyled('li', {
     `}
 `;
 
-const paddingPerSize = (theme: DO_NOT_USE_ChonkTheme, orientation: Orientation) => ({
+const paddingPerSize = (theme: Theme, orientation: Orientation) => ({
   md: orientation === 'horizontal' ? `10px ${theme.space.xl}` : `10px ${theme.space.md}`,
   sm:
     orientation === 'horizontal'
@@ -72,7 +72,7 @@ export const chonkInnerWrapStyles = ({
   orientation: Orientation;
   selected: boolean;
   size: BaseTabProps['size'];
-  theme: DO_NOT_USE_ChonkTheme;
+  theme: Theme;
   variant: BaseTabProps['variant'];
 }) => css`
   display: flex;

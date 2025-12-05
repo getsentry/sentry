@@ -644,7 +644,7 @@ export type Color = keyof ReturnType<typeof deprecatedColorMappings>;
 export type IconSize = keyof typeof iconSizes;
 type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
-export interface SentryTheme extends Omit<typeof lightTheme, 'chart'> {
+export interface SentryTheme extends Omit<typeof lightThemeDefinition, 'chart'> {
   chart: {
     colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
@@ -1775,10 +1775,7 @@ const deprecatedColorMappings = (colors: Colors) => ({
   },
 });
 
-/**
- * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
- */
-export const lightTheme = {
+const lightThemeDefinition = {
   isChonk: true,
   type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
@@ -1834,6 +1831,11 @@ export const lightTheme = {
     superuser: '#880808',
   },
 };
+
+/**
+ * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
+ */
+export const lightTheme: SentryTheme = lightThemeDefinition;
 
 /**
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
@@ -1911,7 +1913,3 @@ export type StrictCSSObject = {
 
 export const chonkStyled = styled;
 export const useChonkTheme = useTheme;
-/** @alias */
-export const DO_NOT_USE_lightChonkTheme = lightTheme;
-/** @alias */
-export const DO_NOT_USE_darkChonkTheme = darkTheme;
