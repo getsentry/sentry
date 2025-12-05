@@ -567,6 +567,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     autoEnableCodeReview: bool
     autoOpenPrs: bool
     defaultCodeReviewTriggers: list[str]
+    hasGranularReplayPermissions: bool
     replayAccessMembers: list[int]
 
 
@@ -750,11 +751,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 team__organization=obj
             ).count(),
             "isDynamicallySampled": is_dynamically_sampled,
+            "hasGranularReplayPermissions": False,
+            "replayAccessMembers": [],
         }
 
         if features.has("organizations:granular-replay-permissions", obj):
-            # The organization option can be missing, False, or null.
-            # Only set hasGranularReplayPermissions to True if the option exists and is truthy.
             permissions_enabled = (
                 OrganizationOption.objects.filter(
                     organization=obj, key="sentry:granular-replay-permissions"
@@ -768,9 +769,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     "organizationmember_id", flat=True
                 )
             )
-        else:
-            context["hasGranularReplayPermissions"] = False
-            context["replayAccessMembers"] = []
 
         if has_custom_dynamic_sampling(obj, actor=user):
             context["targetSampleRate"] = float(

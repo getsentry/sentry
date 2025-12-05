@@ -1637,7 +1637,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
-        data = {"replayAccessMembers": []}
+        data: dict[str, Any] = {"replayAccessMembers": []}
         with outbox_runner():
             self.get_success_response(self.organization.slug, **data)
 
