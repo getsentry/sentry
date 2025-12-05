@@ -23,6 +23,9 @@ import {MaxWidthPanel, PanelDescription, StepContent} from './common';
 import {RepositoryToProjectConfiguration} from './repositoryToProjectConfiguration';
 
 interface ConfigureRootCauseAnalysisStepProps {
+  /**
+   * Selected repositories from the repository selector step.
+   */
   selectedRepositories: Repository[];
 }
 
@@ -30,6 +33,7 @@ export function ConfigureRootCauseAnalysisStep({
   selectedRepositories,
 }: ConfigureRootCauseAnalysisStepProps) {
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
+  // Need local state so you can remove repositories (and maybe add new ones)
   const [repositories, setRepositories] = useState<Repository[]>(selectedRepositories);
   const [proposeFixesEnabled, setProposeFixesEnabled] = useState(true);
   const [autoCreatePREnabled, setAutoCreatePREnabled] = useState(true);
@@ -139,11 +143,11 @@ export function ConfigureRootCauseAnalysisStep({
     const mappings = Object.values(repositoryProjectMappings);
     return (
       !mappings.length ||
-      mappings.length !== selectedRepositories.length ||
+      mappings.length !== repositories.length ||
       Boolean(mappings.some(mappedProjects => mappedProjects.length === 0)) ||
-      selectedRepositories.length === 0
+      repositories.length === 0
     );
-  }, [repositoryProjectMappings, selectedRepositories.length]);
+  }, [repositoryProjectMappings, repositories.length]);
 
   return (
     <Fragment>
