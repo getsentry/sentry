@@ -74,7 +74,7 @@ const Header = styled('div')`
 `;
 
 const Title = styled('h3')`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: 0;
 `;
