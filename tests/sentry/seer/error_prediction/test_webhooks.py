@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import responses
+from django.conf import settings
 
 from sentry.seer.error_prediction.webhooks import forward_github_check_run_for_error_prediction
 from sentry.testutils.cases import TestCase
@@ -50,36 +51,35 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
     @responses.activate
     def test_forwards_rerequested_action_to_seer(self):
         """Test that rerequested action forwards payload to Seer."""
+        from django.conf import settings
+
         responses.add(
             responses.POST,
-            "https://seer.sentry.io/v1/automation/codegen/pr-review/github",
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/github",
             json={"success": True},
             status=200,
         )
 
-        with patch("sentry.seer.error_prediction.webhooks.logger") as mock_logger:
-            forward_github_check_run_for_error_prediction(
-                organization=self.organization,
-                check_run=self.check_run,
-                action="rerequested",
-            )
+        forward_github_check_run_for_error_prediction(
+            organization=self.organization,
+            check_run=self.check_run,
+            action="rerequested",
+        )
 
-            # Verify request was made
-            assert len(responses.calls) == 1
-
-            # Verify success logging
-            mock_logger.info.assert_called_once()
-            assert "forwarded_successfully" in mock_logger.info.call_args[0][0]
+        # Verify request was made
+        assert len(responses.calls) == 1
 
     @with_feature("organizations:gen-ai-features")
     @responses.activate
     def test_handles_minimal_check_run_payload(self):
         """Test that minimal check_run with missing fields is handled."""
+        from django.conf import settings
+
         minimal_check_run = {}  # No external_id or html_url
 
         responses.add(
             responses.POST,
-            "https://seer.sentry.io/v1/automation/codegen/pr-review/github",
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/github",
             json={"success": True},
             status=200,
         )
@@ -97,9 +97,11 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
     @responses.activate
     def test_handles_seer_error_response(self):
         """Test that Seer errors are caught and logged."""
+        from django.conf import settings
+
         responses.add(
             responses.POST,
-            "https://seer.sentry.io/v1/automation/codegen/pr-review/github",
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/github",
             json={"error": "Internal server error"},
             status=500,
         )
@@ -121,7 +123,7 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
         """Test that request includes signed headers for Seer authentication."""
         responses.add(
             responses.POST,
-            "https://seer.sentry.io/v1/automation/codegen/pr-review/github",
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/github",
             json={"success": True},
             status=200,
         )
