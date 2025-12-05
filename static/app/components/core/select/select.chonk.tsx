@@ -293,7 +293,7 @@ export const ChonkCheckWrap = chonkStyled('div')<{
       : css`
           ${p.isSelected &&
           css`
-            color: ${p.theme.colors.content.accent};
+            color: ${p.theme.tokens.content.accent};
           `}
         `}
 `;

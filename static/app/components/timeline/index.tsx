@@ -76,9 +76,9 @@ function Item({
 function makeDefaultColorConfig(theme: Theme) {
   if (isChonkTheme(theme)) {
     return {
-      title: theme.colors.content.primary,
-      icon: theme.colors.content.muted,
-      iconBorder: theme.colors.content.muted,
+      title: theme.tokens.content.primary,
+      icon: theme.tokens.content.muted,
+      iconBorder: theme.tokens.content.muted,
     };
   }
   return {title: theme.gray400, icon: theme.gray300, iconBorder: theme.gray200};

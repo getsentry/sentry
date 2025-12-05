@@ -1807,12 +1807,7 @@ const lightThemeDefinition = {
     darkAliases.backgroundElevated
   ),
 
-  colors: {
-    ...lightColors,
-    content: generateChonkTokens(lightColors).content,
-    background: generateChonkTokens(lightColors).background,
-    border: generateChonkTokens(lightColors).border,
-  },
+  colors: lightColors,
 
   sidebar: {
     background: lightAliases.background,
@@ -1869,12 +1864,7 @@ export const darkTheme: SentryTheme = {
     darkAliases.backgroundElevated
   ),
 
-  colors: {
-    ...darkColors,
-    content: generateChonkTokens(darkColors).content,
-    background: generateChonkTokens(darkColors).background,
-    border: generateChonkTokens(darkColors).border,
-  },
+  colors: darkColors,
 
   sidebar: {
     background: darkAliases.background,
