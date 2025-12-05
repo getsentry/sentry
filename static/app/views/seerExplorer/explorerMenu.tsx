@@ -14,11 +14,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 
-type MenuMode =
-  | 'slash-commands-keyboard'
-  | 'slash-commands-manual'
-  | 'session-history'
-  | 'hidden';
+type MenuMode = 'slash-commands-keyboard' | 'session-history' | 'hidden';
 
 interface ExplorerMenuProps {
   clearInput: () => void;
@@ -85,14 +81,12 @@ export function useExplorerMenu({
     switch (menuMode) {
       case 'slash-commands-keyboard':
         return filteredSlashCommands;
-      case 'slash-commands-manual':
-        return allSlashCommands;
       case 'session-history':
         return sessionItems;
       default:
         return [];
     }
-  }, [menuMode, allSlashCommands, filteredSlashCommands, sessionItems]);
+  }, [menuMode, filteredSlashCommands, sessionItems]);
 
   const close = useCallback(() => {
     setMenuMode('hidden');
@@ -268,7 +262,6 @@ export function useExplorerMenu({
 
     const isSlashCommandMenu =
       menuMode === 'slash-commands-keyboard' ||
-      menuMode === 'slash-commands-manual' ||
       (menuMode === 'session-history' && openedViaSlashCommand);
 
     // Position relative to input for slash commands, or button for button clicks
@@ -324,15 +317,6 @@ export function useExplorerMenu({
     </Activity>
   );
 
-  // Handler for the button entrypoint.
-  const onMenuButtonClick = useCallback(() => {
-    if (menuMode === 'hidden') {
-      setMenuMode('slash-commands-manual');
-    } else {
-      close();
-    }
-  }, [menuMode, setMenuMode, close]);
-
   // Handler for opening session history from button
   const openSessionHistory = useCallback(() => {
     if (menuMode === 'session-history') {
@@ -350,7 +334,6 @@ export function useExplorerMenu({
     menuMode,
     isMenuOpen: menuMode !== 'hidden',
     closeMenu: close,
-    onMenuButtonClick,
     openSessionHistory,
   };
 }
