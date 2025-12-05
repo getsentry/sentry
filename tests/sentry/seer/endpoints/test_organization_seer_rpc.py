@@ -157,3 +157,12 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
 
             assert response.status_code == 200
             assert response.data == {"slug": self.organization.slug}
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_org_level_method_duplicate_org_id(self) -> None:
+        """Test that organization-level methods work and return correct data"""
+        path = self._get_path("get_organization_slug")
+        response = self.client.post(path, data={"args": {"org_id": 1}}, format="json")
+
+        assert response.status_code == 200
+        assert response.data == {"slug": self.organization.slug}
