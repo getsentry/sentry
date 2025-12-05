@@ -164,10 +164,10 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
     @patch("sentry.tasks.autofix.bulk_set_project_preferences")
     @patch("sentry.tasks.autofix.bulk_get_project_preferences")
-    def test_keeps_autofix_off_if_explicitly_disabled(
+    def test_overrides_autofix_off_to_medium(
         self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
     ) -> None:
-        """Test that projects with autofix explicitly set to off keep it off."""
+        """Test that projects with autofix set to off are migrated to medium."""
         project = self.create_project(organization=self.organization)
         project.update_option("sentry:autofix_automation_tuning", "off")
 
@@ -175,9 +175,9 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        # autofix_automation_tuning should stay off
-        assert project.get_option("sentry:autofix_automation_tuning") == "off"
-        # But scanner should still be enabled
+        # autofix_automation_tuning should be migrated to medium for new pricing
+        assert project.get_option("sentry:autofix_automation_tuning") == "medium"
+        # Scanner should be enabled
         assert project.get_option("sentry:seer_scanner_automation") is True
 
     @patch("sentry.tasks.autofix.bulk_set_project_preferences")

@@ -129,11 +129,8 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     # If seer is enabled for an org, every project must have project level settings
     for project in projects:
         project.update_option("sentry:seer_scanner_automation", True)
-        # If autofix is "off" (the registered default for all projects), keep it off.
-        # New projects and existing projects that have explicitly set it to "off" will keep it off.
-        # Otherwise, normalize any other tuning value to "medium".
-        if project.get_option("sentry:autofix_automation_tuning") != "off":
-            project.update_option("sentry:autofix_automation_tuning", "medium")
+        # New automation default for the new pricing is medium.
+        project.update_option("sentry:autofix_automation_tuning", "medium")
 
     if not project_ids:
         return
