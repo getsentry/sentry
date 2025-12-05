@@ -370,6 +370,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       }
       if (alertRule) {
         addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
+
+        if (!ruleId) {
+          trackAnalytics('metric_alert_rule.created', {
+            organization,
+            aggregate: alertRule.aggregate,
+            dataset: alertRule.dataset,
+          });
+        }
+
         if (onSubmitSuccess) {
           onSubmitSuccess(alertRule, model);
         }
@@ -849,6 +858,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           IndicatorStore.remove(loadingIndicator);
           this.setState({loading: false});
           addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
+
+          if (!ruleId) {
+            trackAnalytics('metric_alert_rule.created', {
+              organization,
+              aggregate: data.aggregate,
+              dataset: data.dataset,
+            });
+          }
+
           if (onSubmitSuccess) {
             onSubmitSuccess(data, model);
           }
