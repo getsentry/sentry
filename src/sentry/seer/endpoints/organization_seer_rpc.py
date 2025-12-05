@@ -99,7 +99,7 @@ class SeerRpcPermission(OrganizationPermission):
     # Seer RPCs uses POST requests but is actually read only
     # So relax the permissions here.
     scope_map = {
-        "POST": ["org:read"],
+        "POST": ["org:read", "org:write", "org:admin"],
     }
 
 
