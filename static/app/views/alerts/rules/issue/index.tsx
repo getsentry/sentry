@@ -457,6 +457,12 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     metric.endSpan({name: 'saveAlertRule'});
 
+    if (isNew) {
+      trackAnalytics('issue_alert_rule.created', {
+        organization,
+      });
+    }
+
     router.push(
       makeAlertsPathname({
         path: `/rules/${project.slug}/${rule.id}/details/`,

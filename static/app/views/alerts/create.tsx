@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -166,14 +167,18 @@ function Create(props: Props) {
               <MonitorForm
                 apiMethod="POST"
                 apiEndpoint={`/organizations/${organization.slug}/monitors/`}
-                onSubmitSuccess={(data: Monitor) =>
+                onSubmitSuccess={(data: Monitor) => {
+                  trackAnalytics('cron_monitor.created', {
+                    organization,
+                    cron_schedule_type: data.config.schedule_type,
+                  });
                   navigate(
                     makeAlertsPathname({
                       path: `/rules/crons/${data.project.slug}/${data.slug}/details/`,
                       organization,
                     })
-                  )
-                }
+                  );
+                }}
                 submitLabel={t('Create')}
               />
             ) : !hasMetricAlerts || alertType === AlertRuleType.ISSUE ? (

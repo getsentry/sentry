@@ -28,6 +28,7 @@ describe('AutomationNewSettings', () => {
   });
 
   beforeEach(() => {
+    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
 
     // Available actions (include Slack with a default integration)
@@ -205,15 +206,14 @@ describe('AutomationNewSettings', () => {
     );
 
     // Verify analytics was called with correct event and payload structure
-    await waitFor(() => {
-      expect(trackAnalytics).toHaveBeenCalledWith('automation.created', {
-        organization,
-        frequency_minutes: expect.any(Number),
-        environment: expect.anything(),
-        detectors_count: expect.any(Number),
-        trigger_conditions_count: expect.any(Number),
-        actions_count: expect.any(Number),
-      });
+    expect(trackAnalytics).toHaveBeenCalledWith('automation.created', {
+      organization,
+      frequency_minutes: expect.any(Number),
+      environment: null,
+      detectors_count: expect.any(Number),
+      trigger_conditions_count: expect.any(Number),
+      success: true,
+      actions_count: expect.any(Number),
     });
   });
 });
