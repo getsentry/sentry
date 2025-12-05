@@ -107,6 +107,7 @@ def run_automation_only_task(group_id: int) -> None:
 @instrumented_task(
     name="sentry.tasks.autofix.configure_seer_for_existing_org",
     namespace=issues_tasks,
+    processing_deadline_duration=90,
     retry=Retry(times=3),
 )
 def configure_seer_for_existing_org(organization_id: int) -> None:
