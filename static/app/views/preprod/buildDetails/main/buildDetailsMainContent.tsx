@@ -323,6 +323,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         sizeInfo={sizeInfo}
         processedInsights={processedInsights}
         totalSize={totalSize}
+        baseArtifactId={buildDetailsData?.base_artifact_id ?? null}
         platform={buildDetailsData?.app_info?.platform ?? null}
         projectType={projectType}
         onOpenInsightsSidebar={openInsightsSidebar}
