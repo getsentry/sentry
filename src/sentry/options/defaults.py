@@ -3465,7 +3465,7 @@ register(
 # Maximum number of projects to return when all_projects parameter is used
 register(
     "api.organization-projects-max-results",
-    default=1000,
+    default=500,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

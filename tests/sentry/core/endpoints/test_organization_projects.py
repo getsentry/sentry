@@ -313,24 +313,24 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         assert not response.data[1].get("options")
 
     def test_all_projects_limit_exceeded(self) -> None:
-        # Create 1001 projects to exceed the limit
-        for i in range(1001):
+        # Create 501 projects to exceed the limit
+        for i in range(501):
             self.create_project(teams=[self.team], name=f"project-{i}", slug=f"project-{i}")
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"all_projects": "1"}
         )
-        # Should return 1000 projects (capped)
-        assert len(response.data) == 1000
+        # Should return 500 projects (capped)
+        assert len(response.data) == 500
         # Should include truncation warning header
         assert "X-Sentry-Warning" in response
-        assert "more than 1000 projects" in response["X-Sentry-Warning"].lower()
-        assert "first 1000" in response["X-Sentry-Warning"].lower()
+        assert "more than 500 projects" in response["X-Sentry-Warning"].lower()
+        assert "first 500" in response["X-Sentry-Warning"].lower()
 
     def test_all_projects_at_limit(self) -> None:
-        # Create exactly 1000 projects - should succeed without warning
+        # Create exactly 500 projects - should succeed without warning
         projects = []
-        for i in range(1000):
+        for i in range(500):
             projects.append(
                 self.create_project(teams=[self.team], name=f"project-{i}", slug=f"project-{i}")
             )
@@ -338,8 +338,8 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         response = self.get_success_response(
             self.organization.slug, qs_params={"all_projects": "1"}
         )
-        # Should return all 1000 projects
-        assert len(response.data) == 1000
+        # Should return all 500 projects
+        assert len(response.data) == 500
         # Should NOT include truncation warning header (exactly at limit)
         assert "X-Sentry-Warning" not in response
 
