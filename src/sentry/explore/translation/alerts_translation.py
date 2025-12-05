@@ -221,8 +221,6 @@ def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQ
         using=(
             router.db_for_write(SnubaQuery),
             router.db_for_write(SnubaQueryEventType),
-            router.db_for_write(QuerySubscription),
-            router.db_for_read(DataCondition),
         )
     ):
         snuba_query.update(
@@ -237,8 +235,9 @@ def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQ
             snuba_query=snuba_query, type=SnubaQueryEventType.EventType.TRANSACTION.value
         )
 
-        query_subscriptions = list(snuba_query.subscriptions.all())
-        for subscription in query_subscriptions:
+    query_subscriptions = list(snuba_query.subscriptions.all())
+    for subscription in query_subscriptions:
+        with transaction.atomic(router.db_for_write(QuerySubscription)):
             subscription.update(status=QuerySubscription.Status.UPDATING.value)
 
             transaction.on_commit(
@@ -252,21 +251,21 @@ def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQ
                 using=router.db_for_write(QuerySubscription),
             )
 
-        for detector in detectors:
-            detector_cfg: MetricIssueDetectorConfig = detector.config
-            if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
-                data_condition = DataCondition.objects.get(
-                    condition_group=detector.workflow_condition_group
-                )
-                handle_send_historical_data_to_seer(
-                    detector,
-                    data_source,
-                    data_condition,
-                    snuba_query,
-                    detector.project,
-                    SeerMethod.UPDATE,
-                    event_types=[SnubaQueryEventType.EventType.TRANSACTION],
-                )
+    for detector in detectors:
+        detector_cfg: MetricIssueDetectorConfig = detector.config
+        if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
+            data_condition = DataCondition.objects.get(
+                condition_group=detector.workflow_condition_group
+            )
+            handle_send_historical_data_to_seer(
+                detector,
+                data_source,
+                data_condition,
+                snuba_query,
+                detector.project,
+                SeerMethod.UPDATE,
+                event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            )
 
     logger.info(
         "Query successfully rolled back to legacy", extra={"snuba_query_id": snuba_query.id}
