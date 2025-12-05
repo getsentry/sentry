@@ -5,18 +5,33 @@ import toArray from 'sentry/utils/array/toArray';
 import {getKeyCode} from './getKeyCode';
 
 const isKeyPressed = (key: string, evt: KeyboardEvent): boolean => {
-  const keyCode = getKeyCode(key);
-  switch (keyCode) {
-    case getKeyCode('command'):
+  const normalizedKey = key.toLowerCase();
+
+  switch (normalizedKey) {
+    case 'command':
+    case 'cmd':
+    case '⌘':
       return evt.metaKey;
-    case getKeyCode('shift'):
+    case 'shift':
+    case '⇧':
       return evt.shiftKey;
-    case getKeyCode('ctrl'):
+    case 'ctrl':
+    case 'control':
+    case '⌃':
       return evt.ctrlKey;
-    case getKeyCode('alt'):
+    case 'alt':
+    case 'option':
+    case '⌥':
       return evt.altKey;
-    default:
+    default: {
+      // Use evt.key for better keyboard layout support (works with German keyboards, etc.)
+      // Fall back to keyCode for backwards compatibility with special keys
+      if (evt.key && evt.key.toLowerCase() === normalizedKey) {
+        return true;
+      }
+      const keyCode = getKeyCode(key);
       return keyCode === evt.keyCode;
+    }
   }
 };
 
