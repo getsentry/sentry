@@ -141,7 +141,7 @@ const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
 
 const Description = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.4em;
 `;
 
