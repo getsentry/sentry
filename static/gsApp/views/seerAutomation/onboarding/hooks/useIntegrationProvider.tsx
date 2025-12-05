@@ -17,7 +17,6 @@ export default function useIntegrationProvider(provider_key: string) {
     ],
     {
       staleTime: Infinity,
-      retry: false,
     }
   );
 
