@@ -3079,6 +3079,13 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Unable to Delete Repository notifications
+register(
+    "notifications.platform-rate.unable-to-delete-repository",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Notification Options - End
 
 # List of organizations with increased rate limits for organization_events API
@@ -3306,6 +3313,14 @@ register(
     "workflow_engine.evaluation_log_sample_rate",
     type=Float,
     default=0.1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Whether to directly log workflow evaluation logs to Sentry instead of using the stdlib
+# logger (which also logs to Sentry).
+register(
+    "workflow_engine.evaluation_logs_direct_to_sentry",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

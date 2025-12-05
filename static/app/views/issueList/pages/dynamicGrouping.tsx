@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -26,12 +26,16 @@ import Redirect from 'sentry/components/redirect';
 import TimeSince from 'sentry/components/timeSince';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {
+  IconCalendar,
   IconChevron,
+  IconClock,
   IconClose,
   IconCopy,
   IconFire,
+  IconFix,
   IconSeer,
   IconUpload,
+  IconUser,
 } from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -43,6 +47,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+
+const CLUSTERS_PER_PAGE = 20;
 
 /**
  * Parses a string and renders backtick-wrapped text as inline code elements.
@@ -143,6 +149,7 @@ function openSeerExplorerWithClipboard(): void {
 
 interface TopIssuesResponse {
   data: ClusterSummary[];
+  last_updated?: string;
 }
 
 function CompactIssuePreview({group}: {group: Group}) {
@@ -198,6 +205,7 @@ interface ClusterStats {
   isPending: boolean;
   lastSeen: string | null;
   totalEvents: number;
+  totalUsers: number;
 }
 
 function useClusterStats(groupIds: number[]): ClusterStats {
@@ -223,6 +231,7 @@ function useClusterStats(groupIds: number[]): ClusterStats {
     if (isPending || !groups || groups.length === 0) {
       return {
         totalEvents: 0,
+        totalUsers: 0,
         firstSeen: null,
         lastSeen: null,
         isPending,
@@ -230,11 +239,13 @@ function useClusterStats(groupIds: number[]): ClusterStats {
     }
 
     let totalEvents = 0;
+    let totalUsers = 0;
     let earliestFirstSeen: Date | null = null;
     let latestLastSeen: Date | null = null;
 
     for (const group of groups) {
       totalEvents += parseInt(group.count, 10) || 0;
+      totalUsers += group.userCount || 0;
 
       if (group.firstSeen) {
         const firstSeenDate = new Date(group.firstSeen);
@@ -253,6 +264,7 @@ function useClusterStats(groupIds: number[]): ClusterStats {
 
     return {
       totalEvents,
+      totalUsers,
       firstSeen: earliestFirstSeen?.toISOString() ?? null,
       lastSeen: latestLastSeen?.toISOString() ?? null,
       isPending,
@@ -350,23 +362,22 @@ function ClusterCard({
   selectedTags?: Set<string>;
 }) {
   const organization = useOrganization();
-  const issueCount = cluster.group_ids.length;
   const [showDescription, setShowDescription] = useState(false);
   const clusterStats = useClusterStats(cluster.group_ids);
   const {copy} = useCopyToClipboard();
 
-  const handleSendToSeer = useCallback(() => {
+  const handleSendToSeer = () => {
     copy(formatClusterPromptForSeer(cluster), {
       successMessage: t('Copied to clipboard. Paste into Seer Explorer with Cmd+V'),
     });
     setTimeout(() => {
       openSeerExplorerWithClipboard();
     }, 100);
-  }, [cluster, copy]);
+  };
 
-  const handleCopyMarkdown = useCallback(() => {
+  const handleCopyMarkdown = () => {
     copy(formatClusterInfoForClipboard(cluster));
-  }, [cluster, copy]);
+  };
 
   return (
     <CardContainer>
@@ -392,66 +403,81 @@ function ClusterCard({
       </CardHeader>
 
       {/* Zone 2: Stats (Secondary Context) */}
-      <StatsSection>
-        <PrimaryStats>
-          <EventsMetric>
-            <IconFire size="sm" />
-            {clusterStats.isPending ? (
-              <Text size="md" variant="muted">
-                –
-              </Text>
-            ) : (
-              <EventsCount>{clusterStats.totalEvents.toLocaleString()}</EventsCount>
-            )}
-            <Text size="sm" variant="muted">
+      <ClusterStatsBar>
+        {cluster.fixability_score !== null && cluster.fixability_score !== undefined && (
+          <StatItem>
+            <IconFix size="xs" color="gray300" />
+            <Text size="xs">
+              <Text size="xs" bold as="span">
+                {Math.round(cluster.fixability_score * 100)}%
+              </Text>{' '}
+              {t('relevance')}
+            </Text>
+          </StatItem>
+        )}
+        <StatItem>
+          <IconFire size="xs" color="gray300" />
+          {clusterStats.isPending ? (
+            <Text size="xs" variant="muted">
+              –
+            </Text>
+          ) : (
+            <Text size="xs">
+              <Text size="xs" bold as="span">
+                {clusterStats.totalEvents.toLocaleString()}
+              </Text>{' '}
               {tn('event', 'events', clusterStats.totalEvents)}
             </Text>
-          </EventsMetric>
-        </PrimaryStats>
-        <SecondaryStats>
-          {!clusterStats.isPending && clusterStats.lastSeen && (
-            <SecondaryStatItem>
-              <Text size="xs" variant="muted">
-                {t('Last seen')}
-              </Text>
-              <TimeSince
-                tooltipPrefix={t('Last Seen')}
-                date={clusterStats.lastSeen}
-                suffix={t('ago')}
-                unitStyle="short"
-              />
-            </SecondaryStatItem>
           )}
-          {!clusterStats.isPending && clusterStats.firstSeen && (
-            <SecondaryStatItem>
-              <Text size="xs" variant="muted">
-                {t('Age')}
-              </Text>
-              <TimeSince
-                tooltipPrefix={t('First Seen')}
-                date={clusterStats.firstSeen}
-                suffix={t('old')}
-                unitStyle="short"
-              />
-            </SecondaryStatItem>
+        </StatItem>
+        <StatItem>
+          <IconUser size="xs" color="gray300" />
+          {clusterStats.isPending ? (
+            <Text size="xs" variant="muted">
+              –
+            </Text>
+          ) : (
+            <Text size="xs">
+              <Text size="xs" bold as="span">
+                {clusterStats.totalUsers.toLocaleString()}
+              </Text>{' '}
+              {tn('user', 'users', clusterStats.totalUsers)}
+            </Text>
           )}
-        </SecondaryStats>
-      </StatsSection>
+        </StatItem>
+        {!clusterStats.isPending && clusterStats.lastSeen && (
+          <StatItem>
+            <IconClock size="xs" color="gray300" />
+            <TimeSince
+              tooltipPrefix={t('Last Seen')}
+              date={clusterStats.lastSeen}
+              suffix={t('ago')}
+              unitStyle="short"
+            />
+          </StatItem>
+        )}
+        {!clusterStats.isPending && clusterStats.firstSeen && (
+          <StatItem>
+            <IconCalendar size="xs" color="gray300" />
+            <TimeSince
+              tooltipPrefix={t('First Seen')}
+              date={clusterStats.firstSeen}
+              suffix={t('old')}
+              unitStyle="short"
+            />
+          </StatItem>
+        )}
+      </ClusterStatsBar>
 
       {/* Zone 3: Nested Issues (Detail Content) */}
       <IssuesSection>
         <IssuesSectionHeader>
           <Text size="sm" bold uppercase>
-            {tn('%s Issue', '%s Issues', issueCount)}
+            {t('Preview Issues')}
           </Text>
         </IssuesSectionHeader>
         <IssuesList>
           <ClusterIssues groupIds={cluster.group_ids} />
-          {cluster.group_ids.length > 3 && (
-            <MoreIssuesIndicator>
-              {t('+ %s more similar issues', cluster.group_ids.length - 3)}
-            </MoreIssuesIndicator>
-          )}
         </IssuesList>
       </IssuesSection>
 
@@ -490,7 +516,9 @@ function ClusterCard({
         <Link
           to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
         >
-          <Button size="sm">{t('View All Issues')}</Button>
+          <Button size="sm">
+            {t('View All Issues') + ` (${cluster.group_ids.length})`}
+          </Button>
         </Link>
       </CardFooter>
     </CardContainer>
@@ -502,7 +530,7 @@ function DynamicGrouping() {
   const user = useUser();
   const {teams: userTeams} = useUserTeams();
   const {selection} = usePageFilters();
-  const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
+  const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(false);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [showJsonInput, setShowJsonInput] = useState(false);
@@ -513,6 +541,7 @@ function DynamicGrouping() {
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [disableFilters, setDisableFilters] = useState(false);
   const [showDevTools, setShowDevTools] = useState(false);
+  const [visibleClusterCount, setVisibleClusterCount] = useState(CLUSTERS_PER_PAGE);
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
@@ -523,10 +552,9 @@ function DynamicGrouping() {
     }
   );
 
-  const handleParseJson = useCallback(() => {
+  const handleParseJson = () => {
     try {
       const parsed = JSON.parse(jsonInputValue);
-      // Support both {data: [...]} format and direct array format
       const clusters = Array.isArray(parsed) ? parsed : parsed?.data;
       if (!Array.isArray(clusters)) {
         setJsonError(t('JSON must be an array or have a "data" property with an array'));
@@ -538,16 +566,15 @@ function DynamicGrouping() {
     } catch (e) {
       setJsonError(t('Invalid JSON: %s', e instanceof Error ? e.message : String(e)));
     }
-  }, [jsonInputValue]);
+  };
 
-  const handleClearCustomData = useCallback(() => {
+  const handleClearCustomData = () => {
     setCustomClusterData(null);
     setJsonInputValue('');
     setJsonError(null);
     setDisableFilters(false);
-  }, []);
+  };
 
-  const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
   const isUsingCustomData = customClusterData !== null;
 
   // Extract all unique teams from the cluster data (for dev tools filter UI)
@@ -607,64 +634,90 @@ function DynamicGrouping() {
     setSelectedTags(new Set());
   };
 
-  // Helper to check if a cluster has any of the selected tags
-  const clusterHasSelectedTags = (cluster: ClusterSummary): boolean => {
-    if (selectedTags.size === 0) return true;
+  const filteredAndSortedClusters = useMemo(() => {
+    const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
 
-    const allClusterTags = [
-      ...(cluster.service_tags ?? []),
-      ...(cluster.error_type_tags ?? []),
-      ...(cluster.code_area_tags ?? []),
-    ];
-
-    return Array.from(selectedTags).every(tag => allClusterTags.includes(tag));
-  };
-
-  // Helper to check if a cluster has any of the selected projects
-  const clusterHasSelectedProjects = (cluster: ClusterSummary): boolean => {
-    // If "All Projects" is selected (indicated by -1) or no specific projects are selected, show all clusters
-    if (
-      selection.projects.length === 0 ||
-      selection.projects.includes(ALL_ACCESS_PROJECTS)
-    ) {
-      return true;
+    if (isUsingCustomData && disableFilters) {
+      return clusterData;
     }
-    return cluster.project_ids.some(projectId => selection.projects.includes(projectId));
-  };
 
-  // When using custom JSON data with filters disabled, skip all filtering and sorting
-  const shouldSkipFilters = isUsingCustomData && disableFilters;
-  const filteredAndSortedClusters = shouldSkipFilters
-    ? clusterData
-    : clusterData
-        .filter(cluster => {
-          // Filter by selected tags
-          if (!clusterHasSelectedTags(cluster)) return false;
+    // Apply tag and project filters
+    const baseFiltered = clusterData.filter(cluster => {
+      if (selectedTags.size > 0) {
+        const allClusterTags = [
+          ...(cluster.service_tags ?? []),
+          ...(cluster.error_type_tags ?? []),
+          ...(cluster.code_area_tags ?? []),
+        ];
+        if (!Array.from(selectedTags).every(tag => allClusterTags.includes(tag))) {
+          return false;
+        }
+      }
 
-          // Filter by selected projects
-          if (!clusterHasSelectedProjects(cluster)) return false;
+      if (
+        selection.projects.length > 0 &&
+        !selection.projects.includes(ALL_ACCESS_PROJECTS)
+      ) {
+        if (!cluster.project_ids.some(pid => selection.projects.includes(pid))) {
+          return false;
+        }
+      }
 
-          if (filterByAssignedToMe) {
-            if (!cluster.assignedTo?.length) return false;
-            return cluster.assignedTo.some(
-              entity =>
-                (entity.type === 'user' && entity.id === user.id) ||
-                (entity.type === 'team' && userTeams.some(team => team.id === entity.id))
-            );
-          }
+      return true;
+    });
 
-          if (isTeamFilterActive) {
-            if (!cluster.assignedTo?.length) return false;
-            return cluster.assignedTo.some(
-              entity => entity.type === 'team' && selectedTeamIds.has(entity.id)
-            );
-          }
+    // Find clusters assigned to current user or their teams
+    const assignedToMe = baseFiltered.filter(cluster =>
+      cluster.assignedTo?.some(
+        entity =>
+          (entity.type === 'user' && entity.id === user.id) ||
+          (entity.type === 'team' && userTeams.some(team => team.id === entity.id))
+      )
+    );
 
-          return true;
-        })
-        .sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
+    // By default, show only clusters assigned to me if there are enough (>=10)
+    const MIN_CLUSTERS_THRESHOLD = 10;
+    let result =
+      assignedToMe.length >= MIN_CLUSTERS_THRESHOLD ? assignedToMe : baseFiltered;
+
+    // Manual filters override the default
+    if (filterByAssignedToMe) {
+      result = assignedToMe;
+    } else if (isTeamFilterActive) {
+      result = baseFiltered.filter(cluster =>
+        cluster.assignedTo?.some(
+          entity => entity.type === 'team' && selectedTeamIds.has(entity.id)
+        )
+      );
+    }
+
+    return result.sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
+  }, [
+    customClusterData,
+    topIssuesResponse?.data,
+    isUsingCustomData,
+    disableFilters,
+    selectedTags,
+    selection.projects,
+    filterByAssignedToMe,
+    user.id,
+    userTeams,
+    isTeamFilterActive,
+    selectedTeamIds,
+  ]);
+
+  const hasMoreClusters = filteredAndSortedClusters.length > visibleClusterCount;
+  const displayedClusters = hasMoreClusters
+    ? filteredAndSortedClusters.slice(0, visibleClusterCount)
+    : filteredAndSortedClusters;
 
   const totalIssues = filteredAndSortedClusters.flatMap(c => c.group_ids).length;
+  const remainingClusterCount =
+    filteredAndSortedClusters.length - displayedClusters.length;
+
+  const handleShowMore = () => {
+    setVisibleClusterCount(prev => prev + CLUSTERS_PER_PAGE);
+  };
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
   if (!hasTopIssuesUI) {
@@ -770,15 +823,27 @@ function DynamicGrouping() {
 
           {isPending ? null : (
             <Fragment>
-              <Text size="sm" variant="muted">
-                {tn(
-                  'Viewing %s cluster containing %s issue',
-                  'Viewing %s clusters containing %s issues',
-                  filteredAndSortedClusters.length,
-                  totalIssues
+              <Flex justify="between" align="center">
+                <Text size="sm" variant="muted">
+                  {tn(
+                    'Viewing %s cluster containing %s issue',
+                    'Viewing %s clusters containing %s issues',
+                    filteredAndSortedClusters.length,
+                    totalIssues
+                  )}
+                  {isUsingCustomData && disableFilters && ` ${t('(filters disabled)')}`}
+                </Text>
+                {topIssuesResponse?.last_updated && (
+                  <LastUpdatedText>
+                    {t('Updated')}{' '}
+                    <StyledTimeSince
+                      date={topIssuesResponse.last_updated}
+                      suffix={t('ago')}
+                      unitStyle="short"
+                    />
+                  </LastUpdatedText>
                 )}
-                {shouldSkipFilters && ` ${t('(filters disabled)')}`}
-              </Text>
+              </Flex>
 
               {selectedTags.size > 0 && (
                 <ActiveTagFilters>
@@ -805,7 +870,7 @@ function DynamicGrouping() {
                 </ActiveTagFilters>
               )}
 
-              {showDevTools && !shouldSkipFilters && (
+              {showDevTools && !(isUsingCustomData && disableFilters) && (
                 <Container
                   padding="sm"
                   border="primary"
@@ -869,7 +934,7 @@ function DynamicGrouping() {
         <CardsSection>
           {isPending ? (
             <LoadingIndicator />
-          ) : filteredAndSortedClusters.length === 0 ? (
+          ) : displayedClusters.length === 0 ? (
             <Container padding="lg" border="primary" radius="md" background="primary">
               <Text variant="muted" align="center" as="div">
                 {t('No clusters match the current filters')}
@@ -877,15 +942,36 @@ function DynamicGrouping() {
             </Container>
           ) : (
             <CardsGrid>
-              {filteredAndSortedClusters.map(cluster => (
-                <ClusterCard
-                  key={cluster.cluster_id}
-                  cluster={cluster}
-                  onTagClick={handleTagClick}
-                  selectedTags={selectedTags}
-                />
-              ))}
+              <CardsColumn>
+                {displayedClusters
+                  .filter((_, index) => index % 2 === 0)
+                  .map(cluster => (
+                    <ClusterCard
+                      key={cluster.cluster_id}
+                      cluster={cluster}
+                      onTagClick={handleTagClick}
+                      selectedTags={selectedTags}
+                    />
+                  ))}
+              </CardsColumn>
+              <CardsColumn>
+                {displayedClusters
+                  .filter((_, index) => index % 2 === 1)
+                  .map(cluster => (
+                    <ClusterCard
+                      key={cluster.cluster_id}
+                      cluster={cluster}
+                      onTagClick={handleTagClick}
+                      selectedTags={selectedTags}
+                    />
+                  ))}
+              </CardsColumn>
             </CardsGrid>
+          )}
+          {hasMoreClusters && (
+            <ShowMoreButton onClick={handleShowMore}>
+              {t('Show more clusters (%s more)', remainingClusterCount)}
+            </ShowMoreButton>
           )}
         </CardsSection>
       </PageWrapper>
@@ -914,14 +1000,20 @@ const CardsSection = styled('div')`
 `;
 
 const CardsGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
   gap: ${space(3)};
-  align-items: stretch;
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
+`;
+
+const CardsColumn = styled('div')`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(3)};
+  min-width: 0;
 `;
 
 // Card with subtle hover effect
@@ -960,50 +1052,23 @@ const ClusterTitle = styled('h3')`
   word-break: break-word;
 `;
 
-// Zone 2: Stats section with visual hierarchy
-const StatsSection = styled('div')`
-  padding: ${space(2)} ${space(3)};
-  background: ${p => p.theme.backgroundSecondary};
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+// Horizontal stats bar below header
+const ClusterStatsBar = styled('div')`
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: center;
   gap: ${space(2)};
-  flex-wrap: wrap;
-`;
-
-const PrimaryStats = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(3)};
-`;
-
-const EventsMetric = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  color: ${p => p.theme.red300};
-`;
-
-const EventsCount = styled('span')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: 700;
-  color: ${p => p.theme.textColor};
-  font-variant-numeric: tabular-nums;
-`;
-
-const SecondaryStats = styled('div')`
-  display: flex;
-  gap: ${space(3)};
-`;
-
-const SecondaryStatItem = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.25)};
+  padding: ${space(1.5)} ${space(3)};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.subText};
+`;
+
+const StatItem = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 // Zone 3: Issues list with clear containment
@@ -1024,14 +1089,6 @@ const IssuesList = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1.5)};
-`;
-
-const MoreIssuesIndicator = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  text-align: center;
-  font-style: italic;
-  padding-top: ${space(1)};
 `;
 
 // Zone 4: Footer with actions
@@ -1131,6 +1188,29 @@ const FilterLabel = styled('span')<{disabled?: boolean}>`
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.subText)};
 `;
 
+const ShowMoreButton = styled('button')`
+  display: block;
+  width: 100%;
+  margin-top: ${space(3)};
+  padding: ${space(2)} ${space(3)};
+  background: ${p => p.theme.backgroundSecondary};
+  border: 1px dashed ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.md};
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+
+  &:hover {
+    background: ${p => p.theme.backgroundTertiary};
+    border-color: ${p => p.theme.purple300};
+    color: ${p => p.theme.textColor};
+  }
+`;
+
 const JsonInputContainer = styled('div')`
   margin-bottom: ${space(2)};
   padding: ${space(2)};
@@ -1197,6 +1277,21 @@ const ActiveTagChip = styled('div')`
   border: 1px solid ${p => p.theme.purple200};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.purple400};
+`;
+
+const LastUpdatedText = styled('span')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  white-space: nowrap;
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: none;
+  }
 `;
 
 export default DynamicGrouping;

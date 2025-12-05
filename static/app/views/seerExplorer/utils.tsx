@@ -1,5 +1,7 @@
 import type {LocationDescriptor} from 'history';
 
+import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import type {Block, ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
 
 /**
@@ -51,6 +53,12 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       return isLoading
         ? `Searching for errors${projectInfo}: '${question}'...`
         : `Searched for errors${projectInfo}: '${question}'`;
+    }
+
+    if (dataset === 'logs') {
+      return isLoading
+        ? `Querying logs${projectInfo}: '${question}'...`
+        : `Queried logs${projectInfo}: '${question}'`;
     }
 
     // Default to spans
@@ -205,6 +213,9 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     if (toolLinkParams?.empty_results) {
       return `Edit to ${path} in ${repoName} was rejected`;
     }
+    if (toolLinkParams?.pending_approval) {
+      return `Edit to ${path} in ${repoName} is pending your approval`;
+    }
     return isLoading
       ? `Editing ${path} in ${repoName}...`
       : `Edited ${path} in ${repoName}`;
@@ -220,9 +231,13 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     const action = isDelete ? 'Delete' : 'Write';
     const actionPast = isDelete ? 'Deleted' : 'Wrote';
     const actionPresent = isDelete ? 'Deleting' : 'Writing';
+    const actionPending = isDelete ? 'Delete' : 'Write';
 
     if (toolLinkParams?.empty_results) {
       return `${action} to ${path} in ${repoName} was rejected`;
+    }
+    if (toolLinkParams?.pending_approval) {
+      return `${actionPending} to ${path} in ${repoName} is pending your approval`;
     }
 
     return isLoading
@@ -235,6 +250,15 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     return isLoading
       ? `Scouring Sentry docs: '${question}'...`
       : `Scoured Sentry docs: '${question}'`;
+  },
+
+  todo_write: (args, isLoading, toolLinkParams) => {
+    if (isLoading) {
+      const count = args.todos?.length || 0;
+      return count === 1 ? 'Updating todo list...' : `Updating ${count} todos...`;
+    }
+    // Use the summary from metadata if available
+    return toolLinkParams?.summary || 'Updated todo list';
   },
 };
 
@@ -430,6 +454,36 @@ export function buildToolLinkUrl(
 
         return {
           pathname: `/organizations/${orgSlug}/explore/discover/homepage/`,
+          query: queryParams,
+        };
+      }
+
+      if (dataset === 'logs') {
+        const queryParams: Record<string, any> = {
+          [LOGS_QUERY_KEY]: query || '',
+          project: null,
+        };
+
+        if (stats_period) {
+          queryParams.statsPeriod = stats_period;
+        }
+
+        // If project_slugs is provided, look up the project IDs
+        if (project_slugs && project_slugs.length > 0 && projects) {
+          const projectIds = project_slugs
+            .map((slug: string) => projects.find(p => p.slug === slug)?.id)
+            .filter((id: string | undefined) => id !== undefined);
+          if (projectIds.length > 0) {
+            queryParams.project = projectIds;
+          }
+        }
+
+        if (sort) {
+          queryParams[LOGS_SORT_BYS_KEY] = sort;
+        }
+
+        return {
+          pathname: `/organizations/${orgSlug}/explore/logs/`,
           query: queryParams,
         };
       }

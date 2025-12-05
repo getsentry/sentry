@@ -74,7 +74,7 @@ export const HeaderValue = styled('div')`
   position: absolute;
   top: 40px;
   z-index: 1;
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 export const ChartContainer = styled('div')`

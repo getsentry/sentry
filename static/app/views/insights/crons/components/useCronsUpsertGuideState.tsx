@@ -1,6 +1,8 @@
 import {useCallback} from 'react';
 import {parseAsStringEnum, useQueryStates} from 'nuqs';
 
+import type {PlatformKey} from 'sentry/types/project';
+
 import {
   platformGuides,
   type CronsPlatform,
@@ -114,4 +116,11 @@ export function useCronsUpsertGuideState(options?: Options): PlatformGuideState 
     guideVisible,
     setPlatformGuide,
   };
+}
+
+/**
+ * Translates a `PlatformKey` to a Cron `SupportedPlatform` key.
+ */
+export function toSupportedPlatform(platform: PlatformKey) {
+  return platformParser.parse(platform) ?? undefined;
 }

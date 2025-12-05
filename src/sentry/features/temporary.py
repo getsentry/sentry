@@ -179,6 +179,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:gen-ai-explore-traces-consent-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GenAI consent
     manager.add("organizations:gen-ai-consent", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable granular permissions for replay features
+    manager.add("organizations:granular-replay-permissions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable increased issue_owners rate limit for auto-assignment
     manager.add("organizations:increased-issue-owners-rate-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Starfish: extract metrics from the spans
@@ -284,8 +286,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:performance-remove-metrics-compatibility-fallback", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace explorer features
     manager.add("organizations:performance-trace-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable spot checking of `/events-timeseries/` endpoint in Explore
-    manager.add("organizations:explore-events-time-series-spot-check", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable session health overview to dashboard platform migration
     manager.add("organizations:performance-session-health-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable session health overview to dashboard platform migration

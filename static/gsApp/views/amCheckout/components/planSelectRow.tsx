@@ -129,7 +129,7 @@ function PlanSelectRow({
                       .map(([featureId, feature]) => (
                         <Feature key={featureId}>
                           {/* custom to match text size */}
-                          <IconBusiness legacySize="14px" gradient />
+                          <IconBusiness legacySize="14px" />
                           {
                             // Only shows hovercard when one feature was highlighted
                             highlightedFeatures.length === 1 ? (
