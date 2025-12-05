@@ -10,6 +10,7 @@ from django.conf import settings
 from pydantic import BaseModel
 
 from sentry import features, options
+from sentry.constants import VALID_PLATFORMS
 from sentry.issues.grouptype import LLMDetectedExperimentalGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -72,6 +73,30 @@ class LLMIssueDetectionError(SeerApiError):
         self.error_message = error_message
 
 
+def get_base_platform(platform: str | None) -> str | None:
+    """
+    Extract the base platform from a platform identifier.
+
+    Examples:
+        python-flask -> python
+        python-django -> python
+        javascript-react -> javascript
+        python -> python
+    """
+    if not platform:
+        return None
+
+    if platform in VALID_PLATFORMS:
+        return platform
+
+    base_platform = platform.split("-")[0]
+
+    if base_platform in VALID_PLATFORMS:
+        return base_platform
+
+    return None
+
+
 def create_issue_occurrence_from_detection(
     detected_issue: DetectedIssue,
     trace: EvidenceTraceData,
@@ -119,10 +144,12 @@ def create_issue_occurrence_from_detection(
         level="warning",
     )
 
+    platform = get_base_platform(project.platform) or "other"
+
     event_data = {
         "event_id": event_id,
         "project_id": project_id,
-        "platform": project.platform or "other",
+        "platform": platform,
         "received": detection_time.isoformat(),
         "timestamp": detection_time.isoformat(),
         "transaction": transaction_name,
