@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Switch} from 'sentry/components/core/switch';
 import {
@@ -89,6 +90,15 @@ export function ConfigureRootCauseAnalysisStep({
     (repoId: string, index: number, newValue: string | undefined) => {
       setRepositoryProjectMappings(prev => {
         const currentProjects = prev[repoId] || [];
+
+        if (newValue && currentProjects.includes(newValue)) {
+          // Project is already mapped to this repo, show an error message and don't update anything
+          // We could make our dropdowns smarter by filtering out selected projects,
+          // but this is much simpler.
+          addErrorMessage(t('Project is already mapped to this repo'));
+          return prev;
+        }
+
         const newProjects = [...currentProjects];
 
         if (newValue === undefined) {
@@ -122,7 +132,7 @@ export function ConfigureRootCauseAnalysisStep({
       });
       setRepositories(prev => prev.filter(repo => repo.id !== repoId));
     },
-    [setRepositoryProjectMappings, setRepositories]
+    [setRepositoryProjectMappings]
   );
 
   const isFinishDisabled = useMemo(() => {
