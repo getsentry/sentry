@@ -66,6 +66,13 @@ describe('EditAutomation', () => {
       body: {id: automation.createdBy, name: 'Test User'},
     });
 
+    // Mock the organization tags
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/tags/`,
+      method: 'GET',
+      body: [],
+    });
+
     jest.mocked(useParams).mockReturnValue({
       automationId: automation.id,
     });
