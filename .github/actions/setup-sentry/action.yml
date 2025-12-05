@@ -15,6 +15,9 @@ inputs:
     description: 'Mode to bring up by new devservices'
     required: false
     default: 'default'
+  toggle:
+    description: 'Dependency to toggle off '
+    required: false
 
 outputs:
   matrix-instance-number:
@@ -123,6 +126,11 @@ runs:
 
         # This is necessary to bring up devservices with appropriate sentry config
         cd "$WORKDIR"
+
+        if [ "${{ inputs.toggle }}" != "" ]; then
+          echo "Toggling off ${{ inputs.toggle }}"
+          devservices toggle ${{ inputs.toggle }}
+        fi
 
         devservices up --mode ${{ inputs.mode }}
 
