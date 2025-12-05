@@ -77,7 +77,7 @@ export function ConfigureRootCauseAnalysisStep({
         <Button
           size="md"
           onClick={handleNextStep}
-          priority={selectedRepositories.length > 0 ? 'primary' : 'default'}
+          priority={isFinishDisabled ? 'default' : 'primary'}
           disabled={isFinishDisabled}
           aria-label={t('Finish Setup')}
         >
