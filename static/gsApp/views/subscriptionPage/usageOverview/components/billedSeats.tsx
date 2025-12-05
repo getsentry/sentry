@@ -61,6 +61,7 @@ function BilledSeats({
         >
           <SimpleTable.HeaderCell style={{textTransform: 'uppercase'}}>
             {tct('Active Contributors[stats]', {
+              // TODO(seer): serialize pricing info
               stats: ` (${billedSeats?.length ?? 0})${activeProductTrial ? t(' | Unlimited') : subscription.canSelfServe ? ` | ${displayPrice({cents: (billedSeats?.length ?? 0) * 40_00})}` : ''}`,
             })}
           </SimpleTable.HeaderCell>

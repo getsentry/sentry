@@ -91,6 +91,7 @@ function UsageOverviewTableRow({
   let formattedFree = null;
   let paygSpend = 0;
   let isUnlimited = false;
+  let otherSpend = 0;
 
   if (isAddOn) {
     if (!addOnInfo) {
@@ -167,8 +168,11 @@ function UsageOverviewTableRow({
     events: reserved ?? 0, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
     buckets: subscription.planDetails.planCategories[billedCategory],
   });
+  if (billedCategory === DataCategory.SEER_USER && reserved === 0) {
+    otherSpend = metricHistory.usage * 40_00; // TODO(seer): serialize pricing info
+  }
   const recurringReservedSpend = isChildProduct ? 0 : (bucket.price ?? 0);
-  const additionalSpend = recurringReservedSpend + paygSpend;
+  const additionalSpend = recurringReservedSpend + paygSpend + otherSpend;
 
   const formattedSoftCapType =
     isChildProduct || !isAddOn ? getSoftCapType(metricHistory) : null;

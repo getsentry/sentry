@@ -110,6 +110,7 @@ function SeerCta({action, footerText}: {action: React.ReactNode; footerText?: st
             {t('Find and fix issues anywhere with Seer AI debugger')}
           </Text>
           <Text as="div" align="center" size="sm">
+            {/* TODO(seer): serialize pricing info */}
             <Text>$40 </Text>
             <Text variant="muted">{t('per active contributor / month')}</Text>
           </Text>
