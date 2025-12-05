@@ -630,7 +630,6 @@ const commonTheme = {
    */
   fontSizeRelativeSmall: '0.9em' as const,
   codeFontSize: '13px' as const,
-  headerFontSize: '22px' as const,
 
   text: {
     family: "'Rubik', 'Avenir Next', sans-serif",
