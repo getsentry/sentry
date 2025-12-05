@@ -21,9 +21,7 @@ class OrganizationReplayEndpoint(OrganizationEndpoint):
         Check if the session replay feature is enabled and user has replay permissions.
         Returns a Response object if access should be denied, None if access is granted.
         """
-        if not features.has(
-            "organizations:session-replay", organization, actor=request.user
-        ):
+        if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
 
         if not has_replay_permission(organization, request.user):
