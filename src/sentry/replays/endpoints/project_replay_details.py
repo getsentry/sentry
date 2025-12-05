@@ -8,10 +8,11 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.bases.project import ProjectPermission
 from sentry.apidocs.constants import RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.models.project import Project
+from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.tasks import delete_replay
@@ -29,7 +30,7 @@ class ReplayDetailsPermission(ProjectPermission):
 
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
-class ProjectReplayDetailsEndpoint(ProjectEndpoint):
+class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -39,10 +40,8 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
     permission_classes = (ReplayDetailsPermission,)
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
-        if not features.has(
-            "organizations:session-replay", project.organization, actor=request.user
-        ):
-            return Response(status=404)
+        if response := self.check_replay_access(request, project):
+            return response
 
         filter_params = self.get_filter_params(request, project)
 
@@ -87,11 +86,8 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
         """
         Delete a replay.
         """
-
-        if not features.has(
-            "organizations:session-replay", project.organization, actor=request.user
-        ):
-            return Response(status=404)
+        if response := self.check_replay_access(request, project):
+            return response
 
         if has_archived_segment(project.id, replay_id):
             return Response(status=404)
