@@ -1606,6 +1606,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         get_issue_summary_lock_key,
     )
     from sentry.seer.autofix.utils import (
+        get_autofix_repos_from_project_code_mappings,
         is_issue_eligible_for_seer_automation,
         is_seer_scanner_rate_limited,
     )
@@ -1681,6 +1682,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
             # Early returns for eligibility checks (cheap checks first)
             if not is_issue_eligible_for_seer_automation(group):
+                return
+
+            # Check if project has connected repositories - requirement for new pricing
+            if not get_autofix_repos_from_project_code_mappings(group.project):
                 return
 
             # Atomically set cache to prevent duplicate dispatches (returns False if key exists)
