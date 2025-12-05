@@ -889,7 +889,7 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
     )
     replayAccessMembers = serializers.ListField(
         child=serializers.IntegerField(),
-        help_text="A list of organization member IDs who have permission to access replay data. When empty, all members have access. Requires the granular-replay-permissions feature flag.",
+        help_text="A list of organization member IDs who have permission to access replay data. Requires the hasGranularReplayPermissions flag to be true to be enforced.",
         required=False,
         allow_null=True,
     )
