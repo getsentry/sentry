@@ -6,7 +6,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('ButtonBar', (story, APIReference) => {
-  APIReference(documentation.props.ButtonBar);
+  APIReference(documentation.props?.ButtonBar);
 
   story('Default', () => {
     const [active, setActive] = useState('One');

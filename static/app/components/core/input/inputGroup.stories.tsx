@@ -10,7 +10,7 @@ import {space} from 'sentry/styles/space';
 import {InputGroup} from './inputGroup';
 
 export default Storybook.story('InputGroup', (story, APIReference) => {
-  APIReference(documentation.props.InputGroup);
+  APIReference(documentation.props?.InputGroup);
 
   story('Default', () => {
     return (
