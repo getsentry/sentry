@@ -162,10 +162,10 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
         if get_all_projects:
             queryset = queryset.order_by("slug").select_related("organization")
-            
+
             # Limit to 1000 projects to prevent timeouts
             project_count = queryset.count()
-            
+
             response = Response(
                 serialize(
                     list(queryset[:1000]),
@@ -173,14 +173,14 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                     ProjectSummarySerializer(collapse=collapse, dataset=dataset),
                 )
             )
-            
+
             if project_count > 1000:
                 response["X-Sentry-Project-Truncated"] = (
                     f"This organization has {project_count} projects. "
                     f"Only the first 1000 are shown. "
                     f"Please use pagination or filter your query."
                 )
-            
+
             return response
         else:
             expand = set()
