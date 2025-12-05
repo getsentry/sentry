@@ -184,8 +184,11 @@ describe('useHotkeys', () => {
       key: '/',
       keyCode: 55, // German keyboard: the "7" key
       metaKey: true,
+      shiftKey: false,
+      ctrlKey: false,
+      altKey: false,
       preventDefault: jest.fn(),
-    };
+    } as any;
     events.keydown!(evt);
 
     expect(callback).toHaveBeenCalled();
@@ -203,8 +206,12 @@ describe('useHotkeys', () => {
     const evt = {
       key: 'Escape',
       keyCode: 27,
+      metaKey: false,
+      shiftKey: false,
+      ctrlKey: false,
+      altKey: false,
       preventDefault: jest.fn(),
-    };
+    } as any;
     events.keydown!(evt);
 
     expect(callback).toHaveBeenCalled();
