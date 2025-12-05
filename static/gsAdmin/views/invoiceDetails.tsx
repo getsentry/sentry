@@ -35,14 +35,15 @@ function InvoiceDetails() {
     region: string;
   }>();
   const regionInfo = ConfigStore.get('regions').find(
-    (r: any) => r.name.toLowerCase() === region.toLowerCase()
+    r => r.name.toLowerCase() === region.toLowerCase()
   );
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const QUERY_KEY: ApiQueryKey = [
-    `/_admin/invoices/${invoiceId}/`,
+    // TODO(cells): Switch from region name to cell
+    `/_admin/cells/${regionInfo?.name}/invoices/${invoiceId}/`,
     {
-      host: regionInfo ? regionInfo.url : '',
+      host: regionInfo?.url ?? '',
     },
   ];
 
@@ -73,7 +74,7 @@ function InvoiceDetails() {
   const handleClose = async () => {
     try {
       const updatedInvoice = await api.requestPromise(
-        `/customers/${orgId}/invoices/${invoiceId}/close/`,
+        `/_admin/cells/${regionInfo?.name}/invoices/${invoiceId}/close/`,
         {
           method: 'PUT',
         }
