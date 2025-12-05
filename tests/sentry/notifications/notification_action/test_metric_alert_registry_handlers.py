@@ -101,6 +101,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
                     "condition_result": DetectorPriorityLevel.OK.value,
                 },
             ],
+            config={},
             data_sources=[],
             alert_id=self.alert_rule.id,
         )
@@ -127,6 +128,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
                     "condition_result": DetectorPriorityLevel.HIGH.value,
                 },
             ],
+            config={},
             data_sources=[],
             alert_id=self.alert_rule.id,
         )
