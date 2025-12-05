@@ -51,6 +51,7 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
             "alert_id": self.alert_rule.id,
             "data_packet_source_id": str(self.query_subscription.id),
             "conditions": conditions,
+            "config": self.detector.config,
             "data_sources": [
                 {
                     "id": str(self.data_source.id),
