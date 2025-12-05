@@ -31,6 +31,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
@@ -1475,6 +1476,202 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(self.organization.slug, **data)
 
         assert self.organization.get_option("sentry:enable_seer_coding") is True
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_flag_set(self) -> None:
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"hasGranularReplayPermissions": True}
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        option_value = OrganizationOption.objects.get(
+            organization=self.organization, key="sentry:granular-replay-permissions"
+        )
+        assert option_value.value is True
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            log = AuditLogEntry.objects.get(organization_id=self.organization.id)
+        assert "to True" in log.data["hasGranularReplayPermissions"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_flag_unset(self) -> None:
+        self.organization.update_option("sentry:granular-replay-permissions", True)
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"hasGranularReplayPermissions": False}
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        option_value = OrganizationOption.objects.get(
+            organization=self.organization, key="sentry:granular-replay-permissions"
+        )
+        assert option_value.value is False
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            log = AuditLogEntry.objects.get(organization_id=self.organization.id)
+
+        assert "to False" in log.data["hasGranularReplayPermissions"]
+
+    def test_granular_replay_permissions_flag_requires_feature(self) -> None:
+        data = {"hasGranularReplayPermissions": True}
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+        assert "hasGranularReplayPermissions" in response.data
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_flag_requires_admin_scope(self) -> None:
+        member_user = self.create_user()
+        self.create_member(
+            organization=self.organization, user=member_user, role="member", teams=[]
+        )
+        self.login_as(member_user)
+
+        data = {"hasGranularReplayPermissions": True}
+        response = self.get_error_response(self.organization.slug, **data, status_code=403)
+        assert response.status_code == 403
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_replay_access_members_add(self) -> None:
+        member1 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        member2 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"replayAccessMembers": [member1.id, member2.id]}
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        access_members = list(
+            OrganizationMemberReplayAccess.objects.filter(
+                organization=self.organization
+            ).values_list("organizationmember_id", flat=True)
+        )
+        assert set(access_members) == {member1.id, member2.id}
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            log = AuditLogEntry.objects.get(organization_id=self.organization.id)
+        assert "added 2 member(s)" in log.data["replayAccessMembers"]
+        assert "total: 2 member(s)" in log.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_replay_access_members_remove(self) -> None:
+        member1 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        member2 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        OrganizationMemberReplayAccess.objects.create(
+            organization=self.organization, organizationmember=member1
+        )
+        OrganizationMemberReplayAccess.objects.create(
+            organization=self.organization, organizationmember=member2
+        )
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"replayAccessMembers": [member1.id]}
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        access_members = list(
+            OrganizationMemberReplayAccess.objects.filter(
+                organization=self.organization
+            ).values_list("organizationmember_id", flat=True)
+        )
+        assert access_members == [member1.id]
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            log = AuditLogEntry.objects.get(organization_id=self.organization.id)
+        assert "removed 1 member(s)" in log.data["replayAccessMembers"]
+        assert "total: 1 member(s)" in log.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_replay_access_members_add_and_remove(self) -> None:
+        member1 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        member2 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        member3 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        OrganizationMemberReplayAccess.objects.create(
+            organization=self.organization, organizationmember=member1
+        )
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"replayAccessMembers": [member2.id, member3.id]}
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        access_members = set(
+            OrganizationMemberReplayAccess.objects.filter(
+                organization=self.organization
+            ).values_list("organizationmember_id", flat=True)
+        )
+        assert access_members == {member2.id, member3.id}
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            log = AuditLogEntry.objects.get(organization_id=self.organization.id)
+        assert "added 2 member(s)" in log.data["replayAccessMembers"]
+        assert "removed 1 member(s)" in log.data["replayAccessMembers"]
+        assert "total: 2 member(s)" in log.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_replay_access_members_clear_all(self) -> None:
+        member1 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        OrganizationMemberReplayAccess.objects.create(
+            organization=self.organization, organizationmember=member1
+        )
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"replayAccessMembers": []}
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        access_count = OrganizationMemberReplayAccess.objects.filter(
+            organization=self.organization
+        ).count()
+        assert access_count == 0
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            log = AuditLogEntry.objects.get(organization_id=self.organization.id)
+        assert "removed 1 member(s)" in log.data["replayAccessMembers"]
+        assert "total: 0 member(s)" in log.data["replayAccessMembers"]
+
+    def test_replay_access_members_requires_feature(self) -> None:
+        member1 = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        data = {"replayAccessMembers": [member1.id]}
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+        assert "hasGranularReplayPermissions" in response.data
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_replay_access_members_requires_admin_scope(self) -> None:
+        member_user = self.create_user()
+        self.create_member(
+            organization=self.organization, user=member_user, role="member", teams=[]
+        )
+        self.login_as(member_user)
+
+        other_member = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        data = {"replayAccessMembers": [other_member.id]}
+        self.get_error_response(self.organization.slug, **data, status_code=403)
 
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
