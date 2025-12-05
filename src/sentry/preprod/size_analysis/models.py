@@ -78,10 +78,10 @@ class SizeAnalysisResults(BaseModel):
     analysis_duration: float
     download_size: int
     install_size: int
-    treemap: TreemapResults | None
-    analysis_version: str | None
-    file_analysis: FileAnalysis | None
-    app_components: list[AppComponent] | None
+    treemap: TreemapResults | None = None
+    analysis_version: str | None = None
+    file_analysis: FileAnalysis | None = None
+    app_components: list[AppComponent] | None = None
 
 
 ###
