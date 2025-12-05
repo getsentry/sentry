@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
-from sentry.models.organizationoption import OrganizationOption
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
