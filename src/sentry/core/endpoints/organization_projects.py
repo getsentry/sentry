@@ -175,7 +175,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             )
 
             if project_count > 1000:
-                response["X-Sentry-Project-Truncated"] = (
+                response["X-Sentry-Warning"] = (
                     f"This organization has {project_count} projects. "
                     f"Only the first 1000 are shown. "
                     f"Please use pagination or filter your query."

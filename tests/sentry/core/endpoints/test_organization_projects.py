@@ -323,9 +323,9 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         # Should return 1000 projects (capped)
         assert len(response.data) == 1000
         # Should include truncation warning header
-        assert "X-Sentry-Project-Truncated" in response
-        assert "1001 projects" in response["X-Sentry-Project-Truncated"]
-        assert "1000" in response["X-Sentry-Project-Truncated"]
+        assert "X-Sentry-Warning" in response
+        assert "1001 projects" in response["X-Sentry-Warning"]
+        assert "1000" in response["X-Sentry-Warning"]
 
     def test_all_projects_at_limit(self) -> None:
         # Create exactly 1000 projects - should succeed without warning
@@ -341,7 +341,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         # Should return all 1000 projects
         assert len(response.data) == 1000
         # Should NOT include truncation warning header (exactly at limit)
-        assert "X-Sentry-Project-Truncated" not in response
+        assert "X-Sentry-Warning" not in response
 
 
 class OrganizationProjectsCountTest(APITestCase):
