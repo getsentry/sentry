@@ -198,7 +198,7 @@ export const initApiClientWarningHandling = () =>
     if (warningMessage) {
       // Dynamically import to avoid circular dependency
       import('sentry/actionCreators/indicator').then(({addMessage}) => {
-        addMessage(warningMessage, 'warning', {duration: 10000});
+        addMessage(warningMessage, '', {duration: 10000});
       });
     }
   });

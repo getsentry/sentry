@@ -21,6 +21,7 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -31,9 +32,6 @@ from sentry.snuba import discover, metrics_enhanced_performance, metrics_perform
 ERR_INVALID_STATS_PERIOD = (
     "Invalid stats_period. Valid choices are '', '1h', '24h', '7d', '14d', '30d', and '90d'"
 )
-
-# Maximum number of projects to return when all_projects parameter is used
-MAX_ALL_PROJECTS = 1000
 
 DATASETS = {
     "": discover,  # in case they pass an empty query string fall back on default
@@ -167,12 +165,13 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             queryset = queryset.order_by("slug").select_related("organization")
 
             # Fetch MAX + 1 to detect if there are more without expensive count()
-            projects = list(queryset[: MAX_ALL_PROJECTS + 1])
-            has_more = len(projects) > MAX_ALL_PROJECTS
+            max_projects = options.get("api.organization-projects-all-max")
+            projects = list(queryset[: max_projects + 1])
+            has_more = len(projects) > max_projects
 
             response = Response(
                 serialize(
-                    projects[:MAX_ALL_PROJECTS],
+                    projects[:max_projects],
                     request.user,
                     ProjectSummarySerializer(collapse=collapse, dataset=dataset),
                 )
@@ -180,8 +179,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
             if has_more:
                 response["X-Sentry-Warning"] = (
-                    f"This organization has more than {MAX_ALL_PROJECTS} projects. "
-                    f"Only the first {MAX_ALL_PROJECTS} are shown. "
+                    f"This organization has more than {max_projects} projects. "
+                    f"Only the first {max_projects} are shown. "
                     f"Please use pagination or filter your query."
                 )
 
