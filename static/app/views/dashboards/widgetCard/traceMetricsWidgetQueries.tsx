@@ -6,7 +6,10 @@ import type {Confidence} from 'sentry/types/organization';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
+import {
+  EMPTY_METRIC_SELECTION,
+  TraceMetricsConfig,
+} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -42,7 +45,6 @@ type TraceMetricsWidgetQueriesImplProps = TraceMetricsWidgetQueriesProps & {
   };
 };
 
-// TODO: Rename more generically for EAP-based datasets
 function TraceMetricsWidgetQueries(props: TraceMetricsWidgetQueriesProps) {
   const getConfidenceInformation = useCallback(() => {
     // TODO(nar): Implement confidence information parsing
@@ -94,8 +96,12 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
     });
   };
 
-  // This is a sentinel value
-  const disabled = widget.queries.some(q => q.aggregates.includes('avg(value,,,-)'));
+  // TODO: Handle the "default" empty state better.
+  // This is required because metrics loads async and we need to wait for it to load and
+  // select a default metric before firing the query.
+  const disabled = widget.queries.some(q =>
+    q.aggregates.includes(EMPTY_METRIC_SELECTION)
+  );
 
   return getDynamicText({
     value: (

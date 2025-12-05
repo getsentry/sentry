@@ -36,12 +36,16 @@ import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/tr
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
+// This is a placeholder that currently signals that no metric is selected
+// When the metrics are loaded up, the first metric is selected and this will be filled out
+export const EMPTY_METRIC_SELECTION = 'avg(value,,,-)';
+
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
   fields: [],
   columns: [],
   fieldAliases: [],
-  aggregates: ['avg(value,,,-)'], // This is just a placeholder to make the default state work
+  aggregates: [EMPTY_METRIC_SELECTION],
   conditions: '',
   orderby: '',
 };
