@@ -32,6 +32,7 @@ export function AggregateSelector({
     [traceMetric?.type]
   );
 
+  // Ensure the aggregate is valid for the trace metric type
   useEffect(() => {
     if (field.kind !== 'function' || !field.function?.[0] || !traceMetric.type) {
       return;

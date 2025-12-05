@@ -72,7 +72,6 @@ function TraceMetricsSearchBar({
   // tags for both metrics.
   const traceMetric = widgetBuilderState.traceMetrics?.[0];
 
-  // TODO: Implement proper trace metrics attributes
   const traceItemAttributeConfig = {
     traceItemType: TraceItemDataset.TRACEMETRICS,
     enabled: hasTraceMetricsDashboards,
@@ -236,7 +235,6 @@ function getSeriesRequest(
   _mepSetting?: MEPState | null,
   samplingMode?: SamplingMode
 ) {
-  // TODO: Update to use appropriate dataset for trace metrics
   const requestData = getSeriesRequestData(
     widget,
     queryIndex,
