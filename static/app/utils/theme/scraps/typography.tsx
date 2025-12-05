@@ -43,11 +43,11 @@ export const typography = {
       /**
        * A named fontFamily value evaluating to “rubik”
        */
-      sans: 'Rubik',
+      sans: "'Rubik', 'Avenir Next', sans-serif",
       /**
        * A named fontFamily value evaluating to “roboto mono”
        */
-      mono: 'Roboto Mono',
+      mono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
     },
     lineHeight: {
       /**
