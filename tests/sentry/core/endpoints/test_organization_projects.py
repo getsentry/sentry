@@ -4,6 +4,7 @@ from django.urls import reverse
 from sentry.models.apikey import ApiKey
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 
@@ -312,25 +313,27 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         }
         assert not response.data[1].get("options")
 
+    @override_options({"api.organization-projects-max-results": 3})
     def test_all_projects_limit_exceeded(self) -> None:
-        # Create 501 projects to exceed the limit
-        for i in range(501):
+        # Create 4 projects to exceed the limit of 3
+        for i in range(4):
             self.create_project(teams=[self.team], name=f"project-{i}", slug=f"project-{i}")
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"all_projects": "1"}
         )
-        # Should return 500 projects (capped)
-        assert len(response.data) == 500
+        # Should return 3 projects (capped)
+        assert len(response.data) == 3
         # Should include truncation warning header
         assert "X-Sentry-Warning" in response
-        assert "more than 500 projects" in response["X-Sentry-Warning"].lower()
-        assert "first 500" in response["X-Sentry-Warning"].lower()
+        assert "more than 3 projects" in response["X-Sentry-Warning"].lower()
+        assert "first 3" in response["X-Sentry-Warning"].lower()
 
+    @override_options({"api.organization-projects-max-results": 3})
     def test_all_projects_at_limit(self) -> None:
-        # Create exactly 500 projects - should succeed without warning
+        # Create exactly 3 projects - should succeed without warning
         projects = []
-        for i in range(500):
+        for i in range(3):
             projects.append(
                 self.create_project(teams=[self.team], name=f"project-{i}", slug=f"project-{i}")
             )
@@ -338,8 +341,8 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         response = self.get_success_response(
             self.organization.slug, qs_params={"all_projects": "1"}
         )
-        # Should return all 500 projects
-        assert len(response.data) == 500
+        # Should return all 3 projects
+        assert len(response.data) == 3
         # Should NOT include truncation warning header (exactly at limit)
         assert "X-Sentry-Warning" not in response
 
