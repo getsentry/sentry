@@ -88,6 +88,21 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
         assert response.status_code == 500
         assert response.data["error"] == "Size analysis completed but results are unavailable"
 
+    def test_completed_with_missing_file_returns_404(self):
+        """When size metrics is COMPLETED but the File object was deleted, should return 404"""
+        deleted_file_id = 999999
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=self.artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            analysis_file_id=deleted_file_id,
+        )
+
+        response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
+        assert response.status_code == 404
+        assert response.data["error"] == "Analysis file not found"
+
     def test_completed_with_file_returns_200(self):
         """When size metrics is COMPLETED with a file, should return 200 with file content"""
         analysis_file = self.create_file(name="size_analysis.json", type="application/json")
