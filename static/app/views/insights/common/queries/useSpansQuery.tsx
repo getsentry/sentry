@@ -112,6 +112,9 @@ function useSpansQueryBase<T>({
     caseInsensitive: queryExtras?.caseInsensitive,
     samplingMode: queryExtras?.samplingMode,
     disableAggregateExtrapolation: queryExtras?.disableAggregateExtrapolation,
+    logQuery: queryExtras?.logQuery,
+    metricQuery: queryExtras?.metricQuery,
+    spanQuery: queryExtras?.spanQuery,
   });
 
   if (trackResponseAnalytics) {
@@ -127,9 +130,12 @@ type WrappedDiscoverTimeseriesQueryProps = {
   cursor?: string;
   enabled?: boolean;
   initialData?: any;
+  logQuery?: string[];
+  metricQuery?: string[];
   overriddenRoute?: string;
   referrer?: string;
   samplingMode?: SamplingMode;
+  spanQuery?: string[];
 };
 
 function useWrappedDiscoverTimeseriesQueryBase<T>({
@@ -141,6 +147,9 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
   overriddenRoute,
   samplingMode,
   caseInsensitive,
+  logQuery,
+  metricQuery,
+  spanQuery,
 }: WrappedDiscoverTimeseriesQueryProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -179,6 +188,9 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
           ? samplingMode
           : undefined,
       caseInsensitive,
+      logQuery,
+      metricQuery,
+      spanQuery,
     }),
     options: {
       enabled,
@@ -239,10 +251,13 @@ type WrappedDiscoverQueryProps<T> = {
   initialData?: T;
   keepPreviousData?: boolean;
   limit?: number;
+  logQuery?: string[];
+  metricQuery?: string[];
   noPagination?: boolean;
   referrer?: string;
   refetchInterval?: number;
   samplingMode?: SamplingMode;
+  spanQuery?: string[];
 };
 
 function useWrappedDiscoverQueryBase<T>({
@@ -261,13 +276,16 @@ function useWrappedDiscoverQueryBase<T>({
   additionalQueryKey,
   refetchInterval,
   caseInsensitive,
+  logQuery,
+  metricQuery,
+  spanQuery,
 }: WrappedDiscoverQueryProps<T> & {
   pageFiltersReady: boolean;
 }) {
   const location = useLocation();
   const organization = useOrganization();
 
-  const queryExtras: Record<string, string> = {};
+  const queryExtras: Record<string, string | string[]> = {};
   if (
     [DiscoverDatasets.SPANS, DiscoverDatasets.TRACEMETRICS].includes(
       eventView.dataset as DiscoverDatasets
@@ -277,13 +295,25 @@ function useWrappedDiscoverQueryBase<T>({
       queryExtras.sampling = samplingMode;
     }
 
-    if (typeof caseInsensitive === 'number') {
-      queryExtras.caseInsensitive = caseInsensitive.toString();
-    }
-
     if (disableAggregateExtrapolation) {
       queryExtras.disableAggregateExtrapolation = '1';
     }
+  }
+
+  if (typeof caseInsensitive === 'number') {
+    queryExtras.caseInsensitive = caseInsensitive.toString();
+  }
+
+  if (Array.isArray(logQuery) && logQuery.length > 0) {
+    queryExtras.logQuery = logQuery;
+  }
+
+  if (Array.isArray(metricQuery) && metricQuery.length > 0) {
+    queryExtras.metricQuery = metricQuery;
+  }
+
+  if (Array.isArray(spanQuery) && spanQuery.length > 0) {
+    queryExtras.spanQuery = spanQuery;
   }
 
   if (allowAggregateConditions !== undefined) {
