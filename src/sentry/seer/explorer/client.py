@@ -73,31 +73,23 @@ class SeerExplorerClient:
         solution = state.get_artifact("solution", Solution)
 
         # WITH CUSTOM TOOLS
-        from sentry.seer.explorer.custom_tool_utils import ExplorerTool, ExplorerToolParam, StringType
+        from pydantic import BaseModel, Field
+        from sentry.seer.explorer.custom_tool_utils import ExplorerTool
 
-        class DeploymentStatusTool(ExplorerTool):
+        class DeploymentStatusParams(BaseModel):
+            environment: str = Field(description="Environment name (e.g., 'production', 'staging')")
+            service: str = Field(description="Service name")
+
+        class DeploymentStatusTool(ExplorerTool[DeploymentStatusParams]):
+            params_model = DeploymentStatusParams
+
             @classmethod
-            def get_description(cls):
+            def get_description(cls) -> str:
                 return "Check if a service is deployed in an environment"
 
             @classmethod
-            def get_params(cls):
-                return [
-                    ExplorerToolParam(
-                        name="environment",
-                        description="Environment name (e.g., 'production', 'staging')",
-                        type=StringType(),
-                    ),
-                    ExplorerToolParam(
-                        name="service",
-                        description="Service name",
-                        type=StringType(),
-                    ),
-                ]
-
-            @classmethod
-            def execute(cls, organization, **kwargs):
-                return "deployed" if check_deployment(organization, kwargs["environment"], kwargs["service"]) else "not deployed"
+            def execute(cls, organization, params: DeploymentStatusParams) -> str:
+                return "deployed" if check_deployment(organization, params.environment, params.service) else "not deployed"
 
         client = SeerExplorerClient(
             organization,
@@ -112,7 +104,7 @@ class SeerExplorerClient:
             user: User for permission checks and user-specific context (can be User, AnonymousUser, or None)
             category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
             category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
-            custom_tools: Optional list of `ExplorerTool` objects to make available as tools to the agent. Each tool must inherit from ExplorerTool and implement get_params() and execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
+            custom_tools: Optional list of `ExplorerTool` classes to make available as tools to the agent. Each tool must inherit from ExplorerTool, define a params_model (Pydantic BaseModel), and implement execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
             is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
     """
@@ -123,7 +115,7 @@ class SeerExplorerClient:
         user: User | AnonymousUser | None = None,
         category_key: str | None = None,
         category_value: str | None = None,
-        custom_tools: list[type[ExplorerTool]] | None = None,
+        custom_tools: list[type[ExplorerTool[Any]]] | None = None,
         intelligence_level: Literal["low", "medium", "high"] = "medium",
         is_interactive: bool = False,
     ):
