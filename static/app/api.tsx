@@ -133,8 +133,9 @@ const globalErrorHandlers: Array<
 /**
  * Global handlers for successful responses
  */
-const globalSuccessHandlers: Array<(resp: ResponseMeta, options: RequestOptions) => void> =
-  [];
+const globalSuccessHandlers: Array<
+  (resp: ResponseMeta, options: RequestOptions) => void
+> = [];
 
 export const initApiClientErrorHandling = () =>
   globalErrorHandlers.push((resp: ResponseMeta, options: RequestOptions) => {
@@ -193,7 +194,7 @@ export const initApiClientErrorHandling = () =>
 export const initApiClientWarningHandling = () =>
   globalSuccessHandlers.push((resp: ResponseMeta) => {
     const warningMessage = resp.getResponseHeader('X-Sentry-Warning');
-    
+
     if (warningMessage) {
       // Dynamically import to avoid circular dependency
       import('sentry/actionCreators/indicator').then(({addMessage}) => {
