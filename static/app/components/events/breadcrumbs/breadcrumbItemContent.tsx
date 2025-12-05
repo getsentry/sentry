@@ -274,6 +274,6 @@ const SQLText = styled('pre')`
 const BreadcrumbText = styled(Timeline.Text)`
   white-space: pre-wrap;
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.textColor};
 `;

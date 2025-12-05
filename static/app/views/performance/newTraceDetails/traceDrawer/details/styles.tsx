@@ -1346,7 +1346,7 @@ function MultilineJSON({
 
 const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const MultilineTextLabel = styled('div')`

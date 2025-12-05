@@ -392,7 +392,7 @@ const OneLineCodeBlock = styled('pre')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.familyMono};
   gap: ${space(0.5)};
   padding: ${space(0.5)} ${space(1)};

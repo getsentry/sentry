@@ -87,10 +87,6 @@ const Title = styled('h3')`
   margin-right: ${space(2)};
   margin-bottom: 0;
   ${p => p.theme.overflowEllipsis};
-
-  @media (min-width: ${props => props.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.xl};
-  }
 `;
 
 const TimeStamp = styled('div')`

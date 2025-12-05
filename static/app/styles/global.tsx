@@ -29,7 +29,7 @@ const prismStyles = (theme: Theme) => css`
   code[class*='language-'] {
     color: var(--prism-base);
     background: var(--prism-block-background);
-    font-size: ${theme.codeFontSize};
+    font-size: ${theme.fontSize.sm};
     text-shadow: none;
     font-family: ${theme.text.familyMono};
     direction: ltr;

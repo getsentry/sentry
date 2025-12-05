@@ -238,7 +238,7 @@ const Header = styled('div')<{isFloating: boolean}>`
   align-items: center;
 
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => p.theme.fontSize.sm};
   color: var(--prism-base);
   font-weight: ${p => p.theme.fontWeight.bold};
   z-index: 2;
