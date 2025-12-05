@@ -31,6 +31,7 @@ SEER_ANALYZE_ISSUE_ENDPOINT_PATH = "/v1/automation/issue-detection/analyze"
 SEER_TIMEOUT_S = 120
 SEER_RETRIES = 1
 START_TIME_DELTA_MINUTES = 30
+TRANSACTION_BATCH_SIZE = 100
 
 
 seer_issue_detection_connection_pool = connection_from_url(
@@ -208,8 +209,8 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     """
     Process a single project for LLM issue detection.
 
-    Gets the project's top 50 transaction spans from the last START_TIME_DELTA_MINUTES, sorted by -sum(span.duration).
-    From the 50 longest transactions, dedupes on normalized transaction_name.
+    Gets the project's top TRANSACTION_BATCH_SIZE transaction spans from the last START_TIME_DELTA_MINUTES, sorted by -sum(span.duration).
+    From those transactions, dedupes on normalized transaction_name.
     For each deduped transaction, gets first trace_id from the start of time window, which has small random variation.
     Sends these trace_ids to seer, which uses get_trace_waterfall to construct an EAPTrace to analyze.
     """
@@ -224,7 +225,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         return
 
     evidence_traces = get_project_top_transaction_traces_for_llm_detection(
-        project_id, limit=100, start_time_delta_minutes=START_TIME_DELTA_MINUTES
+        project_id, limit=TRANSACTION_BATCH_SIZE, start_time_delta_minutes=START_TIME_DELTA_MINUTES
     )
     if not evidence_traces:
         return

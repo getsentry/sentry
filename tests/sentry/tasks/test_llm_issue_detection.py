@@ -9,7 +9,10 @@ from sentry.tasks.llm_issue_detection import (
     detect_llm_issues_for_project,
     run_llm_issue_detection,
 )
-from sentry.tasks.llm_issue_detection.detection import START_TIME_DELTA_MINUTES
+from sentry.tasks.llm_issue_detection.detection import (
+    START_TIME_DELTA_MINUTES,
+    TRANSACTION_BATCH_SIZE,
+)
 from sentry.tasks.llm_issue_detection.trace_data import (
     get_project_top_transaction_traces_for_llm_detection,
 )
@@ -48,7 +51,9 @@ class LLMIssueDetectionTest(TestCase):
         detect_llm_issues_for_project(self.project.id)
 
         mock_get_transactions.assert_called_once_with(
-            self.project.id, limit=100, start_time_delta_minutes=START_TIME_DELTA_MINUTES
+            self.project.id,
+            limit=TRANSACTION_BATCH_SIZE,
+            start_time_delta_minutes=START_TIME_DELTA_MINUTES,
         )
         mock_seer_request.assert_not_called()
 
@@ -308,7 +313,7 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
         self.store_spans([span1, span2, span3], is_eap=True)
 
         evidence_traces = get_project_top_transaction_traces_for_llm_detection(
-            self.project.id, limit=50, start_time_delta_minutes=30
+            self.project.id, limit=TRANSACTION_BATCH_SIZE, start_time_delta_minutes=30
         )
 
         assert len(evidence_traces) == 2
