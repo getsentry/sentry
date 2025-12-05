@@ -12,6 +12,7 @@ from sentry.conf.server import (
     SEER_SIMILAR_ISSUES_URL,
     SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,
 )
+from sentry.deletions.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
@@ -22,7 +23,6 @@ from sentry.seer.similarity.types import (
     SimilarHashNotFoundError,
     SimilarIssuesEmbeddingsRequest,
 )
-from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
 from sentry.utils import json, metrics
 from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.json import JSONDecodeError
