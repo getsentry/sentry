@@ -8,6 +8,7 @@ describe('useHotkeys', () => {
 
   function makeKeyEventFixture(keyCode: any, options: any) {
     return {
+      key: keyCode,
       keyCode: getKeyCode(keyCode),
       preventDefault: jest.fn(),
       ...options,
@@ -168,6 +169,44 @@ describe('useHotkeys', () => {
     events.keydown!(evt);
 
     expect(evt.preventDefault).not.toHaveBeenCalled();
+    expect(callback).toHaveBeenCalled();
+  });
+
+  it('handles slash key on different keyboard layouts using key property', () => {
+    const callback = jest.fn();
+
+    renderHook(p => useHotkeys(p), {
+      initialProps: [{match: 'command+/', callback}],
+    });
+
+    // Simulate German keyboard where "/" has a different keyCode but evt.key is still "/"
+    const evt = {
+      key: '/',
+      keyCode: 55, // German keyboard: the "7" key
+      metaKey: true,
+      preventDefault: jest.fn(),
+    };
+    events.keydown!(evt);
+
+    expect(callback).toHaveBeenCalled();
+    expect(evt.preventDefault).toHaveBeenCalled();
+  });
+
+  it('still works with keyCode fallback for special keys', () => {
+    const callback = jest.fn();
+
+    renderHook(p => useHotkeys(p), {
+      initialProps: [{match: 'escape', callback}],
+    });
+
+    // Simulate escape key with both key and keyCode
+    const evt = {
+      key: 'Escape',
+      keyCode: 27,
+      preventDefault: jest.fn(),
+    };
+    events.keydown!(evt);
+
     expect(callback).toHaveBeenCalled();
   });
 });
