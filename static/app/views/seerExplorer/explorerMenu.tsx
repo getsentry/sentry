@@ -1,12 +1,4 @@
-import {
-  Activity,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {Activity, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -211,7 +203,7 @@ export function useExplorerMenu({
   }, [handleKeyDown, isVisible]);
 
   // Calculate menu position based on anchor element
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!isVisible) {
       setMenuPosition({});
       return;
@@ -222,7 +214,6 @@ export function useExplorerMenu({
     const isSlashCommand = menuMode === 'slash-commands-keyboard';
 
     if (!anchorRef?.current) {
-      // Fallback to default bottom-left
       setMenuPosition({
         bottom: '100%',
         left: '16px',
@@ -235,36 +226,25 @@ export function useExplorerMenu({
       .closest('[data-seer-explorer-root]')
       ?.getBoundingClientRect();
 
-    const spacing = 8;
-    if (panelRect) {
-      const relativeTop = rect.top - panelRect.top;
-      const relativeLeft = rect.left - panelRect.left;
-
-      setMenuPosition(
-        isSlashCommand
-          ? {
-              bottom: `${panelRect.height - relativeTop + spacing}px`,
-              left: `${relativeLeft}px`,
-            }
-          : {
-              top: `${relativeTop + rect.height + spacing}px`,
-              left: `${relativeLeft}px`,
-            }
-      );
-    } else {
-      // Fallback to viewport positioning
-      setMenuPosition(
-        isSlashCommand
-          ? {
-              bottom: `${window.innerHeight - rect.top + spacing}px`,
-              left: `${rect.left}px`,
-            }
-          : {
-              top: `${rect.bottom + spacing}px`,
-              left: `${rect.left}px`,
-            }
-      );
+    if (!panelRect) {
+      return;
     }
+
+    const spacing = 8;
+    const relativeTop = rect.top - panelRect.top;
+    const relativeLeft = rect.left - panelRect.left;
+
+    setMenuPosition(
+      isSlashCommand
+        ? {
+            bottom: `${panelRect.height - relativeTop + spacing}px`,
+            left: `${relativeLeft}px`,
+          }
+        : {
+            top: `${relativeTop + rect.height + spacing}px`,
+            left: `${relativeLeft}px`,
+          }
+    );
   }, [isVisible, menuMode, menuAnchorRef, inputAnchorRef]);
 
   const menu = (
