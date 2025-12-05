@@ -120,14 +120,14 @@ function generateAlertBackground(
           ${tokens.background} ${width}px,
           ${tokens.background} ${width + 1}px
         ),
-        linear-gradient(${theme.colors.background.primary});
+        linear-gradient(${theme.tokens.background.primary});
       padding-left: calc(${width}px + ${props.theme!.space.lg});
     `;
   }
   return css`
     background-image:
       linear-gradient(${tokens.background}),
-      linear-gradient(${theme.colors.background.primary});
+      linear-gradient(${theme.tokens.background.primary});
   `;
 }
 

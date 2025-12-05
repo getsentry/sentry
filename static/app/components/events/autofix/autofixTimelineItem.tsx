@@ -41,9 +41,9 @@ function getEventColor(
 ): TimelineItemProps['colorConfig'] {
   if (isChonkTheme(theme)) {
     return {
-      title: theme.colors.content.primary,
-      icon: isActive ? theme.colors.pink400 : theme.colors.content.muted,
-      iconBorder: isActive ? theme.colors.pink400 : theme.colors.content.muted,
+      title: theme.tokens.content.primary,
+      icon: isActive ? theme.colors.pink400 : theme.tokens.content.muted,
+      iconBorder: isActive ? theme.colors.pink400 : theme.tokens.content.muted,
     };
   }
   return {
