@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {TAXONOMY_DEFAULT_QUERY} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -15,7 +13,6 @@ export function OverviewWrapper() {
 
   return (
     <IssueListContainer title={title}>
-      <Subtitle>Hello</Subtitle>
       <IssueListOverview
         shouldFetchOnMount={shouldFetchOnMount}
         title={title}
@@ -24,9 +21,3 @@ export function OverviewWrapper() {
     </IssueListContainer>
   );
 }
-
-const Subtitle = styled('div')`
-  font-size: 0.9em;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
-`;
