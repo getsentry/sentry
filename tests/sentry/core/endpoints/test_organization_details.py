@@ -1673,6 +1673,42 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"replayAccessMembers": [other_member.id]}
         self.get_error_response(self.organization.slug, **data, status_code=403)
 
+    @with_feature("organizations:granular-replay-permissions")
+    def test_replay_access_members_invalid_member_ids(self) -> None:
+        nonexistent_id = 999999999
+        data = {"replayAccessMembers": [nonexistent_id]}
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+        assert "replayAccessMembers" in response.data
+        assert str(nonexistent_id) in response.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_replay_access_members_from_other_organization(self) -> None:
+        other_org = self.create_organization(owner=self.create_user())
+        other_org_member = self.create_member(
+            organization=other_org, user=self.create_user(), role="member"
+        )
+        data = {"replayAccessMembers": [other_org_member.id]}
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+        assert "replayAccessMembers" in response.data
+        assert str(other_org_member.id) in response.data["replayAccessMembers"]
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_replay_access_members_mixed_valid_and_invalid(self) -> None:
+        valid_member = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        nonexistent_id = 999999999
+        data = {"replayAccessMembers": [valid_member.id, nonexistent_id]}
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+        assert "replayAccessMembers" in response.data
+        assert str(nonexistent_id) in response.data["replayAccessMembers"]
+        assert str(valid_member.id) not in response.data["replayAccessMembers"]
+
+        access_count = OrganizationMemberReplayAccess.objects.filter(
+            organization=self.organization
+        ).count()
+        assert access_count == 0
+
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
