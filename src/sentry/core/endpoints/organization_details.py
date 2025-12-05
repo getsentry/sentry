@@ -91,6 +91,7 @@ from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
 from sentry.models.project import Project
 from sentry.organizations.services.organization import organization_service
@@ -608,6 +609,19 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 to_remove = current_member_ids - new_member_ids
 
                 if to_add:
+                    valid_member_ids = set(
+                        OrganizationMember.objects.filter(
+                            organization=org, id__in=to_add
+                        ).values_list("id", flat=True)
+                    )
+                    invalid_member_ids = to_add - valid_member_ids
+                    if invalid_member_ids:
+                        raise serializers.ValidationError(
+                            {
+                                "replayAccessMembers": f"Invalid organization member IDs: {sorted(invalid_member_ids)}"
+                            }
+                        )
+
                     OrganizationMemberReplayAccess.objects.bulk_create(
                         [
                             OrganizationMemberReplayAccess(
