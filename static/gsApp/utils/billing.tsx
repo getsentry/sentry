@@ -2,6 +2,7 @@ import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -206,12 +207,26 @@ export function formatUsageWithUnits(
   if (isContinuousProfiling(dataCategory)) {
     const usageProfileHours = usageQuantity / MILLISECONDS_IN_HOUR;
     if (usageProfileHours === 0) {
-      return '0';
+      return t('0 hours');
     }
     return options.isAbbreviated
-      ? displayNumber(usageProfileHours, 1)
-      : usageProfileHours.toLocaleString(undefined, {maximumFractionDigits: 1});
+      ? tn('%s hour', '%s hours', displayNumber(usageProfileHours, 1))
+      : tn(
+          '%s hour',
+          '%s hours',
+          usageProfileHours.toLocaleString(undefined, {maximumFractionDigits: 1})
+        );
   }
+  if (dataCategory === DataCategory.SEER_USER) {
+    const categoryInfo = getCategoryInfoFromPlural(dataCategory);
+    if (categoryInfo) {
+      if (usageQuantity === 1) {
+        return `${usageQuantity} ${categoryInfo.displayName}`;
+      }
+      return `${usageQuantity} ${categoryInfo.titleName.toLowerCase()}`;
+    }
+  }
+
   return options.isAbbreviated
     ? displayNumber(usageQuantity, 0)
     : usageQuantity.toLocaleString();
@@ -895,6 +910,34 @@ export function checkIsAddOn(
   selectedProduct: DataCategory | AddOnCategory | string
 ): boolean {
   return Object.values(AddOnCategory).includes(selectedProduct as AddOnCategory);
+}
+
+/**
+ * Check if a data category is a child category of an add-on.
+ * If `checkReserved` is true, the category is only considered a child if it has a reserved volume of 0 or RESERVED_BUDGET_QUOTA.
+ * If `checkReserved` is false, the category is considered a child if it is included in `dataCategories` for any available add-on.
+ */
+export function checkIsAddOnChildCategory(
+  subscription: Subscription,
+  category: DataCategory,
+  checkReserved: boolean
+) {
+  const parentAddOn = Object.values(subscription.addOns ?? {})
+    .filter(addOn => addOn.isAvailable)
+    .find(addOn => addOn.dataCategories.includes(category));
+  if (!parentAddOn) {
+    return false;
+  }
+
+  if (checkReserved) {
+    const metricHistory = subscription.categories[category];
+    if (!metricHistory) {
+      return false;
+    }
+    return [RESERVED_BUDGET_QUOTA, 0].includes(metricHistory.reserved ?? 0);
+  }
+
+  return true;
 }
 
 /**
