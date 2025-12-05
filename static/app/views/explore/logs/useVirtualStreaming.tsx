@@ -77,8 +77,11 @@ export function useVirtualStreaming({
   const hasWarnedRef = useRef(false);
   const queryKeyString = JSON.stringify(logsQueryKey);
   const previousQueryKeyString = usePrevious(queryKeyString);
+  const boxedVirtualTimestamp = useRef(virtualTimestamp);
+  boxedVirtualTimestamp.current = virtualTimestamp;
 
   const organizationRef = useRef(organization);
+  const autoRefreshMinuteCountRef = useRef(0);
 
   useEffect(() => {
     if (previousQueryKeyString !== queryKeyString) {
@@ -129,27 +132,67 @@ export function useVirtualStreaming({
       return;
     }
 
-    if (virtualTimestamp === undefined) {
-      // First time enabling autorefresh, initialize virtual timestamp.
+    if (boxedVirtualTimestamp.current === undefined) {
       initializeVirtualTimestamp();
+      logger.info('Auto-refresh enabled: initializing virtual timestamp', {
+        organization: organization.slug,
+        reinitializedVirtualTimestamp: false,
+        autorefreshLog: true,
+      });
       return;
     }
 
     if (isAutoRefreshContinued) {
-      // Re-enabling autorefresh with existing virtual timestamp, and within continue window, do nothing.
+      logger.info('Auto-refresh enabled: continuing with existing virtual timestamp', {
+        organization: organization.slug,
+        reinitializedVirtualTimestamp: false,
+        virtualTimestamp: boxedVirtualTimestamp.current,
+        autorefreshLog: true,
+      });
       return;
     }
     if (!isEqual(autoRefresh, previousAutoRefresh)) {
-      // Re-enabling autorefresh with existing virtual timestamp, but outside continue window, reset virtual timestamp.
       initializeVirtualTimestamp();
+      logger.info('Auto-refresh enabled: reinitializing virtual timestamp', {
+        organization: organization.slug,
+        reinitializedVirtualTimestamp: true,
+        previousVirtualTimestamp: boxedVirtualTimestamp.current,
+        autorefreshLog: true,
+      });
     }
   }, [
     autoRefresh,
     initializeVirtualTimestamp,
-    virtualTimestamp,
+    boxedVirtualTimestamp,
     isAutoRefreshContinued,
     previousAutoRefresh,
+    organization.slug,
   ]);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | undefined;
+
+    autoRefreshMinuteCountRef.current = 0;
+
+    if (autoRefresh) {
+      intervalId = setInterval(() => {
+        autoRefreshMinuteCountRef.current += 1;
+        logger.info('Auto-refresh interval tick', {
+          organization: organization.slug,
+          minutesSinceEnabled: autoRefreshMinuteCountRef.current,
+          currentVirtualTimestamp: boxedVirtualTimestamp.current,
+          autorefreshLog: true,
+        });
+      }, 60000);
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      autoRefreshMinuteCountRef.current = 0;
+    };
+  }, [autoRefresh, organization.slug, boxedVirtualTimestamp]);
 
   // Get the newest timestamp from the latest page to calculate how far behind we are
   const getMostRecentPageDataTimestamp = useCallback(() => {
