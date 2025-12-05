@@ -24,7 +24,7 @@ function getTextColor({
   }
   switch (priority) {
     case 'primary':
-      return theme.colors.content.accent;
+      return theme.tokens.content.accent;
     case 'danger':
       return theme.errorText;
     case 'default':
