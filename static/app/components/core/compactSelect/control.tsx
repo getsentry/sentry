@@ -588,10 +588,10 @@ const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
     box-shadow: none;
   }
 
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
   z-index: 2;
 
-  font-size: ${p => (p.size === 'xs' ? p.theme.fontSize.xs : p.theme.fontSize.sm)};
+  font-size: ${p => (p.size === 'xs' ? p.theme.font.size.xs : p.theme.font.size.sm)};
   color: ${p => p.theme.headingColor};
 `;
 
@@ -603,7 +603,7 @@ const MenuHeaderTrailingItems = styled('div')`
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.medium};
   white-space: nowrap;
   margin-right: ${space(2)};
 `;
@@ -618,7 +618,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.regular};
   color: ${p => p.theme.subText};
   padding: 0 ${space(0.5)};
   margin: -${space(0.25)} -${space(0.5)};
