@@ -10,12 +10,13 @@ import {DataCategory} from 'sentry/types/core';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
-import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
+import {OnDemandBudgetMode} from 'getsentry/types';
 import {
   displayBudgetName,
   getReservedBudgetCategoryForAddOn,
   supportsPayg,
 } from 'getsentry/utils/billing';
+import BilledSeats from 'getsentry/views/subscriptionPage/usageOverview/components/billedSeats';
 import {
   DataCategoryUsageBreakdownInfo,
   ReservedBudgetUsageBreakdownInfo,
@@ -29,10 +30,13 @@ import {USAGE_OVERVIEW_PANEL_HEADER_HEIGHT} from 'getsentry/views/subscriptionPa
 import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
 function PanelHeader({
+  panelIsOnlyCta,
   selectedProduct,
   subscription,
   isInline,
-}: Pick<BreakdownPanelProps, 'selectedProduct' | 'subscription' | 'isInline'>) {
+}: Pick<BreakdownPanelProps, 'selectedProduct' | 'subscription' | 'isInline'> & {
+  panelIsOnlyCta: boolean;
+}) {
   const {onDemandBudgets: paygBudgets} = subscription;
 
   const {
@@ -44,12 +48,7 @@ function PanelHeader({
     activeProductTrial,
   } = useProductBillingMetadata(subscription, selectedProduct);
 
-  if (
-    // special case for seer add-on
-    selectedProduct === AddOnCategory.SEER ||
-    !billedCategory ||
-    (isAddOn && !addOnInfo)
-  ) {
+  if (!billedCategory || (isAddOn && !addOnInfo) || panelIsOnlyCta) {
     return null;
   }
 
@@ -135,6 +134,18 @@ function ProductBreakdownPanel({
           activeProductTrial={activeProductTrial}
         />
       );
+    } else {
+      const metricHistory = subscription.categories[billedCategory];
+      if (metricHistory) {
+        breakdownInfo = (
+          <DataCategoryUsageBreakdownInfo
+            subscription={subscription}
+            category={billedCategory}
+            metricHistory={metricHistory}
+            activeProductTrial={activeProductTrial}
+          />
+        );
+      }
     }
   } else {
     const category = selectedProduct as DataCategory;
@@ -157,6 +168,7 @@ function ProductBreakdownPanel({
 
   return (
     <Container
+      height={isEnabled ? undefined : '100%'}
       background="primary"
       border={isInline ? undefined : 'primary'}
       borderBottom={isInline ? 'primary' : undefined}
@@ -173,6 +185,7 @@ function ProductBreakdownPanel({
         selectedProduct={selectedProduct}
         subscription={subscription}
         isInline={isInline}
+        panelIsOnlyCta={!isEnabled}
       />
       {potentialProductTrial && (
         <ProductTrialCta
@@ -195,8 +208,17 @@ function ProductBreakdownPanel({
         </Fragment>
       )}
       {shouldShowUpgradeCta && (
-        <UpgradeCta organization={organization} subscription={subscription} />
+        <UpgradeCta
+          organization={organization}
+          subscription={subscription}
+          selectedProduct={selectedProduct}
+        />
       )}
+      <BilledSeats
+        organization={organization}
+        selectedProduct={selectedProduct}
+        subscription={subscription}
+      />
     </Container>
   );
 }
