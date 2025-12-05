@@ -141,12 +141,9 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   }
 
   const queryParam = formatSearchStringForQueryParam(query);
-  const logQueryParams =
-    logQuery?.map(formatSearchStringForQueryParam).filter(defined) ?? [];
-  const metricQueryParams =
-    metricQuery?.map(formatSearchStringForQueryParam).filter(defined) ?? [];
-  const spanQueryParams =
-    spanQuery?.map(formatSearchStringForQueryParam).filter(defined) ?? [];
+  const logQueryParams = logQuery?.map(formatSearchStringForQueryParam);
+  const metricQueryParams = metricQuery?.map(formatSearchStringForQueryParam);
+  const spanQueryParams = spanQuery?.map(formatSearchStringForQueryParam);
 
   return useApiQuery<EventsTimeSeriesResponse>(
     [
