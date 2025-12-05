@@ -56,7 +56,7 @@ function KeyField() {
     {}
   );
 
-  const sortedTags = useMemo(() => {
+  const sortedOptions = useMemo(() => {
     const sorted = tagOptions.toSorted((a, b) => {
       return (a.totalValues || 0) > (b.totalValues || 0) ? -1 : 1;
     });
@@ -68,7 +68,10 @@ function KeyField() {
       sorted.unshift(condition.comparison);
     }
 
-    return sorted;
+    return Object.values(sorted).map((tag: Tag) => ({
+      value: tag.key,
+      label: tag.key,
+    }));
   }, [tagOptions, condition.comparison]);
 
   return (
@@ -77,12 +80,9 @@ function KeyField() {
       creatable
       name={`${condition_id}.comparison.key`}
       aria-label={t('Tag')}
-      placeholder={isLoading ? t('Loading tags...') : t('tag')}
+      placeholder={isLoading ? t('Loading tags\u2026') : t('tag')}
       value={condition.comparison.key}
-      options={Object.values(sortedTags).map((tag: Tag) => ({
-        value: tag.key,
-        label: tag.key,
-      }))}
+      options={sortedOptions}
       onChange={(e: SelectValue<MatchType>) => {
         onUpdate({comparison: {...condition.comparison, key: e.value}});
         removeError(condition.id);
