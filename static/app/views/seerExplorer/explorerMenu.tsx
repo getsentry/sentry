@@ -210,20 +210,38 @@ export function useExplorerMenu({
     return undefined;
   }, [handleKeyDown, isVisible]);
 
-  // Helper to calculate position relative to panel
-  const calculatePosition = useCallback(
-    (anchorElement: HTMLElement, useBottom: boolean) => {
-      const rect = anchorElement.getBoundingClientRect();
-      const panelRect = anchorElement
-        .closest('[data-seer-explorer-root]')
-        ?.getBoundingClientRect();
+  // Calculate menu position based on anchor element
+  useLayoutEffect(() => {
+    if (!isVisible) {
+      setMenuPosition({});
+      return;
+    }
 
-      const spacing = 8;
-      if (panelRect) {
-        const relativeTop = rect.top - panelRect.top;
-        const relativeLeft = rect.left - panelRect.left;
+    const anchorRef =
+      menuMode === 'slash-commands-keyboard' ? inputAnchorRef : menuAnchorRef;
+    const isSlashCommand = menuMode === 'slash-commands-keyboard';
 
-        return useBottom
+    if (!anchorRef?.current) {
+      // Fallback to default bottom-left
+      setMenuPosition({
+        bottom: '100%',
+        left: '16px',
+      });
+      return;
+    }
+
+    const rect = anchorRef.current.getBoundingClientRect();
+    const panelRect = anchorRef.current
+      .closest('[data-seer-explorer-root]')
+      ?.getBoundingClientRect();
+
+    const spacing = 8;
+    if (panelRect) {
+      const relativeTop = rect.top - panelRect.top;
+      const relativeLeft = rect.left - panelRect.left;
+
+      setMenuPosition(
+        isSlashCommand
           ? {
               bottom: `${panelRect.height - relativeTop + spacing}px`,
               left: `${relativeLeft}px`,
@@ -231,46 +249,23 @@ export function useExplorerMenu({
           : {
               top: `${relativeTop + rect.height + spacing}px`,
               left: `${relativeLeft}px`,
-            };
-      }
-
-      // Fallback to viewport positioning
-      return useBottom
-        ? {
-            bottom: `${window.innerHeight - rect.top + spacing}px`,
-            left: `${rect.left}px`,
-          }
-        : {
-            top: `${rect.bottom + spacing}px`,
-            left: `${rect.left}px`,
-          };
-    },
-    []
-  );
-
-  // Calculate menu position based on anchor element or default to bottom-left
-  // Use useLayoutEffect to calculate position synchronously before paint to prevent flashing
-  useLayoutEffect(() => {
-    if (!isVisible) {
-      setMenuPosition({});
-      return;
-    }
-
-    // Position relative to input for slash commands, or button for session history
-    const anchorRef =
-      menuMode === 'slash-commands-keyboard' ? inputAnchorRef : menuAnchorRef;
-    const useBottom = menuMode === 'slash-commands-keyboard';
-
-    if (anchorRef?.current) {
-      setMenuPosition(calculatePosition(anchorRef.current, useBottom));
+            }
+      );
     } else {
-      // Fallback to default bottom-left
-      setMenuPosition({
-        bottom: '100%',
-        left: '16px',
-      });
+      // Fallback to viewport positioning
+      setMenuPosition(
+        isSlashCommand
+          ? {
+              bottom: `${window.innerHeight - rect.top + spacing}px`,
+              left: `${rect.left}px`,
+            }
+          : {
+              top: `${rect.bottom + spacing}px`,
+              left: `${rect.left}px`,
+            }
+      );
     }
-  }, [isVisible, menuMode, menuAnchorRef, inputAnchorRef, calculatePosition]);
+  }, [isVisible, menuMode, menuAnchorRef, inputAnchorRef]);
 
   const menu = (
     <Activity mode={isVisible ? 'visible' : 'hidden'}>
