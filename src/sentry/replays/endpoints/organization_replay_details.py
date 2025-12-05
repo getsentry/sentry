@@ -295,12 +295,12 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
                 request_user_id=request.user.id,
             )
 
-        response = process_raw_response(
+        replay_data = process_raw_response(
             snuba_response,
             fields=request.query_params.getlist("field"),
         )
 
-        if len(response) == 0:
+        if len(replay_data) == 0:
             return Response(status=404)
         else:
-            return Response({"data": response[0]}, status=200)
+            return Response({"data": replay_data[0]}, status=200)
