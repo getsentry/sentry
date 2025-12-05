@@ -24,11 +24,9 @@ from snuba_sdk import (
 )
 from snuba_sdk.orderby import Direction
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
@@ -37,10 +35,10 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReplayPara
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
+from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
 from sentry.replays.lib.new_query.fields import FieldProtocol
 from sentry.replays.lib.query import attempt_compressed_condition
-from sentry.replays.permissions import has_replay_permission
 from sentry.replays.usecases.query import search_filter_to_condition
 from sentry.replays.usecases.query.configs.scalar import click_search_config
 from sentry.utils.snuba import raw_snql_query
@@ -59,7 +57,7 @@ class ReplayClickResponse(TypedDict):
 
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
-class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
+class ProjectReplayClicksIndexEndpoint(ProjectReplayEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -86,13 +84,8 @@ class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
     )
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Retrieve a collection of RRWeb DOM node-ids and the timestamp they were clicked."""
-        if not features.has(
-            "organizations:session-replay", project.organization, actor=request.user
-        ):
-            return Response(status=404)
-
-        if not has_replay_permission(project.organization, request.user):
-            return Response(status=403)
+        if response := self.check_replay_access(request, project):
+            return response
 
         filter_params = self.get_filter_params(request, project)
 

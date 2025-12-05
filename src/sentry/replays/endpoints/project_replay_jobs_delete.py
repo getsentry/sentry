@@ -10,6 +10,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, serialize
+from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.models import ReplayDeletionJobModel
 from sentry.replays.permissions import has_replay_permission
 from sentry.replays.tasks import run_bulk_replay_delete_job
@@ -131,7 +132,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
 
 
 @region_silo_endpoint
-class ProjectReplayDeletionJobDetailEndpoint(ProjectEndpoint):
+class ProjectReplayDeletionJobDetailEndpoint(ProjectReplayEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -142,8 +143,8 @@ class ProjectReplayDeletionJobDetailEndpoint(ProjectEndpoint):
         """
         Fetch a replay delete job instance.
         """
-        if not has_replay_permission(project.organization, request.user):
-            return Response(status=403)
+        if response := self.check_replay_access(request, project):
+            return response
 
         try:
             job = ReplayDeletionJobModel.objects.get(
