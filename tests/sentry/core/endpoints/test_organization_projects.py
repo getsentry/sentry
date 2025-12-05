@@ -312,6 +312,30 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         }
         assert not response.data[1].get("options")
 
+    def test_all_projects_limit_exceeded(self) -> None:
+        # Create 1001 projects to exceed the limit
+        for i in range(1001):
+            self.create_project(teams=[self.team], name=f"project-{i}", slug=f"project-{i}")
+
+        response = self.get_error_response(
+            self.organization.slug, qs_params={"all_projects": "1"}, status_code=400
+        )
+        assert "too many projects" in response.data["detail"].lower()
+
+    def test_all_projects_at_limit(self) -> None:
+        # Create exactly 1000 projects - should succeed
+        projects = []
+        for i in range(1000):
+            projects.append(
+                self.create_project(teams=[self.team], name=f"project-{i}", slug=f"project-{i}")
+            )
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"all_projects": "1"}
+        )
+        # Should return all 1000 projects
+        assert len(response.data) == 1000
+
 
 class OrganizationProjectsCountTest(APITestCase):
     endpoint = "sentry-api-0-organization-projects-count"

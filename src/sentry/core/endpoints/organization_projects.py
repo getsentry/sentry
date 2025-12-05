@@ -162,9 +162,21 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
         if get_all_projects:
             queryset = queryset.order_by("slug").select_related("organization")
+            
+            # Limit to 1000 projects to prevent timeouts
+            project_count = queryset.count()
+            if project_count > 1000:
+                return Response(
+                    {
+                        "detail": "This organization has too many projects to return them all at once. "
+                        "Please use pagination or filter your query to reduce the number of projects."
+                    },
+                    status=400,
+                )
+            
             return Response(
                 serialize(
-                    list(queryset),
+                    list(queryset[:1000]),
                     request.user,
                     ProjectSummarySerializer(collapse=collapse, dataset=dataset),
                 )
