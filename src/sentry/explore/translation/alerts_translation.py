@@ -179,8 +179,10 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
 
 
 def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
+    # querying for updating as well just in case the subscription gets stuck in updating
     query_subscription_qs = QuerySubscription.objects.filter(
-        snuba_query_id=snuba_query.id, status=QuerySubscription.Status.ACTIVE.value
+        snuba_query_id=snuba_query.id,
+        status__in=[QuerySubscription.Status.ACTIVE.value, QuerySubscription.Status.UPDATING.value],
     )
     query_subscription = query_subscription_qs.first()
 
@@ -200,6 +202,7 @@ def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQ
     snapshot = snuba_query.query_snapshot
 
     if not snapshot:
+        logger.info("No snapshot found for snuba query %s", snuba_query.id)
         return
 
     # Skip rollback if user has already updated this alert/monitor
@@ -212,10 +215,14 @@ def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQ
     detectors = data_source.detectors.all()
 
     old_query_type, old_dataset, old_query, old_aggregate = _get_old_query_info(snuba_query)
+
+    # wrap everything with atomic transaction to ensure queries don't get 'half updated'
     with atomic_transaction(
         using=(
             router.db_for_write(SnubaQuery),
             router.db_for_write(SnubaQueryEventType),
+            router.db_for_write(QuerySubscription),
+            router.db_for_read(DataCondition),
         )
     ):
         snuba_query.update(
@@ -230,9 +237,8 @@ def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQ
             snuba_query=snuba_query, type=SnubaQueryEventType.EventType.TRANSACTION.value
         )
 
-    query_subscriptions = list(snuba_query.subscriptions.all())
-    for subscription in query_subscriptions:
-        with transaction.atomic(router.db_for_write(QuerySubscription)):
+        query_subscriptions = list(snuba_query.subscriptions.all())
+        for subscription in query_subscriptions:
             subscription.update(status=QuerySubscription.Status.UPDATING.value)
 
             transaction.on_commit(
@@ -246,20 +252,23 @@ def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQ
                 using=router.db_for_write(QuerySubscription),
             )
 
-    for detector in detectors:
-        detector_cfg: MetricIssueDetectorConfig = detector.config
-        if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
-            data_condition = DataCondition.objects.get(
-                condition_group=detector.workflow_condition_group
-            )
-            handle_send_historical_data_to_seer(
-                detector,
-                data_source,
-                data_condition,
-                snuba_query,
-                detector.project,
-                SeerMethod.UPDATE,
-                event_types=[SnubaQueryEventType.EventType.TRANSACTION],
-            )
+        for detector in detectors:
+            detector_cfg: MetricIssueDetectorConfig = detector.config
+            if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
+                data_condition = DataCondition.objects.get(
+                    condition_group=detector.workflow_condition_group
+                )
+                handle_send_historical_data_to_seer(
+                    detector,
+                    data_source,
+                    data_condition,
+                    snuba_query,
+                    detector.project,
+                    SeerMethod.UPDATE,
+                    event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+                )
 
+    logger.info(
+        "Query successfully rolled back to legacy", extra={"snuba_query_id": snuba_query.id}
+    )
     return
