@@ -20,6 +20,7 @@ interface BlockProps {
   block: Block;
   blockIndex: number;
   isAwaitingFileApproval?: boolean;
+  isAwaitingQuestion?: boolean;
   isFocused?: boolean;
   isLast?: boolean;
   isLatestTodoBlock?: boolean;
@@ -65,8 +66,7 @@ function todosToMarkdown(todos: TodoItem[]): string {
  * Determine the dot color based on tool execution status
  */
 function getToolStatus(
-  block: Block,
-  isAwaitingFileApproval?: boolean
+  block: Block
 ): 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending' {
   if (block.loading) {
     return 'loading';
@@ -78,7 +78,11 @@ function getToolStatus(
   const hasTools = toolCalls.length > 0;
 
   if (hasTools) {
-    if (isAwaitingFileApproval) {
+    // Check if any tool has pending approval or pending question
+    const hasPending = toolLinks.some(
+      link => link?.params?.pending_approval || link?.params?.pending_question
+    );
+    if (hasPending) {
       return 'pending';
     }
 
@@ -120,6 +124,7 @@ function BlockComponent({
   block,
   blockIndex: _blockIndex,
   isAwaitingFileApproval,
+  isAwaitingQuestion,
   isLast,
   isLatestTodoBlock,
   isFocused,
@@ -291,7 +296,8 @@ function BlockComponent({
     }
   };
 
-  const showActions = isFocused && !block.loading && !isAwaitingFileApproval;
+  const showActions =
+    isFocused && !block.loading && !isAwaitingFileApproval && !isAwaitingQuestion;
 
   return (
     <Block
@@ -316,7 +322,7 @@ function BlockComponent({
           ) : (
             <BlockRow>
               <ResponseDot
-                status={getToolStatus(block, isAwaitingFileApproval)}
+                status={getToolStatus(block)}
                 hasOnlyTools={!hasContent && hasTools}
               />
               <BlockContentWrapper hasOnlyTools={!hasContent && hasTools}>
@@ -433,7 +439,9 @@ export default BlockComponent;
 
 const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   width: 100%;
-  border-bottom: ${p => (p.isLast ? 'none' : `1px solid ${p.theme.border}`)};
+  border-top: 1px solid transparent;
+  border-bottom: ${p =>
+    p.isLast ? '1px solid transparent' : `1px solid ${p.theme.border}`};
   position: relative;
   flex-shrink: 0; /* Prevent blocks from shrinking */
   cursor: pointer;
