@@ -285,6 +285,28 @@ const route = createRoute({
             },
           ],
         },
+      ],
+    },
+    {
+      title: t('Upload Source Maps (Optional)'),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            "The stack traces in your Sentry errors probably won't look like your actual code. To fix this, upload your source maps to Sentry. Since TanStack Start uses Vite, you can use the Sentry Vite plugin to automatically upload source maps. Follow the [link:Vite source maps guide] to set this up.",
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/vite/" />
+              ),
+            }
+          ),
+        },
+      ],
+      collapsible: true,
+    },
+    {
+      title: t('Avoid Ad Blockers With Tunneling (Optional)'),
+      content: [
         {
           type: 'text',
           text: tct(
@@ -313,6 +335,7 @@ const route = createRoute({
           ],
         },
       ],
+      collapsible: true,
     },
   ],
   verify: params => [
