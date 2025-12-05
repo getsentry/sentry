@@ -61,11 +61,10 @@ export function UptimeNodeDetails(
   const {node} = props;
   const location = useLocation();
   const theme = useTheme();
-  const {projects} = useProjects();
+  const projectSlug = node.value.project_slug ?? node.event?.projectSlug;
+  const {projects} = useProjects({slugs: projectSlug ? [projectSlug] : []});
 
-  const project = projects.find(
-    proj => proj.slug === (node.value.project_slug ?? node.event?.projectSlug)
-  );
+  const project = projects.find(proj => proj.slug === projectSlug);
 
   return (
     <UptimeSpanNodeDetails

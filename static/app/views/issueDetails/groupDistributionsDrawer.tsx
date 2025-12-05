@@ -22,10 +22,15 @@ type Props = {
  */
 export function GroupDistributionsDrawer({group, includeFeatureFlagsTab}: Props) {
   const organization = useOrganization();
-  const {projects} = useProjects();
-  const project = projects.find(p => p.slug === group.project.slug)!;
+  const {projects, fetching} = useProjects({slugs: [group.project.slug]});
+  const project = projects.find(p => p.slug === group.project.slug);
 
   const {tab, setTab} = useDrawerTab({enabled: includeFeatureFlagsTab});
+
+  // Wait for project to load before rendering the drawer content
+  if (fetching || !project) {
+    return null;
+  }
 
   return (
     <AnalyticsArea name="distributions_drawer">

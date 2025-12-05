@@ -16,12 +16,12 @@ interface Props {
 }
 
 export function TransactionCell({project, transaction, transactionMethod}: Props) {
-  const projects = useProjects();
+  const {projects} = useProjects({slugs: project ? [project] : []});
   const organization = useOrganization();
   const location = useLocation();
   const {view} = useDomainViewFilters();
 
-  const projectId = projects.projects.find(p => p.slug === project)?.id;
+  const projectId = projects.find(p => p.slug === project)?.id;
 
   const searchQuery = new MutableSearch('');
   if (transactionMethod) {

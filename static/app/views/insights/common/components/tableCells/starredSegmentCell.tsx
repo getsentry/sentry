@@ -27,7 +27,7 @@ export const STARRED_SEGMENT_TABLE_QUERY_KEY = ['starred-segment-table'];
 
 export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props) {
   const queryClient = useQueryClient();
-  const {projects} = useProjects();
+  const {projects} = useProjects({slugs: [projectSlug]});
   const project = projects.find(p => p.slug === projectSlug);
 
   const {setStarredSegment, isPending} = useStarredSegment({

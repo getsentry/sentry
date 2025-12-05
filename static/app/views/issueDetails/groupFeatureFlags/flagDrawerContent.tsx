@@ -45,8 +45,8 @@ export default function FlagDrawerContent({
     });
 
   // CTA logic
-  const {projects} = useProjects();
-  const project = projects.find(p => p.slug === group.project.slug)!;
+  const {projects} = useProjects({slugs: [group.project.slug]});
+  const project = projects.find(p => p.slug === group.project.slug);
 
   const showCTA =
     allGroupFlagCount === 0 &&

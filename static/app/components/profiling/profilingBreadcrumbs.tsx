@@ -21,7 +21,14 @@ export interface ProfilingBreadcrumbsProps {
 }
 
 function ProfilingBreadcrumbs({organization, trails}: ProfilingBreadcrumbsProps) {
-  const {projects} = useProjects();
+  // Extract project slugs from trails that have them
+  const projectSlugs = trails
+    .filter(
+      (trail): trail is ProfileSummaryTrail | FlamegraphTrail =>
+        trail.type === 'profile summary' || trail.type === 'flamechart'
+    )
+    .map(trail => trail.payload.projectSlug);
+  const {projects} = useProjects({slugs: projectSlugs});
   const crumbs = useMemo(
     () => trails.map(trail => trailToCrumb(trail, {organization, projects})),
     [organization, trails, projects]

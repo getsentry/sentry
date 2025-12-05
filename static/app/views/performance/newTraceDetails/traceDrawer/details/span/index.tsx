@@ -157,7 +157,8 @@ export function SpanNodeDetails(
   const {node, organization} = props;
   const location = useLocation();
   const theme = useTheme();
-  const {projects} = useProjects();
+  const projectSlug = node.value.project_slug ?? node.event?.projectSlug;
+  const {projects} = useProjects({slugs: projectSlug ? [projectSlug] : []});
   const issues = TraceTree.UniqueIssues(node);
 
   const parentTransaction = isEAPSpanNode(node)
