@@ -65,7 +65,6 @@ describe('SpansTabContent', () => {
         'gen-ai-features',
         'gen-ai-explore-traces',
         'gen-ai-explore-traces-consent-ui',
-        'search-query-builder-case-insensitivity',
         'traces-page-cross-event-querying',
       ],
     },

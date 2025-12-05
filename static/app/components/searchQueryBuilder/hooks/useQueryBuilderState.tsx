@@ -26,7 +26,6 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type QueryBuilderState = {
   /**
@@ -280,8 +279,7 @@ function deleteQueryTokens(
 export function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: TermOperator,
-  hasWildcardOperators: boolean
+  newOperator: TermOperator
 ): string {
   if (isDateToken(token)) {
     return modifyFilterOperatorDate(query, token, newOperator);
@@ -294,11 +292,11 @@ export function modifyFilterOperatorQuery(
     newOperator === TermOperator.DOES_NOT_START_WITH ||
     newOperator === TermOperator.DOES_NOT_END_WITH;
 
-  if (hasWildcardOperators && newOperator === TermOperator.DOES_NOT_CONTAIN) {
+  if (newOperator === TermOperator.DOES_NOT_CONTAIN) {
     newToken.operator = TermOperator.CONTAINS;
-  } else if (hasWildcardOperators && newOperator === TermOperator.DOES_NOT_START_WITH) {
+  } else if (newOperator === TermOperator.DOES_NOT_START_WITH) {
     newToken.operator = TermOperator.STARTS_WITH;
-  } else if (hasWildcardOperators && newOperator === TermOperator.DOES_NOT_END_WITH) {
+  } else if (newOperator === TermOperator.DOES_NOT_END_WITH) {
     newToken.operator = TermOperator.ENDS_WITH;
   } else {
     newToken.operator =
@@ -310,15 +308,9 @@ export function modifyFilterOperatorQuery(
 
 function modifyFilterOperator(
   state: QueryBuilderState,
-  action: UpdateFilterOpAction,
-  hasWildcardOperators: boolean
+  action: UpdateFilterOpAction
 ): QueryBuilderState {
-  const newQuery = modifyFilterOperatorQuery(
-    state.query,
-    action.token,
-    action.op,
-    hasWildcardOperators
-  );
+  const newQuery = modifyFilterOperatorQuery(state.query, action.token, action.op);
 
   if (newQuery === state.query && !action.focusOverride) {
     return state;
@@ -758,16 +750,11 @@ function updateFreeTextAndReplaceText(
     | UpdateFreeTextActionOnExit
     | UpdateFreeTextActionOnCommit,
   getFieldDefinition: FieldDefinitionGetter,
-  hasWildcardOperators: boolean,
   replaceRawSearchKeys?: string[]
 ): QueryBuilderState {
   const newState = updateFreeText(state, action);
 
-  if (
-    !hasWildcardOperators ||
-    !replaceRawSearchKeys ||
-    replaceRawSearchKeys.length === 0
-  ) {
+  if (!replaceRawSearchKeys || replaceRawSearchKeys.length === 0) {
     return newState;
   }
 
@@ -834,11 +821,6 @@ export function useQueryBuilderState({
   setDisplayAskSeerFeedback: (value: boolean) => void;
   replaceRawSearchKeys?: string[];
 }) {
-  const organization = useOrganization();
-  const hasWildcardOperators = organization.features.includes(
-    'search-query-builder-wildcard-operators'
-  );
-
   const initialState: QueryBuilderState = {
     query: initialQuery,
     committedQuery: initialQuery,
@@ -874,7 +856,7 @@ export function useQueryBuilderState({
         case 'UPDATE_QUERY': {
           const shouldCommitQuery = action.shouldCommitQuery ?? true;
 
-          if (!hasWildcardOperators || !hasReplaceRawSearchKeys) {
+          if (!hasReplaceRawSearchKeys) {
             return {
               ...state,
               query: action.query,
@@ -950,7 +932,6 @@ export function useQueryBuilderState({
             state,
             action,
             getFieldDefinition,
-            hasWildcardOperators,
             replaceRawSearchKeys
           );
 
@@ -984,7 +965,7 @@ export function useQueryBuilderState({
         case 'UPDATE_FILTER_KEY':
           return updateFilterKey(state, action);
         case 'UPDATE_FILTER_OP':
-          return modifyFilterOperator(state, action, hasWildcardOperators);
+          return modifyFilterOperator(state, action);
         case 'UPDATE_TOKEN_VALUE':
           return {
             ...state,
@@ -1002,13 +983,7 @@ export function useQueryBuilderState({
           return state;
       }
     },
-    [
-      disabled,
-      displayAskSeerFeedback,
-      getFieldDefinition,
-      hasWildcardOperators,
-      replaceRawSearchKeys,
-    ]
+    [disabled, displayAskSeerFeedback, getFieldDefinition, replaceRawSearchKeys]
   );
 
   const [state, dispatch] = useReducer(reducer, initialState);

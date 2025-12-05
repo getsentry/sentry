@@ -73,7 +73,6 @@ function useNativeOperatorFilter(
       globalFilterToken &&
       getOperatorInfo({
         filterToken: globalFilterToken,
-        hasWildcardOperators: false,
         fieldDefinition: getFieldDefinitionForDataset(
           globalFilter.tag,
           globalFilter.dataset

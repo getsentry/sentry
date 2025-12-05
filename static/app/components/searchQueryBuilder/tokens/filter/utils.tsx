@@ -67,12 +67,10 @@ export function isAggregateFilterToken(
 
 export function getValidOpsForFilter({
   filterToken,
-  hasWildcardOperators,
   fieldDefinition,
 }: {
   fieldDefinition: FieldDefinition | null;
   filterToken: TokenResult<Token.FILTER>;
-  hasWildcardOperators: boolean;
 }): readonly TermOperator[] {
   // If the token is invalid we want to use the possible expected types as our filter type
   const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
@@ -101,7 +99,6 @@ export function getValidOpsForFilter({
   // - Field definition does not allow wildcard operators
   // - Field definition is a string field
   if (
-    !hasWildcardOperators ||
     !areWildcardOperatorsAllowed(fieldDefinition) ||
     fieldDefinition?.valueType !== FieldValueType.STRING
   ) {
@@ -210,27 +207,16 @@ export function convertTokenTypeToValueType(tokenType: Token): FieldValueType {
   }
 }
 
-export function getLabelAndOperatorFromToken(
-  token: TokenResult<Token.FILTER>,
-  hasWildcardOperators: boolean
-) {
+export function getLabelAndOperatorFromToken(token: TokenResult<Token.FILTER>) {
   let operator = token.operator;
 
-  if (hasWildcardOperators && token.negated && token.operator === TermOperator.CONTAINS) {
+  if (token.negated && token.operator === TermOperator.CONTAINS) {
     operator = TermOperator.DOES_NOT_CONTAIN;
-  } else if (
-    hasWildcardOperators &&
-    token.negated &&
-    token.operator === TermOperator.STARTS_WITH
-  ) {
+  } else if (token.negated && token.operator === TermOperator.STARTS_WITH) {
     operator = TermOperator.DOES_NOT_START_WITH;
-  } else if (
-    hasWildcardOperators &&
-    token.negated &&
-    token.operator === TermOperator.ENDS_WITH
-  ) {
+  } else if (token.negated && token.operator === TermOperator.ENDS_WITH) {
     operator = TermOperator.DOES_NOT_END_WITH;
-  } else if (hasWildcardOperators && token.operator === TermOperator.ENDS_WITH) {
+  } else if (token.operator === TermOperator.ENDS_WITH) {
     operator = TermOperator.ENDS_WITH;
   } else if (token.negated) {
     operator = TermOperator.NOT_EQUAL;
