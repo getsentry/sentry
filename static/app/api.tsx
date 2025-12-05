@@ -130,13 +130,6 @@ const globalErrorHandlers: Array<
   (resp: ResponseMeta, options: RequestOptions) => boolean
 > = [];
 
-/**
- * Global handlers for successful responses
- */
-const globalSuccessHandlers: Array<
-  (resp: ResponseMeta, options: RequestOptions) => void
-> = [];
-
 export const initApiClientErrorHandling = () =>
   globalErrorHandlers.push((resp: ResponseMeta, options: RequestOptions) => {
     const pageAllowsAnon = ALLOWED_ANON_PAGES.find(regex =>
@@ -189,18 +182,6 @@ export const initApiClientErrorHandling = () =>
       window.location.reload();
     }
     return true;
-  });
-
-export const initApiClientWarningHandling = () =>
-  globalSuccessHandlers.push((resp: ResponseMeta) => {
-    const warningMessage = resp.getResponseHeader('X-Sentry-Warning');
-
-    if (warningMessage) {
-      // Dynamically import to avoid circular dependency
-      import('sentry/actionCreators/indicator').then(({addMessage}) => {
-        addMessage(warningMessage, '', {duration: 10000});
-      });
-    }
   });
 
 /**
@@ -627,8 +608,6 @@ export class Client {
           const responseData = isResponseJSON ? responseJSON : responseText;
 
           if (ok) {
-            // Call global success handlers (e.g., for warning headers)
-            globalSuccessHandlers.forEach(handler => handler(responseMeta, options));
             successHandler(responseMeta, statusText, responseData);
           } else {
             // There's no reason we should be here with a 200 response, but we get
