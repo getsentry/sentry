@@ -643,8 +643,7 @@ const FolderLink = styled(Link, {
   transition: none;
 
   &:before {
-    background: ${p =>
-      p.theme.isChonk ? (p.theme as any).colors.blue100 : p.theme.blue100};
+    background: ${p => (p.theme.isChonk ? p.theme.colors.blue100 : p.theme.blue100)};
     content: '';
     inset: 0 ${p => p.theme.space.md} 0 -${p => p.theme.space['2xs']};
     position: absolute;
