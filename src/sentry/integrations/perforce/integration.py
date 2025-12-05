@@ -45,7 +45,7 @@ class PerforceMetadata(TypedDict, total=False):
 
 
 DESCRIPTION = """
-Connect your Sentry organization to your Perforce/Helix Core server to enable
+Connect your Sentry organization to your P4 Core server to enable
 stacktrace linking, commit tracking, suspect commit detection, and code ownership.
 View source code directly from error stack traces and identify suspect commits that
 may have introduced issues.
@@ -55,7 +55,7 @@ FEATURES = [
     FeatureDescription(
         """
         Link your Sentry stack traces back to your Perforce depot files with support
-        for Helix Swarm web viewer. Automatically maps error locations to
+        for P4 Code Review viewer. Automatically maps error locations to
         source code using configurable code mappings.
         """,
         IntegrationFeatures.STACKTRACE_LINK,
@@ -145,8 +145,8 @@ class PerforceInstallationForm(forms.Form):
         required=False,
     )
     web_url = forms.URLField(
-        label=_("Helix Swarm URL (Optional)"),
-        help_text=_("Optional: URL to Helix Swarm web viewer for browsing files"),
+        label=_("P4 Code Review URL (Optional)"),
+        help_text=_("Optional: URL to P4 Code Review web viewer for browsing files"),
         widget=forms.URLInput(attrs={"placeholder": "https://swarm.company.com"}),
         required=False,
         assume_scheme="https",
@@ -166,7 +166,7 @@ class PerforceInstallationForm(forms.Form):
 
 class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
     """
-    Integration for Perforce/Helix Core version control system.
+    Integration for P4 Core version control system.
     Provides stacktrace linking to depot files and suspect commit detection.
     """
 
@@ -471,9 +471,9 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             {
                 "name": "web_url",
                 "type": "string",
-                "label": "Helix Swarm URL (Optional)",
+                "label": "P4 Core URL (Optional)",
                 "placeholder": "https://swarm.company.com",
-                "help": "Optional: URL to Helix Swarm web viewer for browsing files",
+                "help": "Optional: URL to P4 Core web viewer for browsing files",
                 "required": False,
             },
         ]
