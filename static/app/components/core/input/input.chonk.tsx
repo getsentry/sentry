@@ -21,7 +21,7 @@ export const chonkInputStyles = ({
     fontWeight: theme.fontWeight.normal,
     resize: 'vertical',
     transition: `border ${theme.motion.smooth.fast}, box-shadow ${theme.motion.smooth.fast}`,
-    ...(monospace ? {fontFamily: theme.text.familyMono} : {}),
+    ...(monospace ? {fontFamily: theme.font.family.mono} : {}),
     ...(readOnly ? {cursor: 'default'} : {}),
 
     fontSize: theme.form[size].fontSize,
