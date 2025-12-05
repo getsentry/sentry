@@ -2,8 +2,14 @@ import logging
 from datetime import datetime, timedelta
 
 from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
-from sentry.seer.autofix.utils import get_autofix_state
+from sentry.seer.autofix.utils import (
+    bulk_get_project_preferences,
+    bulk_set_project_preferences,
+    get_autofix_state,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
 from sentry.taskworker.retry import Retry
@@ -95,3 +101,60 @@ def run_automation_only_task(group_id: int) -> None:
     run_automation(
         group=group, user=AnonymousUser(), event=event, source=SeerAutomationSource.POST_PROCESS
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.configure_seer_for_existing_org",
+    namespace=issues_tasks,
+    processing_deadline_duration=90,
+    retry=Retry(times=3),
+)
+def configure_seer_for_existing_org(organization_id: int) -> None:
+    """
+    Configure Seer settings for a new or existing organization migrating to new Seer pricing.
+
+    Sets:
+    - Org-level: enable_seer_coding=True - to override old check
+    - Project-level (all projects): seer_scanner_automation=True, autofix_automation_tuning="medium" or "off"
+    - Seer API (all projects): automated_run_stopping_point="code_changes" or "open_pr"
+    """
+    organization = Organization.objects.get(id=organization_id)
+
+    # Set org-level options
+    organization.update_option("sentry:enable_seer_coding", True)
+
+    projects = list(Project.objects.filter(organization_id=organization_id, status=0))
+    project_ids = [p.id for p in projects]
+
+    if len(project_ids) == 0:
+        return
+
+    # If seer is enabled for an org, every project must have project level settings
+    for project in projects:
+        project.update_option("sentry:seer_scanner_automation", True)
+        # New automation default for the new pricing is medium.
+        project.update_option("sentry:autofix_automation_tuning", "medium")
+
+    preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)
+
+    # Determine which projects need updates
+    preferences_to_set = []
+    for project_id in project_ids:
+        existing_pref = preferences_by_id.get(str(project_id), {})
+
+        # Skip projects that already have an acceptable stopping point configured
+        if existing_pref.get("automated_run_stopping_point") in ("open_pr", "code_changes"):
+            continue
+
+        # Preserve existing repositories and automation_handoff, only update the stopping point
+        preferences_to_set.append(
+            {
+                "organization_id": organization_id,
+                "project_id": project_id,
+                "repositories": existing_pref.get("repositories") or [],
+                "automated_run_stopping_point": "code_changes",
+                "automation_handoff": existing_pref.get("automation_handoff"),
+            }
+        )
+    if len(preferences_to_set) > 0:
+        bulk_set_project_preferences(organization_id, preferences_to_set)
