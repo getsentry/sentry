@@ -31,6 +31,7 @@ import {
   IconClock,
   IconClose,
   IconCopy,
+  IconEllipsis,
   IconFire,
   IconFix,
   IconSeer,
@@ -520,6 +521,34 @@ function ClusterCard({
             {t('View All Issues') + ` (${cluster.group_ids.length})`}
           </Button>
         </Link>
+        <DropdownMenu
+          items={[
+            {
+              key: 'resolve',
+              label: t('Resolve'),
+              onAction: () => {},
+            },
+            {
+              key: 'archive',
+              label: t('Archive'),
+              onAction: () => {},
+            },
+            {
+              key: 'dismiss',
+              label: t('Dismiss'),
+              onAction: () => {},
+            },
+          ]}
+          trigger={triggerProps => (
+            <Button
+              {...triggerProps}
+              size="sm"
+              icon={<IconEllipsis size="sm" />}
+              aria-label={t('More actions')}
+            />
+          )}
+          position="bottom-end"
+        />
       </CardFooter>
     </CardContainer>
   );
