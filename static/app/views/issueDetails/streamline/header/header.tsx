@@ -88,8 +88,7 @@ export default function StreamlinedGroupHeader({
 
   const hasFeedbackForm =
     group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY ||
-    (group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS &&
-      organization.features.includes('experimental-n-plus-one-api-detector-rollout'));
+    group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS;
   const feedbackSource =
     group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY
       ? 'issue_details_query_injection'
