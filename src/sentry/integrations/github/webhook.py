@@ -798,13 +798,14 @@ class PullRequestEventWebhook(GitHubWebhook):
                         integration_id=integration.id,
                         external_identifier=self.get_external_id(user["login"]),
                     )
-                    updated_num_actions = OrganizationContributors.objects.filter(
-                        id=contributor.id
-                    ).update(num_actions=models.F("num_actions") + 1)
+                    OrganizationContributors.objects.filter(id=contributor.id).update(
+                        num_actions=models.F("num_actions") + 1
+                    )
+                    contributor.refresh_from_db()
 
                     if (
                         is_contributor_eligible_for_seat_assignment(user_type, author_association)
-                        and updated_num_actions == OrganizationContributionStatus.ACTIVE
+                        and contributor.num_actions == OrganizationContributionStatus.ACTIVE
                     ):
                         assign_seat_to_organization_contributor.delay(contributor)
 
