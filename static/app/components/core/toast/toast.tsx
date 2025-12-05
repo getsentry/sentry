@@ -12,7 +12,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconCheckmark, IconRefresh, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
-import type {DO_NOT_USE_ChonkTheme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 import {chonkStyled} from 'sentry/utils/theme/theme';
 
 export interface ToastProps {
@@ -93,29 +93,26 @@ function ToastIcon({type}: {type: Indicator['type']}) {
   }
 }
 
-function getContainerTheme(
-  theme: DO_NOT_USE_ChonkTheme,
-  type: Indicator['type']
-): React.CSSProperties {
+function getContainerTheme(theme: Theme, type: Indicator['type']): React.CSSProperties {
   switch (type) {
     case 'success':
       return {
         background: theme.colors.green100,
-        borderBottom: `2px solid ${theme.colors.border.success}`,
+        borderBottom: `2px solid ${theme.tokens.border.success}`,
         border: `1px solid ${chonkFor(theme, theme.colors.chonk.green400)}`,
         boxShadow: `0 3px 0 0px ${chonkFor(theme, theme.colors.chonk.green400)}`,
       };
     case 'error':
       return {
         background: theme.colors.red100,
-        borderBottom: `2px solid ${theme.colors.border.danger}`,
+        borderBottom: `2px solid ${theme.tokens.border.danger}`,
         border: `1px solid ${chonkFor(theme, theme.colors.chonk.red400)}`,
         boxShadow: `0 3px 0 0px ${chonkFor(theme, theme.colors.chonk.red400)}`,
       };
     default:
       return {
-        background: theme.colors.background.primary,
-        borderBottom: `2px solid ${theme.colors.border.accent}`,
+        background: theme.tokens.background.primary,
+        borderBottom: `2px solid ${theme.tokens.border.accent}`,
         border: `1px solid ${chonkFor(theme, theme.colors.chonk.blue400)}`,
         boxShadow: `0 3px 0 0px ${chonkFor(theme, theme.colors.chonk.blue400)}`,
       };
@@ -142,7 +139,7 @@ const ToastOuterContainer = chonkStyled(motion.div)<{type: Indicator['type']}>`
    * so we set the background color here to the background color so that the
    * toast is not see-through.
    */
-  background: ${p => p.theme.colors.background.primary};
+  background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.lg};
   border: ${p => getContainerTheme(p.theme, p.type).border};
   box-shadow: ${p => getContainerTheme(p.theme, p.type).boxShadow};
@@ -155,7 +152,7 @@ const ToastInnerContainer = chonkStyled('div')<{type: Indicator['type']}>`
 `;
 
 function getToastIconContainerTheme(
-  theme: DO_NOT_USE_ChonkTheme,
+  theme: Theme,
   type: Indicator['type']
 ): React.CSSProperties {
   switch (type) {
@@ -171,7 +168,7 @@ function getToastIconContainerTheme(
       };
     default:
       return {
-        background: theme.colors.background.primary,
+        background: theme.tokens.background.primary,
         borderRight: `1px solid ${chonkFor(theme, theme.colors.chonk.blue400)}`,
       };
   }

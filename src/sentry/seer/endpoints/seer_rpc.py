@@ -87,6 +87,7 @@ from sentry.seer.explorer.index_data import (
     rpc_get_trace_for_transaction,
     rpc_get_transactions_for_project,
 )
+from sentry.seer.explorer.on_completion_hook import call_on_completion_hook
 from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
@@ -1048,6 +1049,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_trace_item_attributes": get_trace_item_attributes,
     "get_repository_definition": get_repository_definition,
     "call_custom_tool": call_custom_tool,
+    "call_on_completion_hook": call_on_completion_hook,
     "get_log_attributes_for_trace": get_log_attributes_for_trace,
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
     #

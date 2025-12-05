@@ -164,37 +164,9 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         # Convert Unix timestamp to ISO 8601 format
         timestamp = datetime.fromtimestamp(time_int, tz=timezone.utc).isoformat()
 
-        # Get user information from Perforce
+        # Get user information from Perforce using shared helper
         username = change.get("user", "unknown")
-        author_email = f"{username}@perforce"
-        author_name = username
-
-        # Fetch user info if not in cache (skip "unknown" placeholder)
-        if username != "unknown" and username not in user_cache:
-            try:
-                user_cache[username] = client.get_user(username)
-            except Exception as e:
-                # Log user lookup failures but don't fail the entire commit processing
-                logger.warning(
-                    "perforce.format_commits.user_lookup_failed",
-                    extra={
-                        "changelist": change.get("change"),
-                        "username": username,
-                        "error": str(e),
-                        "error_type": type(e).__name__,
-                    },
-                )
-                # Cache None to avoid repeated failed lookups for the same user
-                user_cache[username] = None
-
-        user_info = user_cache.get(username)
-        if user_info:
-            # Use actual email from Perforce if available
-            if user_info.get("email"):
-                author_email = user_info["email"]
-            # Use full name from Perforce if available
-            if user_info.get("full_name"):
-                author_name = user_info["full_name"]
+        author_email, author_name = client.get_author_info_from_cache(username, user_cache)
 
         return P4CommitInfo(
             id=str(change["change"]),
