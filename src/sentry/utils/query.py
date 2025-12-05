@@ -130,12 +130,8 @@ class RangeQuerySetWrapper[V]:
             raise InvalidQuerySetError
 
         self.limit = limit
-        if limit:
-            self.step = min(limit, abs(step))
-            self.desc = step < 0
-        else:
-            self.step = abs(step)
-            self.desc = step < 0
+        self.desc = step < 0
+        self.step = min(limit, abs(step)) if limit else abs(step)
         self.queryset = queryset
         self.min_value = min_id
         self.callbacks = callbacks
@@ -241,7 +237,7 @@ class RangeQuerySetWrapper[V]:
                 if limit and num >= limit:
                     break
 
-            has_results = len(results) == self.step
+            has_results = bool(results) and len(results) == self.step
 
 
 class RangeQuerySetWrapperWithProgressBar[V](RangeQuerySetWrapper[V]):
