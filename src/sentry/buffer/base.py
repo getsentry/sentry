@@ -214,7 +214,7 @@ class Buffer(Service):
                             # Catch NumericValueOutOfRange when times_seen exceeds 32-bit limit
                             if (
                                 isinstance(e.__cause__, psycopg2.errors.NumericValueOutOfRange)
-                                and "times_seen" in columns
+                                and "times_seen" in update_kwargs
                             ):
                                 # Cap times_seen to BoundedPositiveIntegerField.MAX_VALUE and retry the update
                                 update_kwargs["times_seen"] = BoundedPositiveIntegerField.MAX_VALUE
