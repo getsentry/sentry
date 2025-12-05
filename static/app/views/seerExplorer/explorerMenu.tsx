@@ -1,9 +1,16 @@
-import {Activity, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  Activity,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import TimeSince from 'sentry/components/timeSince';
-import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 
@@ -26,6 +33,8 @@ interface ExplorerMenuProps {
     onNew: () => void;
   };
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
+  inputAnchorRef?: React.RefObject<HTMLElement | null>;
+  menuAnchorRef?: React.RefObject<HTMLElement | null>;
 }
 
 interface MenuItemProps {
@@ -44,8 +53,17 @@ export function useExplorerMenu({
   panelVisible,
   slashCommandHandlers,
   onChangeSession,
+  menuAnchorRef,
+  inputAnchorRef,
 }: ExplorerMenuProps) {
   const [menuMode, setMenuMode] = useState<MenuMode>('hidden');
+  const [menuPosition, setMenuPosition] = useState<{
+    bottom?: string | number;
+    left?: string | number;
+    right?: string | number;
+    top?: string | number;
+  }>({});
+  const [openedViaSlashCommand, setOpenedViaSlashCommand] = useState(false);
 
   const allSlashCommands = useSlashCommands(slashCommandHandlers);
 
@@ -78,6 +96,7 @@ export function useExplorerMenu({
 
   const close = useCallback(() => {
     setMenuMode('hidden');
+    setOpenedViaSlashCommand(false);
     if (menuMode === 'slash-commands-keyboard') {
       // Clear input and reset textarea height.
       clearInput();
@@ -107,6 +126,8 @@ export function useExplorerMenu({
 
       if (item.key === '/resume') {
         // Handle /resume command here - avoid changing menu state from item handlers.
+        // Mark that it was opened via slash command so positioning uses input anchor
+        setOpenedViaSlashCommand(true);
         setMenuMode('session-history');
         refetchSessions();
       } else {
@@ -199,9 +220,82 @@ export function useExplorerMenu({
     return undefined;
   }, [handleKeyDown, isVisible]);
 
+  // Helper to calculate position relative to panel
+  const calculatePosition = useCallback(
+    (anchorElement: HTMLElement, useBottom: boolean) => {
+      const rect = anchorElement.getBoundingClientRect();
+      const panelRect = anchorElement
+        .closest('[data-seer-explorer-root]')
+        ?.getBoundingClientRect();
+
+      const spacing = 8;
+      if (panelRect) {
+        const relativeTop = rect.top - panelRect.top;
+        const relativeLeft = rect.left - panelRect.left;
+
+        return useBottom
+          ? {
+              bottom: `${panelRect.height - relativeTop + spacing}px`,
+              left: `${relativeLeft}px`,
+            }
+          : {
+              top: `${relativeTop + rect.height + spacing}px`,
+              left: `${relativeLeft}px`,
+            };
+      }
+
+      // Fallback to viewport positioning
+      return useBottom
+        ? {
+            bottom: `${window.innerHeight - rect.top + spacing}px`,
+            left: `${rect.left}px`,
+          }
+        : {
+            top: `${rect.bottom + spacing}px`,
+            left: `${rect.left}px`,
+          };
+    },
+    []
+  );
+
+  // Calculate menu position based on anchor element or default to bottom-left
+  // Use useLayoutEffect to calculate position synchronously before paint to prevent flashing
+  useLayoutEffect(() => {
+    if (!isVisible) {
+      setMenuPosition({});
+      return;
+    }
+
+    const isSlashCommandMenu =
+      menuMode === 'slash-commands-keyboard' ||
+      menuMode === 'slash-commands-manual' ||
+      (menuMode === 'session-history' && openedViaSlashCommand);
+
+    // Position relative to input for slash commands, or button for button clicks
+    const anchorRef = isSlashCommandMenu ? inputAnchorRef : menuAnchorRef;
+    const useBottom = isSlashCommandMenu;
+
+    if (anchorRef?.current) {
+      setMenuPosition(calculatePosition(anchorRef.current, useBottom));
+    } else {
+      // Fallback to default bottom-left
+      setMenuPosition({
+        bottom: '100%',
+        left: '16px',
+      });
+    }
+  }, [
+    isVisible,
+    menuMode,
+    menuAnchorRef,
+    inputAnchorRef,
+    openedViaSlashCommand,
+    calculatePosition,
+  ]);
+
   const menu = (
     <Activity mode={isVisible ? 'visible' : 'hidden'}>
-      <MenuPanel panelSize={panelSize}>
+      <MenuPanel panelSize={panelSize} style={menuPosition} data-seer-menu-panel="">
         {menuItems.map((item, index) => (
           <MenuItem
             key={item.key}
@@ -239,12 +333,25 @@ export function useExplorerMenu({
     }
   }, [menuMode, setMenuMode, close]);
 
+  // Handler for opening session history from button
+  const openSessionHistory = useCallback(() => {
+    if (menuMode === 'session-history') {
+      close();
+    } else {
+      // Mark that it was opened via button so positioning uses button anchor
+      setOpenedViaSlashCommand(false);
+      setMenuMode('session-history');
+      refetchSessions();
+    }
+  }, [menuMode, close, refetchSessions]);
+
   return {
     menu,
     menuMode,
     isMenuOpen: menuMode !== 'hidden',
     closeMenu: close,
     onMenuButtonClick,
+    openSessionHistory,
   };
 }
 
@@ -350,8 +457,6 @@ const MenuPanel = styled('div')<{
   panelSize: 'max' | 'med';
 }>`
   position: absolute;
-  bottom: 100%;
-  left: ${space(2)};
   width: 300px;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
