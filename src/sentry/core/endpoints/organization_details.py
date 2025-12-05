@@ -370,6 +370,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
     )
+    hasGranularReplayPermissions = serializers.BooleanField(required=False)
     replayAccessMembers = serializers.ListField(
         child=serializers.IntegerField(),
         required=False,
@@ -619,8 +620,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                     organization=org, key=option_key, defaults={"value": new_value}
                 )
 
-                if new_value or created:
-                    changed_data["hasGranularReplayPermissions"] = f"to {new_value}"
+                changed_data["hasGranularReplayPermissions"] = f"to {new_value}"
 
             if "replayAccessMembers" in data:
                 member_ids = data["replayAccessMembers"]
