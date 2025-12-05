@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -101,6 +101,8 @@ function ContributingIssues({
   timeWindow,
   aggregate,
 }: RelatedIssuesProps) {
+  // TODO: When we can link events to open periods, use the end date from the open period
+  const [endDate] = useState(() => new Date().toISOString());
   const organization = useOrganization();
 
   if (!eventDateCreated) {
@@ -111,8 +113,6 @@ function ContributingIssues({
     eventDateCreated,
     timeWindow,
   }).toISOString();
-  // TODO: When we can link events to open periods, use the end date from the open period
-  const endDate = new Date().toISOString();
   const queryParams = {
     query: `issue.type:error ${query}`,
     start: startDate,
