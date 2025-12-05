@@ -54,7 +54,7 @@ function FeatureList({
           whileTap={{x: -7}}
           transition={testableTransition()}
         >
-          <IconBusiness gradient={feat === selected} withShine={feat === selected} />
+          <IconBusiness />
           {feat.name}
         </FeatureLink>
       ))}
