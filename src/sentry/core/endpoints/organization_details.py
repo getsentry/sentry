@@ -659,7 +659,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                                 organization=org, organizationmember_id=member_id
                             )
                             for member_id in to_add
-                        ]
+                        ],
+                        ignore_conflicts=True,
                     )
 
                 if to_remove:
