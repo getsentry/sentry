@@ -32,6 +32,9 @@ ERR_INVALID_STATS_PERIOD = (
     "Invalid stats_period. Valid choices are '', '1h', '24h', '7d', '14d', '30d', and '90d'"
 )
 
+# Maximum number of projects to return when all_projects parameter is used
+MAX_ALL_PROJECTS = 1000
+
 DATASETS = {
     "": discover,  # in case they pass an empty query string fall back on default
     "discover": discover,
@@ -163,15 +166,13 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         if get_all_projects:
             queryset = queryset.order_by("slug").select_related("organization")
 
-            # Limit to 1000 projects to prevent timeouts
             # Fetch MAX + 1 to detect if there are more without expensive count()
-            MAX_PROJECTS = 1000
-            projects = list(queryset[: MAX_PROJECTS + 1])
-            has_more = len(projects) > MAX_PROJECTS
+            projects = list(queryset[: MAX_ALL_PROJECTS + 1])
+            has_more = len(projects) > MAX_ALL_PROJECTS
 
             response = Response(
                 serialize(
-                    projects[:MAX_PROJECTS],
+                    projects[:MAX_ALL_PROJECTS],
                     request.user,
                     ProjectSummarySerializer(collapse=collapse, dataset=dataset),
                 )
@@ -179,8 +180,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
             if has_more:
                 response["X-Sentry-Warning"] = (
-                    f"This organization has more than {MAX_PROJECTS} projects. "
-                    f"Only the first {MAX_PROJECTS} are shown. "
+                    f"This organization has more than {MAX_ALL_PROJECTS} projects. "
+                    f"Only the first {MAX_ALL_PROJECTS} are shown. "
                     f"Please use pagination or filter your query."
                 )
 
