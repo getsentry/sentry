@@ -50,10 +50,7 @@ export function useFilterCategoryFields(fields: Field[]): Field[] {
       const subscription = subscriptions[org.slug];
       if (subscription?.planDetails?.categories) {
         hasAnySubscriptionData = true;
-        categoriesPerOrg.set(
-          org.slug,
-          new Set(subscription.planDetails.categories as DataCategory[])
-        );
+        categoriesPerOrg.set(org.slug, new Set(subscription.planDetails.categories));
       }
     });
 
