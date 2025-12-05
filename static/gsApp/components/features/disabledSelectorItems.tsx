@@ -65,7 +65,7 @@ function DisabledSelectorItems({
               <SelectorItemLabel>
                 <UpsellLabelWrap>
                   {relativePeriods['90d']}
-                  <StyledIconBusiness gradient data-test-id="power-icon" />
+                  <StyledIconBusiness data-test-id="power-icon" />
                 </UpsellLabelWrap>
 
                 <UpsellMessage>

@@ -69,13 +69,13 @@ function TrialStartedSidebarItem({
         <p>{t('Check out these great new features')}</p>
 
         <Bullets>
-          <IconBusiness gradient />
+          <IconBusiness />
           {t('Application Insights')}
-          <IconBusiness gradient />
+          <IconBusiness />
           {t('Dashboards')}
-          <IconBusiness gradient />
+          <IconBusiness />
           {t('Advanced Discover Queries')}
-          <IconBusiness gradient />
+          <IconBusiness />
           {t('Additional Integrations')}
         </Bullets>
 
