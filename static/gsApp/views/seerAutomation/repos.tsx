@@ -1,9 +1,9 @@
 import SeerSettingsPageWrapper from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
 
-export default function SeerAutomationRepos() {
+export default function SeerAutomationSettings() {
   return (
     <SeerSettingsPageWrapper>
-      <div>SeerAutomationRepositories</div>
+      <p>Repos</p>
     </SeerSettingsPageWrapper>
   );
 }
