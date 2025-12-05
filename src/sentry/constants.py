@@ -7,7 +7,7 @@ import logging
 import os.path
 from collections import namedtuple
 from collections.abc import Sequence
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import cast
 
@@ -1056,4 +1056,4 @@ EXTENSION_LANGUAGE_MAP = {
 
 # After this date APIs that are incompatible with cell routing
 # will begin periodic brownouts.
-CELL_API_DEPRECATION_DATE = datetime(2025, 5, 15)
+CELL_API_DEPRECATION_DATE = datetime(2025, 5, 15, 0, 0, 0, tzinfo=UTC)
