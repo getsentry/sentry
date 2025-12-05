@@ -452,7 +452,7 @@ const Price = styled('div')`
 `;
 
 const TotalPrice = styled(Price)`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
 `;
 

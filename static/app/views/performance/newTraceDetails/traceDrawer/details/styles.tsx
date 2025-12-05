@@ -694,7 +694,7 @@ const HighlightsDurationWrapper = styled(FlexBox)`
 `;
 
 const HighlightDuration = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 400;
 `;
 

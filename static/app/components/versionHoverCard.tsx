@@ -245,7 +245,7 @@ const StyledVersion = styled(Version)`
 
 const CountSince = styled('div')`
   color: ${p => p.theme.headingColor};
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const AvatarListContainer = styled('div')`
