@@ -159,7 +159,7 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
 `;
 
 export const Message = chonkStyled('div')`
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
   place-content: center;
   padding-block: ${p => p.theme.space.xs};
 `;
