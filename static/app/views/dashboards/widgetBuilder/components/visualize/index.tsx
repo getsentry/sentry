@@ -635,8 +635,7 @@ function Visualize({error, setError}: VisualizeProps) {
                           )}
                         <FieldBar data-testid="field-bar">
                           {field.kind === FieldValueKind.EQUATION ? (
-                            state.dataset === WidgetType.SPANS ||
-                            state.dataset === WidgetType.TRACEMETRICS ? (
+                            state.dataset === WidgetType.SPANS ? (
                               <ExploreArithmeticBuilder
                                 equation={field.field}
                                 onUpdate={value => {
@@ -962,12 +961,8 @@ function Visualize({error, setError}: VisualizeProps) {
               : t('+ Add Column')}
         </AddButton>
         {datasetConfig.enableEquations &&
-          // TODO
-          ((state.dataset !== WidgetType.SPANS &&
-            state.dataset !== WidgetType.TRACEMETRICS) ||
-            ((state.dataset === WidgetType.SPANS ||
-              state.dataset === WidgetType.TRACEMETRICS) &&
-              hasExploreEquations)) && (
+          (state.dataset !== WidgetType.SPANS ||
+            (state.dataset === WidgetType.SPANS && hasExploreEquations)) && (
             <AddButton
               priority="link"
               disabled={disableTransactionWidget}
@@ -1095,7 +1090,6 @@ export const FieldBar = styled('div')`
   min-width: 0;
 `;
 
-// TODO: Is there a more generic way to style this?
 export const PrimarySelectRow = styled('div')<{
   hasColumnParameter: boolean;
   isTraceMetrics?: boolean;
@@ -1104,26 +1098,6 @@ export const PrimarySelectRow = styled('div')<{
   width: 100%;
   min-width: 0;
 `;
-
-// ${p =>
-//   p.hasColumnParameter &&
-//   css`
-//     > div:first-child {
-//       width: ${p.isTraceMetrics ? '100%' : 'fit-content'};
-//     }
-
-//     > div:first-child button {
-//       border-top-right-radius: 0;
-//       border-bottom-right-radius: 0;
-//       left: 1px;
-//       width: ${p.isTraceMetrics ? '100%' : 'fit-content'};
-//     }
-
-//     > div:nth-child(2) button {
-//       border-top-left-radius: 0;
-//       border-bottom-left-radius: 0;
-//     }
-//   `}
 
 export const FieldRow = styled('div')`
   display: flex;

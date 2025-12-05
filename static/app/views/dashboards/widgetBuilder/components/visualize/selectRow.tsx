@@ -479,7 +479,3 @@ const FooterWrapper = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.sm};
 `;
-
-const SelectWrapper = styled('div')`
-  display: contents;
-`;
