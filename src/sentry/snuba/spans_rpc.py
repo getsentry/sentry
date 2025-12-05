@@ -153,6 +153,7 @@ class Spans(rpc_dataset_common.RPCBase):
                 groupby=[],
                 referrer=referrer,
                 sampling_mode=sampling_mode,
+                additional_queries=additional_queries,
             )
             comp_rpc_response = snuba_rpc.timeseries_rpc([comp_rpc_request])[0]
 
