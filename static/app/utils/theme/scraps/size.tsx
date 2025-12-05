@@ -54,6 +54,7 @@ export const radius = {
 };
 
 export const breakpoints = {
+  '2xs': '0px',
   xs: '500px',
   sm: '800px',
   md: '992px',
