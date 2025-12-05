@@ -19,7 +19,7 @@ function ChooseYourBillingCycle({
 }: CheckoutV3StepProps) {
   const [isOpen, setIsOpen] = useState(true);
   const intervalOptions = useMemo(() => {
-    const basePlan = formData.plan.replace('_auf', '');
+    const basePlan = formData.plan.replace('_test', '').replace('_auf', '');
     const plans = billingConfig.planList.filter(({id}) => id.indexOf(basePlan) === 0);
 
     if (plans.length === 0) {
