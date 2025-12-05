@@ -247,6 +247,7 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
             metrics_tags["grouphash_exists"] = grouphash_exists
             metrics_tags["cache_set"] = True
 
+            cache_expiry = _get_cache_expiry(cache_key, cache_type="existence")
             cache.set(cache_key, grouphash_exists, cache_expiry)
 
         return grouphash_exists
@@ -288,6 +289,7 @@ def _get_or_create_single_grouphash(
         if use_caching and grouphash.group_id is not None:
             metrics_tags["cache_set"] = True
 
+            cache_expiry = _get_cache_expiry(cache_key, cache_type="object")
             cache.set(cache_key, grouphash, cache_expiry)
 
         return (grouphash, created)
