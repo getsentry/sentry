@@ -4,8 +4,13 @@ import * as Sentry from '@sentry/react';
 import {Alert} from '@sentry/scraps/alert';
 
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
-import {useGuidedStepsContext} from 'sentry/components/guidedSteps/guidedSteps';
+import {
+  GuidedSteps,
+  useGuidedStepsContext,
+} from 'sentry/components/guidedSteps/guidedSteps';
 import {t} from 'sentry/locale';
+
+import {Steps} from 'getsentry/views/seerAutomation/onboarding/types';
 
 import {useIntegrationInstallation} from './hooks/useIntegrationInstallation';
 import useIntegrationProvider from './hooks/useIntegrationProvider';
@@ -77,24 +82,38 @@ export function StepsManager() {
 
   return (
     <Fragment>
-      <ConnectGithubStep
-        installationData={installationData}
-        isInstallationPending={isInstallationPending}
-        provider={provider}
-        isProviderPending={isProviderPending}
-      />
+      <GuidedSteps.Step stepKey={Steps.CONNECT_GITHUB} title={t('Connect GitHub')}>
+        <ConnectGithubStep
+          installationData={installationData}
+          isInstallationPending={isInstallationPending}
+          provider={provider}
+          isProviderPending={isProviderPending}
+        />
+      </GuidedSteps.Step>
 
-      <ConfigureCodeReviewStep
-        provider={provider}
-        repositories={repositories}
-        isFetching={isFetching}
-        selectedRepositoriesMap={selectedRepositoriesMap}
-        onRepositorySelectionChange={handleRepositorySelectionChange}
-      />
+      <GuidedSteps.Step
+        stepKey={Steps.SETUP_CODE_REVIEW}
+        title={t('Set Up AI Code Review')}
+      >
+        <ConfigureCodeReviewStep
+          provider={provider}
+          repositories={repositories}
+          isFetching={isFetching}
+          selectedRepositoriesMap={selectedRepositoriesMap}
+          onRepositorySelectionChange={handleRepositorySelectionChange}
+        />
+      </GuidedSteps.Step>
 
-      <ConfigureRootCauseAnalysisStep selectedRepositories={selectedRepositories} />
+      <GuidedSteps.Step
+        stepKey={Steps.SETUP_ROOT_CAUSE_ANALYSIS}
+        title={t('Set Up AI Root Cause Analysis')}
+      >
+        <ConfigureRootCauseAnalysisStep selectedRepositories={selectedRepositories} />
+      </GuidedSteps.Step>
 
-      <NextStepsStep repositories={selectedRepositories} />
+      <GuidedSteps.Step stepKey={Steps.NEXT_STEPS} title={t('Next Steps')}>
+        <NextStepsStep repositories={selectedRepositories} />
+      </GuidedSteps.Step>
     </Fragment>
   );
 }

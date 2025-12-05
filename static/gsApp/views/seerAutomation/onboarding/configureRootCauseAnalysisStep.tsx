@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -12,7 +12,6 @@ import type {Repository} from 'sentry/types/integrations';
 
 import {MaxWidthPanel, PanelDescription, StepContent} from './common';
 import {RepositoryToProjectConfiguration} from './repositoryToProjectConfiguration';
-import {Steps} from './types';
 
 interface ConfigureRootCauseAnalysisStepProps {
   selectedRepositories: Repository[];
@@ -49,10 +48,7 @@ export function ConfigureRootCauseAnalysisStep({
   }, [repositoryProjectMappings, selectedRepositories.length]);
 
   return (
-    <GuidedSteps.Step
-      stepKey={Steps.SETUP_ROOT_CAUSE_ANALYSIS}
-      title={t('Set Up AI Root Cause Analysis')}
-    >
+    <Fragment>
       <StepContent>
         <MaxWidthPanel>
           <PanelBody>
@@ -84,6 +80,6 @@ export function ConfigureRootCauseAnalysisStep({
           {t('Last Step')}
         </Button>
       </GuidedSteps.ButtonWrapper>
-    </GuidedSteps.Step>
+    </Fragment>
   );
 }

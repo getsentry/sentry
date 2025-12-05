@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button/linkButton';
@@ -5,14 +6,12 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {ActionSection, MaxWidthPanel, PanelDescription, StepContent} from './common';
-import {Steps} from './types';
 
 interface NextStepsStepProps {
   repositories: Repository[];
@@ -21,7 +20,7 @@ interface NextStepsStepProps {
 export function NextStepsStep({repositories}: NextStepsStepProps) {
   const organization = useOrganization();
   return (
-    <GuidedSteps.Step stepKey={Steps.NEXT_STEPS} title={t('Next Steps')}>
+    <Fragment>
       <StepContent>
         <MaxWidthPanel>
           <PanelBody>
@@ -87,7 +86,7 @@ export function NextStepsStep({repositories}: NextStepsStepProps) {
           </LinkButton>
         </ActionSection>
       </StepContent>
-    </GuidedSteps.Step>
+    </Fragment>
   );
 }
 

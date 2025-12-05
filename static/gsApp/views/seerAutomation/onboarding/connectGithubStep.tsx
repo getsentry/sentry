@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {Fragment, useCallback} from 'react';
 
 import Access from 'sentry/components/acl/access';
 import {Flex} from 'sentry/components/core/layout';
@@ -16,7 +16,6 @@ import IntegrationButton from 'sentry/views/settings/organizationIntegrations/in
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 import {ActionSection, MaxWidthPanel, StepContent} from './common';
-import {Steps} from './types';
 
 interface Props {
   installationData: OrganizationIntegration[] | undefined;
@@ -39,7 +38,7 @@ export function ConnectGithubStep({
     installation => installation.provider.key === 'github'
   );
   return (
-    <GuidedSteps.Step stepKey={Steps.CONNECT_GITHUB} title={t('Connect GitHub')}>
+    <Fragment>
       <StepContent>
         <MaxWidthPanel>
           <PanelBody withPadding>
@@ -90,6 +89,6 @@ export function ConnectGithubStep({
           </PanelBody>
         </MaxWidthPanel>
       </StepContent>
-    </GuidedSteps.Step>
+    </Fragment>
   );
 }

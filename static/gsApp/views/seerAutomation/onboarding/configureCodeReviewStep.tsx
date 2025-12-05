@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -12,7 +12,6 @@ import type {IntegrationProvider, Repository} from 'sentry/types/integrations';
 
 import {MaxWidthPanel, PanelDescription, StepContent} from './common';
 import {RepositorySelector} from './repositorySelector';
-import {Steps} from './types';
 
 interface ConfigureCodeReviewStepProps {
   isFetching: boolean;
@@ -44,10 +43,7 @@ export function ConfigureCodeReviewStep({
   }, [selectedRepositories.length, setCurrentStep, currentStep]);
 
   return (
-    <GuidedSteps.Step
-      stepKey={Steps.SETUP_CODE_REVIEW}
-      title={t('Set Up AI Code Review')}
-    >
+    <Fragment>
       <StepContent>
         <MaxWidthPanel>
           <PanelBody>
@@ -87,6 +83,6 @@ Now, select which of your repositories you would like to run Seer’s AI Code Re
           </Button>
         </GuidedSteps.ButtonWrapper>
       </StepContent>
-    </GuidedSteps.Step>
+    </Fragment>
   );
 }
