@@ -39,12 +39,16 @@ function KeyField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   const {removeError} = useAutomationBuilderErrorContext();
 
+  // TODO - get form context, get the detector ids from the context.
+  // if there are connected detectors / projects, then grab the project id list and use that. otherwise, -1.
+  const projectIds = ['-1'];
+
   // Select all the tags for an organization to generate a list of the most likely tags
   const organization = useOrganization();
-  const {data: tagOptions = []} = useFetchOrganizationTags(
+  const {data: tagOptions = [], isLoading} = useFetchOrganizationTags(
     {
       orgSlug: organization.slug,
-      projectIds: ['-1'],
+      projectIds,
       dataset: Dataset.ISSUE_PLATFORM,
       useCache: true,
       keepPreviousData: true,
@@ -53,7 +57,9 @@ function KeyField() {
   );
 
   const sortedTags = useMemo(() => {
-    const sorted = tagOptions.toSorted((a, b) => a.key.localeCompare(b.key));
+    const sorted = tagOptions.toSorted((a, b) => {
+      return (a.totalValues || 0) > (b.totalValues || 0) ? -1 : 1;
+    });
 
     if (
       condition.comparison.key &&
@@ -67,11 +73,11 @@ function KeyField() {
 
   return (
     <AutomationBuilderSelect
-      async
+      disabled={isLoading}
       creatable
       name={`${condition_id}.comparison.key`}
       aria-label={t('Tag')}
-      placeholder={t('tag')}
+      placeholder={isLoading ? t('Loading tags...') : t('tag')}
       value={condition.comparison.key}
       options={Object.values(sortedTags).map((tag: Tag) => ({
         value: tag.key,
