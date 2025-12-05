@@ -186,7 +186,14 @@ class RangeQuerySetWrapper[V]:
     def _get_cursor_values(self, result: V) -> dict[str, Any]:
         """Extract cursor values from a result for all order_by fields."""
         if self.result_value_getter:
-            return self.result_value_getter(result)
+            value = self.result_value_getter(result)
+            # if result_value_getter returns a single value
+            # (not a dict), wrap it for single-field order_by
+            if not isinstance(value, dict):
+                if len(self.order_by_fields) == 1:
+                    return {self.order_by_fields[0]: value}
+                raise TypeError("result_value_getter must return a dict for compound order_by")
+            return value
         return {field: getattr(result, field) for field in self.order_by_fields}
 
     def __iter__(self) -> Iterator[V]:
@@ -202,7 +209,7 @@ class RangeQuerySetWrapper[V]:
 
         cursor_values: dict[str, Any] | None = None
         if self.min_value is not None and self.order_by:
-            # Legacy support for single-field min_id
+            # support for single-field min_id
             cursor_values = {self.order_by: self.min_value}
 
         has_results = True
