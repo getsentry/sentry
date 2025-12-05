@@ -33,22 +33,27 @@ def get_project_top_transaction_traces_for_llm_detection(
         logger.exception("Project does not exist", extra={"project_id": project_id})
         return []
 
-    random_offset = random.randint(1, 8)
     end_time = datetime.now(UTC)
     start_time = end_time - timedelta(minutes=start_time_delta_minutes)
-
-    # use for both queries to ensure they are searching the same time window
-    snuba_params = SnubaParams(
-        start=start_time,
-        end=end_time,
-        projects=[project],
-        organization=project.organization,
-    )
     config = SearchResolverConfig(auto_fields=True)
 
-    # Step 1: Get top transactions by total time in time window
+    def _build_snuba_params(start: datetime) -> SnubaParams:
+        """
+        Both queries have different start times and the same end time.
+        """
+        return SnubaParams(
+            start=start,
+            end=end_time,
+            projects=[project],
+            organization=project.organization,
+        )
+
+    transaction_snuba_params = _build_snuba_params(start_time)
+    random_offset = random.randint(1, 8)
+    trace_snuba_params = _build_snuba_params(start_time + timedelta(minutes=random_offset))
+
     transactions_result = Spans.run_table_query(
-        params=snuba_params,
+        params=transaction_snuba_params,
         query_string="is_transaction:true",
         selected_columns=[
             "transaction",
@@ -74,10 +79,9 @@ def get_project_top_transaction_traces_for_llm_detection(
         if normalized_name in seen_names:
             continue
 
-        # Step 2: Get ONE trace for this transaction from THE SAME time window
         escaped_transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', transaction_name)
         trace_result = Spans.run_table_query(
-            params=snuba_params,
+            params=trace_snuba_params,
             query_string=f'is_transaction:true transaction:"{escaped_transaction_name}"',
             selected_columns=["trace", "precise.start_ts"],
             orderby=["precise.start_ts"],  # First trace in the window
