@@ -3315,6 +3315,14 @@ register(
     default=0.1,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Whether to directly log workflow evaluation logs to Sentry instead of using the stdlib
+# logger (which also logs to Sentry).
+register(
+    "workflow_engine.evaluation_logs_direct_to_sentry",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
