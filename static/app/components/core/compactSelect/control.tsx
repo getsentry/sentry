@@ -298,7 +298,10 @@ export function Control({
     preventOverflowOptions: {
       ...preventOverflowOptions,
       boundary:
-        preventOverflowOptions?.boundary ?? document.querySelector('main') ?? undefined,
+        preventOverflowOptions?.boundary ??
+        document.querySelector('main') ??
+        document.getElementById('main') ??
+        undefined,
     },
     flipOptions,
     strategy,
