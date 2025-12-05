@@ -111,7 +111,7 @@ def run_automation_only_task(group_id: int) -> None:
 )
 def configure_seer_for_existing_org(organization_id: int) -> None:
     """
-    Configure Seer settings for an new and existing organization migrating to new Seer pricing.
+    Configure Seer settings for a new or existing organization migrating to new Seer pricing.
 
     Sets:
     - Org-level: enable_seer_coding=True - to override old check
@@ -123,90 +123,84 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     # Set org-level options
     organization.update_option("sentry:enable_seer_coding", True)
 
-    projects = Project.objects.filter(organization_id=organization_id, status=0)
-
-    successful_project_ids = []
-    failed_project_ids = []
-    skipped_project_ids = []
+    projects = list(Project.objects.filter(organization_id=organization_id, status=0))
+    project_ids = [p.id for p in projects]
 
     # If seer is enabled for an org, every project must have project level settings
     for project in projects:
-        # Set seer_scanner_automation True for all projects
         project.update_option("sentry:seer_scanner_automation", True)
-
         # If autofix is "off" (the registered default for all projects), keep it off.
         # New projects and existing projects that have explicitly set it to "off" will keep it off.
         # Otherwise, normalize any other tuning value to "medium".
-        current_tuning = project.get_option("sentry:autofix_automation_tuning")
-        if current_tuning != "off":
+        if project.get_option("sentry:autofix_automation_tuning") != "off":
             project.update_option("sentry:autofix_automation_tuning", "medium")
 
+    if not project_ids:
+        return
+
+    # Bulk GET all project preferences
+    get_body = orjson.dumps({"organization_id": organization_id, "project_ids": project_ids})
+    try:
+        get_response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}/v1/project-preference/bulk",
+            data=get_body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(get_body),
+            },
+            timeout=30,
+        )
+        get_response.raise_for_status()
+        preferences_by_id = get_response.json().get("preferences", {})
+    except requests.RequestException:
+        logger.exception(
+            "Failed to bulk get Seer preferences",
+            extra={"organization_id": organization_id},
+        )
+        return
+
+    # Determine which projects need updates
+    preferences_to_set = []
+    for project_id in project_ids:
+        # preferences_by_id keys are strings from JSON
+        existing_pref = preferences_by_id.get(str(project_id))
+        if not isinstance(existing_pref, dict):
+            existing_pref = {}
+
+        # Skip projects that already have an acceptable stopping point configured
+        if existing_pref.get("automated_run_stopping_point") in ("open_pr", "code_changes"):
+            continue
+
+        # Preserve existing repositories and automation_handoff (may be None for new
+        # projects), only update the stopping point to enable code_changes automation.
+        preferences_to_set.append(
+            {
+                "organization_id": organization_id,
+                "project_id": project_id,
+                "repositories": existing_pref.get("repositories") or [],
+                "automated_run_stopping_point": "code_changes",
+                "automation_handoff": existing_pref.get("automation_handoff"),
+            }
+        )
+
+    # Bulk SET all project preferences that need updating
+    if preferences_to_set:
+        set_body = orjson.dumps(
+            {"organization_id": organization_id, "preferences": preferences_to_set}
+        )
         try:
-            # Get current Seer preferences
-            get_body = orjson.dumps({"project_id": project.id})
-            get_response = requests.post(
-                f"{settings.SEER_AUTOFIX_URL}/v1/project-preference",
-                data=get_body,
-                headers={
-                    "content-type": "application/json;charset=utf-8",
-                    **sign_with_seer_secret(get_body),
-                },
-                timeout=5,
-            )
-            get_response.raise_for_status()
-            current_prefs = get_response.json()
-
-            # For new projects, preference is None - use empty dict to safely access fields.
-            # If stopping_point is None (no preference set), the project proceeds to
-            # get configured with "code_changes" as the default.
-            existing_pref = current_prefs.get("preference") or {}
-            current_stopping_point = existing_pref.get("automated_run_stopping_point")
-
-            # Skip projects that already have an acceptable stopping point configured
-            if current_stopping_point in ("open_pr", "code_changes"):
-                skipped_project_ids.append(project.id)
-                continue
-
-            # Preserve existing repositories and automation_handoff (may be None for new
-            # projects), only update the stopping point to enable code_changes automation.
-            set_body = orjson.dumps(
-                {
-                    "preference": {
-                        "organization_id": organization_id,
-                        "project_id": project.id,
-                        "repositories": existing_pref.get("repositories") or [],
-                        "automated_run_stopping_point": "code_changes",
-                        "automation_handoff": existing_pref.get("automation_handoff"),
-                    },
-                }
-            )
-
             set_response = requests.post(
-                f"{settings.SEER_AUTOFIX_URL}/v1/project-preference/set",
+                f"{settings.SEER_AUTOFIX_URL}/v1/project-preference/bulk-set",
                 data=set_body,
                 headers={
                     "content-type": "application/json;charset=utf-8",
                     **sign_with_seer_secret(set_body),
                 },
-                timeout=5,
+                timeout=30,
             )
             set_response.raise_for_status()
-            successful_project_ids.append(project.id)
-        except (requests.RequestException, ValueError, AttributeError):
+        except requests.RequestException:
             logger.exception(
-                "Failed to configure Seer preferences for project",
-                extra={"organization_id": organization_id, "project_id": project.id},
+                "Failed to bulk set Seer preferences",
+                extra={"organization_id": organization_id},
             )
-            failed_project_ids.append(project.id)
-
-    attempted = len(successful_project_ids) + len(failed_project_ids)
-    logger.info(
-        "Configured Seer settings for existing org migrating to new pricing",
-        extra={
-            "organization_id": organization_id,
-            "successful_rate": len(successful_project_ids) / attempted if attempted > 0 else 1.0,
-            "successful_project_ids": successful_project_ids,
-            "skipped_project_ids": skipped_project_ids,
-            "failed_project_ids": failed_project_ids,
-        },
-    )

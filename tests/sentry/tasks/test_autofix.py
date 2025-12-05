@@ -137,22 +137,23 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
     @patch("sentry.tasks.autofix.requests.post")
     def test_configures_org_and_project_settings(self, mock_post: MagicMock) -> None:
         """Test that org and project settings are configured correctly."""
-        # Mock GET returns no preferences, SET succeeds
-        mock_get_response = MagicMock()
-        mock_get_response.json.return_value = {"preference": None}
-        mock_set_response = MagicMock()
-        mock_post.side_effect = [
-            mock_get_response,
-            mock_set_response,
-            mock_get_response,
-            mock_set_response,
-        ]
-
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
         # Set to non-off value so we can verify it gets changed to medium
         project1.update_option("sentry:autofix_automation_tuning", "low")
         project2.update_option("sentry:autofix_automation_tuning", "high")
+
+        # Mock bulk GET returns no preferences for any project
+        mock_bulk_get_response = MagicMock()
+        mock_bulk_get_response.json.return_value = {
+            "preferences": {
+                str(project1.id): None,
+                str(project2.id): None,
+            }
+        }
+        # Mock bulk SET succeeds
+        mock_bulk_set_response = MagicMock()
+        mock_post.side_effect = [mock_bulk_get_response, mock_bulk_set_response]
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
@@ -165,19 +166,20 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         assert project2.get_option("sentry:seer_scanner_automation") is True
         assert project2.get_option("sentry:autofix_automation_tuning") == "medium"
 
-        # 2 projects x 2 calls each (GET + SET)
-        assert mock_post.call_count == 4
+        # 1 bulk GET + 1 bulk SET
+        assert mock_post.call_count == 2
 
     @patch("sentry.tasks.autofix.requests.post")
     def test_keeps_autofix_off_if_explicitly_disabled(self, mock_post: MagicMock) -> None:
         """Test that projects with autofix explicitly set to off keep it off."""
-        mock_get_response = MagicMock()
-        mock_get_response.json.return_value = {"preference": None}
-        mock_set_response = MagicMock()
-        mock_post.side_effect = [mock_get_response, mock_set_response]
-
         project = self.create_project(organization=self.organization)
         project.update_option("sentry:autofix_automation_tuning", "off")
+
+        # Mock bulk GET returns no preference
+        mock_bulk_get_response = MagicMock()
+        mock_bulk_get_response.json.return_value = {"preferences": {str(project.id): None}}
+        mock_bulk_set_response = MagicMock()
+        mock_post.side_effect = [mock_bulk_get_response, mock_bulk_set_response]
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
@@ -189,41 +191,90 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
     @patch("sentry.tasks.autofix.requests.post")
     def test_skips_projects_with_existing_stopping_point(self, mock_post: MagicMock) -> None:
         """Test that projects with open_pr or code_changes stopping point are skipped."""
-        mock_get_open_pr = MagicMock()
-        mock_get_open_pr.json.return_value = {
-            "preference": {"automated_run_stopping_point": "open_pr"}
-        }
-        mock_get_code_changes = MagicMock()
-        mock_get_code_changes.json.return_value = {
-            "preference": {"automated_run_stopping_point": "code_changes"}
-        }
-        mock_post.side_effect = [mock_get_open_pr, mock_get_code_changes]
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
 
-        self.create_project(organization=self.organization)
-        self.create_project(organization=self.organization)
+        # Mock bulk GET returns preferences with stopping points already set
+        mock_bulk_get_response = MagicMock()
+        mock_bulk_get_response.json.return_value = {
+            "preferences": {
+                str(project1.id): {"automated_run_stopping_point": "open_pr"},
+                str(project2.id): {"automated_run_stopping_point": "code_changes"},
+            }
+        }
+        mock_post.side_effect = [mock_bulk_get_response]
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        # Only GET calls, no SET calls (both skipped)
+        # Only bulk GET call, no bulk SET call (both projects skipped)
+        assert mock_post.call_count == 1
+
+    @patch("sentry.tasks.autofix.requests.post")
+    def test_handles_bulk_get_api_failure(self, mock_post: MagicMock) -> None:
+        """Test that task handles bulk GET API failure gracefully."""
+        import requests
+
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+
+        # Bulk GET fails
+        mock_post.side_effect = [requests.RequestException("API error")]
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        # Both projects should still have their Sentry DB options set
+        assert project1.get_option("sentry:seer_scanner_automation") is True
+        assert project2.get_option("sentry:seer_scanner_automation") is True
+
+        # Only 1 failed bulk GET call
+        assert mock_post.call_count == 1
+
+    @patch("sentry.tasks.autofix.requests.post")
+    def test_handles_bulk_set_api_failure(self, mock_post: MagicMock) -> None:
+        """Test that task handles bulk SET API failure gracefully."""
+        import requests
+
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+
+        # Bulk GET succeeds, bulk SET fails
+        mock_bulk_get_response = MagicMock()
+        mock_bulk_get_response.json.return_value = {
+            "preferences": {
+                str(project1.id): None,
+                str(project2.id): None,
+            }
+        }
+        mock_post.side_effect = [
+            mock_bulk_get_response,
+            requests.RequestException("API error"),
+        ]
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        # Both projects should still have their Sentry DB options set
+        assert project1.get_option("sentry:seer_scanner_automation") is True
+        assert project2.get_option("sentry:seer_scanner_automation") is True
+
+        # 1 bulk GET + 1 failed bulk SET
         assert mock_post.call_count == 2
 
     @patch("sentry.tasks.autofix.requests.post")
-    def test_continues_on_api_failure(self, mock_post: MagicMock) -> None:
-        """Test that task continues processing other projects if one API call fails."""
-        import requests
-
-        # First project: GET fails. Second project: GET + SET succeed
-        mock_get_response = MagicMock()
-        mock_get_response.json.return_value = {"preference": None}
-        mock_set_response = MagicMock()
-        mock_post.side_effect = [
-            requests.RequestException("API error"),
-            mock_get_response,
-            mock_set_response,
-        ]
-
+    def test_handles_malformed_preferences_in_bulk_response(self, mock_post: MagicMock) -> None:
+        """Test that task handles malformed preferences in bulk response."""
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
+
+        # Bulk GET returns malformed preference for project1 (string instead of dict)
+        mock_bulk_get_response = MagicMock()
+        mock_bulk_get_response.json.return_value = {
+            "preferences": {
+                str(project1.id): "not_a_dict",
+                str(project2.id): None,
+            }
+        }
+        mock_bulk_set_response = MagicMock()
+        mock_post.side_effect = [mock_bulk_get_response, mock_bulk_set_response]
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
@@ -231,35 +282,5 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         assert project1.get_option("sentry:seer_scanner_automation") is True
         assert project2.get_option("sentry:seer_scanner_automation") is True
 
-        # 1 failed GET + 1 GET + 1 SET = 3 calls
-        assert mock_post.call_count == 3
-
-    @patch("sentry.tasks.autofix.requests.post")
-    def test_continues_on_malformed_json_response(self, mock_post: MagicMock) -> None:
-        """Test that task continues if Seer API returns malformed JSON (non-dict preference)."""
-        # First project: GET returns malformed JSON (preference is a string, not a dict)
-        # This would cause AttributeError when calling .get() on the string
-        mock_get_malformed = MagicMock()
-        mock_get_malformed.json.return_value = {"preference": "not_a_dict"}
-
-        # Second project: GET + SET succeed
-        mock_get_response = MagicMock()
-        mock_get_response.json.return_value = {"preference": None}
-        mock_set_response = MagicMock()
-        mock_post.side_effect = [
-            mock_get_malformed,
-            mock_get_response,
-            mock_set_response,
-        ]
-
-        project1 = self.create_project(organization=self.organization)
-        project2 = self.create_project(organization=self.organization)
-
-        configure_seer_for_existing_org(organization_id=self.organization.id)
-
-        # Both projects should still have their Sentry DB options set
-        assert project1.get_option("sentry:seer_scanner_automation") is True
-        assert project2.get_option("sentry:seer_scanner_automation") is True
-
-        # 1 malformed GET + 1 GET + 1 SET = 3 calls
-        assert mock_post.call_count == 3
+        # 1 bulk GET + 1 bulk SET
+        assert mock_post.call_count == 2
