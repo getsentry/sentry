@@ -3550,3 +3550,7 @@ CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE = b"""{
         "html_url": "https://github.com/test/repo/runs/4"
     }
 }"""
+
+CHECK_RUN_COMPLETED_EVENT_EXAMPLE = b"""{
+    "action": "completed"
+}"""
