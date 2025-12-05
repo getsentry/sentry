@@ -250,7 +250,7 @@ const IdentityName = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 const IdentityDateTime = styled(DateTime)`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 

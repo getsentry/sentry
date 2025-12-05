@@ -628,7 +628,6 @@ const commonTheme = {
    * @TODO(jonasbadalic) remove relative font sizes
    * @deprecated use fontSize instead
    */
-  fontSizeRelativeSmall: '0.9em' as const,
   codeFontSize: '13px' as const,
   headerFontSize: '22px' as const,
 

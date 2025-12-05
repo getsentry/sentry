@@ -219,7 +219,7 @@ const StatusTitle = styled('div')`
 
 const StatusDate = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const ComponentList = styled(List)`

@@ -97,5 +97,5 @@ const VerticalSpacing = styled('div')`
 
 const SeenBy = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

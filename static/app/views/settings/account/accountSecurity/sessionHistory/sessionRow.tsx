@@ -39,11 +39,11 @@ const IpAddress = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 const CountryCode = styled('div')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const IpAndLocation = styled('div')`
