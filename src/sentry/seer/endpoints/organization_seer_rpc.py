@@ -89,7 +89,7 @@ public_project_seer_method_registry: dict[str, Callable] = {
     # Autofix - project-scoped methods
     "get_error_event_details": accept_organization_id_param(get_error_event_details),
     "get_profile_details": get_profile_details,
-    "get_attributes_for_span": get_attributes_for_span,
+    "get_attributes_for_span": map_org_id_param(get_attributes_for_span),
     # Replays - project-scoped methods
     "get_replay_summary_logs": accept_organization_id_param(rpc_get_replay_summary_logs),
 }
