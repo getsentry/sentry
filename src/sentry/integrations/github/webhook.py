@@ -6,7 +6,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping
 from datetime import timezone
-from typing import Any
+from typing import Any, cast
 
 import orjson
 from dateutil.parser import parse as parse_date
@@ -24,7 +24,15 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
-from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.integrations.github.webhook_types import (
+    GithubWebhookType,
+)
+
+# Type definitions are available in webhook_types.py:
+# - GithubWebhookEvent (base type)
+# - PushWebhookEvent, PullRequestWebhookEvent, IssueWebhookEvent, InstallationWebhookEvent
+# - GitHubUser, GitHubRepository, GitHubCommit, GitHubIssue, GitHubPullRequest, etc.
+# Use Mapping[str, Any] in function signatures for compatibility with parent classes.
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
@@ -59,8 +67,8 @@ logger = logging.getLogger("sentry.webhooks")
 
 
 def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str | None:
-    external_id: str | None = event.get("installation", {}).get("id")
-    return f"{host}:{external_id}" if host else external_id
+    external_id: int | None = event.get("installation", {}).get("id")
+    return f"{host}:{external_id}" if host and external_id is not None else (str(external_id) if external_id is not None else None)
 
 
 def get_file_language(filename: str) -> str | None:
@@ -231,18 +239,18 @@ class InstallationEventWebhook(GitHubWebhook):
             return
 
         if event["action"] == "created":
-            state = {
-                "installation_id": event["installation"]["id"],
+            state: Mapping[str, Any] = {
+                "installation_id": str(event["installation"]["id"]),
                 "sender": {
-                    "id": event["sender"]["id"],
-                    "login": event["sender"]["login"],
+                    "id": str(event["sender"]["id"]),
+                    "login": str(event["sender"]["login"]),
                 },
             }
-            data = GitHubIntegrationProvider().build_integration(state)
+            data = GitHubIntegrationProvider().build_integration(state)  # type: ignore[arg-type]
             ensure_integration(IntegrationProviderSlug.GITHUB.value, data)
 
         if event["action"] == "deleted":
-            external_id = event["installation"]["id"]
+            external_id: str | int = event["installation"]["id"]
             if host := kwargs.get("host"):
                 external_id = "{}:{}".format(host, event["installation"]["id"])
             result = integration_service.organization_contexts(
@@ -505,7 +513,9 @@ class IssuesEventWebhook(GitHubWebhook):
     def event_type(self) -> IntegrationWebhookEventType:
         return IntegrationWebhookEventType.INBOUND_SYNC
 
-    def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs: Any) -> None:
+    def _handle(
+        self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs: Any
+    ) -> None:
         """
         Handle GitHub issue events, particularly assignment and status changes.
         """
@@ -880,7 +890,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             return HttpResponse(status=401)
 
         try:
-            event = orjson.loads(body)
+            event = cast(Mapping[str, Any], orjson.loads(body))
         except orjson.JSONDecodeError:
             logger.exception("github.webhook.invalid-json", extra=self.get_logging_data())
             logger.exception("Invalid JSON.")
