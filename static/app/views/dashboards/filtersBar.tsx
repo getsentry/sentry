@@ -11,6 +11,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
@@ -28,6 +29,10 @@ import {
   getCombinedDashboardFilters,
   getDashboardFiltersFromURL,
 } from 'sentry/views/dashboards/utils';
+import {
+  PREBUILT_DASHBOARDS,
+  type PrebuiltDashboardId,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import ReleasesSelectControl from './releasesSelectControl';
@@ -44,9 +49,9 @@ type FiltersBarProps = {
   onDashboardFilterChange: (activeFilters: DashboardFilters) => void;
   dashboardCreator?: User;
   dashboardPermissions?: DashboardPermissions;
-  isPrebuiltDashboard?: boolean;
   onCancel?: () => void;
   onSave?: () => Promise<void>;
+  prebuiltDashboardId?: PrebuiltDashboardId;
   shouldBusySaveButton?: boolean;
 };
 
@@ -63,7 +68,7 @@ export default function FiltersBar({
   onDashboardFilterChange,
   onSave,
   shouldBusySaveButton,
-  isPrebuiltDashboard,
+  prebuiltDashboardId,
 }: FiltersBarProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -71,6 +76,10 @@ export default function FiltersBar({
   const {teams: userTeams} = useUserTeams();
   const getSearchBarData = useDatasetSearchBarData();
   const hasDrillDownFlowsFeature = useHasDrillDownFlows();
+  const isPrebuiltDashboard = defined(prebuiltDashboardId);
+  const prebuiltDashboardFilters: GlobalFilter[] = prebuiltDashboardId
+    ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
+    : [];
 
   const hasEditAccess = checkUserHasEditAccess(
     currentUser,
@@ -166,7 +175,14 @@ export default function FiltersBar({
         <Fragment>
           {activeGlobalFilters.map(filter => (
             <GenericFilterSelector
-              disableRemoveFilter={isPrebuiltDashboard && filter.isTemporary}
+              disableRemoveFilter={
+                isPrebuiltDashboard &&
+                prebuiltDashboardFilters.some(
+                  prebuiltFilter =>
+                    prebuiltFilter.tag.key === filter.tag.key &&
+                    prebuiltFilter.dataset === filter.dataset
+                )
+              }
               key={filter.tag.key + filter.value}
               globalFilter={filter}
               searchBarData={getSearchBarData(filter.dataset)}
