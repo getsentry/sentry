@@ -3316,12 +3316,6 @@ register(
 )
 
 register(
-    "workflow_engine.use_cohort_selection",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "workflow_engine.schedule.min_cohort_scheduling_age_seconds",
     type=Int,
     default=50,
