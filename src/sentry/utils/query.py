@@ -197,6 +197,95 @@ class RangeQuerySetWrapper[V]:
         return {field: getattr(result, field) for field in self.order_by_fields}
 
     def __iter__(self) -> Iterator[V]:
+        # Use different iteration strategies for single vs compound order_by
+        if len(self.order_by_fields) == 1:
+            yield from self._iter_single_field()
+        else:
+            yield from self._iter_compound_fields()
+
+    def _iter_single_field(self) -> Iterator[V]:
+        """
+        Original iteration logic for single-field order_by.
+        Uses >= / <= with deduplication to handle non-unique fields.
+        """
+        order_field = self.order_by_fields[0]
+        cur_value = self.min_value
+        num = 0
+        limit = self.limit
+
+        queryset = self.queryset
+        if self.desc:
+            queryset = queryset.order_by(f"-{order_field}")
+        else:
+            queryset = queryset.order_by(order_field)
+
+        # Track last pk for deduplication when order_by field is not unique
+        last_object_pk: int | None = None
+        has_results = True
+        while has_results:
+            if limit and num >= limit:
+                break
+
+            start = num
+
+            if cur_value is None:
+                results_qs = queryset
+            elif self.desc:
+                results_qs = queryset.filter(**{f"{order_field}__lte": cur_value})
+            else:
+                results_qs = queryset.filter(**{f"{order_field}__gte": cur_value})
+
+            if self.query_timeout_retries is not None:
+                retries = self.query_timeout_retries
+                retry_policy = ConditionalRetryPolicy(
+                    test_function=lambda attempt, exc: attempt <= retries
+                    and isinstance(exc, OperationalError),
+                    delay_function=lambda i: self.retry_delay_seconds,
+                )
+                results = retry_policy(lambda: list(results_qs[0 : self.step]))
+            else:
+                results = list(results_qs[0 : self.step])
+
+            for cb in self.callbacks:
+                cb(results)
+
+            for result in results:
+                pk = (
+                    self.result_value_getter(result)
+                    if self.result_value_getter
+                    else getattr(result, "pk")
+                )
+                if last_object_pk is not None and pk == last_object_pk:
+                    continue
+
+                # Need to bind value before yielding, because the caller
+                # may mutate the value and we're left with a bad value.
+                # This is commonly the case if iterating over and
+                # deleting, because a Model.delete() mutates the `id`
+                # to `None` causing the loop to exit early.
+                num += 1
+                last_object_pk = pk
+                cur_value = (
+                    self.result_value_getter(result)
+                    if self.result_value_getter
+                    else getattr(result, order_field)
+                )
+
+                yield result
+
+                if limit and num >= limit:
+                    break
+
+            if cur_value is None:
+                break
+
+            has_results = num > start
+
+    def _iter_compound_fields(self) -> Iterator[V]:
+        """
+        Keyset pagination for compound order_by fields.
+        Requires the last field to be unique to prevent infinite loops.
+        """
         num = 0
         limit = self.limit
 
@@ -208,9 +297,6 @@ class RangeQuerySetWrapper[V]:
         queryset = self.queryset.order_by(*order_clause)
 
         cursor_values: dict[str, Any] | None = None
-        if self.min_value is not None and self.order_by:
-            # support for single-field min_id
-            cursor_values = {self.order_by: self.min_value}
 
         has_results = True
         while has_results:
