@@ -27,7 +27,7 @@ def has_replay_permission(organization: Organization, user: User | AnonymousUser
     - If allowlist records exist, check if user's org membership is in the allowlist
     - Return True if user is in allowlist, False otherwise
     """
-    if not features.has("organizations:replay-granular-permissions", organization):
+    if not features.has("organizations:granular-replay-permissions", organization):
         return True
 
     if user is None or not user.is_authenticated:

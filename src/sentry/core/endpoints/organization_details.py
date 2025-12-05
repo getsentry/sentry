@@ -567,7 +567,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             self.save_trusted_relays(trusted_relay_info, changed_data, org)
 
         if "replayAccessMembers" in data:
-            if not features.has("organizations:replay-granular-permissions", org):
+            if not features.has("organizations:granular-replay-permissions", org):
                 raise serializers.ValidationError(
                     {"replayAccessMembers": "This feature is not enabled for your organization."}
                 )
@@ -838,7 +838,7 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
     )
     replayAccessMembers = serializers.ListField(
         child=serializers.IntegerField(),
-        help_text="A list of organization member IDs who have permission to access replay data. When empty, all members have access. Requires the replay-granular-permissions feature flag.",
+        help_text="A list of organization member IDs who have permission to access replay data. When empty, all members have access. Requires the granular-replay-permissions feature flag.",
         required=False,
         allow_null=True,
     )

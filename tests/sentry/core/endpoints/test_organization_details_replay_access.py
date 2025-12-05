@@ -12,7 +12,7 @@ class OrganizationDetailsReplayAccessTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    @with_feature("organizations:replay-granular-permissions")
+    @with_feature("organizations:granular-replay-permissions")
     def test_grant_replay_access_to_members(self):
         """Test granting replay access to specific members via organization endpoint"""
         member1 = self.create_member(organization=self.organization, user=self.create_user())
@@ -34,7 +34,7 @@ class OrganizationDetailsReplayAccessTest(APITestCase):
             organization=self.organization, organizationmember=member2
         ).exists()
 
-    @with_feature("organizations:replay-granular-permissions")
+    @with_feature("organizations:granular-replay-permissions")
     def test_revoke_replay_access_from_member(self):
         """Test revoking replay access by removing member from list"""
         member1 = self.create_member(organization=self.organization, user=self.create_user())
@@ -67,7 +67,7 @@ class OrganizationDetailsReplayAccessTest(APITestCase):
             organization=self.organization, organizationmember=member2
         ).exists()
 
-    @with_feature("organizations:replay-granular-permissions")
+    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_shown_only_to_admins(self):
         """Test that replayAccessMembers is only visible to admins"""
         member = self.create_member(organization=self.organization, user=self.create_user())
@@ -91,7 +91,7 @@ class OrganizationDetailsReplayAccessTest(APITestCase):
         # Should return empty list for non-admins
         assert response.data["replayAccessMembers"] == []
 
-    @with_feature("organizations:replay-granular-permissions")
+    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_in_member_serializer(self):
         """Test that individual members have replayAccess boolean in their serialized data"""
         member = self.create_member(organization=self.organization, user=self.create_user())
@@ -114,7 +114,7 @@ class OrganizationDetailsReplayAccessTest(APITestCase):
         other_member_data = next(m for m in response.data if m["id"] == str(other_member.id))
         assert other_member_data["replayAccess"] is False
 
-    @with_feature("organizations:replay-granular-permissions")
+    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_true_when_allowlist_empty(self):
         """Test that all members have replayAccess=True when allowlist is empty"""
         self.create_member(organization=self.organization, user=self.create_user())
@@ -130,7 +130,7 @@ class OrganizationDetailsReplayAccessTest(APITestCase):
         for member_data in response.data:
             assert member_data["replayAccess"] is True
 
-    @with_feature("organizations:replay-granular-permissions")
+    @with_feature("organizations:granular-replay-permissions")
     def test_member_without_admin_cannot_modify_replay_access(self):
         """Test that non-admin members cannot modify replay access"""
         regular_user = self.create_user()
@@ -164,7 +164,7 @@ class OrganizationDetailsReplayAccessTest(APITestCase):
         error_message = str(response.data["replayAccessMembers"])
         assert "not enabled" in error_message.lower()
 
-    @with_feature("organizations:replay-granular-permissions")
+    @with_feature("organizations:granular-replay-permissions")
     def test_member_removed_deletes_replay_access(self):
         """Test that removing a member from org also removes their replay access"""
         member = self.create_member(organization=self.organization, user=self.create_user())
@@ -185,7 +185,7 @@ class OrganizationDetailsReplayAccessTest(APITestCase):
             organization=self.organization, organizationmember_id=member.id
         ).exists()
 
-    @with_feature("organizations:replay-granular-permissions")
+    @with_feature("organizations:granular-replay-permissions")
     def test_invalid_member_id_returns_error(self):
         """Test that providing invalid member ID returns validation error"""
         response = self.get_error_response(
@@ -199,7 +199,7 @@ class OrganizationDetailsReplayAccessTest(APITestCase):
         error_message = str(response.data["replayAccessMembers"])
         assert "invalid" in error_message.lower()
 
-    @with_feature("organizations:replay-granular-permissions")
+    @with_feature("organizations:granular-replay-permissions")
     def test_removing_all_members_reopens_access(self):
         """Test that removing all members from allowlist reopens access to everyone"""
         member1 = self.create_member(organization=self.organization, user=self.create_user())
@@ -237,7 +237,7 @@ class OrganizationDetailsReplayAccessTest(APITestCase):
         for member_data in response.data:
             assert member_data["replayAccess"] is True
 
-    @with_feature("organizations:replay-granular-permissions")
+    @with_feature("organizations:granular-replay-permissions")
     def test_not_including_replay_access_field_preserves_state(self):
         """Test that not including replayAccessMembers in PUT doesn't change permissions"""
         member = self.create_member(organization=self.organization, user=self.create_user())

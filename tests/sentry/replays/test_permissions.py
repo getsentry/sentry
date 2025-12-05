@@ -22,13 +22,13 @@ class TestReplayPermissions(TestCase):
 
     def test_empty_allowlist_returns_true(self) -> None:
         """When allowlist is empty, all members should have access"""
-        with self.feature("organizations:replay-granular-permissions"):
+        with self.feature("organizations:granular-replay-permissions"):
             assert has_replay_permission(self.organization, self.user1) is True
             assert has_replay_permission(self.organization, self.user2) is True
 
     def test_member_in_allowlist_returns_true(self) -> None:
         """When member is in allowlist, they should have access"""
-        with self.feature("organizations:replay-granular-permissions"):
+        with self.feature("organizations:granular-replay-permissions"):
             OrganizationMemberReplayAccess.objects.create(
                 organization=self.organization, organizationmember=self.member1
             )
@@ -36,7 +36,7 @@ class TestReplayPermissions(TestCase):
 
     def test_member_not_in_allowlist_returns_false(self) -> None:
         """When member is not in allowlist and allowlist exists, they should not have access"""
-        with self.feature("organizations:replay-granular-permissions"):
+        with self.feature("organizations:granular-replay-permissions"):
             OrganizationMemberReplayAccess.objects.create(
                 organization=self.organization, organizationmember=self.member1
             )
@@ -44,7 +44,7 @@ class TestReplayPermissions(TestCase):
 
     def test_multiple_members_in_allowlist(self) -> None:
         """Test multiple members in allowlist"""
-        with self.feature("organizations:replay-granular-permissions"):
+        with self.feature("organizations:granular-replay-permissions"):
             OrganizationMemberReplayAccess.objects.create(
                 organization=self.organization, organizationmember=self.member1
             )
@@ -59,10 +59,10 @@ class TestReplayPermissions(TestCase):
     def test_non_member_returns_false(self) -> None:
         """Non-members should not have access"""
         non_member_user = self.create_user()
-        with self.feature("organizations:replay-granular-permissions"):
+        with self.feature("organizations:granular-replay-permissions"):
             assert has_replay_permission(self.organization, non_member_user) is False
 
     def test_unauthenticated_user_returns_false(self) -> None:
         """Unauthenticated users should not have access"""
-        with self.feature("organizations:replay-granular-permissions"):
+        with self.feature("organizations:granular-replay-permissions"):
             assert has_replay_permission(self.organization, None) is False

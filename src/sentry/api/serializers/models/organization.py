@@ -728,7 +728,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "isDynamicallySampled": is_dynamically_sampled,
         }
 
-        if features.has("organizations:replay-granular-permissions", obj):
+        if features.has("organizations:granular-replay-permissions", obj):
             context["replayAccessMembers"] = list(
                 OrganizationMemberReplayAccess.objects.filter(organization=obj).values_list(
                     "organizationmember_id", flat=True
