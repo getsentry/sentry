@@ -24,9 +24,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
-from sentry.integrations.github.webhook_types import (
-    GithubWebhookType,
-)
+from sentry.integrations.github.webhook_types import GithubWebhookType
 
 # Type definitions are available in webhook_types.py:
 # - GithubWebhookEvent (base type)
@@ -68,7 +66,11 @@ logger = logging.getLogger("sentry.webhooks")
 
 def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str | None:
     external_id: int | None = event.get("installation", {}).get("id")
-    return f"{host}:{external_id}" if host and external_id is not None else (str(external_id) if external_id is not None else None)
+    return (
+        f"{host}:{external_id}"
+        if host and external_id is not None
+        else (str(external_id) if external_id is not None else None)
+    )
 
 
 def get_file_language(filename: str) -> str | None:
@@ -513,9 +515,7 @@ class IssuesEventWebhook(GitHubWebhook):
     def event_type(self) -> IntegrationWebhookEventType:
         return IntegrationWebhookEventType.INBOUND_SYNC
 
-    def _handle(
-        self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs: Any
-    ) -> None:
+    def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs: Any) -> None:
         """
         Handle GitHub issue events, particularly assignment and status changes.
         """
