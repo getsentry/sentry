@@ -454,7 +454,12 @@ function ClusterCard({
         {cluster.description && (
           <Fragment>
             {showDescription ? (
-              <DescriptionText>{cluster.description}</DescriptionText>
+              <Fragment>
+                <DescriptionText>{cluster.description}</DescriptionText>
+                <ReadMoreButton onClick={() => setShowDescription(false)}>
+                  {t('Collapse summary')}
+                </ReadMoreButton>
+              </Fragment>
             ) : (
               <ReadMoreButton onClick={() => setShowDescription(true)}>
                 {t('View summary')}
