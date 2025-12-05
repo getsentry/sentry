@@ -516,6 +516,14 @@ class DashboardDetail extends Component<Props, State> {
         )
       : [''];
 
+    filterParams[DashboardFilterKeys.TEMPORARY_FILTERS] = activeFilters[
+      DashboardFilterKeys.TEMPORARY_FILTERS
+    ]?.length
+      ? activeFilters[DashboardFilterKeys.TEMPORARY_FILTERS].map(filter =>
+          JSON.stringify(filter)
+        )
+      : [''];
+
     if (
       !isEqualWith(activeFilters, dashboard.filters, (a, b) => {
         // This is to handle the case where dashboard filters has release:[] and the new filter is release:""

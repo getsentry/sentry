@@ -574,7 +574,7 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
         dashboardFilters[key] = queryFilters
           .map(filter => {
             try {
-              return JSON.parse(filter);
+              return {...JSON.parse(filter), isTemporary: true};
             } catch (error) {
               return null;
             }
@@ -633,16 +633,18 @@ export function getCombinedDashboardFilters(
 ): GlobalFilter[] {
   const finalFilters = [...(globalFilters ?? [])];
   const temporaryFiltersCopy = [...(temporaryFilters ?? [])];
+
   finalFilters.forEach((filter, idx) => {
     // if a temporary filter exists for the same dataset and key, override it and delete it from the temporary filters to avoid duplicates
     const temporaryFilter = temporaryFiltersCopy.find(
       tf => tf.dataset === filter.dataset && tf.tag.key === filter.tag.key
     );
     if (temporaryFilter) {
-      finalFilters[idx] = {...filter, value: temporaryFilter.value};
+      finalFilters[idx] = {...temporaryFilter};
       temporaryFiltersCopy.splice(temporaryFiltersCopy.indexOf(temporaryFilter), 1);
     }
   });
+
   return [...finalFilters, ...temporaryFiltersCopy];
 }
 

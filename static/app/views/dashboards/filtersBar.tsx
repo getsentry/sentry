@@ -106,9 +106,12 @@ export default function FiltersBar({
 
   const updateGlobalFilters = (newGlobalFilters: GlobalFilter[]) => {
     setActiveGlobalFilters(newGlobalFilters);
+    const temporaryFilters = newGlobalFilters.filter(filter => filter.isTemporary);
+    const globalFilters = newGlobalFilters.filter(filter => !filter.isTemporary);
     onDashboardFilterChange({
       [DashboardFilterKeys.RELEASE]: selectedReleases,
-      [DashboardFilterKeys.GLOBAL_FILTER]: newGlobalFilters,
+      [DashboardFilterKeys.GLOBAL_FILTER]: globalFilters,
+      [DashboardFilterKeys.TEMPORARY_FILTERS]: temporaryFilters,
     });
   };
 
@@ -163,6 +166,7 @@ export default function FiltersBar({
         <Fragment>
           {activeGlobalFilters.map(filter => (
             <GenericFilterSelector
+              disableRemoveFilter={isPrebuiltDashboard && filter.isTemporary}
               key={filter.tag.key + filter.value}
               globalFilter={filter}
               searchBarData={getSearchBarData(filter.dataset)}
