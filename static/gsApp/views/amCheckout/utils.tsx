@@ -20,6 +20,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 
+import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
 import {
   DEFAULT_TIER,
   MONTHLY,
@@ -541,7 +542,7 @@ export function getCheckoutAPIData({
       })}`,
       formatReservedData(value),
     ])
-  ) satisfies Partial<Record<`reserved${Capitalize<DataCategory>}`, number>>;
+  ) satisfies Partial<Reservations>;
 
   const onDemandMaxSpend = shouldUpdateOnDemand
     ? (formData.onDemandMaxSpend ?? 0)
