@@ -43,6 +43,7 @@ class TraceViewFromExploreTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase)
         self.trace_view_page = TraceViewWaterfallPage(self.browser, self.client)
         self.dismiss_assistant(which="tour.explore.spans")
 
+    @pytest.mark.skip(reason="flaky: #103309")
     @patch("django.utils.timezone.now")
     @pytest.mark.skip(reason="This test is flaky and needs to be fixed")
     def test_navigation(self, mock_now: MagicMock) -> None:
