@@ -1,13 +1,19 @@
 import type {LocationDescriptor} from 'history';
 
-import type {Block, ToolLink} from './types';
+import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import type {Block, ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
 
 /**
  * Tool formatter function type.
- * Takes parsed args and loading state, returns the display message.
+ * Takes parsed args, loading state, and optional tool link metadata.
  * Implement one for each tool that needs custom display.
  */
-type ToolFormatter = (args: Record<string, any>, isLoading: boolean) => string;
+type ToolFormatter = (
+  args: Record<string, any>,
+  isLoading: boolean,
+  toolLinkParams?: Record<string, any> | null
+) => string;
 
 /**
  * Registry of custom tool formatters.
@@ -47,6 +53,12 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       return isLoading
         ? `Searching for errors${projectInfo}: '${question}'...`
         : `Searched for errors${projectInfo}: '${question}'`;
+    }
+
+    if (dataset === 'logs') {
+      return isLoading
+        ? `Querying logs${projectInfo}: '${question}'...`
+        : `Queried logs${projectInfo}: '${question}'`;
     }
 
     // Default to spans
@@ -181,17 +193,72 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     const traceId = args.trace_id || '';
     const shortTraceId = traceId.slice(0, 8);
     return isLoading
-      ? `Double-clicking on metric '${metricName}' from trace ${shortTraceId}...`
-      : `Double-clicked on metric '${metricName}' from trace ${shortTraceId}`;
+      ? `Double-clicking on metric '${metricName}' in trace ${shortTraceId}...`
+      : `Double-clicked on metric '${metricName}' in trace ${shortTraceId}`;
   },
 
   get_log_attributes: (args, isLoading) => {
-    const logMessage = args.log_message || '';
+    const message = args.log_message_substring || '';
     const traceId = args.trace_id || '';
     const shortTraceId = traceId.slice(0, 8);
     return isLoading
-      ? `Examining logs matching '*${logMessage.slice(0, 20)}*' from trace ${shortTraceId}...`
-      : `Examined logs matching '*${logMessage.slice(0, 20)}*' from trace ${shortTraceId}`;
+      ? `Examining logs matching '*${message.slice(0, 20)}*' in trace ${shortTraceId}...`
+      : `Examined logs matching '*${message.slice(0, 20)}*' in trace ${shortTraceId}`;
+  },
+
+  code_file_edit: (args, isLoading, toolLinkParams) => {
+    const repoName = args.repo_name || 'repository';
+    const path = args.path || 'file';
+
+    if (toolLinkParams?.empty_results) {
+      return `Edit to ${path} in ${repoName} was rejected`;
+    }
+    if (toolLinkParams?.pending_approval) {
+      return `Edit to ${path} in ${repoName} is pending your approval`;
+    }
+    return isLoading
+      ? `Editing ${path} in ${repoName}...`
+      : `Edited ${path} in ${repoName}`;
+  },
+
+  code_file_write: (args, isLoading, toolLinkParams) => {
+    const repoName = args.repo_name || 'repository';
+    const path = args.path || 'file';
+    const content = args.content;
+
+    // Determine action based on content
+    const isDelete = content === '';
+    const action = isDelete ? 'Delete' : 'Write';
+    const actionPast = isDelete ? 'Deleted' : 'Wrote';
+    const actionPresent = isDelete ? 'Deleting' : 'Writing';
+    const actionPending = isDelete ? 'Delete' : 'Write';
+
+    if (toolLinkParams?.empty_results) {
+      return `${action} to ${path} in ${repoName} was rejected`;
+    }
+    if (toolLinkParams?.pending_approval) {
+      return `${actionPending} to ${path} in ${repoName} is pending your approval`;
+    }
+
+    return isLoading
+      ? `${actionPresent} ${path} in ${repoName}...`
+      : `${actionPast} ${path} in ${repoName}`;
+  },
+
+  search_sentry_docs: (args, isLoading) => {
+    const question = args.question || 'query';
+    return isLoading
+      ? `Scouring Sentry docs: '${question}'...`
+      : `Scoured Sentry docs: '${question}'`;
+  },
+
+  todo_write: (args, isLoading, toolLinkParams) => {
+    if (isLoading) {
+      const count = args.todos?.length || 0;
+      return count === 1 ? 'Updating todo list...' : `Updating ${count} todos...`;
+    }
+    // Use the summary from metadata if available
+    return toolLinkParams?.summary || 'Updated todo list';
   },
 };
 
@@ -209,18 +276,23 @@ function parseToolArgs(argsString: string): Record<string, any> {
 /**
  * Get display strings for all tool calls in a block.
  * Uses custom formatters from TOOL_FORMATTERS registry, falls back to generic message.
+ * Tool links are aligned with tool calls by index and contain metadata like rejection status.
  */
 export function getToolsStringFromBlock(block: Block): string[] {
   const tools: string[] = [];
   const isLoading = block.loading ?? false;
+  const toolCalls = block.message.tool_calls || [];
+  const toolLinks = block.tool_links || [];
 
-  for (const tool of block.message.tool_calls || []) {
+  for (let i = 0; i < toolCalls.length; i++) {
+    const tool = toolCalls[i] as ToolCall;
+    const toolLink = toolLinks[i];
     const formatter = TOOL_FORMATTERS[tool.function];
 
     if (formatter) {
-      // Use custom formatter
+      // Use custom formatter with tool link params for metadata like rejection status
       const args = parseToolArgs(tool.args);
-      tools.push(formatter(args, isLoading));
+      tools.push(formatter(args, isLoading, toolLink?.params));
     } else {
       // Fall back to generic message
       const verb = isLoading ? 'Using' : 'Used';
@@ -386,6 +458,36 @@ export function buildToolLinkUrl(
         };
       }
 
+      if (dataset === 'logs') {
+        const queryParams: Record<string, any> = {
+          [LOGS_QUERY_KEY]: query || '',
+          project: null,
+        };
+
+        if (stats_period) {
+          queryParams.statsPeriod = stats_period;
+        }
+
+        // If project_slugs is provided, look up the project IDs
+        if (project_slugs && project_slugs.length > 0 && projects) {
+          const projectIds = project_slugs
+            .map((slug: string) => projects.find(p => p.slug === slug)?.id)
+            .filter((id: string | undefined) => id !== undefined);
+          if (projectIds.length > 0) {
+            queryParams.project = projectIds;
+          }
+        }
+
+        if (sort) {
+          queryParams[LOGS_SORT_BYS_KEY] = sort;
+        }
+
+        return {
+          pathname: `/organizations/${orgSlug}/explore/logs/`,
+          query: queryParams,
+        };
+      }
+
       // Default to spans (traces) search
       const {y_axes, group_by, mode} = toolLink.params;
 
@@ -511,6 +613,30 @@ export function buildToolLinkUrl(
       return {
         pathname: `/organizations/${orgSlug}/explore/profiling/profile/${project.slug}/${profile_id}/flamegraph/`,
         ...(thread_id && {query: {tid: thread_id}}),
+      };
+    }
+    case 'get_log_attributes': {
+      const {trace_id} = toolLink.params;
+      if (!trace_id) {
+        return null;
+      }
+
+      // TODO: Currently no way to pass substring filter to this page, update with params.log_message_substring when it's supported.
+      return {
+        pathname: `/organizations/${orgSlug}/explore/logs/trace/${trace_id}/`,
+        query: {tab: 'logs'},
+      };
+    }
+    case 'get_metric_attributes': {
+      const {trace_id} = toolLink.params;
+      if (!trace_id) {
+        return null;
+      }
+
+      // TODO: Currently no way to pass name filter to this page, update with params.metric_name when it's supported.
+      return {
+        pathname: `/organizations/${orgSlug}/explore/metrics/trace/${trace_id}/`,
+        query: {tab: 'metrics'},
       };
     }
     default:

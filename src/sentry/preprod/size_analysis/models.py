@@ -58,6 +58,19 @@ class FileAnalysis(BaseModel):
     items: list[FileInfo]
 
 
+class AppComponent(BaseModel):
+    """Information about a modular app component (watch app, app extension, dynamic feature, etc.)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    component_type: PreprodArtifactSizeMetrics.MetricsArtifactType
+    name: str
+    app_id: str
+    path: str
+    download_size: int
+    install_size: int
+
+
 class SizeAnalysisResults(BaseModel):
     analysis_duration: float
     download_size: int
@@ -65,6 +78,7 @@ class SizeAnalysisResults(BaseModel):
     treemap: TreemapResults | None
     analysis_version: str | None
     file_analysis: FileAnalysis | None
+    app_components: list[AppComponent] | None
 
 
 ###

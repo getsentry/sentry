@@ -1,5 +1,6 @@
 import logging
 import uuid
+from collections import defaultdict
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, cast
 
@@ -14,6 +15,7 @@ from sentry.api.serializers.models.event import EventSerializer, IssueEventSeria
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import default_start_end_dates
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -27,6 +29,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.endpoints.utils import validate_date_params
 from sentry.seer.explorer.index_data import UNESCAPED_QUOTE_RE
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.sentry_data_models import EAPTrace
@@ -41,22 +44,6 @@ from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba_rpc import get_trace_rpc
 
 logger = logging.getLogger(__name__)
-
-
-def _validate_date_params(
-    *, stats_period: str | None = None, start: str | None = None, end: str | None = None
-) -> None:
-    """
-    Validate that either stats_period or both start and end are provided, but not both.
-    """
-    if not any([bool(stats_period), bool(start), bool(end)]):
-        raise ValueError("either stats_period or start and end must be provided")
-
-    if stats_period and (start or end):
-        raise ValueError("stats_period and start/end cannot be provided together")
-
-    if not stats_period and not all([bool(start), bool(end)]):
-        raise ValueError("start and end must be provided together")
 
 
 def _get_full_trace_id(
@@ -133,7 +120,7 @@ def execute_table_query(
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
         Providing start or end with stats_period will result in a ValueError.
     """
-    _validate_date_params(stats_period=stats_period, start=start, end=end)
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -219,7 +206,7 @@ def execute_timeseries_query(
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
         Providing start or end with stats_period will result in a ValueError.
     """
-    _validate_date_params(stats_period=stats_period, start=start, end=end)
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -621,6 +608,7 @@ def _get_issue_event_timeseries(
     project_id: int,
     issue_short_id: str,
     first_seen_delta: timedelta,
+    issue_category: GroupCategory,
 ) -> tuple[dict[str, Any], str, str] | None:
     """
     Get event counts over time for an issue (no group by) by calling the events-stats endpoint. Dynamically picks
@@ -636,9 +624,14 @@ def _get_issue_event_timeseries(
     stats_period = stats_period or "90d"
     interval = interval or "3d"
 
+    # Use the correct dataset based on issue category
+    # Error issues are stored in the "events" dataset, while issue platform issues
+    # (performance, etc.) are stored in "issuePlatform" (search_issues)
+    dataset = "errors" if issue_category == GroupCategory.ERROR else "issuePlatform"
+
     data = execute_timeseries_query(
         org_id=organization.id,
-        dataset="issuePlatform",
+        dataset=dataset,
         y_axes=["count()"],
         group_by=[],
         query=f"issue:{issue_short_id}",
@@ -651,6 +644,86 @@ def _get_issue_event_timeseries(
     if data is None:
         return None
     return data, stats_period, interval
+
+
+def _get_trace_with_spans(
+    trace_ids: list[str], org_id: int, start: datetime, end: datetime
+) -> str | None:
+    """
+    Given a list of trace IDs, return a trace ID with at least one span (non-deterministic).
+    """
+
+    if not trace_ids:
+        return None
+
+    if len(trace_ids) == 1:
+        query = f"trace:{trace_ids[0]}"
+    else:
+        query = f"trace:[{','.join(trace_ids)}]"
+
+    # Table query for a single item that has one of the trace IDs.
+    result = execute_table_query(
+        org_id=org_id,
+        dataset="spans",
+        per_page=1,
+        fields=["trace"],
+        query=query,
+        sort="-timestamp",
+        start=start.isoformat(),
+        end=end.isoformat(),
+    )
+
+    if not result or not result.get("data"):
+        return None
+
+    return result["data"][0]["trace"]
+
+
+def _get_event_with_valid_trace(group: Group, org_id: int) -> Event | GroupEvent | None:
+    """
+    Given a group, find an event with a trace that has at least one span.
+    """
+
+    # Get up to 50 event IDs and their traces.
+    events_result = execute_table_query(
+        org_id=org_id,
+        dataset="errors",
+        per_page=50,
+        fields=["trace"],
+        query=f"issue:{group.qualified_short_id}",
+        sort="-timestamp",
+        project_ids=[group.project_id],
+        start=group.first_seen.isoformat(),
+        end=group.last_seen.isoformat(),
+    )
+
+    if not events_result or not events_result.get("data"):
+        return None
+
+    trace_to_event_ids = defaultdict(list)
+    for e in events_result["data"]:
+        if trace := e.get("trace"):
+            trace_to_event_ids[trace].append(e["id"])
+
+    # Query spans to select one of the event traces with at least one span.
+    trace_with_spans = _get_trace_with_spans(
+        list(trace_to_event_ids.keys()),
+        org_id,
+        group.first_seen - timedelta(days=1),
+        group.last_seen + timedelta(days=1),
+    )
+
+    if not trace_with_spans:
+        return None
+
+    event_id = trace_to_event_ids[trace_with_spans][0]
+
+    return eventstore.backend.get_event_by_id(
+        project_id=group.project_id,
+        event_id=event_id,
+        group_id=group.id,
+        tenant_ids={"organization_id": org_id},
+    )
 
 
 def get_issue_and_event_details(
@@ -778,6 +851,7 @@ def get_issue_and_event_details(
         project_id=group.project_id,
         issue_short_id=group.qualified_short_id,
         first_seen_delta=datetime.now(UTC) - group.first_seen,
+        issue_category=group.issue_category,
     )
     if ts_result:
         timeseries, timeseries_stats_period, timeseries_interval = ts_result
@@ -800,6 +874,53 @@ def get_issue_and_event_details(
                 group_id=group.id,
                 tenant_ids={"organization_id": organization_id},
             )
+
+    # If the recommended event (default when agent doesn't specify an event) doesn't have a useful trace, try finding a different event.
+    try:
+        if selected_event == "recommended" and (
+            event is None
+            or event.trace_id is None
+            or _get_trace_with_spans(
+                [event.trace_id],
+                organization_id,
+                group.first_seen - timedelta(days=1),
+                group.last_seen + timedelta(days=1),
+            )
+            is None
+        ):
+            logger.info(
+                "No spans found for recommended event, trying a different event.",
+                extra={
+                    "organization_id": organization_id,
+                    "issue_id": group.id,
+                    "recommended_event_id": event.event_id if event else None,
+                    "event_trace_id": event.trace_id if event else None,
+                },
+            )
+
+            candidate_event = _get_event_with_valid_trace(group, organization_id)
+            if candidate_event:
+                event = candidate_event
+
+                logger.info(
+                    "Replaced recommended event with an event with spans.",
+                    extra={
+                        "organization_id": organization_id,
+                        "issue_id": group.id,
+                        "candidate_event_id": candidate_event.event_id,
+                        "candidate_event_trace_id": candidate_event.trace_id,
+                    },
+                )
+
+    except Exception:
+        logger.exception(
+            "Error getting event with valid trace",
+            extra={
+                "organization_id": organization_id,
+                "issue_id": group.id,
+                "selected_event": selected_event,
+            },
+        )
 
     if event is None:
         logger.warning(
@@ -1138,7 +1259,7 @@ def get_log_attributes_for_trace(
         - attributes: A dict[str, dict[str, Any]] where the keys are the attribute names. See _make_get_trace_request for more details.
     """
 
-    _validate_date_params(stats_period=stats_period, start=start, end=end)
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -1213,7 +1334,7 @@ def get_metric_attributes_for_trace(
         - attributes: A dict[str, dict[str, Any]] where the keys are the attribute names. See _make_get_trace_request for more details.
     """
 
-    _validate_date_params(stats_period=stats_period, start=start, end=end)
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     try:
         organization = Organization.objects.get(id=org_id)

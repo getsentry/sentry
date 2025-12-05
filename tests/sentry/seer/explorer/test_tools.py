@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from pydantic import BaseModel
@@ -151,19 +151,32 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         total_count = sum(point[1][0]["count"] for point in data_points if point[1])
         assert total_count == 3  # Should exclude the span created at 1 minute ago
 
-    def test_spans_timeseries_count_metric_start_end_errors_with_stats_period(self):
-        with pytest.raises(
-            ValueError, match="stats_period and start/end cannot be provided together"
-        ):
-            execute_timeseries_query(
-                org_id=self.organization.id,
-                dataset="spans",
-                query="",
-                stats_period="1h",
-                start=_get_utc_iso_without_timezone(self.ten_mins_ago),
-                end=_get_utc_iso_without_timezone(self.two_mins_ago),
-                y_axes=["count()"],
-            )
+    @patch("sentry.seer.explorer.tools.client")
+    def test_spans_timeseries_count_metric_start_end_prioritized_over_stats_period(
+        self, mock_client
+    ):
+        mock_client.get.side_effect = client.get
+
+        start_iso = _get_utc_iso_without_timezone(self.ten_mins_ago)
+        end_iso = _get_utc_iso_without_timezone(self.two_mins_ago)
+
+        execute_timeseries_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            query="",
+            stats_period="1h",
+            interval="1m",
+            start=start_iso,
+            end=end_iso,
+            y_axes=["count()"],
+        )
+
+        params: dict[str, Any] = mock_client.get.call_args.kwargs["params"]
+        assert params["start"] is not None
+        assert params["start"] == start_iso
+        assert params["end"] is not None
+        assert params["end"] == end_iso
+        assert "stats_period" not in params
 
     def test_spans_timeseries_multiple_metrics(self):
         """Test timeseries query with multiple metrics"""
@@ -250,21 +263,31 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         http_rows = [row for row in rows if row.get("span.op") == "http.client"]
         assert len(http_rows) == 1  # One HTTP span
 
-    def test_spans_table_query_start_end_errors_with_stats_period(self):
-        with pytest.raises(
-            ValueError, match="stats_period and start/end cannot be provided together"
-        ):
-            execute_table_query(
-                org_id=self.organization.id,
-                dataset="spans",
-                fields=self.default_span_fields,
-                query="",
-                stats_period="1h",
-                start=_get_utc_iso_without_timezone(self.ten_mins_ago),
-                end=_get_utc_iso_without_timezone(self.two_mins_ago),
-                sort="-timestamp",
-                per_page=10,
-            )
+    @patch("sentry.seer.explorer.tools.client")
+    def test_spans_table_query_start_end_errors_with_stats_period(self, mock_client):
+        mock_client.get.side_effect = client.get
+
+        start_iso = _get_utc_iso_without_timezone(self.ten_mins_ago)
+        end_iso = _get_utc_iso_without_timezone(self.two_mins_ago)
+
+        execute_table_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
+            query="",
+            stats_period="1h",
+            start=start_iso,
+            end=end_iso,
+            sort="-timestamp",
+            per_page=10,
+        )
+
+        params: dict[str, Any] = mock_client.get.call_args.kwargs["params"]
+        assert params["start"] is not None
+        assert params["start"] == start_iso
+        assert params["end"] is not None
+        assert params["end"] == end_iso
+        assert "stats_period" not in params
 
     def test_spans_table_specific_operation(self):
         """Test table query filtering by specific operation"""
@@ -830,12 +853,15 @@ class _SentryEventData(BaseModel):
     tags: list[dict[str, str | None]] | None = None
 
 
-class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
-    def _validate_event_timeseries(self, timeseries: dict):
+class TestGetIssueAndEventDetails(
+    APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin, SpanTestCase
+):
+    def _validate_event_timeseries(self, timeseries: dict, expected_total: int | None = None):
         assert isinstance(timeseries, dict)
         assert "count()" in timeseries
         assert "data" in timeseries["count()"]
         assert isinstance(timeseries["count()"]["data"], list)
+        total_count = 0
         for item in timeseries["count()"]["data"]:
             assert len(item) == 2
             assert isinstance(item[0], int)
@@ -844,6 +870,11 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
             assert isinstance(item[1][0], dict)
             assert "count" in item[1][0]
             assert isinstance(item[1][0]["count"], int)
+            total_count += item[1][0]["count"]
+        if expected_total is not None:
+            assert (
+                total_count == expected_total
+            ), f"Expected total count {expected_total}, got {total_count}"
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
@@ -856,22 +887,34 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
         """Test the queries and response format for a group of error events, and multiple event types."""
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
 
+        # Mock a span for the recommended event's trace.
+        event1_trace_id = uuid.uuid4().hex
+        span = self.create_span(
+            {
+                "description": "SELECT * FROM users WHERE id = ?",
+                "trace_id": event1_trace_id,
+            },
+            start_ts=before_now(minutes=5),
+            duration=100,
+        )
+        self.store_spans([span], is_eap=True)
+
         # Create events with shared stacktrace (should have same group)
         events = []
-        event0_trace_id = uuid.uuid4().hex
         for i in range(3):
             data = load_data("python", timestamp=before_now(minutes=5 - i))
             data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
-            if i == 0:
+            if i == 1:
                 data["contexts"] = data.get("contexts", {})
                 data["contexts"]["trace"] = {
-                    "trace_id": event0_trace_id,
-                    "span_id": "1" + uuid.uuid4().hex[:15],
+                    "trace_id": event1_trace_id,
+                    "span_id": span["span_id"],
                 }
 
             event = self.store_event(data=data, project_id=self.project.id)
             events.append(event)
 
+        # Mock the recommended event.
         mock_get_recommended_event.return_value = events[1]
 
         group = events[0].group
@@ -948,14 +991,13 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
                 ), selected_event
 
             # Check event_trace_id matches mocked trace context.
-            if event_dict["id"] == events[0].event_id:
-                assert events[0].trace_id == event0_trace_id
-                assert result["event_trace_id"] == event0_trace_id
+            if event_dict["id"] == events[1].event_id:
+                assert events[1].trace_id == event1_trace_id
+                assert result["event_trace_id"] == event1_trace_id
             else:
                 assert result["event_trace_id"] is None
 
-            # Validate timeseries dict structure.
-            self._validate_event_timeseries(result["event_timeseries"])
+            self._validate_event_timeseries(result["event_timeseries"], expected_total=3)
 
         for selected_event in invalid_selected_events:
             with pytest.raises(ValueError, match="badly formed hexadecimal UUID string"):
@@ -1132,12 +1174,13 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
         mock_get_recommended_event,
         mock_api_client,
     ):
-        """Test groups with different first_seen dates"""
+        """Test timeseries resolution for groups with different first_seen dates"""
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
-        # Passthrough to real client - allows testing call args
-        mock_api_client.get.side_effect = client.get
 
         for stats_period, interval in EVENT_TIMESERIES_RESOLUTIONS:
+            # Fresh mock with passthrough to real client - allows testing call args
+            mock_api_client.get = Mock(side_effect=client.get)
+
             delta = parse_stats_period(stats_period)
             assert delta is not None
             if delta > timedelta(days=30):
@@ -1167,10 +1210,14 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
             )
 
             # Assert expected stats params were passed to the API.
-            _, kwargs = mock_api_client.get.call_args
-            assert kwargs["path"] == f"/organizations/{self.organization.slug}/events-stats/"
-            assert kwargs["params"]["statsPeriod"] == stats_period
-            assert kwargs["params"]["interval"] == interval
+            stats_request_count = 0
+            for _, kwargs in mock_api_client.get.call_args_list:
+                if kwargs["path"] == f"/organizations/{self.organization.slug}/events-stats/":
+                    stats_request_count += 1
+                    assert kwargs["params"]["statsPeriod"] == stats_period
+                    assert kwargs["params"]["interval"] == interval
+
+            assert stats_request_count == 1
 
             # Validate final results.
             assert result is not None
@@ -1180,6 +1227,82 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
 
             # Ensure next iteration makes a fresh group.
             group.delete()
+
+    @patch("sentry.models.group.get_recommended_event")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_ie_details_recommended_event_fallback(
+        self,
+        mock_get_tags,
+        mock_get_recommended_event,
+    ):
+        """Test the recommended event falls back to a random event with spans when it has no related spans."""
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+
+        # Mock a span for event1's trace. event1 should always be returned for this test.
+        event1_trace_id = uuid.uuid4().hex
+        span = self.create_span(
+            {
+                "description": "SELECT * FROM users WHERE id = ?",
+                "trace_id": event1_trace_id,
+            },
+            start_ts=before_now(minutes=5),
+            duration=100,
+        )
+        self.store_spans([span], is_eap=True)
+
+        # Create events with shared stacktrace (should have same group).
+        # Event 0 has a trace but no spans, event 1 has spans, event 2 has no trace.
+        events = []
+        for i in range(3):
+            data = load_data("python", timestamp=before_now(minutes=5 - i))
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            if i == 0:
+                data["contexts"] = data.get("contexts", {})
+                data["contexts"]["trace"] = {
+                    "trace_id": uuid.uuid4().hex,
+                    "span_id": "1" + uuid.uuid4().hex[:15],
+                }
+            if i == 1:
+                data["contexts"] = data.get("contexts", {})
+                data["contexts"]["trace"] = {
+                    "trace_id": event1_trace_id,
+                    "span_id": span["span_id"],
+                }
+
+            event = self.store_event(data=data, project_id=self.project.id)
+            events.append(event)
+
+        group = events[0].group
+        assert isinstance(group, Group)
+        assert events[1].group_id == group.id
+        assert events[2].group_id == group.id
+
+        for i, rec_event in enumerate([*events, None]):
+            mock_get_recommended_event.return_value = rec_event
+
+            result = get_issue_and_event_details(
+                issue_id=group.qualified_short_id,
+                organization_id=self.organization.id,
+                selected_event="recommended",
+            )
+
+            # Validate response structure.
+            assert result is not None
+            assert result["project_id"] == self.project.id
+            assert result["project_slug"] == self.project.slug
+            assert result["tags_overview"] == mock_get_tags.return_value
+            assert isinstance(result["issue"], dict)
+            _IssueMetadata.parse_obj(result["issue"])
+
+            event_dict = result["event"]
+            assert isinstance(event_dict, dict)
+            _SentryEventData.parse_obj(event_dict)
+            assert result["event_id"] == event_dict["id"]
+
+            # Validate the only event with spans is returned.
+            assert (
+                event_dict["id"] == events[1].event_id
+            ), f"failed to return an event with spans for recommended event {i if rec_event else 'none'}"
 
 
 class TestGetRepositoryDefinition(APITransactionTestCase):

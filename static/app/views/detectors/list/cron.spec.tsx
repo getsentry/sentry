@@ -67,6 +67,21 @@ describe('CronDetectorsList', () => {
 
     // Should show text for onboarding state
     expect(await screen.findByText('Monitor Your Cron Jobs')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
+      )
+    ).toBeInTheDocument();
+
+    // Check that platform buttons exist
+    expect(screen.getByLabelText('Create python Monitor')).toBeInTheDocument();
+    expect(screen.getByLabelText('Create php Monitor')).toBeInTheDocument();
+    expect(screen.getByLabelText('Create node Monitor')).toBeInTheDocument();
+
+    // Check for the special buttons (LinkButton renders as role="button" with aria-label)
+    expect(screen.getByRole('button', {name: 'Sentry CLI'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'HTTP (cURL)'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Manual Setup'})).toBeInTheDocument();
   });
 
   it('loads cron monitors, renders timeline, and updates on time selection', async () => {
