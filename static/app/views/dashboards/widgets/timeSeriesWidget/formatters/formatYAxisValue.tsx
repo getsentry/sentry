@@ -39,6 +39,12 @@ import {formatYAxisDuration} from './formatYAxisDuration';
  * small. It's an extremely rare case that we have fractional bytes with high
  * precision.
  * Rates and percentages would benefit from more precision, but it's not as critical there.
+ *
+ * The downside of this approach is that if the precision varies on the scale
+ * (e.g., "0, 0.5, 1, 1.5") the Y axis labels are not well-aligned. This is a
+ * limitation of ECharts, since it doesn't provide information about the entire
+ * scale to each number. The ideal solution here would be to coordinate the
+ * formatting of all the values.
  */
 export function formatYAxisValue(value: number, type: string, unit?: string): string {
   if (value === 0) {
