@@ -1,7 +1,6 @@
 import {Fragment, lazy, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
-import type {Theme} from '@emotion/react';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 
 import {NODE_ENV} from 'sentry/constants';
@@ -9,10 +8,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
-import {
-  DO_NOT_USE_darkChonkTheme,
-  DO_NOT_USE_lightChonkTheme,
-} from 'sentry/utils/theme/theme';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 const SentryComponentInspector =
@@ -62,9 +59,7 @@ export function ThemeAndStyleProvider({children}: Props) {
 
   useHotkeys(themeToggleHotkey);
 
-  const theme = (config.theme === 'dark'
-    ? DO_NOT_USE_darkChonkTheme
-    : DO_NOT_USE_lightChonkTheme) as unknown as Theme;
+  const theme = config.theme === 'dark' ? darkTheme : lightTheme;
 
   return (
     <ThemeProvider theme={theme}>

@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
 
-import type {DO_NOT_USE_ChonkTheme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import {baseAvatarStyles, type BaseAvatarStyleProps} from './baseAvatarComponentStyles';
@@ -103,7 +103,7 @@ function getColor(identifier: string | undefined): Color {
 
 function getChonkColor(
   identifier: string | undefined,
-  theme: DO_NOT_USE_ChonkTheme
+  theme: Theme
 ): {
   background: string;
   content: string;
@@ -131,7 +131,7 @@ function getInitials(displayName: string | undefined) {
   return initials.toUpperCase();
 }
 
-function makeChonkLetterAvatarColors(theme: DO_NOT_USE_ChonkTheme) {
+function makeChonkLetterAvatarColors(theme: Theme) {
   return theme.chart.getColorPalette(9).map(c => ({
     background: c,
     content: color(c).isDark() ? theme.colors.white : theme.colors.black,
