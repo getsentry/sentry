@@ -82,7 +82,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
   }, [hasTransactions, hasSessions]);
 
   const onRetryProjects = useCallback(() => {
-    fetchOrganizationDetails(api, params.orgId!);
+    fetchOrganizationDetails(api, params.orgId);
   }, [api, params.orgId]);
 
   const handleSearch = useCallback(
@@ -263,14 +263,14 @@ export default function ProjectDetail({router, location, organization}: Props) {
                 <Feature features="incidents" organization={organization}>
                   <ProjectLatestAlerts
                     organization={organization}
-                    projectSlug={params.projectId!}
+                    projectSlug={params.projectId}
                     location={location}
                     isProjectStabilized={isProjectStabilized}
                   />
                 </Feature>
                 <ProjectLatestReleases
                   organization={organization}
-                  projectSlug={params.projectId!}
+                  projectSlug={params.projectId}
                   location={location}
                   isProjectStabilized={isProjectStabilized}
                   project={project}
