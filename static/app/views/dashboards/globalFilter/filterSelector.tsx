@@ -89,11 +89,7 @@ function FilterSelector({
       };
     }
 
-    const operatorInfo = getOperatorInfo({
-      filterToken,
-      hasWildcardOperators: true,
-      fieldDefinition,
-    });
+    const operatorInfo = getOperatorInfo({filterToken, fieldDefinition});
 
     return {
       initialOperator: operatorInfo?.operator ?? TermOperator.DEFAULT,
@@ -251,7 +247,7 @@ function FilterSelector({
 
     if (stagedOperator !== initialOperator) {
       const newToken = parseFilterValue(newValue, globalFilter)[0] ?? filterToken;
-      newValue = modifyFilterOperatorQuery(newToken.text, newToken, stagedOperator, true);
+      newValue = modifyFilterOperatorQuery(newToken.text, newToken, stagedOperator);
     }
 
     onUpdateFilter({

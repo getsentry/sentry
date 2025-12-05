@@ -57,17 +57,13 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
 
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   const {getFieldDefinition} = useSearchQueryBuilder();
-  const hasWildcardOperators = useOrganization().features.includes(
-    'search-query-builder-wildcard-operators'
-  );
   const label = useMemo(
     () =>
       getOperatorInfo({
         filterToken: token,
-        hasWildcardOperators,
         fieldDefinition: getFieldDefinition(token.key.text),
       }).label,
-    [hasWildcardOperators, token, getFieldDefinition]
+    [token, getFieldDefinition]
   );
 
   return (
