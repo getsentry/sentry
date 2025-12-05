@@ -3108,12 +3108,16 @@ class TriageSignalsV0TestMixin(BasePostProgressGroupMixin):
         "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
+    @patch(
+        "sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings",
+        return_value=[{"name": "test-repo"}],
+    )
     @patch("sentry.tasks.autofix.run_automation_only_task.delay")
     @with_feature(
         {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
     )
     def test_triage_signals_event_count_gte_10_with_cache(
-        self, mock_run_automation, mock_get_seer_org_acknowledgement
+        self, mock_run_automation, mock_get_repos, mock_get_seer_org_acknowledgement
     ):
         """Test that with event count >= 10 and cached summary exists, we run automation directly."""
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3157,12 +3161,19 @@ class TriageSignalsV0TestMixin(BasePostProgressGroupMixin):
         "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
+    @patch(
+        "sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings",
+        return_value=[{"name": "test-repo"}],
+    )
     @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
     @with_feature(
         {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
     )
     def test_triage_signals_event_count_gte_10_no_cache(
-        self, mock_generate_summary_and_run_automation, mock_get_seer_org_acknowledgement
+        self,
+        mock_generate_summary_and_run_automation,
+        mock_get_repos,
+        mock_get_seer_org_acknowledgement,
     ):
         """Test that with event count >= 10 and no cached summary, we generate summary + run automation."""
         self.project.update_option("sentry:seer_scanner_automation", True)
