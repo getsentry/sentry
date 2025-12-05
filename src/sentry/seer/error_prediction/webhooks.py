@@ -22,13 +22,15 @@ class CheckRunAction(StrEnum):
 
 
 HANDLED_ACTIONS = [CheckRunAction.REREQUESTED]
-SEER_ERROR_PREDICTION_PATH = "/v1/automation/codegen/pr-review/github"
+# This needs to match the value defined in the Seer API:
+# https://github.com/getsentry/seer/blob/main/src/seer/automation/codegen/tasks.py
+SEER_ERROR_PREDICTION_PATH = "/v1/automation/codegen/pr-review/github/check-run"
 
 
 def forward_github_event_for_error_prediction(
     organization: Organization,
     event: Mapping[str, Any],
-) -> None:
+) -> bool:
     """
     Handle GitHub check_run webhook events for error prediction.
 
@@ -38,27 +40,35 @@ def forward_github_event_for_error_prediction(
     Args:
         organization: The Sentry organization
         event: The webhook event payload
+
+    Returns:
+        True if the event was forwarded successfully, False otherwise
     """
-    check_run = event.get("check_run", {})
-    assert check_run is not None, "check_run is required"
+    check_run = event.get("check_run")
     action = event.get("action")
-    assert action is not None, "action is required"
+
     extra = {
         "organization_id": organization.id,
         "action": action,
-        "check_run_html_url": check_run.get("html_url"),
-        "check_run_name": check_run.get("name"),
-        "check_run_external_id": check_run.get("external_id"),
+        "check_run_html_url": check_run.get("html_url") if check_run else None,
+        "check_run_name": check_run.get("name") if check_run else None,
+        "check_run_external_id": check_run.get("external_id") if check_run else None,
     }
+
     # Check if error prediction/AI features are enabled for this org
     if not features.has("organizations:gen-ai-features", organization):
         logger.debug("seer.error_prediction.check_run.feature_disabled", extra=extra)
-        return
+        return False
 
     # Only handle relevant actions
     if action not in HANDLED_ACTIONS:
         logger.debug("seer.error_prediction.check_run.skipped_action", extra=extra)
-        return
+        return False
+
+    # Validate required fields after feature/action checks
+    if not check_run:
+        logger.warning("seer.error_prediction.check_run.missing_check_run", extra=extra)
+        return False
 
     # Forward minimal payload to Seer for error prediction
     payload = {
@@ -68,11 +78,13 @@ def forward_github_event_for_error_prediction(
             "html_url": check_run.get("html_url"),
         },
     }
-    success = False
+    outcome = "failure"
     try:
         post_to_seer(path=SEER_ERROR_PREDICTION_PATH, payload=payload)
-        success = True
+        outcome = "success"
     except Exception:
         logger.exception("seer.error_prediction.check_run.forward.exception", extra=extra)
     finally:
-        metrics.incr("seer.error_prediction.check_run.forward.outcome", tags={"success": success})
+        metrics.incr("seer.error_prediction.check_run.forward.outcome", tags={"outcome": outcome})
+
+    return outcome == "success"
