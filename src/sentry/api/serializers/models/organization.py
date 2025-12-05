@@ -76,6 +76,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
 from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
@@ -88,7 +89,10 @@ from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.api.serializers.models.project import OrganizationProjectResponse
-    from sentry.users.api.serializers.user import UserSerializerResponse, UserSerializerResponseSelf
+    from sentry.users.api.serializers.user import (
+        UserSerializerResponse,
+        UserSerializerResponseSelf,
+    )
 
 # This cut-off date ensures that only new organizations created after this date go
 # through the logic that checks for the 'onboarding:complete' key in OrganizationOption.

@@ -473,8 +473,18 @@ class ExhaustiveFixtures(Fixtures):
             organization=org, key="sentry:scrape_javascript", value=True
         )
 
+<<<<<<< HEAD
         owner_member = OrganizationMember.objects.get(organization=org, user_id=owner_id)
         OrganizationMemberReplayAccess.objects.create(organizationmember=owner_member)
+=======
+        # OrganizationMemberReplayAccess - add for the owner member
+        from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
+
+        owner_member = OrganizationMember.objects.get(organization=org, user_id=owner_id)
+        OrganizationMemberReplayAccess.objects.create(
+            organization=org, organizationmember=owner_member
+        )
+>>>>>>> 536c8a0c02b (feat(replay): add model to allow per-user access control for replays)
 
         # Team
         team = self.create_team(name=f"test_team_in_{slug}", organization=org)
