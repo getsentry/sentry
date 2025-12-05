@@ -188,6 +188,18 @@ describe('replaceFreeTextTokens', () => {
           focusOverride: {itemKey: 'freeText:2'},
         },
       },
+      {
+        description: 'when the value contains a space and asterisks, it sets to is',
+        input: {
+          getFieldDefinition: () => null,
+          rawSearchReplacement: ['span.description'],
+          currentQuery: `te*st test`,
+        },
+        expected: {
+          query: `span.description:"te*st test"`,
+          focusOverride: {itemKey: 'freeText:1'},
+        },
+      },
     ];
 
     it.each(testCases)('$description', ({input, expected}) => {
