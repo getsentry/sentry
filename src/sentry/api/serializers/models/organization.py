@@ -30,6 +30,7 @@ from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
+    ALLOW_BACKGROUND_AGENT_DELEGATION,
     ATTACHMENTS_ROLE_DEFAULT,
     AUTO_OPEN_PRS_DEFAULT,
     DATA_CONSENT_DEFAULT,
@@ -557,6 +558,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
     autoOpenPrs: bool
+    allowBackgroundAgentDelegation: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -711,6 +713,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 obj.get_option(
                     "sentry:auto_open_prs",
                     AUTO_OPEN_PRS_DEFAULT,
+                )
+            ),
+            "allowBackgroundAgentDelegation": bool(
+                obj.get_option(
+                    "sentry:allow_background_agent_delegation",
+                    ALLOW_BACKGROUND_AGENT_DELEGATION,
                 )
             ),
             "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
