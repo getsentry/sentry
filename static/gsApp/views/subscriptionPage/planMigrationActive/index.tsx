@@ -22,7 +22,7 @@ type Props = {
 function NewFeature({title}: {title: string}) {
   return (
     <Feature>
-      <IconBusiness gradient size="sm" />
+      <IconBusiness size="sm" />
       {title}
     </Feature>
   );
