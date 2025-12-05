@@ -596,7 +596,7 @@ const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
     box-shadow: none;
   }
 
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
   z-index: 2;
 
   font-size: ${p => (p.size === 'xs' ? p.theme.fontSize.xs : p.theme.fontSize.sm)};

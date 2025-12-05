@@ -478,7 +478,7 @@ const VisibleLabel = withChonk(
     font-weight: ${p => (p.isSelected ? 600 : 400)};
     letter-spacing: ${p => (p.isSelected ? '-0.015em' : 'inherit')};
     text-align: center;
-    line-height: ${p => p.theme.text.lineHeightBody};
+    line-height: ${p => p.theme.font.lineHeight.comfortable};
     ${getTextColor}
   `,
   ChonkStyledVisibleLabel

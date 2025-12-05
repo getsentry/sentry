@@ -245,7 +245,9 @@ const IconWrapper = withChonk(
   styled('div')<{type: AlertProps['type']}>`
     display: flex;
     align-items: center;
-    height: calc(${p => p.theme.font.size.md} * ${p => p.theme.text.lineHeightBody});
+    height: calc(
+      ${p => p.theme.font.size.md} * ${p => p.theme.font.lineHeight.comfortable}
+    );
   `,
   ChonkAlert.IconWrapper
 );
@@ -253,14 +255,16 @@ const IconWrapper = withChonk(
 const Message = withChonk(
   styled('span')`
     position: relative;
-    line-height: ${p => p.theme.text.lineHeightBody};
+    line-height: ${p => p.theme.font.lineHeight.comfortable};
   `,
   ChonkAlert.Message
 );
 
 const TrailingItems = withChonk(
   styled('div')<{showIcon: boolean}>`
-    height: calc(${p => p.theme.font.size.md} * ${p => p.theme.text.lineHeightBody});
+    height: calc(
+      ${p => p.theme.font.size.md} * ${p => p.theme.font.lineHeight.comfortable}
+    );
     display: grid;
     grid-auto-flow: column;
     grid-template-rows: 100%;
