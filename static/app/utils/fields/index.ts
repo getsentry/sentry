@@ -2505,7 +2505,9 @@ const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   },
   [OurLogKnownFieldKey.CODE_LINE_NUMBER]: {
     desc: t(
-      'The line number in code.filepath best representing the operation. It SHOULD point within the code unit named in code.function'
+      'The line number in %s best representing the operation. It SHOULD point within the code unit named in %s.',
+      OurLogKnownFieldKey.CODE_FILE_PATH,
+      OurLogKnownFieldKey.CODE_FUNCTION_NAME
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
