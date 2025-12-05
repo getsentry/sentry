@@ -795,6 +795,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
+        "hasGranularReplayPermissions",
+        "replayAccessMembers",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
