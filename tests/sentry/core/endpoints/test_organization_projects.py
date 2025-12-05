@@ -317,13 +317,18 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         for i in range(1001):
             self.create_project(teams=[self.team], name=f"project-{i}", slug=f"project-{i}")
 
-        response = self.get_error_response(
-            self.organization.slug, qs_params={"all_projects": "1"}, status_code=400
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"all_projects": "1"}
         )
-        assert "too many projects" in response.data["detail"].lower()
+        # Should return 1000 projects (capped)
+        assert len(response.data) == 1000
+        # Should include truncation warning header
+        assert "X-Sentry-Project-Truncated" in response
+        assert "1001 projects" in response["X-Sentry-Project-Truncated"]
+        assert "1000" in response["X-Sentry-Project-Truncated"]
 
     def test_all_projects_at_limit(self) -> None:
-        # Create exactly 1000 projects - should succeed
+        # Create exactly 1000 projects - should succeed without warning
         projects = []
         for i in range(1000):
             projects.append(
@@ -335,6 +340,8 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         )
         # Should return all 1000 projects
         assert len(response.data) == 1000
+        # Should NOT include truncation warning header (exactly at limit)
+        assert "X-Sentry-Project-Truncated" not in response
 
 
 class OrganizationProjectsCountTest(APITestCase):
