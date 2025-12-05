@@ -222,6 +222,9 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
 
     If `use_caching` is True, cache the boolean result. Cache retention is controlled by the
     `grouping.ingest_grouphash_existence_cache_expiry` option.
+
+    TODO: That last sentence is temporarily untrue. While we're experimenting with retention
+    periods, cache retention is actually controlled by the helper `_get_cache_expiry`.
     """
     with metrics.timer(
         "grouping.get_or_create_grouphashes.check_secondary_hash_existence"
@@ -271,6 +274,9 @@ def _get_or_create_single_grouphash(
     `GroupHash` object. (Grouphashes without a group aren't cached because their data is about to
     change when a group is assigned.) Cache retention is controlled by the
     `grouping.ingest_grouphash_object_cache_expiry` option.
+
+    TODO: That last sentence is temporarily untrue. While we're experimenting with retention
+    periods, cache retention is actually controlled by the helper `_get_cache_expiry`.
     """
     with metrics.timer(
         "grouping.get_or_create_grouphashes.get_or_create_grouphash"
