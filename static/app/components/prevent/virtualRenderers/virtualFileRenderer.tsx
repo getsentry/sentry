@@ -295,7 +295,7 @@ const TextArea = styled('textarea')`
   outline: 0px solid transparent;
   outline-offset: 0px;
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => p.theme.fontSize.sm};
   padding-top: 0;
   padding-bottom: 0;
   padding-right: 0;

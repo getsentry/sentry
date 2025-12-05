@@ -198,7 +198,7 @@ export const DetailsBody = styled('div')`
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   padding: ${space(1)} 0;
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => p.theme.fontSize.sm};
 
   &:last-child {
     border-bottom: 0;
@@ -268,7 +268,7 @@ export const AlignedCellContent = styled('div')<{
   flex-direction: row;
   justify-content: ${p => p.align || 'left'};
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 export const FirstTableHeadCell = styled(TableHeadCell)`

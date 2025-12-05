@@ -688,7 +688,7 @@ const FileDiffWrapper = styled('div')<{integratedStyle?: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
   & code {
-    font-size: ${p => (p.integratedStyle ? p.theme.fontSize.sm : p.theme.codeFontSize)};
+    font-size: ${p => p.theme.fontSize.sm};
   }
   line-height: 20px;
   vertical-align: middle;
