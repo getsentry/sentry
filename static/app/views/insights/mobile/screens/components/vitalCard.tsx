@@ -74,7 +74,7 @@ const MeterValueText = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.textColor};
   flex: 1;
   text-align: center;

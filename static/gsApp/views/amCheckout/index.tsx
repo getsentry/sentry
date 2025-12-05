@@ -270,6 +270,22 @@ class AMCheckout extends Component<Props, State> {
   }
 
   getPlans(billingConfig: BillingConfig) {
+    const {subscription} = this.props;
+    const isTestOrg = subscription.planDetails.isTestPlan;
+    if (isTestOrg) {
+      const testPlans = billingConfig.planList.filter(
+        plan =>
+          plan.isTestPlan &&
+          (plan.id.includes(billingConfig.freePlan) ||
+            (plan.basePrice &&
+              ((plan.billingInterval === MONTHLY && plan.contractInterval === MONTHLY) ||
+                (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL))))
+      );
+
+      if (testPlans.length > 0) {
+        return testPlans;
+      }
+    }
     const plans = billingConfig.planList.filter(
       plan =>
         plan.id === billingConfig.freePlan ||

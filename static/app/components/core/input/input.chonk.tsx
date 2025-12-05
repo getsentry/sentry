@@ -1,5 +1,5 @@
 import {debossedBackground} from 'sentry/components/core/chonk';
-import type {DO_NOT_USE_ChonkTheme, StrictCSSObject} from 'sentry/utils/theme';
+import type {StrictCSSObject, Theme} from 'sentry/utils/theme';
 
 import type {InputStylesProps} from './input';
 
@@ -8,7 +8,7 @@ export const chonkInputStyles = ({
   monospace,
   readOnly,
   size = 'md',
-}: InputStylesProps & {theme: DO_NOT_USE_ChonkTheme}): StrictCSSObject => {
+}: InputStylesProps & {theme: Theme}): StrictCSSObject => {
   const boxShadow = `0px 1px 0px 0px ${theme.tokens.border.primary} inset`;
 
   return {

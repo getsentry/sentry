@@ -5,7 +5,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Grid} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -92,24 +91,23 @@ function CrossEventQueryingDropdown() {
     : t('For more targeted results, you can also cross reference other datasets.');
 
   return (
-    <Tooltip title={tooltipTitle}>
-      <Container width="100%">
-        {triggerProps => (
-          <DropdownMenu
-            onAction={onAction}
-            items={crossEventDropdownItems}
-            isDisabled={isDisabled}
-            triggerProps={{
-              ...triggerProps,
-              size: 'md',
-              showChevron: false,
-              icon: <IconAdd />,
-              'aria-label': t('Add a cross event query'),
-            }}
-          />
-        )}
-      </Container>
-    </Tooltip>
+    <Container width="100%">
+      {triggerProps => (
+        <DropdownMenu
+          onAction={onAction}
+          items={crossEventDropdownItems}
+          isDisabled={isDisabled}
+          triggerProps={{
+            ...triggerProps,
+            title: tooltipTitle,
+            size: 'md',
+            showChevron: false,
+            icon: <IconAdd />,
+            'aria-label': t('Add a cross event query'),
+          }}
+        />
+      )}
+    </Container>
   );
 }
 
