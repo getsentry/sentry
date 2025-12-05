@@ -94,7 +94,7 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
 export const ChonkStyledVisibleLabel = chonkStyled('span')`
   ${p => p.theme.overflowEllipsis}
   user-select: none;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.medium};
   text-align: center;
 `;
 

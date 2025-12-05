@@ -48,7 +48,7 @@ export const ListWrap = styled('ul')`
 
 export const ListLabel = styled('p')`
   display: inline-block;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.medium};
   font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.subText};
   text-transform: uppercase;
@@ -94,7 +94,7 @@ export const SectionHeader = styled('div')`
 
 export const SectionTitle = styled('p')`
   display: inline-block;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.medium};
   font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.subText};
   text-transform: uppercase;
