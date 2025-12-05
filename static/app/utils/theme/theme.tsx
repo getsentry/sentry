@@ -624,12 +624,6 @@ const commonTheme = {
     bold: 600 as const,
   },
 
-  /**
-   * @TODO(jonasbadalic) remove relative font sizes
-   * @deprecated use fontSize instead
-   */
-  codeFontSize: '13px' as const,
-
   text: {
     family: "'Rubik', 'Avenir Next', sans-serif",
     familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
