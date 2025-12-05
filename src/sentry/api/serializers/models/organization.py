@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -73,6 +73,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
 from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
@@ -557,6 +558,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
     autoOpenPrs: bool
+    replayAccessMembers: NotRequired[list[int]]
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -725,6 +727,15 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ).count(),
             "isDynamicallySampled": is_dynamically_sampled,
         }
+
+        if features.has("organizations:granular-replay-permissions", obj):
+            context["replayAccessMembers"] = list(
+                OrganizationMemberReplayAccess.objects.filter(organization=obj).values_list(
+                    "organizationmember_id", flat=True
+                )
+            )
+        else:
+            context["replayAccessMembers"] = []
 
         if has_custom_dynamic_sampling(obj, actor=user):
             context["targetSampleRate"] = float(

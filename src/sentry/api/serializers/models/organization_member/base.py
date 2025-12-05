@@ -8,6 +8,7 @@ from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -74,6 +75,21 @@ class OrganizationMemberSerializer(Serializer):
             for serialized in serialized_list:
                 external_users_map[serialized["userId"]].append(serialized)
 
+        # Get replay access records
+        replay_access_records = OrganizationMemberReplayAccess.objects.filter(
+            organizationmember__in=item_list
+        )
+        replay_access_map = {access.organizationmember_id: True for access in replay_access_records}
+
+        # Check if allowlist exists for each organization
+        orgs_with_allowlist = set(
+            OrganizationMemberReplayAccess.objects.filter(
+                organization__in=[item.organization for item in item_list]
+            )
+            .values_list("organization_id", flat=True)
+            .distinct()
+        )
+
         attrs: MutableMapping[OrganizationMember, MutableMapping[str, Any]] = {}
         for item in item_list:
             user_dct = users_by_id.get(str(item.user_id), None)
@@ -83,11 +99,20 @@ class OrganizationMemberSerializer(Serializer):
             else:
                 inviter = None
             external_users = external_users_map.get(user_id, [])
+
+            # If no allowlist exists for this org, everyone has access
+            # Otherwise, check if member is in the allowlist
+            if item.organization_id not in orgs_with_allowlist:
+                replay_access = True
+            else:
+                replay_access = replay_access_map.get(item.id, False)
+
             attrs[item] = {
                 "user": user_dct,
                 "externalUsers": external_users,
                 "inviter": inviter,
                 "email": email_map.get(user_id, item.email),
+                "replayAccess": replay_access,
             }
         return attrs
 
@@ -148,6 +173,7 @@ class OrganizationMemberSerializer(Serializer):
             "inviterName": inviter_name,
             "role": obj.role,  # Deprecated, use orgRole instead
             "roleName": roles.get(obj.role).name,  # Deprecated
+            "replayAccess": attrs.get("replayAccess", False),
         }
 
         if "externalUsers" in self.expand:
