@@ -76,6 +76,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
 from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
@@ -87,7 +88,10 @@ from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.api.serializers.models.project import OrganizationProjectResponse
-    from sentry.users.api.serializers.user import UserSerializerResponse, UserSerializerResponseSelf
+    from sentry.users.api.serializers.user import (
+        UserSerializerResponse,
+        UserSerializerResponseSelf,
+    )
 
 # This cut-off date ensures that only new organizations created after this date go
 # through the logic that checks for the 'onboarding:complete' key in OrganizationOption.
@@ -563,6 +567,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     autoEnableCodeReview: bool
     autoOpenPrs: bool
     defaultCodeReviewTriggers: list[str]
+    replayAccessMembers: list[int]
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -746,6 +751,26 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ).count(),
             "isDynamicallySampled": is_dynamically_sampled,
         }
+
+        if features.has("organizations:granular-replay-permissions", obj):
+            # The organization option can be missing, False, or null.
+            # Only set hasGranularReplayPermissions to True if the option exists and is truthy.
+            permissions_enabled = (
+                OrganizationOption.objects.filter(
+                    organization=obj, key="sentry:granular-replay-permissions"
+                )
+                .values_list("value", flat=True)
+                .first()
+            )
+            context["hasGranularReplayPermissions"] = bool(permissions_enabled)
+            context["replayAccessMembers"] = list(
+                OrganizationMemberReplayAccess.objects.filter(organization=obj).values_list(
+                    "organizationmember_id", flat=True
+                )
+            )
+        else:
+            context["hasGranularReplayPermissions"] = False
+            context["replayAccessMembers"] = []
 
         if has_custom_dynamic_sampling(obj, actor=user):
             context["targetSampleRate"] = float(
