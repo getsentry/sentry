@@ -10,12 +10,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import type {IntegrationProvider, Repository} from 'sentry/types/integrations';
 
-import {
-  MaxWidthPanel,
-  PanelDescription,
-  StepContent,
-} from 'getsentry/views/seerAutomation/onboarding/common';
-
+import {MaxWidthPanel, PanelDescription, StepContent} from './common';
 import {RepositorySelector} from './repositorySelector';
 import {Steps} from './types';
 
