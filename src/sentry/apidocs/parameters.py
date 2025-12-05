@@ -354,9 +354,9 @@ class IssueParams:
 
     VIEW_SORT = OpenApiParameter(
         name="sort",
-        description="The sort order of the view. Options include 'Last Seen' (`date`), 'First Seen' (`new`), 'Trends' (`trends`), 'Events' (`freq`), 'Users' (`user`), and 'Date Added' (`inbox`).",
+        description="The sort order of the view. Options include 'Last Seen' (`date`), 'First Seen' (`new`), 'Trends' (`trends`), 'Events' (`freq`), 'Users' (`user`), 'Date Added' (`inbox`), and 'Fixability' (`fixability`).",
         default="date",
-        enum=["date", "new", "trends", "freq", "user", "inbox"],
+        enum=["date", "new", "trends", "freq", "user", "inbox", "fixability"],
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
         required=False,
