@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from sentry.constants import ObjectStatus
 from sentry.prevent.models import PreventAIConfiguration
-from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT
+from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT, PREVENT_AI_CONFIG_DEFAULT_V1
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -157,6 +157,52 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         assert resp.status_code == 200
         assert resp.data == PREVENT_AI_CONFIG_DEFAULT
         assert resp.data["organization"] == {}
+        # Default config has on_new_commit disabled for bug_prediction
+        assert (
+            resp.data["default_org_config"]["org_defaults"]["bug_prediction"]["triggers"][
+                "on_new_commit"
+            ]
+            is False
+        )
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_returns_v1_default_when_feature_flag_enabled(self):
+        """Test that V1 default config is returned when code-review-run-per-commit flag is enabled."""
+        org = self.create_organization()
+        git_org_name = "test-github-org"
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=org,
+                provider="github",
+                name=git_org_name,
+                external_id=f"github:{git_org_name}",
+                status=ObjectStatus.ACTIVE,
+            )
+
+        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
+        params = {
+            "sentryOrgId": str(org.id),
+            "gitOrgName": git_org_name,
+            "provider": "github",
+        }
+        auth = self._auth_header_for_get(url, params, "test-secret")
+
+        with self.feature({"organizations:code-review-run-per-commit": org}):
+            resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+            assert resp.status_code == 200
+            assert resp.data == PREVENT_AI_CONFIG_DEFAULT_V1
+            # V1 config has on_new_commit enabled for bug_prediction
+            assert (
+                resp.data["default_org_config"]["org_defaults"]["bug_prediction"]["triggers"][
+                    "on_new_commit"
+                ]
+                is True
+            )
+            assert resp.data["organization"] == {}
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
