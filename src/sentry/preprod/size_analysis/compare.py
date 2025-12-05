@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import NamedTuple
 
 from packaging.version import InvalidVersion
 from packaging.version import parse as parse_version
@@ -86,11 +87,7 @@ def compare_size_analysis(
                 head_size = head_element.size
 
                 # Skip if this is a renamed file (same hash exists in base at different path)
-                # Only skip up to the rename count - remaining elements are true additions
-                # NOTE: This check must come BEFORE size==0 check, otherwise zero-size renamed
-                # elements don't decrement the counter, causing non-renamed elements to be skipped
-                if head_renamed_paths.get(path, 0) > 0:
-                    head_renamed_paths[path] -= 1
+                if path in head_renamed_paths:
                     continue
 
                 if head_size == 0:
@@ -112,11 +109,7 @@ def compare_size_analysis(
                 base_size = base_element.size
 
                 # Skip if this is a renamed file (same hash exists in head at different path)
-                # Only skip up to the rename count - remaining elements are true removals
-                # NOTE: This check must come BEFORE size==0 check, otherwise zero-size renamed
-                # elements don't decrement the counter, causing non-renamed elements to be skipped
-                if base_renamed_paths.get(path, 0) > 0:
-                    base_renamed_paths[path] -= 1
+                if path in base_renamed_paths:
                     continue
 
                 if base_size == 0:
@@ -198,13 +191,20 @@ def _should_skip_diff_item_comparison(
     return has_mismatched_major or has_mismatched_minor
 
 
+class MatchedElements(NamedTuple):
+    """Result of matching treemap elements between head and base."""
+
+    matched_pairs: list[tuple[TreemapElement, TreemapElement]]
+    unmatched_head: list[TreemapElement]
+    unmatched_base: list[TreemapElement]
+
+
 def _match_elements(
     head_elements: list[TreemapElement], base_elements: list[TreemapElement]
-) -> tuple[list[tuple[TreemapElement, TreemapElement]], list[TreemapElement], list[TreemapElement]]:
+) -> MatchedElements:
     """
     Intelligently match elements from head and base when there are duplicates.
     For example, in iOS processing multiple images can map to the same file name.
-    Returns: (matched_pairs, unmatched_head, unmatched_base)
 
     Matching strategy:
     1. First, match by exact name and size
@@ -249,7 +249,7 @@ def _match_elements(
         elem for idx, elem in enumerate(base_elements) if idx not in matched_base_indices
     ]
 
-    return matched_pairs, unmatched_head, unmatched_base
+    return MatchedElements(matched_pairs, unmatched_head, unmatched_base)
 
 
 def _flatten_leaf_nodes(
@@ -278,23 +278,19 @@ def _flatten_leaf_nodes(
 def _find_renamed_paths(
     head_file_analysis: FileAnalysis | None,
     base_file_analysis: FileAnalysis | None,
-) -> tuple[dict[str, int], dict[str, int]]:
+) -> tuple[set[str], set[str]]:
     """Find paths that are likely renames (same hash, different path).
 
     When a file with the same hash exists at different paths in head vs base,
     we consider it a rename. However, if there are more paths on one side
     (e.g., file was renamed AND duplicated), we only mark min(head, base)
     as renames - the rest are true additions/removals.
-
-    Returns dicts mapping path -> count of renames at that path. This is needed
-    because a single path can have multiple elements (e.g., Assets.car images),
-    and we should only skip the rename count, not all elements at that path.
     """
     head_hash_to_paths = _build_hash_to_paths(head_file_analysis)
     base_hash_to_paths = _build_hash_to_paths(base_file_analysis)
 
-    head_renamed_paths: dict[str, int] = {}
-    base_renamed_paths: dict[str, int] = {}
+    head_renamed_paths: set[str] = set()
+    base_renamed_paths: set[str] = set()
 
     for file_hash, head_paths in head_hash_to_paths.items():
         base_paths = base_hash_to_paths.get(file_hash, set())
@@ -306,10 +302,8 @@ def _find_renamed_paths(
             # Only mark the minimum count as renames - the rest are real adds/removes
             # e.g., 1 base path + 3 head paths = 1 rename + 2 additions
             rename_count = min(len(head_only), len(base_only))
-            for path in sorted(head_only)[:rename_count]:
-                head_renamed_paths[path] = head_renamed_paths.get(path, 0) + 1
-            for path in sorted(base_only)[:rename_count]:
-                base_renamed_paths[path] = base_renamed_paths.get(path, 0) + 1
+            head_renamed_paths.update(sorted(head_only)[:rename_count])
+            base_renamed_paths.update(sorted(base_only)[:rename_count])
 
     return head_renamed_paths, base_renamed_paths
 

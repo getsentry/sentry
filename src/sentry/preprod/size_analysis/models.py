@@ -72,6 +72,9 @@ class AppComponent(BaseModel):
 
 
 class SizeAnalysisResults(BaseModel):
+
+    model_config = ConfigDict(frozen=True)
+
     analysis_duration: float
     download_size: int
     install_size: int

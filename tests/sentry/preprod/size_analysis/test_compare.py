@@ -22,25 +22,32 @@ class CompareSizeAnalysisTest(TestCase):
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
 
-    def _create_treemap_element(self, name, size, path=None, children=None):
-        """Helper to create TreemapElement."""
+    def _create_treemap_element(self, name, size, path=None, children=None, element_type="files"):
         return TreemapElement(
             name=name,
             size=size,
             path=path,
             is_dir=children is not None,
+            type=element_type,
             children=children or [],
         )
 
+    def _create_file_info(self, path: str, hash_value: str, children=None) -> FileInfo:
+        return FileInfo(path=path, hash=hash_value, children=children or [])
+
     def _create_size_analysis_results(
-        self, download_size=500, install_size=1000, treemap_root=None
+        self,
+        download_size=500,
+        install_size=1000,
+        treemap_root=None,
+        file_analysis=None,
+        analysis_version=None,
     ):
-        """Helper to create SizeAnalysisResults."""
         treemap = None
         if treemap_root:
             treemap = TreemapResults(
                 root=treemap_root,
-                file_count=1,  # Required field
+                file_count=1,
                 category_breakdown={},
                 platform="test",
             )
@@ -50,6 +57,8 @@ class CompareSizeAnalysisTest(TestCase):
             download_size=download_size,
             install_size=install_size,
             treemap=treemap,
+            file_analysis=file_analysis,
+            analysis_version=analysis_version,
         )
 
     def test_compare_size_analysis_no_treemaps(self):
@@ -654,43 +663,7 @@ class ShouldSkipDiffItemComparisonTest(TestCase):
         assert result is False
 
 
-class CompareWithVersionSkippingTest(TestCase):
-    def setUp(self):
-        super().setUp()
-        self.organization = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.organization)
-
-    def _create_treemap_element(self, name, size, path=None, children=None):
-        """Helper to create TreemapElement."""
-        return TreemapElement(
-            name=name,
-            size=size,
-            path=path,
-            is_dir=children is not None,
-            children=children or [],
-        )
-
-    def _create_size_analysis_results(
-        self, download_size=500, install_size=1000, treemap_root=None, analysis_version=None
-    ):
-        """Helper to create SizeAnalysisResults."""
-        treemap = None
-        if treemap_root:
-            treemap = TreemapResults(
-                root=treemap_root,
-                file_count=1,
-                category_breakdown={},
-                platform="test",
-            )
-
-        return SizeAnalysisResults(
-            analysis_duration=1.0,
-            download_size=download_size,
-            install_size=install_size,
-            treemap=treemap,
-            analysis_version=analysis_version,
-        )
-
+class CompareWithVersionSkippingTest(CompareSizeAnalysisTest):
     def test_compare_skips_diff_items_on_major_version_mismatch(self):
         """Integration test: diff items should be skipped when major versions differ."""
         head_metrics = PreprodArtifactSizeMetrics(
@@ -800,59 +773,8 @@ class CompareWithVersionSkippingTest(TestCase):
         assert result.diff_items[0].type == DiffType.INCREASED
 
 
-class CompareWithRenameDetectionTest(TestCase):
-    """Integration tests for rename detection in compare_size_analysis."""
-
-    def setUp(self):
-        super().setUp()
-        self.organization = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.organization)
-
-    def _create_treemap_element(self, name, size, path=None, children=None, element_type="files"):
-        """Helper to create TreemapElement."""
-        return TreemapElement(
-            name=name,
-            size=size,
-            path=path,
-            is_dir=children is not None,
-            type=element_type,
-            children=children or [],
-        )
-
-    def _create_file_info(self, path: str, hash_value: str, **kwargs) -> FileInfo:
-        """Helper to create FileInfo."""
-        return FileInfo(
-            path=path,
-            hash=hash_value,
-        )
-
-    def _create_size_analysis_results(
-        self,
-        download_size=500,
-        install_size=1000,
-        treemap_root=None,
-        file_analysis=None,
-    ):
-        """Helper to create SizeAnalysisResults."""
-        treemap = None
-        if treemap_root:
-            treemap = TreemapResults(
-                root=treemap_root,
-                file_count=1,
-                category_breakdown={},
-                platform="test",
-            )
-
-        return SizeAnalysisResults(
-            analysis_duration=1.0,
-            download_size=download_size,
-            install_size=install_size,
-            treemap=treemap,
-            file_analysis=file_analysis,
-        )
-
+class CompareWithRenameDetectionTest(CompareSizeAnalysisTest):
     def test_renamed_file_excluded_from_diff(self):
-        """Test that renamed files are excluded from diff items."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -868,7 +790,6 @@ class CompareWithRenameDetectionTest(TestCase):
             max_download_size=800,
         )
 
-        # Treemap shows file at new path in head, old path in base
         head_treemap = self._create_treemap_element(
             "new_name.txt", 100, path="new_name.txt", element_type="files"
         )
@@ -876,7 +797,6 @@ class CompareWithRenameDetectionTest(TestCase):
             "old_name.txt", 100, path="old_name.txt", element_type="files"
         )
 
-        # File analysis shows same hash for both paths
         head_file_analysis = FileAnalysis(
             items=[self._create_file_info("new_name.txt", "same_hash")]
         )
@@ -893,7 +813,6 @@ class CompareWithRenameDetectionTest(TestCase):
 
         result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
 
-        # Both the "added" and "removed" should be excluded as they're renames
         assert len(result.diff_items) == 0
 
     def test_mixed_renames_and_real_changes(self):
@@ -1179,12 +1098,15 @@ class CompareWithRenameDetectionTest(TestCase):
         assert result.diff_items[0].path == "z.txt"
         assert result.diff_items[0].type == DiffType.ADDED
 
-    def test_rename_does_not_skip_all_elements_at_path(self):
-        """Test that rename detection only skips the renamed element, not all elements at path.
+    def test_duplicate_treemap_elements_at_renamed_path_all_skipped(self):
+        """Test that duplicate treemap elements at a renamed path are all skipped.
 
-        Bug scenario: When multiple elements exist at the same path (e.g., Assets.car with
-        multiple images of same name), and ONE of them is a rename, only that one should
-        be skipped - not ALL elements at that path.
+        iOS Assets.car files can have duplicate treemap entries for the same image at the
+        same path. These duplicates represent the same file, so when that file is detected
+        as a rename, ALL duplicate treemap entries should be skipped - not just one.
+
+        This is the primary use case: AppIcon images get renamed (UUID changes) between builds
+        but the content is identical. The treemap may have multiple entries for the same icon.
         """
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -1201,50 +1123,58 @@ class CompareWithRenameDetectionTest(TestCase):
             max_download_size=800,
         )
 
-        # Head has 3 elements at same path "Assets.car/icon.png":
-        # - One is a rename (same hash as base's old_icon.png)
-        # - Two are genuinely new additions
+        # Head has 2 IDENTICAL duplicate treemap elements at same path (same size = same file)
+        # This simulates Assets.car having duplicate entries for the same image
         head_treemap = self._create_treemap_element(
             "Assets.car",
-            300,
+            200,
             path="Assets.car",
             children=[
-                # 3 images with same path but different sizes (simulating Assets.car duplicates)
                 self._create_treemap_element(
-                    "icon.png", 100, path="Assets.car/icon.png", element_type="assets"
+                    "AppIcon_ABC123.png",
+                    100,
+                    path="Assets.car/AppIcon_ABC123.png",
+                    element_type="assets",
                 ),
                 self._create_treemap_element(
-                    "icon.png", 200, path="Assets.car/icon.png", element_type="assets"
-                ),
-                self._create_treemap_element(
-                    "icon.png", 300, path="Assets.car/icon.png", element_type="assets"
+                    "AppIcon_ABC123.png",
+                    100,
+                    path="Assets.car/AppIcon_ABC123.png",
+                    element_type="assets",
                 ),
             ],
         )
 
-        # Base has 1 element at a DIFFERENT path that will be detected as rename source
+        # Base has 2 IDENTICAL duplicate treemap elements at a DIFFERENT path
         base_treemap = self._create_treemap_element(
             "Assets.car",
-            100,
+            200,
             path="Assets.car",
             children=[
                 self._create_treemap_element(
-                    "old_icon.png", 100, path="Assets.car/old_icon.png", element_type="assets"
+                    "AppIcon_XYZ789.png",
+                    100,
+                    path="Assets.car/AppIcon_XYZ789.png",
+                    element_type="assets",
+                ),
+                self._create_treemap_element(
+                    "AppIcon_XYZ789.png",
+                    100,
+                    path="Assets.car/AppIcon_XYZ789.png",
+                    element_type="assets",
                 ),
             ],
         )
 
-        # File analysis: one head file has same hash as base file (rename)
-        # The other two head files have different hashes (true additions)
+        # File analysis has only 1 entry per path (it's the same file, just duplicated in treemap)
+        # Same hash = this is a rename
         head_file_analysis = FileAnalysis(
             items=[
                 FileInfo(
                     path="Assets.car",
                     hash="parent_hash",
                     children=[
-                        self._create_file_info("icon.png", "renamed_hash"),  # Same as base
-                        self._create_file_info("icon.png", "new_hash_1"),  # New
-                        self._create_file_info("icon.png", "new_hash_2"),  # New
+                        self._create_file_info("AppIcon_ABC123.png", "same_content_hash"),
                     ],
                 ),
             ]
@@ -1255,7 +1185,7 @@ class CompareWithRenameDetectionTest(TestCase):
                     path="Assets.car",
                     hash="parent_hash",
                     children=[
-                        self._create_file_info("old_icon.png", "renamed_hash"),  # Will be renamed
+                        self._create_file_info("AppIcon_XYZ789.png", "same_content_hash"),
                     ],
                 ),
             ]
@@ -1270,15 +1200,14 @@ class CompareWithRenameDetectionTest(TestCase):
 
         result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
 
-        # Expected behavior:
-        # - 1 rename: Assets.car/icon.png (hash=renamed_hash) <-> Assets.car/old_icon.png
-        # - 2 additions: the other two icon.png elements with new hashes
-        # Bug behavior: ALL 3 icon.png elements get skipped because path is in renamed_paths
-
-        added_items = [item for item in result.diff_items if item.type == DiffType.ADDED]
-        assert len(added_items) == 2, (
-            f"Expected 2 additions (the non-renamed elements), got {len(added_items)}. "
-            "Bug: rename detection is skipping ALL elements at the path, not just the renamed one."
+        # ALL elements should be skipped because:
+        # - The head path is detected as a rename (same hash exists at different base path)
+        # - The duplicate treemap entries are identical, representing the same file
+        # - Therefore all duplicates should be excluded from diff
+        assert len(result.diff_items) == 0, (
+            f"Expected 0 diff items (all duplicates at renamed path should be skipped), "
+            f"got {len(result.diff_items)}. "
+            "Bug: not all duplicate treemap elements are being skipped for renamed files."
         )
 
     def test_rename_detection_with_nested_children(self):
@@ -1354,106 +1283,3 @@ class CompareWithRenameDetectionTest(TestCase):
 
         # The renamed asset should be excluded - no diff items
         assert len(result.diff_items) == 0
-
-    def test_zero_size_renamed_file_does_not_consume_counter_for_additions(self):
-        """Test that zero-size elements with rename counter don't incorrectly skip real additions.
-
-        Bug scenario:
-        1. file_analysis detects a rename for a file
-        2. That file corresponds to a zero-size treemap element
-        3. There's also a non-zero element at the same path that is NOT a rename
-        4. The zero-size element is processed, hits size==0 check first, skips without decrementing
-        5. Non-zero element sees counter > 0, gets decremented, incorrectly skipped as rename
-
-        Fix: The rename counter check must happen BEFORE the size==0 check.
-        """
-        head_metrics = PreprodArtifactSizeMetrics(
-            preprod_artifact_id=1,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            identifier="test",
-            max_install_size=1500,
-            max_download_size=800,
-        )
-        base_metrics = PreprodArtifactSizeMetrics(
-            preprod_artifact_id=1,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            identifier="test",
-            max_install_size=1500,
-            max_download_size=800,
-        )
-
-        # Head has 2 elements at same path "Assets.car/icon.png":
-        # - One with size 0 (corresponds to the rename in file_analysis)
-        # - One with size 100 (a true addition, NOT a rename)
-        head_treemap = self._create_treemap_element(
-            "Assets.car",
-            100,
-            path="Assets.car",
-            children=[
-                # Zero-size element - this is the one being "renamed" per file_analysis
-                self._create_treemap_element(
-                    "icon.png", 0, path="Assets.car/icon.png", element_type="assets"
-                ),
-                # Non-zero element at same path - this is a TRUE addition
-                self._create_treemap_element(
-                    "icon.png", 100, path="Assets.car/icon.png", element_type="assets"
-                ),
-            ],
-        )
-
-        # Base has the old file at different path
-        base_treemap = self._create_treemap_element(
-            "Assets.car",
-            0,
-            path="Assets.car",
-            children=[
-                self._create_treemap_element(
-                    "old_icon.png", 0, path="Assets.car/old_icon.png", element_type="assets"
-                ),
-            ],
-        )
-
-        # File analysis: head has renamed file (same hash as base)
-        head_file_analysis = FileAnalysis(
-            items=[
-                FileInfo(
-                    path="Assets.car",
-                    hash="parent_hash",
-                    children=[
-                        self._create_file_info("icon.png", "renamed_hash"),  # Same as base
-                    ],
-                ),
-            ]
-        )
-        base_file_analysis = FileAnalysis(
-            items=[
-                FileInfo(
-                    path="Assets.car",
-                    hash="parent_hash",
-                    children=[
-                        self._create_file_info("old_icon.png", "renamed_hash"),
-                    ],
-                ),
-            ]
-        )
-
-        head_results = self._create_size_analysis_results(
-            treemap_root=head_treemap, file_analysis=head_file_analysis
-        )
-        base_results = self._create_size_analysis_results(
-            treemap_root=base_treemap, file_analysis=base_file_analysis
-        )
-
-        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
-
-        # Expected:
-        # - The zero-size element should be skipped (rename + zero size)
-        # - The 100-size element should be added as ADDED (it's NOT a rename)
-        # Bug: size==0 check runs first, doesn't decrement counter, then 100-size
-        #      element sees counter > 0 and gets incorrectly skipped
-        added_items = [item for item in result.diff_items if item.type == DiffType.ADDED]
-        assert len(added_items) == 1, (
-            f"Expected 1 addition (the non-renamed 100-size element), got {len(added_items)}. "
-            "Bug: zero-size rename didn't decrement counter, causing real addition to be skipped."
-        )
-        assert added_items[0].size_diff == 100
