@@ -111,10 +111,15 @@ class BulkDeleteQuery:
         if self.organization_id:
             queryset = queryset.filter(organization_id=self.organization_id)  # type: ignore[misc]
 
-        # Determine order field (strip leading '-' for descending)
+        # Determine order field and direction (strip leading '-' for descending)
         order_field = "id"
+        descending = False
         if self.order_by:
-            order_field = self.order_by.lstrip("-")
+            if self.order_by.startswith("-"):
+                descending = True
+                order_field = self.order_by[1:]
+            else:
+                order_field = self.order_by
 
         # Use compound order_by for keyset pagination: (order_field, id)
         # This handles non-unique order fields correctly
@@ -126,12 +131,16 @@ class BulkDeleteQuery:
                 return {"id": item[0]}
             return {"id": item[0], order_field: item[1]}
 
+        # Use negative step for descending order
+        step = -batch_size if descending else batch_size
+
         values_qs: QuerySet[Any, tuple[Any, ...]] = queryset.values_list("id", order_field)
         wrapper = RangeQuerySetWrapper(
             values_qs,
-            step=batch_size,
+            step=step,
             order_by=order_by_fields,
             result_value_getter=result_value_getter,
+            query_timeout_retries=10,
         )
 
         for batch in itertools.batched(wrapper, chunk_size):
