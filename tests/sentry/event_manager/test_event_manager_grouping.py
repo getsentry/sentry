@@ -10,7 +10,7 @@ from unittest.mock import ANY, MagicMock, patch
 import pytest
 from django.core.cache import cache
 
-from sentry import audit_log, options
+from sentry import audit_log
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG, SENTRY_GROUPING_CONFIG_TRANSITION_DURATION
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
@@ -20,7 +20,7 @@ from sentry.grouping.ingest.caching import (
     get_grouphash_object_cache_key,
 )
 from sentry.grouping.ingest.config import update_or_set_grouping_config_if_needed
-from sentry.grouping.ingest.hashing import get_or_create_grouphashes
+from sentry.grouping.ingest.hashing import _get_cache_expiry, get_or_create_grouphashes
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
@@ -400,13 +400,17 @@ class GroupHashCachingTest(TestCase):
             grouping_config_id = "old_config"
             grouping_config_option = "sentry:secondary_grouping_config"
             cache_key = get_grouphash_existence_cache_key(hash_value, self.project.id)
-            cache_expiry = options.get("grouping.ingest_grouphash_existence_cache_expiry")
+            # TODO: This can go back to being `options.get("grouping.ingest_grouphash_existence_cache_expiry")`
+            # once we've settled on a retention period
+            cache_expiry = _get_cache_expiry(cache_key, cache_type="existence")
             cached_value: Any = grouphash_exists
         else:
             grouping_config_id = "new_config"
             grouping_config_option = "sentry:grouping_config"
             cache_key = get_grouphash_object_cache_key(hash_value, self.project.id)
-            cache_expiry = options.get("grouping.ingest_grouphash_object_cache_expiry")
+            # TODO: This can go back to being `options.get("grouping.ingest_grouphash_object_cache_expiry")`
+            # once we've settled on a retention period
+            cache_expiry = _get_cache_expiry(cache_key, cache_type="object")
             cached_value = grouphash
 
         self.project.update_option(grouping_config_option, grouping_config_id)
