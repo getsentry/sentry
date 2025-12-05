@@ -18,7 +18,7 @@ import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
@@ -31,6 +31,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 import Header from 'sentry/views/releases/components/header';
 import ReleaseArchivedNotice from 'sentry/views/releases/detail/overview/releaseArchivedNotice';
 import ReleaseHealthCTA from 'sentry/views/releases/list/releaseHealthCTA';
@@ -287,8 +288,8 @@ export default function ReleasesList() {
     [api, location, organization]
   );
 
-  const getTagValues = useCallback(
-    async (tag: Tag, currentQuery: string): Promise<string[]> => {
+  const getTagValues = useCallback<GetTagValues>(
+    async (tag, currentQuery) => {
       const values = await tagValueLoader(tag.key, currentQuery);
       return values.map(({value}) => value);
     },
