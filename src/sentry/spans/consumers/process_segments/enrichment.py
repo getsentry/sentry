@@ -4,7 +4,12 @@ from typing import Any
 
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry.spans.consumers.process_segments.types import Attribute, attribute_value, get_span_op
+from sentry.spans.consumers.process_segments.types import (
+    Attribute,
+    attribute_value,
+    get_span_op,
+    is_gen_ai_span,
+)
 
 # Keys of shared sentry attributes that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
@@ -122,7 +127,7 @@ class TreeEnricher:
                 if attributes.get(key) is None:
                     attributes[key] = value
 
-            if get_span_op(span).startswith("gen_ai.") and "gen_ai.agent.name" not in attributes:
+            if is_gen_ai_span(span) and "gen_ai.agent.name" not in attributes:
                 if (parent_span_id := span.get("parent_span_id")) is not None:
                     parent_span = self._spans_by_id.get(parent_span_id)
                     if (

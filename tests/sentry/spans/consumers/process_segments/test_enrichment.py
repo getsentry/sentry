@@ -493,7 +493,9 @@ def test_enrich_gen_ai_agent_name_from_immediate_parent() -> None:
         parent_span_id="aaaaaaaaaaaaaaaa",
         start_timestamp=1609455601.0,
         end_timestamp=1609455602.0,
-        span_op="gen_ai.execute_tool",
+        attributes={
+            "gen_ai.operation.name": {"type": "string", "value": "execute_tool"},
+        },
     )
 
     spans = [parent_span, child_span]
@@ -525,9 +527,9 @@ def test_enrich_gen_ai_agent_name_not_overwritten() -> None:
         parent_span_id="aaaaaaaaaaaaaaaa",
         start_timestamp=1609455601.0,
         end_timestamp=1609455602.0,
-        span_op="gen_ai.handoff",
         attributes={
             "gen_ai.agent.name": {"type": "string", "value": "ChildAgent"},
+            "gen_ai.operation.name": {"type": "string", "value": "handoff"},
         },
     )
 
@@ -557,7 +559,9 @@ def test_enrich_gen_ai_agent_name_not_set_without_ancestor() -> None:
         parent_span_id="aaaaaaaaaaaaaaaa",
         start_timestamp=1609455601.0,
         end_timestamp=1609455602.0,
-        span_op="gen_ai.execute_tool",
+        attributes={
+            "gen_ai.operation.name": {"type": "string", "value": "execute_tool"},
+        },
     )
 
     spans = [parent_span, child_span]
@@ -598,7 +602,9 @@ def test_enrich_gen_ai_agent_name_not_from_sibling() -> None:
         parent_span_id="aaaaaaaaaaaaaaaa",
         start_timestamp=1609455602.5,
         end_timestamp=1609455603.5,
-        span_op="gen_ai.execute_tool",
+        attributes={
+            "gen_ai.operation.name": {"type": "string", "value": "execute_tool"},
+        },
     )
 
     spans = [parent_span, sibling_with_agent, target_child]
@@ -631,7 +637,9 @@ def test_enrich_gen_ai_agent_name_only_from_invoke_agent_parent() -> None:
         parent_span_id="aaaaaaaaaaaaaaaa",
         start_timestamp=1609455601.0,
         end_timestamp=1609455602.0,
-        span_op="gen_ai.run",
+        attributes={
+            "gen_ai.operation.name": {"type": "string", "value": "run"},
+        },
     )
 
     spans = [parent_span, child_span]
@@ -672,7 +680,9 @@ def test_enrich_gen_ai_agent_name_not_from_grandparent() -> None:
         parent_span_id="bbbbbbbbbbbbbbbb",
         start_timestamp=1609455602.0,
         end_timestamp=1609455603.0,
-        span_op="gen_ai.run",
+        attributes={
+            "gen_ai.operation.name": {"type": "string", "value": "run"},
+        },
     )
 
     spans = [grandparent_span, parent_span, child_span]
@@ -683,3 +693,35 @@ def test_enrich_gen_ai_agent_name_not_from_grandparent() -> None:
     assert attribute_value(grandparent, "gen_ai.agent.name") == "GrandparentAgent"
     assert attribute_value(parent, "gen_ai.agent.name") is None
     assert attribute_value(child, "gen_ai.agent.name") is None
+
+
+def test_enrich_gen_ai_agent_name_from_immediate_parent_fallback_to_span_op() -> None:
+    """Test that gen_ai.agent.name is inherited from the immediate parent with gen_ai.invoke_agent operation."""
+    parent_span = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455600.0,
+        end_timestamp=1609455605.0,
+        span_op="gen_ai.invoke_agent",
+        attributes={
+            "gen_ai.agent.name": {"type": "string", "value": "MyAgent"},
+        },
+    )
+
+    child_span = build_mock_span(
+        project_id=1,
+        span_id="bbbbbbbbbbbbbbbb",
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455601.0,
+        end_timestamp=1609455602.0,
+        span_op="gen_ai.execute_tool",
+    )
+
+    spans = [parent_span, child_span]
+    _, enriched_spans = TreeEnricher.enrich_spans(spans)
+    compatible_spans = [make_compatible(span) for span in enriched_spans]
+
+    parent, child = compatible_spans
+    assert attribute_value(parent, "gen_ai.agent.name") == "MyAgent"
+    assert attribute_value(child, "gen_ai.agent.name") == "MyAgent"
