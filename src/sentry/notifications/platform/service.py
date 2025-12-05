@@ -42,6 +42,10 @@ class NotificationService[T: NotificationData]:
     @staticmethod
     def has_access(organization: Organization | RpcOrganization, source: str) -> bool:
         if not features.has("organizations:notification-platform", organization):
+            logger.info(
+                "notification.platform.has_access.feature_flag_disabled",
+                extra={"organization_id": organization.id, "source": source},
+            )
             return False
 
         option_key = f"notifications.platform-rate.{source}"
