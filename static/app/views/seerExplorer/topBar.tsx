@@ -17,6 +17,7 @@ import {t} from 'sentry/locale';
 interface TopBarProps {
   isEmptyState: boolean;
   isPolling: boolean;
+  isSessionHistoryOpen: boolean;
   onFeedbackClick: () => void;
   onNewChatClick: () => void;
   onSessionHistoryClick: (buttonRef: React.RefObject<HTMLElement | null>) => void;
@@ -28,6 +29,7 @@ interface TopBarProps {
 function TopBar({
   isPolling,
   isEmptyState,
+  isSessionHistoryOpen,
   onFeedbackClick,
   onNewChatClick,
   onSessionHistoryClick,
@@ -46,15 +48,18 @@ function TopBar({
           aria-label={t('Start a new chat (/new)')}
           title={t('Start a new chat (/new)')}
         />
-        <Button
-          ref={sessionHistoryButtonRef}
-          icon={<IconTimer />}
-          onClick={() => onSessionHistoryClick(sessionHistoryButtonRef)}
-          priority="transparent"
-          size="sm"
-          aria-label={t('Resume a previous chat (/resume)')}
-          title={t('Resume a previous chat (/resume)')}
-        />
+        <SessionHistoryButtonWrapper isSelected={isSessionHistoryOpen}>
+          <Button
+            ref={sessionHistoryButtonRef}
+            icon={<IconTimer />}
+            onClick={() => onSessionHistoryClick(sessionHistoryButtonRef)}
+            priority="transparent"
+            size="sm"
+            aria-label={t('Resume a previous chat (/resume)')}
+            title={t('Resume a previous chat (/resume)')}
+            aria-expanded={isSessionHistoryOpen}
+          />
+        </SessionHistoryButtonWrapper>
       </Flex>
       <AnimatePresence initial={false}>
         {!isEmptyState && (
@@ -116,4 +121,10 @@ const CenterSection = styled(motion.div)`
   align-items: center;
   justify-content: center;
   flex: 1;
+`;
+
+const SessionHistoryButtonWrapper = styled('div')<{isSelected: boolean}>`
+  button {
+    background-color: ${p => (p.isSelected ? p.theme.hover : 'transparent')};
+  }
 `;

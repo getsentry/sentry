@@ -59,7 +59,6 @@ export function useExplorerMenu({
     right?: string | number;
     top?: string | number;
   }>({});
-  const [openedViaSlashCommand, setOpenedViaSlashCommand] = useState(false);
 
   const allSlashCommands = useSlashCommands(slashCommandHandlers);
 
@@ -90,7 +89,6 @@ export function useExplorerMenu({
 
   const close = useCallback(() => {
     setMenuMode('hidden');
-    setOpenedViaSlashCommand(false);
     if (menuMode === 'slash-commands-keyboard') {
       // Clear input and reset textarea height.
       clearInput();
@@ -120,8 +118,6 @@ export function useExplorerMenu({
 
       if (item.key === '/resume') {
         // Handle /resume command here - avoid changing menu state from item handlers.
-        // Mark that it was opened via slash command so positioning uses input anchor
-        setOpenedViaSlashCommand(true);
         setMenuMode('session-history');
         refetchSessions();
       } else {
@@ -260,13 +256,10 @@ export function useExplorerMenu({
       return;
     }
 
-    const isSlashCommandMenu =
-      menuMode === 'slash-commands-keyboard' ||
-      (menuMode === 'session-history' && openedViaSlashCommand);
-
-    // Position relative to input for slash commands, or button for button clicks
-    const anchorRef = isSlashCommandMenu ? inputAnchorRef : menuAnchorRef;
-    const useBottom = isSlashCommandMenu;
+    // Position relative to input for slash commands, or button for session history
+    const anchorRef =
+      menuMode === 'slash-commands-keyboard' ? inputAnchorRef : menuAnchorRef;
+    const useBottom = menuMode === 'slash-commands-keyboard';
 
     if (anchorRef?.current) {
       setMenuPosition(calculatePosition(anchorRef.current, useBottom));
@@ -277,14 +270,7 @@ export function useExplorerMenu({
         left: '16px',
       });
     }
-  }, [
-    isVisible,
-    menuMode,
-    menuAnchorRef,
-    inputAnchorRef,
-    openedViaSlashCommand,
-    calculatePosition,
-  ]);
+  }, [isVisible, menuMode, menuAnchorRef, inputAnchorRef, calculatePosition]);
 
   const menu = (
     <Activity mode={isVisible ? 'visible' : 'hidden'}>
@@ -322,8 +308,6 @@ export function useExplorerMenu({
     if (menuMode === 'session-history') {
       close();
     } else {
-      // Mark that it was opened via button so positioning uses button anchor
-      setOpenedViaSlashCommand(false);
       setMenuMode('session-history');
       refetchSessions();
     }

@@ -209,7 +209,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   const openFeedbackForm = useFeedbackForm();
 
-  const {menu, isMenuOpen, closeMenu, openSessionHistory} = useExplorerMenu({
+  const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory} = useExplorerMenu({
     clearInput: () => setInputValue(''),
     inputValue,
     focusInput,
@@ -241,8 +241,11 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       const target = event.target as Node;
       const menuElement = document.querySelector('[data-seer-menu-panel]');
 
-      // Don't close if clicking on the menu itself
-      if (menuElement?.contains(target)) {
+      // Don't close if clicking on the menu itself or the button
+      if (
+        menuElement?.contains(target) ||
+        sessionHistoryButtonRef.current?.contains(target)
+      ) {
         return;
       }
 
@@ -425,6 +428,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       <TopBar
         isEmptyState={isEmptyState}
         isPolling={isPolling}
+        isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
         onFeedbackClick={handleFeedbackClick}
         onNewChatClick={startNewSession}
         onSessionHistoryClick={openSessionHistory}
