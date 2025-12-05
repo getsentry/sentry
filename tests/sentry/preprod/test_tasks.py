@@ -522,7 +522,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
 
     def test_assemble_preprod_artifact_size_analysis_success(self) -> None:
         status, details = self._run_task_and_verify_status(
-            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null}'
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
         )
 
         assert status == ChunkFileState.OK
@@ -554,7 +554,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         )
 
         status, details = self._run_task_and_verify_status(
-            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null}'
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
         )
 
         assert status == ChunkFileState.OK
@@ -567,7 +567,8 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
 
         # Verify existing PreprodArtifactSizeMetrics record was updated (not created new)
         size_metrics = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact=self.preprod_artifact
+            preprod_artifact=self.preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
         assert len(size_metrics) == 1  # Should still be only 1 record
         assert size_metrics[0].id == existing_size_metrics.id  # Should be the same record
@@ -606,6 +607,159 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
             preprod_artifact=self.preprod_artifact
         )
         assert len(size_metrics) == 0
+
+    def test_assemble_preprod_artifact_size_analysis_invalid_json_marks_pending_as_failed(
+        self,
+    ) -> None:
+        """Test that invalid JSON marks existing PENDING metrics as FAILED"""
+        # Create an existing size metrics record in PENDING state
+        existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=self.preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
+
+        # Invalid JSON should cause parsing to fail before any metrics are processed
+        # The task will return ERROR since the callback raises an exception
+        status, details = self._run_task_and_verify_status(b"invalid json")
+
+        assert status == ChunkFileState.ERROR
+        assert details is not None
+
+        # Verify the existing PENDING metric was updated to FAILED
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1
+        assert size_metrics[0].id == existing_size_metrics.id
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+        assert size_metrics[0].error_code == PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR
+
+    def test_assemble_preprod_artifact_size_analysis_empty_app_components_uses_top_level_sizes(
+        self,
+    ) -> None:
+        """Test that empty app_components falls back to top-level sizes for backwards compatibility"""
+        # Create an existing size metrics record in PENDING state
+        existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=self.preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
+
+        # Empty app_components - should fall back to top-level download_size/install_size
+        status, details = self._run_task_and_verify_status(
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": "1.0", "app_components": []}'
+        )
+
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        # Verify the existing PENDING metric was updated to COMPLETED with top-level sizes
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1
+        assert size_metrics[0].id == existing_size_metrics.id
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        assert size_metrics[0].max_install_size == 2000
+        assert size_metrics[0].max_download_size == 1000
+
+    def test_assemble_preprod_artifact_size_analysis_null_app_components_uses_top_level_sizes(
+        self,
+    ) -> None:
+        """Test that null app_components falls back to top-level sizes for backwards compatibility"""
+        status, details = self._run_task_and_verify_status(
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": "1.0", "app_components": null}'
+        )
+
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        # Verify a COMPLETED metric was created with top-level sizes
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        assert size_metrics[0].max_install_size == 2000
+        assert size_metrics[0].max_download_size == 1000
+
+    def test_assemble_preprod_artifact_size_analysis_multiple_components(self) -> None:
+        status, details = self._run_task_and_verify_status(
+            b'{"analysis_duration": 2.5, "download_size": 5000, "install_size": 10000, "treemap": null, "analysis_version": "1.0", "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 3000, "install_size": 6000}, {"component_type": 1, "name": "Watch App", "app_id": "com.example.app.watchkitapp", "path": "/Watch", "download_size": 2000, "install_size": 4000}]}'
+        )
+
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        size_files = File.objects.filter(type="preprod.file")
+        assert len(size_files) == 1
+
+        all_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        ).order_by("metrics_artifact_type")
+        assert len(all_size_metrics) == 2
+
+        main_metrics = all_size_metrics[0]
+        assert (
+            main_metrics.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        )
+        assert main_metrics.identifier is None
+        assert main_metrics.analysis_file_id == size_files[0].id
+        assert main_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        assert main_metrics.max_download_size == 3000
+        assert main_metrics.max_install_size == 6000
+
+        watch_metrics = all_size_metrics[1]
+        assert (
+            watch_metrics.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT
+        )
+        assert watch_metrics.identifier == "com.example.app.watchkitapp"
+        assert watch_metrics.analysis_file_id == size_files[0].id
+        assert watch_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        assert watch_metrics.max_download_size == 2000
+        assert watch_metrics.max_install_size == 4000
+
+    def test_assemble_preprod_artifact_size_analysis_removes_stale_metrics(self) -> None:
+        status, details = self._run_task_and_verify_status(
+            b'{"analysis_duration": 2.5, "download_size": 5000, "install_size": 10000, "treemap": null, "analysis_version": "1.0", "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 3000, "install_size": 6000}, {"component_type": 1, "name": "Watch App", "app_id": "com.example.app.watchkitapp", "path": "/Watch", "download_size": 2000, "install_size": 4000}]}'
+        )
+        assert status == ChunkFileState.OK
+
+        all_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(all_size_metrics) == 2
+
+        first_analysis_file = File.objects.filter(type="preprod.file").first()
+        assert first_analysis_file is not None
+
+        status, details = self._run_task_and_verify_status(
+            b'{"analysis_duration": 1.5, "download_size": 3500, "install_size": 7000, "treemap": null, "analysis_version": "1.1", "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 3500, "install_size": 7000}]}'
+        )
+        assert status == ChunkFileState.OK
+
+        remaining_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(remaining_metrics) == 1
+
+        main_metrics = remaining_metrics[0]
+        assert (
+            main_metrics.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        )
+        assert main_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        assert main_metrics.max_download_size == 3500
+        assert main_metrics.max_install_size == 7000
+
+        second_analysis_file = (
+            File.objects.filter(type="preprod.file").exclude(id=first_analysis_file.id).first()
+        )
+        assert second_analysis_file is not None
+        assert main_metrics.analysis_file_id == second_analysis_file.id
 
 
 class DetectExpiredPreprodArtifactsTest(TestCase):
