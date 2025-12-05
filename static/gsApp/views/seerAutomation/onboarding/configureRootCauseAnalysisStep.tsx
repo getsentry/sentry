@@ -79,9 +79,9 @@ export function ConfigureRootCauseAnalysisStep({
           onClick={handleNextStep}
           priority={isFinishDisabled ? 'default' : 'primary'}
           disabled={isFinishDisabled}
-          aria-label={t('Finish Setup')}
+          aria-label={t('Last Step')}
         >
-          {t('Finish Setup')}
+          {t('Last Step')}
         </Button>
       </GuidedSteps.ButtonWrapper>
     </GuidedSteps.Step>
