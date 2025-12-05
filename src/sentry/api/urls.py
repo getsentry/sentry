@@ -1359,6 +1359,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/",
         include(create_group_urls("sentry-api-0-organization-group")),
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/shared/(?:issues|groups)/(?P<share_id>[^/]+)/$",
+        SharedGroupDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-shared-group-details",
+    ),
     # Alert Rules
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/alert-rules/$",
@@ -3661,17 +3666,6 @@ urlpatterns = [
         r"^notification-defaults/$",
         NotificationDefaultsEndpoints.as_view(),
         name="sentry-api-0-notification-defaults",
-    ),
-    # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
-    re_path(
-        r"^organizations/(?P<organization_id_or_slug>[^/]+)/shared/(?:issues|groups)/(?P<share_id>[^/]+)/$",
-        SharedGroupDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-shared-group-details",
-    ),
-    re_path(
-        r"^shared/(?:issues|groups)/(?P<share_id>[^/]+)/$",
-        SharedGroupDetailsEndpoint.as_view(),
-        name="sentry-api-0-shared-group-details",
     ),
     re_path(
         r"^sentry-apps-stats/$",

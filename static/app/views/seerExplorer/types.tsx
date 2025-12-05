@@ -1,8 +1,14 @@
+export interface TodoItem {
+  content: string;
+  status: 'pending' | 'in_progress' | 'completed';
+}
+
 export interface Block {
   id: string;
   message: Message;
   timestamp: string;
   loading?: boolean;
+  todos?: TodoItem[];
   tool_links?: Array<ToolLink | null>;
   tool_results?: Array<ToolResult | null>;
 }
