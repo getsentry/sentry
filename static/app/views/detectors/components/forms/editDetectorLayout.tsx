@@ -14,7 +14,8 @@ import {
   DisableDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
-import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
+import type {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
+import {DetectorBaseFields as DetectorBaseFieldsComponent} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
 
@@ -23,6 +24,7 @@ type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
   detector: TDetector;
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   savedDetectorToFormData: (detector: TDetector) => TFormData;
+  envFieldProps?: React.ComponentProps<typeof DetectorBaseFields>['envFieldProps'];
   mapFormErrors?: (error: any) => any;
   noEnvironment?: boolean;
   previewChart?: React.ReactNode;
@@ -40,6 +42,7 @@ export function EditDetectorLayout<
   savedDetectorToFormData,
   mapFormErrors,
   noEnvironment,
+  envFieldProps,
 }: EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload>) {
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
@@ -73,7 +76,10 @@ export function EditDetectorLayout<
         </div>
 
         <EditLayout.HeaderFields>
-          <DetectorBaseFields noEnvironment={noEnvironment} />
+          <DetectorBaseFieldsComponent
+            noEnvironment={noEnvironment}
+            envFieldProps={envFieldProps}
+          />
           {previewChart ?? <div />}
         </EditLayout.HeaderFields>
       </EditLayout.Header>

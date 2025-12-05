@@ -12,7 +12,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {NewDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
-import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
+import type {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
+import {DetectorBaseFields as DetectorBaseFieldsComponent} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
 
@@ -22,6 +23,7 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   initialFormData: Partial<TFormData>;
   disabledCreate?: string;
+  envFieldProps?: React.ComponentProps<typeof DetectorBaseFields>['envFieldProps'];
   mapFormErrors?: (error: any) => any;
   noEnvironment?: boolean;
   previewChart?: React.ReactNode;
@@ -37,6 +39,7 @@ export function NewDetectorLayout<
   disabledCreate,
   mapFormErrors,
   noEnvironment,
+  envFieldProps,
   previewChart,
   detectorType,
 }: NewDetectorLayoutProps<TFormData, TUpdatePayload>) {
@@ -88,7 +91,10 @@ export function NewDetectorLayout<
         </div>
 
         <EditLayout.HeaderFields>
-          <DetectorBaseFields noEnvironment={noEnvironment} />
+          <DetectorBaseFieldsComponent
+            noEnvironment={noEnvironment}
+            envFieldProps={envFieldProps}
+          />
           {previewChart ?? <div />}
         </EditLayout.HeaderFields>
       </EditLayout.Header>
