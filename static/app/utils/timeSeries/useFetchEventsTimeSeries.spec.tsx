@@ -249,6 +249,36 @@ describe('useFetchEventsTimeSeries', () => {
       })
     );
   });
+
+  it('supports cross-event querying', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: [],
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useFetchEventsTimeSeries(
+        DiscoverDatasets.SPANS,
+        {yAxis: 'epm()', logQuery: ['span.op:db*'], metricQuery: ['span.op:db*']},
+        REFERRER
+      )
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        method: 'GET',
+        query: expect.objectContaining({
+          logQuery: ['span.op:db*'],
+          metricQuery: ['span.op:db*'],
+        }),
+      })
+    );
+  });
 });
 
 const REFERRER = 'test-query';
