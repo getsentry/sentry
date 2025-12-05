@@ -7,15 +7,13 @@ from django.db import DataError
 from django.db.models import F
 
 from sentry.db import models
+from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
 from sentry.utils import metrics
 from sentry.utils.services import Service
 
 logger = logging.getLogger(__name__)
-
-# Maximum value for a 32-bit signed integer
-MAX_INT32 = 2_147_483_647
 
 BufferField = models.Model | str | int
 
@@ -198,8 +196,11 @@ class Buffer(Service):
                     # continue
                     pass
                 else:
-                    # Skip times_seen increment if already at MAX_INT32, but still update other fields
-                    if "times_seen" in update_kwargs and group.times_seen == MAX_INT32:
+                    # Skip times_seen increment if already at MAX INT, but still update other fields
+                    if (
+                        "times_seen" in update_kwargs
+                        and group.times_seen == BoundedPositiveIntegerField.MAX_VALUE
+                    ):
                         del update_kwargs["times_seen"]
                         metrics.incr(
                             "buffer.times_seen_already_max",
@@ -215,8 +216,8 @@ class Buffer(Service):
                                 isinstance(e.__cause__, psycopg2.errors.NumericValueOutOfRange)
                                 and "times_seen" in columns
                             ):
-                                # Cap times_seen to MAX_INT32 and retry the update
-                                update_kwargs["times_seen"] = MAX_INT32
+                                # Cap times_seen to BoundedPositiveIntegerField.MAX_VALUE and retry the update
+                                update_kwargs["times_seen"] = BoundedPositiveIntegerField.MAX_VALUE
                                 try:
                                     group.update(using=None, **update_kwargs)
                                     metrics.incr(

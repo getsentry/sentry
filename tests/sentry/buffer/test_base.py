@@ -5,7 +5,8 @@ import psycopg2.errors
 from django.db import DataError
 from django.utils import timezone
 
-from sentry.buffer.base import MAX_INT32, Buffer, BufferField
+from sentry.buffer.base import Buffer, BufferField
+from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -86,7 +87,7 @@ class BufferTest(TestCase):
         assert group.times_seen == prev_times_seen
 
     def test_process_caps_times_seen_on_overflow(self) -> None:
-        """Test that times_seen is capped to MAX_INT32 when increment would cause overflow.
+        """Test that times_seen is capped to BoundedPositiveIntegerField.MAX_VALUE when increment would cause overflow.
 
         Note: We use mocking here because triggering a real NumericValueOutOfRange
         inside a test transaction causes PostgreSQL to abort the transaction,
@@ -109,14 +110,14 @@ class BufferTest(TestCase):
         # Verify it retried (called twice)
         assert mock_update.call_count == 2
 
-        # Verify the second call had times_seen capped to MAX_INT32
+        # Verify the second call had times_seen capped to BoundedPositiveIntegerField.MAX_VALUE
         second_call_kwargs = mock_update.call_args_list[1][1]
-        assert second_call_kwargs["times_seen"] == MAX_INT32
+        assert second_call_kwargs["times_seen"] == BoundedPositiveIntegerField.MAX_VALUE
 
     def test_process_skips_times_seen_increment_when_already_max(self) -> None:
-        """Test that we skip times_seen increment but still update other fields when at MAX_INT32."""
+        """Test that we skip times_seen increment but still update other fields when at BoundedPositiveIntegerField.MAX_VALUE."""
         group = Group.objects.create(project=Project(id=1))
-        Group.objects.filter(id=group.id).update(times_seen=MAX_INT32)
+        Group.objects.filter(id=group.id).update(times_seen=BoundedPositiveIntegerField.MAX_VALUE)
         columns = {"times_seen": 1}
         filters = {"id": group.id, "project_id": 1}
         the_date = timezone.now() + timedelta(days=5)
