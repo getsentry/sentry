@@ -6,6 +6,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {formatSearchStringForQueryParam} from 'sentry/utils/url/formatSearchStringForQueryParam';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -139,28 +140,13 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     );
   }
 
-  let queryParam: string | undefined;
-  let logQueryParams: string[] | undefined;
-  let metricQueryParams: string[] | undefined;
-  let spanQueryParams: string[] | undefined;
-  if (query) {
-    queryParam = query instanceof MutableSearch ? query.formatString() : query;
-  }
-  if (Array.isArray(logQuery) && logQuery.length) {
-    logQueryParams = logQuery.map(q =>
-      q instanceof MutableSearch ? q.formatString() : q
-    );
-  }
-  if (Array.isArray(metricQuery) && metricQuery.length) {
-    metricQueryParams = metricQuery.map(q =>
-      q instanceof MutableSearch ? q.formatString() : q
-    );
-  }
-  if (Array.isArray(spanQuery) && spanQuery.length) {
-    spanQueryParams = spanQuery.map(q =>
-      q instanceof MutableSearch ? q.formatString() : q
-    );
-  }
+  const queryParam = formatSearchStringForQueryParam(query);
+  const logQueryParams =
+    logQuery?.map(formatSearchStringForQueryParam).filter(defined) ?? [];
+  const metricQueryParams =
+    metricQuery?.map(formatSearchStringForQueryParam).filter(defined) ?? [];
+  const spanQueryParams =
+    spanQuery?.map(formatSearchStringForQueryParam).filter(defined) ?? [];
 
   return useApiQuery<EventsTimeSeriesResponse>(
     [
