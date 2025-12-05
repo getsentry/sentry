@@ -42,19 +42,19 @@ from sentry.utils import json
 
 class IsContributorEligibleForSeatAssignmentTest(TestCase):
     def test_user_with_member_association_is_eligible(self):
-        assert is_contributor_eligible_for_seat_assignment("User", "MEMBER") is True
+        assert is_contributor_eligible_for_seat_assignment("User", "MEMBER")
 
     def test_user_with_owner_association_is_eligible(self):
-        assert is_contributor_eligible_for_seat_assignment("User", "OWNER") is True
+        assert is_contributor_eligible_for_seat_assignment("User", "OWNER")
 
     def test_bot_is_not_eligible(self):
-        assert is_contributor_eligible_for_seat_assignment("Bot", "MEMBER") is False
+        assert not is_contributor_eligible_for_seat_assignment("Bot", "MEMBER")
 
     def test_user_with_collaborator_association_is_not_eligible(self):
-        assert is_contributor_eligible_for_seat_assignment("User", "COLLABORATOR") is False
+        assert not is_contributor_eligible_for_seat_assignment("User", "COLLABORATOR")
 
     def test_user_with_contributor_association_is_not_eligible(self):
-        assert is_contributor_eligible_for_seat_assignment("User", "CONTRIBUTOR") is False
+        assert not is_contributor_eligible_for_seat_assignment("User", "CONTRIBUTOR")
 
 
 class WebhookTest(APITestCase):
@@ -1093,22 +1093,106 @@ class PullRequestEventWebhook(APITestCase):
         mock_assign_seat.delay.assert_called_once_with(contributor)
 
     @patch("sentry.integrations.github.webhook.assign_seat_to_organization_contributor")
-    @patch("sentry.integrations.github.webhook.has_seer_and_ai_features_enabled_for_repo")
-    @override_options({"github-app.webhook-secret": "b3002c3e321d4b7880360d397db2ccfd"})
+    @patch(
+        "sentry.integrations.github.webhook.has_seer_and_ai_features_enabled_for_repo",
+        return_value=True,
+    )
     def test_seat_assignment_not_triggered_for_bot_contributor(
         self, mock_has_seer_features: MagicMock, mock_assign_seat: MagicMock
     ) -> None:
         """Seat assignment task is NOT triggered for Bot users even when they reach ACTIVE status."""
-        pass
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(self.project.organization.id, self.user)
+
+        # Pre-create contributor with num_actions=1 so next PR would make it ACTIVE (2)
+        contributor = OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_identifier="github:baxterthehacker",
+            num_actions=1,
+        )
+
+        # Modify the fixture to have Bot user type
+        event_data = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        event_data["pull_request"]["user"]["type"] = "Bot"
+
+        self.client.post(
+            path=self.url,
+            data=json.dumps(event_data, separators=(",", ":")),
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_HUB_SIGNATURE_256="sha256=d7aa4a8d1afba69924fa934f5dae3e747ab7786b161bf9bebbf3b841ebbaeb60",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        contributor.refresh_from_db()
+        assert contributor.num_actions == 2
+        mock_assign_seat.delay.assert_not_called()
 
     @patch("sentry.integrations.github.webhook.assign_seat_to_organization_contributor")
-    @patch("sentry.integrations.github.webhook.has_seer_and_ai_features_enabled_for_repo")
-    @override_options({"github-app.webhook-secret": "b3002c3e321d4b7880360d397db2ccfd"})
+    @patch(
+        "sentry.integrations.github.webhook.has_seer_and_ai_features_enabled_for_repo",
+        return_value=True,
+    )
     def test_seat_assignment_not_triggered_for_non_member_contributor(
         self, mock_has_seer_features: MagicMock, mock_assign_seat: MagicMock
     ) -> None:
         """Seat assignment task is NOT triggered for non-member/owner contributors."""
-        pass
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(self.project.organization.id, self.user)
+
+        # Pre-create contributor with num_actions=1 so next PR would make it ACTIVE (2)
+        contributor = OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_identifier="github:baxterthehacker",
+            num_actions=1,
+        )
+
+        # Modify the fixture to have COLLABORATOR author_association (not MEMBER/OWNER)
+        event_data = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        event_data["pull_request"]["author_association"] = "COLLABORATOR"
+
+        self.client.post(
+            path=self.url,
+            data=json.dumps(event_data, separators=(",", ":")),
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_HUB_SIGNATURE_256="sha256=6fc376a7e2b27eadfb09a47b1b73a36078090a522845c7a5dd41e20379a178e7",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        contributor.refresh_from_db()
+        assert contributor.num_actions == 2
+        mock_assign_seat.delay.assert_not_called()
 
 
 @with_feature("organizations:integrations-github-project-management")
