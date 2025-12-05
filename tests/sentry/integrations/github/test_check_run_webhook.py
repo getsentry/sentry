@@ -1,50 +1,23 @@
-from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
-from uuid import uuid4
+
+import responses
+from django.conf import settings
+from rest_framework.response import Response
 
 from fixtures.github import (
     CHECK_RUN_COMPLETED_EVENT_EXAMPLE,
     CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
 )
-from sentry import options
-from sentry.silo.base import SiloMode
-from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode
+
+from .testutils import GitHubWebhookTestCase
 
 
-class CheckRunEventWebhookTest(APITestCase):
-    def setUp(self) -> None:
-        self.url = "/extensions/github/webhook/"
-        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
-
-    def _create_integration_and_send_check_run_event(self, event_data):
-        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_integration(
-                organization=self.organization,
-                external_id="12345",
-                provider="github",
-                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
-            )
-            integration.add_organization(self.project.organization.id, self.user)
-
-        # Signatures computed for CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE
-        # If using different event data, signatures need to be recomputed
-        sha1_sig = "sha1=b4094fea7a98e82f508191a34d3f92d646b76e7d"
-        sha256_sig = "sha256=b1d21a975b158ce2ebb04538af7aab22373be3dc4193fc47c5feb555462a77f5"
-
-        response = self.client.post(
-            path=self.url,
-            data=event_data,
-            content_type="application/json",
-            HTTP_X_GITHUB_EVENT="check_run",
-            HTTP_X_HUB_SIGNATURE=sha1_sig,
-            HTTP_X_HUB_SIGNATURE_256=sha256_sig,
-            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
-        )
-
+class CheckRunEventWebhookTest(GitHubWebhookTestCase):
+    def _send_check_run_event(self, event_data: bytes | str) -> Response:
+        """Helper to send check_run event."""
+        self.create_github_integration()
+        response = self.send_github_webhook_event("check_run", event_data)
         assert response.status_code == 204
         return response
 
@@ -53,75 +26,75 @@ class CheckRunEventWebhookTest(APITestCase):
         self, mock_event_handler: MagicMock
     ) -> None:
         """Test that check_run requested_action events trigger the webhook handler."""
-        self._create_integration_and_send_check_run_event(
-            CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE
-        )
+        self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
         assert mock_event_handler.called
 
-    @patch("sentry.seer.error_prediction.webhooks.handle_github_check_run_for_error_prediction")
+    @responses.activate
     @with_feature("organizations:gen-ai-features")
-    def test_check_run_completed_calls_error_prediction(
-        self, mock_error_prediction: MagicMock
-    ) -> None:
-        """Test that completed check_run events call the error prediction handler."""
-        self._create_integration_and_send_check_run_event(CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
+    def test_check_run_rerequested_forwards_to_seer(self) -> None:
+        """Test that rerequested check_run events forward to Seer."""
+        # Mock the Seer API endpoint
+        responses.add(
+            responses.POST,
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/github",
+            json={"success": True},
+            status=200,
+        )
 
-        assert mock_error_prediction.called
+        self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
 
-        # Verify the handler was called with correct arguments
-        call_args = mock_error_prediction.call_args
-        assert call_args is not None
-        kwargs = call_args.kwargs
+        # Verify the request was made to Seer
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
 
-        assert "organization" in kwargs
-        assert kwargs["organization"].id == self.organization.id
-        assert "check_run" in kwargs
-        assert kwargs["check_run"]["id"] == 4
-        assert kwargs["check_run"]["status"] == "completed"
-        assert kwargs["action"] == "completed"
-        assert "repository" in kwargs
-        assert kwargs["repository"]["full_name"] == "baxterthehacker/public-repo"
+        # Verify request body contains expected data
+        import orjson
 
-    @patch("sentry.seer.error_prediction.webhooks.handle_github_check_run_for_error_prediction")
-    @patch("sentry.integrations.github.webhook.logger")
+        body = orjson.loads(request.body)
+        assert body["action"] == "rerequested"
+        assert "check_run" in body
+        assert "external_id" in body["check_run"]
+        assert "html_url" in body["check_run"]
+
+    @responses.activate
     @with_feature("organizations:gen-ai-features")
-    def test_check_run_logs_received_event(
-        self, mock_logger: MagicMock, mock_error_prediction: MagicMock
-    ) -> None:
-        """Test that check_run events are logged when received."""
-        self._create_integration_and_send_check_run_event(CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
+    def test_check_run_completed_is_skipped(self) -> None:
+        """Test that completed check_run events are skipped (not handled)."""
+        # Mock the Seer API endpoint (should NOT be called)
+        responses.add(
+            responses.POST,
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/github",
+            json={"success": True},
+            status=200,
+        )
 
-        # Verify logging occurred
-        mock_logger.info.assert_called()
-        log_calls = [call for call in mock_logger.info.call_args_list]
+        self._send_check_run_event(CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
 
-        # Check for the "received" log
-        received_logs = [
-            call for call in log_calls if "github.webhook.check_run.received" in str(call)
-        ]
-        assert len(received_logs) > 0
+        # Verify NO request was made to Seer (completed action is not handled)
+        assert len(responses.calls) == 0
 
-    @patch("sentry.seer.error_prediction.webhooks.handle_github_check_run_for_error_prediction")
+    @responses.activate
     @with_feature("organizations:gen-ai-features")
-    def test_check_run_handles_error_prediction_exception(
-        self, mock_error_prediction: MagicMock
-    ) -> None:
-        """Test that exceptions in error prediction handler are caught and logged."""
-        mock_error_prediction.side_effect = Exception("Test error")
-        self._create_integration_and_send_check_run_event(CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
+    def test_check_run_handles_seer_error_gracefully(self) -> None:
+        """Test that Seer API errors are caught and logged without failing the webhook."""
+        # Mock Seer API to return an error
+        responses.add(
+            responses.POST,
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/github",
+            json={"error": "Internal server error"},
+            status=500,
+        )
+
+        # Should not raise an exception, just log it
+        self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
+
+        # Verify the request was attempted
+        assert len(responses.calls) == 1
 
     def test_check_run_without_integration_returns_204(self) -> None:
         """Test that check_run events without integration return 204."""
         # Don't create an integration, just send the event
-        response = self.client.post(
-            path=self.url,
-            data=CHECK_RUN_COMPLETED_EVENT_EXAMPLE,
-            content_type="application/json",
-            HTTP_X_GITHUB_EVENT="check_run",
-            HTTP_X_HUB_SIGNATURE="sha1=b4094fea7a98e82f508191a34d3f92d646b76e7d",
-            HTTP_X_HUB_SIGNATURE_256="sha256=b1d21a975b158ce2ebb04538af7aab22373be3dc4193fc47c5feb555462a77f5",
-            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
-        )
+        response = self.send_github_webhook_event("check_run", CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
 
         # Should still return 204 even without integration
         assert response.status_code == 204

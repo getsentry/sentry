@@ -12,7 +12,7 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization()
-        self.event = {
+        self.action_rerequested_event = {
             "action": "rerequested",
             "check_run": {
                 "external_id": "4663713",
@@ -23,11 +23,11 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
     def test_skips_when_feature_not_enabled(self):
         """Test that the handler returns early when gen-ai-features is not enabled."""
         with patch("sentry.seer.error_prediction.webhooks.logger") as mock_logger:
-            forward_github_event_for_error_prediction(
+            success = forward_github_event_for_error_prediction(
                 organization=self.organization,
-                event=self.event,
+                event=self.action_rerequested_event,
             )
-
+            assert not success
             # Verify debug log for disabled feature
             mock_logger.debug.assert_called_once()
             assert "feature_disabled" in mock_logger.debug.call_args[0][0]
@@ -46,11 +46,11 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
                         "html_url": "https://github.com/test/repo/runs/4",
                     },
                 }
-                forward_github_event_for_error_prediction(
+                success = forward_github_event_for_error_prediction(
                     organization=self.organization,
                     event=event,
                 )
-
+                assert not success
                 # Verify debug log for skipped action
                 mock_logger.debug.assert_called_once()
                 assert "skipped_action" in mock_logger.debug.call_args[0][0]
@@ -66,10 +66,11 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
             status=200,
         )
 
-        forward_github_event_for_error_prediction(
+        success = forward_github_event_for_error_prediction(
             organization=self.organization,
             event=self.event,
         )
+        assert success
 
         # Verify request was made
         assert len(responses.calls) == 1
@@ -90,11 +91,11 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
             status=200,
         )
 
-        forward_github_event_for_error_prediction(
+        success = forward_github_event_for_error_prediction(
             organization=self.organization,
             event=minimal_event,
         )
-
+        assert success
         # Should succeed even with minimal payload
         assert len(responses.calls) == 1
 
@@ -110,14 +111,14 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
         )
 
         with patch("sentry.seer.error_prediction.webhooks.logger") as mock_logger:
-            forward_github_event_for_error_prediction(
+            success = forward_github_event_for_error_prediction(
                 organization=self.organization,
                 event=self.event,
             )
-
+            assert not success
             # Verify exception logging
             mock_logger.exception.assert_called_once()
-            assert "forward_failed" in mock_logger.exception.call_args[0][0]
+            assert "check_run.forward.exception" in mock_logger.exception.call_args[0][0]
 
     @with_feature("organizations:gen-ai-features")
     @responses.activate
@@ -130,11 +131,11 @@ class ForwardGithubCheckRunForErrorPredictionTest(TestCase):
             status=200,
         )
 
-        forward_github_event_for_error_prediction(
+        success = forward_github_event_for_error_prediction(
             organization=self.organization,
             event=self.event,
         )
-
+        assert success
         # Verify request has content-type header
         request = responses.calls[0].request
         assert request.headers["content-type"] == "application/json;charset=utf-8"

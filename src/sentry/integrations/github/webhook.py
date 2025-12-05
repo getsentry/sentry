@@ -86,7 +86,10 @@ class GitHubWebhook(SCMWebhook, ABC):
         pass
 
     def __call__(self, event: Mapping[str, Any], **kwargs: Mapping[str, Any]) -> None:
-        external_id = get_github_external_id(event=event, host=kwargs.get("host"))
+        host = kwargs.get("host")
+        external_id = get_github_external_id(
+            event=event, host=host if isinstance(host, str) else None
+        )
 
         result = integration_service.organization_contexts(
             external_id=external_id, provider=self.provider
