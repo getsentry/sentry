@@ -7,6 +7,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAndStaffPermission, OrganizationEndpoint
@@ -21,7 +22,6 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
