@@ -24,11 +24,10 @@ export function useDuplicateDashboard({onSuccess}: UseDuplicateDashboardProps) {
   const duplicateDashboard = useCallback(
     async (dashboard: DashboardListItem, viewType: 'table' | 'grid') => {
       try {
-        const dashboardDetail = await fetchDashboard(
-          api,
-          organization.slug,
-          dashboard.id
-        );
+        const dashboardDetail = dashboard.prebuiltId
+          ? {id: '-1', ...PREBUILT_DASHBOARDS[dashboard.prebuiltId]}
+          : await fetchDashboard(api, organization.slug, dashboard.id);
+
         const newDashboard = cloneDashboard(dashboardDetail);
         newDashboard.widgets.map(widget => (widget.id = undefined));
         const copiedDashboard = await createDashboard(

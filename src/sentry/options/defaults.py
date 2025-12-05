@@ -3079,6 +3079,13 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Unable to Delete Repository notifications
+register(
+    "notifications.platform-rate.unable-to-delete-repository",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Notification Options - End
 
 # List of organizations with increased rate limits for organization_events API
