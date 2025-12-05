@@ -5,15 +5,16 @@ import sys
 from collections.abc import Sequence
 from enum import Enum
 from typing import TYPE_CHECKING
+from typing import Any as TAny
 
 from django.conf import settings
 
 from sentry.utils.flag import record_option
 from sentry.utils.hashlib import md5_text
-from sentry.utils.types import Any, type_from_value
+from sentry.utils.types import Any, Type, type_from_value
 
 if TYPE_CHECKING:
-    from sentry.options.store import Key, OptionsStore
+    from sentry.options.store import GroupingInfo, Key, OptionsStore
 
 # Prevent ourselves from clobbering the builtin
 _type = type
@@ -155,7 +156,7 @@ WRITE_REQUIRED_FLAGS = {
 }
 
 
-def _make_cache_key(key):
+def _make_cache_key(key: str) -> str:
     return "o:%s" % md5_text(key).hexdigest()
 
 
@@ -236,13 +237,13 @@ class OptionsManager:
     def make_key(
         self,
         name: str,
-        default,
-        type,
+        default: TAny,
+        type: Type[TAny],
         flags: int,
         ttl: int,
         grace: int,
-        grouping_info,
-    ):
+        grouping_info: GroupingInfo | None,
+    ) -> Key:
         from sentry.options.store import Key
 
         return Key(
