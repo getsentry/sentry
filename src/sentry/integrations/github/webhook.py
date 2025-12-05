@@ -85,8 +85,11 @@ class GitHubWebhook(SCMWebhook, ABC):
     def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs) -> None:
         pass
 
-    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
-        external_id = get_github_external_id(event=event, host=kwargs.get("host"))
+    def __call__(self, event: Mapping[str, Any], **kwargs: Mapping[str, Any]) -> None:
+        host = kwargs.get("host")
+        external_id = get_github_external_id(
+            event=event, host=host if isinstance(host, str) else None
+        )
 
         result = integration_service.organization_contexts(
             external_id=external_id, provider=self.provider
@@ -784,6 +787,34 @@ class PullRequestEventWebhook(GitHubWebhook):
         handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
 
 
+class CheckRunEventWebhook(GitHubWebhook):
+    """
+    Handles GitHub check_run webhook events.
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#check_run
+    """
+
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.PULL_REQUEST
+
+    def _handle(
+        self,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        **kwargs,
+    ) -> None:
+        # Get organization from kwargs (populated by GitHubWebhook base class)
+        organization = kwargs.get("organization")
+        if organization is None:
+            logger.warning("github.webhook.check_run.missing-organization")
+            return
+
+        # XXX: Add support for registering functions to call
+        from sentry.seer.error_prediction.webhooks import forward_github_event_for_error_prediction
+
+        forward_github_event_for_error_prediction(organization=organization, event=event)
+
+
 @all_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(Endpoint):
     """
@@ -804,6 +835,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
         GithubWebhookType.INSTALLATION: InstallationEventWebhook,
         GithubWebhookType.ISSUE: IssuesEventWebhook,
+        GithubWebhookType.CHECK_RUN: CheckRunEventWebhook,
     }
 
     def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:
