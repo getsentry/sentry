@@ -40,7 +40,7 @@ const StyledChonkBadge = chonkStyled('span')<ChonkBadgeProps>`
   align-items: center;
   line-height: initial;
   height: 20px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.medium};
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.xs};
 `;
 
