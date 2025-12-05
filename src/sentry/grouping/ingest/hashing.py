@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import sentry_sdk
 from django.core.cache import cache
@@ -207,6 +207,13 @@ def find_grouphash_with_group(
             )
 
     return None
+
+
+# TODO: This can go once we've settled on an expiry time for each cache
+def _get_cache_expiry(cache_key: str, cache_type: Literal["existence", "object"]) -> int:
+    option_name = f"grouping.ingest_grouphash_{cache_type}_cache_expiry.trial_values"
+    possible_cache_expiries = options.get(option_name)
+    return possible_cache_expiries[hash(cache_key) % len(possible_cache_expiries)]
 
 
 def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_caching: bool) -> bool:
