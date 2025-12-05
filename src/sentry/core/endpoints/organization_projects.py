@@ -164,20 +164,23 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             queryset = queryset.order_by("slug").select_related("organization")
 
             # Limit to 1000 projects to prevent timeouts
-            project_count = queryset.count()
+            # Fetch MAX + 1 to detect if there are more without expensive count()
+            MAX_PROJECTS = 1000
+            projects = list(queryset[: MAX_PROJECTS + 1])
+            has_more = len(projects) > MAX_PROJECTS
 
             response = Response(
                 serialize(
-                    list(queryset[:1000]),
+                    projects[:MAX_PROJECTS],
                     request.user,
                     ProjectSummarySerializer(collapse=collapse, dataset=dataset),
                 )
             )
 
-            if project_count > 1000:
+            if has_more:
                 response["X-Sentry-Warning"] = (
-                    f"This organization has {project_count} projects. "
-                    f"Only the first 1000 are shown. "
+                    f"This organization has more than {MAX_PROJECTS} projects. "
+                    f"Only the first {MAX_PROJECTS} are shown. "
                     f"Please use pagination or filter your query."
                 )
 
