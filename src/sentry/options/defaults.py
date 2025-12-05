@@ -3090,6 +3090,13 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Custom Rule Samples Fulfilled notifications
+register(
+    "notifications.platform-rate.custom-rule-samples-fulfilled",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Unable to Delete Repository notifications
 register(
     "notifications.platform-rate.unable-to-delete-repository",
