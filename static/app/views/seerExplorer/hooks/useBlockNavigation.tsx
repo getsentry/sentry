@@ -9,6 +9,7 @@ interface UseBlockNavigationProps {
   isOpen: boolean;
   setFocusedBlockIndex: (index: number) => void;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  isFileApprovalPending?: boolean;
   isMinimized?: boolean;
   onDeleteFromIndex?: (index: number) => void;
   onKeyPress?: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean;
@@ -22,6 +23,7 @@ export function useBlockNavigation({
   blockRefs,
   textareaRef,
   setFocusedBlockIndex,
+  isFileApprovalPending = false,
   isMinimized = false,
   onDeleteFromIndex,
   onKeyPress,
@@ -36,6 +38,14 @@ export function useBlockNavigation({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
+
+      // Don't handle Backspace/Enter when file approval is pending (they're used for approve/reject)
+      if (
+        isFileApprovalPending &&
+        (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Enter')
+      ) {
+        return;
+      }
 
       if (e.key === 'ArrowUp') {
         e.preventDefault();
@@ -119,6 +129,7 @@ export function useBlockNavigation({
     blockRefs,
     textareaRef,
     setFocusedBlockIndex,
+    isFileApprovalPending,
     isMinimized,
     onDeleteFromIndex,
     onKeyPress,

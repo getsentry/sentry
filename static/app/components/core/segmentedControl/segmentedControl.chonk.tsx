@@ -1,10 +1,9 @@
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import {css} from '@emotion/react';
 
 import {DO_NOT_USE_getChonkButtonStyles} from 'sentry/components/core/button/styles.chonk';
 import {space} from 'sentry/styles/space';
-import type {FormSize} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import type {FormSize, Theme} from 'sentry/utils/theme';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 
 export type Priority = 'default' | 'primary';
 
@@ -103,7 +102,7 @@ function getTextColor({
 }: {
   isSelected: boolean;
   priority: Priority;
-  theme: DO_NOT_USE_ChonkTheme;
+  theme: Theme;
   isDisabled?: boolean;
 }) {
   if (isSelected) {
