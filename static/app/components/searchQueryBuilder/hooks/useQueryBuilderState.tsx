@@ -732,21 +732,22 @@ export function replaceFreeTextTokens(
     }
 
     const value = escapeTagValue(token.text.trim());
-    const valueIsQuoted =
-      value.startsWith('"') && value.endsWith('"') && value.includes(' ');
 
-    if (!token.quoted && valueIsQuoted) {
+    // We don't want to break user flows, so if they include an asterisk in their free
+    // text value, leave it as an `is` filter.
+    if (value.includes('*')) {
+      replacedQuery.push(`${primarySearchKey}:${value}`);
+    } else if (
+      !token.quoted &&
+      value.startsWith('"') &&
+      value.endsWith('"') &&
+      value.includes(' ')
+    ) {
       replacedQuery.push(
         `${primarySearchKey}:"*${value.slice(1, -1).replaceAll(' ', ' * ')}*"`
       );
     } else {
-      replacedQuery.push(
-        // We don't want to break user flows, so if they include an asterisk in their free
-        // text value, leave it as an `is` filter.
-        value.includes('*')
-          ? `${primarySearchKey}:${value}`
-          : `${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`
-      );
+      replacedQuery.push(`${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`);
     }
   }
 
