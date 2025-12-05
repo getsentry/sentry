@@ -187,8 +187,8 @@ const AlertPanel = styled('div')<AlertProps & {hovered: boolean}>`
   grid-template-columns: ${p => getAlertGridLayout(p)};
   gap: ${space(1)};
   color: ${p => getAlertColors(p.theme, p.type).color};
-  font-size: ${p => p.theme.fontSize.md};
-  border-radius: ${p => p.theme.radius.md};
+  font-size: ${p => p.theme.font.size.md};
+  border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => getAlertColors(p.theme, p.type).border};
   padding: ${space(1.5)} ${space(2)};
   background-image: ${p =>
@@ -245,7 +245,7 @@ const IconWrapper = withChonk(
   styled('div')<{type: AlertProps['type']}>`
     display: flex;
     align-items: center;
-    height: calc(${p => p.theme.fontSize.md} * ${p => p.theme.text.lineHeightBody});
+    height: calc(${p => p.theme.font.size.md} * ${p => p.theme.text.lineHeightBody});
   `,
   ChonkAlert.IconWrapper
 );
@@ -260,7 +260,7 @@ const Message = withChonk(
 
 const TrailingItems = withChonk(
   styled('div')<{showIcon: boolean}>`
-    height: calc(${p => p.theme.fontSize.md} * ${p => p.theme.text.lineHeightBody});
+    height: calc(${p => p.theme.font.size.md} * ${p => p.theme.text.lineHeightBody});
     display: grid;
     grid-auto-flow: column;
     grid-template-rows: 100%;
