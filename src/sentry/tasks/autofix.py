@@ -126,14 +126,14 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     projects = list(Project.objects.filter(organization_id=organization_id, status=0))
     project_ids = [p.id for p in projects]
 
+    if len(project_ids) == 0:
+        return
+
     # If seer is enabled for an org, every project must have project level settings
     for project in projects:
         project.update_option("sentry:seer_scanner_automation", True)
         # New automation default for the new pricing is medium.
         project.update_option("sentry:autofix_automation_tuning", "medium")
-
-    if not project_ids:
-        return
 
     preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)
 
@@ -156,5 +156,5 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 "automation_handoff": existing_pref.get("automation_handoff"),
             }
         )
-    if preferences_to_set:
+    if len(preferences_to_set) > 0:
         bulk_set_project_preferences(organization_id, preferences_to_set)

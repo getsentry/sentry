@@ -181,7 +181,7 @@ def bulk_get_project_preferences(organization_id: int, project_ids: list[int]) -
         autofix_connection_pool,
         path,
         body=body,
-        timeout=30,
+        timeout=10,
     )
 
     if response.status >= 400:
@@ -203,7 +203,7 @@ def bulk_set_project_preferences(organization_id: int, preferences: list[dict]) 
         autofix_connection_pool,
         path,
         body=body,
-        timeout=30,
+        timeout=15,
     )
 
     if response.status >= 400:

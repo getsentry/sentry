@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.test import TestCase
 
 from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
 from sentry.seer.autofix.utils import AutofixState
-from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
+from sentry.seer.models import SeerApiError, SummarizeIssueResponse, SummarizeIssueScores
 from sentry.tasks.autofix import (
     check_autofix_status,
     configure_seer_for_existing_org,
@@ -202,10 +203,6 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
     @patch("sentry.tasks.autofix.bulk_get_project_preferences")
     def test_raises_on_bulk_get_api_failure(self, mock_bulk_get: MagicMock) -> None:
         """Test that task raises on bulk GET API failure to trigger retry."""
-        import pytest
-
-        from sentry.seer.models import SeerApiError
-
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
 
@@ -224,10 +221,6 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
     ) -> None:
         """Test that task raises on bulk SET API failure to trigger retry."""
-        import pytest
-
-        from sentry.seer.models import SeerApiError
-
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
 
