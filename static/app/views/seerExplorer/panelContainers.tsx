@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Text} from 'sentry/components/core/text';
 import {IconSeer} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {PanelSize} from 'sentry/views/seerExplorer/types';
 
 interface PanelContainersProps {
@@ -68,7 +67,7 @@ function PanelContainers({
                   transition={{duration: 0.12}}
                   onClick={onUnminimize}
                 >
-                  <Flex direction="column" align="center" gap="lg">
+                  <Flex direction="column" align="center" gap="md">
                     <IconSeer variant="waiting" size="lg" />
                     <Text>Press Tab ⇥ or click to continue with Seer</Text>
                   </Flex>
@@ -100,7 +99,7 @@ const PanelContainer = styled(motion.div)<{
   panelSize: 'max' | 'med';
 }>`
   position: fixed;
-  bottom: ${space(2)};
+  bottom: ${p => p.theme.space.md};
   left: 50%;
   z-index: 10000;
   pointer-events: auto;
@@ -108,13 +107,13 @@ const PanelContainer = styled(motion.div)<{
   ${p =>
     p.panelSize === 'max'
       ? `
-      width: calc(100vw - ${space(4)});
-      height: calc(100vh - ${space(4)});
-      margin-left: calc(-50vw + ${space(2)});
+      width: calc(100vw - ${p.theme.space.xl});
+      height: calc(100vh - ${p.theme.space.xl});
+      margin-left: calc(-50vw + ${p.theme.space.md});
     `
       : `
       width: 50vw;
-      height: 50vh;
+      height: 55vh;
       margin-left: -25vw;
     `}
 
