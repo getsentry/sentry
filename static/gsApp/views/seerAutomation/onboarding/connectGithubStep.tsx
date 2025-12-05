@@ -56,10 +56,10 @@ export function ConnectGithubStep({
                   value={{
                     provider,
                     type: 'first_party',
-                    installStatus: 'Not Installed', // `AddIntegrationButton` only handles `Disabled`
+                    installStatus: hasInstallation ? 'Installed' : 'Not Installed', // `AddIntegrationButton` only handles `Disabled`
                     analyticsParams: {
                       view: 'seer_onboarding_github',
-                      already_installed: false,
+                      already_installed: Boolean(hasInstallation),
                     },
                   }}
                 >

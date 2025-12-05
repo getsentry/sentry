@@ -146,7 +146,7 @@ export function RepositoryToProjectConfiguration({
         <Switch
           size="lg"
           checked={proposeFixesEnabled}
-          onToggle={() => setProposeFixesEnabled(!proposeFixesEnabled)}
+          onChange={() => setProposeFixesEnabled(!proposeFixesEnabled)}
         />
       </FormField>
 

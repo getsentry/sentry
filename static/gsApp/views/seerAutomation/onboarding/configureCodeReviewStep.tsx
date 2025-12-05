@@ -37,7 +37,8 @@ export function ConfigureCodeReviewStep({
   const selectedRepositories = useMemo(() => {
     return Object.entries(selectedRepositoriesMap)
       .filter(([_, isSelected]) => isSelected)
-      .map(([repoId]) => repositories.find(repo => repo.id === repoId));
+      .map(([repoId]) => repositories.find(repo => repo.id === repoId))
+      .filter(Boolean);
   }, [selectedRepositoriesMap, repositories]);
 
   const handleNextStep = useCallback(() => {

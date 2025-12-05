@@ -94,7 +94,7 @@ export function StepsManager() {
 
       <ConfigureRootCauseAnalysisStep selectedRepositories={selectedRepositories} />
 
-      <NextStepsStep repositories={repositories} />
+      <NextStepsStep repositories={selectedRepositories} />
     </Fragment>
   );
 }
