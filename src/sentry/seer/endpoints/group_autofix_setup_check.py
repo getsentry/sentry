@@ -7,7 +7,7 @@ import requests
 from django.conf import settings
 from rest_framework.response import Response
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -134,6 +134,15 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
             integration_check = get_autofix_integration_setup_problems(
                 organization=org, project=group.project
             )
+
+            # Customers on new pricing need to have github configured to use Autofix.
+            # Check if project has code mappings configured (feature flagged)
+            if integration_check is None and features.has(
+                "organizations:triage-signals-v0-org", org
+            ):
+                repos_from_mappings = get_autofix_repos_from_project_code_mappings(group.project)
+                if not repos_from_mappings:
+                    integration_check = "code_mappings_missing"
 
         write_integration_check = None
         if request.query_params.get("check_write_access", False):
