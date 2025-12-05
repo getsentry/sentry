@@ -743,9 +743,12 @@ export function replaceFreeTextTokens(
       value.endsWith('"') &&
       value.includes(' ')
     ) {
-      replacedQuery.push(
-        `${primarySearchKey}:"*${value.slice(1, -1).replaceAll(' ', ' * ')}*"`
-      );
+      const formattedValue = value
+        .slice(1, -1)
+        .trim()
+        .replace(/\s+/g, ' ')
+        .replaceAll(' ', '*');
+      replacedQuery.push(`${primarySearchKey}:"*${formattedValue}*"`);
     } else {
       replacedQuery.push(`${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`);
     }
