@@ -150,7 +150,14 @@ export type AddOnCategoryInfo = {
 };
 
 export type AddOn = AddOnCategoryInfo & {
+  /**
+   * Whether the subscription has bought the add-on
+   */
   enabled: boolean;
+  /**
+   * Whether the subscription can buy the add-on
+   */
+  isAvailable: boolean;
 };
 
 type AddOns = Partial<Record<AddOnCategory, AddOn>>;
