@@ -228,6 +228,7 @@ export interface DiffItem {
   path: string;
   size_diff: number;
   type: DiffType;
+  diff_items?: DiffItem[] | null;
 }
 
 // Keep in sync with https://github.com/getsentry/sentry/blob/a85090d7b81832982b43a35c30db9970a0258e99/src/sentry/preprod/models.py#L230

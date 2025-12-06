@@ -1,142 +1,45 @@
 import {useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge/tag';
-import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text';
 
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {SizeCompareItemDiffTable} from 'sentry/views/preprod/buildComparison/main/sizeCompareItemDiffTable';
+import {FileInsightItemDiffTable} from 'sentry/views/preprod/buildComparison/main/insights/fileInsightDiffTable';
+import {GroupInsightItemDiffTable} from 'sentry/views/preprod/buildComparison/main/insights/groupInsightDiffTable';
+import {InsightDiffRow} from 'sentry/views/preprod/buildComparison/main/insights/InsightDiffRow';
 import type {
-  DiffItem,
   InsightDiffItem,
   InsightStatus,
 } from 'sentry/views/preprod/types/appSizeTypes';
-import {INSIGHT_CONFIGS} from 'sentry/views/preprod/utils/insightProcessing';
 
 interface InsightComparisonSectionProps {
   insightDiffItems: InsightDiffItem[];
+  totalInstallSizeBytes: number;
 }
 
-function getInsightConfig(insightType: string): {description: string; name: string} {
-  return (
-    INSIGHT_CONFIGS.find(config => config.key === insightType) ?? {
-      name: insightType,
-      description: t('No description available'),
-    }
-  );
-}
+const FILE_DIFF_INSIGHT_TYPES = [
+  'large_images',
+  'large_videos',
+  'large_audio',
+  'hermes_debug_info',
+  'unnecessary_files',
+  'webp_optimization',
+  'localized_strings_comments',
+  'small_files',
+  'main_binary_exported_symbols',
+  'audio_compression',
+  'multiple_native_library_archs',
+  'video_compression',
+  'image_optimization',
+];
 
-interface InsightRowProps {
-  insight: InsightDiffItem;
-}
-
-function InsightRow({insight}: InsightRowProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const config = getInsightConfig(insight.insight_type);
-
-  const allDiffItems: DiffItem[] = useMemo(
-    () => [...insight.file_diffs, ...insight.group_diffs],
-    [insight.file_diffs, insight.group_diffs]
-  );
-
-  const statusCounts = useMemo(() => {
-    const newCount = insight.status === 'new' ? allDiffItems.length : 0;
-    const unresolvedCount =
-      insight.status === 'unresolved'
-        ? allDiffItems.filter(item => item.type === 'added' || item.type === 'increased')
-            .length
-        : 0;
-    const resolvedCount =
-      insight.status === 'resolved'
-        ? allDiffItems.length
-        : insight.status === 'unresolved'
-          ? allDiffItems.filter(
-              item => item.type === 'removed' || item.type === 'decreased'
-            ).length
-          : 0;
-
-    return {new: newCount, unresolved: unresolvedCount, resolved: resolvedCount};
-  }, [insight.status, allDiffItems]);
-
-  const totalSavingsChangePercentage =
-    insight.total_savings_change === 0
-      ? '0.00'
-      : ((Math.abs(insight.total_savings_change) / 1000000) * 100).toFixed(2);
-
-  return (
-    <Container background="primary" radius="lg" padding="0" border="primary">
-      <Flex direction="column" gap="0">
-        <Flex align="center" justify="between" padding="xl">
-          <Flex direction="column" gap="sm" style={{flex: 1}}>
-            <Flex align="center" gap="sm">
-              <Heading as="h3">{config.name}</Heading>
-              <Flex align="center" gap="xs">
-                {statusCounts.new > 0 && (
-                  <Tag type="promotion">{t('New (%s)', statusCounts.new)}</Tag>
-                )}
-                {statusCounts.unresolved > 0 && (
-                  <Tag type="warning">
-                    {t('Unresolved (%s)', statusCounts.unresolved)}
-                  </Tag>
-                )}
-                {statusCounts.resolved > 0 && (
-                  <Tag type="success">{t('Resolved (%s)', statusCounts.resolved)}</Tag>
-                )}
-              </Flex>
-            </Flex>
-            <Text size="sm" variant="muted">
-              {config.description}
-            </Text>
-          </Flex>
-          <Flex align="center" gap="md">
-            <Flex direction="column" align="end" gap="xs">
-              <Text bold>
-                {t(
-                  'Potential savings: %s',
-                  formatBytesBase10(insight.total_savings_change)
-                )}
-              </Text>
-              <SavingsPercentage savingsChange={insight.total_savings_change}>
-                {insight.total_savings_change > 0 ? '+' : ''}
-                {totalSavingsChangePercentage}%
-              </SavingsPercentage>
-            </Flex>
-            <Button
-              priority="transparent"
-              size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              aria-label={isExpanded ? t('Collapse insight') : t('Expand insight')}
-            >
-              <IconChevron
-                direction={isExpanded ? 'up' : 'down'}
-                size="sm"
-                style={{
-                  transition: 'transform 0.2s ease',
-                }}
-              />
-            </Button>
-          </Flex>
-        </Flex>
-        {isExpanded && allDiffItems.length > 0 && (
-          <SizeCompareItemDiffTable
-            diffItems={allDiffItems}
-            originalItemCount={allDiffItems.length}
-            disableHideSmallChanges={() => {}}
-          />
-        )}
-      </Flex>
-    </Container>
-  );
-}
+const GROUP_DIFF_INSIGHT_TYPES = ['duplicate_files', 'loose_images'];
 
 export function InsightComparisonSection({
   insightDiffItems,
+  totalInstallSizeBytes,
 }: InsightComparisonSectionProps) {
   const [selectedTab, setSelectedTab] = useState<'all' | InsightStatus>('all');
 
@@ -194,9 +97,31 @@ export function InsightComparisonSection({
         </Flex>
 
         <Stack gap="md">
-          {filteredInsights.map(insight => (
-            <InsightRow key={insight.insight_type} insight={insight} />
-          ))}
+          {filteredInsights.map(insight => {
+            if (FILE_DIFF_INSIGHT_TYPES.includes(insight.insight_type)) {
+              return (
+                <InsightDiffRow
+                  key={insight.insight_type}
+                  insight={insight}
+                  totalInstallSizeBytes={totalInstallSizeBytes}
+                >
+                  <FileInsightItemDiffTable fileDiffItems={insight.file_diffs} />
+                </InsightDiffRow>
+              );
+            }
+            if (GROUP_DIFF_INSIGHT_TYPES.includes(insight.insight_type)) {
+              return (
+                <InsightDiffRow
+                  key={insight.insight_type}
+                  insight={insight}
+                  totalInstallSizeBytes={totalInstallSizeBytes}
+                >
+                  <GroupInsightItemDiffTable groupDiffItems={insight.group_diffs} />
+                </InsightDiffRow>
+              );
+            }
+            return null;
+          })}
         </Stack>
       </Stack>
 
@@ -204,8 +129,3 @@ export function InsightComparisonSection({
     </Stack>
   );
 }
-
-const SavingsPercentage = styled(Text)<{savingsChange: number}>`
-  color: ${p => (p.savingsChange > 0 ? p.theme.dangerText : p.theme.successText)};
-  font-weight: ${p => p.theme.fontWeight.normal};
-`;

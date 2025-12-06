@@ -244,6 +244,9 @@ export function SizeCompareMainContent() {
       {comparisonDataQuery.data?.insight_diff_items &&
         comparisonDataQuery.data.insight_diff_items.length > 0 && (
           <InsightComparisonSection
+            totalInstallSizeBytes={
+              comparisonDataQuery.data?.size_metric_diff_item.head_install_size
+            }
             insightDiffItems={comparisonDataQuery.data.insight_diff_items}
           />
         )}
