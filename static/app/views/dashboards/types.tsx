@@ -192,6 +192,7 @@ export type GlobalFilter = {
   tag: Tag;
   // The raw filter condition string (e.g. 'tagKey:[values,...]')
   value: string;
+  isTemporary?: boolean;
 };
 
 /**

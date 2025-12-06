@@ -10,6 +10,7 @@ export type GenericFilterSelectorProps = {
   onRemoveFilter: (filter: GlobalFilter) => void;
   onUpdateFilter: (filter: GlobalFilter) => void;
   searchBarData: SearchBarData;
+  disableRemoveFilter?: boolean;
 };
 
 function getFilterSelector(
