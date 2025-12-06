@@ -523,7 +523,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
             tree,
             c,
             c.space[0],
-            c.value.measurements,
+            c.measurements,
             tree.vitals,
             tree.vital_types
           )
@@ -678,7 +678,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
             tree,
             node,
             baseTraceNode.space[0],
-            node.value.measurements,
+            node.measurements,
             this.vitals,
             this.vital_types
           )

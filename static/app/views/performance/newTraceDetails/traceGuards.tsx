@@ -11,7 +11,6 @@ import type {SiblingAutogroupNode} from './traceModels/traceTreeNode/siblingAuto
 import type {SpanNode} from './traceModels/traceTreeNode/spanNode';
 import type {TransactionNode} from './traceModels/traceTreeNode/transactionNode';
 import type {UptimeCheckNode} from './traceModels/traceTreeNode/uptimeCheckNode';
-import type {UptimeCheckTimingNode} from './traceModels/traceTreeNode/uptimeCheckTimingNode';
 
 export function isMissingInstrumentationNode(
   node: BaseNode
@@ -45,14 +44,6 @@ export function isEAPSpanNode(node: BaseNode): node is EapSpanNode {
 
 export function isUptimeCheckNode(node: BaseNode): node is UptimeCheckNode {
   return isUptimeCheck(node.value);
-}
-
-export function isUptimeCheckTimingNode(node: BaseNode): node is UptimeCheckTimingNode {
-  return !!(
-    node.value &&
-    'event_type' in node.value &&
-    node.value.event_type === 'uptime_check_timing'
-  );
 }
 
 export function isTransactionNode(node: BaseNode): node is TransactionNode {

@@ -10,11 +10,12 @@ import {
   isSpanNode,
   isTransactionNode,
   isUptimeCheckNode,
-  isUptimeCheckTimingNode,
 } from './../traceGuards';
+import type {BaseNode} from './traceTreeNode/baseNode';
 import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
 import type {ParentAutogroupNode} from './traceTreeNode/parentAutogroupNode';
 import type {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
+import type {UptimeCheckTimingNode} from './traceTreeNode/uptimeCheckTimingNode';
 import {TraceShape, TraceTree} from './traceTree';
 import {
   assertEAPSpanNode,
@@ -2043,6 +2044,14 @@ describe('TraceTree', () => {
   });
 
   describe('uptime check integration', () => {
+    function isUptimeCheckTimingNode(node: BaseNode): node is UptimeCheckTimingNode {
+      return !!(
+        node.value &&
+        'event_type' in node.value &&
+        node.value.event_type === 'uptime_check_timing'
+      );
+    }
+
     it('automatically creates timing nodes when uptime check node is created', () => {
       const uptimeCheck = makeUptimeCheck({
         additional_attributes: {
