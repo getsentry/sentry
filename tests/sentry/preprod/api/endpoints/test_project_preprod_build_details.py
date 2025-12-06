@@ -191,6 +191,59 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert resp_data["size_info"]["install_size_bytes"] == 1024000
         assert resp_data["size_info"]["download_size_bytes"] == 512000
 
+    def test_size_info_completed_includes_base_metrics(self) -> None:
+        """Test that completed size analysis includes base_size_metrics when base artifact exists."""
+        assert self.preprod_artifact.commit_comparison is not None
+        base_commit_comparison = self.create_commit_comparison(
+            organization=self.org,
+            head_sha=self.preprod_artifact.commit_comparison.base_sha,
+            base_sha="0000000000000000000000000000000000000000",
+        )
+        base_file = self.create_file(name="base_artifact.apk", type="application/octet-stream")
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            file_id=base_file.id,
+            artifact_type=self.preprod_artifact.artifact_type,
+            app_id=self.preprod_artifact.app_id,
+            app_name=self.preprod_artifact.app_name,
+            build_version="0.9.0",
+            build_number=41,
+            commit_comparison=base_commit_comparison,
+        )
+
+        self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=1536000,
+            max_download_size=768000,
+        )
+        self.create_preprod_artifact_size_metrics(
+            base_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=1024000,
+            max_download_size=512000,
+        )
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["size_info"] is not None
+        assert resp_data["size_info"]["state"] == 2
+        assert len(resp_data["size_info"]["base_size_metrics"]) == 1
+        base_metric = resp_data["size_info"]["base_size_metrics"][0]
+        assert (
+            base_metric["metrics_artifact_type"]
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        )
+        assert base_metric["install_size_bytes"] == 1024000
+        assert base_metric["download_size_bytes"] == 512000
+
     def test_size_info_failed(self) -> None:
         """Test that failed size analysis returns SizeInfoFailed."""
         self.create_preprod_artifact_size_metrics(
