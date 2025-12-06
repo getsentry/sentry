@@ -555,6 +555,8 @@ def _diff_insight(
         raise ValueError("Both head and base insights are None")
 
     if head_insight is None:
+        # Should never happen, but here for mypy passing
+        assert base_insight is not None
         status = "resolved"
         # Resolved insight - all items removed
         total_savings_change = -base_insight.total_savings
@@ -563,6 +565,8 @@ def _diff_insight(
         head_groups = []
         base_groups = base_insight.groups if isinstance(base_insight, GroupsInsightResult) else []
     elif base_insight is None:
+        # Should never happen, but here for mypy passing
+        assert head_insight is not None
         status = "new"
         # New insight - all items added
         total_savings_change = head_insight.total_savings
@@ -608,7 +612,7 @@ def _compare_insights(
     head_size_analysis_results: SizeAnalysisResults,
     base_size_analysis_results: SizeAnalysisResults,
 ) -> list[InsightDiffItem]:
-    insight_diff_items = []
+    insight_diff_items: list[InsightDiffItem] = []
 
     head_insights = head_size_analysis_results.insights
     base_insights = base_size_analysis_results.insights
