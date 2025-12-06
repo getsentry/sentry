@@ -1,11 +1,14 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
 from django.db import connections
 from django.db.utils import OperationalError
+from django.utils import timezone
 
 from sentry.db.models.query import in_iexact
 from sentry.models.commit import Commit
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import TestCase
@@ -170,6 +173,124 @@ class RangeQuerySetWrapperTest(TestCase):
                 list(self.range_wrapper(qs, step=10, query_timeout_retries=None))
 
         assert attempt_count["count"] == 1
+
+
+@no_silo_test
+class RangeQuerySetWrapperKeysetPaginationTest(TestCase):
+    """Tests for keyset pagination with compound order_by fields."""
+
+    def test_compound_order_by_with_duplicate_values(self) -> None:
+        """Test that all rows are returned when the first order_by field has duplicates."""
+        project = self.create_project()
+        same_timestamp = timezone.now() - timedelta(days=1)
+
+        # Create groups with the exact same last_seen timestamp
+        group1 = self.create_group(project=project, last_seen=same_timestamp)
+        group2 = self.create_group(project=project, last_seen=same_timestamp)
+        group3 = self.create_group(project=project, last_seen=same_timestamp)
+        expected_ids = {group1.id, group2.id, group3.id}
+
+        qs = Group.objects.filter(id__in=expected_ids)
+
+        # Use compound order_by with non-unique field first, unique field last
+        results = list(RangeQuerySetWrapper(qs, step=1, order_by=["last_seen", "id"]))
+
+        assert {g.id for g in results} == expected_ids
+
+    def test_compound_order_by_returns_all_rows_across_batches(self) -> None:
+        """Test that pagination works correctly across batch boundaries."""
+        project = self.create_project()
+        same_timestamp = timezone.now() - timedelta(days=1)
+
+        # Create more groups than batch size with same timestamp
+        groups = [self.create_group(project=project, last_seen=same_timestamp) for _ in range(5)]
+        expected_ids = {g.id for g in groups}
+
+        qs = Group.objects.filter(id__in=expected_ids)
+
+        # Use small step to force multiple batches
+        results = list(RangeQuerySetWrapper(qs, step=2, order_by=["last_seen", "id"]))
+
+        assert {g.id for g in results} == expected_ids
+
+    def test_compound_order_by_with_mixed_timestamps(self) -> None:
+        """Test pagination with a mix of duplicate and unique timestamps."""
+        project = self.create_project()
+        ts1 = timezone.now() - timedelta(days=3)
+        ts2 = timezone.now() - timedelta(days=2)
+        ts3 = timezone.now() - timedelta(days=1)
+
+        # Groups with various timestamps, some duplicated
+        group1 = self.create_group(project=project, last_seen=ts1)
+        group2 = self.create_group(project=project, last_seen=ts1)  # duplicate
+        group3 = self.create_group(project=project, last_seen=ts2)
+        group4 = self.create_group(project=project, last_seen=ts3)
+        group5 = self.create_group(project=project, last_seen=ts3)  # duplicate
+        expected_ids = {group1.id, group2.id, group3.id, group4.id, group5.id}
+
+        qs = Group.objects.filter(id__in=expected_ids)
+
+        results = list(RangeQuerySetWrapper(qs, step=2, order_by=["last_seen", "id"]))
+
+        assert {g.id for g in results} == expected_ids
+
+    def test_compound_order_by_validates_last_field_unique(self) -> None:
+        """Test that compound order_by requires the last field to be unique."""
+        qs = Group.objects.all()
+
+        # Should fail: last field (last_seen) is not unique
+        with pytest.raises(InvalidQuerySetError):
+            RangeQuerySetWrapper(qs, order_by=["id", "last_seen"])
+
+        # Should succeed: last field (id) is unique
+        RangeQuerySetWrapper(qs, order_by=["last_seen", "id"])
+
+    def test_compound_order_by_with_values_list(self) -> None:
+        """Test keyset pagination with values_list queryset."""
+        project = self.create_project()
+        same_timestamp = timezone.now() - timedelta(days=1)
+
+        group1 = self.create_group(project=project, last_seen=same_timestamp)
+        group2 = self.create_group(project=project, last_seen=same_timestamp)
+        group3 = self.create_group(project=project, last_seen=same_timestamp)
+        expected_ids = {group1.id, group2.id, group3.id}
+
+        qs = Group.objects.filter(id__in=expected_ids).values_list("id", "last_seen")
+
+        # For values_list, provide result_value_getter that returns cursor dict
+        def getter(item):
+            return {"last_seen": item[1], "id": item[0]}
+
+        results = list(
+            RangeQuerySetWrapper(
+                qs, step=1, order_by=["last_seen", "id"], result_value_getter=getter
+            )
+        )
+
+        assert {r[0] for r in results} == expected_ids
+
+    def test_compound_order_by_descending(self) -> None:
+        """Test keyset pagination in descending order."""
+        project = self.create_project()
+        ts1 = timezone.now() - timedelta(days=3)
+        ts2 = timezone.now() - timedelta(days=2)
+        ts3 = timezone.now() - timedelta(days=1)
+
+        group1 = self.create_group(project=project, last_seen=ts1)
+        group2 = self.create_group(project=project, last_seen=ts2)
+        group3 = self.create_group(project=project, last_seen=ts3)
+        group4 = self.create_group(project=project, last_seen=ts3)  # duplicate
+        expected_ids = {group1.id, group2.id, group3.id, group4.id}
+
+        qs = Group.objects.filter(id__in=expected_ids)
+
+        # Negative step for descending
+        results = list(RangeQuerySetWrapper(qs, step=-2, order_by=["last_seen", "id"]))
+
+        assert {g.id for g in results} == expected_ids
+        # Verify descending order
+        last_seens = [g.last_seen for g in results]
+        assert last_seens == sorted(last_seens, reverse=True)
 
 
 @no_silo_test

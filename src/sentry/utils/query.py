@@ -97,6 +97,11 @@ class RangeQuerySetWrapper[V]:
     Iterates through a queryset by chunking results by ``step`` and using GREATER THAN
     and LESS THAN queries on the primary key.
 
+    Supports keyset pagination with multiple order_by fields for iterating over
+    non-unique columns. When order_by is a list (e.g., ["last_seen", "id"]),
+    uses compound cursor pagination to ensure all rows are returned even when
+    the first field has duplicates.
+
     Very efficient, but ORDER BY statements will not work.
     """
 
@@ -107,9 +112,9 @@ class RangeQuerySetWrapper[V]:
         step: int = 1000,
         limit: int | None = None,
         min_id: int | None = None,
-        order_by: str = "pk",
+        order_by: str | Sequence[str] = "pk",
         callbacks: Sequence[Callable[[list[V]], None]] = (),
-        result_value_getter: Callable[[V], int] | None = None,
+        result_value_getter: Callable[[V], Any] | None = None,
         override_unique_safety_check: bool = False,
         query_timeout_retries: int | None = None,
         retry_delay_seconds: float = 0.5,
@@ -125,48 +130,96 @@ class RangeQuerySetWrapper[V]:
             raise InvalidQuerySetError
 
         self.limit = limit
-        if limit:
-            self.step = min(limit, abs(step))
-            self.desc = step < 0
-        else:
-            self.step = abs(step)
-            self.desc = step < 0
+        self.desc = step < 0
+        self.step = min(limit, abs(step)) if limit else abs(step)
         self.queryset = queryset
         self.min_value = min_id
-        self.order_by = order_by
         self.callbacks = callbacks
         self.result_value_getter = result_value_getter
         self.query_timeout_retries = query_timeout_retries
         self.retry_delay_seconds = retry_delay_seconds
 
-        order_by_col = queryset.model._meta.get_field(order_by if order_by != "pk" else "id")
+        # Normalize order_by to a list
+        if isinstance(order_by, str):
+            self.order_by_fields = [order_by]
+        else:
+            self.order_by_fields = list(order_by)
+
+        # For backwards compatibility, keep single field as string
+        self.order_by = self.order_by_fields[0] if len(self.order_by_fields) == 1 else None
+
+        # Validate that the last field in compound order_by is unique
+        last_field = self.order_by_fields[-1]
+        last_field_name = last_field if last_field != "pk" else "id"
+        order_by_col = queryset.model._meta.get_field(last_field_name)
         if not override_unique_safety_check and (
             not isinstance(order_by_col, Field) or not order_by_col.unique
         ):
-            # TODO: Ideally we could fix this bug and support ordering by a non unique col
             raise InvalidQuerySetError(
-                "Order by column must be unique, otherwise this wrapper can get "
-                "stuck in an infinite loop. If you're sure your data is unique, "
-                "you can disable this by passing "
+                "The last order_by field must be unique to prevent infinite loops. "
+                "For compound order_by, ensure the last field is unique (e.g., 'id'). "
+                "If you're sure your data is unique, disable this check with "
                 "`override_unique_safety_check=True`"
             )
 
-    def __iter__(self) -> Iterator[V]:
-        if self.min_value is not None:
-            cur_value = self.min_value
-        else:
-            cur_value = None
+    def _build_keyset_filter(self, cursor_values: dict[str, Any]) -> Q:
+        """
+        Build compound cursor filter for keyset pagination.
 
+        For fields [f1, f2, f3] with cursor values [v1, v2, v3], builds:
+        (f1 > v1) OR (f1 = v1 AND f2 > v2) OR (f1 = v1 AND f2 = v2 AND f3 > v3)
+
+        For descending order, uses < instead of >.
+        """
+        q = Q()
+        for i, field in enumerate(self.order_by_fields):
+            # All previous fields must equal their cursor values
+            prefix_eq = {f: cursor_values[f] for f in self.order_by_fields[:i]}
+            # Current field must be greater (or less if descending)
+            if self.desc:
+                current_cmp = {f"{field}__lt": cursor_values[field]}
+            else:
+                current_cmp = {f"{field}__gt": cursor_values[field]}
+            q |= Q(**prefix_eq, **current_cmp)
+        return q
+
+    def _get_cursor_values(self, result: V) -> dict[str, Any]:
+        """Extract cursor values from a result for all order_by fields."""
+        if self.result_value_getter:
+            value = self.result_value_getter(result)
+            # if result_value_getter returns a single value
+            # (not a dict), wrap it for single-field order_by
+            if not isinstance(value, dict):
+                if len(self.order_by_fields) == 1:
+                    return {self.order_by_fields[0]: value}
+                raise TypeError("result_value_getter must return a dict for compound order_by")
+            return value
+        return {field: getattr(result, field) for field in self.order_by_fields}
+
+    def __iter__(self) -> Iterator[V]:
+        # Use different iteration strategies for single vs compound order_by
+        if len(self.order_by_fields) == 1:
+            yield from self._iter_single_field()
+        else:
+            yield from self._iter_compound_fields()
+
+    def _iter_single_field(self) -> Iterator[V]:
+        """
+        Original iteration logic for single-field order_by.
+        Uses >= / <= with deduplication to handle non-unique fields.
+        """
+        order_field = self.order_by_fields[0]
+        cur_value = self.min_value
         num = 0
         limit = self.limit
 
         queryset = self.queryset
         if self.desc:
-            queryset = queryset.order_by("-%s" % self.order_by)
+            queryset = queryset.order_by(f"-{order_field}")
         else:
-            queryset = queryset.order_by(self.order_by)
+            queryset = queryset.order_by(order_field)
 
-        # we implement basic cursor pagination for columns that are not unique
+        # Track last pk for deduplication when order_by field is not unique
         last_object_pk: int | None = None
         has_results = True
         while has_results:
@@ -178,9 +231,9 @@ class RangeQuerySetWrapper[V]:
             if cur_value is None:
                 results_qs = queryset
             elif self.desc:
-                results_qs = queryset.filter(**{"%s__lte" % self.order_by: cur_value})
+                results_qs = queryset.filter(**{f"{order_field}__lte": cur_value})
             else:
-                results_qs = queryset.filter(**{"%s__gte" % self.order_by: cur_value})
+                results_qs = queryset.filter(**{f"{order_field}__gte": cur_value})
 
             if self.query_timeout_retries is not None:
                 retries = self.query_timeout_retries
@@ -215,15 +268,69 @@ class RangeQuerySetWrapper[V]:
                 cur_value = (
                     self.result_value_getter(result)
                     if self.result_value_getter
-                    else getattr(result, self.order_by)
+                    else getattr(result, order_field)
                 )
 
                 yield result
+
+                if limit and num >= limit:
+                    break
 
             if cur_value is None:
                 break
 
             has_results = num > start
+
+    def _iter_compound_fields(self) -> Iterator[V]:
+        """
+        Keyset pagination for compound order_by fields.
+        Requires the last field to be unique to prevent infinite loops.
+        """
+        num = 0
+        limit = self.limit
+
+        # Build order_by clause
+        if self.desc:
+            order_clause = [f"-{f}" for f in self.order_by_fields]
+        else:
+            order_clause = list(self.order_by_fields)
+        queryset = self.queryset.order_by(*order_clause)
+
+        cursor_values: dict[str, Any] | None = None
+
+        has_results = True
+        while has_results:
+            if limit and num >= limit:
+                break
+
+            if cursor_values is None:
+                results_qs = queryset
+            else:
+                results_qs = queryset.filter(self._build_keyset_filter(cursor_values))
+
+            if self.query_timeout_retries is not None:
+                retries = self.query_timeout_retries
+                retry_policy = ConditionalRetryPolicy(
+                    test_function=lambda attempt, exc: attempt <= retries
+                    and isinstance(exc, OperationalError),
+                    delay_function=lambda i: self.retry_delay_seconds,
+                )
+                results = retry_policy(lambda: list(results_qs[0 : self.step]))
+            else:
+                results = list(results_qs[0 : self.step])
+
+            for cb in self.callbacks:
+                cb(results)
+
+            for result in results:
+                num += 1
+                cursor_values = self._get_cursor_values(result)
+                yield result
+
+                if limit and num >= limit:
+                    break
+
+            has_results = bool(results) and len(results) == self.step
 
 
 class RangeQuerySetWrapperWithProgressBar[V](RangeQuerySetWrapper[V]):
