@@ -1,21 +1,17 @@
-import {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 
 import {Tag} from '@sentry/scraps/badge/tag';
-import {Button} from '@sentry/scraps/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Stack} from '@sentry/scraps/layout/stack';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconAdd, IconFix, IconSubtract} from 'sentry/icons';
-import {IconChevron} from 'sentry/icons/iconChevron';
+import {IconAdd, IconChevron, IconFix, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {capitalize} from 'sentry/utils/string/capitalize';
 import {
   DiffTableChangeAmountCell,
   DiffTableHeader,
@@ -27,39 +23,25 @@ import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
 
 const tableHeaders = [
   {
-    key: 'change',
-    label: 'Change',
+    key: 'type',
+    label: 'Status',
   },
   {
-    key: 'file_path',
-    label: 'File Path',
-  },
-  {
-    key: 'item_type',
-    label: 'Item Type',
-  },
-  {
-    key: 'size',
-    label: 'Size',
+    key: 'path',
+    label: 'Affected Files',
   },
   {
     key: 'size_diff',
-    label: 'Size Diff',
+    label: 'Potential Savings',
   },
 ];
 
-interface SizeCompareItemDiffTableProps {
-  diffItems: DiffItem[];
-  disableHideSmallChanges: () => void;
-  originalItemCount: number;
+interface FileInsightItemDiffTableProps {
+  fileDiffItems: DiffItem[];
 }
 
-export function SizeCompareItemDiffTable({
-  diffItems,
-  originalItemCount,
-  disableHideSmallChanges,
-}: SizeCompareItemDiffTableProps) {
-  // Sort by diff initially
+// TODO: Test
+export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTableProps) {
   const [sort, setSort] = useState<DiffTableSort>({
     field: 'size_diff',
     kind: 'desc',
@@ -67,36 +49,29 @@ export function SizeCompareItemDiffTable({
 
   const [currentPage, setCurrentPage] = useState(0);
 
-  const sortedDiffItems = [...diffItems].sort((a: DiffItem, b: DiffItem) => {
+  const sortedDiffItems = [...fileDiffItems].sort((a: DiffItem, b: DiffItem) => {
     const {field, kind} = sort;
 
     let aValue: number | string = '';
     let bValue: number | string = '';
 
     switch (field) {
-      case 'change': {
+      case 'type': {
         // Sort by type: added < modified < removed
         const order: Record<DiffType, number> = {
           added: 0,
           increased: 1,
           decreased: 2,
           removed: 3,
+          unchanged: 4,
         };
         aValue = order[a.type];
         bValue = order[b.type];
         break;
       }
-      case 'item_type':
-        aValue = a.item_type || '';
-        bValue = b.item_type || '';
-        break;
-      case 'file_path':
+      case 'path':
         aValue = a.path || '';
         bValue = b.path || '';
-        break;
-      case 'size':
-        aValue = a.head_size ?? a.base_size ?? 0;
-        bValue = b.head_size ?? b.base_size ?? 0;
         break;
       case 'size_diff':
         aValue = Math.abs(a.size_diff ?? 0);
@@ -115,6 +90,7 @@ export function SizeCompareItemDiffTable({
   const lastPageIndex = Math.max(totalPages - 1, 0);
   const safeCurrentPage = Math.min(currentPage, lastPageIndex);
   const startIndex = safeCurrentPage * ITEMS_PER_PAGE;
+  // TODO: Handle child count
   const currentDiffItems = sortedDiffItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   const showPagination = totalPages > 1;
 
@@ -126,16 +102,17 @@ export function SizeCompareItemDiffTable({
 
   useEffect(() => {
     setCurrentPage(0);
-  }, [sort.field, sort.kind, diffItems.length]);
+  }, [sort.field, sort.kind, fileDiffItems.length]);
 
   const handlePageChange = (newPage: number) => {
     const clampedPage = Math.max(0, Math.min(newPage, lastPageIndex));
     setCurrentPage(clampedPage);
   };
 
+  let rowIndex = 0;
   return (
     <Flex direction="column" gap="md">
-      <DiffTableWithColumns gridTemplateColumns="150px minmax(200px, 3fr) 120px 120px 120px">
+      <DiffTableWithColumns gridTemplateColumns="150px minmax(200px, 3fr) 180px">
         <DiffTableHeader>
           {tableHeaders.map(header => (
             <SimpleTable.HeaderCell
@@ -164,19 +141,15 @@ export function SizeCompareItemDiffTable({
               <Text size="lg" variant="muted" bold>
                 {t('No results found')}
               </Text>
-              {originalItemCount > 0 && (
-                <Button priority="primary" onClick={disableHideSmallChanges}>
-                  {t('Show all changes')}
-                </Button>
-              )}
             </Stack>
           </SimpleTable.Empty>
         )}
-        {currentDiffItems.map((diffItem, index) => {
+        {currentDiffItems.map(groupDiffItem => {
+          rowIndex++;
           let changeTypeLabel: string;
           let changeTypeIcon: React.ReactNode;
           let changeTypeTagType: 'success' | 'error' | 'warning';
-          switch (diffItem.type) {
+          switch (groupDiffItem.type) {
             case 'added':
               changeTypeTagType = 'error';
               changeTypeLabel = t('Added');
@@ -189,59 +162,53 @@ export function SizeCompareItemDiffTable({
               break;
             default:
               changeTypeTagType = 'warning';
-              changeTypeLabel = t('Modified');
+              changeTypeLabel = t('Unchanged');
               changeTypeIcon = <IconFix />;
               break;
           }
 
           return (
-            <SimpleTable.Row key={startIndex + index}>
-              <SimpleTable.RowCell>
-                <Tag icon={changeTypeIcon} type={changeTypeTagType}>
-                  {changeTypeLabel}
-                </Tag>
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
-                <Tooltip
-                  title={
-                    diffItem.path ? (
-                      <Flex align="start" gap="xs">
-                        <Text monospace>{diffItem.path}</Text>
-                        <CopyToClipboardButton
-                          borderless
-                          size="zero"
-                          text={diffItem.path}
-                          style={{flexShrink: 0}}
-                          aria-label="Copy path to clipboard"
-                        />
-                      </Flex>
-                    ) : null
-                  }
-                  disabled={!diffItem.path}
-                  isHoverable
-                  maxWidth={420}
-                >
-                  <TextOverflow
-                    ellipsisDirection="right"
-                    style={{display: 'block', width: '100%'}}
+            <Fragment key={rowIndex}>
+              <SimpleTable.Row key={rowIndex}>
+                <SimpleTable.RowCell>
+                  <Tag icon={changeTypeIcon} type={changeTypeTagType}>
+                    {changeTypeLabel}
+                  </Tag>
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
+                  <Tooltip
+                    title={
+                      groupDiffItem.path ? (
+                        <Flex align="start" gap="xs">
+                          <Text monospace>{groupDiffItem.path}</Text>
+                          <CopyToClipboardButton
+                            borderless
+                            size="zero"
+                            text={groupDiffItem.path}
+                            style={{flexShrink: 0}}
+                            aria-label="Copy path to clipboard"
+                          />
+                        </Flex>
+                      ) : null
+                    }
+                    disabled={!groupDiffItem.path}
+                    isHoverable
+                    maxWidth={420}
                   >
-                    {diffItem.path ?? ''}
-                  </TextOverflow>
-                </Tooltip>
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                {capitalize(diffItem.item_type ?? '')}
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                {diffItem.head_size
-                  ? formatBytesBase10(diffItem.head_size)
-                  : formatBytesBase10(diffItem.base_size!)}
-              </SimpleTable.RowCell>
-              <DiffTableChangeAmountCell changeType={diffItem.type}>
-                {diffItem.size_diff > 0 ? '+' : '-'}
-                {formatBytesBase10(Math.abs(diffItem.size_diff))}
-              </DiffTableChangeAmountCell>
-            </SimpleTable.Row>
+                    <TextOverflow
+                      ellipsisDirection="right"
+                      style={{display: 'block', width: '100%'}}
+                    >
+                      {groupDiffItem.path ?? ''}
+                    </TextOverflow>
+                  </Tooltip>
+                </SimpleTable.RowCell>
+                <DiffTableChangeAmountCell changeType={groupDiffItem.type}>
+                  {groupDiffItem.size_diff > 0 ? '+' : '-'}
+                  {formatBytesBase10(Math.abs(groupDiffItem.size_diff))}
+                </DiffTableChangeAmountCell>
+              </SimpleTable.Row>
+            </Fragment>
           );
         })}
       </DiffTableWithColumns>
@@ -271,11 +238,3 @@ export function SizeCompareItemDiffTable({
     </Flex>
   );
 }
-
-// const FilePathTooltipText = styled('span')`
-//   flex: 1;
-//   overflow-wrap: break-word;
-//   word-break: break-all;
-//   white-space: normal;
-//   user-select: text;
-// `;
