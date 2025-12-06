@@ -10,10 +10,6 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {RepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {
-  isEAPError,
-  isTraceError,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
@@ -57,16 +53,24 @@ interface MetaProps {
 }
 
 function getRootDuration(event: TraceTree.TraceEvent | null) {
-  if (!event || isEAPError(event) || isTraceError(event)) {
+  if (!event) {
     return '\u2014';
   }
 
-  return getDuration(
-    ('timestamp' in event ? event.timestamp : event.end_timestamp) -
-      event.start_timestamp,
-    2,
-    true
-  );
+  const startTimestamp = 'start_timestamp' in event ? event.start_timestamp : undefined;
+  // TODO Abdullah Khan: Clean this up once getRepresentativeTraceEvent is moved to the TraceTree class
+  const endTimestamp =
+    'timestamp' in event
+      ? event.timestamp
+      : 'event_timestamp' in event && typeof event.event_timestamp === 'number'
+        ? event.event_timestamp
+        : undefined;
+
+  if (!startTimestamp || !endTimestamp) {
+    return '\u2014';
+  }
+
+  return getDuration(endTimestamp - startTimestamp, 2, true);
 }
 
 export function Meta(props: MetaProps) {
