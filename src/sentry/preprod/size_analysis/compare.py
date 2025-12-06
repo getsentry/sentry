@@ -87,6 +87,7 @@ def compare_size_analysis(
                         path=path,
                         item_type=item_type,
                         type=diff_type,
+                        diff_items=None,
                     )
                 )
 
@@ -109,6 +110,7 @@ def compare_size_analysis(
                         path=path,
                         item_type=head_element.type,
                         type=DiffType.ADDED,
+                        diff_items=None,
                     )
                 )
 
@@ -131,6 +133,7 @@ def compare_size_analysis(
                         path=path,
                         item_type=base_element.type,
                         type=DiffType.REMOVED,
+                        diff_items=None,
                     )
                 )
     else:
@@ -387,11 +390,12 @@ def _compare_files(
             )
             # File exists in both - check for size change
             size_diff = head_file.total_savings - base_file.total_savings
-            diff_type = (
-                DiffType.UNCHANGED
-                if size_diff == 0
-                else DiffType.INCREASED if size_diff > 0 else DiffType.DECREASED
-            )
+
+            # Skip files with no size change
+            if size_diff == 0:
+                continue
+
+            diff_type = DiffType.INCREASED if size_diff > 0 else DiffType.DECREASED
 
             diff_items.append(
                 DiffItem(
@@ -401,6 +405,7 @@ def _compare_files(
                     path=path,
                     item_type=None,
                     type=diff_type,
+                    diff_items=None,
                 )
             )
         elif head_file:
@@ -419,6 +424,7 @@ def _compare_files(
                     path=path,
                     item_type=None,
                     type=DiffType.ADDED,
+                    diff_items=None,
                 )
             )
         elif base_file:
@@ -437,6 +443,7 @@ def _compare_files(
                     path=path,
                     item_type=None,
                     type=DiffType.REMOVED,
+                    diff_items=None,
                 )
             )
 
@@ -459,14 +466,17 @@ def _compare_groups(
         base_group = base_groups_dict.get(name)
 
         if head_group and base_group:
-            # Group exists in both - check for size change
+            # Group exists in both - compare individual files within the group
             size_diff = head_group.total_savings - base_group.total_savings
-            diff_type = (
-                DiffType.UNCHANGED
-                if size_diff == 0
-                else DiffType.INCREASED if size_diff > 0 else DiffType.DECREASED
-            )
+            file_diffs = _compare_files(head_group.files, base_group.files)
 
+            # For unchanged groups, we need to show all files as unchanged
+            if size_diff == 0 and len(file_diffs) == 0:
+                # No size change and no file diffs, so the group is unchanged
+                return []
+
+            # Always add group-level diff for groups that exist in both
+            diff_type = DiffType.INCREASED if size_diff > 0 else DiffType.DECREASED
             diff_items.append(
                 DiffItem(
                     size_diff=size_diff,
@@ -475,10 +485,25 @@ def _compare_groups(
                     path=name,
                     item_type=None,
                     type=diff_type,
+                    diff_items=file_diffs if file_diffs else None,
                 )
             )
+
         elif head_group:
-            # Group added in head
+            # Group added in head - include individual files as nested diff items
+            file_diffs = [
+                DiffItem(
+                    size_diff=file.total_savings,
+                    head_size=file.total_savings,
+                    base_size=None,
+                    path=file.file_path,
+                    item_type=None,
+                    type=DiffType.ADDED,
+                    diff_items=None,
+                )
+                for file in head_group.files
+            ]
+
             diff_items.append(
                 DiffItem(
                     size_diff=head_group.total_savings,
@@ -487,10 +512,25 @@ def _compare_groups(
                     path=name,
                     item_type=None,
                     type=DiffType.ADDED,
+                    diff_items=file_diffs if file_diffs else None,
                 )
             )
+
         elif base_group:
-            # Group removed from head
+            # Group removed from head - include individual files as nested diff items
+            file_diffs = [
+                DiffItem(
+                    size_diff=-file.total_savings,
+                    head_size=None,
+                    base_size=file.total_savings,
+                    path=file.file_path,
+                    item_type=None,
+                    type=DiffType.REMOVED,
+                    diff_items=None,
+                )
+                for file in base_group.files
+            ]
+
             diff_items.append(
                 DiffItem(
                     size_diff=-base_group.total_savings,
@@ -499,6 +539,7 @@ def _compare_groups(
                     path=name,
                     item_type=None,
                     type=DiffType.REMOVED,
+                    diff_items=file_diffs if file_diffs else None,
                 )
             )
 
@@ -509,7 +550,7 @@ def _diff_insight(
     insight_type: str,
     head_insight: BaseInsightResult | None,
     base_insight: BaseInsightResult | None,
-) -> InsightDiffItem:
+) -> InsightDiffItem | None:
     if head_insight is None and base_insight is None:
         raise ValueError("Both head and base insights are None")
 
@@ -543,8 +584,14 @@ def _diff_insight(
 
     if head_files or base_files:
         file_diffs = _compare_files(head_files, base_files)
+        # If no file diffs, we don't want to show an irrelevant insight diff item
+        if len(file_diffs) == 0:
+            return None
     elif head_groups or base_groups:
         group_diffs = _compare_groups(head_groups, base_groups)
+        # If no group diffs, we don't want to show an irrelevant insight diff item
+        if len(group_diffs) == 0:
+            return None
 
     # TODO(EME-) Implement non-File/GroupinsightsResult insight diffs in future
 
@@ -607,13 +654,19 @@ def _compare_insights(
         # Determine status and create diff item
         if head_insight is not None and base_insight is None:
             # New insight in head
-            insight_diff_items.append(_diff_insight(insight_type, head_insight, None))
+            insight_diff_item = _diff_insight(insight_type, head_insight, None)
+            if insight_diff_item:
+                insight_diff_items.append(insight_diff_item)
         elif head_insight is None and base_insight is not None:
             # Resolved insight (was in base, not in head)
-            insight_diff_items.append(_diff_insight(insight_type, None, base_insight))
+            insight_diff_item = _diff_insight(insight_type, None, base_insight)
+            if insight_diff_item:
+                insight_diff_items.append(insight_diff_item)
         else:
             # Unresolved insight (exists in both)
             if head_insight and base_insight:
-                insight_diff_items.append(_diff_insight(insight_type, head_insight, base_insight))
+                insight_diff_item = _diff_insight(insight_type, head_insight, base_insight)
+                if insight_diff_item:
+                    insight_diff_items.append(insight_diff_item)
 
     return insight_diff_items

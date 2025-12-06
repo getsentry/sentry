@@ -1334,7 +1334,7 @@ class CompareInsightsTest(TestCase):
         # Head has duplicate files insight, base has none
         head_insights = AndroidInsightResults(
             duplicate_files=DuplicateFilesInsightResult(
-                total_savings=1000,
+                total_savings=500,
                 groups=[
                     FileSavingsResultGroup(
                         name="image.png",
@@ -1360,9 +1360,21 @@ class CompareInsightsTest(TestCase):
         insight_diff = result.insight_diff_items[0]
         assert insight_diff.insight_type == "duplicate_files"
         assert insight_diff.status == "new"
-        assert insight_diff.total_savings_change == 1000
+        assert insight_diff.total_savings_change == 500
         assert insight_diff.file_diffs == []
-        assert insight_diff.group_diffs == []
+        assert len(insight_diff.group_diffs) == 1
+        group_diff = insight_diff.group_diffs[0]
+        assert group_diff.path == "image.png"
+        assert group_diff.type.value == "added"
+        assert group_diff.size_diff == 500
+
+        # Check nested file diff
+        assert group_diff.diff_items is not None
+        assert len(group_diff.diff_items) == 1
+        file_diff = group_diff.diff_items[0]
+        assert file_diff.path == "/path/image.png"
+        assert file_diff.type.value == "added"
+        assert file_diff.size_diff == 500
 
     def test_compare_insights_resolved_insight_in_base(self):
         """Test that insights only in base are marked as 'resolved'."""
@@ -1405,7 +1417,11 @@ class CompareInsightsTest(TestCase):
         assert insight_diff.insight_type == "large_images"
         assert insight_diff.status == "resolved"
         assert insight_diff.total_savings_change == -2000
-        assert insight_diff.file_diffs == []
+        assert len(insight_diff.file_diffs) == 1
+        file_diff = insight_diff.file_diffs[0]
+        assert file_diff.path == "/path/large.png"
+        assert file_diff.type.value == "removed"
+        assert file_diff.size_diff == -2000
         assert insight_diff.group_diffs == []
 
     def test_compare_insights_unresolved_insight_in_both(self):
@@ -1461,7 +1477,11 @@ class CompareInsightsTest(TestCase):
         assert insight_diff.insight_type == "webp_optimization"
         assert insight_diff.status == "unresolved"
         assert insight_diff.total_savings_change == 500
-        assert insight_diff.file_diffs == []
+        assert len(insight_diff.file_diffs) == 1
+        file_diff = insight_diff.file_diffs[0]
+        assert file_diff.path == "/path/image.png"
+        assert file_diff.type.value == "increased"
+        assert file_diff.size_diff == 500
         assert insight_diff.group_diffs == []
 
     def test_compare_insights_multiple_insights(self):
@@ -1782,6 +1802,7 @@ class CompareInsightsTest(TestCase):
         assert insight_diff.total_savings_change == 1000
 
         # Check file-level diffs
+        # Note: unchanged files (image3.png) are now skipped in diffs
         assert len(insight_diff.file_diffs) == 3
         file_diffs_by_path = {d.path: d for d in insight_diff.file_diffs}
 
@@ -1793,13 +1814,9 @@ class CompareInsightsTest(TestCase):
         assert file_diffs_by_path["/path/image2.png"].type.value == "added"
         assert file_diffs_by_path["/path/image2.png"].size_diff == 2000
 
-        # image3.png - unchanged
-        assert file_diffs_by_path["/path/image3.png"].type.value == "unchanged"
-        assert file_diffs_by_path["/path/image3.png"].size_diff == 0
-
-        # image4.png - removed
-        assert file_diffs_by_path["/path/image4.png"].type.value == "removed"
-        assert file_diffs_by_path["/path/image4.png"].size_diff == -1500
+        # image4.png - added (not in base, only in head)
+        assert file_diffs_by_path["/path/image4.png"].type.value == "added"
+        assert file_diffs_by_path["/path/image4.png"].size_diff == 1500
 
     def test_compare_insights_groups_insight_with_diffs(self):
         """Test GroupsInsightResult with group-level differences."""
@@ -1883,17 +1900,203 @@ class CompareInsightsTest(TestCase):
         assert insight_diff.total_savings_change == 1000
 
         # Check group-level diffs
-        assert len(insight_diff.group_diffs) == 3
+        assert len(insight_diff.group_diffs) == 4
         group_diffs_by_path = {d.path: d for d in insight_diff.group_diffs}
 
-        # banner.png - removed
+        # banner.png - removed (with nested file diff)
         assert group_diffs_by_path["banner.png"].type.value == "removed"
         assert group_diffs_by_path["banner.png"].size_diff == -2000
+        assert group_diffs_by_path["banner.png"].diff_items is not None
+        assert len(group_diffs_by_path["banner.png"].diff_items) == 1
 
-        # icon.png - increased (1000 -> 1500)
+        # icon.png - increased (1000 -> 1500) - no file changes, so no nested diffs
         assert group_diffs_by_path["icon.png"].type.value == "increased"
         assert group_diffs_by_path["icon.png"].size_diff == 500
+        assert group_diffs_by_path["icon.png"].diff_items is None
 
-        # logo.png - added
+        # icon2.png - added (with nested file diff)
+        assert group_diffs_by_path["icon2.png"].type.value == "added"
+        assert group_diffs_by_path["icon2.png"].size_diff == 1500
+        assert group_diffs_by_path["icon2.png"].diff_items is not None
+        assert len(group_diffs_by_path["icon2.png"].diff_items) == 1
+
+        # logo.png - added (with nested file diff)
         assert group_diffs_by_path["logo.png"].type.value == "added"
         assert group_diffs_by_path["logo.png"].size_diff == 2500
+        assert group_diffs_by_path["logo.png"].diff_items is not None
+        assert len(group_diffs_by_path["logo.png"].diff_items) == 1
+
+    def test_compare_insights_groups_with_within_group_file_differences(self):
+        """Test GroupsInsightResult with file-level differences within the same group."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=2,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+
+        # Head has "icon.png" group with 3 files, base has same group with 2 files
+        # This simulates finding an additional duplicate file
+        head_insights = AndroidInsightResults(
+            duplicate_files=DuplicateFilesInsightResult(
+                total_savings=3000,
+                groups=[
+                    FileSavingsResultGroup(
+                        name="icon.png",
+                        files=[
+                            FileSavingsResult(file_path="/path/a/icon.png", total_savings=1000),
+                            FileSavingsResult(file_path="/path/b/icon.png", total_savings=1000),
+                            FileSavingsResult(file_path="/path/c/icon.png", total_savings=1000),
+                        ],
+                        total_savings=3000,
+                    ),
+                ],
+            ),
+            webp_optimization=None,
+            large_images=None,
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+        base_insights = AndroidInsightResults(
+            duplicate_files=DuplicateFilesInsightResult(
+                total_savings=2000,
+                groups=[
+                    FileSavingsResultGroup(
+                        name="icon.png",
+                        files=[
+                            FileSavingsResult(file_path="/path/a/icon.png", total_savings=1000),
+                            FileSavingsResult(file_path="/path/b/icon.png", total_savings=1000),
+                        ],
+                        total_savings=2000,
+                    ),
+                ],
+            ),
+            webp_optimization=None,
+            large_images=None,
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+
+        head_results = self._create_size_analysis_results(insights=head_insights)
+        base_results = self._create_size_analysis_results(insights=base_insights)
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        assert len(result.insight_diff_items) == 1
+        insight_diff = result.insight_diff_items[0]
+        assert insight_diff.insight_type == "duplicate_files"
+        assert insight_diff.status == "unresolved"
+        assert insight_diff.total_savings_change == 1000
+
+        # Check group-level and nested file-level diffs
+        # Should have: 1 group diff (increased) with 1 nested file diff (added file)
+        # Note: unchanged files are skipped in the diff
+        assert len(insight_diff.group_diffs) == 1
+        group_diff = insight_diff.group_diffs[0]
+
+        # icon.png group - increased (2000 -> 3000)
+        assert group_diff.path == "icon.png"
+        assert group_diff.type.value == "increased"
+        assert group_diff.size_diff == 1000
+
+        # Check nested file diffs within the group
+        assert group_diff.diff_items is not None
+        assert len(group_diff.diff_items) == 1
+        file_diff = group_diff.diff_items[0]
+
+        # /path/c/icon.png - added file within the group
+        assert file_diff.path == "/path/c/icon.png"
+        assert file_diff.type.value == "added"
+        assert file_diff.size_diff == 1000
+
+    def test_compare_insights_groups_with_identical_groups(self):
+        """Test GroupsInsightResult with identical groups between head and base."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=2,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+
+        # Both head and base have identical duplicate_files groups
+        identical_groups = [
+            FileSavingsResultGroup(
+                name="LICENSE.txt",
+                files=[
+                    FileSavingsResult(
+                        file_path="META-INF/androidx/annotation/annotation/LICENSE.txt",
+                        total_savings=10175,
+                    ),
+                    FileSavingsResult(
+                        file_path="META-INF/androidx/collection/collection/LICENSE.txt",
+                        total_savings=10175,
+                    ),
+                ],
+                total_savings=20350,
+            ),
+            FileSavingsResultGroup(
+                name="version.txt",
+                files=[
+                    FileSavingsResult(
+                        file_path="META-INF/androidx/core/core.version", total_savings=6
+                    ),
+                    FileSavingsResult(
+                        file_path="META-INF/androidx/core/core-ktx.version", total_savings=6
+                    ),
+                ],
+                total_savings=12,
+            ),
+        ]
+
+        head_insights = AndroidInsightResults(
+            duplicate_files=DuplicateFilesInsightResult(
+                total_savings=20362,
+                groups=identical_groups,
+            ),
+            webp_optimization=None,
+            large_images=None,
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+        base_insights = AndroidInsightResults(
+            duplicate_files=DuplicateFilesInsightResult(
+                total_savings=20362,
+                groups=identical_groups,
+            ),
+            webp_optimization=None,
+            large_images=None,
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+
+        head_results = self._create_size_analysis_results(insights=head_insights)
+        base_results = self._create_size_analysis_results(insights=base_insights)
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # No insight diff items should be returned
+        assert len(result.insight_diff_items) == 0

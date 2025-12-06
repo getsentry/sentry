@@ -145,7 +145,6 @@ class DiffType(str, Enum):
     REMOVED = "removed"
     INCREASED = "increased"
     DECREASED = "decreased"
-    UNCHANGED = "unchanged"  # Only used for insight diffs
 
 
 class DiffItem(BaseModel):
@@ -155,6 +154,7 @@ class DiffItem(BaseModel):
     path: str
     item_type: str | None
     type: DiffType
+    diff_items: list[DiffItem] | None
 
 
 class SizeMetricDiffItem(BaseModel):
