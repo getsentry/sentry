@@ -5,7 +5,7 @@ export interface TodoItem {
   status: 'pending' | 'in_progress' | 'completed';
 }
 
-export interface ExplorerFilePatch {
+interface ExplorerFilePatch {
   patch: FilePatch;
   repo_name: string;
 }
