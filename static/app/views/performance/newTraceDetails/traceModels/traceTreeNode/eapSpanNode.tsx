@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
-import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
+import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
   isBrowserRequestNode,
@@ -288,7 +288,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   renderDetails<T extends BaseNode>(
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
-    return <SpanNodeDetails {...props} node={this} />;
+    return <EAPSpanNodeDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {
