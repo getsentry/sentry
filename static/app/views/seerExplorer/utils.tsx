@@ -408,7 +408,7 @@ export function buildToolLinkUrl(
 
       const queryParams: Record<string, any> = {
         query: query || '',
-        project: null,
+        project: '-1',
       };
       if (stats_period) {
         queryParams.statsPeriod = stats_period;
@@ -423,7 +423,7 @@ export function buildToolLinkUrl(
         queryParams.end = end;
       }
 
-      // If project_slugs is provided, look up the project IDs
+      // If project_slugs is provided, look up the IDs and include them in qparams
       if (project_slugs && project_slugs.length > 0 && projects) {
         const projectIds = project_slugs
           .map((slug: string) => projects.find(p => p.slug === slug)?.id)
@@ -457,9 +457,12 @@ export function buildToolLinkUrl(
 
       if (dataset === 'logs') {
         queryParams[LOGS_QUERY_KEY] = query || '';
-        queryParams[LOGS_SORT_BYS_KEY] = sort;
         delete queryParams.query;
-        delete queryParams.sort;
+
+        if (sort) {
+          queryParams[LOGS_SORT_BYS_KEY] = sort;
+          delete queryParams.sort;
+        }
 
         return {
           pathname: `/organizations/${orgSlug}/explore/logs/`,
