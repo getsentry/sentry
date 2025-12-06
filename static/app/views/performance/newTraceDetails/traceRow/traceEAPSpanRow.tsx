@@ -74,7 +74,7 @@ export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
             )}
             <span className="TraceDescription" title={props.node.description}>
               {props.node.description
-                ? ellipsize(props.node.description, 100)
+                ? ellipsize(props.node.value.transaction, 100)
                 : (spanId ?? 'unknown')}
             </span>
           </React.Fragment>

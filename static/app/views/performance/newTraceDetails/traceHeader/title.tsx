@@ -16,65 +16,13 @@ import {
   type RepresentativeTraceEvent,
 } from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {findSpanAttributeValue} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
-import {
-  isEAPError,
-  isTraceError,
-  isUptimeCheck,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface TitleProps {
   representativeEvent: RepresentativeTraceEvent;
   rootEventResults: TraceRootEventQueryResults;
-}
-
-function getTitle(representativeEvent: RepresentativeTraceEvent): {
-  subtitle: string | undefined;
-  title: string;
-} | null {
-  const {event} = representativeEvent;
-  if (!event) {
-    return null;
-  }
-
-  // Handle log events
-  if (OurLogKnownFieldKey.SEVERITY in event) {
-    return {
-      title: t('Trace'),
-      subtitle: event[OurLogKnownFieldKey.MESSAGE],
-    };
-  }
-
-  // Handle error events
-  if (isEAPError(event) || isTraceError(event)) {
-    const subtitle = isEAPError(event) ? event.description : event.title || event.message;
-
-    return {
-      title: t('Trace'),
-      subtitle,
-    };
-  }
-
-  // Handle uptime check traces
-  if (isUptimeCheck(event)) {
-    return {
-      title: t('Uptime Monitor Check'),
-      subtitle: `${event.additional_attributes?.method} ${event.additional_attributes?.request_url}`,
-    };
-  }
-
-  if (!('transaction' in event)) {
-    return null;
-  }
-
-  // Normalize operation field access across event types
-  const op =
-    'transaction.op' in event ? event['transaction.op'] : 'op' in event ? event.op : '';
-
-  return {
-    title: op || t('Trace'),
-    subtitle: event.transaction,
-  };
+  tree: TraceTree;
 }
 
 function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>) {
@@ -119,8 +67,24 @@ const ReplayButton = styled(LinkButton)`
   text-decoration-style: dotted;
 `;
 
-export function Title({representativeEvent, rootEventResults}: TitleProps) {
-  const traceTitle = getTitle(representativeEvent);
+export function Title({representativeEvent, rootEventResults, tree}: TitleProps) {
+  let traceTitle: {title: string; subtitle?: string} | null = null;
+
+  // Handle log events, they are not a part of the trace tree
+  if (
+    representativeEvent?.event &&
+    OurLogKnownFieldKey.SEVERITY in representativeEvent.event
+  ) {
+    traceTitle = {
+      title: t('Trace'),
+      subtitle: representativeEvent.event[OurLogKnownFieldKey.MESSAGE],
+    };
+  } else {
+    const node = tree.root.findChild(n => n.value === representativeEvent.event);
+    if (node) {
+      traceTitle = node.traceHeaderTitle;
+    }
+  }
 
   return (
     <div>

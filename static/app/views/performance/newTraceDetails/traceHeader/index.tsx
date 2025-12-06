@@ -92,7 +92,11 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
           </ButtonBar>
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.HeaderRow>
-          <Title representativeEvent={rep} rootEventResults={props.rootEventResults} />
+          <Title
+            representativeEvent={rep}
+            rootEventResults={props.rootEventResults}
+            tree={props.tree}
+          />
           <Meta
             organization={props.organization}
             tree={props.tree}
