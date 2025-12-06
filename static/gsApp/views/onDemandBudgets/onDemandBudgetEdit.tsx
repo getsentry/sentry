@@ -147,9 +147,7 @@ class OnDemandBudgetEdit extends Component<Props> {
           ),
         ...Object.values(activePlan.addOnCategories)
           .filter(
-            addOnInfo =>
-              !addOnInfo.billingFlag ||
-              organization.features.includes(addOnInfo.billingFlag)
+            addOnInfo => subscription.addOns?.[addOnInfo.apiName]?.isAvailable ?? false
           )
           .map(addOnInfo =>
             toTitleCase(addOnInfo.productName, {allowInnerUpperCase: true})
