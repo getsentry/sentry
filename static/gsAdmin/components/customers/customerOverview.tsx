@@ -136,7 +136,6 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
           <OnDemandSummary customer={customer} />
         </DetailLabel>
         <DetailLabel title="Can Trial" yesNo={customer.canTrial} />
-        <DetailLabel title="Can Grace Period" yesNo={customer.canGracePeriod} />
         <DetailLabel title="Legacy Soft Cap" yesNo={customer.hasSoftCap} />
         {customer.hasSoftCap && (
           <DetailLabel
