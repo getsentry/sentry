@@ -213,15 +213,6 @@ export function formatUsageWithUnits(
           usageProfileHours.toLocaleString(undefined, {maximumFractionDigits: 1})
         );
   }
-  if (dataCategory === DataCategory.SEER_USER) {
-    const categoryInfo = getCategoryInfoFromPlural(dataCategory);
-    if (categoryInfo) {
-      if (usageQuantity === 1) {
-        return `${usageQuantity} ${categoryInfo.displayName}`;
-      }
-      return `${usageQuantity} ${categoryInfo.titleName.toLowerCase()}`;
-    }
-  }
 
   return options.isAbbreviated
     ? displayNumber(usageQuantity, 0)
