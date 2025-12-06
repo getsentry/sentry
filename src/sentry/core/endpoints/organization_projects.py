@@ -7,6 +7,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAndStaffPermission, OrganizationEndpoint
@@ -162,13 +163,28 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
         if get_all_projects:
             queryset = queryset.order_by("slug").select_related("organization")
-            return Response(
+
+            # Fetch MAX + 1 to detect if there are more without expensive count()
+            max_projects = options.get("api.organization-projects-max-results")
+            projects = list(queryset[: max_projects + 1])
+            has_more = len(projects) > max_projects
+
+            response = Response(
                 serialize(
-                    list(queryset),
+                    projects[:max_projects],
                     request.user,
                     ProjectSummarySerializer(collapse=collapse, dataset=dataset),
                 )
             )
+
+            if has_more:
+                response["X-Sentry-Warning"] = (
+                    f"This organization has more than {max_projects} projects. "
+                    f"Only the first {max_projects} are shown. "
+                    f"Please use pagination or filter your query."
+                )
+
+            return response
         else:
             expand = set()
             if request.GET.get("transactionStats"):

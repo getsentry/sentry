@@ -133,7 +133,7 @@ class EndpointTest(APITestCase):
             "sentry-trace, baggage, X-CSRFToken"
         )
         assert response["Access-Control-Expose-Headers"] == (
-            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Sentry-Warning, X-Hits, X-Max-Hits, "
             "Endpoint, Retry-After, Link"
         )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
@@ -161,7 +161,7 @@ class EndpointTest(APITestCase):
             "sentry-trace, baggage, X-CSRFToken"
         )
         assert response["Access-Control-Expose-Headers"] == (
-            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Sentry-Warning, X-Hits, X-Max-Hits, "
             "Endpoint, Retry-After, Link"
         )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
@@ -189,7 +189,7 @@ class EndpointTest(APITestCase):
             "sentry-trace, baggage, X-CSRFToken"
         )
         assert response["Access-Control-Expose-Headers"] == (
-            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Sentry-Warning, X-Hits, X-Max-Hits, "
             "Endpoint, Retry-After, Link"
         )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
@@ -218,7 +218,7 @@ class EndpointTest(APITestCase):
             "sentry-trace, baggage, X-CSRFToken"
         )
         assert response["Access-Control-Expose-Headers"] == (
-            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Sentry-Warning, X-Hits, X-Max-Hits, "
             "Endpoint, Retry-After, Link"
         )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
@@ -291,7 +291,7 @@ class EndpointTest(APITestCase):
             "sentry-trace, baggage, X-CSRFToken"
         )
         assert response["Access-Control-Expose-Headers"] == (
-            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Sentry-Warning, X-Hits, X-Max-Hits, "
             "Endpoint, Retry-After, Link"
         )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
