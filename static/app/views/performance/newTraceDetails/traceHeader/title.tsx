@@ -25,6 +25,30 @@ interface TitleProps {
   tree: TraceTree;
 }
 
+function getTitle(
+  tree: TraceTree,
+  representativeEvent: RepresentativeTraceEvent
+): {
+  title: string;
+  subtitle?: string;
+} | null {
+  const {event} = representativeEvent;
+  if (!event) {
+    return null;
+  }
+
+  // Handle log events
+  if (OurLogKnownFieldKey.SEVERITY in event) {
+    return {
+      title: t('Trace'),
+      subtitle: event[OurLogKnownFieldKey.MESSAGE],
+    };
+  }
+
+  const node = tree.root.findChild(n => n.value === event);
+  return node?.traceHeaderTitle ?? null;
+}
+
 function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>) {
   const organization = useOrganization();
 
@@ -68,23 +92,7 @@ const ReplayButton = styled(LinkButton)`
 `;
 
 export function Title({representativeEvent, rootEventResults, tree}: TitleProps) {
-  let traceTitle: {title: string; subtitle?: string} | null = null;
-
-  // Handle log events, they are not a part of the trace tree
-  if (
-    representativeEvent?.event &&
-    OurLogKnownFieldKey.SEVERITY in representativeEvent.event
-  ) {
-    traceTitle = {
-      title: t('Trace'),
-      subtitle: representativeEvent.event[OurLogKnownFieldKey.MESSAGE],
-    };
-  } else {
-    const node = tree.root.findChild(n => n.value === representativeEvent.event);
-    if (node) {
-      traceTitle = node.traceHeaderTitle;
-    }
-  }
+  const traceTitle = getTitle(tree, representativeEvent);
 
   return (
     <div>
