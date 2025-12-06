@@ -526,6 +526,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/components/events/autofix/                      @getsentry/machine-learning-ai
 /static/app/views/seerExplorer/                             @getsentry/machine-learning-ai
 /src/sentry/seer/                                           @getsentry/machine-learning-ai
+/tests/sentry/seer/                                         @getsentry/machine-learning-ai
 ## End of ML & AI
 
 ## Issues
