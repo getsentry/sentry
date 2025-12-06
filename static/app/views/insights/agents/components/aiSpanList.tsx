@@ -22,7 +22,6 @@ import {
 } from 'sentry/views/insights/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
@@ -266,12 +265,6 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
     color: colors[1],
   };
 
-  if (isTransactionNode(node)) {
-    nodeInfo.title = node.value.transaction || 'Transaction';
-    nodeInfo.subtitle = node.value['transaction.op'] || '';
-    return nodeInfo;
-  }
-
   const op = node.op ?? 'default';
   const truncatedOp = op.startsWith('gen_ai.') ? op.slice(7) : op;
   nodeInfo.title = truncatedOp;
@@ -328,10 +321,10 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
     nodeInfo.color = colors[5];
   } else if (getIsHandoffSpan({op})) {
     nodeInfo.icon = <IconChevron size="md" isDouble direction="right" />;
-    nodeInfo.subtitle = node.value.description || '';
+    nodeInfo.subtitle = node.description || '';
     nodeInfo.color = colors[4];
   } else {
-    nodeInfo.subtitle = node.value.description || '';
+    nodeInfo.subtitle = node.description || '';
   }
 
   // Override the color and icon if the node has errors
