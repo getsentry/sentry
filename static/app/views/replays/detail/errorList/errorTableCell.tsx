@@ -53,7 +53,7 @@ export default function ErrorTableCell({
 
   const {eventId, groupId, groupShortId, level, projectSlug} = frame.data;
   const title = frame.message;
-  const {projects} = useProjects();
+  const {projects} = useProjects({slugs: projectSlug ? [projectSlug] : []});
   const project = useMemo(
     () => projects.find(p => p.slug === projectSlug),
     [projects, projectSlug]
@@ -161,9 +161,11 @@ export default function ErrorTableCell({
     () => (
       <Cell {...columnProps}>
         <Text>
-          <AvatarWrapper>
-            <ProjectAvatar project={project!} size={16} />
-          </AvatarWrapper>
+          {project && (
+            <AvatarWrapper>
+              <ProjectAvatar project={project} size={16} />
+            </AvatarWrapper>
+          )}
           {eventUrl ? (
             <Link to={eventUrl}>
               <QuickContextHovercard

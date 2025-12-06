@@ -149,10 +149,25 @@ async function fetchProjects(
  * This hook also provides a way to select specific project slugs, and search
  * (type-ahead) for more projects that may not be in the project store.
  *
- * NOTE: Currently ALL projects are always loaded, but this hook is designed
- * for future-compat in a world where we do _not_ load all projects.
+ * DEPRECATED USAGE: Calling useProjects() without the `slugs` parameter is
+ * deprecated. This pattern assumes all projects are loaded in the store,
+ * which will not be true once we remove the all_projects=1 bootstrap fetch.
+ *
+ * RECOMMENDED: Always pass specific slugs you need:
+ *   const {projects} = useProjects({slugs: [group.project.slug]});
+ *
+ * This ensures projects are fetched on-demand if not already in the store.
  */
 function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
+  if (process.env.NODE_ENV !== 'production' && !slugs) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      'useProjects() called without slugs parameter. ' +
+        'This usage is deprecated and may break when all_projects=1 is removed. ' +
+        'Pass specific slugs to ensure projects are fetched on-demand.'
+    );
+  }
+
   const api = useApi();
 
   const organization = useOrganization({allowNull: true});

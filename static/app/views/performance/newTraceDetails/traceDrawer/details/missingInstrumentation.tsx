@@ -33,14 +33,21 @@ export function MissingInstrumentationNodeDetails({
   ...props
 }: TraceTreeNodeDetailsProps<MissingInstrumentationNode>) {
   const {node} = props;
-  const {projects} = useProjects();
+  const isEAP = isEAPSpanNode(node.previous);
 
-  if (isEAPSpanNode(node.previous)) {
+  // For EAP spans, the event may not be loaded yet, but we have project_slug on the span itself
+  const eapProjectSlug = isEAP
+    ? (node.previous as TraceTreeNode<TraceTree.EAPSpan>).value.project_slug
+    : undefined;
+  const event = node.previous.event ?? node.next.event ?? null;
+  const projectSlug = eapProjectSlug ?? event?.projectSlug;
+  const {projects} = useProjects({slugs: projectSlug ? [projectSlug] : []});
+
+  if (isEAP) {
     return <EAPMissingInstrumentationNodeDetails {...props} projects={projects} />;
   }
 
-  const event = node.previous.event ?? node.next.event ?? null;
-  const project = projects.find(proj => proj.slug === event?.projectSlug);
+  const project = projects.find(proj => proj.slug === projectSlug);
   const profileMeta = getProfileMeta(event) || '';
   const profileContext = event?.contexts?.profile ?? {};
 
