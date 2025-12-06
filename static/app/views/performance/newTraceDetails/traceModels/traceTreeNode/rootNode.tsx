@@ -44,4 +44,8 @@ export class RootNode extends BaseNode<null> {
   matchWithFreeText(_key: string): boolean {
     return false;
   }
+
+  resolveValueFromSearchKey(_key: string): any | null {
+    return null;
+  }
 }

@@ -101,4 +101,8 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
     }
     return theme.red300;
   }
+
+  resolveValueFromSearchKey(_key: string): any | null {
+    return null;
+  }
 }

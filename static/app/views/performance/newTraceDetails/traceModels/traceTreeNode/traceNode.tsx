@@ -68,4 +68,8 @@ export class TraceNode extends BaseNode<TraceTree.Trace> {
   expand(_expanding: boolean, _tree: TraceTree): boolean {
     return false;
   }
+
+  resolveValueFromSearchKey(_key: string): any | null {
+    return null;
+  }
 }
