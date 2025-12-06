@@ -7,7 +7,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
-  isEAPTransactionNode,
+  isEAPSpanNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -471,7 +471,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   }
 
   findParentEapTransaction(): EapSpanNode | null {
-    return this.findParent<EapSpanNode>(p => isEAPTransactionNode(p));
+    return this.findParent<EapSpanNode>(p => isEAPSpanNode(p) && p.value.is_transaction);
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {

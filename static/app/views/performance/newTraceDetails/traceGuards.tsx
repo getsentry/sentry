@@ -31,14 +31,6 @@ export function isEAPSpan(value: TraceTree.NodeValue): value is TraceTree.EAPSpa
   return !!(value && 'is_transaction' in value);
 }
 
-export function isEAPTransaction(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
-  return isEAPSpan(value) && value.is_transaction;
-}
-
-export function isEAPTransactionNode(node: BaseNode): node is EapSpanNode {
-  return isEAPTransaction(node.value);
-}
-
 export function isEAPSpanNode(node: BaseNode): node is EapSpanNode {
   return isEAPSpan(node.value);
 }

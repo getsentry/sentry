@@ -3,7 +3,6 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {
   isEAPTraceNode,
-  isEAPTransaction,
   isRootEvent,
   isTraceNode,
   isTraceSplitResult,
@@ -74,11 +73,6 @@ export const getRepresentativeTraceEvent = (
         break;
       }
 
-      if (isEAPTransaction(event)) {
-        // If we find a root EAP transaction, we can stop looking and use it for the title.
-        break;
-      }
-      // Otherwise we keep looking for a root eap transaction. If we don't find one, we use other roots, like standalone spans.
       continue;
     } else if (
       // If we haven't found a root transaction, but we found a candidate transaction

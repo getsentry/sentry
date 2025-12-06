@@ -6,9 +6,7 @@ import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDra
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
   isBrowserRequestNode,
-  isEAPSpan,
   isEAPSpanNode,
-  isEAPTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceEAPSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceEAPSpanRow';
@@ -35,7 +33,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     // For eap transactions, on load we only display the embedded transactions children.
     // Mimics the behavior of non-eap traces, enabling a less noisy/summarized view of the trace
     const parentNode = value.is_transaction
-      ? (parent?.findParent(p => isEAPTransaction(p.value)) ?? parent)
+      ? (parent?.findParent(p => isEAPSpanNode(p) && p.value.is_transaction) ?? parent)
       : parent;
 
     super(parentNode, value, extra);
@@ -141,10 +139,12 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   get directVisibleChildren(): Array<BaseNode<TraceTree.NodeValue>> {
-    if (isEAPTransaction(this.value) && !this.expanded) {
+    if (this.value.is_transaction && !this.expanded) {
       // For collapsed eap-transactions we still render the embedded eap-transactions as visible children.
       // Mimics the behavior of non-eap traces, enabling a less noisy/summarized view of the trace
-      return this.children.filter(child => isEAPTransaction(child.value));
+      return this.children.filter(
+        child => isEAPSpanNode(child) && child.value.is_transaction
+      );
     }
 
     return super.directVisibleChildren;
@@ -181,14 +181,14 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       // the eap-spans (by their parent_span_id) that were previously hidden. Note that this only impacts the
       // direct eap-transaction children of the targetted eap-transaction node.
       if (this.value.is_transaction) {
-        const eapTransactions = this.children.filter(c =>
-          isEAPTransaction(c.value)
+        const eapTransactions = this.children.filter(
+          c => isEAPSpanNode(c) && c.value.is_transaction
         ) as EapSpanNode[];
 
         for (const txn of eapTransactions) {
           // Find the eap-span that is the parent of the transaction
           const newParent = this.findChild(n => {
-            if (isEAPSpan(n.value)) {
+            if (isEAPSpanNode(n)) {
               return n.value.event_id === txn.value.parent_span_id;
             }
             return false;

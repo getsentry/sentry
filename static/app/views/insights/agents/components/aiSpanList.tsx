@@ -22,10 +22,7 @@ import {
 } from 'sentry/views/insights/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {
-  isEAPSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
@@ -275,26 +272,18 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
     return nodeInfo;
   }
 
-  const getNodeAttribute = (key: string) => {
-    if (isEAPSpanNode(node)) {
-      return node.value.additional_attributes?.[key];
-    }
-
-    return node.value?.data?.[key];
-  };
-
   const op = node.op ?? 'default';
   const truncatedOp = op.startsWith('gen_ai.') ? op.slice(7) : op;
   nodeInfo.title = truncatedOp;
 
   if (getIsAiRunSpan({op}) || getIsAiCreateAgentSpan({op})) {
     const agentName =
-      getNodeAttribute(SpanFields.GEN_AI_AGENT_NAME) ||
-      getNodeAttribute(SpanFields.GEN_AI_FUNCTION_ID) ||
+      node.attributes?.[SpanFields.GEN_AI_AGENT_NAME] ||
+      node.attributes?.[SpanFields.GEN_AI_FUNCTION_ID] ||
       '';
     const model =
-      getNodeAttribute(SpanFields.GEN_AI_REQUEST_MODEL) ||
-      getNodeAttribute(SpanFields.GEN_AI_RESPONSE_MODEL) ||
+      node.attributes?.[SpanFields.GEN_AI_REQUEST_MODEL] ||
+      node.attributes?.[SpanFields.GEN_AI_RESPONSE_MODEL] ||
       '';
     nodeInfo.icon = <IconBot size="md" />;
     nodeInfo.title = agentName || truncatedOp;
@@ -308,8 +297,12 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
     }
     nodeInfo.color = colors[0];
   } else if (getIsAiGenerationSpan({op})) {
-    const tokens = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
-    const cost = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_COST);
+    const tokens = node.attributes?.[SpanFields.GEN_AI_USAGE_TOTAL_TOKENS] as
+      | number
+      | undefined;
+    const cost = node.attributes?.[SpanFields.GEN_AI_USAGE_TOTAL_COST] as
+      | number
+      | undefined;
     nodeInfo.icon = <IconSpeechBubble size="md" />;
     nodeInfo.subtitle = tokens ? (
       <Fragment>
@@ -328,7 +321,7 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
     }
     nodeInfo.color = colors[2];
   } else if (getIsExecuteToolSpan({op})) {
-    const toolName = getNodeAttribute(SpanFields.GEN_AI_TOOL_NAME);
+    const toolName = node.attributes?.[SpanFields.GEN_AI_TOOL_NAME] as string | undefined;
     nodeInfo.icon = <IconTool size="md" />;
     nodeInfo.title = toolName || truncatedOp;
     nodeInfo.subtitle = toolName ? truncatedOp : '';
@@ -355,12 +348,9 @@ function hasError(node: AITraceSpanNode) {
     return true;
   }
 
-  if (isEAPSpanNode(node)) {
-    const status = node.value.additional_attributes?.[SpanFields.SPAN_STATUS];
-    if (typeof status === 'string') {
-      return status.includes('error');
-    }
-    return false;
+  const status = node.attributes?.[SpanFields.SPAN_STATUS] as string | undefined;
+  if (typeof status === 'string') {
+    return status.includes('error');
   }
 
   return false;
