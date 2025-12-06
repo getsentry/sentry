@@ -73,6 +73,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
 from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
@@ -557,6 +558,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
     autoOpenPrs: bool
+    hasGranularReplayPermissions: bool
+    replayAccessMembers: list[int]
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -724,7 +727,24 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 team__organization=obj
             ).count(),
             "isDynamicallySampled": is_dynamically_sampled,
+            "hasGranularReplayPermissions": False,
+            "replayAccessMembers": [],
         }
+
+        if features.has("organizations:granular-replay-permissions", obj):
+            permissions_enabled = (
+                OrganizationOption.objects.filter(
+                    organization=obj, key="sentry:granular-replay-permissions"
+                )
+                .values_list("value", flat=True)
+                .first()
+            )
+            context["hasGranularReplayPermissions"] = bool(permissions_enabled)
+            context["replayAccessMembers"] = list(
+                OrganizationMemberReplayAccess.objects.filter(organization=obj).values_list(
+                    "organizationmember_id", flat=True
+                )
+            )
 
         if has_custom_dynamic_sampling(obj, actor=user):
             context["targetSampleRate"] = float(
@@ -775,6 +795,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
+        "hasGranularReplayPermissions",
+        "replayAccessMembers",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(

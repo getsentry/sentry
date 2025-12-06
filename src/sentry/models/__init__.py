@@ -74,6 +74,7 @@ from .organizationmapping import *  # NOQA
 from .organizationmember import *  # NOQA
 from .organizationmemberinvite import *  # NOQA
 from .organizationmembermapping import *  # NOQA
+from .organizationmemberreplayaccess import *  # NOQA
 from .organizationmemberteam import *  # NOQA
 from .organizationmemberteamreplica import *  # NOQA
 from .organizationonboardingtask import *  # NOQA
