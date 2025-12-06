@@ -403,32 +403,37 @@ export function buildToolLinkUrl(
 ): LocationDescriptor | null {
   switch (toolLink.kind) {
     case 'telemetry_live_search': {
-      const {dataset, query, stats_period, project_slugs, sort} = toolLink.params;
+      const {dataset, project_slugs, query, sort, stats_period, start, end} =
+        toolLink.params;
+
+      const queryParams: Record<string, any> = {
+        query: query || '',
+        project: null,
+      };
+      if (stats_period) {
+        queryParams.statsPeriod = stats_period;
+      }
+      if (sort) {
+        queryParams.sort = sort;
+      }
+      if (start) {
+        queryParams.start = start;
+      }
+      if (end) {
+        queryParams.end = end;
+      }
+
+      // If project_slugs is provided, look up the IDs and include them in qparams
+      if (project_slugs && project_slugs.length > 0 && projects) {
+        const projectIds = project_slugs
+          .map((slug: string) => projects.find(p => p.slug === slug)?.id)
+          .filter((id: string | undefined) => id !== undefined);
+        if (projectIds.length > 0) {
+          queryParams.project = projectIds;
+        }
+      }
 
       if (dataset === 'issues') {
-        // Build URL for issues search
-        const queryParams: Record<string, any> = {
-          query: query || '',
-        };
-
-        // If project_slugs is provided, look up the project IDs
-        if (project_slugs && project_slugs.length > 0 && projects) {
-          const projectIds = project_slugs
-            .map((slug: string) => projects.find(p => p.slug === slug)?.id)
-            .filter((id: string | undefined) => id !== undefined);
-          if (projectIds.length > 0) {
-            queryParams.project = projectIds;
-          }
-        }
-
-        if (stats_period) {
-          queryParams.statsPeriod = stats_period;
-        }
-
-        if (sort) {
-          queryParams.sort = sort;
-        }
-
         return {
           pathname: `/organizations/${orgSlug}/issues/`,
           query: queryParams,
@@ -436,34 +441,12 @@ export function buildToolLinkUrl(
       }
 
       if (dataset === 'errors') {
-        const queryParams: Record<string, any> = {
-          dataset: 'errors',
-          queryDataset: 'error-events',
-          query: query || '',
-          project: null,
-        };
-
-        if (stats_period) {
-          queryParams.statsPeriod = stats_period;
-        }
-
-        // If project_slugs is provided, look up the project IDs
-        if (project_slugs && project_slugs.length > 0 && projects) {
-          const projectIds = project_slugs
-            .map((slug: string) => projects.find(p => p.slug === slug)?.id)
-            .filter((id: string | undefined) => id !== undefined);
-          if (projectIds.length > 0) {
-            queryParams.project = projectIds;
-          }
-        }
+        queryParams.dataset = 'errors';
+        queryParams.queryDataset = 'error-events';
 
         const {y_axes} = toolLink.params;
         if (y_axes) {
           queryParams.yAxis = y_axes;
-        }
-
-        if (sort) {
-          queryParams.sort = sort;
         }
 
         return {
@@ -473,27 +456,12 @@ export function buildToolLinkUrl(
       }
 
       if (dataset === 'logs') {
-        const queryParams: Record<string, any> = {
-          [LOGS_QUERY_KEY]: query || '',
-          project: null,
-        };
-
-        if (stats_period) {
-          queryParams.statsPeriod = stats_period;
-        }
-
-        // If project_slugs is provided, look up the project IDs
-        if (project_slugs && project_slugs.length > 0 && projects) {
-          const projectIds = project_slugs
-            .map((slug: string) => projects.find(p => p.slug === slug)?.id)
-            .filter((id: string | undefined) => id !== undefined);
-          if (projectIds.length > 0) {
-            queryParams.project = projectIds;
-          }
-        }
+        queryParams[LOGS_QUERY_KEY] = query || '';
+        delete queryParams.query;
 
         if (sort) {
           queryParams[LOGS_SORT_BYS_KEY] = sort;
+          delete queryParams.sort;
         }
 
         return {
@@ -504,26 +472,8 @@ export function buildToolLinkUrl(
 
       // Default to spans (traces) search
       const {y_axes, group_by, mode} = toolLink.params;
-
-      const queryParams: Record<string, any> = {
-        query: query || '',
-        project: null,
-      };
-
-      // If project_slugs is provided, look up the project IDs
-      if (project_slugs && project_slugs.length > 0 && projects) {
-        const projectIds = project_slugs
-          .map((slug: string) => projects.find(p => p.slug === slug)?.id)
-          .filter((id: string | undefined) => id !== undefined);
-        if (projectIds.length > 0) {
-          queryParams.project = projectIds;
-        }
-      }
-
       const aggregateFields: any[] = [];
-      if (stats_period) {
-        queryParams.statsPeriod = stats_period;
-      }
+
       if (y_axes) {
         const axes = Array.isArray(y_axes) ? y_axes : [y_axes];
         const stringifiedAxes = axes.map(axis => JSON.stringify(axis));
@@ -535,9 +485,6 @@ export function buildToolLinkUrl(
         const groupByValue = Array.isArray(group_by) ? group_by[0] : group_by;
         queryParams.groupBy = groupByValue;
         aggregateFields.push(JSON.stringify({groupBy: groupByValue}));
-      }
-      if (sort) {
-        queryParams.sort = sort;
       }
       if (mode) {
         queryParams.mode = mode === 'aggregates' ? 'aggregate' : 'samples';
