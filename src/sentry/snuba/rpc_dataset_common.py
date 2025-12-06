@@ -184,28 +184,33 @@ class RPCBase:
         raise TypeError(f"Unsupported proto definition type: {type(proto_definition)}")
 
     @classmethod
-    def get_cross_trace_queries(cls, query: TableQuery) -> list[TraceItemFilterWithType]:
+    def get_cross_trace_queries(
+        cls,
+        additional_queries: AdditionalQueries | None,
+        config: SearchResolverConfig,
+        query_params: SnubaParams,
+    ) -> list[TraceItemFilterWithType]:
         from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
         from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
         from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 
-        if query.additional_queries is None:
+        if additional_queries is None:
             return []
 
         # resolve cross trace queries
         # Copy the existing resolver, but we don't allow aggregate conditions for cross trace filters
-        cross_trace_config = replace(query.resolver.config, use_aggregate_conditions=False)
+        cross_trace_config = replace(config, use_aggregate_conditions=False)
 
         cross_trace_queries = []
         for queries, definitions, item_type in [
             (
-                query.additional_queries.log,
+                additional_queries.log,
                 OURLOG_DEFINITIONS,
                 TraceItemType.TRACE_ITEM_TYPE_LOG,
             ),
-            (query.additional_queries.span, SPAN_DEFINITIONS, TraceItemType.TRACE_ITEM_TYPE_SPAN),
+            (additional_queries.span, SPAN_DEFINITIONS, TraceItemType.TRACE_ITEM_TYPE_SPAN),
             (
-                query.additional_queries.metric,
+                additional_queries.metric,
                 TRACE_METRICS_DEFINITIONS,
                 TraceItemType.TRACE_ITEM_TYPE_METRIC,
             ),
@@ -213,7 +218,7 @@ class RPCBase:
             if queries is not None:
                 # Create a resolver for the subqueries
                 cross_resolver = SearchResolver(
-                    params=query.resolver.params,
+                    params=query_params,
                     config=cross_trace_config,
                     definitions=definitions,
                 )
@@ -246,7 +251,9 @@ class RPCBase:
         # if there are additional conditions to be added, make sure to merge them with the
         where = and_trace_item_filters(where, query.extra_conditions)
 
-        cross_trace_queries = cls.get_cross_trace_queries(query)
+        cross_trace_queries = cls.get_cross_trace_queries(
+            query.additional_queries, query.resolver.config, query.resolver.params
+        )
 
         trace_column, _ = resolver.resolve_column("trace")
         if (
@@ -601,6 +608,7 @@ class RPCBase:
         referrer: str,
         sampling_mode: SAMPLING_MODES | None,
         extra_conditions: TraceItemFilter | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> tuple[
         TimeSeriesRequest,
         list[ResolvedColumn],
@@ -617,6 +625,10 @@ class RPCBase:
             query_string,
             selected_axes,
             selected_equations,
+        )
+
+        cross_trace_queries = cls.get_cross_trace_queries(
+            additional_queries, search_resolver.config, search_resolver.params
         )
 
         trace_column, _ = search_resolver.resolve_column("trace")
@@ -663,6 +675,7 @@ class RPCBase:
                     if isinstance(groupby.proto_definition, AttributeKey)
                 ],
                 granularity_secs=params.timeseries_granularity_secs,
+                trace_filters=cross_trace_queries,
             ),
             (functions + equations),
             groupbys,
@@ -679,6 +692,7 @@ class RPCBase:
         config: SearchResolverConfig,
         sampling_mode: SAMPLING_MODES | None,
         comparison_delta: timedelta | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> SnubaTSResult:
         raise NotImplementedError()
 
@@ -742,6 +756,7 @@ class RPCBase:
         config: SearchResolverConfig,
         sampling_mode: SAMPLING_MODES | None,
         equations: list[str] | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> Any:
         """We intentionally duplicate run_timeseries_query code here to reduce the complexity of needing multiple helper
         functions that both would call
@@ -773,6 +788,7 @@ class RPCBase:
                 sampling_mode=sampling_mode,
                 resolver=table_search_resolver,
                 equations=equations,
+                additional_queries=additional_queries,
             )
         )
         # There aren't any top events, just return an empty dict and save a query

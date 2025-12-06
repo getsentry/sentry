@@ -33,7 +33,7 @@ from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
 )
-from sentry.search.eap.types import AdditionalQueries, FieldsACL, SearchResolverConfig
+from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.snuba import (
     discover,
     errors,
@@ -495,11 +495,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             scoped_query = request.GET.get("query")
             dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
             discover_saved_query_id = request.GET.get("discoverSavedQueryId", None)
-            additional_queries = AdditionalQueries(
-                span=request.GET.getlist("spanQuery"),
-                log=request.GET.getlist("logQuery"),
-                metric=request.GET.getlist("metricQuery"),
-            )
+            additional_queries = self.get_additional_queries(request)
 
             def get_rpc_config():
                 if scoped_dataset not in RPC_DATASETS:
