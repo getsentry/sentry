@@ -318,7 +318,10 @@ describe('SiblingAutogroupNode', () => {
         blue300: '#3182ce',
       };
 
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
+      expect(node.makeBarColor(mockTheme as Theme)).toEqual({
+        color: '#ff6b6b',
+        type: 'dark',
+      });
     });
 
     it('should return blue color when no errors are present', () => {
@@ -332,7 +335,10 @@ describe('SiblingAutogroupNode', () => {
         blue300: '#3182ce',
       };
 
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#3182ce');
+      expect(node.makeBarColor(mockTheme as Theme)).toEqual({
+        color: '#3182ce',
+        type: 'dark',
+      });
     });
   });
 

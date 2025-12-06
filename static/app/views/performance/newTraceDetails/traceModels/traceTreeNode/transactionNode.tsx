@@ -186,11 +186,14 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     return true;
   }
 
-  makeBarColor(theme: Theme): string {
-    return pickBarColor(
-      getStylingSliceName(this.value.project_slug, this.value.sdk_name) ?? this.op,
-      theme
-    );
+  makeBarColor(theme: Theme): {color: string; type: 'light' | 'dark'} {
+    return {
+      color: pickBarColor(
+        getStylingSliceName(this.value.project_slug, this.value.sdk_name) ?? this.op,
+        theme
+      ),
+      type: 'dark',
+    };
   }
 
   renderWaterfallRow<T extends TraceTree.Node>(props: TraceRowProps<T>): React.ReactNode {

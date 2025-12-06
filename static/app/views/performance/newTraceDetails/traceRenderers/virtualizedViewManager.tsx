@@ -9,10 +9,7 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import {
-  isEAPError,
-  isMissingInstrumentationNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isEAPError} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
@@ -54,6 +51,7 @@ type VerticalIndicator = {
 export type ViewManagerScrollAnchor = 'top' | 'center if outside' | 'center';
 
 export class VirtualizedViewManager {
+  theme: Theme;
   row_measurer: TraceRowWidthMeasurer<BaseNode> = new TraceRowWidthMeasurer();
   indicator_label_measurer: TraceRowWidthMeasurer<TraceTree['indicators'][0]> =
     new TraceRowWidthMeasurer();
@@ -153,6 +151,7 @@ export class VirtualizedViewManager {
         translate: [0, 0],
       },
     };
+    this.theme = theme;
 
     this.text_measurer = new TraceTextMeasurer(theme);
 
@@ -1466,7 +1465,7 @@ export class VirtualizedViewManager {
     // We don't color the text white for missing instrumentation nodes
     // as the text will be invisible on the light background.
     span_text.ref.style.color =
-      inside && node && !isMissingInstrumentationNode(node) ? 'white' : '';
+      inside && node && node.makeBarColor(this.theme).type === 'dark' ? 'white' : '';
     span_text.ref.style.transform = `translateX(${text_transform}px)`;
   }
 

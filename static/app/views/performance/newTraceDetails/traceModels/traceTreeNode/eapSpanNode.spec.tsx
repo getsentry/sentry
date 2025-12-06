@@ -660,9 +660,10 @@ describe('EapSpanNode', () => {
       const node = new EapSpanNode(null, value, extra);
       const mockTheme = ThemeFixture();
 
-      const color = node.makeBarColor(mockTheme);
-      expect(typeof color).toBe('string');
-      expect(color).toBeDefined();
+      const result = node.makeBarColor(mockTheme);
+      expect(typeof result.color).toBe('string');
+      expect(result.color).toBeDefined();
+      expect(result.type).toBe('dark');
     });
 
     it('should handle undefined operation', () => {
@@ -674,9 +675,10 @@ describe('EapSpanNode', () => {
       const node = new EapSpanNode(null, value, extra);
       const mockTheme = ThemeFixture();
 
-      const color = node.makeBarColor(mockTheme);
-      expect(typeof color).toBe('string');
-      expect(color).toBeDefined();
+      const result = node.makeBarColor(mockTheme);
+      expect(typeof result.color).toBe('string');
+      expect(result.color).toBeDefined();
+      expect(result.type).toBe('dark');
     });
   });
 

@@ -45,7 +45,7 @@ export function TraceMissingInstrumentationRow(
         <MissingInstrumentationTraceBar
           virtualized_index={props.virtualized_index}
           manager={props.manager}
-          color={props.node.makeBarColor(props.theme)}
+          color={props.node.makeBarColor(props.theme).color}
           node_space={props.node.space}
         />
         <button
