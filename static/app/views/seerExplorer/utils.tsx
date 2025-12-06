@@ -408,7 +408,7 @@ export function buildToolLinkUrl(
 
       const queryParams: Record<string, any> = {
         query: query || '',
-        project: '-1',
+        project: null,
       };
       if (stats_period) {
         queryParams.statsPeriod = stats_period;
