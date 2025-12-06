@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -13,32 +14,57 @@ import {
   IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import PRWidget from 'sentry/views/seerExplorer/prWidget';
+import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 
 interface TopBarProps {
+  blocks: Block[];
   isEmptyState: boolean;
   isPolling: boolean;
   isSessionHistoryOpen: boolean;
+  onCreatePR: (repoName?: string) => void;
   onFeedbackClick: () => void;
   onNewChatClick: () => void;
+  onPRWidgetClick: () => void;
   onSessionHistoryClick: (buttonRef: React.RefObject<HTMLElement | null>) => void;
   onSizeToggleClick: () => void;
   panelSize: 'max' | 'med';
+  prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
+  repoPRStates: Record<string, RepoPRState>;
   sessionHistoryButtonRef: React.RefObject<HTMLButtonElement | null>;
 }
 
 function TopBar({
+  blocks,
   isPolling,
   isEmptyState,
   isSessionHistoryOpen,
+  onCreatePR,
   onFeedbackClick,
   onNewChatClick,
+  onPRWidgetClick,
   onSessionHistoryClick,
   onSizeToggleClick,
   panelSize,
+  prWidgetButtonRef,
+  repoPRStates,
   sessionHistoryButtonRef,
 }: TopBarProps) {
+  // Check if there are any file patches
+  const hasCodeChanges = useMemo(() => {
+    return blocks.some(b => b.file_patches && b.file_patches.length > 0);
+  }, [blocks]);
+
   return (
-    <TopBarContainer data-seer-top-bar="">
+    <Flex
+      align="center"
+      justify="between"
+      width="100%"
+      borderBottom="primary"
+      background="secondary"
+      flexShrink={0}
+      data-seer-top-bar=""
+    >
       <Flex>
         <Button
           icon={<IconAdd />}
@@ -64,13 +90,23 @@ function TopBar({
       <AnimatePresence initial={false}>
         {!isEmptyState && (
           <CenterSection
-            key="seer-icon"
+            key={hasCodeChanges ? 'pr-widget' : 'seer-icon'}
             initial={{opacity: 0, scale: 0.8}}
             animate={{opacity: 1, scale: 1}}
             exit={{opacity: 0, scale: 0.8}}
             transition={{duration: 0.12, ease: 'easeOut'}}
           >
-            <IconSeer variant={isPolling ? 'loading' : 'waiting'} size="md" />
+            {hasCodeChanges ? (
+              <PRWidget
+                ref={prWidgetButtonRef}
+                blocks={blocks}
+                repoPRStates={repoPRStates}
+                onCreatePR={onCreatePR}
+                onToggleMenu={onPRWidgetClick}
+              />
+            ) : (
+              <IconSeer variant={isPolling ? 'loading' : 'waiting'} size="md" />
+            )}
           </CenterSection>
         )}
       </AnimatePresence>
@@ -100,27 +136,18 @@ function TopBar({
           }
         />
       </Flex>
-    </TopBarContainer>
+    </Flex>
   );
 }
 
 export default TopBar;
-
-const TopBarContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  border-bottom: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.backgroundSecondary};
-  flex-shrink: 0;
-`;
 
 const CenterSection = styled(motion.div)`
   display: flex;
   align-items: center;
   justify-content: center;
   flex: 1;
+  gap: ${p => p.theme.space.lg};
 `;
 
 const SessionHistoryButtonWrapper = styled('div')<{isSelected: boolean}>`
