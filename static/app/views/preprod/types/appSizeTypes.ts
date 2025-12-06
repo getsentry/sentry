@@ -228,6 +228,7 @@ export interface DiffItem {
   path: string;
   size_diff: number;
   type: DiffType;
+  diff_items?: DiffItem[] | null;
 }
 
 // Keep in sync with https://github.com/getsentry/sentry/blob/a85090d7b81832982b43a35c30db9970a0258e99/src/sentry/preprod/models.py#L230
@@ -246,7 +247,18 @@ interface SizeMetricDiffItem {
   metrics_artifact_type: MetricsArtifactType;
 }
 
+export type InsightStatus = 'new' | 'resolved' | 'unresolved';
+
+export interface InsightDiffItem {
+  file_diffs: DiffItem[];
+  group_diffs: DiffItem[];
+  insight_type: string;
+  status: InsightStatus;
+  total_savings_change: number;
+}
+
 export interface SizeAnalysisComparisonResults {
   diff_items: DiffItem[];
+  insight_diff_items: InsightDiffItem[];
   size_metric_diff_item: SizeMetricDiffItem;
 }

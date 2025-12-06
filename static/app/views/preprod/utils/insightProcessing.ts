@@ -43,7 +43,7 @@ interface InsightConfig {
   name: string;
 }
 
-const INSIGHT_CONFIGS: InsightConfig[] = [
+export const INSIGHT_CONFIGS: InsightConfig[] = [
   {
     key: 'image_optimization',
     name: t('Image Optimization'),
@@ -144,6 +144,16 @@ const INSIGHT_CONFIGS: InsightConfig[] = [
     ),
   },
 ];
+
+export function getInsightConfig(insightType: string): InsightConfig {
+  return (
+    INSIGHT_CONFIGS.find(config => config.key === insightType) ?? {
+      name: insightType,
+      key: insightType,
+      description: t('No description available'),
+    }
+  );
+}
 
 function markDuplicateImageVariants(processedInsights: ProcessedInsight[]): void {
   const imageInsightTypes = ['image_optimization', 'alternate_icons_optimization'];
