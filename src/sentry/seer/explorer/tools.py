@@ -70,6 +70,7 @@ def _get_full_trace_id(
             end=window_end,
             projects=projects,
             organization=organization,
+            mode="HIGHEST_ACCURACY_FLEX_TIME",
             debug=True,
         )
 
