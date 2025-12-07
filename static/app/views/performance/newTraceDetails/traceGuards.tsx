@@ -1,5 +1,3 @@
-import type {Measurement} from 'sentry/types/event';
-
 import type {TraceSplitResults} from './traceApi/types';
 import type {TraceTree} from './traceModels/traceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
@@ -148,22 +146,6 @@ export function isEAPTraceOccurrence(
   return (
     isTraceOccurence(issue) && 'event_type' in issue && issue.event_type === 'occurrence'
   );
-}
-
-export function isEAPMeasurementValue(
-  value: number | Measurement | undefined
-): value is number {
-  return value !== undefined && typeof value === 'number';
-}
-
-export function isEAPMeasurements(
-  value: Record<string, Measurement> | Record<string, number> | undefined
-): value is Record<string, number> {
-  if (value === undefined) {
-    return false;
-  }
-
-  return Object.values(value).every(isEAPMeasurementValue);
 }
 
 export function isStandaloneSpanMeasurementNode(node: BaseNode): boolean {

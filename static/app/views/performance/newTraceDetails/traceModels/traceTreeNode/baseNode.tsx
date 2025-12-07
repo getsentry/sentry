@@ -333,10 +333,8 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       : undefined;
   }
 
-  get measurements(): Record<string, number> | Record<string, Measurement> | undefined {
-    return this.value && 'measurements' in this.value
-      ? this.value.measurements
-      : undefined;
+  get measurements(): Record<string, Measurement> | undefined {
+    return undefined;
   }
 
   get attributes(): Record<string, string | number | boolean> | undefined {

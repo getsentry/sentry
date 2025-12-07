@@ -2,6 +2,7 @@ import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
+import type {Measurement} from 'sentry/types/event';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -94,6 +95,22 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
 
   get drawerTabsTitle(): string {
     return this.op + (this.description ? ' - ' + this.description : '');
+  }
+
+  get measurements(): Record<string, Measurement> | undefined {
+    if (!this.value.measurements) {
+      return undefined;
+    }
+
+    const result: Record<string, Measurement> = {};
+    for (const key in this.value.measurements) {
+      const value = this.value.measurements[key];
+      if (typeof value === 'number') {
+        const normalizedKey = key.replace('measurements.', '');
+        result[normalizedKey] = {value, unit: 'millisecond'};
+      }
+    }
+    return result;
   }
 
   get profileId(): string | undefined {

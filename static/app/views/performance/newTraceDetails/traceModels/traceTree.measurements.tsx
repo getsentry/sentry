@@ -1,10 +1,6 @@
 import type {Measurement} from 'sentry/types/event';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
-import {
-  isEAPMeasurements,
-  isEAPMeasurementValue,
-  isStandaloneSpanMeasurementNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isStandaloneSpanMeasurementNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
 import type {TraceTree} from './traceTree';
@@ -91,7 +87,7 @@ export function collectTraceMeasurements(
   tree: TraceTree,
   node: BaseNode,
   start_timestamp: number,
-  measurements: Record<string, Measurement> | Record<string, number> | undefined,
+  measurements: Record<string, Measurement> | undefined,
   vitals: Map<BaseNode, TraceTree.CollectedVital[]>,
   vital_types: Set<'web' | 'mobile'>
 ): TraceTree.Indicator[] {
@@ -101,12 +97,10 @@ export function collectTraceMeasurements(
 
   const indicators: TraceTree.Indicator[] = [];
 
-  for (const measurement of COLLECTABLE_MEASUREMENTS) {
-    const value = isEAPMeasurements(measurements)
-      ? measurements[`measurements.${measurement}`]
-      : measurements[measurement];
+  for (const collectableMeasurement of COLLECTABLE_MEASUREMENTS) {
+    const measurement = measurements[collectableMeasurement];
 
-    if (!value || (!isEAPMeasurementValue(value) && typeof value.value !== 'number')) {
+    if (!measurement || !measurement.value) {
       continue;
     }
 
@@ -114,19 +108,19 @@ export function collectTraceMeasurements(
       vitals.set(node, []);
     }
 
-    if (WEB_VITALS_LOOKUP.has(measurement)) {
+    if (WEB_VITALS_LOOKUP.has(collectableMeasurement)) {
       vital_types.add('web');
-    } else if (MOBILE_VITALS_LOOKUP.has(measurement)) {
+    } else if (MOBILE_VITALS_LOOKUP.has(collectableMeasurement)) {
       vital_types.add('mobile');
     }
 
-    const eapScoreRatioKey = `measurements.score.ratio.${measurement}`;
-    const legacyScoreKey = `score.${measurement}`;
-    const legacyScoreWeightKey = `score.weight.${measurement}`;
-    const score = isEAPMeasurements(measurements)
-      ? measurements[eapScoreRatioKey] === undefined
+    const eapScoreKey = `score.ratio.${collectableMeasurement}`;
+    const legacyScoreKey = `score.${collectableMeasurement}`;
+    const legacyScoreWeightKey = `score.weight.${collectableMeasurement}`;
+    const score = node.isEAPEvent
+      ? measurements[eapScoreKey]?.value === undefined
         ? undefined
-        : Math.round(measurements[eapScoreRatioKey] * 100)
+        : Math.round(measurements[eapScoreKey].value * 100)
       : measurements[legacyScoreKey]?.value !== undefined &&
           measurements[legacyScoreWeightKey]?.value !== undefined
         ? Math.round(
@@ -137,15 +131,15 @@ export function collectTraceMeasurements(
         : undefined;
 
     vitals.get(node)!.push({
-      key: measurement,
-      measurement: isEAPMeasurementValue(value) ? {value} : value,
+      key: collectableMeasurement,
+      measurement,
       score,
     });
 
     const hasSeenMeasurement = tree.indicators.some(
-      indicator => indicator.type === measurement
+      indicator => indicator.type === collectableMeasurement
     );
-    if (!RENDERABLE_MEASUREMENTS[measurement] || hasSeenMeasurement) {
+    if (!RENDERABLE_MEASUREMENTS[collectableMeasurement] || hasSeenMeasurement) {
       continue;
     }
 
@@ -153,24 +147,21 @@ export function collectTraceMeasurements(
     // We pass in 0 as the measurement value to prevent applying any unnecessary offset.
     const timestamp = traceMeasurementToTimestamp(
       start_timestamp,
-      isStandaloneSpanMeasurementNode(node)
-        ? 0
-        : isEAPMeasurementValue(value)
-          ? value
-          : value.value,
-      isEAPMeasurementValue(value) ? 'millisecond' : (value.unit ?? 'millisecond')
+      isStandaloneSpanMeasurementNode(node) ? 0 : measurement.value,
+      measurement.unit ?? 'millisecond'
     );
 
     indicators.push({
       start: timestamp,
       duration: 0,
-      measurement: isEAPMeasurementValue(value) ? {value} : value,
-      poor: MEASUREMENT_THRESHOLDS[measurement]
-        ? (isEAPMeasurementValue(value) ? value : value.value) >
-          MEASUREMENT_THRESHOLDS[measurement]
+      measurement,
+      poor: MEASUREMENT_THRESHOLDS[collectableMeasurement]
+        ? measurement.value > MEASUREMENT_THRESHOLDS[collectableMeasurement]
         : false,
-      type: measurement,
-      label: (MEASUREMENT_ACRONYM_MAPPING[measurement] ?? measurement).toUpperCase(),
+      type: collectableMeasurement,
+      label: (
+        MEASUREMENT_ACRONYM_MAPPING[collectableMeasurement] ?? collectableMeasurement
+      ).toUpperCase(),
       score,
     });
   }
