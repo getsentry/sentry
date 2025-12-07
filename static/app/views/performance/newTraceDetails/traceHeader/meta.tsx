@@ -8,9 +8,9 @@ import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
-import type {RepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 type MetaDataProps = {
@@ -48,23 +48,17 @@ interface MetaProps {
   logs: OurLogsResponseItem[] | undefined;
   meta: TraceMetaQueryResults['data'];
   organization: Organization;
-  representativeEvent: RepresentativeTraceEvent;
+  representativeEvent: TraceTree.RepresentativeTraceEvent | null;
   tree: TraceTree;
 }
 
-function getRootDuration(event: TraceTree.TraceEvent | null) {
-  if (!event) {
+function getRootDuration(node: BaseNode | null) {
+  if (!node) {
     return '\u2014';
   }
 
-  const startTimestamp = 'start_timestamp' in event ? event.start_timestamp : undefined;
-  // TODO Abdullah Khan: Clean this up once getRepresentativeTraceEvent is moved to the TraceTree class
-  const endTimestamp =
-    'timestamp' in event
-      ? event.timestamp
-      : 'event_timestamp' in event && typeof event.event_timestamp === 'number'
-        ? event.event_timestamp
-        : undefined;
+  const startTimestamp = node.startTimestamp;
+  const endTimestamp = node.endTimestamp;
 
   if (!startTimestamp || !endTimestamp) {
     return '\u2014';
@@ -124,9 +118,7 @@ export function Meta(props: MetaProps) {
         <MetaSection
           headingText={t('Root Duration')}
           rightAlignBody
-          bodyText={getRootDuration(
-            props.representativeEvent.event as TraceTree.TraceEvent
-          )}
+          bodyText={getRootDuration(props.representativeEvent?.event as BaseNode | null)}
         />
       ) : hasLogs ? (
         <MetaSection

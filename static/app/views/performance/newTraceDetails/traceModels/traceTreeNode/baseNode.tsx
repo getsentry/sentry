@@ -4,6 +4,7 @@ import type {Client} from 'sentry/api';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import type {TraceItemDataset} from 'sentry/views/explore/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
@@ -122,6 +123,11 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
    * Whether the node is an EAP event.
    */
   isEAPEvent = false;
+
+  /**
+   * The dataset used to fetch the details for the item. If not provided we fetch from nodestore.
+   */
+  traceItemDataset: TraceItemDataset | null = null;
 
   /**
    * The priority of the node in when we find multiple nodes matching the same search query.

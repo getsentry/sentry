@@ -6,6 +6,8 @@ import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import type {Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {
   TraceError as TraceErrorType,
   TraceFullDetailed,
@@ -218,11 +220,6 @@ export declare namespace TraceTree {
 
   type Trace = TraceSplitResults<Transaction> | EAPTrace;
 
-  // Represents events that we get from the trace endpoints and render an
-  // individual row for in the trace waterfall, on load. This excludes spans as
-  // they are rendered on-demand as the user zooms in.
-  type TraceEvent = Transaction | TraceError | EAPSpan | EAPError | UptimeCheck;
-
   type TraceError = TraceErrorType;
   type TraceErrorIssue = TraceError | EAPError;
 
@@ -230,6 +227,11 @@ export declare namespace TraceTree {
   type TraceOccurrence = TracePerformanceIssue | EAPOccurrence;
 
   type TraceIssue = TraceErrorIssue | TraceOccurrence;
+
+  type RepresentativeTraceEvent = {
+    dataset: TraceItemDataset | null;
+    event: BaseNode | OurLogsResponseItem | null;
+  };
 
   type Profile = {profile_id: string} | {profiler_id: string};
   type Project = {
@@ -1326,6 +1328,64 @@ export class TraceTree extends TraceTreeEventDispatcher {
     throw new Error('Not a valid trace');
   }
 
+  findRepresentativeTraceNode({logs}: {logs: OurLogsResponseItem[] | undefined}): {
+    dataset: TraceItemDataset | null;
+    event: BaseNode | OurLogsResponseItem | null;
+  } | null {
+    const hasLogs = logs && logs.length > 0;
+    if (hasLogs) {
+      return {
+        event: logs[0]!,
+        dataset: TraceItemDataset.LOGS,
+      };
+    }
+
+    const traceNode = this.root.children[0];
+
+    if (!traceNode) {
+      return null;
+    }
+
+    let preferredRootEvent: BaseNode | null = null;
+    let firstRootEvent: BaseNode | null = null;
+    let candidateEvent: BaseNode | null = null;
+    let firstEvent: BaseNode | null = null;
+
+    for (const node of traceNode.children) {
+      if (isRootEvent(node.value)) {
+        if (!firstRootEvent) {
+          firstRootEvent = node;
+        }
+
+        if (hasPreferredOp(node)) {
+          preferredRootEvent = node;
+          break;
+        }
+        // Otherwise we keep looking for a root eap transaction. If we don't find one, we use other roots, like standalone spans.
+        continue;
+      } else if (
+        // If we haven't found a root transaction, but we found a candidate transaction
+        // with an op that we care about, we can use it for the title. We keep looking for
+        // a root.
+        !candidateEvent &&
+        hasPreferredOp(node)
+      ) {
+        candidateEvent = node;
+        continue;
+      } else if (!firstEvent) {
+        // If we haven't found a root or candidate transaction, we can use the first transaction
+        // in the trace for the title.
+        firstEvent = node;
+      }
+    }
+
+    const event = preferredRootEvent ?? firstRootEvent ?? candidateEvent ?? firstEvent;
+    return {
+      event,
+      dataset: event?.traceItemDataset ?? null,
+    };
+  }
+
   fetchAdditionalTraces(options: {
     api: Client;
     filters: any;
@@ -1485,4 +1545,16 @@ function traceQueueIterator(
       oIdx++;
     }
   }
+}
+
+const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation', 'ui.load'];
+
+/**
+ * Prefer "special" root events over generic root events when generating a title
+ * for the waterfall view. Picking these improves contextual navigation for linked
+ * traces, resulting in more meaningful waterfall titles.
+ */
+function hasPreferredOp(node: BaseNode): boolean {
+  const op = node.op;
+  return !!op && CANDIDATE_TRACE_TITLE_OPS.includes(op);
 }

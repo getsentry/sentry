@@ -2,6 +2,7 @@ import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
@@ -40,6 +41,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
 
     this.id = value.event_id;
     this.type = 'span';
+    this.traceItemDataset = TraceItemDataset.SPANS;
 
     this.searchPriority = this.value.is_transaction ? 1 : 2;
     this.isEAPEvent = true;

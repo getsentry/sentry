@@ -91,10 +91,6 @@ export function isTraceNode(
   return !!(node.value && 'orphan_errors' in node.value && 'transactions' in node.value);
 }
 
-export function isEAPTraceNode(node: BaseNode): node is BaseNode<TraceTree.EAPTrace> {
-  return !!node.value && Array.isArray(node.value) && !isTraceNode(node);
-}
-
 export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): boolean {
   if (!sdk) {
     return true;
