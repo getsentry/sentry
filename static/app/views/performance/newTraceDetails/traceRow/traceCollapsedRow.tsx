@@ -3,6 +3,7 @@ import {useMemo} from 'react';
 import {t} from 'sentry/locale';
 import {
   isCollapsedNode,
+  isEAPError,
   isTraceErrorNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -25,7 +26,7 @@ export function TraceCollapsedRow(props: TraceRowProps<CollapsedNode>) {
 
       seen.add(c);
 
-      if (isTraceErrorNode(c)) {
+      if (isTraceErrorNode(c) || isEAPError(c.value)) {
         childStatistics.issues++;
       } else {
         childStatistics.events++;
