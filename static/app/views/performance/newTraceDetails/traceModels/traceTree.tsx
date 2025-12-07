@@ -1333,7 +1333,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     event: BaseNode | OurLogsResponseItem | null;
   } | null {
     const hasLogs = logs && logs.length > 0;
-    if (hasLogs) {
+    if (this.type === 'empty' && hasLogs) {
       return {
         event: logs[0]!,
         dataset: TraceItemDataset.LOGS,

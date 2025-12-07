@@ -39,7 +39,6 @@ export function useTraceRootEvent({
   const isEAPQueryEnabled = !!(isRepLog || rep?.event?.isEAPEvent);
 
   const projectSlug = rep?.event?.projectSlug;
-
   const legacyRootEvent = useApiQuery<EventTransaction>(
     [
       `/organizations/${organization.slug}/events/${projectSlug}:${rep?.event?.id}/`,
@@ -52,7 +51,7 @@ export function useTraceRootEvent({
     {
       // 10 minutes
       staleTime: 1000 * 60 * 10,
-      enabled: enabledBase && !isEAPQueryEnabled,
+      enabled: enabledBase && !isEAPQueryEnabled && !!projectSlug && !!rep?.event?.id,
     }
   );
 

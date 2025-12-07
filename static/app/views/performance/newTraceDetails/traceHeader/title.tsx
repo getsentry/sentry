@@ -42,8 +42,7 @@ function getTitle(
     };
   }
 
-  const node = tree.root.findChild(n => n.value === event);
-  return node?.traceHeaderTitle ?? null;
+  return event.traceHeaderTitle ?? null;
 }
 
 function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>) {
