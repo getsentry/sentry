@@ -1342,7 +1342,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     const traceNode = this.root.children[0];
 
-    if (!traceNode) {
+    if (this.type !== 'trace' || !traceNode) {
       return null;
     }
 

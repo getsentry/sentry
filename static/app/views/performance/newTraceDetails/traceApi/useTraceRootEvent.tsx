@@ -33,7 +33,7 @@ export function useTraceRootEvent({
 
   const treeIsLoading = tree.type === 'loading';
 
-  const enabledBase = !treeIsLoading || !!rep?.event;
+  const enabledBase = !treeIsLoading && !!rep?.event;
 
   const isRepLog = rep?.dataset === TraceItemDataset.LOGS;
   const isEAPQueryEnabled = !!(isRepLog || rep?.event?.isEAPEvent);

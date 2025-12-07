@@ -19,13 +19,9 @@ import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 interface TitleProps {
   representativeEvent: TraceTree.RepresentativeTraceEvent | null;
   rootEventResults: TraceRootEventQueryResults;
-  tree: TraceTree;
 }
 
-function getTitle(
-  tree: TraceTree,
-  representativeEvent: TraceTree.RepresentativeTraceEvent | null
-): {
+function getTitle(representativeEvent: TraceTree.RepresentativeTraceEvent | null): {
   title: string;
   subtitle?: string;
 } | null {
@@ -87,8 +83,8 @@ const ReplayButton = styled(LinkButton)`
   text-decoration-style: dotted;
 `;
 
-export function Title({representativeEvent, rootEventResults, tree}: TitleProps) {
-  const traceTitle = getTitle(tree, representativeEvent);
+export function Title({representativeEvent, rootEventResults}: TitleProps) {
+  const traceTitle = getTitle(representativeEvent);
 
   return (
     <div>

@@ -9,12 +9,12 @@ import {
   isSiblingAutogroupedNode,
   isSpanNode,
   isTransactionNode,
-  isUptimeCheckNode,
 } from './../traceGuards';
 import type {BaseNode} from './traceTreeNode/baseNode';
 import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
 import type {ParentAutogroupNode} from './traceTreeNode/parentAutogroupNode';
 import type {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
+import type {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
 import type {UptimeCheckTimingNode} from './traceTreeNode/uptimeCheckTimingNode';
 import {TraceShape, TraceTree} from './traceTree';
 import {
@@ -2049,6 +2049,14 @@ describe('TraceTree', () => {
         node.value &&
         'event_type' in node.value &&
         node.value.event_type === 'uptime_check_timing'
+      );
+    }
+
+    function isUptimeCheckNode(node: BaseNode): node is UptimeCheckNode {
+      return !!(
+        node.value &&
+        'event_type' in node.value &&
+        node.value.event_type === 'uptime_check'
       );
     }
 
