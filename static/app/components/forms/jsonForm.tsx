@@ -50,27 +50,25 @@ interface ChildFormPanelProps
   highlighted?: string;
 }
 
-function JsonForm(props: JsonFormProps) {
-  const {
-    access,
-    collapsible,
-    initiallyCollapsed = false,
-    fields: propFields,
-    nested,
-    title,
-    forms,
-    disabled,
-    features,
-    additionalFieldProps,
-    renderFooter,
-    renderHeader,
-    location,
-    params,
-    router,
-    routes,
-    ...otherProps
-  } = props;
-
+function JsonForm({
+  access,
+  collapsible,
+  initiallyCollapsed = false,
+  fields: propFields,
+  nested,
+  title,
+  forms,
+  disabled,
+  features,
+  additionalFieldProps,
+  renderFooter,
+  renderHeader,
+  location,
+  params,
+  router,
+  routes,
+  ...otherProps
+}: JsonFormProps) {
   const scrollToHash = (toHash?: string): void => {
     // location.hash is optional because of tests.
     const hash = toHash || location?.hash;
