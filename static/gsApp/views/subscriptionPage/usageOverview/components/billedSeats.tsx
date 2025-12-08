@@ -11,6 +11,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
@@ -33,6 +34,8 @@ function BilledSeats({
     subscription,
     selectedProduct
   );
+  const shouldShowBilledSeats =
+    selectedProduct === AddOnCategory.SEER && defined(billedCategory) && isEnabled;
   const billedSeatsQueryKey = [
     `/customers/${organization.slug}/billing-seats/current/?billingMetric=${billedCategory}`,
   ] as const;
@@ -44,10 +47,10 @@ function BilledSeats({
     getResponseHeader,
   } = useApiQuery<BillingSeatAssignment[]>(billedSeatsQueryKey, {
     staleTime: 0,
-    enabled: selectedProduct === AddOnCategory.SEER,
+    enabled: shouldShowBilledSeats,
   });
 
-  if (selectedProduct !== AddOnCategory.SEER || !isEnabled) {
+  if (!shouldShowBilledSeats) {
     // eventually we should expand this to support other seat-based products
     return null;
   }

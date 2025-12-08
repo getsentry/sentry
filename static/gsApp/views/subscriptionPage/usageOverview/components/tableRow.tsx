@@ -173,7 +173,7 @@ function UsageOverviewTableRow({
     buckets: subscription.planDetails.planCategories[billedCategory],
   });
   if (billedCategory === DataCategory.SEER_USER && reserved === 0) {
-    otherSpend = metricHistory.usage * 40_00; // TODO(seer): serialize pricing info
+    otherSpend = Math.max(0, metricHistory.usage - metricHistory.prepaid) * 40_00; // TODO(seer): serialize pricing info
   }
   const recurringReservedSpend = isChildProduct ? 0 : (bucket.price ?? 0);
   const additionalSpend = recurringReservedSpend + paygSpend + otherSpend;
