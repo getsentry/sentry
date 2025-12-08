@@ -92,7 +92,7 @@ class MemoryBlock(BaseModel):
     timestamp: str
     loading: bool = False
     artifacts: list[Artifact] = []
-    file_patches: list[ExplorerFilePatch] = []
+    file_patches: list[ExplorerFilePatch] | None = None
     pr_commit_shas: dict[str, str] | None = (
         None  # repository name -> commit SHA. Used to track which commit was associated with each repo's PR at the time this block was created.
     )
@@ -159,7 +159,7 @@ class SeerRunState(BaseModel):
         """Get file patches grouped by repository."""
         by_repo: dict[str, list[ExplorerFilePatch]] = {}
         for block in self.blocks:
-            for fp in block.file_patches:
+            for fp in block.file_patches or []:
                 if fp.repo_name not in by_repo:
                     by_repo[fp.repo_name] = []
                 by_repo[fp.repo_name].append(fp)
@@ -177,7 +177,7 @@ class SeerRunState(BaseModel):
 
         # Find last block with patches for this repo
         for block in reversed(self.blocks):
-            if any(fp.repo_name == repo_name for fp in block.file_patches):
+            if any(fp.repo_name == repo_name for fp in (block.file_patches or [])):
                 block_sha = (block.pr_commit_shas or {}).get(repo_name)
                 return block_sha == pr_state.commit_sha
         return True  # No patches found = synced
