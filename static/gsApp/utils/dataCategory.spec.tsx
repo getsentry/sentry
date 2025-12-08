@@ -13,7 +13,10 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 
 import {DataCategory} from 'sentry/types/core';
 
+import {UNLIMITED_RESERVED} from 'getsentry/constants';
+import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
 import {
+  formatCategoryQuantityWithDisplayName,
   getPlanCategoryName,
   getReservedBudgetDisplayName,
   getSingularCategoryName,
@@ -455,5 +458,122 @@ describe('isByteCategory', () => {
     expect(isByteCategory(DataCategory.LOG_BYTE)).toBe(true);
     expect(isByteCategory(DataCategory.ERRORS)).toBe(false);
     expect(isByteCategory(DataCategory.TRANSACTIONS)).toBe(false);
+  });
+});
+
+describe('formatCategoryQuantityWithDisplayName', () => {
+  const organization = OrganizationFixture();
+  const subscription = SubscriptionFixture({organization, plan: 'am3_team'});
+
+  it('formats profiling categories with hours', () => {
+    expect(
+      formatCategoryQuantityWithDisplayName({
+        dataCategory: DataCategory.PROFILE_DURATION,
+        quantity: MILLISECONDS_IN_HOUR,
+        formattedQuantity: '1',
+        subscription,
+        options: {
+          capitalize: false,
+        },
+      })
+    ).toBe('1 hour');
+
+    expect(
+      formatCategoryQuantityWithDisplayName({
+        dataCategory: DataCategory.PROFILE_DURATION,
+        quantity: MILLISECONDS_IN_HOUR * 2,
+        formattedQuantity: '2',
+        subscription,
+        options: {
+          capitalize: false,
+        },
+      })
+    ).toBe('2 hours');
+
+    expect(
+      formatCategoryQuantityWithDisplayName({
+        dataCategory: DataCategory.PROFILE_DURATION,
+        quantity: MILLISECONDS_IN_HOUR * 2,
+        formattedQuantity: '2',
+        subscription,
+        options: {
+          title: true,
+        },
+      })
+    ).toBe('2 Hours');
+
+    expect(
+      formatCategoryQuantityWithDisplayName({
+        dataCategory: DataCategory.PROFILE_DURATION,
+        quantity: UNLIMITED_RESERVED,
+        formattedQuantity: 'Unlimited',
+        subscription,
+        options: {
+          capitalize: false,
+        },
+      })
+    ).toBe('Unlimited hours');
+  });
+
+  it('formats other categories with display names', () => {
+    expect(
+      formatCategoryQuantityWithDisplayName({
+        dataCategory: DataCategory.SEER_USER,
+        quantity: 1,
+        formattedQuantity: '1',
+        subscription,
+        options: {
+          capitalize: false,
+        },
+      })
+    ).toBe('1 active contributor');
+
+    expect(
+      formatCategoryQuantityWithDisplayName({
+        dataCategory: DataCategory.SEER_USER,
+        quantity: 2,
+        formattedQuantity: '2',
+        subscription,
+        options: {
+          capitalize: false,
+        },
+      })
+    ).toBe('2 active contributors');
+
+    expect(
+      formatCategoryQuantityWithDisplayName({
+        dataCategory: DataCategory.SEER_USER,
+        quantity: 2,
+        formattedQuantity: '2',
+        subscription,
+        options: {
+          capitalize: true,
+        },
+      })
+    ).toBe('2 Active contributors');
+
+    expect(
+      formatCategoryQuantityWithDisplayName({
+        dataCategory: DataCategory.SEER_USER,
+        quantity: 2,
+        formattedQuantity: '2',
+        subscription,
+        options: {
+          title: true,
+        },
+      })
+    ).toBe('2 Active Contributors');
+
+    expect(
+      formatCategoryQuantityWithDisplayName({
+        dataCategory: DataCategory.SEER_USER,
+        quantity: UNLIMITED_RESERVED,
+        formattedQuantity: 'Unlimited',
+        subscription,
+        options: {
+          capitalize: false,
+        },
+      })
+    ).toBe('Unlimited active contributors');
   });
 });

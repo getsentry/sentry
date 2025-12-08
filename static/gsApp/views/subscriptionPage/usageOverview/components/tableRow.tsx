@@ -16,7 +16,6 @@ import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory} from 'getsentry/types';
 import {
-  formatCategoryQuantityWithDisplayName,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getPercentage,
@@ -25,7 +24,11 @@ import {
   MILLISECONDS_IN_HOUR,
   supportsPayg,
 } from 'getsentry/utils/billing';
-import {isByteCategory, isContinuousProfiling} from 'getsentry/utils/dataCategory';
+import {
+  formatCategoryQuantityWithDisplayName,
+  isByteCategory,
+  isContinuousProfiling,
+} from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
 import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 import ProductTrialRibbon from 'getsentry/views/subscriptionPage/usageOverview/components/productTrialRibbon';

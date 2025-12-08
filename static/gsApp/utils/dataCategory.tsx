@@ -1,13 +1,13 @@
 import upperFirst from 'lodash/upperFirst';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
+import {BILLED_DATA_CATEGORY_INFO, UNLIMITED_RESERVED} from 'getsentry/constants';
 import type {
   BilledDataCategoryInfo,
   BillingMetricHistory,
@@ -18,6 +18,7 @@ import type {
   ReservedBudgetCategory,
   Subscription,
 } from 'getsentry/types';
+import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
 
 /**
  * Returns the data category info defined in DATA_CATEGORY_INFO for the given category,
@@ -289,4 +290,62 @@ export function getChunkCategoryFromDuration(category: DataCategory) {
     return DataCategory.PROFILE_CHUNKS_UI;
   }
   return '';
+}
+
+export function formatWithHours(
+  quantityInMilliseconds: number,
+  formattedHours: string,
+  options: Pick<CategoryNameProps, 'title'>
+) {
+  const quantityInHours =
+    quantityInMilliseconds === UNLIMITED_RESERVED
+      ? quantityInMilliseconds
+      : quantityInMilliseconds / MILLISECONDS_IN_HOUR;
+  if (quantityInHours === UNLIMITED_RESERVED) {
+    return `${formattedHours} ${options.title ? t('Hours') : t('hours')}`;
+  }
+  return `${formattedHours} ${options.title ? tn('Hour', 'Hours', quantityInHours) : tn('hour', 'hours', quantityInHours)}`;
+}
+
+/**
+ * Format category usage or reserved quantity with the appropriate display name.
+ */
+export function formatCategoryQuantityWithDisplayName({
+  dataCategory,
+  quantity,
+  formattedQuantity,
+  subscription,
+  planOverride,
+  options = {},
+}: {
+  dataCategory: DataCategory;
+  formattedQuantity: string;
+  options: Omit<CategoryNameProps, 'category'>;
+  quantity: number;
+  subscription: Subscription;
+  planOverride?: Plan;
+}) {
+  if (isContinuousProfiling(dataCategory)) {
+    return formatWithHours(quantity, formattedQuantity, options);
+  }
+  const plan = planOverride ?? subscription.planDetails;
+  if (quantity === 1) {
+    const displayName = getSingularCategoryName({
+      plan,
+      category: dataCategory,
+      capitalize: options.capitalize,
+      title: options.title,
+      hadCustomDynamicSampling: options.hadCustomDynamicSampling,
+    });
+    return `${formattedQuantity} ${displayName}`;
+  }
+
+  const displayName = getPlanCategoryName({
+    plan,
+    category: dataCategory,
+    capitalize: options.capitalize,
+    title: options.title,
+    hadCustomDynamicSampling: options.hadCustomDynamicSampling,
+  });
+  return `${formattedQuantity} ${displayName}`;
 }
