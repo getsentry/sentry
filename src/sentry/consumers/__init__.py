@@ -57,8 +57,7 @@ def apply_processor_args_overrides(
             param_type = type_hints[key]
 
             # Extract the actual type from Optional[T], Union, etc.
-            origin = get_origin(param_type)
-            if origin is not None:
+            if get_origin(param_type) is not None:
                 # For Optional[T] (Union[T, None]), extract T
                 type_args = get_args(param_type)
                 param_type = next((t for t in type_args if t is not type(None)), str)
