@@ -8,17 +8,19 @@ import {Text} from '@sentry/scraps/text';
 
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
-import type {Repository} from 'sentry/types/integrations';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {ActionSection, MaxWidthPanel, PanelDescription, StepContent} from './common';
 
-interface NextStepsStepProps {
-  repositories: Repository[];
-}
+export function NextStepsStep() {
+  const {selectedCodeReviewRepositories, selectedRootCauseAnalysisRepositories} =
+    useSeerOnboardingContext();
 
-export function NextStepsStep({repositories}: NextStepsStepProps) {
   const organization = useOrganization();
+  const totalRepositories =
+    selectedCodeReviewRepositories.length + selectedRootCauseAnalysisRepositories.length;
+
   return (
     <Fragment>
       <StepContent>
@@ -60,7 +62,7 @@ export function NextStepsStep({repositories}: NextStepsStepProps) {
                 <Well>
                   <WellContent>
                     <CellTitle>{t('Connected Repos')}</CellTitle>
-                    <Text>{repositories.length ?? 0}</Text>
+                    <Text>{totalRepositories}</Text>
                   </WellContent>
                   <WellContent>
                     <CellTitle>{t('Active Contributors')}</CellTitle>

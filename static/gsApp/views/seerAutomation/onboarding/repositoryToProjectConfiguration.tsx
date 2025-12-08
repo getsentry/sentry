@@ -16,32 +16,33 @@ import type {SelectValue} from 'sentry/types/core';
 import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 
+import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
+
 interface RepositoryToProjectConfigurationProps {
   isPending: boolean;
   onChange: (repoId: string, inedx: number, newValue: string | undefined) => void;
-  onRemoveRepository: (repoId: string) => void;
   projects: Project[];
-  repositories: Repository[];
-  repositoryProjectMapping: Record<string, string[]>;
 }
 
 export function RepositoryToProjectConfiguration({
   isPending,
-  repositories,
   onChange,
   projects,
-  onRemoveRepository,
-  repositoryProjectMapping,
 }: RepositoryToProjectConfigurationProps) {
   const [memberProjects, nonMemberProjects] = useMemo(
     () => partition(projects, project => project.isMember),
     [projects]
   );
+  const {
+    selectedRootCauseAnalysisRepositories,
+    repositoryProjectMapping,
+    removeRootCauseAnalysisRepository,
+  } = useSeerOnboardingContext();
 
   return (
     <Fragment>
-      {repositories.length > 0 &&
-        repositories.map(repository => {
+      {selectedRootCauseAnalysisRepositories.length > 0 &&
+        selectedRootCauseAnalysisRepositories.map(repository => {
           return (
             <RepositoryRow
               isPending={isPending}
@@ -50,7 +51,7 @@ export function RepositoryToProjectConfiguration({
               nonMemberProjects={nonMemberProjects}
               selectedProjects={repositoryProjectMapping[repository.id] || []}
               repository={repository}
-              onRemoveRepository={onRemoveRepository}
+              onRemoveRepository={removeRootCauseAnalysisRepository}
               onChange={onChange}
             />
           );
@@ -114,7 +115,7 @@ const RepositoryRow = memo(function RepositoryRow({
       <Arrow direction="right" size="lg" />
 
       {isPending ? (
-        <Placeholder />
+        <Placeholder height="100%" />
       ) : (
         <Flex direction="column" gap="md" width="100%">
           {/* Render a dropdown for each selected project */}

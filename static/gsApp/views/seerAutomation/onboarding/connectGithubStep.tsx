@@ -7,29 +7,16 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {
-  IntegrationProvider,
-  OrganizationIntegration,
-} from 'sentry/types/integrations';
 import useOrganization from 'sentry/utils/useOrganization';
 import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
+import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {ActionSection, MaxWidthPanel, StepContent} from './common';
 
-interface Props {
-  installationData: OrganizationIntegration[] | undefined;
-  isInstallationPending: boolean;
-  isProviderPending: boolean;
-  provider: IntegrationProvider | undefined;
-}
-
-export function ConnectGithubStep({
-  installationData,
-  isInstallationPending,
-  isProviderPending,
-  provider,
-}: Props) {
+export function ConnectGithubStep() {
+  const {provider, isProviderPending, installationData, isInstallationPending} =
+    useSeerOnboardingContext();
   const organization = useOrganization();
   const handleAddIntegration = useCallback(() => {
     window.location.reload();

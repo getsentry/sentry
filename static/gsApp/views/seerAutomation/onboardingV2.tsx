@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
+import {SeerOnboardingProvider} from './onboarding/hooks/seerOnboardingContext';
 import {StepsManager} from './onboarding/stepsManager';
 
 export default function SeerOnboardingV2() {
@@ -29,9 +30,11 @@ export default function SeerOnboardingV2() {
       />
 
       <NoProjectMessage organization={organization}>
-        <StyledGuidedSteps>
-          <StepsManager />
-        </StyledGuidedSteps>
+        <SeerOnboardingProvider>
+          <StyledGuidedSteps>
+            <StepsManager />
+          </StyledGuidedSteps>
+        </SeerOnboardingProvider>
       </NoProjectMessage>
     </Fragment>
   );

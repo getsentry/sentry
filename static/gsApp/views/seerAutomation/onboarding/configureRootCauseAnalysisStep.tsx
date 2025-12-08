@@ -1,7 +1,6 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -15,29 +14,24 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import type {Repository} from 'sentry/types/integrations';
 import useProjects from 'sentry/utils/useProjects';
 
-import {useRepositoryProjectMapping} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryProjectMapping';
-
+import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
+import {useCodeMappings} from './hooks/useCodeMappings';
 import {MaxWidthPanel, PanelDescription, StepContent} from './common';
 import {RepositoryToProjectConfiguration} from './repositoryToProjectConfiguration';
 
-interface ConfigureRootCauseAnalysisStepProps {
-  /**
-   * Selected repositories from the repository selector step.
-   */
-  selectedRepositories: Repository[];
-}
-
-export function ConfigureRootCauseAnalysisStep({
-  selectedRepositories,
-}: ConfigureRootCauseAnalysisStepProps) {
-  const {currentStep, setCurrentStep} = useGuidedStepsContext();
-  // Need local state so you can remove repositories (and maybe add new ones)
-  const [repositories, setRepositories] = useState<Repository[]>(selectedRepositories);
+export function ConfigureRootCauseAnalysisStep() {
   const [proposeFixesEnabled, setProposeFixesEnabled] = useState(true);
   const [autoCreatePREnabled, setAutoCreatePREnabled] = useState(true);
+
+  const {currentStep, setCurrentStep} = useGuidedStepsContext();
+  const {
+    selectedRootCauseAnalysisRepositories,
+    repositoryProjectMapping,
+    changeRepositoryProjectMapping,
+    addRepositoryProjectMappings,
+  } = useSeerOnboardingContext();
 
   const {
     projects,
@@ -45,12 +39,25 @@ export function ConfigureRootCauseAnalysisStep({
     fetching: isProjectsFetching,
   } = useProjects();
 
-  const {
-    repositoryProjectMapping,
-    setRepositoryProjectMapping,
-    isPending: isRepositoryProjectMappingPending,
-    isError: isRepositoryProjectMappingError,
-  } = useRepositoryProjectMapping({repositories});
+  const {codeMappingsMap, isLoading: isCodeMappingsLoading} = useCodeMappings({
+    enabled: selectedRootCauseAnalysisRepositories.length > 0,
+  });
+
+  useEffect(() => {
+    if (!isCodeMappingsLoading && codeMappingsMap.size > 0) {
+      const additionalMappings: Record<string, string[]> = {};
+      selectedRootCauseAnalysisRepositories.forEach(repo => {
+        const mappedProjects = Array.from(codeMappingsMap.get(repo.id) || []);
+        additionalMappings[repo.id] = mappedProjects;
+      });
+      addRepositoryProjectMappings(additionalMappings);
+    }
+  }, [
+    isCodeMappingsLoading,
+    selectedRootCauseAnalysisRepositories,
+    codeMappingsMap,
+    addRepositoryProjectMappings,
+  ]);
 
   const handleNextStep = useCallback(() => {
     // TODO: Save to backend
@@ -59,62 +66,30 @@ export function ConfigureRootCauseAnalysisStep({
 
   const handleRepositoryProjectMappingsChange = useCallback(
     (repoId: string, index: number, newValue: string | undefined) => {
-      setRepositoryProjectMapping(prev => {
-        const currentProjects = prev[repoId] || [];
+      const currentProjects = repositoryProjectMapping[repoId] || [];
 
-        if (newValue && currentProjects.includes(newValue)) {
-          // Project is already mapped to this repo, show an error message and don't update anything
-          // We could make our dropdowns smarter by filtering out selected projects,
-          // but this is much simpler.
-          addErrorMessage(t('Project is already mapped to this repo'));
-          return prev;
-        }
+      if (newValue && currentProjects.includes(newValue)) {
+        // Project is already mapped to this repo, show an error message and don't update anything
+        // We could make our dropdowns smarter by filtering out selected projects,
+        // but this is much simpler.
+        addErrorMessage(t('Project is already mapped to this repo'));
+        return;
+      }
 
-        const newProjects = [...currentProjects];
-
-        if (newValue === undefined) {
-          // Remove the project at this index
-          newProjects.splice(index, 1);
-        } else if (index >= newProjects.length) {
-          // Adding a new project
-          newProjects.push(newValue);
-        } else {
-          // Replacing an existing project
-          newProjects[index] = newValue;
-        }
-
-        const result = {
-          ...prev,
-          [repoId]: newProjects,
-        };
-
-        return result;
-      });
+      changeRepositoryProjectMapping(repoId, index, newValue);
     },
-    [setRepositoryProjectMapping]
-  );
-
-  const handleRemoveRepository = useCallback(
-    (repoId: string) => {
-      setRepositoryProjectMapping(prev => {
-        const newMappings = {...prev};
-        delete newMappings[repoId];
-        return newMappings;
-      });
-      setRepositories(prev => prev.filter(repo => repo.id !== repoId));
-    },
-    [setRepositoryProjectMapping]
+    [changeRepositoryProjectMapping, repositoryProjectMapping]
   );
 
   const isFinishDisabled = useMemo(() => {
     const mappings = Object.values(repositoryProjectMapping);
     return (
       !mappings.length ||
-      mappings.length !== repositories.length ||
+      mappings.length !== selectedRootCauseAnalysisRepositories.length ||
       Boolean(mappings.some(mappedProjects => mappedProjects.length === 0)) ||
-      repositories.length === 0
+      selectedRootCauseAnalysisRepositories.length === 0
     );
-  }, [repositoryProjectMapping, repositories.length]);
+  }, [repositoryProjectMapping, selectedRootCauseAnalysisRepositories.length]);
 
   return (
     <Fragment>
@@ -158,20 +133,15 @@ export function ConfigureRootCauseAnalysisStep({
               />
             </Field>
 
-            {isRepositoryProjectMappingError ? (
-              <Alert type="error">{t('Error fetching repository project mapping')}</Alert>
-            ) : isProjectsLoaded && !isProjectsFetching ? (
+            {isProjectsLoaded && !isProjectsFetching ? (
               <RepositoryToProjectConfiguration
-                onRemoveRepository={handleRemoveRepository}
-                repositoryProjectMapping={repositoryProjectMapping}
-                isPending={isRepositoryProjectMappingPending}
+                isPending={isCodeMappingsLoading}
                 projects={projects}
-                repositories={repositories}
                 onChange={handleRepositoryProjectMappingsChange}
               />
             ) : (
               <Flex direction="column" gap="md" padding="md">
-                {repositories.map(repository => (
+                {selectedRootCauseAnalysisRepositories.map(repository => (
                   <Placeholder key={repository.id} />
                 ))}
               </Flex>

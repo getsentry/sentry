@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -8,39 +8,29 @@ import {
 } from 'sentry/components/guidedSteps/guidedSteps';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import type {IntegrationProvider, Repository} from 'sentry/types/integrations';
+
+import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
 
 import {MaxWidthPanel, PanelDescription, StepContent} from './common';
 import {RepositorySelector} from './repositorySelector';
 
-interface ConfigureCodeReviewStepProps {
-  isFetching: boolean;
-  onRepositorySelectionChange: (newSelections: Record<string, boolean>) => void;
-  provider: IntegrationProvider | undefined;
-  repositories: Repository[];
-  selectedRepositoriesMap: Record<string, boolean>;
-}
-export function ConfigureCodeReviewStep({
-  provider,
-  repositories,
-  isFetching,
-  selectedRepositoriesMap,
-  onRepositorySelectionChange,
-}: ConfigureCodeReviewStepProps) {
+export function ConfigureCodeReviewStep() {
+  const {
+    provider,
+    repositories,
+    isRepositoriesFetching,
+    selectedCodeReviewRepositories,
+    setCodeReviewRepositories,
+    selectedCodeReviewRepositoriesMap,
+  } = useSeerOnboardingContext();
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
-  const selectedRepositories = useMemo(() => {
-    return Object.entries(selectedRepositoriesMap)
-      .filter(([_, isSelected]) => isSelected)
-      .map(([repoId]) => repositories.find(repo => repo.id === repoId))
-      .filter(Boolean);
-  }, [selectedRepositoriesMap, repositories]);
 
   const handleNextStep = useCallback(() => {
-    if (selectedRepositories.length > 0) {
+    if (selectedCodeReviewRepositories.length > 0) {
       // TODO: Save to backend
       setCurrentStep(currentStep + 1);
     }
-  }, [selectedRepositories.length, setCurrentStep, currentStep]);
+  }, [selectedCodeReviewRepositories.length, setCurrentStep, currentStep]);
 
   return (
     <Fragment>
@@ -59,9 +49,9 @@ Now, select which of your repositories you would like to run Seer’s AI Code Re
             <RepositorySelector
               provider={provider}
               repositories={repositories}
-              isFetching={isFetching}
-              selectedRepositories={selectedRepositoriesMap}
-              onSelectionChange={onRepositorySelectionChange}
+              isFetching={isRepositoriesFetching}
+              selectedRepositories={selectedCodeReviewRepositoriesMap}
+              onSelectionChange={setCodeReviewRepositories}
             />
           </PanelBody>
         </MaxWidthPanel>
@@ -70,11 +60,11 @@ Now, select which of your repositories you would like to run Seer’s AI Code Re
           <Button
             size="md"
             onClick={handleNextStep}
-            priority={selectedRepositories.length > 0 ? 'primary' : 'default'}
-            disabled={selectedRepositories.length === 0}
+            priority={selectedCodeReviewRepositories.length > 0 ? 'primary' : 'default'}
+            disabled={selectedCodeReviewRepositories.length === 0}
             aria-label={t('Next Step')}
             title={
-              selectedRepositories.length === 0
+              selectedCodeReviewRepositories.length === 0
                 ? t('Select repositories before continuing to the next step')
                 : undefined
             }
