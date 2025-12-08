@@ -1430,7 +1430,12 @@ function getDashboardUrl(
     if (dashboardLink && dashboardLink.dashboardId !== '-1') {
       const newTemporaryFilters: GlobalFilter[] = [
         ...(dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? []),
-      ].filter(filter => Boolean(filter.value));
+      ].filter(
+        filter =>
+          Boolean(filter.value) &&
+          filter.tag.key !== field &&
+          filter.dataset !== widget.widgetType
+      );
 
       // Format the value as a proper filter condition string
       const mutableSearch = new MutableSearch('');
