@@ -370,7 +370,7 @@ function ClusterCard({
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const [showDescription, setShowDescription] = useState(false);
+  const [activeTab, setActiveTab] = useState<'summary' | 'issues'>('summary');
   const clusterStats = useClusterStats(cluster.group_ids);
   const {copy} = useCopyToClipboard();
 
@@ -452,104 +452,97 @@ function ClusterCard({
           onTagClick={onTagClick}
           selectedTags={selectedTags}
         />
-        {cluster.summary && (
-          <Fragment>
-            {showDescription ? (
-              <Fragment>
-                <DescriptionText>{cluster.summary}</DescriptionText>
-                <ReadMoreButton onClick={() => setShowDescription(false)}>
-                  {t('Collapse summary')}
-                </ReadMoreButton>
-              </Fragment>
-            ) : (
-              <ReadMoreButton onClick={() => setShowDescription(true)}>
-                {t('View summary')}
-              </ReadMoreButton>
+        <ClusterStats>
+          {cluster.fixability_score !== null &&
+            cluster.fixability_score !== undefined && (
+              <StatItem>
+                <IconFix size="xs" color="gray300" />
+                <Text size="xs">
+                  <Text size="xs" bold as="span">
+                    {Math.round(cluster.fixability_score * 100)}%
+                  </Text>{' '}
+                  {t('relevance')}
+                </Text>
+              </StatItem>
             )}
-          </Fragment>
-        )}
+          <StatItem>
+            <IconFire size="xs" color="gray300" />
+            {clusterStats.isPending ? (
+              <Text size="xs" variant="muted">
+                –
+              </Text>
+            ) : (
+              <Text size="xs">
+                <Text size="xs" bold as="span">
+                  {clusterStats.totalEvents.toLocaleString()}
+                </Text>{' '}
+                {tn('event', 'events', clusterStats.totalEvents)}
+              </Text>
+            )}
+          </StatItem>
+          <StatItem>
+            <IconUser size="xs" color="gray300" />
+            {clusterStats.isPending ? (
+              <Text size="xs" variant="muted">
+                –
+              </Text>
+            ) : (
+              <Text size="xs">
+                <Text size="xs" bold as="span">
+                  {clusterStats.totalUsers.toLocaleString()}
+                </Text>{' '}
+                {tn('user', 'users', clusterStats.totalUsers)}
+              </Text>
+            )}
+          </StatItem>
+          {!clusterStats.isPending && clusterStats.lastSeen && (
+            <StatItem>
+              <IconClock size="xs" color="gray300" />
+              <TimeSince
+                tooltipPrefix={t('Last Seen')}
+                date={clusterStats.lastSeen}
+                suffix={t('ago')}
+                unitStyle="short"
+              />
+            </StatItem>
+          )}
+          {!clusterStats.isPending && clusterStats.firstSeen && (
+            <StatItem>
+              <IconCalendar size="xs" color="gray300" />
+              <TimeSince
+                tooltipPrefix={t('First Seen')}
+                date={clusterStats.firstSeen}
+                suffix={t('old')}
+                unitStyle="short"
+              />
+            </StatItem>
+          )}
+        </ClusterStats>
       </CardHeader>
 
-      <ClusterStatsBar>
-        {cluster.fixability_score !== null && cluster.fixability_score !== undefined && (
-          <StatItem>
-            <IconFix size="xs" color="gray300" />
-            <Text size="xs">
-              <Text size="xs" bold as="span">
-                {Math.round(cluster.fixability_score * 100)}%
-              </Text>{' '}
-              {t('relevance')}
-            </Text>
-          </StatItem>
-        )}
-        <StatItem>
-          <IconFire size="xs" color="gray300" />
-          {clusterStats.isPending ? (
-            <Text size="xs" variant="muted">
-              –
-            </Text>
+      <TabSection>
+        <TabBar>
+          <Tab isActive={activeTab === 'summary'} onClick={() => setActiveTab('summary')}>
+            {t('Summary')}
+          </Tab>
+          <Tab isActive={activeTab === 'issues'} onClick={() => setActiveTab('issues')}>
+            {t('Preview Issues')}
+          </Tab>
+        </TabBar>
+        <TabContent>
+          {activeTab === 'summary' ? (
+            cluster.summary ? (
+              <DescriptionText>{cluster.summary}</DescriptionText>
+            ) : (
+              <Text size="sm" variant="muted">
+                {t('No summary available')}
+              </Text>
+            )
           ) : (
-            <Text size="xs">
-              <Text size="xs" bold as="span">
-                {clusterStats.totalEvents.toLocaleString()}
-              </Text>{' '}
-              {tn('event', 'events', clusterStats.totalEvents)}
-            </Text>
+            <ClusterIssues groupIds={cluster.group_ids} />
           )}
-        </StatItem>
-        <StatItem>
-          <IconUser size="xs" color="gray300" />
-          {clusterStats.isPending ? (
-            <Text size="xs" variant="muted">
-              –
-            </Text>
-          ) : (
-            <Text size="xs">
-              <Text size="xs" bold as="span">
-                {clusterStats.totalUsers.toLocaleString()}
-              </Text>{' '}
-              {tn('user', 'users', clusterStats.totalUsers)}
-            </Text>
-          )}
-        </StatItem>
-        {!clusterStats.isPending && clusterStats.lastSeen && (
-          <StatItem>
-            <IconClock size="xs" color="gray300" />
-            <TimeSince
-              tooltipPrefix={t('Last Seen')}
-              date={clusterStats.lastSeen}
-              suffix={t('ago')}
-              unitStyle="short"
-            />
-          </StatItem>
-        )}
-        {!clusterStats.isPending && clusterStats.firstSeen && (
-          <StatItem>
-            <IconCalendar size="xs" color="gray300" />
-            <TimeSince
-              tooltipPrefix={t('First Seen')}
-              date={clusterStats.firstSeen}
-              suffix={t('old')}
-              unitStyle="short"
-            />
-          </StatItem>
-        )}
-      </ClusterStatsBar>
-
-      <PreviewIssuesSection>
-        <Disclosure>
-          <Disclosure.Title>
-            <Text size="sm" variant="muted">
-              {t('Preview issues')}
-            </Text>
-          </Disclosure.Title>
-          <Disclosure.Content>
-            <IssuesListContainer>
-              <ClusterIssues groupIds={cluster.group_ids} />
-            </IssuesListContainer>
-          </Disclosure.Content>
-        </Disclosure>
-      </PreviewIssuesSection>
+        </TabContent>
+      </TabSection>
 
       <CardFooter>
         <ButtonBar merged gap="0">
@@ -1151,15 +1144,12 @@ const ClusterTitle = styled('h3')`
   word-break: break-word;
 `;
 
-// Horizontal stats bar below header
-const ClusterStatsBar = styled('div')`
+// Stats row within header
+const ClusterStats = styled('div')`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: ${space(2)};
-  padding: ${space(1.5)} ${space(3)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
@@ -1170,16 +1160,48 @@ const StatItem = styled('div')`
   gap: ${space(0.5)};
 `;
 
-// Zone 3: Preview issues - lightweight disclosure
-const PreviewIssuesSection = styled('div')`
-  padding: ${space(1)} ${space(3)};
+// Tab section for Summary / Preview Issues
+const TabSection = styled('div')``;
+
+const TabBar = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  padding: ${space(1)} ${space(3)} 0;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;
 
-const IssuesListContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
-  padding-top: ${space(1)};
+const Tab = styled('button')<{isActive: boolean}>`
+  background: none;
+  border: none;
+  padding: ${space(1)} ${space(1.5)};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: 500;
+  color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
+  cursor: pointer;
+  position: relative;
+  margin-bottom: -1px;
+
+  ${p =>
+    p.isActive &&
+    `
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: ${p.theme.purple300};
+    }
+  `}
+
+  &:hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const TabContent = styled('div')`
+  padding: ${space(2)} ${space(3)};
 `;
 
 // Zone 4: Footer with actions
@@ -1249,21 +1271,6 @@ const MetaSeparator = styled('div')`
   height: 10px;
   width: 1px;
   background-color: ${p => p.theme.innerBorder};
-`;
-
-const ReadMoreButton = styled('button')`
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  cursor: pointer;
-  text-align: left;
-
-  &:hover {
-    color: ${p => p.theme.textColor};
-    text-decoration: underline;
-  }
 `;
 
 const DescriptionText = styled('p')`
