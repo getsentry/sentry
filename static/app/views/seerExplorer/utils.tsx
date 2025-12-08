@@ -416,11 +416,13 @@ export function buildToolLinkUrl(
       if (sort) {
         queryParams.sort = sort;
       }
+
+      const stripTimezone = (ts: string) => ts.replace(/(Z|[+-]\d{2}:\d{2})$/, '');
       if (start) {
-        queryParams.start = start;
+        queryParams.start = stripTimezone(start);
       }
       if (end) {
-        queryParams.end = end;
+        queryParams.end = stripTimezone(end);
       }
 
       // If project_slugs is provided, look up the IDs and include them in qparams
