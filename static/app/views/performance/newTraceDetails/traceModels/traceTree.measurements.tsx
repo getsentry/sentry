@@ -1,6 +1,6 @@
 import type {Measurement} from 'sentry/types/event';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
-import {isStandaloneSpanMeasurementNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isStandaloneSpanMeasurementNode} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
 import type {TraceTree} from './traceTree';

@@ -17,17 +17,19 @@ import type {
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
+  isJavascriptSDKEvent,
+  isRootEvent,
+  isTraceSplitResult,
+  shouldAddMissingInstrumentationSpan,
+} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
+import {
   isEAPError,
   isEAPSpan,
-  isJavascriptSDKEvent,
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
-  isRootEvent,
   isSiblingAutogroupedNode,
   isTraceError,
-  isTraceSplitResult,
   isUptimeCheck,
-  shouldAddMissingInstrumentationSpan,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {
   collectTraceMeasurements,

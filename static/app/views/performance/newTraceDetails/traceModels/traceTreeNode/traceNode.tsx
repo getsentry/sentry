@@ -1,8 +1,6 @@
+import {isTraceSplitResult} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {
-  isTraceNode,
-  isTraceSplitResult,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isTraceNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceRootRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceRootNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
