@@ -138,13 +138,11 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   get transactionId(): string | undefined {
-    const transactionId = super.transactionId;
-
-    if (transactionId) {
-      return transactionId;
-    }
-
-    return this.findClosestParentTransaction()?.transactionId;
+    // If the node represents a transaction, we use the transaction_id attached to the node,
+    // otherwise we use the transaction_id of the closest parent transaction.
+    return this.value.is_transaction
+      ? this.value.transaction_id
+      : this.findClosestParentTransaction()?.transactionId;
   }
 
   get traceHeaderTitle(): {
@@ -317,6 +315,13 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       this.value.name?.includes(query) ||
       this.id === query
     );
+  }
+
+  matchById(id: string): boolean {
+    const superMatch = super.matchById(id);
+
+    // Match by transaction_id if the node represents a transaction, otherwise use the super match.
+    return superMatch || this.value.is_transaction ? id === this.transactionId : false;
   }
 
   resolveValueFromSearchKey(key: string): any | null {
