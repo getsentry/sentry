@@ -17,12 +17,14 @@ export function ConfigureCodeReviewStep() {
   const {selectedCodeReviewRepositories} = useSeerOnboardingContext();
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
 
+  const hasSelectedRepositories = selectedCodeReviewRepositories.length > 0;
+
   const handleNextStep = useCallback(() => {
-    if (selectedCodeReviewRepositories.length > 0) {
+    if (hasSelectedRepositories) {
       // TODO: Save to backend
       setCurrentStep(currentStep + 1);
     }
-  }, [selectedCodeReviewRepositories.length, setCurrentStep, currentStep]);
+  }, [hasSelectedRepositories, setCurrentStep, currentStep]);
 
   return (
     <Fragment>
@@ -47,13 +49,13 @@ Now, select which of your repositories you would like to run Seer’s AI Code Re
           <Button
             size="md"
             onClick={handleNextStep}
-            priority={selectedCodeReviewRepositories.length > 0 ? 'primary' : 'default'}
-            disabled={selectedCodeReviewRepositories.length === 0}
+            priority={hasSelectedRepositories ? 'primary' : 'default'}
+            disabled={!hasSelectedRepositories}
             aria-label={t('Next Step')}
             title={
-              selectedCodeReviewRepositories.length === 0
-                ? t('Select repositories before continuing to the next step')
-                : undefined
+              hasSelectedRepositories
+                ? undefined
+                : t('Select repositories before continuing to the next step')
             }
           >
             {t('Next Step')}
