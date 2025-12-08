@@ -1349,6 +1349,52 @@ class TestGetGithubUsernameForUser(TestCase):
         username = _get_github_username_for_user(user, organization1.id)
         assert username is None
 
+    def test_get_github_username_for_user_unverified_email_not_matched(self) -> None:
+        """Tests that unverified emails don't match CommitAuthor (security requirement)."""
+        from sentry.models.commitauthor import CommitAuthor
+
+        user = self.create_user(email="verified@example.com")
+        organization = self.create_organization()
+        self.create_member(user=user, organization=organization)
+
+        # Add an unverified email to the user
+        self.create_useremail(user=user, email="unverified@example.com", is_verified=False)
+
+        # Create CommitAuthor that matches the UNVERIFIED email
+        CommitAuthor.objects.create(
+            organization_id=organization.id,
+            name="unverified",
+            email="unverified@example.com",
+            external_id="github:unverified",
+        )
+
+        # Should NOT match the unverified email (security fix)
+        username = _get_github_username_for_user(user, organization.id)
+        assert username is None
+
+    def test_get_github_username_for_user_verified_secondary_email_matched(self) -> None:
+        """Tests that verified secondary emails DO match CommitAuthor."""
+        from sentry.models.commitauthor import CommitAuthor
+
+        user = self.create_user(email="primary@example.com")
+        organization = self.create_organization()
+        self.create_member(user=user, organization=organization)
+
+        # Add a verified secondary email
+        self.create_useremail(user=user, email="secondary@example.com", is_verified=True)
+
+        # Create CommitAuthor that matches the verified secondary email
+        CommitAuthor.objects.create(
+            organization_id=organization.id,
+            name="Developer",
+            email="secondary@example.com",
+            external_id="github:developeruser",
+        )
+
+        # Should match the verified secondary email
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "developeruser"
+
 
 class TestRespondWithError(TestCase):
     def test_respond_with_error(self) -> None:

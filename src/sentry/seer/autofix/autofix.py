@@ -372,7 +372,7 @@ def _get_github_username_for_user(user: User | RpcUser, organization_id: int) ->
 
     # Method 2: Check CommitAuthor by email matching (like suspect commits does)
     # Get all verified emails for this user
-    user_emails = [user.email] if hasattr(user, "email") and user.email else []
+    user_emails: list[str] = []
     try:
         # For RpcUser, get verified emails directly from the object
         if hasattr(user, "get_verified_emails"):
@@ -385,7 +385,7 @@ def _get_github_username_for_user(user: User | RpcUser, organization_id: int) ->
                 verified_emails = user_details.get_verified_emails()
                 user_emails.extend([e.email for e in verified_emails])
     except Exception:
-        # If we can't get verified emails, continue with just the primary email
+        # If we can't get verified emails, don't use any
         pass
 
     if user_emails:
