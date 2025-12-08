@@ -655,22 +655,8 @@ def _compare_insights(
             # Skip insights with zero savings in both head and base
             continue
 
-        # Determine status and create diff item
-        if head_insight is not None and base_insight is None:
-            # New insight in head
-            insight_diff_item = _diff_insight(insight_type, head_insight, None)
-            if insight_diff_item:
-                insight_diff_items.append(insight_diff_item)
-        elif head_insight is None and base_insight is not None:
-            # Resolved insight (was in base, not in head)
-            insight_diff_item = _diff_insight(insight_type, None, base_insight)
-            if insight_diff_item:
-                insight_diff_items.append(insight_diff_item)
-        else:
-            # Unresolved insight (exists in both)
-            if head_insight and base_insight:
-                insight_diff_item = _diff_insight(insight_type, head_insight, base_insight)
-                if insight_diff_item:
-                    insight_diff_items.append(insight_diff_item)
+        insight_diff_item = _diff_insight(insight_type, head_insight, base_insight)
+        if insight_diff_item:
+            insight_diff_items.append(insight_diff_item)
 
     return insight_diff_items
