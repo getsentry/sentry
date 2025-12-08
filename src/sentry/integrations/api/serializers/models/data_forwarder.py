@@ -1,5 +1,6 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
@@ -14,7 +15,7 @@ from sentry.users.services.user import RpcUser
 class ProjectResponse(TypedDict):
     id: str
     slug: str
-    platform: str
+    platform: str | None
 
 
 class DataForwarderProjectResponse(TypedDict):
@@ -24,8 +25,8 @@ class DataForwarderProjectResponse(TypedDict):
     project: ProjectResponse
     overrides: dict[str, str]
     effectiveConfig: dict[str, str]
-    dateAdded: str
-    dateUpdated: str
+    dateAdded: datetime
+    dateUpdated: datetime
 
 
 class DataForwarderResponse(TypedDict):
@@ -37,8 +38,8 @@ class DataForwarderResponse(TypedDict):
     provider: str
     config: dict[str, str]
     projectConfigs: list[DataForwarderProjectResponse]
-    dateAdded: str
-    dateUpdated: str
+    dateAdded: datetime
+    dateUpdated: datetime
 
 
 @register(DataForwarder)
