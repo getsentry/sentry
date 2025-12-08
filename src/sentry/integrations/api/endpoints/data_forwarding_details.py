@@ -65,8 +65,8 @@ class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
 class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationDataForwardingDetailsPermission,)
 
@@ -81,7 +81,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         if not features.has("organizations:data-forwarding-revamp-access", kwargs["organization"]):
-            raise PermissionDenied
+            raise PermissionDenied("This feature is in a limited preview. Reach out for access.")
 
         if request.method == "PUT" and not features.has(
             "organizations:data-forwarding", kwargs["organization"]

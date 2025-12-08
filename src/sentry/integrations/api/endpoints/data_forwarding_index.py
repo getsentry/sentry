@@ -39,15 +39,15 @@ class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
 class DataForwardingIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationDataForwardingDetailsPermission,)
 
     def convert_args(self, request: Request, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         if not features.has("organizations:data-forwarding-revamp-access", kwargs["organization"]):
-            raise PermissionDenied
+            raise PermissionDenied("This feature is in a limited preview. Reach out for access.")
         return args, kwargs
 
     @extend_schema(
