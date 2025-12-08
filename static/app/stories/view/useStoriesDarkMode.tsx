@@ -1,11 +1,10 @@
 import type {PropsWithChildren} from 'react';
-import {ThemeProvider, useTheme, type Theme} from '@emotion/react';
+import {ThemeProvider, type Theme} from '@emotion/react';
 
 // these utils are for stories that have forced dark mode
 // which is a very specific sanctioned use case
 // eslint-disable-next-line no-restricted-imports
-import {darkTheme} from 'sentry/utils/theme';
-import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme.chonk';
+import {darkTheme} from 'sentry/utils/theme/theme';
 
 /**
  * Access the raw values from the dark theme
@@ -13,10 +12,6 @@ import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme.chonk';
  * ⚠️ DO NOT USE OUTSIDE OF STORIES
  */
 export const useStoryDarkModeTheme = (): Theme => {
-  const theme = useTheme();
-  if (theme.isChonk) {
-    return DO_NOT_USE_darkChonkTheme as any;
-  }
   return darkTheme;
 };
 

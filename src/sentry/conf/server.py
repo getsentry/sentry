@@ -1255,6 +1255,8 @@ LOGGING: LoggingConfig = {
             "propagate": False,
         },
         "toronado": {"level": "ERROR", "handlers": ["null"], "propagate": False},
+        "toronado.cssutils": {"level": "ERROR", "handlers": ["null"], "propagate": False},
+        "CSSUTILS": {"level": "ERROR", "handlers": ["null"], "propagate": False},
         "urllib3.connectionpool": {
             "level": "ERROR",
             "handlers": ["console"],
@@ -2980,6 +2982,10 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS: ServiceOptions = {
     "options": {"cluster": "default"},
 }
 
+SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE = (
+    0.1  # relative to SENTRY_PROCESS_EVENT_APM_SAMPLING
+)
+
 ADDITIONAL_BULK_QUERY_DELETES: list[tuple[str, str, str | None]] = []
 
 # Monitor limits to prevent abuse
@@ -3050,9 +3056,6 @@ SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
 # but existing customers have been using these routes
 # on the main domain for a long time.
 REGION_PINNED_URL_NAMES = {
-    # These paths have organization scoped aliases
-    "sentry-api-0-builtin-symbol-sources",
-    "sentry-api-0-grouping-configs",
     # Unprefixed issue URLs
     "sentry-api-0-group-details",
     "sentry-api-0-group-activities",
@@ -3075,7 +3078,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-integrations",
     "sentry-api-0-group-integration-details",
     "sentry-api-0-group-current-release",
-    "sentry-api-0-shared-group-details",
     # These paths are used by relay which is implicitly region scoped
     "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",

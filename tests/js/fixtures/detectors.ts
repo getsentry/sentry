@@ -20,7 +20,12 @@ import type {
   UptimeDetector,
   UptimeSubscriptionDataSource,
 } from 'sentry/types/workflowEngine/detectors';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleSensitivity,
+  AlertRuleThresholdType,
+  Dataset,
+  EventTypes,
+} from 'sentry/views/alerts/rules/metric/types';
 import {
   MonitorStatus,
   ScheduleType,
@@ -50,6 +55,19 @@ function DataConditionFixture(params: Partial<MetricCondition> = {}): MetricCond
   };
 }
 
+function AnomalyDetectionConditionFixture(
+  params: Partial<MetricCondition> = {}
+): MetricCondition {
+  return DataConditionFixture({
+    comparison: {
+      sensitivity: AlertRuleSensitivity.HIGH,
+      seasonality: 'auto',
+      thresholdType: AlertRuleThresholdType.ABOVE_AND_BELOW,
+    },
+    ...params,
+  });
+}
+
 function DataConditionGroupFixture(
   params: Partial<MetricConditionGroup> = {}
 ): MetricConditionGroup {
@@ -68,6 +86,15 @@ function DataConditionGroupFixture(
     logicType: DataConditionGroupLogicType.ANY,
     ...params,
   };
+}
+
+export function AnomalyDetectionConditionGroupFixture(
+  params: Partial<MetricConditionGroup> = {}
+): MetricConditionGroup {
+  return DataConditionGroupFixture({
+    conditions: [AnomalyDetectionConditionFixture()],
+    ...params,
+  });
 }
 
 export function MetricDetectorFixture(

@@ -12,6 +12,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     TraceItemStatsRequest,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry import options
 from sentry.exceptions import InvalidSearchQuery
@@ -25,7 +26,7 @@ from sentry.search.eap.types import (
     SearchResolverConfig,
     SupportedTraceItemType,
 )
-from sentry.search.eap.utils import can_expose_attribute
+from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
@@ -287,6 +288,7 @@ class Spans(rpc_dataset_common.RPCBase):
         referrer: str,
         config: SearchResolverConfig,
         search_resolver: SearchResolver | None = None,
+        attributes: list[AttributeKey] | None = None,
     ) -> list[dict[str, Any]]:
         search_resolver = search_resolver or cls.get_resolver(params, config)
         stats_filter, _, _ = search_resolver.resolve_query(query_string)
@@ -308,6 +310,7 @@ class Spans(rpc_dataset_common.RPCBase):
                 StatsType(
                     attribute_distributions=AttributeDistributionsRequest(
                         max_buckets=75,
+                        attributes=attributes,
                     )
                 )
             )
@@ -319,7 +322,7 @@ class Spans(rpc_dataset_common.RPCBase):
             if "attributeDistributions" in stats_types and result.HasField(
                 "attribute_distributions"
             ):
-                attributes = defaultdict(list)
+                attrs = defaultdict(list)
                 for attribute in result.attribute_distributions.attributes:
                     if not can_expose_attribute(
                         attribute.attribute_name, SupportedTraceItemType.SPANS
@@ -327,9 +330,11 @@ class Spans(rpc_dataset_common.RPCBase):
                         continue
 
                     for bucket in attribute.buckets:
-                        attributes[attribute.attribute_name].append(
-                            {"label": bucket.label, "value": bucket.value}
+                        public_alias, _, _ = translate_internal_to_public_alias(
+                            attribute.attribute_name, "string", SupportedTraceItemType.SPANS
                         )
-                stats.append({"attribute_distributions": {"data": attributes}})
+                        public_alias = public_alias or attribute.attribute_name
+                        attrs[public_alias].append({"label": bucket.label, "value": bucket.value})
+                stats.append({"attribute_distributions": {"data": attrs}})
 
         return stats

@@ -3,15 +3,10 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import TimeSince from 'sentry/components/timeSince';
-import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 
-type MenuMode =
-  | 'slash-commands-keyboard'
-  | 'slash-commands-manual'
-  | 'session-history'
-  | 'hidden';
+type MenuMode = 'slash-commands-keyboard' | 'session-history' | 'hidden';
 
 interface ExplorerMenuProps {
   clearInput: () => void;
@@ -26,6 +21,8 @@ interface ExplorerMenuProps {
     onNew: () => void;
   };
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
+  inputAnchorRef?: React.RefObject<HTMLElement | null>;
+  menuAnchorRef?: React.RefObject<HTMLElement | null>;
 }
 
 interface MenuItemProps {
@@ -44,8 +41,16 @@ export function useExplorerMenu({
   panelVisible,
   slashCommandHandlers,
   onChangeSession,
+  menuAnchorRef,
+  inputAnchorRef,
 }: ExplorerMenuProps) {
   const [menuMode, setMenuMode] = useState<MenuMode>('hidden');
+  const [menuPosition, setMenuPosition] = useState<{
+    bottom?: string | number;
+    left?: string | number;
+    right?: string | number;
+    top?: string | number;
+  }>({});
 
   const allSlashCommands = useSlashCommands(slashCommandHandlers);
 
@@ -67,14 +72,12 @@ export function useExplorerMenu({
     switch (menuMode) {
       case 'slash-commands-keyboard':
         return filteredSlashCommands;
-      case 'slash-commands-manual':
-        return allSlashCommands;
       case 'session-history':
         return sessionItems;
       default:
         return [];
     }
-  }, [menuMode, allSlashCommands, filteredSlashCommands, sessionItems]);
+  }, [menuMode, filteredSlashCommands, sessionItems]);
 
   const close = useCallback(() => {
     setMenuMode('hidden');
@@ -199,9 +202,54 @@ export function useExplorerMenu({
     return undefined;
   }, [handleKeyDown, isVisible]);
 
+  // Calculate menu position based on anchor element
+  useEffect(() => {
+    if (!isVisible) {
+      setMenuPosition({});
+      return;
+    }
+
+    const anchorRef =
+      menuMode === 'slash-commands-keyboard' ? inputAnchorRef : menuAnchorRef;
+    const isSlashCommand = menuMode === 'slash-commands-keyboard';
+
+    if (!anchorRef?.current) {
+      setMenuPosition({
+        bottom: '100%',
+        left: '16px',
+      });
+      return;
+    }
+
+    const rect = anchorRef.current.getBoundingClientRect();
+    const panelRect = anchorRef.current
+      .closest('[data-seer-explorer-root]')
+      ?.getBoundingClientRect();
+
+    if (!panelRect) {
+      return;
+    }
+
+    const spacing = 8;
+    const relativeTop = rect.top - panelRect.top;
+    const relativeLeft = rect.left - panelRect.left;
+
+    setMenuPosition(
+      isSlashCommand
+        ? {
+            bottom: `${panelRect.height - relativeTop + spacing}px`,
+            left: `${relativeLeft}px`,
+          }
+        : {
+            top: `${relativeTop + rect.height + spacing}px`,
+            left: `${relativeLeft}px`,
+          }
+    );
+  }, [isVisible, menuMode, menuAnchorRef, inputAnchorRef]);
+
   const menu = (
     <Activity mode={isVisible ? 'visible' : 'hidden'}>
-      <MenuPanel panelSize={panelSize}>
+      <MenuPanel panelSize={panelSize} style={menuPosition} data-seer-menu-panel="">
         {menuItems.map((item, index) => (
           <MenuItem
             key={item.key}
@@ -230,21 +278,22 @@ export function useExplorerMenu({
     </Activity>
   );
 
-  // Handler for the button entrypoint.
-  const onMenuButtonClick = useCallback(() => {
-    if (menuMode === 'hidden') {
-      setMenuMode('slash-commands-manual');
-    } else {
+  // Handler for opening session history from button
+  const openSessionHistory = useCallback(() => {
+    if (menuMode === 'session-history') {
       close();
+    } else {
+      setMenuMode('session-history');
+      refetchSessions();
     }
-  }, [menuMode, setMenuMode, close]);
+  }, [menuMode, close, refetchSessions]);
 
   return {
     menu,
     menuMode,
     isMenuOpen: menuMode !== 'hidden',
     closeMenu: close,
-    onMenuButtonClick,
+    openSessionHistory,
   };
 }
 
@@ -350,8 +399,6 @@ const MenuPanel = styled('div')<{
   panelSize: 'max' | 'med';
 }>`
   position: absolute;
-  bottom: 100%;
-  left: ${space(2)};
   width: 300px;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
