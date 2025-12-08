@@ -4,7 +4,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {IntegrationInformation} from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
 
-export default function useIntegrationProvider(provider_key: string) {
+export function useIntegrationProvider(provider_key: string) {
   const organization = useOrganization();
   const {data, isPending} = useApiQuery<IntegrationInformation>(
     [
@@ -16,7 +16,7 @@ export default function useIntegrationProvider(provider_key: string) {
       },
     ],
     {
-      staleTime: Infinity,
+      staleTime: 0,
     }
   );
 

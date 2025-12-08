@@ -21,7 +21,7 @@ export function useIntegrationInstallation(provider_key: string) {
       },
     ],
     {
-      staleTime: Infinity,
+      staleTime: 0,
     }
   );
 
