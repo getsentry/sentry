@@ -608,6 +608,12 @@ function useWidgetBuilderState(): {
           if (action.payload.yAxis) {
             setYAxis(deserializeFields(action.payload.yAxis), options);
           }
+          if (action.payload.traceMetrics) {
+            setTraceMetrics(
+              deserializeTraceMetrics(action.payload.traceMetrics),
+              options
+            );
+          }
           break;
         case BuilderStateAction.SET_THRESHOLDS:
           setThresholds(action.payload, options);

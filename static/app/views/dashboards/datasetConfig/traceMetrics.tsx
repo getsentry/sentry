@@ -164,7 +164,7 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
       }
       return {
         data: timeSeries.values.map(value => ({
-          name: value.timestamp / 1000, // Account for nanoseconds to milliseconds precision
+          name: value.timestamp / 1000, // Account for microseconds to milliseconds precision
           value: value.value ?? 0,
         })),
         seriesName: formatTimeSeriesLabel(timeSeries),
