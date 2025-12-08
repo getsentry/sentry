@@ -218,6 +218,7 @@ class Feature:
 
 __all__ = [
     "Feature",
+    "OwnerInfo",
     "InvalidFeatureFlagConfiguration",
     "ContextBuilder",
     "EvaluationContext",
