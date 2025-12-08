@@ -62,9 +62,14 @@ export function StoryLanding() {
                 <p>{frontmatter.hero.tagline}</p>
               </Flex>
               <Flex gap="md">
-                {frontmatter.hero.actions.map(props => (
-                  <LinkButton {...props} key={props.to} />
-                ))}
+                {frontmatter.hero.actions.map(props => {
+                  // Normalize internal paths with organization context
+                  const to =
+                    typeof props.to === 'string' && !props.external
+                      ? normalizeUrl(`/organizations/${organization.slug}${props.to}`)
+                      : props.to;
+                  return <LinkButton {...props} to={to} key={props.to} />;
+                })}
               </Flex>
             </Flex>
             <img
