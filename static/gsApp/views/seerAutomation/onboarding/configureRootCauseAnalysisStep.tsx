@@ -1,6 +1,7 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -14,10 +15,10 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import type {Repository, RepositoryProjectPathConfig} from 'sentry/types/integrations';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {Repository} from 'sentry/types/integrations';
 import useProjects from 'sentry/utils/useProjects';
+
+import {useRepositoryProjectMapping} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryProjectMapping';
 
 import {MaxWidthPanel, PanelDescription, StepContent} from './common';
 import {RepositoryToProjectConfiguration} from './repositoryToProjectConfiguration';
@@ -38,52 +39,18 @@ export function ConfigureRootCauseAnalysisStep({
   const [proposeFixesEnabled, setProposeFixesEnabled] = useState(true);
   const [autoCreatePREnabled, setAutoCreatePREnabled] = useState(true);
 
-  const [repositoryProjectMappings, setRepositoryProjectMappings] = useState<
-    Record<string, string[]>
-  >({});
-  const organization = useOrganization();
   const {
     projects,
     initiallyLoaded: isProjectsLoaded,
     fetching: isProjectsFetching,
   } = useProjects();
 
-  // Fetch code mappings to prepopulate
-  const {data: codeMappings, isPending: isCodeMappingsPending} = useApiQuery<
-    RepositoryProjectPathConfig[]
-  >([`/organizations/${organization.slug}/code-mappings/`], {
-    staleTime: Infinity,
-    enabled: selectedRepositories.length > 0,
-  });
-
-  // Create a map of repository ID to project slugs based on code mappings
-  const codeMappingsMap = useMemo(() => {
-    if (!codeMappings) {
-      return new Map<string, string[]>();
-    }
-
-    const map = new Map<string, string[]>();
-    codeMappings.forEach(mapping => {
-      const existingProjects = map.get(mapping.repoId) || [];
-      if (!existingProjects.includes(mapping.projectSlug)) {
-        map.set(mapping.repoId, [...existingProjects, mapping.projectSlug]);
-      }
-    });
-
-    return map;
-  }, [codeMappings]);
-
-  // Initialize mappings from code mappings when they're available
-  useEffect(() => {
-    if (codeMappingsMap.size > 0 && Object.keys(repositoryProjectMappings).length === 0) {
-      const initialMappings: Record<string, string[]> = {};
-      selectedRepositories.forEach(repo => {
-        const mappedProjects = codeMappingsMap.get(repo.id) || [];
-        initialMappings[repo.id] = mappedProjects;
-      });
-      setRepositoryProjectMappings(initialMappings);
-    }
-  }, [codeMappingsMap, selectedRepositories, repositoryProjectMappings]);
+  const {
+    repositoryProjectMapping,
+    setRepositoryProjectMapping,
+    isPending: isRepositoryProjectMappingPending,
+    isError: isRepositoryProjectMappingError,
+  } = useRepositoryProjectMapping({repositories});
 
   const handleNextStep = useCallback(() => {
     // TODO: Save to backend
@@ -92,7 +59,7 @@ export function ConfigureRootCauseAnalysisStep({
 
   const handleRepositoryProjectMappingsChange = useCallback(
     (repoId: string, index: number, newValue: string | undefined) => {
-      setRepositoryProjectMappings(prev => {
+      setRepositoryProjectMapping(prev => {
         const currentProjects = prev[repoId] || [];
 
         if (newValue && currentProjects.includes(newValue)) {
@@ -124,30 +91,30 @@ export function ConfigureRootCauseAnalysisStep({
         return result;
       });
     },
-    [setRepositoryProjectMappings]
+    [setRepositoryProjectMapping]
   );
 
   const handleRemoveRepository = useCallback(
     (repoId: string) => {
-      setRepositoryProjectMappings(prev => {
+      setRepositoryProjectMapping(prev => {
         const newMappings = {...prev};
         delete newMappings[repoId];
         return newMappings;
       });
       setRepositories(prev => prev.filter(repo => repo.id !== repoId));
     },
-    [setRepositoryProjectMappings]
+    [setRepositoryProjectMapping]
   );
 
   const isFinishDisabled = useMemo(() => {
-    const mappings = Object.values(repositoryProjectMappings);
+    const mappings = Object.values(repositoryProjectMapping);
     return (
       !mappings.length ||
       mappings.length !== repositories.length ||
       Boolean(mappings.some(mappedProjects => mappedProjects.length === 0)) ||
       repositories.length === 0
     );
-  }, [repositoryProjectMappings, repositories.length]);
+  }, [repositoryProjectMapping, repositories.length]);
 
   return (
     <Fragment>
@@ -191,16 +158,23 @@ export function ConfigureRootCauseAnalysisStep({
               />
             </Field>
 
-            {isProjectsLoaded && !isProjectsFetching && !isCodeMappingsPending ? (
+            {isRepositoryProjectMappingError ? (
+              <Alert type="error">{t('Error fetching repository project mapping')}</Alert>
+            ) : isProjectsLoaded && !isProjectsFetching ? (
               <RepositoryToProjectConfiguration
                 onRemoveRepository={handleRemoveRepository}
-                repositoryProjectMappings={repositoryProjectMappings}
+                repositoryProjectMapping={repositoryProjectMapping}
+                isPending={isRepositoryProjectMappingPending}
                 projects={projects}
                 repositories={repositories}
                 onChange={handleRepositoryProjectMappingsChange}
               />
             ) : (
-              <Placeholder />
+              <Flex direction="column" gap="md" padding="md">
+                {repositories.map(repository => (
+                  <Placeholder key={repository.id} />
+                ))}
+              </Flex>
             )}
           </PanelBody>
         </MaxWidthPanel>
