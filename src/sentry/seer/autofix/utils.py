@@ -365,7 +365,7 @@ def is_seer_scanner_rate_limited(project: Project, organization: Organization) -
     return is_rate_limited
 
 
-def has_seer_seat_based_tier_enabled(organization: Organization) -> bool:
+def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     """
     Check if organization has Seer seat-based tier via billing.
 

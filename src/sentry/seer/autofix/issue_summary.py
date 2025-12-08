@@ -26,8 +26,8 @@ from sentry.seer.autofix.constants import (
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_state,
-    has_seer_seat_based_tier_enabled,
     is_seer_autotriggered_autofix_rate_limited,
+    is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
@@ -344,7 +344,7 @@ def run_automation(
 
     # Only log for orgs with seat-based Seer tier
     try:
-        if has_seer_seat_based_tier_enabled(group.organization):
+        if is_seer_seat_based_tier_enabled(group.organization):
             try:
                 times_seen = group.times_seen_with_pending
             except (AssertionError, AttributeError):
