@@ -125,8 +125,8 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     # Set org-level options
     organization.update_option("sentry:enable_seer_coding", True)
 
-    # If the key exists, invalidate the seat-based tier cache so new settings take effect immediately
-    cache.delete(f"seer:seat-based-tier:{organization_id}")
+    # Invalidate seat-based tier cache so new settings take effect immediately
+    cache.delete(get_seer_seat_based_tier_cache_key(organization_id))
 
     projects = list(Project.objects.filter(organization_id=organization_id, status=0))
     project_ids = [p.id for p in projects]
@@ -163,6 +163,3 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
         )
     if len(preferences_to_set) > 0:
         bulk_set_project_preferences(organization_id, preferences_to_set)
-
-    # Invalidate seat-based tier cache so new settings take effect immediately
-    cache.delete(get_seer_seat_based_tier_cache_key(organization_id))
