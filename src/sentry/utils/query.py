@@ -113,6 +113,7 @@ class RangeQuerySetWrapper[V]:
         limit: int | None = None,
         min_id: int | None = None,
         order_by: str | Sequence[str] = "pk",
+        use_compound_keyset_pagination: bool = False,
         callbacks: Sequence[Callable[[list[V]], None]] = (),
         result_value_getter: Callable[[V], Any] | None = None,
         override_unique_safety_check: bool = False,
@@ -134,6 +135,7 @@ class RangeQuerySetWrapper[V]:
         self.step = min(limit, abs(step)) if limit else abs(step)
         self.queryset = queryset
         self.min_value = min_id
+        self.use_compound_keyset_pagination = use_compound_keyset_pagination
         self.callbacks = callbacks
         self.result_value_getter = result_value_getter
         self.query_timeout_retries = query_timeout_retries
@@ -148,19 +150,17 @@ class RangeQuerySetWrapper[V]:
         # For backwards compatibility, keep single field as string
         self.order_by = self.order_by_fields[0] if len(self.order_by_fields) == 1 else None
 
-        # Validate that the last field in compound order_by is unique
-        last_field = self.order_by_fields[-1]
-        last_field_name = last_field if last_field != "pk" else "id"
-        order_by_col = queryset.model._meta.get_field(last_field_name)
-        if not override_unique_safety_check and (
-            not isinstance(order_by_col, Field) or not order_by_col.unique
-        ):
-            raise InvalidQuerySetError(
-                "The last order_by field must be unique to prevent infinite loops. "
-                "For compound order_by, ensure the last field is unique (e.g., 'id'). "
-                "If you're sure your data is unique, disable this check with "
-                "`override_unique_safety_check=True`"
-            )
+        # Validate that the last order_by field is unique to prevent infinite loops
+        if not override_unique_safety_check:
+            last_field = self.order_by_fields[-1]
+            last_field_name = last_field if last_field != "pk" else "id"
+            order_by_col = queryset.model._meta.get_field(last_field_name)
+            if not isinstance(order_by_col, Field) or not order_by_col.unique:
+                raise InvalidQuerySetError(
+                    "The last order_by field must be unique to prevent infinite loops. "
+                    "If you're sure your data is unique, disable this check with "
+                    "`override_unique_safety_check=True`"
+                )
 
     def _build_keyset_filter(self, cursor_values: dict[str, Any]) -> Q:
         """
@@ -197,11 +197,12 @@ class RangeQuerySetWrapper[V]:
         return {field: getattr(result, field) for field in self.order_by_fields}
 
     def __iter__(self) -> Iterator[V]:
-        # Use different iteration strategies for single vs compound order_by
-        if len(self.order_by_fields) == 1:
-            yield from self._iter_single_field()
-        else:
+        # keyset=True uses compound keyset pagination (strict >)
+        # keyset=False uses single-field pagination with deduplication (>=)
+        if self.use_compound_keyset_pagination:
             yield from self._iter_compound_fields()
+        else:
+            yield from self._iter_single_field()
 
     def _iter_single_field(self) -> Iterator[V]:
         """

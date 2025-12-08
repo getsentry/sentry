@@ -192,8 +192,12 @@ class RangeQuerySetWrapperKeysetPaginationTest(TestCase):
 
         qs = Group.objects.filter(id__in=expected_ids)
 
-        # Use compound order_by with non-unique field first, unique field last
-        results = list(RangeQuerySetWrapper(qs, step=1, order_by=["last_seen", "id"]))
+        # Use keyset pagination with compound order_by
+        results = list(
+            RangeQuerySetWrapper(
+                qs, step=1, order_by=["last_seen", "id"], use_compound_keyset_pagination=True
+            )
+        )
 
         assert {g.id for g in results} == expected_ids
 
@@ -209,7 +213,11 @@ class RangeQuerySetWrapperKeysetPaginationTest(TestCase):
         qs = Group.objects.filter(id__in=expected_ids)
 
         # Use small step to force multiple batches
-        results = list(RangeQuerySetWrapper(qs, step=2, order_by=["last_seen", "id"]))
+        results = list(
+            RangeQuerySetWrapper(
+                qs, step=2, order_by=["last_seen", "id"], use_compound_keyset_pagination=True
+            )
+        )
 
         assert {g.id for g in results} == expected_ids
 
@@ -230,20 +238,26 @@ class RangeQuerySetWrapperKeysetPaginationTest(TestCase):
 
         qs = Group.objects.filter(id__in=expected_ids)
 
-        results = list(RangeQuerySetWrapper(qs, step=2, order_by=["last_seen", "id"]))
+        results = list(
+            RangeQuerySetWrapper(
+                qs, step=2, order_by=["last_seen", "id"], use_compound_keyset_pagination=True
+            )
+        )
 
         assert {g.id for g in results} == expected_ids
 
     def test_compound_order_by_validates_last_field_unique(self) -> None:
-        """Test that compound order_by requires the last field to be unique."""
+        """Test that use_compound_keyset_pagination=True requires the last field to be unique."""
         qs = Group.objects.all()
 
-        # Should fail: last field (last_seen) is not unique
+        # Should fail: use_compound_keyset_pagination=True with non-unique last field
         with pytest.raises(InvalidQuerySetError):
-            RangeQuerySetWrapper(qs, order_by=["id", "last_seen"])
+            RangeQuerySetWrapper(
+                qs, order_by=["id", "last_seen"], use_compound_keyset_pagination=True
+            )
 
-        # Should succeed: last field (id) is unique
-        RangeQuerySetWrapper(qs, order_by=["last_seen", "id"])
+        # Should succeed: use_compound_keyset_pagination=True with unique last field (id)
+        RangeQuerySetWrapper(qs, order_by=["last_seen", "id"], use_compound_keyset_pagination=True)
 
     def test_compound_order_by_with_values_list(self) -> None:
         """Test keyset pagination with values_list queryset."""
@@ -263,7 +277,11 @@ class RangeQuerySetWrapperKeysetPaginationTest(TestCase):
 
         results = list(
             RangeQuerySetWrapper(
-                qs, step=1, order_by=["last_seen", "id"], result_value_getter=getter
+                qs,
+                step=1,
+                order_by=["last_seen", "id"],
+                use_compound_keyset_pagination=True,
+                result_value_getter=getter,
             )
         )
 
@@ -285,7 +303,11 @@ class RangeQuerySetWrapperKeysetPaginationTest(TestCase):
         qs = Group.objects.filter(id__in=expected_ids)
 
         # Negative step for descending
-        results = list(RangeQuerySetWrapper(qs, step=-2, order_by=["last_seen", "id"]))
+        results = list(
+            RangeQuerySetWrapper(
+                qs, step=-2, order_by=["last_seen", "id"], use_compound_keyset_pagination=True
+            )
+        )
 
         assert {g.id for g in results} == expected_ids
         # Verify descending order

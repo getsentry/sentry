@@ -121,24 +121,28 @@ class BulkDeleteQuery:
             else:
                 order_field = self.order_by
 
-        # Use compound order_by for keyset pagination: (order_field, id)
-        # This handles non-unique order fields correctly
-        order_by_fields = [order_field, "id"] if order_field != "id" else ["id"]
-
-        # For values_list tuples, map field index to field name for cursor
-        def result_value_getter(item: tuple[Any, ...]) -> dict[str, Any]:
-            if order_field == "id":
-                return {"id": item[0]}
-            return {"id": item[0], order_field: item[1]}
-
         # Use negative step for descending order
         step = -batch_size if descending else batch_size
+
+        # Use keyset pagination for non-id order fields to handle duplicates correctly.
+        # keyset=True uses compound cursor (order_field, id) with strict > comparison.
+        use_keyset = order_field != "id"
+        order_by_fields = [order_field, "id"] if use_keyset else ["id"]
+
+        # result_value_getter must match the iteration strategy:
+        # - keyset=False: return single value for single-field iteration
+        # - keyset=True: return dict for compound keyset iteration
+        def result_value_getter(item: tuple[Any, ...]) -> Any:
+            if use_keyset:
+                return {"id": item[0], order_field: item[1]}
+            return item[0]
 
         values_qs: QuerySet[Any, tuple[Any, ...]] = queryset.values_list("id", order_field)
         wrapper = RangeQuerySetWrapper(
             values_qs,
             step=step,
             order_by=order_by_fields,
+            use_compound_keyset_pagination=use_keyset,
             result_value_getter=result_value_getter,
             query_timeout_retries=10,
         )
