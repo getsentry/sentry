@@ -103,7 +103,7 @@ def dispatch_detection_for_project_ids(
             results[project.id] = {"success": False, "reason": "web_vitals_detection_not_enabled"}
             continue
 
-        detect_web_vitals_issues_for_project.delay(project.id)
+        detect_web_vitals_issues_for_project.delay(project)
         results[project.id] = {"success": True}
         projects_dispatched_count += 1
 
@@ -126,18 +126,29 @@ def dispatch_detection_for_project_ids(
     namespace=issues_tasks,
     processing_deadline_duration=120,
 )
-def detect_web_vitals_issues_for_project(project_id: int) -> None:
+def detect_web_vitals_issues_for_project(project: Project) -> None:
     """
     Process a single project for Web Vitals issue detection.
     """
     if not options.get("issue-detection.web-vitals-detection.enabled"):
+        metrics.incr(
+            "web_vitals_issue_detection.projects.skipped",
+            amount=1,
+            tags={
+                "reason": "disabled",
+                "project_id": project.id,
+                "organization": project.organization.slug,
+            },
+            sample_rate=1.0,
+        )
         return
 
     web_vital_issue_groups = get_highest_opportunity_page_vitals_for_project(
-        project_id, limit=TRANSACTIONS_PER_PROJECT_LIMIT
+        project.id, limit=TRANSACTIONS_PER_PROJECT_LIMIT
     )
     sent_counts: dict[WebVitalIssueDetectionGroupingType, int] = defaultdict(int)
     rejected_no_trace_count = 0
+    rejected_already_exists_count = 0
     for web_vital_issue_group in web_vital_issue_groups:
         scores = web_vital_issue_group["scores"]
         values = web_vital_issue_group["values"]
@@ -149,7 +160,7 @@ def detect_web_vitals_issues_for_project(project_id: int) -> None:
 
         trace = get_trace_by_web_vital_measurement(
             web_vital_issue_group["transaction"],
-            project_id,
+            project.id,
             vital,
             p75_vital_value,
             start_time_delta=DEFAULT_START_TIME_DELTA,
@@ -158,6 +169,8 @@ def detect_web_vitals_issues_for_project(project_id: int) -> None:
             sent = send_web_vitals_issue_to_platform(web_vital_issue_group, trace_id=trace.trace_id)
             if sent:
                 sent_counts[web_vital_issue_group["vital_grouping"]] += 1
+            else:
+                rejected_already_exists_count += 1
         else:
             rejected_no_trace_count += 1
 
@@ -165,14 +178,33 @@ def detect_web_vitals_issues_for_project(project_id: int) -> None:
         metrics.incr(
             "web_vitals_issue_detection.issues.sent",
             amount=count,
-            tags={"kind": vital_grouping},  # rendering, cls, or inp
+            tags={
+                "kind": vital_grouping,
+                "project_id": project.id,
+                "organization": project.organization.slug,
+            },  # rendering, cls, or inp
             sample_rate=1.0,
         )
 
     metrics.incr(
         "web_vitals_issue_detection.rejected",
         amount=rejected_no_trace_count,
-        tags={"reason": "no_trace"},
+        tags={
+            "reason": "no_trace",
+            "project_id": project.id,
+            "organization": project.organization.slug,
+        },
+        sample_rate=1.0,
+    )
+
+    metrics.incr(
+        "web_vitals_issue_detection.rejected",
+        amount=rejected_already_exists_count,
+        tags={
+            "reason": "already_exists",
+            "project_id": project.id,
+            "organization": project.organization.slug,
+        },
         sample_rate=1.0,
     )
 
@@ -291,7 +323,11 @@ def get_highest_opportunity_page_vitals_for_project(
     metrics.incr(
         "web_vitals_issue_detection.rejected",
         amount=rejected_insufficient_samples_count,
-        tags={"reason": "insufficient_samples"},
+        tags={
+            "reason": "insufficient_samples",
+            "project_id": project.id,
+            "organization": project.organization.slug,
+        },
         sample_rate=1.0,
     )
 
