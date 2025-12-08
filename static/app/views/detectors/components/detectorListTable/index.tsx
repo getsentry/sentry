@@ -30,13 +30,13 @@ import {
   DetectorListRowSkeleton,
 } from 'sentry/views/detectors/components/detectorListTable/detectorListRow';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/list/common/constants';
+import {useDetectorListSort} from 'sentry/views/detectors/list/common/useDetectorListSort';
 import {
   useMonitorViewContext,
   type MonitorListAdditionalColumn,
 } from 'sentry/views/detectors/monitorViewContext';
 import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {useCanEditDetectors} from 'sentry/views/detectors/utils/useCanEditDetector';
-import {useDetectorListSort} from 'sentry/views/detectors/utils/useDetectorListSort';
 import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 
 type DetectorListTableProps = {
