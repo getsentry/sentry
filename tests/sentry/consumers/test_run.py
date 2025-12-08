@@ -66,26 +66,18 @@ def test_apply_processor_args_overrides() -> None:
     """Test the apply_processor_args_overrides function."""
     from sentry.consumers import apply_processor_args_overrides
 
-    # Test with matching consumer and overrides
+    # Test with CLI string overrides
     result = apply_processor_args_overrides(
         "ingest-monitors",
         {"join_timeout": 10.0, "consumer": "mock_consumer", "topic": "mock_topic"},
-        {"ingest-monitors": {"join_timeout": 123.0, "stuck_detector_timeout": 456}},
+        ("join_timeout:123", "stuck_detector_timeout:456"),
     )
-    assert result["join_timeout"] == 123.0
+    assert result["join_timeout"] == 123
     assert result["stuck_detector_timeout"] == 456
     assert result["consumer"] == "mock_consumer"
 
-    # Test with non-matching consumer
-    result = apply_processor_args_overrides(
-        "ingest-monitors",
-        {"join_timeout": 10.0},
-        {"other-consumer": {"join_timeout": 999.0}},
-    )
-    assert result["join_timeout"] == 10.0
-
     # Test with empty overrides
-    result = apply_processor_args_overrides("ingest-monitors", {"join_timeout": 10.0}, {})
+    result = apply_processor_args_overrides("ingest-monitors", {"join_timeout": 10.0}, ())
     assert result["join_timeout"] == 10.0
 
     # Test logging when overriding existing arg
@@ -93,20 +85,22 @@ def test_apply_processor_args_overrides() -> None:
         result = apply_processor_args_overrides(
             "ingest-monitors",
             {"join_timeout": 10.0},
-            {"ingest-monitors": {"join_timeout": 999.0}},
+            ("join_timeout:999",),
         )
-        assert result["join_timeout"] == 999.0
+        assert result["join_timeout"] == 999
         mock_logger.info.assert_called_once()
         call_args = mock_logger.info.call_args
-        assert call_args[0][0] == "overriding StreamProcessor argument from options"
-        assert call_args[1]["extra"]["argument"] == "join_timeout"
+        assert call_args[0][0] == "overriding argument %s from CLI: %s -> %s"
+        assert call_args[0][1] == "join_timeout"
+        assert call_args[0][2] == 10.0
+        assert call_args[0][3] == 999
 
     # Test no logging when adding new arg
     with patch("sentry.consumers.logger") as mock_logger:
         result = apply_processor_args_overrides(
             "ingest-monitors",
             {"join_timeout": 10.0},
-            {"ingest-monitors": {"stuck_detector_timeout": 456}},
+            ("stuck_detector_timeout:456",),
         )
         assert result["stuck_detector_timeout"] == 456
         mock_logger.info.assert_not_called()
@@ -116,12 +110,11 @@ def test_apply_processor_args_overrides() -> None:
         result = apply_processor_args_overrides(
             "ingest-monitors",
             {"join_timeout": 10.0},
-            {"ingest-monitors": {"invalid_param": 789, "join_timeout": 999.0}},
+            ("invalid_param:789", "join_timeout:999"),
         )
-        assert result["join_timeout"] == 999.0
+        assert result["join_timeout"] == 999
         assert "invalid_param" not in result
         mock_logger.warning.assert_called_once()
         call_args = mock_logger.warning.call_args
-        assert call_args[0][0] == "skipping invalid StreamProcessor argument from options"
-        assert call_args[1]["extra"]["argument"] == "invalid_param"
-        assert call_args[1]["extra"]["value"] == 789
+        assert call_args[0][0] == "skipping invalid argument %s from CLI: %s"
+        assert call_args[0][1] == "invalid_param:789"
