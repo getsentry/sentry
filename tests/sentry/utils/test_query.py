@@ -179,65 +179,23 @@ class RangeQuerySetWrapperTest(TestCase):
 class RangeQuerySetWrapperKeysetPaginationTest(TestCase):
     """Tests for keyset pagination with compound order_by fields."""
 
-    def test_compound_order_by_with_duplicate_values(self) -> None:
-        """Test that all rows are returned when the first order_by field has duplicates."""
-        project = self.create_project()
-        same_timestamp = timezone.now() - timedelta(days=1)
-
-        # Create groups with the exact same last_seen timestamp
-        group1 = self.create_group(project=project, last_seen=same_timestamp)
-        group2 = self.create_group(project=project, last_seen=same_timestamp)
-        group3 = self.create_group(project=project, last_seen=same_timestamp)
-        expected_ids = {group1.id, group2.id, group3.id}
-
-        qs = Group.objects.filter(id__in=expected_ids)
-
-        # Use keyset pagination with compound order_by
-        results = list(
-            RangeQuerySetWrapper(
-                qs, step=1, order_by=["last_seen", "id"], use_compound_keyset_pagination=True
-            )
-        )
-
-        assert {g.id for g in results} == expected_ids
-
-    def test_compound_order_by_returns_all_rows_across_batches(self) -> None:
-        """Test that pagination works correctly across batch boundaries."""
-        project = self.create_project()
-        same_timestamp = timezone.now() - timedelta(days=1)
-
-        # Create more groups than batch size with same timestamp
-        groups = [self.create_group(project=project, last_seen=same_timestamp) for _ in range(5)]
-        expected_ids = {g.id for g in groups}
-
-        qs = Group.objects.filter(id__in=expected_ids)
-
-        # Use small step to force multiple batches
-        results = list(
-            RangeQuerySetWrapper(
-                qs, step=2, order_by=["last_seen", "id"], use_compound_keyset_pagination=True
-            )
-        )
-
-        assert {g.id for g in results} == expected_ids
-
-    def test_compound_order_by_with_mixed_timestamps(self) -> None:
-        """Test pagination with a mix of duplicate and unique timestamps."""
+    def test_keyset_pagination_returns_all_rows_with_duplicate_keys(self) -> None:
+        """Keyset pagination handles duplicate first-field values across batches."""
         project = self.create_project()
         ts1 = timezone.now() - timedelta(days=3)
         ts2 = timezone.now() - timedelta(days=2)
-        ts3 = timezone.now() - timedelta(days=1)
 
-        # Groups with various timestamps, some duplicated
-        group1 = self.create_group(project=project, last_seen=ts1)
-        group2 = self.create_group(project=project, last_seen=ts1)  # duplicate
-        group3 = self.create_group(project=project, last_seen=ts2)
-        group4 = self.create_group(project=project, last_seen=ts3)
-        group5 = self.create_group(project=project, last_seen=ts3)  # duplicate
-        expected_ids = {group1.id, group2.id, group3.id, group4.id, group5.id}
+        # Mix of duplicate and unique timestamps
+        groups = [
+            self.create_group(project=project, last_seen=ts1),
+            self.create_group(project=project, last_seen=ts1),  # duplicate
+            self.create_group(project=project, last_seen=ts1),  # duplicate
+            self.create_group(project=project, last_seen=ts2),
+            self.create_group(project=project, last_seen=ts2),  # duplicate
+        ]
+        expected_ids = {g.id for g in groups}
 
         qs = Group.objects.filter(id__in=expected_ids)
-
         results = list(
             RangeQuerySetWrapper(
                 qs, step=2, order_by=["last_seen", "id"], use_compound_keyset_pagination=True
@@ -246,34 +204,27 @@ class RangeQuerySetWrapperKeysetPaginationTest(TestCase):
 
         assert {g.id for g in results} == expected_ids
 
-    def test_compound_order_by_validates_last_field_unique(self) -> None:
-        """Test that use_compound_keyset_pagination=True requires the last field to be unique."""
+    def test_keyset_pagination_validates_last_field_unique(self) -> None:
+        """Last order_by field must be unique to prevent infinite loops."""
         qs = Group.objects.all()
 
-        # Should fail: use_compound_keyset_pagination=True with non-unique last field
         with pytest.raises(InvalidQuerySetError):
             RangeQuerySetWrapper(
                 qs, order_by=["id", "last_seen"], use_compound_keyset_pagination=True
             )
 
-        # Should succeed: use_compound_keyset_pagination=True with unique last field (id)
+        # Should succeed with unique last field
         RangeQuerySetWrapper(qs, order_by=["last_seen", "id"], use_compound_keyset_pagination=True)
 
-    def test_compound_order_by_with_values_list(self) -> None:
-        """Test keyset pagination with values_list queryset."""
+    def test_keyset_pagination_with_values_list(self) -> None:
+        """Keyset pagination works with values_list when result_value_getter returns dict."""
         project = self.create_project()
         same_timestamp = timezone.now() - timedelta(days=1)
 
-        group1 = self.create_group(project=project, last_seen=same_timestamp)
-        group2 = self.create_group(project=project, last_seen=same_timestamp)
-        group3 = self.create_group(project=project, last_seen=same_timestamp)
-        expected_ids = {group1.id, group2.id, group3.id}
+        groups = [self.create_group(project=project, last_seen=same_timestamp) for _ in range(3)]
+        expected_ids = {g.id for g in groups}
 
         qs = Group.objects.filter(id__in=expected_ids).values_list("id", "last_seen")
-
-        # For values_list, provide result_value_getter that returns cursor dict
-        def getter(item):
-            return {"last_seen": item[1], "id": item[0]}
 
         results = list(
             RangeQuerySetWrapper(
@@ -281,28 +232,26 @@ class RangeQuerySetWrapperKeysetPaginationTest(TestCase):
                 step=1,
                 order_by=["last_seen", "id"],
                 use_compound_keyset_pagination=True,
-                result_value_getter=getter,
+                result_value_getter=lambda item: {"last_seen": item[1], "id": item[0]},
             )
         )
 
         assert {r[0] for r in results} == expected_ids
 
-    def test_compound_order_by_descending(self) -> None:
-        """Test keyset pagination in descending order."""
+    def test_keyset_pagination_descending(self) -> None:
+        """Keyset pagination works with descending order."""
         project = self.create_project()
         ts1 = timezone.now() - timedelta(days=3)
-        ts2 = timezone.now() - timedelta(days=2)
-        ts3 = timezone.now() - timedelta(days=1)
+        ts2 = timezone.now() - timedelta(days=1)
 
-        group1 = self.create_group(project=project, last_seen=ts1)
-        group2 = self.create_group(project=project, last_seen=ts2)
-        group3 = self.create_group(project=project, last_seen=ts3)
-        group4 = self.create_group(project=project, last_seen=ts3)  # duplicate
-        expected_ids = {group1.id, group2.id, group3.id, group4.id}
+        groups = [
+            self.create_group(project=project, last_seen=ts1),
+            self.create_group(project=project, last_seen=ts2),
+            self.create_group(project=project, last_seen=ts2),  # duplicate
+        ]
+        expected_ids = {g.id for g in groups}
 
         qs = Group.objects.filter(id__in=expected_ids)
-
-        # Negative step for descending
         results = list(
             RangeQuerySetWrapper(
                 qs, step=-2, order_by=["last_seen", "id"], use_compound_keyset_pagination=True
@@ -313,6 +262,15 @@ class RangeQuerySetWrapperKeysetPaginationTest(TestCase):
         # Verify descending order
         last_seens = [g.last_seen for g in results]
         assert last_seens == sorted(last_seens, reverse=True)
+
+    def test_keyset_pagination_rejects_min_id(self) -> None:
+        """min_id is not supported with compound keyset pagination."""
+        qs = Group.objects.all()
+
+        with pytest.raises(InvalidQuerySetError, match="min_id is not supported"):
+            RangeQuerySetWrapper(
+                qs, order_by=["last_seen", "id"], use_compound_keyset_pagination=True, min_id=1
+            )
 
 
 @no_silo_test

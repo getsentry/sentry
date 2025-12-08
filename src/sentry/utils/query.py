@@ -136,17 +136,20 @@ class RangeQuerySetWrapper[V]:
         self.query_timeout_retries = query_timeout_retries
         self.retry_delay_seconds = retry_delay_seconds
 
-        # Normalize order_by to a list
+        # Normalize order_by to a list, converting "pk" to "id" for raw SQL compatibility
         if isinstance(order_by, str):
-            self.order_by_fields = [order_by]
+            fields = [order_by]
         else:
-            self.order_by_fields = list(order_by)
+            fields = list(order_by)
+        self.order_by_fields = ["id" if f == "pk" else f for f in fields]
+
+        if use_compound_keyset_pagination and min_id is not None:
+            raise InvalidQuerySetError("min_id is not supported with compound keyset pagination")
 
         # Validate that the last order_by field is unique to prevent infinite loops
         if not override_unique_safety_check:
             last_field = self.order_by_fields[-1]
-            last_field_name = last_field if last_field != "pk" else "id"
-            order_by_col = queryset.model._meta.get_field(last_field_name)
+            order_by_col = queryset.model._meta.get_field(last_field)
             if not isinstance(order_by_col, Field) or not order_by_col.unique:
                 raise InvalidQuerySetError(
                     "The last order_by field must be unique to prevent infinite loops. "
