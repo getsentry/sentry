@@ -82,13 +82,15 @@ def get_file_language(filename: str) -> str | None:
 def is_contributor_eligible_for_seat_assignment(
     user_type: str | None, author_association: str
 ) -> bool:
-    is_eligible_author_association = author_association in (
+    """
+    Determine if a contributor is eligible for seat assignment based on their user type and author association.
+    - Contributor must be MEMBER or OWNER of the repo
+    - Contributor cannot be a bot
+    """
+    return user_type != "Bot" and author_association in (
         AuthorAssociation.MEMBER,
         AuthorAssociation.OWNER,
     )
-    if user_type is None:
-        return is_eligible_author_association
-    return is_eligible_author_association and user_type != "Bot"
 
 
 class GitHubWebhook(SCMWebhook, ABC):
