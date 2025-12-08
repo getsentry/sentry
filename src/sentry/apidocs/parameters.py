@@ -544,6 +544,16 @@ class MetricAlertParams:
     )
 
 
+class DataForwarderParams:
+    DATA_FORWARDER_ID = OpenApiParameter(
+        name="data_forwarder_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the data forwarder you'd like to query.",
+    )
+
+
 class SentryAppParams:
     SENTRY_APP_ID_OR_SLUG = OpenApiParameter(
         name="sentry_app_id_or_slug",

@@ -13,8 +13,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_CONFLICT, RESPONSE_FORBIDDEN
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.api.serializers.models.data_forwarder import (
     DataForwarderSerializer as DataForwarderModelSerializer,
 )
@@ -52,8 +54,11 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
         operation_id="Retrieve Data Forwarding Configurations for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         responses={
-            200: DataForwarderModelSerializer,
+            200: inline_sentry_response_serializer(
+                "ListDataForwarderResponse", list[DataForwarderSerializer]
+            )
         },
+        examples=IntegrationExamples.LIST_DATA_FORWARDERS,
     )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
@@ -75,8 +80,8 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
             201: DataForwarderModelSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
-            409: RESPONSE_CONFLICT,
         },
+        examples=IntegrationExamples.SINGLE_DATA_FORWARDER,
     )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
