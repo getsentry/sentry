@@ -160,7 +160,7 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
     data.timeSeries.map(timeSeries => {
       const func = parseFunction(timeSeries.yAxis);
       if (func) {
-        timeSeries.yAxis = `${func.name}(…)`;
+        timeSeries.yAxis = `${func.name}(${func.arguments[1] ?? '…'})`;
       }
       return {
         data: timeSeries.values.map(value => ({

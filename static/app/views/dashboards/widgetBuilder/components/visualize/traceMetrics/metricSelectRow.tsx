@@ -1,10 +1,7 @@
+import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {type QueryFieldValue} from 'sentry/utils/discover/fields';
-import {
-  GroupedSelectControl,
-  PrimarySelectRow,
-} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {AggregateSelector} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/aggregateSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -27,8 +24,8 @@ export function MetricSelectRow({
       : (state.traceMetrics?.[index] ?? {name: '', type: ''});
 
   return (
-    <PrimarySelectRow hasColumnParameter={false} isTraceMetrics>
-      <GroupedSelectControl fullWidth>
+    <PrimarySelectRow>
+      <MetricSelectorWrapper>
         <MetricSelector
           traceMetric={traceMetric}
           onChange={option => {
@@ -52,15 +49,49 @@ export function MetricSelectRow({
             }
           }}
         />
-      </GroupedSelectControl>
-      <GroupedSelectControl fullWidth={false}>
+      </MetricSelectorWrapper>
+      <AggregateSelectorWrapper>
         <AggregateSelector
           disabled={disabled}
           traceMetric={traceMetric}
           field={field}
           index={index}
         />
-      </GroupedSelectControl>
+      </AggregateSelectorWrapper>
     </PrimarySelectRow>
   );
 }
+
+const MetricSelectorWrapper = styled('div')`
+  button {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    width: 100%;
+  }
+
+  > div {
+    width: 100%;
+  }
+`;
+
+const AggregateSelectorWrapper = styled('div')`
+  button {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+`;
+
+const PrimarySelectRow = styled('div')`
+  display: flex;
+  width: 100%;
+  min-width: 0;
+
+  & > :first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  & > :last-child {
+    flex: 0 0 auto;
+  }
+`;

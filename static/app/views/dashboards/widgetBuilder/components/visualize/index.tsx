@@ -46,7 +46,10 @@ import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/co
 import SortableVisualizeFieldWrapper from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
 import {AggregateParameterField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/aggregateParameterField';
-import {SelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
+import {
+  ColumnCompactSelect,
+  SelectRow,
+} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {MetricSelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricSelectRow';
 import VisualizeGhostField from 'sentry/views/dashboards/widgetBuilder/components/visualize/visualizeGhostField';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -1092,11 +1095,23 @@ export const FieldBar = styled('div')`
 
 export const PrimarySelectRow = styled('div')<{
   hasColumnParameter: boolean;
-  isTraceMetrics?: boolean;
 }>`
   display: flex;
   width: 100%;
   min-width: 0;
+
+  & ${ColumnCompactSelect} button {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+  & ${AggregateCompactSelect} button {
+    ${p =>
+      p.hasColumnParameter &&
+      css`
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+      `}
+  }
 `;
 
 export const FieldRow = styled('div')`
@@ -1138,31 +1153,4 @@ const StyledFieldGroup = styled(FieldGroup)`
   width: 100%;
   padding: 0px;
   border-bottom: none;
-`;
-
-const SelectControl = styled('div')<{fullWidth?: boolean}>`
-  width: ${p => (p.fullWidth ? '100%' : 'fit-content')};
-
-  > div {
-    width: ${p => (p.fullWidth ? '100%' : 'fit-content')};
-  }
-
-  button {
-    width: ${p => (p.fullWidth ? '100%' : 'fit-content')};
-  }
-`;
-
-export const GroupedSelectControl = styled(SelectControl)`
-  /* First in group */
-  &:first-child:not(:last-child) button {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-    left: 1px;
-  }
-
-  /* Middle or last in group */
-  &:not(:first-child) button {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
 `;
