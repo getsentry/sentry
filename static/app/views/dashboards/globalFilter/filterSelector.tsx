@@ -50,6 +50,7 @@ type FilterSelectorProps = {
   onRemoveFilter: (filter: GlobalFilter) => void;
   onUpdateFilter: (filter: GlobalFilter) => void;
   searchBarData: SearchBarData;
+  disableRemoveFilter?: boolean;
 };
 
 function FilterSelector({
@@ -57,6 +58,7 @@ function FilterSelector({
   searchBarData,
   onRemoveFilter,
   onUpdateFilter,
+  disableRemoveFilter,
 }: FilterSelectorProps) {
   const {selection} = usePageFilters();
 
@@ -275,13 +277,15 @@ function FilterSelector({
           {t('Clear')}
         </StyledButton>
       )}
-      <StyledButton
-        aria-label={t('Remove Filter')}
-        size="zero"
-        onClick={() => onRemoveFilter(globalFilter)}
-      >
-        {t('Remove Filter')}
-      </StyledButton>
+      {!disableRemoveFilter && (
+        <StyledButton
+          aria-label={t('Remove Filter')}
+          size="zero"
+          onClick={() => onRemoveFilter(globalFilter)}
+        >
+          {t('Remove Filter')}
+        </StyledButton>
+      )}
     </Flex>
   );
 
