@@ -31,7 +31,7 @@ import {
   StyledPageFilterBar,
 } from 'sentry/views/explore/metrics/styles';
 
-const MAX_METRICS_ALLOWED = 4;
+const MAX_METRICS_ALLOWED = 8;
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 type MetricsTabProps = {
