@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -56,23 +55,6 @@ import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
 
 const CLUSTERS_PER_PAGE = 20;
 
-/**
- * Parses a string and renders backtick-wrapped text as inline code elements.
- * Example: "Error in `Contains` filter" becomes ["Error in ", <InlineCode>Contains</InlineCode>, " filter"]
- */
-function renderWithInlineCode(text: string): React.ReactNode {
-  const parts = text.split(/(`[^`]+`)/g);
-  if (parts.length === 1) {
-    return text;
-  }
-  return parts.map((part, index) => {
-    if (part.startsWith('`') && part.endsWith('`')) {
-      return <InlineCode key={index}>{part.slice(1, -1)}</InlineCode>;
-    }
-    return part;
-  });
-}
-
 interface AssignedEntity {
   email: string | null;
   id: string;
@@ -98,7 +80,10 @@ interface ClusterSummary {
   tags: string[];
   title: string;
   code_area_tags?: string[];
+  error_type?: string;
   error_type_tags?: string[];
+  impact?: string;
+  location?: string;
   service_tags?: string[];
 }
 
@@ -129,6 +114,23 @@ function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
 function formatClusterPromptForSeer(cluster: ClusterSummary): string {
   const message = formatClusterInfoForClipboard(cluster);
   return `I'd like to investigate this cluster of issues:\n\n${message}\n\nPlease help me understand the root cause and potential fixes for these related issues.`;
+}
+
+/**
+ * Parses a string and renders backtick-wrapped text as inline code elements.
+ * Example: "Error in `Contains` filter" becomes ["Error in ", <InlineCode>Contains</InlineCode>, " filter"]
+ */
+function renderWithInlineCode(text: string): React.ReactNode {
+  const parts = text.split(/(`[^`]+`)/g);
+  if (parts.length === 1) {
+    return text;
+  }
+  return parts.map((part, index) => {
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return <InlineCode key={index}>{part.slice(1, -1)}</InlineCode>;
+    }
+    return part;
+  });
 }
 
 interface TopIssuesResponse {
@@ -256,49 +258,6 @@ function useClusterStats(groupIds: number[]): ClusterStats {
   }, [groups, isPending]);
 }
 
-interface ClusterTagsProps {
-  cluster: ClusterSummary;
-  onTagClick?: (tag: string) => void;
-  selectedTags?: Set<string>;
-}
-
-function ClusterTags({cluster, onTagClick, selectedTags}: ClusterTagsProps) {
-  const hasServiceTags = cluster.service_tags && cluster.service_tags.length > 0;
-  const hasErrorTypeTags = cluster.error_type_tags && cluster.error_type_tags.length > 0;
-  const hasCodeAreaTags = cluster.code_area_tags && cluster.code_area_tags.length > 0;
-
-  if (!hasServiceTags && !hasErrorTypeTags && !hasCodeAreaTags) {
-    return null;
-  }
-
-  const renderTag = (tag: string, key: string) => {
-    const isSelected = selectedTags?.has(tag);
-    return (
-      <ClickableTag
-        key={key}
-        onClick={e => {
-          e.stopPropagation();
-          onTagClick?.(tag);
-        }}
-        isSelected={isSelected}
-      >
-        {tag}
-      </ClickableTag>
-    );
-  };
-
-  return (
-    <Flex wrap="wrap" gap="xs" align="center">
-      {hasServiceTags &&
-        cluster.service_tags!.map(tag => renderTag(tag, `service-${tag}`))}
-      {hasErrorTypeTags &&
-        cluster.error_type_tags!.map(tag => renderTag(tag, `error-${tag}`))}
-      {hasCodeAreaTags &&
-        cluster.code_area_tags!.map(tag => renderTag(tag, `code-${tag}`))}
-    </Flex>
-  );
-}
-
 function ClusterIssues({groupIds}: {groupIds: number[]}) {
   const organization = useOrganization();
   const previewGroupIds = groupIds.slice(0, 3);
@@ -336,15 +295,7 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
   );
 }
 
-function ClusterCard({
-  cluster,
-  onTagClick,
-  selectedTags,
-}: {
-  cluster: ClusterSummary;
-  onTagClick?: (tag: string) => void;
-  selectedTags?: Set<string>;
-}) {
+function ClusterCard({cluster}: {cluster: ClusterSummary}) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -434,12 +385,21 @@ function ClusterCard({
   return (
     <CardContainer>
       <CardHeader>
-        <ClusterTitle>{renderWithInlineCode(cluster.title)}</ClusterTitle>
-        <ClusterTags
-          cluster={cluster}
-          onTagClick={onTagClick}
-          selectedTags={selectedTags}
-        />
+        {cluster.impact && <ClusterTitle>{cluster.impact}</ClusterTitle>}
+        <StructuredInfo>
+          {cluster.error_type && (
+            <InfoRow>
+              <InfoLabel>{t('Error')}</InfoLabel>
+              <InfoValue>{cluster.error_type}</InfoValue>
+            </InfoRow>
+          )}
+          {cluster.location && (
+            <InfoRow>
+              <InfoLabel>{t('Location')}</InfoLabel>
+              <InfoValue>{cluster.location}</InfoValue>
+            </InfoRow>
+          )}
+        </StructuredInfo>
         <ClusterStats>
           {cluster.fixability_score !== null &&
             cluster.fixability_score !== undefined && (
@@ -520,7 +480,7 @@ function ClusterCard({
         <TabContent>
           {activeTab === 'summary' ? (
             cluster.summary ? (
-              <DescriptionText>{cluster.summary}</DescriptionText>
+              <DescriptionText>{renderWithInlineCode(cluster.summary)}</DescriptionText>
             ) : (
               <Text size="sm" variant="muted">
                 {t('No summary available')}
@@ -610,7 +570,6 @@ function DynamicGrouping() {
   const {selection} = usePageFilters();
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(false);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
-  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [showJsonInput, setShowJsonInput] = useState(false);
   const [jsonInputValue, setJsonInputValue] = useState('');
   const [customClusterData, setCustomClusterData] = useState<ClusterSummary[] | null>(
@@ -688,48 +647,20 @@ function DynamicGrouping() {
     }
   };
 
-  const handleTagClick = (tag: string) => {
-    setSelectedTags(prev => {
-      const next = new Set(prev);
-      if (next.has(tag)) {
-        next.delete(tag);
-      } else {
-        next.add(tag);
-      }
-      return next;
-    });
-  };
-
-  const handleClearTagFilter = (tag: string) => {
-    setSelectedTags(prev => {
-      const next = new Set(prev);
-      next.delete(tag);
-      return next;
-    });
-  };
-
-  const handleClearAllTagFilters = () => {
-    setSelectedTags(new Set());
-  };
-
   const filteredAndSortedClusters = useMemo(() => {
     const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
 
     if (isUsingCustomData && disableFilters) {
-      return clusterData;
+      return clusterData.filter(
+        cluster => cluster.error_type && cluster.impact && cluster.location
+      );
     }
 
-    // Apply tag and project filters
+    // Apply project filter and require structured fields
     const baseFiltered = clusterData.filter(cluster => {
-      if (selectedTags.size > 0) {
-        const allClusterTags = [
-          ...(cluster.service_tags ?? []),
-          ...(cluster.error_type_tags ?? []),
-          ...(cluster.code_area_tags ?? []),
-        ];
-        if (!Array.from(selectedTags).every(tag => allClusterTags.includes(tag))) {
-          return false;
-        }
+      // Only show clusters with the required structured fields
+      if (!cluster.error_type || !cluster.impact || !cluster.location) {
+        return false;
       }
 
       if (
@@ -775,7 +706,6 @@ function DynamicGrouping() {
     topIssuesResponse?.data,
     isUsingCustomData,
     disableFilters,
-    selectedTags,
     selection.projects,
     filterByAssignedToMe,
     user.id,
@@ -923,31 +853,6 @@ function DynamicGrouping() {
                 )}
               </Flex>
 
-              {selectedTags.size > 0 && (
-                <ActiveTagFilters>
-                  <Text size="sm" variant="muted">
-                    {t('Filtering by tags:')}
-                  </Text>
-                  <Flex wrap="wrap" gap="xs" align="center">
-                    {Array.from(selectedTags).map(tag => (
-                      <ActiveTagChip key={tag}>
-                        <Text size="xs">{tag}</Text>
-                        <Button
-                          size="zero"
-                          borderless
-                          icon={<IconClose size="xs" />}
-                          aria-label={t('Remove filter for %s', tag)}
-                          onClick={() => handleClearTagFilter(tag)}
-                        />
-                      </ActiveTagChip>
-                    ))}
-                    <Button size="xs" borderless onClick={handleClearAllTagFilters}>
-                      {t('Clear all')}
-                    </Button>
-                  </Flex>
-                </ActiveTagFilters>
-              )}
-
               {showDevTools && !(isUsingCustomData && disableFilters) && (
                 <Container
                   padding="sm"
@@ -1024,24 +929,14 @@ function DynamicGrouping() {
                 {displayedClusters
                   .filter((_, index) => index % 2 === 0)
                   .map(cluster => (
-                    <ClusterCard
-                      key={cluster.cluster_id}
-                      cluster={cluster}
-                      onTagClick={handleTagClick}
-                      selectedTags={selectedTags}
-                    />
+                    <ClusterCard key={cluster.cluster_id} cluster={cluster} />
                   ))}
               </CardsColumn>
               <CardsColumn>
                 {displayedClusters
                   .filter((_, index) => index % 2 === 1)
                   .map(cluster => (
-                    <ClusterCard
-                      key={cluster.cluster_id}
-                      cluster={cluster}
-                      onTagClick={handleTagClick}
-                      selectedTags={selectedTags}
-                    />
+                    <ClusterCard key={cluster.cluster_id} cluster={cluster} />
                   ))}
               </CardsColumn>
             </CardsGrid>
@@ -1268,6 +1163,32 @@ const DescriptionText = styled('p')`
   line-height: 1.5;
 `;
 
+const StructuredInfo = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+  margin-top: ${space(0.5)};
+`;
+
+const InfoRow = styled('div')`
+  display: flex;
+  align-items: baseline;
+  gap: ${space(1)};
+  font-size: ${p => p.theme.fontSize.sm};
+`;
+
+const InfoLabel = styled('span')`
+  color: ${p => p.theme.subText};
+  font-weight: 500;
+  min-width: 60px;
+  flex-shrink: 0;
+`;
+
+const InfoValue = styled('span')`
+  color: ${p => p.theme.textColor};
+  word-break: break-word;
+`;
+
 const FilterLabel = styled('span')<{disabled?: boolean}>`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.subText)};
@@ -1313,55 +1234,6 @@ const CustomDataBadge = styled('div')`
   border: 1px solid ${p => p.theme.yellow300};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.yellow400};
-`;
-
-const ClickableTag = styled(Tag)<{isSelected?: boolean}>`
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    transform 0.1s ease,
-    box-shadow 0.15s ease;
-  user-select: none;
-
-  ${p =>
-    p.isSelected &&
-    `
-    background: ${p.theme.purple100};
-    border-color: ${p.theme.purple300};
-    color: ${p.theme.purple400};
-  `}
-
-  &:hover {
-    background: ${p => (p.isSelected ? p.theme.purple200 : p.theme.gray100)};
-    border-color: ${p => (p.isSelected ? p.theme.purple400 : p.theme.gray300)};
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  &:active {
-    transform: translateY(0);
-    box-shadow: none;
-  }
-`;
-
-const ActiveTagFilters = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  margin-top: ${space(1.5)};
-  flex-wrap: wrap;
-`;
-
-const ActiveTagChip = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(1)};
-  background: ${p => p.theme.purple100};
-  border: 1px solid ${p => p.theme.purple200};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.purple400};
 `;
 
 const LastUpdatedText = styled('span')`
