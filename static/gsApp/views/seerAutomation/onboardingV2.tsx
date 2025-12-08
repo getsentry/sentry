@@ -20,7 +20,7 @@ export default function SeerOnboardingV2() {
 
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('Setup Wizard')} orgSlug={organization.slug} />
+      <SentryDocumentTitle title={t('Seer Setup Wizard')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Set Up Seer')}
         subtitle={t(
