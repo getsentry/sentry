@@ -35,7 +35,7 @@ export function transformLegacySeriesToPlottables(
         series.seriesName,
         createEventsStatsFromSeries(series, valueType as AggregationOutputType, valueUnit)
       );
-      return createPlottableFromTimeSeries(timeSeries[1], widget.displayType);
+      return createPlottableFromTimeSeries(timeSeries[1], widget);
     })
     .filter(plottable => plottable !== null);
   return plottables;
@@ -68,15 +68,16 @@ function createEventsStatsFromSeries(
 
 function createPlottableFromTimeSeries(
   timeSeries: TimeSeries,
-  displayType: DisplayType
+  widget: Widget
 ): Plottable | null {
+  const {displayType, title} = widget;
   switch (displayType) {
     case DisplayType.LINE:
       return new Line(timeSeries);
     case DisplayType.AREA:
       return new Area(timeSeries);
     case DisplayType.BAR:
-      return new Bars(timeSeries);
+      return new Bars(timeSeries, {stack: title});
     default:
       return null;
   }
