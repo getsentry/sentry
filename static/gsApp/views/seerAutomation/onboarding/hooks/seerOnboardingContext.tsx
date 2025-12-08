@@ -7,8 +7,8 @@ import type {
   Repository,
 } from 'sentry/types/integrations';
 
-import {useIntegrationInstallation} from 'getsentry/views/seerAutomation/onboarding/hooks/useIntegrationInstallation';
-import {useIntegrationProvider} from 'getsentry/views/seerAutomation/onboarding/hooks/useIntegrationProvider';
+import {useIntegrationInstallation} from './useIntegrationInstallation';
+import {useIntegrationProvider} from './useIntegrationProvider';
 
 interface SeerOnboardingContextProps {
   addRepositoryProjectMappings: (additionalMappings: Record<string, string[]>) => void;
@@ -85,15 +85,14 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
       // We are keeping RCA repos in sync with code review repos because
       // RCA repos = code review repos + any repos added in the RCA step
       setRootCauseAnalysisRepositories(prev => {
-        // Filter out repositories that were unselected (strict check with false because `undefined`
-        // means it's not in `prev`, which is logical since we want to add that repo)
-        const existingRepos = prev.filter(repo => newSelections[repo.id] !== false);
+        // Filter out repositories that were selected or updated (e.g. present in `newSelections`),
+        // so that we don't have duplicates when we merge the two
+        const existingRepos = prev.filter(repo => newSelections[repo.id] === undefined);
 
         // Add new repositories that were selected
         const newRepos = Object.entries(newSelections)
-          .filter(([_, isSelected]) => isSelected)
-          .map(([repoId]) => repositoriesMap[repoId])
-          .filter(repo => repo !== undefined);
+          .filter(([repoId, isSelected]) => isSelected && repoId in repositoriesMap)
+          .map(([repoId]) => repositoriesMap[repoId] as Repository);
 
         return [...existingRepos, ...newRepos];
       });
