@@ -1,5 +1,6 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   setApiQueryData,
   useApiQuery,
@@ -124,6 +125,7 @@ export const useSeerExplorer = () => {
     userBlockId: string;
     userQuery: string;
   } | null>(null);
+  const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
   const {data: apiData, isPending} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(orgSlug || '', runId || undefined),
@@ -329,11 +331,7 @@ export const useSeerExplorer = () => {
           queryKey: makeSeerExplorerQueryKey(orgSlug, runId),
         });
       } catch (e: any) {
-        setApiQueryData<SeerExplorerResponse>(
-          queryClient,
-          makeSeerExplorerQueryKey(orgSlug, runId),
-          makeErrorSeerExplorerData(e?.responseJSON?.detail ?? 'Failed to create PR')
-        );
+        addErrorMessage(e?.responseJSON?.detail ?? 'Failed to create PR');
       }
     },
     [api, orgSlug, runId, queryClient]
@@ -414,6 +412,28 @@ export const useSeerExplorer = () => {
       }
     }
   }, [apiData?.session?.blocks, optimistic]);
+
+  // Detect PR creation errors and show error messages
+  useEffect(() => {
+    const currentPRStates = sessionData?.repo_pr_states ?? {};
+    const previousPRStates = previousPRStatesRef.current;
+
+    // Check each repo for errors
+    for (const [repoName, currentState] of Object.entries(currentPRStates)) {
+      const previousState = previousPRStates[repoName];
+
+      // Detect transition from 'creating' to 'error'
+      if (
+        previousState?.pr_creation_status === 'creating' &&
+        currentState.pr_creation_status === 'error' &&
+        currentState.pr_creation_error
+      ) {
+        addErrorMessage(currentState.pr_creation_error);
+      }
+    }
+
+    previousPRStatesRef.current = currentPRStates;
+  }, [sessionData?.repo_pr_states]);
 
   if (
     waitingForResponse &&
