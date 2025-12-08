@@ -417,12 +417,12 @@ export function buildToolLinkUrl(
         queryParams.sort = sort;
       }
 
-      const stripTimezone = (ts: string) => ts.replace(/(Z|[+-]\d{2}:\d{2})$/, '');
+      // page filter expects no timezone (treated as UTC) or +HH:MM offset.
       if (start) {
-        queryParams.start = stripTimezone(start);
+        queryParams.start = start.replace(/Z$/, '');
       }
       if (end) {
-        queryParams.end = stripTimezone(end);
+        queryParams.end = end.replace(/Z$/, '');
       }
 
       // If project_slugs is provided, look up the IDs and include them in qparams
