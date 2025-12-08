@@ -21,7 +21,8 @@ function GenerateSpikeProjectionsForBatch() {
   const {mutate} = useMutation({
     mutationFn: () => {
       return fetchMutation({
-        url: `/_admin/queue-spike-projection-batch/`,
+        // TODO(cells): Switch from region name to cell
+        url: `/_admin/cells/${region?.name}/queue-spike-projection-batch/`,
         method: 'POST',
         data: {
           batch_id: batchId,
@@ -86,6 +87,7 @@ function GenerateSpikeProjectionsForBatch() {
         <label htmlFor="batchId">Batch ID:</label>
         <BatchInput
           type="number"
+          id="batchId"
           name="batchId"
           value={batchId === null ? '' : batchId}
           onChange={e => {
