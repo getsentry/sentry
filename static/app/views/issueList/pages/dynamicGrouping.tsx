@@ -536,16 +536,20 @@ function ClusterCard({
         )}
       </ClusterStatsBar>
 
-      <IssuesSection>
-        <IssuesSectionHeader>
-          <Text size="sm" bold uppercase>
-            {t('Preview Issues')}
-          </Text>
-        </IssuesSectionHeader>
-        <IssuesList>
-          <ClusterIssues groupIds={cluster.group_ids} />
-        </IssuesList>
-      </IssuesSection>
+      <PreviewIssuesSection>
+        <Disclosure>
+          <Disclosure.Title>
+            <Text size="sm" variant="muted">
+              {t('Preview issues')}
+            </Text>
+          </Disclosure.Title>
+          <Disclosure.Content>
+            <IssuesListContainer>
+              <ClusterIssues groupIds={cluster.group_ids} />
+            </IssuesListContainer>
+          </Disclosure.Content>
+        </Disclosure>
+      </PreviewIssuesSection>
 
       <CardFooter>
         <ButtonBar merged gap="0">
@@ -1166,24 +1170,16 @@ const StatItem = styled('div')`
   gap: ${space(0.5)};
 `;
 
-// Zone 3: Issues list with clear containment
-const IssuesSection = styled('div')`
-  padding: ${space(2)} ${space(3)};
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+// Zone 3: Preview issues - lightweight disclosure
+const PreviewIssuesSection = styled('div')`
+  padding: ${space(1)} ${space(3)};
 `;
 
-const IssuesSectionHeader = styled('div')`
-  margin-bottom: ${space(1.5)};
-  color: ${p => p.theme.subText};
-  letter-spacing: 0.5px;
-`;
-
-const IssuesList = styled('div')`
+const IssuesListContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1.5)};
+  padding-top: ${space(1)};
 `;
 
 // Zone 4: Footer with actions
