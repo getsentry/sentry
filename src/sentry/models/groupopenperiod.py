@@ -184,7 +184,7 @@ def get_open_periods_for_group(
     return group_open_periods[:limit]
 
 
-def create_open_period(group: Group, start_time: datetime) -> None:
+def create_open_period(group: Group, start_time: datetime, event_id: str | None = None) -> None:
     # no-op if the group does not create open periods
     if not should_create_open_periods(group.type):
         return None
@@ -209,6 +209,7 @@ def create_open_period(group: Group, start_time: datetime) -> None:
             date_started=start_time,
             date_ended=None,
             resolution_activity=None,
+            event_id=event_id,
         )
 
         # If we care about this group's activity, create activity entry
