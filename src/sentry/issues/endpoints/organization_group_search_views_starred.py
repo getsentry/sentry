@@ -30,8 +30,12 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
         Retrieve a list of starred views for the current organization member.
         """
 
-        starred_views = GroupSearchViewStarred.objects.filter(
-            organization=organization, user_id=request.user.id
+        starred_views = (
+            GroupSearchViewStarred.objects.filter(
+                organization=organization, user_id=request.user.id
+            )
+            .select_related("group_search_view")
+            .exclude(group_search_view__isnull=True)
         )
 
         return self.paginate(
