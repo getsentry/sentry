@@ -548,7 +548,7 @@ def taskbroker_send_tasks(
     "--arroyo-arg",
     "arroyo_args",
     multiple=True,
-    help="Override StreamProcessor arguments. Format: --arroyo-arg='key:value' or --arroyo-arg='key:type:value'. Example: --arroyo-arg='join_timeout:int:60'",
+    help="Override StreamProcessor arguments. Format: --arroyo-arg='key:value'. Example: --arroyo-arg='join_timeout:60'",
 )
 @configuration
 def basic_consumer(

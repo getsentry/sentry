@@ -60,8 +60,8 @@ def apply_processor_args_overrides(
             origin = get_origin(param_type)
             if origin is not None:
                 # For Optional[T] (Union[T, None]), extract T
-                args = get_args(param_type)
-                param_type = next((arg for arg in args if arg is not type(None)), str)
+                type_args = get_args(param_type)
+                param_type = next((t for t in type_args if t is not type(None)), str)
 
             # Try to parse as JSON first, fallback to string
             try:
