@@ -85,6 +85,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
         except ValueError:
+            logger.exception("Error getting Explorer run state")
             return Response({"session": None}, status=404)
 
     def post(
