@@ -29,10 +29,6 @@ from sentry.preprod.size_analysis.insight_models import (
 # Keep in sync with https://github.com/getsentry/launchpad/blob/main/src/launchpad/size/models/common.py#L92
 ###
 
-###
-# Insights results
-###
-
 
 class AndroidInsightResults(BaseModel):
     duplicate_files: DuplicateFilesInsightResult | None
