@@ -122,6 +122,12 @@ describe('MetricsTabContent', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: `/subscriptions/${organization.slug}/`,
       method: 'GET',
       body: {},
@@ -211,8 +217,8 @@ describe('MetricsTabContent', () => {
         expect.objectContaining({
           organization,
           metric_queries_count: 1,
-          metric_panels_with_filters_count: 1,
-          metric_panels_with_group_bys_count: 1,
+          metric_panels_with_filters_count: 0,
+          metric_panels_with_group_bys_count: 0,
           datetime_selection: '--14d',
           environment_count: 0,
           has_exceeded_performance_usage_limit: false,
@@ -288,8 +294,8 @@ describe('MetricsTabContent', () => {
       'metrics.explorer.metadata',
       expect.objectContaining({
         metric_queries_count: 2,
-        metric_panels_with_filters_count: 2,
-        metric_panels_with_group_bys_count: 2,
+        metric_panels_with_filters_count: 0,
+        metric_panels_with_group_bys_count: 0,
         project_count: 1,
         environment_count: 0,
         has_exceeded_performance_usage_limit: false,
@@ -373,7 +379,78 @@ describe('MetricsTabContent', () => {
       );
     });
 
+    expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
+      2,
+      'metrics.explorer.metadata',
+      expect.objectContaining({
+        metric_panels_with_filters_count: 0,
+        metric_panels_with_group_bys_count: 1,
+        metric_queries_count: 1,
+      })
+    );
+
     expect(trackAnalyticsMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('should fire analytics when filter is changed', async () => {
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig,
+        organization,
+      }
+    );
+
+    const toolbars = screen.getAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(1);
+
+    await waitFor(() => {
+      expect(within(toolbars[0]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
+    });
+
+    trackAnalyticsMock.mockClear();
+
+    const searchInput = within(toolbars[0]!).getByRole('combobox');
+    await userEvent.click(searchInput);
+    await userEvent.type(searchInput, 'has:environment{enter}');
+
+    await waitFor(() => {
+      const panelMetadataCall = trackAnalyticsMock.mock.calls.find(
+        call => call[0] === 'metrics.explorer.panel.metadata'
+      );
+      expect(panelMetadataCall).toBeDefined();
+    });
+
+    const panelMetadataCall = trackAnalyticsMock.mock.calls.find(
+      call => call[0] === 'metrics.explorer.panel.metadata'
+    );
+    expect(panelMetadataCall![1]).toEqual(
+      expect.objectContaining({
+        panel_index: 0,
+        user_queries: 'has:environment',
+        user_queries_count: 1,
+      })
+    );
+
+    await waitFor(() => {
+      const explorerMetadataCall = trackAnalyticsMock.mock.calls.find(
+        call => call[0] === 'metrics.explorer.metadata'
+      );
+      expect(explorerMetadataCall).toBeDefined();
+    });
+
+    const explorerMetadataCall = trackAnalyticsMock.mock.calls.find(
+      call => call[0] === 'metrics.explorer.metadata'
+    );
+    expect(explorerMetadataCall![1]).toEqual(
+      expect.objectContaining({
+        metric_panels_with_filters_count: 1,
+        metric_panels_with_group_bys_count: 0,
+        metric_queries_count: 1,
+      })
+    );
   });
 
   it('should fire analytics with no metrics available', async () => {
