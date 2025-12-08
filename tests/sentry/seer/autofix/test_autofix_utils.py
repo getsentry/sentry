@@ -11,8 +11,8 @@ from sentry.seer.autofix.utils import (
     CodingAgentStatus,
     get_autofix_prompt,
     get_coding_agent_prompt,
-    has_seer_seat_based_tier_enabled,
     is_issue_eligible_for_seer_automation,
+    is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.models import SeerApiError
 from sentry.testutils.cases import TestCase
@@ -351,8 +351,8 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
                 assert result is True
 
 
-class TestHasSeerSeatBasedTierEnabled(TestCase):
-    """Test the has_seer_seat_based_tier_enabled function."""
+class TestIsSeerSeatBasedTierEnabled(TestCase):
+    """Test the is_seer_seat_based_tier_enabled function."""
 
     def setUp(self):
         super().setUp()
@@ -365,7 +365,7 @@ class TestHasSeerSeatBasedTierEnabled(TestCase):
     def test_returns_true_when_triage_signals_enabled(self):
         """Test returns True when triage-signals-v0-org feature flag is enabled."""
         with self.feature("organizations:triage-signals-v0-org"):
-            result = has_seer_seat_based_tier_enabled(self.organization)
+            result = is_seer_seat_based_tier_enabled(self.organization)
             assert result is True
 
     @patch("sentry.seer.autofix.utils.features.has")
@@ -379,7 +379,7 @@ class TestHasSeerSeatBasedTierEnabled(TestCase):
 
         mock_features_has.side_effect = features_side_effect
 
-        result = has_seer_seat_based_tier_enabled(self.organization)
+        result = is_seer_seat_based_tier_enabled(self.organization)
         assert result is True
 
         # Verify it was cached
@@ -388,7 +388,7 @@ class TestHasSeerSeatBasedTierEnabled(TestCase):
 
     def test_returns_false_when_no_flags_enabled(self):
         """Test returns False when neither feature flag is enabled and caches the result."""
-        result = has_seer_seat_based_tier_enabled(self.organization)
+        result = is_seer_seat_based_tier_enabled(self.organization)
         assert result is False
 
         # Verify False was cached
@@ -401,5 +401,5 @@ class TestHasSeerSeatBasedTierEnabled(TestCase):
         cache.set(cache_key, True, timeout=60)
 
         # Even without feature flags enabled, should return cached True
-        result = has_seer_seat_based_tier_enabled(self.organization)
+        result = is_seer_seat_based_tier_enabled(self.organization)
         assert result is True
