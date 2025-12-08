@@ -28,6 +28,7 @@ from sentry.seer.models import (
 )
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.utils import json
+from sentry.utils.cache import cache
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -362,6 +363,28 @@ def is_seer_scanner_rate_limited(project: Project, organization: Organization) -
             category=DataCategory.SEER_SCANNER,
         )
     return is_rate_limited
+
+
+def has_seer_seat_based_tier_enabled(organization: Organization) -> bool:
+    """
+    Check if organization has Seer seat-based tier via billing.
+
+    Returns True if the organization has either:
+    - triage-signals-v0-org feature flag enabled (org-level triage signals)
+    - seat-based-seer-enabled feature enabled (seat-based Seer subscription, cached for 24 hours)
+    """
+    if features.has("organizations:triage-signals-v0-org", organization):
+        return True
+
+    cache_key = f"seer:seat-based-tier:{organization.id}"
+    cached_value = cache.get(cache_key)
+    if cached_value is not None:
+        return cached_value
+
+    has_seat_based_seer = features.has("organizations:seat-based-seer-enabled", organization)
+    cache.set(cache_key, has_seat_based_seer, timeout=60 * 60 * 4)  # 4 hours TTL
+
+    return has_seat_based_seer
 
 
 def is_issue_eligible_for_seer_automation(group: Group) -> bool:

@@ -26,6 +26,7 @@ from sentry.seer.autofix.constants import (
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_state,
+    has_seer_seat_based_tier_enabled,
     is_seer_autotriggered_autofix_rate_limited,
 )
 from sentry.seer.models import SummarizeIssueResponse
@@ -341,18 +342,23 @@ def run_automation(
             )
             return
 
-    # Only log for orgs with triage-signals-v0-org
-    if features.has("organizations:triage-signals-v0-org", group.organization):
-        try:
-            times_seen = group.times_seen_with_pending
-        except (AssertionError, AttributeError):
-            times_seen = group.times_seen
-        logger.info(
-            "Triage signals V0: %s: run_automation called: project_slug=%s, source=%s, times_seen=%s",
-            group.id,
-            group.project.slug,
-            source.value,
-            times_seen,
+    # Only log for orgs with seat-based Seer tier
+    try:
+        if has_seer_seat_based_tier_enabled(group.organization):
+            try:
+                times_seen = group.times_seen_with_pending
+            except (AssertionError, AttributeError):
+                times_seen = group.times_seen
+            logger.info(
+                "Triage signals V0: %s: run_automation called: project_slug=%s, source=%s, times_seen=%s",
+                group.id,
+                group.project.slug,
+                source.value,
+                times_seen,
+            )
+    except Exception:
+        logger.exception(
+            "Error checking if seat-based Seer tier is enabled", extra={"group_id": group.id}
         )
 
     user_id = user.id if user else None
