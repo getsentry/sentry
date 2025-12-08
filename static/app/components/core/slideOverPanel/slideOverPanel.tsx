@@ -33,7 +33,7 @@ type SlideOverPanelProps = {
   /**
    * Whether the panel is visible. In most cases it's better to use this prop rather than render the panel conditionally, since it'll defer rendering the contents of the panel to a lower priority React lane.
    */
-  collapsed: boolean;
+  open: boolean;
   ariaLabel?: string;
   className?: string;
   'data-test-id'?: string;
@@ -42,8 +42,8 @@ type SlideOverPanelProps = {
    */
   onOpen?: () => void;
   panelWidth?: string;
+  position?: 'right' | 'bottom' | 'left';
   ref?: React.Ref<HTMLDivElement>;
-  slidePosition?: 'right' | 'bottom' | 'left';
   /**
    * A Framer Motion `Transition` object that specifies the transition properties that apply when the panel opens and closes.
    */
@@ -53,23 +53,21 @@ type SlideOverPanelProps = {
 export function SlideOverPanel({
   'data-test-id': testId,
   ariaLabel,
-  collapsed,
+  open: isOpen,
   children,
   className,
   onOpen,
-  slidePosition,
+  position,
   transitionProps = {},
   panelWidth,
   ref,
 }: SlideOverPanelProps) {
   const theme = useTheme();
 
-  const isOpen = !collapsed;
-
   // Create a deferred version of `isOpen`. Here's how the rendering flow works
   // when the visibility changes to `true`:
   //
-  // 1. Parent component sets `collapsed` to `false`. This triggers a render.
+  // 1. Parent component sets `isOpen` to `true`. This triggers a render.
   // 2. The render runs with `isOpen` `true` and `isContentVisible` `false`. We
   // pass `isOpening: true` to the `children` render prop. The render prop
   // contents should render a fast skeleton.
@@ -83,10 +81,10 @@ export function SlideOverPanel({
   const isContentVisible = useDeferredValue(isOpen);
 
   useEffect(() => {
-    if (!collapsed && onOpen) {
+    if (isOpen && onOpen) {
       onOpen();
     }
-  }, [collapsed, onOpen]);
+  }, [isOpen, onOpen]);
 
   // Create a fallback render function, in case the parent component passes
   // `React.ReactNode` as `children`. This way, even if they don't pass a render
@@ -102,11 +100,9 @@ export function SlideOverPanel({
     isOpening: isOpen !== isContentVisible && !isContentVisible,
   };
 
-  const openStyle = slidePosition ? OPEN_STYLES[slidePosition] : OPEN_STYLES.right;
+  const openStyle = position ? OPEN_STYLES[position] : OPEN_STYLES.right;
 
-  const collapsedStyle = slidePosition
-    ? COLLAPSED_STYLES[slidePosition]
-    : COLLAPSED_STYLES.right;
+  const collapsedStyle = position ? COLLAPSED_STYLES[position] : COLLAPSED_STYLES.right;
 
   return isOpen ? (
     <_SlideOverPanel
@@ -114,13 +110,13 @@ export function SlideOverPanel({
       initial={collapsedStyle}
       animate={openStyle}
       exit={collapsedStyle}
-      slidePosition={slidePosition}
+      position={position}
       transition={{
         ...theme.motion.framer.spring.moderate,
         ...transitionProps,
       }}
       role="complementary"
-      aria-hidden={collapsed}
+      aria-hidden={!isOpen}
       aria-label={ariaLabel ?? 'slide out drawer'}
       className={className}
       data-test-id={testId}
@@ -140,17 +136,17 @@ export function SlideOverPanel({
 const _SlideOverPanel = styled(motion.div, {
   shouldForwardProp: prop =>
     ['initial', 'animate', 'exit', 'transition'].includes(prop) ||
-    (prop !== 'collapsed' && isPropValid(prop)),
+    (prop !== 'isOpen' && isPropValid(prop)),
 })<{
   panelWidth?: string;
-  slidePosition?: 'right' | 'bottom' | 'left';
+  position?: 'right' | 'bottom' | 'left';
 }>`
   position: fixed;
 
-  top: ${p => (p.slidePosition === 'left' ? '54px' : space(2))};
-  right: ${p => (p.slidePosition === 'left' ? space(2) : 0)};
+  top: ${p => (p.position === 'left' ? '54px' : space(2))};
+  right: ${p => (p.position === 'left' ? space(2) : 0)};
   bottom: ${space(2)};
-  left: ${p => (p.slidePosition === 'left' ? 0 : space(2))};
+  left: ${p => (p.position === 'left' ? 0 : space(2))};
 
   overflow: auto;
   pointer-events: auto;
@@ -166,7 +162,7 @@ const _SlideOverPanel = styled(motion.div, {
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     ${p =>
-      p.slidePosition === 'bottom'
+      p.position === 'bottom'
         ? css`
             position: sticky;
 
@@ -177,7 +173,7 @@ const _SlideOverPanel = styled(motion.div, {
             bottom: 0;
             left: 0;
           `
-        : p.slidePosition === 'right'
+        : p.position === 'right'
           ? css`
               position: fixed;
 

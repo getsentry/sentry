@@ -30,7 +30,7 @@ The `SlideOverPanel` component is a panel that can appear on the right, left, or
 ```jsx
 <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
 
-<SlideOverPanel collapsed={!isPanelOpen} slidePosition="right">
+<SlideOverPanel open={isPanelOpen} position="right">
   <Container border="primary" height="100%" padding="md">
     <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
   </Container>
@@ -59,7 +59,7 @@ To enable a loading skeleton, pass a render prop as the children to `SlideOverPa
 ```jsx
 <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
 
-<SlideOverPanel collapsed={!isPanelOpen} slidePosition="right">
+<SlideOverPanel open={isPanelOpen} ePosition="right">
   {({isOpening}) => isOpening ? <Placeholder /> :
   <Container border="primary" height="100%" padding="md">
     <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
