@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -52,6 +52,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
 
 const CLUSTERS_PER_PAGE = 20;
 
@@ -127,29 +128,6 @@ function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
 function formatClusterPromptForSeer(cluster: ClusterSummary): string {
   const message = formatClusterInfoForClipboard(cluster);
   return `I'd like to investigate this cluster of issues:\n\n${message}\n\nPlease help me understand the root cause and potential fixes for these related issues.`;
-}
-
-/**
- * Opens Seer Explorer by simulating the Cmd+/ or Ctrl+/ keyboard shortcut.
- * User can then paste with Cmd+V / Ctrl+V.
- */
-function openSeerExplorerWithClipboard(): void {
-  // Simulate keyboard shortcut to open Seer Explorer (Cmd+/ or Ctrl+/)
-  const isMac = navigator.platform.toUpperCase().includes('MAC');
-
-  // Create a KeyboardEvent with the proper keyCode (191 = '/')
-  // useHotkeys checks evt.keyCode, so we need to set it explicitly
-  const event = new KeyboardEvent('keydown', {
-    key: '/',
-    code: 'Slash',
-    keyCode: 191,
-    which: 191,
-    metaKey: isMac,
-    ctrlKey: !isMac,
-    bubbles: true,
-  } as KeyboardEventInit);
-
-  document.dispatchEvent(event);
 }
 
 interface TopIssuesResponse {
@@ -373,14 +351,24 @@ function ClusterCard({
   const clusterStats = useClusterStats(cluster.group_ids);
   const {copy} = useCopyToClipboard();
 
-  const handleSendToSeer = () => {
-    copy(formatClusterPromptForSeer(cluster), {
-      successMessage: t('Copied to clipboard. Paste into Seer Explorer with Cmd+V'),
-    });
-    setTimeout(() => {
-      openSeerExplorerWithClipboard();
-    }, 100);
-  };
+  // Track the Seer Explorer run ID for this cluster so subsequent clicks reopen the same chat
+  const seerRunIdRef = useRef<number | null>(null);
+
+  const handleSendToSeer = useCallback(() => {
+    if (seerRunIdRef.current) {
+      // Reopen existing chat
+      openSeerExplorer({runId: seerRunIdRef.current});
+    } else {
+      // Start a new chat with the cluster prompt
+      openSeerExplorer({
+        startNewRun: true,
+        initialMessage: formatClusterPromptForSeer(cluster),
+        onRunCreated: runId => {
+          seerRunIdRef.current = runId;
+        },
+      });
+    }
+  }, [cluster]);
 
   const handleCopyMarkdown = () => {
     copy(formatClusterInfoForClipboard(cluster));
