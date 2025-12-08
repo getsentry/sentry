@@ -79,11 +79,16 @@ def get_file_language(filename: str) -> str | None:
     return language
 
 
-def is_contributor_eligible_for_seat_assignment(user_type: str, author_association: str) -> bool:
-    return user_type != "Bot" and author_association in (
+def is_contributor_eligible_for_seat_assignment(
+    user_type: str | None, author_association: str
+) -> bool:
+    is_eligible_author_association = author_association in (
         AuthorAssociation.MEMBER,
         AuthorAssociation.OWNER,
     )
+    if user_type is None:
+        return is_eligible_author_association
+    return is_eligible_author_association and user_type != "Bot"
 
 
 class GitHubWebhook(SCMWebhook, ABC):
@@ -710,7 +715,7 @@ class PullRequestEventWebhook(GitHubWebhook):
         body = pull_request["body"]
         author_association = pull_request["author_association"]
         user = pull_request["user"]
-        user_type = user["type"]
+        user_type = user.get("type")
         action = event["action"]
 
         """
