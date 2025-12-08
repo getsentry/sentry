@@ -31,7 +31,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 1011_update_oc_integration_cascade_to_null
+sentry: 1012_add_event_id_to_open_period
 
 social_auth: 0003_social_auth_json_field
 
