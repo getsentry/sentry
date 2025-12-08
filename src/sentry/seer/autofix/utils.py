@@ -172,6 +172,44 @@ def get_project_seer_preferences(project_id: int):
     raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
+def bulk_get_project_preferences(organization_id: int, project_ids: list[int]) -> dict[str, dict]:
+    """Bulk fetch Seer project preferences. Returns dict mapping project ID (string) to preference dict."""
+    path = "/v1/project-preference/bulk"
+    body = orjson.dumps({"organization_id": organization_id, "project_ids": project_ids})
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=10,
+    )
+
+    if response.status >= 400:
+        raise SeerApiError(response.data.decode("utf-8"), response.status)
+
+    result = orjson.loads(response.data)
+    return result.get("preferences", {})
+
+
+def bulk_set_project_preferences(organization_id: int, preferences: list[dict]) -> None:
+    """Bulk set Seer project preferences for multiple projects."""
+    if not preferences:
+        return
+
+    path = "/v1/project-preference/bulk-set"
+    body = orjson.dumps({"organization_id": organization_id, "preferences": preferences})
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=15,
+    )
+
+    if response.status >= 400:
+        raise SeerApiError(response.data.decode("utf-8"), response.status)
+
+
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
     if settings.SEER_AUTOFIX_FORCE_USE_REPOS:
         # This is for testing purposes only, for example in s4s we want to force the use of specific repo(s)
