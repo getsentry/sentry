@@ -1,5 +1,7 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -8,6 +10,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
+import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
 
 const theme = ThemeFixture();
 
@@ -15,7 +18,9 @@ describe('getFieldRenderer', () => {
   let location: any, context: any, project: any, organization: any, data: any, user: any;
 
   beforeEach(() => {
-    context = initializeOrg();
+    context = initializeOrg({
+      organization: OrganizationFixture({features: ['dashboards-drilldown-flow']}),
+    });
     organization = context.organization;
     project = context.project;
     act(() => ProjectsStore.loadInitialData([project]));
@@ -111,6 +116,44 @@ describe('getFieldRenderer', () => {
     );
 
     expect(screen.getByText(data.numeric)).toBeInTheDocument();
+  });
+
+  it('can render dashboard links', () => {
+    const widget = WidgetFixture({
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          linkedDashboards: [{dashboardId: '123', field: 'transaction'}],
+          aggregates: [],
+          columns: [],
+          conditions: '',
+          name: '',
+          orderby: '',
+        },
+      ],
+    });
+    const dashboardFilters: DashboardFilters = {};
+
+    const renderer = getFieldRenderer(
+      'transaction',
+      {transaction: 'string'},
+      undefined,
+      widget,
+      dashboardFilters
+    );
+
+    render(
+      renderer(data, {
+        location,
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboard/123/?globalFilter=%7B%22dataset%22%3A%22spans%22%2C%22tag%22%3A%7B%22key%22%3A%22transaction%22%2C%22name%22%3A%22transaction%22%2C%22kind%22%3A%22tag%22%7D%2C%22value%22%3A%22transaction%3A%5Bapi.do_things%5D%22%2C%22isTemporary%22%3Atrue%7D'
+    );
   });
 
   describe('rate', () => {

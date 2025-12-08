@@ -1430,7 +1430,11 @@ function getDashboardUrl(
     if (dashboardLink && dashboardLink.dashboardId !== '-1') {
       const newTemporaryFilters: GlobalFilter[] = [
         ...(dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? []),
-      ].filter(filter => Boolean(filter.value));
+      ].filter(
+        filter =>
+          Boolean(filter.value) &&
+          !(filter.tag.key === field && filter.dataset === widget.widgetType)
+      );
 
       // Format the value as a proper filter condition string
       const mutableSearch = new MutableSearch('');
@@ -1440,6 +1444,7 @@ function getDashboardUrl(
         dataset: widget.widgetType,
         tag: {key: field, name: field, kind: FieldKind.TAG},
         value: formattedValue,
+        isTemporary: true,
       });
 
       // Preserve project, environment, and time range query params
@@ -1455,7 +1460,7 @@ function getDashboardUrl(
       const url = `/organizations/${organization.slug}/dashboard/${dashboardLink.dashboardId}/?${qs.stringify(
         {
           ...filterParams,
-          [DashboardFilterKeys.TEMPORARY_FILTERS]: newTemporaryFilters.map(filter =>
+          [DashboardFilterKeys.GLOBAL_FILTER]: newTemporaryFilters.map(filter =>
             JSON.stringify(filter)
           ),
         }

@@ -960,7 +960,6 @@ class DashboardDetail extends Component<Props, State> {
                   filters={{}} // Default Dashboards don't have filters set
                   location={location}
                   hasUnsavedChanges={false}
-                  hasTemporaryFilters={false}
                   isEditingDashboard={false}
                   isPreview={false}
                   onDashboardFilterChange={this.handleChangeFilter}
@@ -1042,10 +1041,6 @@ class DashboardDetail extends Component<Props, State> {
       dashboard.id !== 'default-overview' &&
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
-
-    const hasTemporaryFilters = defined(
-      location.query?.[DashboardFilterKeys.TEMPORARY_FILTERS]
-    );
 
     const eventView = generatePerformanceEventView(location, projects, {}, organization);
 
@@ -1179,7 +1174,6 @@ class DashboardDetail extends Component<Props, State> {
                                 dashboardCreator={dashboard.createdBy}
                                 location={location}
                                 hasUnsavedChanges={!this.isEmbedded && hasUnsavedFilters}
-                                hasTemporaryFilters={hasTemporaryFilters}
                                 isEditingDashboard={
                                   dashboardState !== DashboardState.CREATE &&
                                   this.isEditingDashboard
@@ -1187,7 +1181,7 @@ class DashboardDetail extends Component<Props, State> {
                                 isPreview={this.isPreview}
                                 onDashboardFilterChange={this.handleChangeFilter}
                                 shouldBusySaveButton={this.state.isSavingDashboardFilters}
-                                isPrebuiltDashboard={defined(dashboard.prebuiltId)}
+                                prebuiltDashboardId={dashboard.prebuiltId}
                                 onCancel={() => {
                                   resetPageFilters(dashboard, location);
                                   trackAnalytics('dashboards2.filter.cancel', {

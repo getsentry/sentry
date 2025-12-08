@@ -204,6 +204,7 @@ function NumericFilterSelector({
   globalFilter,
   onRemoveFilter,
   onUpdateFilter,
+  disableRemoveFilter,
 }: GenericFilterSelectorProps) {
   const globalFilterQueries = useMemo(
     () => globalFilter.value.split(FILTER_QUERY_SEPARATOR),
@@ -291,15 +292,19 @@ function NumericFilterSelector({
           {t('%s Filter', getDatasetLabel(globalFilter.dataset))}
         </MenuTitleWrapper>
       }
-      menuHeaderTrailingItems={() => (
-        <StyledButton
-          aria-label={t('Remove Filter')}
-          size="zero"
-          onClick={() => onRemoveFilter(globalFilter)}
-        >
-          {t('Remove Filter')}
-        </StyledButton>
-      )}
+      menuHeaderTrailingItems={
+        disableRemoveFilter
+          ? undefined
+          : () => (
+              <StyledButton
+                aria-label={t('Remove Filter')}
+                size="zero"
+                onClick={() => onRemoveFilter(globalFilter)}
+              >
+                {t('Remove Filter')}
+              </StyledButton>
+            )
+      }
       menuBody={
         <MenuBodyWrap>
           <Flex gap="xs" direction="column">
