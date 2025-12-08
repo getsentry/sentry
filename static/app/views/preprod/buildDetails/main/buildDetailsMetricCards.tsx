@@ -13,7 +13,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {MetricCard} from 'sentry/views/preprod/components/metricCard';
 import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
 import {
@@ -38,8 +37,10 @@ interface BuildDetailsMetricCardsProps {
   processedInsights: ProcessedInsight[];
   sizeInfo: BuildDetailsSizeInfo | undefined;
   totalSize: number;
+  artifactId?: string;
   baseArtifactId?: string | null;
   platform?: Platform | null;
+  projectId?: string;
   projectType?: string | null;
 }
 
@@ -71,14 +72,15 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
     sizeInfo,
     processedInsights,
     totalSize,
+    artifactId,
     baseArtifactId,
     platform: platformProp,
     projectType,
+    projectId,
     onOpenInsightsSidebar,
   } = props;
 
   const organization = useOrganization();
-  const params = useParams<{artifactId: string; projectId: string}>();
 
   if (!isSizeInfoCompleted(sizeInfo)) {
     return null;
@@ -98,18 +100,18 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
   );
 
   // Calculate deltas for install and download sizes
-  const installDelta: MetricDelta | undefined = calculateDelta(
+  const installDelta = calculateDelta(
     primarySizeMetric?.install_size_bytes,
     basePrimarySizeMetric?.install_size_bytes
   );
-  const downloadDelta: MetricDelta | undefined = calculateDelta(
+  const downloadDelta = calculateDelta(
     primarySizeMetric?.download_size_bytes,
     basePrimarySizeMetric?.download_size_bytes
   );
 
   // Build comparison URL using route params
   const comparisonUrl = baseArtifactId
-    ? `/organizations/${organization.slug}/preprod/${params.projectId}/compare/${params.artifactId}/${baseArtifactId}/`
+    ? `/organizations/${organization.slug}/preprod/${projectId}/compare/${artifactId}/${baseArtifactId}/`
     : undefined;
 
   const totalPotentialSavings = processedInsights.reduce(
