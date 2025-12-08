@@ -1433,8 +1433,7 @@ function getDashboardUrl(
       ].filter(
         filter =>
           Boolean(filter.value) &&
-          filter.tag.key !== field &&
-          filter.dataset !== widget.widgetType
+          !(filter.tag.key === field && filter.dataset === widget.widgetType)
       );
 
       // Format the value as a proper filter condition string
