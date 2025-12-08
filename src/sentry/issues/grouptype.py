@@ -683,8 +683,9 @@ class WebVitalsGroup(GroupType):  # TODO: Rename to WebVitalsGroupType
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
-    # Web Vital issues are always manually created by the user for the purpose of using autofix
+    # Web Vital issues are always triggered for the purpose of using autofix
     always_trigger_seer_automation = True
+    released = True
 
 
 def should_create_group(
