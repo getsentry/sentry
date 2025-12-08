@@ -1,10 +1,12 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {bulkUpdate} from 'sentry/actionCreators/group';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
@@ -31,6 +33,7 @@ import {
   IconClock,
   IconClose,
   IconCopy,
+  IconEllipsis,
   IconFire,
   IconFix,
   IconSeer,
@@ -40,8 +43,10 @@ import {
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -361,7 +366,9 @@ function ClusterCard({
   onTagClick?: (tag: string) => void;
   selectedTags?: Set<string>;
 }) {
+  const api = useApi();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const [showDescription, setShowDescription] = useState(false);
   const clusterStats = useClusterStats(cluster.group_ids);
   const {copy} = useCopyToClipboard();
@@ -379,9 +386,64 @@ function ClusterCard({
     copy(formatClusterInfoForClipboard(cluster));
   };
 
+  const handleResolve = useCallback(() => {
+    openConfirmModal({
+      header: t('Resolve All Issues in Cluster'),
+      message: t(
+        'Are you sure you want to resolve all %s issues in this cluster?.',
+        cluster.group_ids.length
+      ),
+      confirmText: t('Resolve All'),
+      onConfirm: () => {
+        bulkUpdate(
+          api,
+          {
+            orgId: organization.slug,
+            itemIds: cluster.group_ids.map(String),
+            data: {status: GroupStatus.RESOLVED},
+            project: selection.projects,
+            environment: selection.environments,
+            ...selection.datetime,
+          },
+          {}
+        );
+      },
+    });
+  }, [api, cluster.group_ids, organization.slug, selection]);
+
+  const handleArchive = useCallback(() => {
+    openConfirmModal({
+      header: t('Archive All Issues in Cluster'),
+      message: t(
+        'Are you sure you want to archive all %s issues in this cluster?.',
+        cluster.group_ids.length
+      ),
+      confirmText: t('Archive All'),
+      onConfirm: () => {
+        bulkUpdate(
+          api,
+          {
+            orgId: organization.slug,
+            itemIds: cluster.group_ids.map(String),
+            data: {
+              status: GroupStatus.IGNORED,
+              statusDetails: {},
+              substatus: GroupSubstatus.ARCHIVED_UNTIL_ESCALATING,
+            },
+            project: selection.projects,
+            environment: selection.environments,
+            ...selection.datetime,
+          },
+          {}
+        );
+      },
+    });
+  }, [api, cluster.group_ids, organization.slug, selection]);
+
+  const handleDismiss = () => {};
+
   return (
     <CardContainer>
-      {/* Zone 1: Title + Description (Primary Focus) */}
       <CardHeader>
         <ClusterTitle>{renderWithInlineCode(cluster.title)}</ClusterTitle>
         <ClusterTags
@@ -392,7 +454,12 @@ function ClusterCard({
         {cluster.description && (
           <Fragment>
             {showDescription ? (
-              <DescriptionText>{cluster.description}</DescriptionText>
+              <Fragment>
+                <DescriptionText>{cluster.description}</DescriptionText>
+                <ReadMoreButton onClick={() => setShowDescription(false)}>
+                  {t('Collapse summary')}
+                </ReadMoreButton>
+              </Fragment>
             ) : (
               <ReadMoreButton onClick={() => setShowDescription(true)}>
                 {t('View summary')}
@@ -402,7 +469,6 @@ function ClusterCard({
         )}
       </CardHeader>
 
-      {/* Zone 2: Stats (Secondary Context) */}
       <ClusterStatsBar>
         {cluster.fixability_score !== null && cluster.fixability_score !== undefined && (
           <StatItem>
@@ -469,7 +535,6 @@ function ClusterCard({
         )}
       </ClusterStatsBar>
 
-      {/* Zone 3: Nested Issues (Detail Content) */}
       <IssuesSection>
         <IssuesSectionHeader>
           <Text size="sm" bold uppercase>
@@ -481,7 +546,6 @@ function ClusterCard({
         </IssuesList>
       </IssuesSection>
 
-      {/* Zone 4: Actions (Tertiary) */}
       <CardFooter>
         <ButtonBar merged gap="0">
           <SeerButton
@@ -520,6 +584,34 @@ function ClusterCard({
             {t('View All Issues') + ` (${cluster.group_ids.length})`}
           </Button>
         </Link>
+        <DropdownMenu
+          items={[
+            {
+              key: 'resolve',
+              label: t('Resolve All'),
+              onAction: handleResolve,
+            },
+            {
+              key: 'archive',
+              label: t('Archive All'),
+              onAction: handleArchive,
+            },
+            {
+              key: 'dismiss',
+              label: t('Dismiss'),
+              onAction: handleDismiss,
+            },
+          ]}
+          trigger={triggerProps => (
+            <Button
+              {...triggerProps}
+              size="sm"
+              icon={<IconEllipsis size="sm" />}
+              aria-label={t('More actions')}
+            />
+          )}
+          position="bottom-end"
+        />
       </CardFooter>
     </CardContainer>
   );
