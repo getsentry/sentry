@@ -39,7 +39,10 @@ import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextPro
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 import ExplorerPanel from 'sentry/views/seerExplorer/explorerPanel';
-import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
+import {
+  OpenExplorerPanelProvider,
+  useExplorerPanel,
+} from 'sentry/views/seerExplorer/useExplorerPanel';
 
 const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
@@ -58,7 +61,11 @@ function App() {
   const preloadData = shouldPreloadData(config);
 
   // Seer explorer panel hook and hotkeys
-  const {isOpen: isExplorerPanelOpen, toggleExplorerPanel} = useExplorerPanel();
+  const {
+    isOpen: isExplorerPanelOpen,
+    openExplorerPanel,
+    toggleExplorerPanel,
+  } = useExplorerPanel();
 
   useHotkeys(
     isModalOpen
@@ -248,26 +255,28 @@ function App() {
 
   return (
     <Profiler id="App" onRender={onRenderCallback}>
-      <UserTimezoneProvider>
-        <LastKnownRouteContextProvider>
-          <RouteAnalyticsContextProvider>
-            {renderOrganizationContextProvider(
-              <AsyncSDKIntegrationContextProvider>
-                <GlobalFeedbackForm>
-                  <MainContainer tabIndex={-1} ref={mainContainerRef}>
-                    <DemoToursProvider>
-                      <GlobalModal onClose={handleModalClose} />
-                      <ExplorerPanel isVisible={isExplorerPanelOpen} />
-                      <Indicators className="indicators-container" />
-                      <ErrorBoundary>{renderBody()}</ErrorBoundary>
-                    </DemoToursProvider>
-                  </MainContainer>
-                </GlobalFeedbackForm>
-              </AsyncSDKIntegrationContextProvider>
-            )}
-          </RouteAnalyticsContextProvider>
-        </LastKnownRouteContextProvider>
-      </UserTimezoneProvider>
+      <OpenExplorerPanelProvider value={openExplorerPanel}>
+        <UserTimezoneProvider>
+          <LastKnownRouteContextProvider>
+            <RouteAnalyticsContextProvider>
+              {renderOrganizationContextProvider(
+                <AsyncSDKIntegrationContextProvider>
+                  <GlobalFeedbackForm>
+                    <MainContainer tabIndex={-1} ref={mainContainerRef}>
+                      <DemoToursProvider>
+                        <GlobalModal onClose={handleModalClose} />
+                        <ExplorerPanel isVisible={isExplorerPanelOpen} />
+                        <Indicators className="indicators-container" />
+                        <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                      </DemoToursProvider>
+                    </MainContainer>
+                  </GlobalFeedbackForm>
+                </AsyncSDKIntegrationContextProvider>
+              )}
+            </RouteAnalyticsContextProvider>
+          </LastKnownRouteContextProvider>
+        </UserTimezoneProvider>
+      </OpenExplorerPanelProvider>
     </Profiler>
   );
 }
