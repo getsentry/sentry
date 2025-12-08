@@ -2,7 +2,7 @@ import pickBy from 'lodash/pickBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {ApiResult, Client} from 'sentry/api';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
@@ -19,7 +19,10 @@ import {
   type SearchBarDataProviderProps,
   type WidgetBuilderSearchBarProps,
 } from 'sentry/views/dashboards/datasetConfig/base';
-import {getTimeseriesSortOptions} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import {
+  getTableSortOptions,
+  getTimeseriesSortOptions,
+} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
@@ -140,6 +143,14 @@ function useTraceMetricsSearchBarDataProvider(
   };
 }
 
+function prettifySortOption(option: SelectValue<string>) {
+  const parsedFunction = parseFunction(option.value);
+  if (parsedFunction) {
+    return `${parsedFunction.name}(${parsedFunction.arguments[1] ?? '…'})`;
+  }
+  return option.label;
+}
+
 export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> = {
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
@@ -151,6 +162,11 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
   // TODO: For some reason the aggregate isn't included in the sort options, add it.
   getTimeseriesSortOptions: (organization, widgetQuery, tags) =>
     getTimeseriesSortOptions(organization, widgetQuery, tags, getPrimaryFieldOptions),
+  getTableSortOptions: (organization, widgetQuery) =>
+    getTableSortOptions(organization, widgetQuery).map(option => ({
+      label: prettifySortOption(option),
+      value: option.value,
+    })),
   getGroupByFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [DisplayType.AREA, DisplayType.BAR, DisplayType.LINE],
