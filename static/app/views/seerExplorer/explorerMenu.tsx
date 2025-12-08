@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Activity, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -266,35 +266,37 @@ export function useExplorerMenu({
     }
   }, [isVisible, menuMode, menuAnchorRef, inputAnchorRef, prWidgetAnchorRef]);
 
-  const menu = isVisible ? (
-    <MenuPanel panelSize={panelSize} style={menuPosition} data-seer-menu-panel="">
-      {menuItems.map((item: MenuItemProps, index: number) => (
-        <MenuItem
-          key={item.key}
-          ref={el => {
-            menuItemRefs.current[index] = el;
-          }}
-          isSelected={index === selectedIndex}
-          onClick={() => onSelect(item)}
-        >
-          <ItemName>{item.title}</ItemName>
-          <ItemDescription>{item.description}</ItemDescription>
-        </MenuItem>
-      ))}
-      {menuMode === 'session-history' && menuItems.length === 0 && (
-        <MenuItem key="empty-state" isSelected={false}>
-          <ItemName>
-            {isSessionsPending
-              ? 'Loading sessions...'
-              : isSessionsError
-                ? 'Error loading sessions.'
-                : 'No session history found.'}
-          </ItemName>
-        </MenuItem>
-      )}
-      {menuMode === 'pr-widget' && prWidgetFooter}
-    </MenuPanel>
-  ) : null;
+  const menu = (
+    <Activity mode={isVisible ? 'visible' : 'hidden'}>
+      <MenuPanel panelSize={panelSize} style={menuPosition} data-seer-menu-panel="">
+        {menuItems.map((item: MenuItemProps, index: number) => (
+          <MenuItem
+            key={item.key}
+            ref={el => {
+              menuItemRefs.current[index] = el;
+            }}
+            isSelected={index === selectedIndex}
+            onClick={() => onSelect(item)}
+          >
+            <ItemName>{item.title}</ItemName>
+            <ItemDescription>{item.description}</ItemDescription>
+          </MenuItem>
+        ))}
+        {menuMode === 'session-history' && menuItems.length === 0 && (
+          <MenuItem key="empty-state" isSelected={false}>
+            <ItemName>
+              {isSessionsPending
+                ? 'Loading sessions...'
+                : isSessionsError
+                  ? 'Error loading sessions.'
+                  : 'No session history found.'}
+            </ItemName>
+          </MenuItem>
+        )}
+        {menuMode === 'pr-widget' && prWidgetFooter}
+      </MenuPanel>
+    </Activity>
+  );
 
   // Handler for opening session history from button
   const openSessionHistory = useCallback(() => {

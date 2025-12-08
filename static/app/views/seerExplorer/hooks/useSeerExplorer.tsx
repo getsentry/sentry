@@ -428,7 +428,7 @@ export const useSeerExplorer = () => {
         currentState.pr_creation_status === 'error' &&
         currentState.pr_creation_error
       ) {
-        addErrorMessage(currentState.pr_creation_error);
+        addErrorMessage(currentState.pr_creation_error ?? 'Failed to create PR');
       }
     }
 
