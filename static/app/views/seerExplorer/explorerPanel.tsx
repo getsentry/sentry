@@ -63,7 +63,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     sessionRunId: sessionData?.run_id,
     sessionBlocks: sessionData?.blocks,
   });
-  
+
   // Extract repo_pr_states from session
   const repoPRStates = useMemo(
     () => sessionData?.repo_pr_states ?? {},
