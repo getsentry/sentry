@@ -93,13 +93,6 @@ class BulkDeleteQuery:
     def iterator(
         self, chunk_size: int = 100, batch_size: int = 10000
     ) -> Generator[tuple[int, ...]]:
-        """
-        Iterate through matching record IDs using keyset pagination.
-
-        Uses RangeQuerySetWrapper with compound order_by (order_field, id) to handle
-        non-unique order fields correctly. This ensures all rows are returned even
-        when multiple rows share the same order_field value (e.g., same last_seen).
-        """
         assert self.days is not None
         assert self.dtfield is not None
 
@@ -111,7 +104,6 @@ class BulkDeleteQuery:
         if self.organization_id:
             queryset = queryset.filter(organization_id=self.organization_id)  # type: ignore[misc]
 
-        # Determine order field and direction (strip leading '-' for descending)
         order_field = "id"
         descending = False
         if self.order_by:
@@ -121,21 +113,14 @@ class BulkDeleteQuery:
             else:
                 order_field = self.order_by
 
-        # Use negative step for descending order
         step = -batch_size if descending else batch_size
-
-        # Use keyset pagination for non-id order fields to handle duplicates correctly.
-        # keyset=True uses compound cursor (order_field, id) with strict > comparison.
-        use_keyset = order_field != "id"
+        use_keyset = order_field not in ("id", "pk")
         order_by_fields = [order_field, "id"] if use_keyset else ["id"]
 
-        # result_value_getter must match the iteration strategy:
-        # - keyset=False: return single value for single-field iteration
-        # - keyset=True: return dict for compound keyset iteration
-        def result_value_getter(item: tuple[Any, ...]) -> Any:
+        def result_value_getter(item: tuple[Any, ...]) -> dict[str, Any]:
             if use_keyset:
                 return {"id": item[0], order_field: item[1]}
-            return item[0]
+            return {"id": item[0]}
 
         values_qs: QuerySet[Any, tuple[Any, ...]] = queryset.values_list("id", order_field)
         wrapper = RangeQuerySetWrapper(
