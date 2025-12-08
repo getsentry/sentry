@@ -210,9 +210,3 @@ export function updateVisualizeYAxis(
 export function isEmptyTraceMetric(traceMetric: TraceMetric): boolean {
   return traceMetric.name === '';
 }
-
-export function getNonEmptyMetricQueriesCount(
-  metricQueries: Array<{metric: TraceMetric}>
-): number {
-  return metricQueries.filter(mq => !isEmptyTraceMetric(mq.metric)).length;
-}
