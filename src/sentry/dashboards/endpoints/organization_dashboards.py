@@ -113,6 +113,7 @@ def sync_prebuilt_dashboards(organization: Organization) -> None:
         saved_prebuilt_dashboard_map = {d.prebuilt_id: d for d in saved_prebuilt_dashboards}
 
         # Create prebuilt dashboards if they don't exist, or update titles if changed
+        dashboards_to_update: list[Dashboard] = []
         for prebuilt_dashboard in PREBUILT_DASHBOARDS:
             prebuilt_id: PrebuiltDashboardId = prebuilt_dashboard["prebuilt_id"]
 
@@ -127,7 +128,10 @@ def sync_prebuilt_dashboards(organization: Organization) -> None:
             elif saved_prebuilt_dashboard_map[prebuilt_id].title != prebuilt_dashboard["title"]:
                 # Update title if changed
                 saved_prebuilt_dashboard_map[prebuilt_id].title = prebuilt_dashboard["title"]
-                saved_prebuilt_dashboard_map[prebuilt_id].save(update_fields=["title"])
+                dashboards_to_update.append(saved_prebuilt_dashboard_map[prebuilt_id])
+
+        if dashboards_to_update:
+            Dashboard.objects.bulk_update(dashboards_to_update, ["title"])
 
         # Delete old prebuilt dashboards if they should no longer exist
         prebuilt_ids = [d["prebuilt_id"] for d in PREBUILT_DASHBOARDS]
