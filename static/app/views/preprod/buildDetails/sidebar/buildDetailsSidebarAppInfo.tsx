@@ -68,15 +68,17 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             </Flex>
           </Tooltip>
         )}
-        {props.appInfo.date_added && (
-          <Tooltip title={t('App upload time')}>
+        {(props.appInfo.date_built || props.appInfo.date_added) && (
+          <Tooltip
+            title={props.appInfo.date_built ? t('App build time') : t('App upload time')}
+          >
             <Flex gap="2xs" align="center">
               <InfoIcon>
                 <IconClock />
               </InfoIcon>
               <Text>
                 {getFormattedDate(
-                  getUtcToSystem(props.appInfo.date_added),
+                  getUtcToSystem(props.appInfo.date_built || props.appInfo.date_added),
                   datetimeFormat,
                   {local: true}
                 )}
