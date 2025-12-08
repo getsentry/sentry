@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {IconClock, IconWarning} from 'sentry/icons';
+import {IconClock, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -46,6 +47,7 @@ function PanelHeader({
     addOnInfo,
     usageExceeded,
     activeProductTrial,
+    productLink,
   } = useProductBillingMetadata(subscription, selectedProduct);
 
   if (!billedCategory || (isAddOn && !addOnInfo) || panelIsOnlyCta) {
@@ -83,13 +85,24 @@ function PanelHeader({
   return (
     <Flex
       gap="md"
+      justify="between"
       align="center"
       borderBottom="primary"
       padding="xl"
       height={USAGE_OVERVIEW_PANEL_HEADER_HEIGHT}
     >
-      {!isInline && <Heading as="h3">{displayName}</Heading>}
-      {status}
+      <Flex gap="md" align="center" height={USAGE_OVERVIEW_PANEL_HEADER_HEIGHT}>
+        {!isInline && <Heading as="h3">{displayName}</Heading>}
+        {status}
+      </Flex>
+      {productLink && (
+        <LinkButton
+          to={productLink}
+          icon={<IconSettings />}
+          aria-label={t('Configure %s', displayName)}
+          title={tct('Configure [productName]', {productName: displayName})}
+        />
+      )}
     </Flex>
   );
 }

@@ -5,7 +5,7 @@ import {Text} from '@sentry/scraps/text';
 
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import type {DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -44,6 +44,7 @@ interface UsageBreakdownInfoProps extends BaseProps {
   platformReservedField: React.ReactNode;
   productCanUsePayg: boolean;
   recurringReservedSpend: number | null;
+  formattedOtherSpend?: React.ReactNode;
 }
 
 interface DataCategoryUsageBreakdownInfoProps extends BaseProps {
@@ -90,6 +91,7 @@ function UsageBreakdownInfo({
   productCanUsePayg,
   activeProductTrial,
   formattedSoftCapType,
+  formattedOtherSpend,
 }: UsageBreakdownInfoProps) {
   const canUsePayg = productCanUsePayg && supportsPayg(subscription);
   const shouldShowIncludedVolume =
@@ -102,7 +104,10 @@ function UsageBreakdownInfo({
     recurringReservedSpend > 0 &&
     subscription.canSelfServe;
   const shouldShowAdditionalSpend =
-    shouldShowReservedSpend || canUsePayg || defined(formattedSoftCapType);
+    shouldShowReservedSpend ||
+    canUsePayg ||
+    defined(formattedSoftCapType) ||
+    formattedOtherSpend;
 
   if (!shouldShowIncludedVolume && !shouldShowAdditionalSpend) {
     return null;
@@ -177,6 +182,7 @@ function UsageBreakdownInfo({
               )}
             />
           )}
+          {formattedOtherSpend}
         </Flex>
       )}
     </Grid>
@@ -220,8 +226,7 @@ function DataCategoryUsageBreakdownInfo({
         );
 
   const gifted = metricHistory.free ?? 0;
-  const formattedGifted =
-    isAddOnChildCategory || !gifted ? null : formatReservedWithUnits(gifted, category);
+  const formattedGifted = gifted ? formatReservedWithUnits(gifted, category) : null;
 
   const paygSpend = metricHistory.onDemandSpendUsed ?? 0;
   const paygCategoryBudget = metricHistory.onDemandBudget ?? 0;
@@ -230,6 +235,20 @@ function DataCategoryUsageBreakdownInfo({
     ? null
     : (plan.planCategories[category]?.find(bucket => bucket.events === reserved)?.price ??
       0);
+
+  // TODO(seer): serialize pricing info
+  const formattedOtherSpend =
+    category === DataCategory.SEER_USER ? (
+      <UsageBreakdownField
+        field={t('Active contributors spend')}
+        value={displayPriceWithCents({
+          cents: Math.max(0, metricHistory.usage - metricHistory.prepaid) * 40_00,
+        })}
+        help={t(
+          'An active contributor is anyone who opens 2 or more PRs in a connected GitHub repository. Count resets each month.'
+        )}
+      />
+    ) : undefined;
 
   return (
     <UsageBreakdownInfo
@@ -245,6 +264,7 @@ function DataCategoryUsageBreakdownInfo({
       productCanUsePayg={productCanUsePayg}
       activeProductTrial={activeProductTrial}
       formattedSoftCapType={getSoftCapType(metricHistory)}
+      formattedOtherSpend={formattedOtherSpend}
     />
   );
 }

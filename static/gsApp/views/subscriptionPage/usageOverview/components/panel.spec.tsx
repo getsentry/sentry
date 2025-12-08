@@ -332,4 +332,78 @@ describe('ProductBreakdownPanel', () => {
     expect(screen.queryByText('Pay-as-you-go')).not.toBeInTheDocument();
     expect(screen.queryByText('Reserved spend')).not.toBeInTheDocument();
   });
+
+  it('renders for Seer add-on', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=${DataCategory.SEER_USER}`,
+      method: 'GET',
+      body: [
+        {
+          billingMetric: DataCategory.SEER_USER,
+          created: '2021-01-01',
+          displayName: 'johndoe',
+          id: 1,
+          isTrialSeat: false,
+          projectId: 1,
+          seatIdentifier: '1234567890',
+          status: 'ASSIGNED',
+        },
+
+        {
+          billingMetric: DataCategory.SEER_USER,
+          created: '2021-01-01',
+          displayName: 'janedoe',
+          id: 2,
+          isTrialSeat: false,
+          projectId: 1,
+          seatIdentifier: '1234567890',
+          status: 'ASSIGNED',
+        },
+
+        {
+          billingMetric: DataCategory.SEER_USER,
+          created: '2021-01-01',
+          displayName: 'alicebob',
+          id: 3,
+          isTrialSeat: false,
+          projectId: 1,
+          seatIdentifier: '1234567890',
+          status: 'ASSIGNED',
+        },
+      ],
+    });
+    subscription.categories.seerUsers = {
+      ...subscription.categories.seerUsers!,
+      usage: 3,
+      free: 1,
+      prepaid: 1,
+    };
+    subscription.addOns!.seer = {
+      ...subscription.addOns!.seer!,
+      enabled: true,
+    };
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={AddOnCategory.SEER}
+      />
+    );
+    await screen.findByRole('heading', {name: 'Seer'});
+    expect(screen.getByText('Included volume')).toBeInTheDocument();
+    expect(screen.queryByText('Business plan')).not.toBeInTheDocument();
+    expect(screen.queryByText('Additional reserved')).not.toBeInTheDocument();
+    expect(screen.getByText('Gifted')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getByText('Additional spend')).toBeInTheDocument();
+    expect(screen.queryByText('Pay-as-you-go')).not.toBeInTheDocument();
+    expect(screen.queryByText('Reserved spend')).not.toBeInTheDocument();
+    expect(screen.getByText('Active contributors spend')).toBeInTheDocument();
+    expect(screen.getByText('$80.00')).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Active Contributors (3)'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Configure Seer'})).toBeInTheDocument();
+  });
 });

@@ -292,7 +292,7 @@ export function getChunkCategoryFromDuration(category: DataCategory) {
   return '';
 }
 
-export function formatWithHours(
+function formatWithHours(
   quantityInMilliseconds: number,
   formattedHours: string,
   options: Pick<CategoryNameProps, 'title'>

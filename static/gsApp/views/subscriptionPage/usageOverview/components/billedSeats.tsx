@@ -19,7 +19,6 @@ import {
   type BillingSeatAssignment,
   type Subscription,
 } from 'getsentry/types';
-import {displayPrice} from 'getsentry/views/amCheckout/utils';
 
 function BilledSeats({
   selectedProduct,
@@ -30,7 +29,7 @@ function BilledSeats({
   selectedProduct: DataCategory | AddOnCategory;
   subscription: Subscription;
 }) {
-  const {billedCategory, activeProductTrial, isEnabled} = useProductBillingMetadata(
+  const {billedCategory, isEnabled} = useProductBillingMetadata(
     subscription,
     selectedProduct
   );
@@ -60,10 +59,7 @@ function BilledSeats({
           style={{borderBottom: billedSeats?.length === 0 ? 'none' : undefined}}
         >
           <SimpleTable.HeaderCell style={{textTransform: 'uppercase'}}>
-            {tct('Active Contributors[stats]', {
-              // TODO(seer): serialize pricing info
-              stats: ` (${billedSeats?.length ?? 0})${activeProductTrial ? t(' | Unlimited') : subscription.canSelfServe ? ` | ${displayPrice({cents: (billedSeats?.length ?? 0) * 40_00})}` : ''}`,
-            })}
+            {tct('Active Contributors ([count])', {count: billedSeats?.length ?? 0})}
           </SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell style={{textTransform: 'uppercase'}}>
             {t('Date Added')}
@@ -103,4 +99,5 @@ const Table = styled(SimpleTable)`
   grid-template-columns: 1fr 1fr;
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   border: none;
+  border-top: 1px solid ${p => p.theme.border};
 `;
