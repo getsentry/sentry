@@ -68,7 +68,7 @@ function useMetricTimeseriesImpl({
       orderby: sortBys.map(formatSort),
       ...queryExtras,
     },
-    'api.explore.metrics-stats',
+    'api.explore.tracemetrics-timeseries',
     DiscoverDatasets.TRACEMETRICS
   );
 

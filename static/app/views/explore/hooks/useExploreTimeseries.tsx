@@ -115,7 +115,7 @@ function useExploreTimeseriesImpl({
 
   const timeseriesResult = useSortedTimeSeries(
     options,
-    'api.explore.spans-stats',
+    `api.explore.${dataset}-timeseries`,
     dataset
   );
 
