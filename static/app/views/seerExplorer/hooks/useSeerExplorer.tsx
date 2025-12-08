@@ -143,10 +143,13 @@ export const useSeerExplorer = () => {
   );
 
   const sendMessage = useCallback(
-    async (query: string, insertIndex?: number) => {
+    async (query: string, insertIndex?: number, explicitRunId?: number | null) => {
       if (!orgSlug) {
         return;
       }
+
+      // explicitRunId: undefined = use current runId, null = force new run, number = use that run
+      const effectiveRunId = explicitRunId === undefined ? runId : explicitRunId;
 
       // Capture a coarse ASCII screenshot of the user's screen for extra context
       const screenshot = captureAsciiSnapshot?.();
@@ -196,7 +199,7 @@ export const useSeerExplorer = () => {
 
       try {
         const response = (await api.requestPromise(
-          `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
+          `/organizations/${orgSlug}/seer/explorer-chat/${effectiveRunId ? `${effectiveRunId}/` : ''}`,
           {
             method: 'POST',
             data: {
@@ -208,7 +211,7 @@ export const useSeerExplorer = () => {
         )) as SeerExplorerChatResponse;
 
         // Set run ID if this is a new session
-        if (!runId) {
+        if (!effectiveRunId) {
           setRunId(response.run_id);
         }
 
@@ -221,7 +224,7 @@ export const useSeerExplorer = () => {
         setOptimistic(null);
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
-          makeSeerExplorerQueryKey(orgSlug, runId || undefined),
+          makeSeerExplorerQueryKey(orgSlug, effectiveRunId || undefined),
           makeErrorSeerExplorerData(e?.responseJSON?.detail ?? 'An error occurred')
         );
       }
@@ -480,6 +483,28 @@ export const useSeerExplorer = () => {
     interruptRequested,
   ]);
 
+  /** Switches to a different run and fetches its latest state. */
+  const switchToRun = useCallback(
+    (newRunId: number) => {
+      // Clear any optimistic state from previous run
+      setOptimistic(null);
+      setDeletedFromIndex(null);
+      setWaitingForResponse(false);
+      setInterruptRequested(false);
+
+      // Set the new run ID
+      setRunId(newRunId);
+
+      // Invalidate the query to force a fresh fetch
+      if (orgSlug) {
+        queryClient.invalidateQueries({
+          queryKey: makeSeerExplorerQueryKey(orgSlug, newRunId),
+        });
+      }
+    },
+    [orgSlug, queryClient, setRunId]
+  );
+
   return {
     sessionData: filteredSessionData,
     isPolling: isPolling(filteredSessionData, waitingForResponse),
@@ -487,6 +512,8 @@ export const useSeerExplorer = () => {
     sendMessage,
     runId,
     setRunId,
+    /** Switches to a different run and fetches its latest state. */
+    switchToRun,
     /** Resets the run id, blocks, and other state. The new session isn't actually created until the user sends a message. */
     startNewSession,
     deleteFromIndex,
