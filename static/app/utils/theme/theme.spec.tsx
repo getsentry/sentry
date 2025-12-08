@@ -21,8 +21,8 @@ describe('theme', () => {
       const colors = theme.chart.getColorPalette(2);
 
       expectTypeOf(colors).toEqualTypeOf<
-        | readonly ['#7553FF', '#3A1873', '#F0369A']
-        | readonly ['#7553FF', '#5D3EB2', '#F0369A']
+        | readonly ['#7B52FF', '#401477', '#FF049B']
+        | readonly ['#7B52FF', '#613CB9', '#FF049B']
       >();
     });
   });
