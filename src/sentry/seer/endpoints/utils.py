@@ -13,7 +13,8 @@ def map_org_id_param(func: Callable) -> Callable:
     """
 
     def wrapper(*, organization_id: int, **kwargs: Any) -> Any:
-        return func(org_id=organization_id, **kwargs)
+        kwargs["org_id"] = organization_id
+        return func(**kwargs)
 
     return wrapper
 
