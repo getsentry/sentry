@@ -194,6 +194,7 @@ function AITraceView({
           organization,
           replay: null,
           traceId: traceSlug,
+          hideNodeActions: true,
         })}
       </RightPanel>
     </SplitContainer>
