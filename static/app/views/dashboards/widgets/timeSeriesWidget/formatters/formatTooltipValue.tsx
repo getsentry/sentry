@@ -40,7 +40,7 @@ export function formatTooltipValue(
     case 'integer':
     case 'number':
       return value.toLocaleString(undefined, {
-        maximumFractionDigits: 100,
+        maximumFractionDigits: 20,
       });
     case 'percentage':
       return formatPercentage(value, 2);

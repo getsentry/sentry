@@ -56,7 +56,7 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
       return formatAbbreviatedNumber(value);
     case 'number':
       return value.toLocaleString(undefined, {
-        maximumFractionDigits: 100,
+        maximumFractionDigits: 20,
       });
     case 'percentage':
       return formatPercentage(value, 3);
