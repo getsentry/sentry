@@ -1241,6 +1241,160 @@ class TestGetGithubUsernameForUser(TestCase):
         username = _get_github_username_for_user(user, organization.id)
         assert username == "newuser"
 
+    def test_get_github_username_for_user_from_commit_author(self) -> None:
+        """Tests getting GitHub username from CommitAuthor when ExternalActor doesn't exist."""
+        from sentry.models.commitauthor import CommitAuthor
+
+        user = self.create_user(email="committer@example.com")
+        organization = self.create_organization()
+        self.create_member(user=user, organization=organization)
+
+        # Create CommitAuthor with GitHub external_id
+        CommitAuthor.objects.create(
+            organization_id=organization.id,
+            name="Test Committer",
+            email="committer@example.com",
+            external_id="github:githubuser",
+        )
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "githubuser"
+
+    def test_get_github_username_for_user_from_commit_author_github_enterprise(self) -> None:
+        """Tests getting GitHub Enterprise username from CommitAuthor."""
+        from sentry.models.commitauthor import CommitAuthor
+
+        user = self.create_user(email="committer@company.com")
+        organization = self.create_organization()
+        self.create_member(user=user, organization=organization)
+
+        # Create CommitAuthor with GitHub Enterprise external_id
+        CommitAuthor.objects.create(
+            organization_id=organization.id,
+            name="Enterprise User",
+            email="committer@company.com",
+            external_id="github_enterprise:ghuser",
+        )
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "ghuser"
+
+    def test_get_github_username_for_user_external_actor_priority(self) -> None:
+        """Tests that ExternalActor is checked before CommitAuthor."""
+        from sentry.integrations.models.external_actor import ExternalActor
+        from sentry.integrations.types import ExternalProviders
+        from sentry.models.commitauthor import CommitAuthor
+
+        user = self.create_user(email="committer@example.com")
+        organization = self.create_organization()
+        self.create_member(user=user, organization=organization)
+
+        # Create both ExternalActor and CommitAuthor
+        ExternalActor.objects.create(
+            user_id=user.id,
+            organization=organization,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@externaluser",
+            external_id="ext123",
+            integration_id=7,
+        )
+
+        CommitAuthor.objects.create(
+            organization_id=organization.id,
+            name="Commit User",
+            email="committer@example.com",
+            external_id="github:commituser",
+        )
+
+        # Should use ExternalActor (higher priority)
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "externaluser"
+
+    def test_get_github_username_for_user_commit_author_no_external_id(self) -> None:
+        """Tests that None is returned when CommitAuthor exists but has no external_id."""
+        from sentry.models.commitauthor import CommitAuthor
+
+        user = self.create_user(email="committer@example.com")
+        organization = self.create_organization()
+        self.create_member(user=user, organization=organization)
+
+        # Create CommitAuthor without external_id
+        CommitAuthor.objects.create(
+            organization_id=organization.id,
+            name="No External ID",
+            email="committer@example.com",
+            external_id=None,
+        )
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username is None
+
+    def test_get_github_username_for_user_wrong_organization(self) -> None:
+        """Tests that CommitAuthor from different organization is not used."""
+        from sentry.models.commitauthor import CommitAuthor
+
+        user = self.create_user(email="committer@example.com")
+        organization1 = self.create_organization()
+        organization2 = self.create_organization()
+        self.create_member(user=user, organization=organization1)
+
+        # Create CommitAuthor in different organization
+        CommitAuthor.objects.create(
+            organization_id=organization2.id,
+            name="Wrong Org User",
+            email="committer@example.com",
+            external_id="github:wrongorguser",
+        )
+
+        username = _get_github_username_for_user(user, organization1.id)
+        assert username is None
+
+    def test_get_github_username_for_user_unverified_email_not_matched(self) -> None:
+        """Tests that unverified emails don't match CommitAuthor (security requirement)."""
+        from sentry.models.commitauthor import CommitAuthor
+
+        user = self.create_user(email="verified@example.com")
+        organization = self.create_organization()
+        self.create_member(user=user, organization=organization)
+
+        # Add an unverified email to the user
+        self.create_useremail(user=user, email="unverified@example.com", is_verified=False)
+
+        # Create CommitAuthor that matches the UNVERIFIED email
+        CommitAuthor.objects.create(
+            organization_id=organization.id,
+            name="unverified",
+            email="unverified@example.com",
+            external_id="github:unverified",
+        )
+
+        # Should NOT match the unverified email (security fix)
+        username = _get_github_username_for_user(user, organization.id)
+        assert username is None
+
+    def test_get_github_username_for_user_verified_secondary_email_matched(self) -> None:
+        """Tests that verified secondary emails DO match CommitAuthor."""
+        from sentry.models.commitauthor import CommitAuthor
+
+        user = self.create_user(email="primary@example.com")
+        organization = self.create_organization()
+        self.create_member(user=user, organization=organization)
+
+        # Add a verified secondary email
+        self.create_useremail(user=user, email="secondary@example.com", is_verified=True)
+
+        # Create CommitAuthor that matches the verified secondary email
+        CommitAuthor.objects.create(
+            organization_id=organization.id,
+            name="Developer",
+            email="secondary@example.com",
+            external_id="github:developeruser",
+        )
+
+        # Should match the verified secondary email
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "developeruser"
+
 
 class TestRespondWithError(TestCase):
     def test_respond_with_error(self) -> None:
