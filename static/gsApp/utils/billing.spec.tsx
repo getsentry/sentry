@@ -424,19 +424,17 @@ describe('formatUsageWithUnits', () => {
   it('returns correct string for continuous profiling', () => {
     [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI].forEach(
       (cat: DataCategory) => {
-        expect(formatUsageWithUnits(0, cat)).toBe('0 hours');
-        expect(formatUsageWithUnits(1, cat)).toBe('0 hours');
-        expect(formatUsageWithUnits(360000, cat)).toBe('0.1 hours');
-        expect(formatUsageWithUnits(MILLISECONDS_IN_HOUR, cat)).toBe('1 hour');
-        expect(formatUsageWithUnits(5.23 * MILLISECONDS_IN_HOUR, cat)).toBe('5.2 hours');
-        expect(formatUsageWithUnits(1000 * MILLISECONDS_IN_HOUR, cat)).toBe(
-          '1,000 hours'
-        );
+        expect(formatUsageWithUnits(0, cat)).toBe('0');
+        expect(formatUsageWithUnits(1, cat)).toBe('0');
+        expect(formatUsageWithUnits(360000, cat)).toBe('0.1');
+        expect(formatUsageWithUnits(MILLISECONDS_IN_HOUR, cat)).toBe('1');
+        expect(formatUsageWithUnits(5.23 * MILLISECONDS_IN_HOUR, cat)).toBe('5.2');
+        expect(formatUsageWithUnits(1000 * MILLISECONDS_IN_HOUR, cat)).toBe('1,000');
         expect(
           formatUsageWithUnits(1000 * MILLISECONDS_IN_HOUR, cat, {
             isAbbreviated: true,
           })
-        ).toBe('1K hours');
+        ).toBe('1K');
       }
     );
   });
