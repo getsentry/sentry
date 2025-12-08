@@ -416,11 +416,13 @@ export function buildToolLinkUrl(
       if (sort) {
         queryParams.sort = sort;
       }
+
+      // page filter expects no timezone (treated as UTC) or +HH:MM offset.
       if (start) {
-        queryParams.start = start;
+        queryParams.start = start.replace(/Z$/, '');
       }
       if (end) {
-        queryParams.end = end;
+        queryParams.end = end.replace(/Z$/, '');
       }
 
       // If project_slugs is provided, look up the IDs and include them in qparams
