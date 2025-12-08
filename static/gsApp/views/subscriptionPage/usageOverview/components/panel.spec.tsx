@@ -227,8 +227,9 @@ describe('ProductBreakdownPanel', () => {
       />
     );
 
-    await screen.findByRole('heading', {name: 'Continuous Profile Hours'});
-    expect(screen.getByRole('button', {name: 'Activate free trial'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Activate free trial'})
+    ).toBeInTheDocument();
   });
 
   it('renders upgrade CTA', async () => {
@@ -241,8 +242,7 @@ describe('ProductBreakdownPanel', () => {
       />
     );
 
-    await screen.findByRole('heading', {name: 'Continuous Profile Hours'});
-    expect(screen.getByRole('button', {name: 'Upgrade now'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Upgrade now'})).toBeInTheDocument();
   });
 
   it('renders active product trial status', async () => {

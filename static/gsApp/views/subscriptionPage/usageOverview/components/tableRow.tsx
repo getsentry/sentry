@@ -16,6 +16,7 @@ import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory} from 'getsentry/types';
 import {
+  formatCategoryQuantityWithDisplayName,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getPercentage,
@@ -163,7 +164,7 @@ function UsageOverviewTableRow({
     paygSpend = subscription.categories[billedCategory]?.onDemandSpendUsed ?? 0;
   }
 
-  const {reserved} = metricHistory;
+  const {reserved, prepaid, usage} = metricHistory;
   const bucket = getBucket({
     events: reserved ?? 0, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
     buckets: subscription.planDetails.planCategories[billedCategory],
@@ -199,6 +200,9 @@ function UsageOverviewTableRow({
     !isChildProduct &&
     !isUnlimited &&
     (!isAddOn || formattedPrepaid);
+
+  const shouldFormatWithDisplayName =
+    isContinuousProfiling(billedCategory) || billedCategory === DataCategory.SEER_USER;
 
   return (
     <Fragment>
@@ -268,9 +272,19 @@ function UsageOverviewTableRow({
                   {isUnlimited ? (
                     <Tag type="highlight">{t('Unlimited')}</Tag>
                   ) : isPaygOnly || isChildProduct || !formattedPrepaid ? (
-                    formattedUsage
+                    shouldFormatWithDisplayName ? (
+                      formatCategoryQuantityWithDisplayName({
+                        dataCategory: billedCategory,
+                        quantity: usage,
+                        formattedQuantity: formattedUsage,
+                        subscription,
+                        options: {capitalize: false},
+                      })
+                    ) : (
+                      formattedUsage
+                    )
                   ) : (
-                    `${formattedUsage} / ${formattedPrepaid}`
+                    `${formattedUsage} / ${shouldFormatWithDisplayName ? formatCategoryQuantityWithDisplayName({dataCategory: billedCategory, quantity: prepaid, formattedQuantity: formattedPrepaid, subscription, options: {capitalize: false}}) : formattedPrepaid}`
                   )}
                   {formattedFree && ` (${formattedFree} gifted)`}
                 </Text>
