@@ -227,6 +227,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def _send_item(self, trace_item: TraceItem) -> None:
         producer = self.get_producer(Topic.SNUBA_ITEMS)
         real_topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
+        producer.poll(0.0)
         try:
             producer.produce(
                 topic=real_topic,
