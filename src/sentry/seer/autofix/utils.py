@@ -365,6 +365,11 @@ def is_seer_scanner_rate_limited(project: Project, organization: Organization) -
     return is_rate_limited
 
 
+def get_seer_seat_based_tier_cache_key(organization_id: int) -> str:
+    """Get the cache key for seat-based Seer tier check."""
+    return f"seer:seat-based-tier:{organization_id}"
+
+
 def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     """
     Check if organization has Seer seat-based pricing via billing.
@@ -372,7 +377,7 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     if features.has("organizations:triage-signals-v0-org", organization):
         return True
 
-    cache_key = f"seer:seat-based-tier:{organization.id}"
+    cache_key = get_seer_seat_based_tier_cache_key(organization.id)
     cached_value = cache.get(cache_key)
     if cached_value is not None:
         return cached_value
