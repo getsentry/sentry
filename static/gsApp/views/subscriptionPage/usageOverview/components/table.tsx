@@ -88,6 +88,7 @@ function UsageOverviewTable({
 
             // if any sub-category has non-zero or non-reserved budget reserved volume, don't show the add-on
             // we will render the individual sub-categories alone as part of `sortedCategories`
+            // NOTE: this assumes that the same is true for all sibling sub-categories of the add-on
             if (
               dataCategories.some(
                 category => !checkIsAddOnChildCategory(subscription, category, true)
