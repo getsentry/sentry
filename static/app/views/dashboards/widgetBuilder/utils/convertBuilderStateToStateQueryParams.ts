@@ -18,6 +18,9 @@ export function convertBuilderStateToStateQueryParams(
     yAxis: serializeFields(yAxis ?? []),
     sort: serializeSorts(WidgetType.SPANS)(sort ?? []),
     thresholds: thresholds ? serializeThresholds(thresholds) : undefined,
-    traceMetrics: serializeTraceMetrics(traceMetrics ?? []),
+    traceMetrics:
+      traceMetrics && traceMetrics.length > 0
+        ? serializeTraceMetrics(traceMetrics)
+        : undefined,
   };
 }
