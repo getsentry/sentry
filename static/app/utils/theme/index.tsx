@@ -4,5 +4,5 @@ export type {
   FormSize,
   IconSize,
   StrictCSSObject,
-  Theme,
+  SentryTheme as Theme,
 } from './theme';

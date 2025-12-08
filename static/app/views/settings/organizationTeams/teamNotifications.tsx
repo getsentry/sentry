@@ -242,7 +242,7 @@ const NotDisabledText = styled('div')`
 `;
 const NotDisabledSubText = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.4;
   margin-top: ${space(1)};
 `;

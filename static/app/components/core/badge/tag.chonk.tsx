@@ -1,8 +1,7 @@
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
-
 import type {TagProps} from 'sentry/components/core/badge/tag';
 import {space} from 'sentry/styles/space';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import type {Theme} from 'sentry/utils/theme';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 import {unreachable} from 'sentry/utils/unreachable';
 
 type TagType = 'default' | 'info' | 'success' | 'warning' | 'danger' | 'promotion';
@@ -44,42 +43,39 @@ export const TagPill = chonkStyled('div')<{
   }
 `;
 
-function makeTagPillTheme(
-  type: TagType | undefined,
-  theme: DO_NOT_USE_ChonkTheme
-): React.CSSProperties {
+function makeTagPillTheme(type: TagType | undefined, theme: Theme): React.CSSProperties {
   switch (type) {
     case undefined:
     case 'default':
       return {
-        color: theme.colors.content.muted,
+        color: theme.tokens.content.muted,
         background: theme.colors.gray100,
       };
 
     // Highlight maps to info badge for now, but the highlight variant should be removed
     case 'info':
       return {
-        color: theme.colors.content.accent,
+        color: theme.tokens.content.accent,
         background: theme.colors.blue100,
       };
     case 'promotion':
       return {
-        color: theme.colors.content.promotion,
+        color: theme.tokens.content.promotion,
         background: theme.colors.pink100,
       };
     case 'danger':
       return {
-        color: theme.colors.content.danger,
+        color: theme.tokens.content.danger,
         background: theme.colors.red100,
       };
     case 'warning':
       return {
-        color: theme.colors.content.warning,
+        color: theme.tokens.content.warning,
         background: theme.colors.yellow100,
       };
     case 'success':
       return {
-        color: theme.colors.content.success,
+        color: theme.tokens.content.success,
         background: theme.colors.green100,
       };
     default:

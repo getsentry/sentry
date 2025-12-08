@@ -85,7 +85,7 @@ const TextContainer = styled('div')`
 
 const Header = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
