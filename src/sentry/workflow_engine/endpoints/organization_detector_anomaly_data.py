@@ -82,6 +82,8 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         )
 
         if data is None:
-            return Response({"data": []}, status=200)
+            return Response(
+                {"detail": "Unable to fetch anomaly detection threshold data"}, status=400
+            )
 
         return Response({"data": data}, status=200)

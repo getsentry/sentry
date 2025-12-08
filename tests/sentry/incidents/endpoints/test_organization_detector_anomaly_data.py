@@ -80,6 +80,22 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
     @patch(
         "sentry.workflow_engine.endpoints.organization_detector_anomaly_data.get_anomaly_threshold_data_from_seer"
     )
+    def test_seer_error(self, mock_get_data):
+        mock_get_data.return_value = None
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            start="1729178100.0",
+            end="1729179000.0",
+            status_code=400,
+        )
+        assert response.data["detail"] == "Unable to fetch anomaly detection threshold data"
+
+    @with_feature("organizations:anomaly-detection-threshold-data")
+    @patch(
+        "sentry.workflow_engine.endpoints.organization_detector_anomaly_data.get_anomaly_threshold_data_from_seer"
+    )
     def test_successful_fetch(self, mock_get_data):
         mock_data = [
             {
