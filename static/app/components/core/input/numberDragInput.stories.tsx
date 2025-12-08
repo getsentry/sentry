@@ -6,7 +6,7 @@ import {NumberDragInput} from 'sentry/components/core/input/numberDragInput';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('NumberDragInput', (story, APIReference) => {
-  APIReference(documentation.props.NumberDragInput);
+  APIReference(documentation.props?.NumberDragInput);
 
   story('Default', () => {
     const [horizontalValue, setHorizontalValue] = useState(10);

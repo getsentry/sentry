@@ -6,7 +6,7 @@ import * as Storybook from 'sentry/stories';
 import {NumberInput} from './numberInput';
 
 export default Storybook.story('NumberInput', (story, APIReference) => {
-  APIReference(documentation.props.NumberInput);
+  APIReference(documentation.props?.NumberInput);
 
   story('Default', () => {
     return (

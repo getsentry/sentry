@@ -9,7 +9,7 @@ import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 export default Storybook.story('Slider', (story, APIReference) => {
-  APIReference(documentation.props.Slider);
+  APIReference(documentation.props?.Slider);
   story('Default', () => {
     return (
       <Fragment>
