@@ -93,6 +93,7 @@ interface ClusterSummary {
   group_ids: number[];
   issue_titles: string[];
   project_ids: number[];
+  summary: string | null;
   tags: string[];
   title: string;
   code_area_tags?: string[];
@@ -109,9 +110,9 @@ function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
   lines.push(`## ${cluster.title}`);
   lines.push('');
 
-  if (cluster.description) {
+  if (cluster.summary) {
     lines.push('### Summary');
-    lines.push(cluster.description);
+    lines.push(cluster.summary);
     lines.push('');
   }
 
@@ -451,11 +452,11 @@ function ClusterCard({
           onTagClick={onTagClick}
           selectedTags={selectedTags}
         />
-        {cluster.description && (
+        {cluster.summary && (
           <Fragment>
             {showDescription ? (
               <Fragment>
-                <DescriptionText>{cluster.description}</DescriptionText>
+                <DescriptionText>{cluster.summary}</DescriptionText>
                 <ReadMoreButton onClick={() => setShowDescription(false)}>
                   {t('Collapse summary')}
                 </ReadMoreButton>
