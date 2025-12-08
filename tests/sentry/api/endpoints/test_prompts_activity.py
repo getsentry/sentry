@@ -104,7 +104,7 @@ class PromptsActivityTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data.get("data", None) is None
 
-        self.client.put(
+        resp = self.client.put(
             self.path,
             {
                 "organization_id": self.org.id,
@@ -113,9 +113,33 @@ class PromptsActivityTest(APITestCase):
                 "status": "dismissed",
             },
         )
+        assert resp.status_code == 201
 
         resp = self.client.get(self.path, data)
         assert resp.status_code == 200
+        assert "data" in resp.data
+        assert "dismissed_ts" in resp.data["data"]
+
+    def test_dismiss_str_id(self) -> None:
+        resp = self.client.put(
+            self.path,
+            {
+                "organization_id": str(self.org.id),
+                "project_id": str(self.project.id),
+                "feature": "releases",
+                "status": "dismissed",
+            },
+        )
+        assert resp.status_code == 201, resp.content
+
+        data = {
+            "organization_id": self.org.id,
+            "project_id": self.project.id,
+            "feature": "releases",
+        }
+        resp = self.client.get(self.path, data)
+        assert resp.status_code == 200
+        assert resp.data
         assert "data" in resp.data
         assert "dismissed_ts" in resp.data["data"]
 

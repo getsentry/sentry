@@ -97,9 +97,8 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
         else:
             fields["project_id"] = 0
 
-        if (
-            "organization_id" in required_fields
-            and fields["organization_id"] == request.organization.id
+        if "organization_id" in required_fields and str(fields["organization_id"]) == str(
+            request.organization.id
         ):
             if not Organization.objects.filter(id=fields["organization_id"]).exists():
                 return Response({"detail": "Organization no longer exists"}, status=400)
