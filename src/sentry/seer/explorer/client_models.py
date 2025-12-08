@@ -93,7 +93,9 @@ class MemoryBlock(BaseModel):
     loading: bool = False
     artifacts: list[Artifact] = []
     file_patches: list[ExplorerFilePatch] = []
-    pr_commit_shas: dict[str, str] | None = None
+    pr_commit_shas: dict[str, str] | None = (
+        None  # repository name -> commit SHA. Used to track which commit was associated with each repo's PR at the time this block was created.
+    )
 
     class Config:
         extra = "allow"
