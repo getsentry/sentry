@@ -106,7 +106,11 @@ export function openSeerExplorer(options: OpenSeerExplorerOptions = {}): void {
 
 interface UseExternalOpenOptions {
   isVisible: boolean;
-  sendMessage: (query: string, insertIndex?: number, forceNewRun?: boolean) => void;
+  sendMessage: (
+    query: string,
+    insertIndex?: number,
+    explicitRunId?: number | null
+  ) => void;
   sessionBlocks: unknown[] | undefined;
   sessionRunId: number | undefined;
   startNewSession: () => void;
@@ -142,14 +146,12 @@ export function useExternalOpen({
         startNewSession();
         if (initialMessage) {
           setIsWaitingForSessionData(true);
-          sendMessage(initialMessage, undefined, true);
+          sendMessage(initialMessage, undefined, null);
         }
       } else if (optionsRunId !== undefined) {
         switchToRun(optionsRunId);
         if (initialMessage) {
-          requestAnimationFrame(() => {
-            sendMessage(initialMessage, undefined);
-          });
+          sendMessage(initialMessage, undefined, optionsRunId);
         }
       } else if (initialMessage) {
         sendMessage(initialMessage, undefined);

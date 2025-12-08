@@ -143,13 +143,13 @@ export const useSeerExplorer = () => {
   );
 
   const sendMessage = useCallback(
-    async (query: string, insertIndex?: number, forceNewRun?: boolean) => {
+    async (query: string, insertIndex?: number, explicitRunId?: number | null) => {
       if (!orgSlug) {
         return;
       }
 
-      // If forceNewRun is true, ignore the current runId and start fresh
-      const effectiveRunId = forceNewRun ? null : runId;
+      // explicitRunId: undefined = use current runId, null = force new run, number = use that run
+      const effectiveRunId = explicitRunId === undefined ? runId : explicitRunId;
 
       // Capture a coarse ASCII screenshot of the user's screen for extra context
       const screenshot = captureAsciiSnapshot?.();
