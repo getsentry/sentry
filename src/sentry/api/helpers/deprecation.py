@@ -132,6 +132,8 @@ def deprecated(
     :param key: The key prefix for an option use for the brownout schedule and duration
                 If not set 'api.deprecation.brownout' will be used, which currently
                 is using schedule of a 1 minute blackout at noon UTC.
+    :param url_names: A list of URL names that are deprecated if an endpoint has multiple URLs
+                      and you need to deprecate one of the URLs.
     """
 
     def decorator(func: EndpointT[SelfT, P]) -> EndpointT[SelfT, P]:
