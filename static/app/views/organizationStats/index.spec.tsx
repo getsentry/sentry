@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -28,11 +27,7 @@ describe('OrganizationStats', () => {
     },
   };
   const projects = ['1', '2', '3'].map(id => ProjectFixture({id, slug: `proj-${id}`}));
-  const {organization} = initializeOrg({
-    organization: {features: ['team-insights']},
-    projects,
-    router: undefined,
-  });
+  const organization = OrganizationFixture({features: ['team-insights']});
   const endpoint = `/organizations/${organization.slug}/stats_v2/`;
 
   let mockRequest: jest.Mock;
@@ -80,7 +75,15 @@ describe('OrganizationStats', () => {
    * Base + Error Handling
    */
   it('renders the base view', async () => {
-    render(<OrganizationStats />, {organization});
+    render(<OrganizationStats />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/stats/',
+          query: {project: [ALL_ACCESS_PROJECTS.toString()]},
+        },
+      },
+    });
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
 
@@ -109,10 +112,6 @@ describe('OrganizationStats', () => {
 
     expect(screen.getAllByText('Invalid')[0]).toBeInTheDocument();
     expect(screen.getAllByText('15')[0]).toBeInTheDocument();
-
-    expect(
-      screen.queryByText('*This is an estimation, and may not be 100% accurate.')
-    ).not.toBeInTheDocument();
 
     // Correct API Calls
     const mockExpectations = {
@@ -246,11 +245,16 @@ describe('OrganizationStats', () => {
    * Project Selection
    */
   it('renders default projects', async () => {
-    const newOrg = initializeOrg();
-    newOrg.organization.features = ['team-insights'];
-    OrganizationStore.onUpdate(newOrg.organization, {replace: true});
+    const newOrg = OrganizationFixture({features: ['team-insights']});
+    OrganizationStore.onUpdate(newOrg, {replace: true});
     render(<OrganizationStats />, {
-      organization: newOrg.organization,
+      organization: newOrg,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/stats/',
+          query: {project: [ALL_ACCESS_PROJECTS.toString()]},
+        },
+      },
     });
 
     expect(await screen.findByText('All Projects')).toBeInTheDocument();
@@ -268,13 +272,12 @@ describe('OrganizationStats', () => {
   });
 
   it('renders with multiple projects selected', async () => {
-    const newOrg = initializeOrg();
-    newOrg.organization.features = ['team-insights'];
+    const newOrg = OrganizationFixture({features: ['team-insights']});
 
     const selectedProjects = [1, 2];
 
     render(<OrganizationStats />, {
-      organization: newOrg.organization,
+      organization: newOrg,
     });
     act(() => PageFiltersStore.updateProjects(selectedProjects, []));
 
@@ -298,12 +301,11 @@ describe('OrganizationStats', () => {
   });
 
   it('renders with a single project selected', async () => {
-    const newOrg = initializeOrg();
-    newOrg.organization.features = ['team-insights'];
+    const newOrg = OrganizationFixture({features: ['team-insights']});
     const selectedProject = [1];
 
     render(<OrganizationStats />, {
-      organization: newOrg.organization,
+      organization: newOrg,
     });
     act(() => PageFiltersStore.updateProjects(selectedProject, []));
 
@@ -328,10 +330,9 @@ describe('OrganizationStats', () => {
   });
 
   it('renders a project when its graph icon is clicked', async () => {
-    const newOrg = initializeOrg();
-    newOrg.organization.features = ['team-insights'];
+    const newOrg = OrganizationFixture({features: ['team-insights']});
     render(<OrganizationStats />, {
-      organization: newOrg.organization,
+      organization: newOrg,
     });
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
@@ -347,11 +348,10 @@ describe('OrganizationStats', () => {
     const selectedProject = [1];
 
     for (const features of [['team-insights'], ['team-insights']]) {
-      const newOrg = initializeOrg();
-      newOrg.organization.features = features;
+      const newOrg = OrganizationFixture({features});
 
       render(<OrganizationStats />, {
-        organization: newOrg.organization,
+        organization: newOrg,
       });
       act(() => PageFiltersStore.updateProjects(selectedProject, []));
 
@@ -364,14 +364,12 @@ describe('OrganizationStats', () => {
    * Feature Flagging - Continuous Profiling
    */
   it('shows only profile duration category with continuous-profiling-stats feature', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: ['team-insights', 'continuous-profiling-stats'],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'continuous-profiling-stats'],
     });
 
     render(<OrganizationStats />, {
-      organization: newOrg.organization,
+      organization: newOrg,
     });
 
     await userEvent.click(await screen.findByText('Category'));
@@ -385,13 +383,11 @@ describe('OrganizationStats', () => {
   });
 
   it('shows both profile hours and profiles categories with continuous-profiling feature', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: ['team-insights', 'continuous-profiling'],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'continuous-profiling'],
     });
 
-    render(<OrganizationStats />, {organization: newOrg.organization});
+    render(<OrganizationStats />, {organization: newOrg});
 
     await userEvent.click(await screen.findByText('Category'));
 
@@ -404,14 +400,12 @@ describe('OrganizationStats', () => {
   });
 
   it('shows both profile hours without continuous-profiling feature', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: ['team-insights'],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights'],
     });
 
     render(<OrganizationStats />, {
-      organization: newOrg.organization,
+      organization: newOrg,
     });
 
     await userEvent.click(await screen.findByText('Category'));
@@ -429,14 +423,12 @@ describe('OrganizationStats', () => {
   });
 
   it('shows only profile duration category when both profiling features are enabled', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: ['team-insights', 'continuous-profiling-stats', 'continuous-profiling'],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'continuous-profiling-stats', 'continuous-profiling'],
     });
 
     render(<OrganizationStats />, {
-      organization: newOrg.organization,
+      organization: newOrg,
     });
 
     await userEvent.click(await screen.findByText('Category'));
@@ -450,14 +442,12 @@ describe('OrganizationStats', () => {
   });
 
   it('shows only Profiles category without profiling features', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: ['team-insights'],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights'],
     });
 
     render(<OrganizationStats />, {
-      organization: newOrg.organization,
+      organization: newOrg,
     });
 
     await userEvent.click(await screen.findByText('Category'));
@@ -471,14 +461,12 @@ describe('OrganizationStats', () => {
   });
 
   it('shows Seer categories when seer-billing feature flag is enabled', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: ['team-insights', 'seer-billing'],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'seer-billing'],
     });
 
     render(<OrganizationStats />, {
-      organization: newOrg.organization,
+      organization: newOrg,
     });
 
     await userEvent.click(await screen.findByText('Category'));
@@ -487,14 +475,12 @@ describe('OrganizationStats', () => {
   });
 
   it('does not show Seer categories when seer-billing feature flag is disabled', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: ['team-insights'],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights'],
     });
 
     render(<OrganizationStats />, {
-      organization: newOrg.organization,
+      organization: newOrg,
     });
 
     await userEvent.click(await screen.findByText('Category'));
@@ -503,14 +489,12 @@ describe('OrganizationStats', () => {
   });
 
   it('shows Metrics category when tracemetrics-stats feature flag is enabled', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: ['team-insights', 'tracemetrics-enabled', 'tracemetrics-stats'],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'tracemetrics-enabled', 'tracemetrics-stats'],
     });
 
     render(<OrganizationStats />, {
-      organization: newOrg.organization,
+      organization: newOrg,
     });
 
     await userEvent.click(await screen.findByText('Category'));
@@ -518,14 +502,12 @@ describe('OrganizationStats', () => {
   });
 
   it('does not show Metrics category when tracemetrics-stats feature flag is disabled', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: ['team-insights'],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights'],
     });
 
     render(<OrganizationStats />, {
-      organization: newOrg.organization,
+      organization: newOrg,
     });
 
     await userEvent.click(await screen.findByText('Category'));
@@ -542,37 +524,14 @@ describe('OrganizationStats', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows estimation text when profile duration category is selected', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: ['team-insights', 'continuous-profiling-stats', 'continuous-profiling'],
-      },
-    });
-
-    render(<OrganizationStats />, {
-      organization: newOrg.organization,
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/stats/',
-          query: {dataCategory: DATA_CATEGORY_INFO.profile_duration.plural},
-        },
-      },
-    });
-    expect(
-      await screen.findByText('*This is an estimation, and may not be 100% accurate.')
-    ).toBeInTheDocument();
-  });
-
   it('denies access without project membership', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        openMembership: false,
-      },
+    const newOrg = OrganizationFixture({
+      openMembership: false,
     });
     act(() => ProjectsStore.loadInitialData([ProjectFixture({isMember: false})]));
 
     render(<OrganizationStats />, {
-      organization: newOrg.organization,
+      organization: newOrg,
     });
 
     expect(

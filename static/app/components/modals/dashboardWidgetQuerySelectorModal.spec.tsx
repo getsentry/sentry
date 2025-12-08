@@ -36,7 +36,6 @@ describe('Modals -> AddDashboardWidgetModal', () => {
     organization: {
       features: ['performance-view', 'discover-query'],
     },
-    router: {},
     projects: [],
   });
   let mockQuery!: Widget['queries'][number];

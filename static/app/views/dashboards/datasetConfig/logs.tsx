@@ -254,10 +254,9 @@ function getPrimaryFieldOptions(
     aggregations: EAP_AGGREGATIONS,
   });
 
-  const logTags = Object.values(tags ?? {}).reduce(
-    (acc, tag) => ({
-      ...acc,
-      [`${tag.kind}:${tag.key}`]: {
+  const logTags = Object.values(tags ?? {}).reduce<Record<string, FieldValueOption>>(
+    (acc, tag) => {
+      acc[`${tag.kind}:${tag.key}`] = {
         label: tag.name,
         value: {
           kind: FieldValueKind.TAG,
@@ -267,21 +266,13 @@ function getPrimaryFieldOptions(
           // is used for grouping.
           meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
         },
-      },
-    }),
+      };
+      return acc;
+    },
     {}
   );
 
   return {...baseFieldOptions, ...logTags};
-}
-
-function _isNotNumericTag(option: FieldValueOption) {
-  // Filter out numeric tags from primary options, they only show up in
-  // the parameter fields for aggregate functions
-  if ('dataType' in option.value.meta) {
-    return option.value.meta.dataType !== 'number';
-  }
-  return true;
 }
 
 function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
@@ -331,6 +322,9 @@ function getEventsRequest(
 ) {
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
 
   const params: DiscoverQueryRequestParams = {
     per_page: limit,
@@ -354,10 +348,13 @@ function getEventsRequest(
     },
     // Tries events request up to 3 times on rate limit
     {
-      retry: {
-        statusCodes: [429],
-        tries: 10,
-      },
+      retry: hasQueueFeature
+        ? // The queue will handle retries, so we don't need to retry here
+          undefined
+        : {
+            statusCodes: [429],
+            tries: 10,
+          },
     }
   );
 }
@@ -373,11 +370,7 @@ function getGroupByFieldOptions(
     customMeasurements
   );
   const yAxisFilter = filterYAxisOptions();
-
-  // The only options that should be returned as valid group by options
-  // are string tags
-  const filterGroupByOptions = (option: FieldValueOption) =>
-    _isNotNumericTag(option) && !yAxisFilter(option);
+  const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
 
   return pickBy(primaryFieldOptions, filterGroupByOptions);
 }

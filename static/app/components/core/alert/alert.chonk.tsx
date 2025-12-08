@@ -2,7 +2,7 @@ import type {SerializedStyles} from '@emotion/react';
 import {css} from '@emotion/react';
 
 import type {AlertProps} from 'sentry/components/core/alert';
-import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -25,7 +25,7 @@ interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
 export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   position: relative;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: ${p => getAlertGridLayout(p)};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   border-width: ${p => (p.system ? '0px 0px 1px 0px' : '1px')};
   border-style: solid;
@@ -37,10 +37,14 @@ export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   min-height: 44px;
   ${props => makeChonkAlertTheme(props)};
 
-  a {
+  a:not([role='button']) {
     text-decoration: underline;
   }
 `;
+
+function getAlertGridLayout(p: ChonkAlertProps) {
+  return `1fr ${p.trailingItems ? 'auto' : ''} ${p.expand ? 'min-content' : ''}`;
+}
 
 function makeChonkAlertTheme(props: ChonkAlertProps): SerializedStyles {
   const tokens = getChonkAlertTokens(props.type, props.theme!);
@@ -116,14 +120,14 @@ function generateAlertBackground(
           ${tokens.background} ${width}px,
           ${tokens.background} ${width + 1}px
         ),
-        linear-gradient(${theme.colors.background.primary});
+        linear-gradient(${theme.tokens.background.primary});
       padding-left: calc(${width}px + ${props.theme!.space.lg});
     `;
   }
   return css`
     background-image:
       linear-gradient(${tokens.background}),
-      linear-gradient(${theme.colors.background.primary});
+      linear-gradient(${theme.tokens.background.primary});
   `;
 }
 

@@ -3,8 +3,7 @@ import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
-
-import type {DistributiveOmit} from '@sentry/scraps/types';
+import type {DistributedOmit} from 'type-fest';
 
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
@@ -21,6 +20,7 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   type: 'muted' | 'info' | 'warning' | 'success' | 'error';
   defaultExpanded?: boolean;
   expand?: React.ReactNode;
+  handleExpandChange?: (isExpanded: boolean) => void;
   icon?: React.ReactNode;
   showIcon?: boolean;
   system?: boolean;
@@ -61,6 +61,7 @@ export function Alert({
     }
     if (showExpand) {
       setIsExpanded(!isExpanded);
+      props.handleExpandChange?.(!isExpanded);
     }
   }
 
@@ -98,7 +99,10 @@ export function Alert({
               borderless
               icon={<IconChevron direction={isExpanded ? 'up' : 'down'} />}
               aria-label={isExpanded ? t('Collapse') : t('Expand')}
-              onClick={() => setIsExpanded(!isExpanded)}
+              onClick={() => {
+                setIsExpanded(!isExpanded);
+                props.handleExpandChange?.(!isExpanded);
+              }}
             />
           </ExpandIconWrap>
         )}
@@ -329,7 +333,7 @@ const Container = styled('div')`
 
 Alert.Container = Container;
 
-function AlertButton(props: DistributiveOmit<ButtonProps, 'size'>) {
+function AlertButton(props: DistributedOmit<ButtonProps, 'size'>) {
   const theme = useTheme();
   return <Button {...props} size={theme.isChonk ? 'zero' : 'sm'} />;
 }

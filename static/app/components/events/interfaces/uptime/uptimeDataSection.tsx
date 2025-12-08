@@ -17,6 +17,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import Panel from 'sentry/components/panels/panel';
+import {useTimezone} from 'sentry/components/timezoneProvider';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
@@ -112,14 +113,15 @@ export function UptimeDataSection({group, event, project}: Props) {
   const timelineWidth = useDebouncedValue(containerWidth, 500);
   const timeWindow = location.query?.timeWindow as TimeWindow;
   const {since, until} = usePageFilterDates();
+  const timezone = useTimezone();
 
   const timeWindowConfig = useMemo(() => {
     if (defined(timeWindow)) {
       const {start, end} = getTimeRangeFromEvent(event, now, timeWindow);
-      return getConfigFromTimeRange(start, end, timelineWidth);
+      return getConfigFromTimeRange(start, end, timelineWidth, timezone);
     }
-    return getConfigFromTimeRange(since, until, timelineWidth);
-  }, [timeWindow, timelineWidth, since, until, event, now]);
+    return getConfigFromTimeRange(since, until, timelineWidth, timezone);
+  }, [timeWindow, timelineWidth, since, until, event, now, timezone]);
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
     detectorIds: detectorId ? [String(detectorId)] : [],

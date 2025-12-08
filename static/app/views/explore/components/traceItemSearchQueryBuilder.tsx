@@ -217,7 +217,7 @@ function useFilterKeySections(
       ...itemTypeToFilterKeySections(itemType).map(section => {
         return {
           ...section,
-          children: section.children.filter(key => stringAttributes.hasOwnProperty(key)),
+          children: section.children.filter(key => key in stringAttributes),
         };
       }),
       {

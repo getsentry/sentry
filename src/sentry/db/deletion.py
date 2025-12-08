@@ -122,6 +122,7 @@ class BulkDeleteQuery:
             order_by=order_field,
             override_unique_safety_check=True,
             result_value_getter=lambda item: item[1],
+            query_timeout_retries=10,
         )
 
         for batch in itertools.batched(wrapper, chunk_size):

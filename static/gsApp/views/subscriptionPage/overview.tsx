@@ -38,7 +38,6 @@ import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editO
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import UsageOverview from 'getsentry/views/subscriptionPage/usageOverview';
 
-import openPerformanceQuotaCreditsPromoModal from './promotions/performanceQuotaCreditsPromo';
 import openPerformanceReservedTransactionsDiscountModal from './promotions/performanceReservedTransactionsPromo';
 import TrialEnded from './trial/trialEnded';
 import OnDemandDisabled from './ondemandDisabled';
@@ -96,7 +95,7 @@ function Overview({location, subscription, promotionData}: Props) {
 
   useEffect(() => {
     if (promotionData) {
-      let promotion = promotionData.availablePromotions?.find(
+      const promotion = promotionData.availablePromotions?.find(
         promo => promo.promptActivityTrigger === 'performance_reserved_txns_discount_v1'
       );
 
@@ -108,15 +107,6 @@ function Overview({location, subscription, promotionData}: Props) {
           promptFeature: 'performance_reserved_txns_discount_v1',
           navigate,
         });
-        return;
-      }
-
-      promotion = promotionData.availablePromotions?.find(
-        promo => promo.promptActivityTrigger === 'performance_quota_credits_v1'
-      );
-
-      if (promotion) {
-        openPerformanceQuotaCreditsPromoModal({api, promotionData, organization});
         return;
       }
     }
@@ -156,7 +146,7 @@ function Overview({location, subscription, promotionData}: Props) {
   // Whilst self-serve accounts do.
   if (!hasBillingPerms && !subscription.canSelfServe) {
     return (
-      <SubscriptionPageContainer background="secondary" organization={organization}>
+      <SubscriptionPageContainer background="primary" organization={organization}>
         <ContactBillingMembers />
       </SubscriptionPageContainer>
     );
@@ -321,10 +311,9 @@ function Overview({location, subscription, promotionData}: Props) {
       <Flex
         direction="column"
         gap="sm"
-        padding="xl"
+        padding="xl 0"
         background="primary"
-        radius="md"
-        border="primary"
+        borderTop="primary"
       >
         <Flex align="center" gap="sm">
           <Text bold>{t('Having trouble?')}</Text>
@@ -362,7 +351,7 @@ function Overview({location, subscription, promotionData}: Props) {
    *   - Receipts
    *   - Credit card on file
    *   - Previous usage history
-   *   - On-demand information
+   *   - On-demand/PAYG information
    */
   function contentWithBillingPerms(usageData: CustomerUsage, planDetails: Plan) {
     return (
@@ -420,7 +409,7 @@ function Overview({location, subscription, promotionData}: Props) {
 
   return (
     <SubscriptionPageContainer
-      background="secondary"
+      background="primary"
       organization={organization}
       header={
         isNewBillingUI ? (
@@ -438,7 +427,7 @@ function Overview({location, subscription, promotionData}: Props) {
       ) : isError ? (
         <LoadingError onRetry={refetchUsage} />
       ) : (
-        <Flex direction="column" gap="xl">
+        <Flex direction="column" gap="xl" paddingTop="xl">
           {hasBillingPerms
             ? contentWithBillingPerms(usage, subscription.planDetails)
             : contentWithoutBillingPerms(usage)}

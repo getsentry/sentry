@@ -1,3 +1,4 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {EventFixture} from 'sentry-fixture/event';
@@ -148,6 +149,10 @@ describe('groupDetails', () => {
     MockApiClient.addMockResponse({
       url: `/projects/${defaultInit.organization.slug}/${project.slug}/`,
       body: project,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: AutofixSetupFixture({}),
     });
   });
 

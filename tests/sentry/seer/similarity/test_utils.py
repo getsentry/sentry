@@ -14,7 +14,7 @@ from sentry.seer.similarity.utils import (
     filter_null_from_string,
     get_stacktrace_string,
     get_token_count,
-    has_too_many_contributing_frames,
+    stacktrace_exceeds_limits,
 )
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
@@ -39,6 +39,20 @@ class GetStacktraceStringTest(TestCase):
                         "contributes": True,
                         "hint": None,
                         "values": [
+                            {
+                                "id": "type",
+                                "name": None,
+                                "contributes": True,
+                                "hint": None,
+                                "values": ["ZeroDivisionError"],
+                            },
+                            {
+                                "id": "value",
+                                "name": None,
+                                "contributes": False,
+                                "hint": None,
+                                "values": ["division by zero"],
+                            },
                             {
                                 "id": "stacktrace",
                                 "name": "stacktrace",
@@ -83,20 +97,6 @@ class GetStacktraceStringTest(TestCase):
                                     }
                                 ],
                             },
-                            {
-                                "id": "type",
-                                "name": None,
-                                "contributes": True,
-                                "hint": None,
-                                "values": ["ZeroDivisionError"],
-                            },
-                            {
-                                "id": "value",
-                                "name": None,
-                                "contributes": False,
-                                "hint": None,
-                                "values": ["division by zero"],
-                            },
                         ],
                     }
                 ],
@@ -127,6 +127,20 @@ class GetStacktraceStringTest(TestCase):
                                 "contributes": True,
                                 "hint": None,
                                 "values": [
+                                    {
+                                        "id": "type",
+                                        "name": None,
+                                        "contributes": True,
+                                        "hint": None,
+                                        "values": ["ZeroDivisionError"],
+                                    },
+                                    {
+                                        "id": "value",
+                                        "name": None,
+                                        "contributes": False,
+                                        "hint": None,
+                                        "values": ["division by zero"],
+                                    },
                                     {
                                         "id": "stacktrace",
                                         "name": "stacktrace",
@@ -171,20 +185,6 @@ class GetStacktraceStringTest(TestCase):
                                             }
                                         ],
                                     },
-                                    {
-                                        "id": "type",
-                                        "name": None,
-                                        "contributes": True,
-                                        "hint": None,
-                                        "values": ["ZeroDivisionError"],
-                                    },
-                                    {
-                                        "id": "value",
-                                        "name": None,
-                                        "contributes": False,
-                                        "hint": None,
-                                        "values": ["division by zero"],
-                                    },
                                 ],
                             },
                             {
@@ -193,6 +193,20 @@ class GetStacktraceStringTest(TestCase):
                                 "contributes": True,
                                 "hint": None,
                                 "values": [
+                                    {
+                                        "id": "type",
+                                        "name": None,
+                                        "contributes": True,
+                                        "hint": None,
+                                        "values": ["Exception"],
+                                    },
+                                    {
+                                        "id": "value",
+                                        "name": None,
+                                        "contributes": False,
+                                        "hint": None,
+                                        "values": ["Catch divide by zero error"],
+                                    },
                                     {
                                         "id": "stacktrace",
                                         "name": "stacktrace",
@@ -274,20 +288,6 @@ class GetStacktraceStringTest(TestCase):
                                                 ],
                                             },
                                         ],
-                                    },
-                                    {
-                                        "id": "type",
-                                        "name": None,
-                                        "contributes": True,
-                                        "hint": None,
-                                        "values": ["Exception"],
-                                    },
-                                    {
-                                        "id": "value",
-                                        "name": None,
-                                        "contributes": False,
-                                        "hint": None,
-                                        "values": ["Catch divide by zero error"],
                                     },
                                 ],
                             },
@@ -407,6 +407,13 @@ class GetStacktraceStringTest(TestCase):
             "hint": None,
             "values": [
                 {
+                    "id": "value",
+                    "name": None,
+                    "contributes": False,
+                    "hint": None,
+                    "values": [exception_value],
+                },
+                {
                     "id": "stacktrace",
                     "name": "stacktrace",
                     "contributes": True,
@@ -419,13 +426,6 @@ class GetStacktraceStringTest(TestCase):
                     "contributes": True,
                     "hint": None,
                     "values": [exception_type_str],
-                },
-                {
-                    "id": "value",
-                    "name": None,
-                    "contributes": False,
-                    "hint": None,
-                    "values": [exception_value],
                 },
             ],
         }
@@ -494,13 +494,13 @@ class GetStacktraceStringTest(TestCase):
 
     def test_contributing_exception_no_frames(self) -> None:
         data_non_contributing_frame = copy.deepcopy(self.BASE_APP_DATA)
-        data_non_contributing_frame["app"]["component"]["values"][0]["values"][0]["values"] = []
+        data_non_contributing_frame["app"]["component"]["values"][0]["values"][2]["values"] = []
         stacktrace_str = get_stacktrace_string(data_non_contributing_frame)
         assert stacktrace_str == "ZeroDivisionError: division by zero"
 
     def test_contributing_exception_no_contributing_frames(self) -> None:
         data_no_contributing_frame = copy.deepcopy(self.BASE_APP_DATA)
-        data_no_contributing_frame["app"]["component"]["values"][0]["values"][0]["values"] = (
+        data_no_contributing_frame["app"]["component"]["values"][0]["values"][2]["values"] = (
             self.create_frames(1, False)
         )
         stacktrace_str = get_stacktrace_string(data_no_contributing_frame)
@@ -722,15 +722,15 @@ class GetStacktraceStringTest(TestCase):
         """
         data_frames = copy.deepcopy(self.BASE_APP_DATA)
         # Create 30 contributing frames, 1-20 -> last 10 should be included
-        data_frames["app"]["component"]["values"][0]["values"][0]["values"] = self.create_frames(
+        data_frames["app"]["component"]["values"][0]["values"][2]["values"] = self.create_frames(
             20, True
         )
         # Create 20 non-contributing frames, 21-40 -> none should be included
-        data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
+        data_frames["app"]["component"]["values"][0]["values"][2]["values"] += self.create_frames(
             20, False, 21
         )
         # Create 20 contributing frames, 41-60 -> all should be included
-        data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
+        data_frames["app"]["component"]["values"][0]["values"][2]["values"] += self.create_frames(
             20, True, 41
         )
         stacktrace_str = get_stacktrace_string(data_frames)
@@ -781,7 +781,7 @@ class GetStacktraceStringTest(TestCase):
         for base64_prefix in BASE64_ENCODED_PREFIXES:
             base64_filename = f"{base64_prefix} extra content that could be long and useless"
             data_base64_encoded_filename = copy.deepcopy(self.BASE_APP_DATA)
-            data_base64_encoded_filename["app"]["component"]["values"][0]["values"][0]["values"][0][
+            data_base64_encoded_filename["app"]["component"]["values"][0]["values"][2]["values"][0][
                 "values"
             ][1]["values"][0] = base64_filename
             stacktrace_str = get_stacktrace_string(data_base64_encoded_filename)
@@ -794,7 +794,7 @@ class GetStacktraceStringTest(TestCase):
     def test_replace_file_with_module(self) -> None:
         exception = copy.deepcopy(self.BASE_APP_DATA)
         # delete filename from the exception
-        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1]
+        del exception["app"]["component"]["values"][0]["values"][2]["values"][0]["values"][1]
         stacktrace_string = get_stacktrace_string(exception)
         assert (
             stacktrace_string
@@ -804,9 +804,9 @@ class GetStacktraceStringTest(TestCase):
     def test_no_filename_or_module(self) -> None:
         exception = copy.deepcopy(self.BASE_APP_DATA)
         # delete module from the exception
-        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+        del exception["app"]["component"]["values"][0]["values"][2]["values"][0]["values"][0]
         # delete filename from the exception
-        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+        del exception["app"]["component"]["values"][0]["values"][2]["values"][0]["values"][0]
         stacktrace_string = get_stacktrace_string(exception)
         assert (
             stacktrace_string
@@ -817,9 +817,9 @@ class GetStacktraceStringTest(TestCase):
         for ignored_filename in IGNORED_FILENAMES:
             exception = copy.deepcopy(self.BASE_APP_DATA)
             # delete module from the exception so we don't fall back to that
-            del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+            del exception["app"]["component"]["values"][0]["values"][2]["values"][0]["values"][0]
             # replace filename with ignored value
-            exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0][
+            exception["app"]["component"]["values"][0]["values"][2]["values"][0]["values"][0][
                 "values"
             ][0] = ignored_filename
             stacktrace_string = get_stacktrace_string(exception)
@@ -844,214 +844,153 @@ class SeerUtilsTest(TestCase):
         assert filter_null_from_string(string_with_null) == 'String with null , "" is null'
 
 
-class HasTooManyFramesTest(TestCase):
+class StacktraceExceedsLimitsTest(TestCase):
     def setUp(self) -> None:
-        # The `in_app` and `contributes` values of these frames will be determined by the project
-        # stacktrace rules we'll add below
-        self.contributing_system_frame = {
-            "function": "handleRequest",
-            "filename": "/node_modules/express/router.js",
-            "context_line": "return handler(request);",
-        }
-        self.non_contributing_system_frame = {
-            "function": "runApp",
-            "filename": "/node_modules/express/app.js",
-            "context_line": "return server.serve(port);",
-        }
         self.contributing_in_app_frame = {
             "function": "playFetch",
             "filename": "/dogApp/dogpark.js",
             "context_line": "raise FailedToFetchError('Charlie didn't bring the ball back');",
         }
-        self.non_contributing_in_app_frame = {
-            "function": "recordMetrics",
-            "filename": "/dogApp/metrics.js",
-            "context_line": "return withMetrics(handler, metricName, tags);",
-        }
         self.exception_value = {
             "type": "FailedToFetchError",
             "value": "Charlie didn't bring the ball back",
+            "stacktrace": {"frames": [self.contributing_in_app_frame]},
         }
         self.event = Event(
             event_id="12312012041520130908201311212012",
             project_id=self.project.id,
             data={
                 "title": "FailedToFetchError('Charlie didn't bring the ball back')",
+                "platform": "python",
                 "exception": {"values": [self.exception_value]},
             },
         )
         self.project.update_option(
             "sentry:grouping_enhancements",
-            "\n".join(
-                [
-                    "stack.function:runApp -app -group",
-                    "stack.function:handleRequest -app +group",
-                    "stack.function:recordMetrics +app -group",
-                    "stack.function:playFetch +app +group",
-                ]
-            ),
+            "stack.function:playFetch +app +group",
         )
 
-    def test_single_exception_simple(self) -> None:
-        for stacktrace_length, expected_result in [
-            (MAX_FRAME_COUNT - 1, False),
-            (MAX_FRAME_COUNT + 1, True),
-        ]:
-            self.event.data["platform"] = "java"
-            self.event.data["exception"]["values"][0]["stacktrace"] = {
-                "frames": [self.contributing_in_app_frame] * stacktrace_length
-            }
+    def test_passes_when_string_length_below_token_limit(self) -> None:
+        """
+        Test that short stacktraces pass without running token count.
+        If string length < max_token_count, we skip tokenization.
+        """
+        # Use a non-bypassed platform
+        self.event.data["platform"] = "java"
+        # Create a short stacktrace
+        short_stacktrace = 'Error: short\n  File "a.py", function a\n    x = 1'
+        self.event.data["stacktrace_string"] = short_stacktrace
 
-            # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+        with self.options({"seer.similarity.max_token_count": 10000}):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-            assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
-                is expected_result
-            )
+            # Should pass because string length (50 chars) < max_token_count (10000)
+            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
 
-    def test_single_exception_bypassed_platform(self) -> None:
-        # Regardless of the number of frames, we never flag it as being too long
-        for stacktrace_length, expected_result in [
-            (MAX_FRAME_COUNT - 1, False),
-            (MAX_FRAME_COUNT + 1, False),
-        ]:
-            self.event.data["platform"] = "python"
-            self.event.data["exception"]["values"][0]["stacktrace"] = {
-                "frames": [self.contributing_in_app_frame] * stacktrace_length
-            }
+    def test_blocks_when_token_count_exceeds_limit(self) -> None:
+        """
+        Test that long stacktraces are blocked when token count exceeds limit.
+        """
+        # Use a non-bypassed platform
+        self.event.data["platform"] = "java"
+        # Create a very long stacktrace that will definitely exceed token count
+        long_stacktrace = "VeryLongError: " + ("a" * 10000) + "\n" + ("  File 'x.py'\n" * 100)
+        self.event.data["stacktrace_string"] = long_stacktrace
 
-            # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+        with self.options({"seer.similarity.max_token_count": 100}):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-            assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
-                is expected_result
-            )
+            # Should be blocked because token count will exceed 100
+            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is True
 
-    def test_chained_exception_simple(self) -> None:
-        for total_frames, expected_result in [
-            (MAX_FRAME_COUNT - 2, False),
-            (MAX_FRAME_COUNT + 2, True),
-        ]:
-            self.event.data["platform"] = "java"
-            self.event.data["exception"]["values"] = [
-                {**self.exception_value},
-                {**self.exception_value},
-            ]
-            self.event.data["exception"]["values"][0]["stacktrace"] = {
-                "frames": [self.contributing_in_app_frame] * (total_frames // 2)
-            }
-            self.event.data["exception"]["values"][1]["stacktrace"] = {
-                "frames": [self.contributing_in_app_frame] * (total_frames // 2)
-            }
+    def test_passes_when_string_long_but_tokens_under_limit(self) -> None:
+        """
+        Test that stacktraces with long string length but acceptable token count pass.
+        This tests the case where string length > max_token_count (triggering tokenization)
+        but actual token count < max_token_count (so it passes).
+        """
+        # Use a non-bypassed platform
+        self.event.data["platform"] = "java"
+        # Create a stacktrace that's long in characters (>7000) but not in tokens (<7000)
+        # Repetitive text compresses well in tokens
+        long_stacktrace = "Error: test\n" + ("  File 'file.py', function func\n    line\n" * 200)
+        self.event.data["stacktrace_string"] = long_stacktrace
 
-            # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+        # String is ~8000 chars (triggers token count), but token count should be under 7000
+        with self.options({"seer.similarity.max_token_count": 7000}):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-            assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
-                is expected_result
-            )
+            # Should pass because token count is under the limit despite long string
+            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
 
-    def test_chained_exception_bypassed_platform(self) -> None:
-        # Regardless of the number of frames, we never flag it as being too long
-        for total_frames, expected_result in [
-            (MAX_FRAME_COUNT - 2, False),
-            (MAX_FRAME_COUNT + 2, False),
-        ]:
-            self.event.data["platform"] = "python"
-            self.event.data["exception"]["values"] = [
-                {**self.exception_value},
-                {**self.exception_value},
-            ]
-            self.event.data["exception"]["values"][0]["stacktrace"] = {
-                "frames": [self.contributing_in_app_frame] * (total_frames // 2)
-            }
-            self.event.data["exception"]["values"][1]["stacktrace"] = {
-                "frames": [self.contributing_in_app_frame] * (total_frames // 2)
-            }
+    def test_uses_cached_stacktrace_string(self) -> None:
+        """
+        Test that the function uses cached stacktrace_string from event.data.
+        """
+        # Use a non-bypassed platform
+        self.event.data["platform"] = "java"
+        cached_stacktrace = "Cached: error\n  File 'cached.py'\n    cached_line"
+        self.event.data["stacktrace_string"] = cached_stacktrace
 
-            # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+        with self.options({"seer.similarity.max_token_count": 10000}):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-            assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
-                is expected_result
-            )
+            with patch("sentry.seer.similarity.utils.get_stacktrace_string") as mock_get_stacktrace:
+                stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
+                # Should not call get_stacktrace_string since we have cached value
+                mock_get_stacktrace.assert_not_called()
 
-    def test_ignores_non_contributing_frames(self) -> None:
+    def test_generates_stacktrace_when_not_cached(self) -> None:
+        """
+        Test that the function generates stacktrace string when not cached.
+        """
+        # Use a non-bypassed platform
         self.event.data["platform"] = "java"
         self.event.data["exception"]["values"][0]["stacktrace"] = {
-            "frames": (
-                # Taken together, there are too many frames
-                [self.contributing_in_app_frame] * (MAX_FRAME_COUNT - 1)
-                + [self.non_contributing_in_app_frame] * 2
-            )
+            "frames": [self.contributing_in_app_frame]
         }
 
-        # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
-        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
-
-        assert (
-            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
-            is False  # Not flagged as too many because only contributing frames are counted
-        )
-
-    def test_prefers_app_frames(self) -> None:
-        self.event.data["platform"] = "java"
-        self.event.data["exception"]["values"][0]["stacktrace"] = {
-            "frames": (
-                [self.contributing_in_app_frame] * (MAX_FRAME_COUNT - 1)  # Under the limit
-                + [self.contributing_system_frame] * (MAX_FRAME_COUNT + 1)  # Over the limit
-            )
-        }
-
-        # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
-        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
-
-        assert (
-            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
-            is False  # Not flagged as too many because only in-app frames are counted
-        )
-
-    def test_uses_app_or_system_variants(self) -> None:
-        for frame, expected_variant_name in [
-            (self.contributing_in_app_frame, "app"),
-            (self.contributing_system_frame, "system"),
-        ]:
-            self.event.data["platform"] = "java"
-            self.event.data["exception"]["values"][0]["stacktrace"] = {
-                "frames": [frame] * (MAX_FRAME_COUNT + 1)
-            }
-
-            # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+        with self.options({"seer.similarity.max_token_count": 10000}):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-            contributing_variant, _ = get_contributing_variant_and_component(variants)
-            assert contributing_variant.variant_name == expected_variant_name
-
-            assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
-                is True
-            )
+            # No cached stacktrace_string, so it should generate one
+            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
 
     def test_ignores_events_not_grouped_on_stacktrace(self) -> None:
+        """
+        Test that events grouped by fingerprint are not checked for stacktrace length.
+        """
+        # Use a non-bypassed platform
         self.event.data["platform"] = "java"
-        self.event.data["exception"]["values"][0]["stacktrace"] = {
-            "frames": ([self.contributing_system_frame] * (MAX_FRAME_COUNT + 1))  # Over the limit
-        }
-        self.event.data["fingerprint"] = ["dogs_are_great"]
+        long_stacktrace = "VeryLongError: " + ("a" * 10000)
+        self.event.data["stacktrace_string"] = long_stacktrace
+        self.event.data["fingerprint"] = ["custom_fingerprint"]
 
-        # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
-        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
-        contributing_variant, _ = get_contributing_variant_and_component(variants)
-        assert isinstance(contributing_variant, CustomFingerprintVariant)
+        with self.options({"seer.similarity.max_token_count": 100}):
+            variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+            contributing_variant, _ = get_contributing_variant_and_component(variants)
+            assert isinstance(contributing_variant, CustomFingerprintVariant)
 
-        assert (
-            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
-            is False  # Not flagged as too many because it's grouped by fingerprint
-        )
+            # Should return False because it's not grouped on stacktrace
+            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
+
+    def test_bypassed_platforms_always_pass(self) -> None:
+        """
+        Test that bypassed platforms (python, javascript, etc.) always pass regardless of length.
+        """
+        for platform in ["python", "javascript", "node", "go", "php", "ruby"]:
+            self.event.data["platform"] = platform
+            # Create a very long stacktrace that would normally be blocked
+            long_stacktrace = "VeryLongError: " + ("a" * 10000)
+            self.event.data["stacktrace_string"] = long_stacktrace
+
+            with self.options({"seer.similarity.max_token_count": 100}):
+                variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+                # Bypassed platforms should always pass, even with long stacktraces
+                assert (
+                    stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
+                )
 
 
 class GetTokenCountTest(TestCase):

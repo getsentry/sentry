@@ -1665,7 +1665,7 @@ def completed(uuid: str) -> None:
 
 
 @instrumented_task(
-    name="sentry.relocation.completed",
+    name="sentry.relocation.noop",
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,

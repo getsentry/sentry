@@ -28,6 +28,7 @@ from sentry.conf.types.kafka_definition import get_topic_codec
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.group import Group, GroupStatus
+from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -215,13 +216,13 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             self.feature(features),
             mock.patch("sentry.remote_subscriptions.consumers.result_consumer.logger") as logger,
             mock.patch(
-                "sentry.uptime.consumers.results_consumer.remove_uptime_subscription_if_unused"
-            ) as mock_remove_uptime_subscription_if_unused,
+                "sentry.uptime.consumers.results_consumer.delete_uptime_subscription"
+            ) as mock_delete_uptime_subscription,
         ):
             # Does not produce an error
             self.send_result(result)
             assert not logger.exception.called
-            mock_remove_uptime_subscription_if_unused.assert_called_with(self.subscription)
+            mock_delete_uptime_subscription.assert_called_with(self.subscription)
 
     def test_no_create_issues_option(self) -> None:
         self.detector.config.update({"downtime_threshold": 1, "recovery_threshold": 1})
@@ -859,7 +860,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             mock.patch("sentry.uptime.autodetect.result_handler.logger") as onboarding_logger,
             mock.patch(
                 "sentry.uptime.autodetect.result_handler.update_uptime_detector",
-                side_effect=UptimeMonitorNoSeatAvailable(None),
+                side_effect=UptimeMonitorNoSeatAvailable(
+                    SeatAssignmentResult(assignable=False, reason="Testing")
+                ),
             ),
             self.tasks(),
             self.feature(features),

@@ -68,7 +68,7 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.services import eventstore
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.signals import (
     first_event_with_minified_stack_trace_received,
     first_insight_span_received,
@@ -2254,7 +2254,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 self.tasks(),
                 pytest.raises(HashDiscarded),
             ):
-                manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+                manager.save(self.project.id, cache_key=cache_key, attachments=[a1, a2])
 
             assert mock_track_outcome.call_count == 3
 
@@ -2302,7 +2302,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             ):
                 with self.feature("organizations:event-attachments"):
                     with self.tasks():
-                        manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+                        manager.save(self.project.id, cache_key=cache_key, attachments=[a1, a2])
 
         # The first minidump should be accepted, since the limit is 1
         # Event outcome goes through aggregator (1 call), attachments go through direct track_outcome (2 calls)
@@ -2332,7 +2332,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 with self.feature("organizations:event-attachments"):
                     with self.tasks():
                         event = manager.save(
-                            self.project.id, cache_key=cache_key, has_attachments=True
+                            self.project.id, cache_key=cache_key, attachments=[a1, a2]
                         )
 
         assert event.data["metadata"]["stripped_crash"] is True
@@ -2383,7 +2383,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 mock_track_outcome_aggregated,
             ):
                 with self.feature("organizations:event-attachments"):
-                    manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+                    manager.save(self.project.id, cache_key=cache_key, attachments=[a1, a3])
 
         # Event outcome goes through aggregator (1 call), attachments through direct track_outcome (2 calls)
         assert mock_track_outcome_aggregated.call_count == 1
@@ -2419,7 +2419,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 mock_track_outcome_aggregated,
             ):
                 with self.feature("organizations:event-attachments"):
-                    manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+                    manager.save(self.project.id, cache_key=cache_key, attachments=[a1, a3])
 
         # Event outcome goes through aggregator (1 call), attachments through direct track_outcome (2 calls)
         assert mock_track_outcome_aggregated.call_count == 1
@@ -2786,6 +2786,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert group.level == 40
             assert group.issue_category == GroupCategory.PERFORMANCE
             assert group.issue_type == PerformanceNPlusOneGroupType
+            assert isinstance(event, GroupEvent)
             assert event.occurrence
             assert event.occurrence.evidence_display == [
                 IssueEvidence(
@@ -2945,7 +2946,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         }
     )
     def test_perf_issue_slow_db_issue_is_created(self) -> None:
-        def attempt_to_generate_slow_db_issue() -> Event:
+        def attempt_to_generate_slow_db_issue() -> GroupEvent:
             return self.create_performance_issue(
                 event_data=make_event(**get_event("slow-db/slow-db-spans")),
                 issue_type=PerformanceSlowDBQueryGroupType,

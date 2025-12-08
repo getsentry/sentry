@@ -16,7 +16,11 @@ import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onD
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
-import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
+import {
+  dashboardFiltersToString,
+  isChartDisplayType,
+} from 'sentry/views/dashboards/utils';
+import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 export function getReferrer(displayType: DisplayType) {
@@ -90,6 +94,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
   onDemandControlContext?: OnDemandControlContext;
+  queue?: WidgetQueryQueue;
   samplingMode?: SamplingMode;
   // Skips adding parens before applying dashboard filters
   // Used for datasets that do not support parens/boolean logic
@@ -125,7 +130,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
   componentDidMount() {
     this._isMounted = true;
     if (!this.props.loading) {
-      this.fetchData();
+      this.fetchDataWithQueueIfAvailable();
     }
   }
 
@@ -184,7 +189,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           !isSelectionEqual(selection, prevProps.selection) ||
           cursor !== prevProps.cursor
     ) {
-      this.fetchData();
+      this.fetchDataWithQueueIfAvailable();
       return;
     }
 
@@ -386,6 +391,22 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     }
   }
 
+  fetchDataWithQueueIfAvailable() {
+    const {queue} = this.props;
+    if (queue) {
+      this.setState({
+        loading: true,
+        tableResults: undefined,
+        timeseriesResults: undefined,
+        errorMessage: undefined,
+        queryFetchID: undefined,
+      });
+      queue.addItem({widgetQuery: this});
+      return;
+    }
+    this.fetchData();
+  }
+
   async fetchData() {
     const {widget, onDataFetchStart} = this.props;
 
@@ -401,10 +422,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     onDataFetchStart?.();
 
     try {
-      if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
-        await this.fetchTableData(queryFetchID);
-      } else {
+      if (isChartDisplayType(widget.displayType)) {
         await this.fetchSeriesData(queryFetchID);
+      } else {
+        await this.fetchTableData(queryFetchID);
       }
     } catch (err: any) {
       if (this._isMounted) {

@@ -25,7 +25,8 @@ class GetActiveMonitorCountForOrgTest(UptimeTestCase):
 
         other_org = self.create_organization()
         other_proj = self.create_project(organization=other_org)
-        self.create_uptime_detector(uptime_subscription=other_sub, project=other_proj)
+        other_org_sub = self.create_uptime_subscription(url="https://example.com")
+        self.create_uptime_detector(uptime_subscription=other_org_sub, project=other_proj)
         assert get_active_auto_monitor_count_for_org(self.organization) == 2
         assert get_active_auto_monitor_count_for_org(other_org) == 1
 

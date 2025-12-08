@@ -58,7 +58,7 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
     const items: MenuItemProps[] = [
       {
         key: 'search-for-value',
-        label: t('Search for this value'),
+        label: t('Add to filter'),
         onAction: () => addSearchFilter(content),
       },
       {

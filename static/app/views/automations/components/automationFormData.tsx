@@ -1,6 +1,6 @@
 import type {FieldValue} from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
-import type {Action} from 'sentry/types/workflowEngine/actions';
+import {ActionType, type Action} from 'sentry/types/workflowEngine/actions';
 import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
@@ -13,6 +13,11 @@ export interface AutomationFormData {
   environment: string | null;
   frequency: number | null;
   name: string;
+  /**
+   * Derived field used for project-based monitor selection.
+   * Maps to issue stream detector IDs for the selected projects.
+   */
+  projectIds: string[];
 }
 
 const stripDataConditionId = (condition: any) => {
@@ -35,8 +40,18 @@ const stripSubfilterId = (subfilter: any) => {
   return subfilterWithoutId;
 };
 
-const stripActionId = (action: any) => {
+const stripActionFields = (action: Action) => {
   const {id: _id, ...actionWithoutId} = action;
+
+  // Strip targetDisplay from email action config
+  if (action.type === ActionType.EMAIL && action.config) {
+    const {targetDisplay: _targetDisplay, ...configWithoutTargetDisplay} = action.config;
+    return {
+      ...actionWithoutId,
+      config: configWithoutTargetDisplay,
+    };
+  }
+
   return actionWithoutId;
 };
 
@@ -45,7 +60,7 @@ const stripDataConditionGroupId = (group: any) => {
   return {
     ...groupWithoutId,
     conditions: group.conditions?.map(stripDataConditionId) || [],
-    actions: group.actions?.map(stripActionId) || [],
+    actions: group.actions?.map(stripActionFields) || [],
   };
 };
 
@@ -54,7 +69,7 @@ export function getNewAutomationData(
   state: AutomationBuilderState
 ): NewAutomation {
   const result = {
-    name: data.name,
+    name: data.name || 'New Alert',
     triggers: stripDataConditionGroupId(state.triggers),
     environment: data.environment,
     actionFilters: state.actionFilters.map(stripDataConditionGroupId),
@@ -76,6 +91,7 @@ export function getAutomationFormData(
     frequency: automation.config.frequency || null,
     name: automation.name,
     enabled: automation.enabled,
+    projectIds: [],
   };
 }
 

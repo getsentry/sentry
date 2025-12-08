@@ -30,8 +30,8 @@ from sentry.uptime.models import (
 )
 from sentry.uptime.subscriptions.subscriptions import (
     check_and_update_regions,
+    delete_uptime_subscription,
     disable_uptime_detector,
-    remove_uptime_subscription_if_unused,
 )
 from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
@@ -249,7 +249,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             detector = get_detector(subscription, prefetch_workflow_data=True)
         except Detector.DoesNotExist:
             # Nothing to do if there's an orphaned uptime subscription
-            remove_uptime_subscription_if_unused(subscription)
+            delete_uptime_subscription(subscription)
             return
 
         organization = detector.project.organization

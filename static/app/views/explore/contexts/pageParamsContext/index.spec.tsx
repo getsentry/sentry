@@ -3,20 +3,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {
-  PageParamsProvider,
-  useExplorePageParams,
-  useSetExplorePageParams,
-} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   DEFAULT_VISUALIZATION,
   DEFAULT_VISUALIZATION_AGGREGATE,
   DEFAULT_VISUALIZATION_FIELD,
-  Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
+  useQueryParams,
+  useSetQueryParams,
   useSetQueryParamsAggregateSortBys,
   useSetQueryParamsFields,
   useSetQueryParamsGroupBys,
@@ -25,15 +20,12 @@ import {
   useSetQueryParamsSortBys,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 function Wrapper({children}: {children: ReactNode}) {
-  return (
-    <SpansQueryParamsProvider>
-      <PageParamsProvider>{children}</PageParamsProvider>
-    </SpansQueryParamsProvider>
-  );
+  return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
 }
 
 describe('defaults', () => {
@@ -50,9 +42,9 @@ describe('defaults', () => {
   });
 });
 
-describe('PageParamsProvider', () => {
-  let pageParams: ReturnType<typeof useExplorePageParams>;
-  let setPageParams: ReturnType<typeof useSetExplorePageParams>;
+describe('SpanQueryParamsProvider', () => {
+  let queryParams: ReturnType<typeof useQueryParams>;
+  let setQueryParams: ReturnType<typeof useSetQueryParams>;
   let setFields: ReturnType<typeof useSetQueryParamsFields>;
   let setGroupBys: ReturnType<typeof useSetQueryParamsGroupBys>;
   let setMode: ReturnType<typeof useSetQueryParamsMode>;
@@ -62,8 +54,8 @@ describe('PageParamsProvider', () => {
   let setVisualizes: ReturnType<typeof useSetQueryParamsVisualizes>;
 
   function Component() {
-    pageParams = useExplorePageParams();
-    setPageParams = useSetExplorePageParams();
+    queryParams = useQueryParams();
+    setQueryParams = useSetQueryParams();
     setFields = useSetQueryParamsFields();
     setGroupBys = useSetQueryParamsGroupBys();
     setMode = useSetQueryParamsMode();
@@ -82,12 +74,11 @@ describe('PageParamsProvider', () => {
     );
 
     act(() =>
-      setPageParams({
-        dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp'],
+      setQueryParams({
+        fields: ['id', 'timestamp', 'span.op'],
         mode: Mode.AGGREGATE,
         query: '',
-        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
@@ -108,9 +99,8 @@ describe('PageParamsProvider', () => {
       </Wrapper>
     );
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: undefined,
         fields: [
           'id',
           'span.op',
@@ -121,9 +111,9 @@ describe('PageParamsProvider', () => {
         ],
         mode: Mode.SAMPLES,
         query: '',
-        sampleSortBys: [{field: 'timestamp', kind: 'desc'}],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         aggregateSortBys: [{field: 'count(span.duration)', kind: 'desc'}],
-        aggregateFields: [{groupBy: ''}, new Visualize('count(span.duration)')],
+        aggregateFields: [{groupBy: ''}, new VisualizeFunction('count(span.duration)')],
       })
     );
   });
@@ -133,17 +123,16 @@ describe('PageParamsProvider', () => {
 
     act(() => setFields(['id', 'span.op', 'timestamp']));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'span.op', 'timestamp'],
         mode: Mode.AGGREGATE,
         query: '',
-        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
-          new Visualize('count(span.self_time)', {
+          new VisualizeFunction('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
         ],
@@ -156,18 +145,24 @@ describe('PageParamsProvider', () => {
 
     act(() => setGroupBys(['browser.name', 'sdk.name']));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time', 'browser.name', 'sdk.name'],
+        fields: [
+          'id',
+          'timestamp',
+          'span.op',
+          'span.self_time',
+          'browser.name',
+          'sdk.name',
+        ],
         mode: Mode.AGGREGATE,
         query: '',
-        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'browser.name'},
           {groupBy: 'sdk.name'},
-          new Visualize('count(span.self_time)', {
+          new VisualizeFunction('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
         ],
@@ -180,16 +175,15 @@ describe('PageParamsProvider', () => {
 
     act(() => setGroupBys([]));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
-        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
-          new Visualize('count(span.self_time)', {
+          new VisualizeFunction('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
           {groupBy: ''},
@@ -203,17 +197,16 @@ describe('PageParamsProvider', () => {
 
     act(() => setGroupBys(['']));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
-        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: ''},
-          new Visualize('count(span.self_time)', {
+          new VisualizeFunction('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
         ],
@@ -226,17 +219,16 @@ describe('PageParamsProvider', () => {
 
     act(() => setMode(Mode.AGGREGATE));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
-        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
-          new Visualize('count(span.self_time)', {
+          new VisualizeFunction('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
         ],
@@ -254,23 +246,22 @@ describe('PageParamsProvider', () => {
           yAxes: ['count(span.self_time)'],
         },
       ],
-      sampleSortBys: null,
+      sortBys: null,
       aggregateSortBys: null,
     });
 
     act(() => setMode(Mode.SAMPLES));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
         mode: Mode.SAMPLES,
         query: '',
-        sampleSortBys: [{field: 'timestamp', kind: 'desc'}],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: ''},
-          new Visualize('count(span.self_time)', {
+          new VisualizeFunction('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
         ],
@@ -281,9 +272,9 @@ describe('PageParamsProvider', () => {
   it('updates fields with managed group bys', () => {
     renderTestComponent({
       mode: Mode.AGGREGATE,
-      sampleSortBys: null,
+      sortBys: null,
       aggregateSortBys: null,
-      fields: ['id', 'timestamp'],
+      fields: ['id', 'timestamp', 'span.description'],
       aggregateFields: [
         {groupBy: 'span.description'},
         {groupBy: ''},
@@ -296,18 +287,24 @@ describe('PageParamsProvider', () => {
 
     act(() => setGroupBys(['sdk.name', 'sdk.version']));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time', 'sdk.name', 'sdk.version'],
+        fields: [
+          'id',
+          'timestamp',
+          'span.description',
+          'span.self_time',
+          'sdk.name',
+          'sdk.version',
+        ],
         mode: Mode.AGGREGATE,
         query: '',
-        sampleSortBys: [{field: 'timestamp', kind: 'desc'}],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'sdk.name'},
           {groupBy: 'sdk.version'},
-          new Visualize('count(span.self_time)', {
+          new VisualizeFunction('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
         ],
@@ -320,17 +317,16 @@ describe('PageParamsProvider', () => {
 
     act(() => setQuery('foo:bar'));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: 'foo:bar',
-        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
-          new Visualize('count(span.self_time)', {
+          new VisualizeFunction('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
         ],
@@ -343,17 +339,16 @@ describe('PageParamsProvider', () => {
 
     act(() => setSortBys([{field: 'id', kind: 'desc'}]));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
         mode: Mode.SAMPLES,
         query: '',
-        sampleSortBys: [{field: 'id', kind: 'desc'}],
+        sortBys: [{field: 'id', kind: 'desc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
-          new Visualize('count(span.self_time)', {
+          new VisualizeFunction('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
         ],
@@ -366,17 +361,16 @@ describe('PageParamsProvider', () => {
 
     act(() => setSortBys([{field: 'span.op', kind: 'desc'}]));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
         mode: Mode.SAMPLES,
         query: '',
-        sampleSortBys: [{field: 'timestamp', kind: 'desc'}],
+        sortBys: [{field: 'span.op', kind: 'desc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
-          new Visualize('count(span.self_time)', {
+          new VisualizeFunction('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
         ],
@@ -398,20 +392,19 @@ describe('PageParamsProvider', () => {
 
     act(() => setAggregateSortBys([{field: 'max(span.duration)', kind: 'desc'}]));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
-        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
         aggregateSortBys: [{field: 'max(span.duration)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
-          new Visualize('min(span.self_time)', {
+          new VisualizeFunction('min(span.self_time)', {
             chartType: ChartType.AREA,
           }),
-          new Visualize('max(span.duration)', {
+          new VisualizeFunction('max(span.duration)', {
             chartType: ChartType.AREA,
           }),
         ],
@@ -433,20 +426,19 @@ describe('PageParamsProvider', () => {
 
     act(() => setAggregateSortBys([{field: 'avg(span.duration)', kind: 'desc'}]));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
-        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
         aggregateSortBys: [{field: 'min(span.self_time)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
-          new Visualize('min(span.self_time)', {
+          new VisualizeFunction('min(span.self_time)', {
             chartType: ChartType.AREA,
           }),
-          new Visualize('max(span.duration)', {
+          new VisualizeFunction('max(span.duration)', {
             chartType: ChartType.AREA,
           }),
         ],
@@ -468,17 +460,16 @@ describe('PageParamsProvider', () => {
 
     act(() => setAggregateSortBys([{field: 'sdk.name', kind: 'desc'}]));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'sdk.name', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
-        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
         aggregateSortBys: [{field: 'sdk.name', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'sdk.name'},
-          new Visualize('count(span.self_time)', {
+          new VisualizeFunction('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
         ],
@@ -500,17 +491,16 @@ describe('PageParamsProvider', () => {
 
     act(() => setAggregateSortBys([{field: 'sdk.version', kind: 'desc'}]));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'sdk.name', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
-        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'sdk.name'},
-          new Visualize('count(span.self_time)', {
+          new VisualizeFunction('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
         ],
@@ -523,15 +513,17 @@ describe('PageParamsProvider', () => {
 
     act(() => setVisualizes([]));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op'],
         mode: Mode.AGGREGATE,
         query: '',
-        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
         aggregateSortBys: [{field: 'count(span.duration)', kind: 'desc'}],
-        aggregateFields: [{groupBy: 'span.op'}, new Visualize('count(span.duration)')],
+        aggregateFields: [
+          {groupBy: 'span.op'},
+          new VisualizeFunction('count(span.duration)'),
+        ],
       })
     );
   });
@@ -552,23 +544,22 @@ describe('PageParamsProvider', () => {
       ])
     );
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time', 'span.duration'],
         mode: Mode.AGGREGATE,
         query: '',
-        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
-          new Visualize('count(span.self_time)', {
+          new VisualizeFunction('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
-          new Visualize('avg(span.duration)', {
+          new VisualizeFunction('avg(span.duration)', {
             chartType: ChartType.LINE,
           }),
-          new Visualize('avg(span.self_time)', {
+          new VisualizeFunction('avg(span.self_time)', {
             chartType: ChartType.LINE,
           }),
         ],
@@ -583,9 +574,9 @@ describe('PageParamsProvider', () => {
       setVisualizes([{yAxes: ['count(span.self_time)']}, {yAxes: ['avg(span.duration)']}])
     );
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time', 'span.duration'],
       })
     );
 
@@ -598,17 +589,17 @@ describe('PageParamsProvider', () => {
       ])
     );
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time', 'span.duration'],
       })
     );
 
     act(() => setVisualizes([{yAxes: ['count(span.self_time)']}]));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        fields: ['id', 'timestamp', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
       })
     );
   });
@@ -620,9 +611,9 @@ describe('PageParamsProvider', () => {
       setVisualizes([{yAxes: ['count(span.self_time)']}, {yAxes: ['avg(span.duration)']}])
     );
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time', 'span.duration'],
       })
     );
 
@@ -630,7 +621,7 @@ describe('PageParamsProvider', () => {
       setFields(['id', 'timestamp', 'span.self_time', 'span.duration', 'span.duration'])
     );
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
         fields: ['id', 'timestamp', 'span.self_time', 'span.duration', 'span.duration'],
       })
@@ -638,7 +629,7 @@ describe('PageParamsProvider', () => {
 
     act(() => setVisualizes([{yAxes: ['count(span.self_time)']}]));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
         fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
       })
@@ -652,9 +643,9 @@ describe('PageParamsProvider', () => {
       setVisualizes([{yAxes: ['count(span.self_time)']}, {yAxes: ['avg(span.duration)']}])
     );
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time', 'span.duration'],
       })
     );
 
@@ -668,7 +659,7 @@ describe('PageParamsProvider', () => {
       ])
     );
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
         fields: ['id', 'timestamp', 'span.self_time'],
       })
@@ -682,7 +673,7 @@ describe('PageParamsProvider', () => {
       ])
     );
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
         fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
       })
@@ -694,7 +685,7 @@ describe('PageParamsProvider', () => {
 
     act(() => setFields(['id', 'timestamp', 'span.self_time', 'span.duration']));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
         fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
       })
@@ -704,7 +695,7 @@ describe('PageParamsProvider', () => {
       setVisualizes([{yAxes: ['count(span.self_time)']}, {yAxes: ['avg(span.duration)']}])
     );
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
         fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
       })
@@ -712,7 +703,7 @@ describe('PageParamsProvider', () => {
 
     act(() => setVisualizes([{yAxes: ['count(span.self_time)']}]));
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
         fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
       })
@@ -731,9 +722,16 @@ describe('PageParamsProvider', () => {
       {organization}
     );
 
-    expect(pageParams).toEqual(
+    expect(queryParams).toEqual(
       expect.objectContaining({
-        fields: ['id', 'span.name', 'span.duration', 'timestamp'],
+        fields: [
+          'id',
+          'span.name',
+          'span.description',
+          'span.duration',
+          'transaction',
+          'timestamp',
+        ],
       })
     );
   });

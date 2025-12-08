@@ -21,9 +21,14 @@ import type {Organization} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 type Props = {
   api: Client;
@@ -278,4 +283,25 @@ const EnvironmentButton = styled(Button)`
   margin-left: ${space(0.5)};
 `;
 
-export default withApi(ProjectEnvironments);
+export default function ProjectEnvironmentsWrapper() {
+  const api = useApi();
+  const location = useLocation();
+  const params = useParams<{projectId: string}>();
+  const routes = useRoutes();
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
+
+  return (
+    <ProjectEnvironments
+      api={api}
+      location={location}
+      params={params}
+      routes={routes}
+      organization={organization}
+      project={project}
+      router={undefined as any}
+      route={undefined as any}
+      routeParams={undefined as any}
+    />
+  );
+}

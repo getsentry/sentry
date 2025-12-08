@@ -66,7 +66,7 @@ function FeatureDisabled({
   const [showHelp, setShowHelp] = useState(false);
 
   const snippet = installText(features, featureName);
-  const {onClick} = useCopyToClipboard({text: snippet});
+  const {copy} = useCopyToClipboard();
 
   function renderHelp() {
     return (
@@ -83,7 +83,12 @@ function FeatureDisabled({
             }
           )}
         </HelpText>
-        <CopyButton borderless icon={<IconCopy />} onClick={onClick} size="xs">
+        <CopyButton
+          borderless
+          icon={<IconCopy />}
+          onClick={() => copy(snippet)}
+          size="xs"
+        >
           {t('Copy to Clipboard')}
         </CopyButton>
         <Pre onClick={e => selectText(e.target as HTMLElement)}>

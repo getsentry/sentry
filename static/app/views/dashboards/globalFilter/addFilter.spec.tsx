@@ -24,11 +24,6 @@ describe('AddFilter', () => {
       name: 'Unsupported Function',
       kind: FieldKind.FUNCTION,
     },
-    'unsupported.measurement': {
-      key: 'unsupported.measurement',
-      name: 'Unsupported Measurement',
-      kind: FieldKind.MEASUREMENT,
-    },
   };
 
   const getSearchBarData = (_: WidgetType): SearchBarData => ({
@@ -67,7 +62,7 @@ describe('AddFilter', () => {
     await userEvent.click(screen.getByText('Errors'));
 
     // Should see filter key options for the dataset
-    expect(screen.getByText('Select Filter Tag')).toBeInTheDocument();
+    expect(screen.getByText('Select Errors Tag')).toBeInTheDocument();
     expect(screen.getByText(mockFilterKeys['browser.name']!.key)).toBeInTheDocument();
     expect(screen.getByText(mockFilterKeys.environment!.key)).toBeInTheDocument();
 
@@ -91,9 +86,6 @@ describe('AddFilter', () => {
     // Unsupported filter keys should not be included in the options
     expect(
       screen.queryByText(mockFilterKeys['unsupported.function']!.key)
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(mockFilterKeys['unsupported.measurement']!.key)
     ).not.toBeInTheDocument();
   });
 

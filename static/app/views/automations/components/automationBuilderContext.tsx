@@ -185,7 +185,7 @@ export const useAutomationBuilderContext = () => {
   return context;
 };
 
-export const initialAutomationBuilderState: AutomationBuilderState = {
+const initialAutomationBuilderState: AutomationBuilderState = {
   triggers: {
     id: 'when',
     logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
@@ -490,10 +490,16 @@ function getDefaultConfig(actionHandler: ActionHandler): ActionConfig {
     actionHandler.integrations?.[0]?.services?.[0]?.id ??
     actionHandler.services?.[0]?.slug ??
     '';
+  const targetDisplay =
+    actionHandler.sentryApp?.name ??
+    actionHandler.integrations?.[0]?.services?.[0]?.name ??
+    actionHandler.services?.[0]?.name ??
+    '';
 
   return {
     targetType,
     targetIdentifier,
+    targetDisplay,
     ...(actionHandler.sentryApp?.id && {
       sentryAppIdentifier: SentryAppIdentifier.SENTRY_APP_ID,
     }),

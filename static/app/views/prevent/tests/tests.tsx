@@ -63,7 +63,7 @@ export default function TestsPage() {
   const {data: integrations = [], isPending: isIntegrationsPending} =
     useGetActiveIntegratedOrgs({organization});
   const regionData = getRegionDataFromOrganization(organization);
-  const isUSStorage = regionData?.name === 'us';
+  const isUSStorage = regionData?.name?.toLowerCase() === 'us';
 
   let mainContent: React.ReactNode;
   if (isIntegrationsPending) {

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import uuid
 from time import time
+from typing import Any
 from unittest import mock
 
 import pytest
 
-from sentry.attachments import attachment_cache
+from sentry.attachments import get_attachments_for_event
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager
 from sentry.grouping.enhancer import EnhancementsConfig
@@ -29,21 +30,8 @@ from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
-from sentry.utils.cache import cache_key_for_event
 
 pytestmark = [requires_snuba]
-
-
-def _create_event_attachment(evt, type):
-    EventAttachment.objects.create(
-        event_id=evt.event_id,
-        group_id=evt.group_id,
-        project_id=evt.project_id,
-        type=type,
-        name="foo",
-        size=len("hello world"),
-        blob_path=":hello world",
-    )
 
 
 def _create_user_report(evt):
@@ -384,9 +372,8 @@ def test_attachments_and_userfeedback(
         extra.setdefault("processing_counter", 0)
         extra["processing_counter"] += 1
 
-        cache_key = cache_key_for_event(data)
-        attachments = attachment_cache.get(cache_key)
-        extra.setdefault("attachments", []).append([attachment.type for attachment in attachments])
+        attachments = get_attachments_for_event(data)
+        extra.setdefault("attachments", []).extend(attachment.type for attachment in attachments)
 
         return data
 
@@ -407,9 +394,18 @@ def test_attachments_and_userfeedback(
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     assert event is not None
 
-    for evt in (event, event_to_delete):
+    events: list[Any] = [event, event_to_delete]
+    for evt in events:
         for type in ("event.attachment", "event.minidump"):
-            _create_event_attachment(evt, type)
+            EventAttachment.objects.create(
+                event_id=evt.event_id,
+                group_id=evt.group_id,
+                project_id=evt.project_id,
+                type=type,
+                name="foo",
+                size=len("hello world"),
+                blob_path=":hello world",
+            )
 
         _create_user_report(evt)
 
@@ -424,7 +420,7 @@ def test_attachments_and_userfeedback(
     assert new_event.group_id is not None
     assert new_event.group_id != event.group_id
 
-    assert new_event.data["extra"]["attachments"] == [["event.minidump"]]
+    assert new_event.data["extra"]["attachments"] == ["event.minidump"]
 
     att, mdmp = EventAttachment.objects.filter(project_id=default_project.id).order_by("type")
     assert att.group_id == mdmp.group_id == new_event.group_id

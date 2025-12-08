@@ -35,11 +35,12 @@ function removeHiddenItemsAndSetHref(source: MenuItemProps[]): MenuItemProps[] {
  * Recursively finds and returns disabled items
  */
 function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
-  return source.reduce<string[]>((acc, cur) => {
+  return source.reduce<Array<MenuItemProps['key']>>((acc, cur) => {
     if (cur.disabled) {
       // If an item is disabled, then its children will be inaccessible, so we
       // can skip them and just return the parent item
-      return acc.concat([cur.key]);
+      acc.push(cur.key);
+      return acc;
     }
 
     if (cur.children) {
@@ -293,4 +294,7 @@ export {DropdownMenu};
 const DropdownMenuWrap = styled('div')`
   display: contents;
   list-style-type: none;
+  > :first-child {
+    margin-left: -1px;
+  }
 `;

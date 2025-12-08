@@ -1,18 +1,11 @@
-import {ProjectFixture} from 'sentry-fixture/project';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useParams} from 'sentry/utils/useParams';
 import ProjectUserFeedback from 'sentry/views/settings/projectUserFeedback';
-
-jest.mock('sentry/utils/useParams', () => ({
-  useParams: jest.fn(),
-}));
 
 describe('ProjectUserFeedback', () => {
   const {project, organization} = initializeOrg();
-  const url = `/projects/${organization.slug}/${project.id}/`;
+  const url = `/projects/${organization.slug}/${project.slug}/`;
   let seerSetupMock: any;
 
   const mockSeerSetup = (overrides: any = {}) => {
@@ -35,11 +28,6 @@ describe('ProjectUserFeedback', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url,
-      method: 'GET',
-      body: ProjectFixture(),
-    });
-    MockApiClient.addMockResponse({
       url: `${url}keys/`,
       method: 'GET',
       body: [],
@@ -48,11 +36,10 @@ describe('ProjectUserFeedback', () => {
   });
 
   it('can toggle sentry branding option', async () => {
-    jest.mocked(useParams).mockReturnValue({
-      projectId: project.id,
+    render(<ProjectUserFeedback />, {
+      organization,
+      outletContext: {project},
     });
-
-    render(<ProjectUserFeedback project={project} />, {organization});
 
     const mock = MockApiClient.addMockResponse({
       url,
@@ -78,7 +65,10 @@ describe('ProjectUserFeedback', () => {
     organization.features.push('gen-ai-features');
     seerSetupMock = mockSeerSetup({setupAcknowledgement: {orgHasAcknowledged: true}});
 
-    render(<ProjectUserFeedback project={project} />, {organization});
+    render(<ProjectUserFeedback />, {
+      organization,
+      outletContext: {project},
+    });
 
     expect(
       screen.queryByRole('checkbox', {name: 'Enable Spam Detection'})
@@ -89,7 +79,10 @@ describe('ProjectUserFeedback', () => {
     organization.features.push('user-feedback-spam-ingest');
     seerSetupMock = mockSeerSetup({setupAcknowledgement: {orgHasAcknowledged: false}});
 
-    render(<ProjectUserFeedback project={project} />, {organization});
+    render(<ProjectUserFeedback />, {
+      organization,
+      outletContext: {project},
+    });
 
     expect(
       screen.queryByRole('checkbox', {name: 'Enable Spam Detection'})
@@ -101,7 +94,10 @@ describe('ProjectUserFeedback', () => {
     organization.features.push('gen-ai-features');
     seerSetupMock = mockSeerSetup({setupAcknowledgement: {orgHasAcknowledged: false}});
 
-    render(<ProjectUserFeedback project={project} />, {organization});
+    render(<ProjectUserFeedback />, {
+      organization,
+      outletContext: {project},
+    });
 
     expect(
       screen.queryByRole('checkbox', {name: 'Enable Spam Detection'})
@@ -113,7 +109,10 @@ describe('ProjectUserFeedback', () => {
     organization.features.push('gen-ai-features');
     seerSetupMock = mockSeerSetup({setupAcknowledgement: {orgHasAcknowledged: true}});
 
-    render(<ProjectUserFeedback project={project} />, {organization});
+    render(<ProjectUserFeedback />, {
+      organization,
+      outletContext: {project},
+    });
 
     await waitFor(() => {
       expect(seerSetupMock).toHaveBeenCalled();

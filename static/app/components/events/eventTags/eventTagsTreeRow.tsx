@@ -129,9 +129,7 @@ function EventTagsTreeRowDropdown({
   const location = useLocation();
   const organization = useOrganization();
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
-  const {onClick: handleCopy} = useCopyToClipboard({
-    text: content.value,
-  });
+  const {copy} = useCopyToClipboard();
   const {mutate: saveTag} = useMutateProject({organization, project});
   const [isVisible, setIsVisible] = useState(false);
   const originalTag = content.originalTag;
@@ -224,7 +222,8 @@ function EventTagsTreeRowDropdown({
     {
       key: 'copy-value',
       label: t('Copy tag value to clipboard'),
-      onAction: handleCopy,
+      onAction: () =>
+        copy(content.value, {successMessage: t('Tag value copied to clipboard.')}),
     },
     {
       key: 'add-to-highlights',

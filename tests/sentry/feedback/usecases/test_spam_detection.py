@@ -2,16 +2,8 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.feedback.usecases.spam_detection import is_spam_seer, make_input_prompt
+from sentry.feedback.usecases.spam_detection import is_spam_seer
 from tests.sentry.feedback import MockSeerResponse
-
-
-def test_make_input_prompt_case_insensitive() -> None:
-    msg = "Hello WorlD! vEjh3476@@$AB@!"
-    prompt1 = make_input_prompt(msg)
-    prompt2 = make_input_prompt(msg.lower())
-
-    assert prompt1 == prompt2
 
 
 @pytest.mark.parametrize("response_is_spam", [True, False])

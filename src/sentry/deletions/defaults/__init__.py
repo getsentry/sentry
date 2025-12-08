@@ -11,10 +11,11 @@ from .discoversavedquery import *  # noqa: F401,F403
 from .file import *  # noqa: F401,F403
 from .group import *  # noqa: F401,F403
 from .grouphash import *  # noqa: F401,F403
-from .grouphistory import *  # noqa: F401,F403
 from .incident import *  # noqa: F401,F403
 from .monitor import *  # noqa: F401,F403
+from .monitor_checkin import *  # noqa: F401,F403
 from .monitor_environment import *  # noqa: F401,F403
+from .monitor_incident import *  # noqa: F401,F403
 from .organization import *  # noqa: F401,F403
 from .organizationintegration import *  # noqa: F401,F403
 from .organizationmember import *  # noqa: F401,F403

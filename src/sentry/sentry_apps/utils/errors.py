@@ -47,6 +47,9 @@ class SentryAppBaseError(Exception):
             response.update({"context": public_context})
         return Response(response, status=self.status_code)
 
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}: message={self.message} status_code={self.status_code} error_type={self.error_type}"
+
 
 # Represents a user/client error that occured during a Sentry App process
 class SentryAppError(SentryAppBaseError):

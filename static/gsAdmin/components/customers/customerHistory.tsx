@@ -32,7 +32,7 @@ function CustomerHistory({orgId, ...props}: Props) {
       columns={[
         <th key="period">Period</th>,
         <th key="onDemand" style={{width: 200, textAlign: 'right'}}>
-          On-Demand
+          Pay-as-you-go
         </th>,
         <th key="reserved" style={{width: 200, textAlign: 'right'}}>
           Reserved

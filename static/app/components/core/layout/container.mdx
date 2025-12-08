@@ -10,9 +10,9 @@ resources:
 import {Container, Flex} from 'sentry/components/core/layout';
 import * as Storybook from 'sentry/stories';
 
-import APIReference from '!!type-loader!sentry/components/core/layout/container';
+import documentation from '!!type-loader!@sentry/scraps/layout/container';
 
-export const types = {Container: APIReference.Container};
+export {documentation};
 
 The `Container` component is a foundational layout component that extends HTML elements with responsive CSS properties through props. It serves as the building block for other layout components like `Flex` and `Grid` to provides a consistent API for spacing, sizing, positioning, and styling.
 

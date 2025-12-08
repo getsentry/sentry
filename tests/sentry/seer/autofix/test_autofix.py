@@ -62,9 +62,10 @@ class TestConvertProfileToExecutionTree(TestCase):
             }
         }
 
-        execution_tree = _convert_profile_to_execution_tree(profile_data)
+        execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
 
-        # Should only include in_app frames from MainThread
+        # Should only include in_app frames from the selected thread (MainThread in this case)
+        assert selected_thread_id == "1"
         assert len(execution_tree) == 1  # One root node
         root = execution_tree[0]
         assert root["function"] == "main"
@@ -81,7 +82,7 @@ class TestConvertProfileToExecutionTree(TestCase):
         assert len(child["children"]) == 0  # No children for the last in_app frame
 
     def test_convert_profile_to_execution_tree_non_main_thread(self) -> None:
-        """Test that non-MainThread samples are excluded from execution tree"""
+        """Test that the thread with in_app frames is selected (even if not MainThread)"""
         profile_data = {
             "profile": {
                 "frames": [
@@ -99,10 +100,13 @@ class TestConvertProfileToExecutionTree(TestCase):
             }
         }
 
-        execution_tree = _convert_profile_to_execution_tree(profile_data)
+        execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
 
-        # Should be empty since no MainThread samples
-        assert len(execution_tree) == 0
+        # Should include the worker thread since it has in_app frames
+        assert selected_thread_id == "2"
+        assert len(execution_tree) == 1
+        assert execution_tree[0]["function"] == "worker"
+        assert execution_tree[0]["filename"] == "worker.py"
 
     def test_convert_profile_to_execution_tree_merges_duplicate_frames(self) -> None:
         """Test that duplicate frames in different samples are merged correctly"""
@@ -126,9 +130,10 @@ class TestConvertProfileToExecutionTree(TestCase):
             }
         }
 
-        execution_tree = _convert_profile_to_execution_tree(profile_data)
+        execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
 
         # Should only have one node even though frame appears in multiple samples
+        assert selected_thread_id == "1"
         assert len(execution_tree) == 1
         assert execution_tree[0]["function"] == "main"
 
@@ -199,9 +204,10 @@ class TestConvertProfileToExecutionTree(TestCase):
             }
         }
 
-        execution_tree = _convert_profile_to_execution_tree(profile_data)
+        execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
 
         # Should have one root node (main)
+        assert selected_thread_id == "1"
         assert len(execution_tree) == 1
         root = execution_tree[0]
         assert root["function"] == "main"
@@ -267,9 +273,10 @@ class TestConvertProfileToExecutionTree(TestCase):
             }
         }
 
-        execution_tree = _convert_profile_to_execution_tree(profile_data)
+        execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
 
         # Should have one root node (main)
+        assert selected_thread_id == "1"
         assert len(execution_tree) == 1
         root = execution_tree[0]
         assert root["function"] == "main"
@@ -939,7 +946,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         response = trigger_autofix(group=group, user=user, instruction="Test instruction")
         assert response.status_code == 202
-        mock_record_seer_run.assert_not_called()
+        mock_record_seer_run.assert_called_once()
 
 
 @requires_snuba
@@ -1233,6 +1240,160 @@ class TestGetGithubUsernameForUser(TestCase):
 
         username = _get_github_username_for_user(user, organization.id)
         assert username == "newuser"
+
+    def test_get_github_username_for_user_from_commit_author(self) -> None:
+        """Tests getting GitHub username from CommitAuthor when ExternalActor doesn't exist."""
+        from sentry.models.commitauthor import CommitAuthor
+
+        user = self.create_user(email="committer@example.com")
+        organization = self.create_organization()
+        self.create_member(user=user, organization=organization)
+
+        # Create CommitAuthor with GitHub external_id
+        CommitAuthor.objects.create(
+            organization_id=organization.id,
+            name="Test Committer",
+            email="committer@example.com",
+            external_id="github:githubuser",
+        )
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "githubuser"
+
+    def test_get_github_username_for_user_from_commit_author_github_enterprise(self) -> None:
+        """Tests getting GitHub Enterprise username from CommitAuthor."""
+        from sentry.models.commitauthor import CommitAuthor
+
+        user = self.create_user(email="committer@company.com")
+        organization = self.create_organization()
+        self.create_member(user=user, organization=organization)
+
+        # Create CommitAuthor with GitHub Enterprise external_id
+        CommitAuthor.objects.create(
+            organization_id=organization.id,
+            name="Enterprise User",
+            email="committer@company.com",
+            external_id="github_enterprise:ghuser",
+        )
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "ghuser"
+
+    def test_get_github_username_for_user_external_actor_priority(self) -> None:
+        """Tests that ExternalActor is checked before CommitAuthor."""
+        from sentry.integrations.models.external_actor import ExternalActor
+        from sentry.integrations.types import ExternalProviders
+        from sentry.models.commitauthor import CommitAuthor
+
+        user = self.create_user(email="committer@example.com")
+        organization = self.create_organization()
+        self.create_member(user=user, organization=organization)
+
+        # Create both ExternalActor and CommitAuthor
+        ExternalActor.objects.create(
+            user_id=user.id,
+            organization=organization,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@externaluser",
+            external_id="ext123",
+            integration_id=7,
+        )
+
+        CommitAuthor.objects.create(
+            organization_id=organization.id,
+            name="Commit User",
+            email="committer@example.com",
+            external_id="github:commituser",
+        )
+
+        # Should use ExternalActor (higher priority)
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "externaluser"
+
+    def test_get_github_username_for_user_commit_author_no_external_id(self) -> None:
+        """Tests that None is returned when CommitAuthor exists but has no external_id."""
+        from sentry.models.commitauthor import CommitAuthor
+
+        user = self.create_user(email="committer@example.com")
+        organization = self.create_organization()
+        self.create_member(user=user, organization=organization)
+
+        # Create CommitAuthor without external_id
+        CommitAuthor.objects.create(
+            organization_id=organization.id,
+            name="No External ID",
+            email="committer@example.com",
+            external_id=None,
+        )
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username is None
+
+    def test_get_github_username_for_user_wrong_organization(self) -> None:
+        """Tests that CommitAuthor from different organization is not used."""
+        from sentry.models.commitauthor import CommitAuthor
+
+        user = self.create_user(email="committer@example.com")
+        organization1 = self.create_organization()
+        organization2 = self.create_organization()
+        self.create_member(user=user, organization=organization1)
+
+        # Create CommitAuthor in different organization
+        CommitAuthor.objects.create(
+            organization_id=organization2.id,
+            name="Wrong Org User",
+            email="committer@example.com",
+            external_id="github:wrongorguser",
+        )
+
+        username = _get_github_username_for_user(user, organization1.id)
+        assert username is None
+
+    def test_get_github_username_for_user_unverified_email_not_matched(self) -> None:
+        """Tests that unverified emails don't match CommitAuthor (security requirement)."""
+        from sentry.models.commitauthor import CommitAuthor
+
+        user = self.create_user(email="verified@example.com")
+        organization = self.create_organization()
+        self.create_member(user=user, organization=organization)
+
+        # Add an unverified email to the user
+        self.create_useremail(user=user, email="unverified@example.com", is_verified=False)
+
+        # Create CommitAuthor that matches the UNVERIFIED email
+        CommitAuthor.objects.create(
+            organization_id=organization.id,
+            name="unverified",
+            email="unverified@example.com",
+            external_id="github:unverified",
+        )
+
+        # Should NOT match the unverified email (security fix)
+        username = _get_github_username_for_user(user, organization.id)
+        assert username is None
+
+    def test_get_github_username_for_user_verified_secondary_email_matched(self) -> None:
+        """Tests that verified secondary emails DO match CommitAuthor."""
+        from sentry.models.commitauthor import CommitAuthor
+
+        user = self.create_user(email="primary@example.com")
+        organization = self.create_organization()
+        self.create_member(user=user, organization=organization)
+
+        # Add a verified secondary email
+        self.create_useremail(user=user, email="secondary@example.com", is_verified=True)
+
+        # Create CommitAuthor that matches the verified secondary email
+        CommitAuthor.objects.create(
+            organization_id=organization.id,
+            name="Developer",
+            email="secondary@example.com",
+            external_id="github:developeruser",
+        )
+
+        # Should match the verified secondary email
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "developeruser"
 
 
 class TestRespondWithError(TestCase):

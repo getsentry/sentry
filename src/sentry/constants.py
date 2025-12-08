@@ -7,7 +7,7 @@ import logging
 import os.path
 from collections import namedtuple
 from collections.abc import Sequence
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import cast
 
@@ -122,6 +122,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "corp",
         "customers",
         "de",
+        "de2",
         "debug",
         "devinfra",
         "docs",
@@ -213,6 +214,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "themonitor",
         "trust",
         "us",
+        "us2",
         "vs",
         "welcome",
         "www",
@@ -665,7 +667,6 @@ class InsightModules(Enum):
     VITAL = "vital"
     CACHE = "cache"
     QUEUE = "queue"
-    LLM_MONITORING = "llm_monitoring"
     AGENTS = "agents"
     MCP = "mcp"
 
@@ -705,8 +706,8 @@ REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
 JOIN_REQUESTS_DEFAULT = True
 HIDE_AI_FEATURES_DEFAULT = False
-GITHUB_COMMENT_BOT_DEFAULT = True
-GITLAB_COMMENT_BOT_DEFAULT = True
+GITHUB_COMMENT_BOT_DEFAULT = False
+GITLAB_COMMENT_BOT_DEFAULT = False
 ISSUE_ALERTS_THREAD_DEFAULT = True
 METRIC_ALERTS_THREAD_DEFAULT = True
 DATA_CONSENT_DEFAULT = False
@@ -718,6 +719,8 @@ DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT = AutofixAutomationTuningSettings.OFF
 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = True
 ENABLE_SEER_ENHANCED_ALERTS_DEFAULT = True
 ENABLE_SEER_CODING_DEFAULT = True
+# Org level Seer UI will use this to set default for automated_run_stopping_point in project preferences
+AUTO_OPEN_PRS_DEFAULT = False
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
 ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = False
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"
@@ -1050,3 +1053,7 @@ EXTENSION_LANGUAGE_MAP = {
     "dsr": "visual basic 6.0",
     "frm": "visual basic 6.0",
 }
+
+# After this date APIs that are incompatible with cell routing
+# will begin periodic brownouts.
+CELL_API_DEPRECATION_DATE = datetime(2025, 5, 15, 0, 0, 0, tzinfo=UTC)

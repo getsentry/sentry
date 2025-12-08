@@ -8,10 +8,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type CommonParams = {
   cursor?: string;
-  end?: string;
+  end?: string | null;
   limit?: number;
-  start?: string;
-  statsPeriod?: string;
+  start?: string | null;
+  statsPeriod?: string | null;
 };
 
 type UseOpenPeriodsParams =

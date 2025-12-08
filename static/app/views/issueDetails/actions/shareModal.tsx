@@ -37,10 +37,9 @@ interface ShareIssueModalProps extends ModalRenderProps {
 
 type UrlRef = React.ElementRef<typeof AutoSelectText>;
 
-export function getShareUrl(group: Group) {
-  const path = `/share/issue/${group.shareId}/`;
-  const {host, protocol} = window.location;
-  return `${protocol}//${host}${path}`;
+export function getShareUrl(organization: Organization, group: Group) {
+  const path = `/organizations/${organization.slug}/share/issue/${group.shareId}/`;
+  return `${window.location.origin}${normalizeUrl(path)}`;
 }
 
 export default function ShareIssueModal({
@@ -80,17 +79,19 @@ export default function ShareIssueModal({
 
   const markdownLink = `[${group?.shortId}](${issueUrl})`;
 
-  const {onClick: handleCopyIssueLink} = useCopyToClipboard({
-    text: issueUrl,
-    successMessage: t('Copied Issue Link to clipboard'),
-    onCopy: closeModal,
-  });
+  const {copy} = useCopyToClipboard();
 
-  const {onClick: handleCopyMarkdownLink} = useCopyToClipboard({
-    text: markdownLink,
-    successMessage: t('Copied Markdown link to clipboard'),
-    onCopy: closeModal,
-  });
+  const handleCopyIssueLink = useCallback(() => {
+    copy(issueUrl, {successMessage: t('Copied Issue Link to clipboard')}).then(
+      closeModal
+    );
+  }, [copy, issueUrl, closeModal]);
+
+  const handleCopyMarkdownLink = useCallback(() => {
+    copy(markdownLink, {successMessage: t('Copied Markdown link to clipboard')}).then(
+      closeModal
+    );
+  }, [copy, markdownLink, closeModal]);
 
   const handlePublicShare = useCallback(
     (e: React.ChangeEvent<HTMLInputElement> | null, reshare?: boolean) => {
@@ -120,12 +121,7 @@ export default function ShareIssueModal({
     [api, setLoading, onToggle, isPublished, organization.slug, projectSlug, groupId]
   );
 
-  const shareUrl = group?.shareId ? getShareUrl(group) : null;
-
-  const {onClick: handleCopy} = useCopyToClipboard({
-    text: shareUrl!,
-    onCopy: closeModal,
-  });
+  const shareUrl = group?.shareId ? getShareUrl(organization, group) : null;
 
   return (
     <Fragment>
@@ -230,7 +226,12 @@ export default function ShareIssueModal({
                     <Button
                       size="sm"
                       priority="primary"
-                      onClick={handleCopy}
+                      disabled={!shareUrl}
+                      onClick={() =>
+                        copy(shareUrl, {
+                          successMessage: t('Copied public link to clipboard'),
+                        }).then(closeModal)
+                      }
                       analyticsEventKey="issue_details.publish_issue_modal.copy_link"
                       analyticsEventName="Issue Details: Publish Issue Modal Copy Link"
                       analyticsParams={{

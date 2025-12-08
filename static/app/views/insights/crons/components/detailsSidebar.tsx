@@ -34,14 +34,16 @@ interface Props {
 
 export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) {
   const {checkin_margin, schedule, schedule_type, max_runtime, timezone} = monitor.config;
-  const {onClick, label} = useCopyToClipboard({text: monitor.slug});
+  const {copy} = useCopyToClipboard();
   const openDocsPanel = useDocsPanel(monitor);
 
   const hasCheckIns = monitor.environments.some(e => e.lastCheckIn);
 
   const slug = (
-    <Tooltip title={label}>
-      <MonitorSlug onClick={onClick}>
+    <Tooltip title={t('Copy monitor slug to clipboard')}>
+      <MonitorSlug
+        onClick={() => copy(monitor.slug, {successMessage: 'Copied to clipboard'})}
+      >
         <SlugText>{monitor.slug}</SlugText>
         <IconCopy size="xs" />
       </MonitorSlug>

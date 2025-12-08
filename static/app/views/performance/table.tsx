@@ -528,14 +528,12 @@ class _Table extends Component<Props, State> {
       if (teamKeyTransactionColumn) {
         if (isHeader) {
           const star = (
-            <TeamKeyTransactionWrapper>
-              <IconStar
-                key="keyTransaction"
-                color="yellow300"
-                isSolid
-                data-test-id="team-key-transaction-header"
-              />
-            </TeamKeyTransactionWrapper>
+            <IconStar
+              key="keyTransaction"
+              color="yellow300"
+              isSolid
+              data-test-id="team-key-transaction-header"
+            />
           );
           return [
             this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, {title: star}),
@@ -671,12 +669,6 @@ function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: st
     />
   );
 }
-
-// Align the contained IconStar with the IconStar buttons in individual table
-// rows, which have 2px padding + 1px border.
-const TeamKeyTransactionWrapper = styled('div')`
-  padding: 3px;
-`;
 
 const UnparameterizedTooltipWrapper = styled('div')`
   display: flex;

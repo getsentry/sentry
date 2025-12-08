@@ -33,6 +33,7 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
       align="center"
       gap="md"
       columns={`24px auto auto auto 1fr ${metricQueries.length > 1 ? '40px' : '0'}`}
+      data-test-id="metric-toolbar"
     >
       <VisualizeLabel
         index={queryIndex}
@@ -40,8 +41,8 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
         onClick={toggleVisibility}
       />
       <MetricSelector traceMetric={traceMetric} />
-      <AggregateDropdown type={traceMetric.type} />
-      <GroupBySelector metricName={traceMetric.name} />
+      <AggregateDropdown traceMetric={traceMetric} />
+      <GroupBySelector traceMetric={traceMetric} />
       <Filter traceMetric={traceMetric} />
       {metricQueries.length > 1 && <DeleteMetricButton />}
     </Grid>

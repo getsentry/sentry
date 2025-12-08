@@ -55,7 +55,7 @@ export function DebugNotificationsExample({
           Body
         </Text>
         {displayFormat === ExampleDataFormat.FORMATTED ? (
-          <Text>{registration.example.body}</Text>
+          <Text>{JSON.stringify(registration.example.body)}</Text>
         ) : (
           <CodeBlock language="javascript">
             {JSON.stringify(registration.example.body)}

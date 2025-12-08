@@ -195,9 +195,6 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
                     ),
                 ),
             ),
-        ]
-
-        columns.append(
             Column(
                 label="avg_duration_us",
                 aggregation=AttributeAggregation(
@@ -205,8 +202,8 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
                     key=AttributeKey(name="check_duration_us", type=AttributeKey.Type.TYPE_INT),
                     label="avg(check_duration_us)",
                 ),
-            )
-        )
+            ),
+        ]
 
         request = TraceItemTableRequest(
             meta=RequestMeta(

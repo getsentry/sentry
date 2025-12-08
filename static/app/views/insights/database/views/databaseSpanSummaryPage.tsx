@@ -4,10 +4,12 @@ import styled from '@emotion/styled';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useParams} from 'sentry/utils/useParams';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import InsightIssuesList from 'sentry/views/insights/common/components/issues';
@@ -32,6 +34,8 @@ import {
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
 import {isAValidSort} from 'sentry/views/insights/database/components/tables/queriesTable';
 import {QueryTransactionsTable} from 'sentry/views/insights/database/components/tables/queryTransactionsTable';
+import useHasDashboardsPlatformizedQueries from 'sentry/views/insights/database/utils/useHasDashboardsPlatformaizedQueries';
+import {PlatformizedQuerySummaryPage} from 'sentry/views/insights/database/views/platformizedSummaryPage';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import type {SpanQueryFilters} from 'sentry/views/insights/types';
 import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
@@ -266,8 +270,21 @@ const DescriptionContainer = styled(ModuleLayout.Full)`
 `;
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
+  const hasDashboardsPlatformizedQueries = useHasDashboardsPlatformizedQueries();
+  if (hasDashboardsPlatformizedQueries) {
+    return <PlatformizedQuerySummaryPage />;
+  }
+
   return (
-    <ModulePageProviders moduleName="db" pageTitle={t('Query Summary')}>
+    <ModulePageProviders
+      moduleName="db"
+      pageTitle={t('Query Summary')}
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <DatabaseSpanSummaryPage />
     </ModulePageProviders>
   );

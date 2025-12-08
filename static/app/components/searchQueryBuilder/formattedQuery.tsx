@@ -1,6 +1,9 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -54,17 +57,13 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
 
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   const {getFieldDefinition} = useSearchQueryBuilder();
-  const hasWildcardOperators = useOrganization().features.includes(
-    'search-query-builder-wildcard-operators'
-  );
   const label = useMemo(
     () =>
       getOperatorInfo({
         filterToken: token,
-        hasWildcardOperators,
         fieldDefinition: getFieldDefinition(token.key.text),
       }).label,
-    [hasWildcardOperators, token, getFieldDefinition]
+    [token, getFieldDefinition]
   );
 
   return (
@@ -74,6 +73,27 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
         <FilterValueText token={token} />
       </FilterValue>
     </FilterWrapper>
+  );
+}
+
+function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
+  const hasConditionalsSelect = useOrganization().features.includes(
+    'search-query-builder-add-boolean-operator-select'
+  );
+
+  if (hasConditionalsSelect) {
+    const label = token.text.toUpperCase();
+    return (
+      <FilterWrapper aria-label={label}>
+        <Text variant="muted">{label}</Text>
+      </FilterWrapper>
+    );
+  }
+
+  return (
+    <Flex align="center">
+      <Text variant="muted">{token.text}</Text>
+    </Flex>
   );
 }
 
@@ -89,12 +109,12 @@ function QueryToken({token}: TokenProps) {
     case Token.L_PAREN:
     case Token.R_PAREN:
       return (
-        <Boolean>
+        <Paren>
           <SearchQueryBuilderParenIcon token={token} />
-        </Boolean>
+        </Paren>
       );
     case Token.LOGIC_BOOLEAN:
-      return <Boolean>{token.text}</Boolean>;
+      return <Boolean token={token} />;
     default:
       return null;
   }
@@ -197,7 +217,7 @@ const FilterValue = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
-const Boolean = styled('div')`
+const Paren = styled('div')`
   display: flex;
   align-items: center;
   color: ${p => p.theme.subText};

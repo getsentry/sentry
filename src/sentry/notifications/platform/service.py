@@ -21,7 +21,8 @@ from sentry.notifications.platform.types import (
     NotificationTarget,
     NotificationTemplate,
 )
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import notifications_tasks
@@ -39,8 +40,12 @@ class NotificationService[T: NotificationData]:
         self.data: Final[T] = data
 
     @staticmethod
-    def has_access(organization: Organization, source: str) -> bool:
+    def has_access(organization: Organization | RpcOrganization, source: str) -> bool:
         if not features.has("organizations:notification-platform", organization):
+            logger.info(
+                "notification.platform.has_access.feature_flag_disabled",
+                extra={"organization_id": organization.id, "source": source},
+            )
             return False
 
         option_key = f"notifications.platform-rate.{source}"
@@ -92,9 +97,13 @@ class NotificationService[T: NotificationData]:
             # Step 3: Send the notification
             try:
                 provider.send(target=target, renderable=renderable)
-            except Exception as e:
-                lifecycle.record_failure(failure_reason=e, create_issue=False)
+            except IntegrationConfigurationError as e:
+                lifecycle.record_halt(halt_reason=e, create_issue=False)
                 raise
+            except Exception as e:
+                lifecycle.record_failure(failure_reason=e, create_issue=True)
+                raise
+
             return None
 
     @classmethod
@@ -140,8 +149,8 @@ class NotificationService[T: NotificationData]:
         for target in targets:
             try:
                 self.notify_target(target=target)
-            except ApiError as e:
-                errors[target.provider_key].append(e.text)
+            except IntegrationConfigurationError as e:
+                errors[target.provider_key].append(str(e))
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 
@@ -202,6 +211,7 @@ def notify_target_async[T: NotificationData](
         serialized_target = NotificationTargetDto.from_dict(nested_target)
         target = serialized_target.target
         lifecycle_metric.notification_provider = target.provider_key
+        lifecycle.add_extras({"source": data.source, "target": target.to_dict()})
 
         # Step 2: Get the provider, and validate the target against it
         provider = provider_registry.get(target.provider_key)
@@ -218,5 +228,7 @@ def notify_target_async[T: NotificationData](
         # Step 4: Send the notification
         try:
             provider.send(target=target, renderable=renderable)
+        except IntegrationConfigurationError as e:
+            lifecycle.record_halt(halt_reason=e, create_issue=False)
         except Exception as e:
-            lifecycle.record_failure(failure_reason=e, create_issue=False)
+            lifecycle.record_failure(failure_reason=e, create_issue=True)

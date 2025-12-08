@@ -6,7 +6,7 @@ import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget'
 import {
   InvoicedSubscriptionFixture,
   SubscriptionFixture,
-  SubscriptionWithSeerFixture,
+  SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {
   render,
@@ -190,20 +190,18 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('Total: $0.00 / $3,000,000.00')).toBeInTheDocument();
 
     // CPE information
-    expect(screen.getByText('Pay-as-you-go Cost-Per-Event Errors:')).toBeInTheDocument();
+    expect(screen.getByText('On-Demand Cost-Per-Event Errors:')).toBeInTheDocument();
     expect(screen.getByText('$0.12345678')).toBeInTheDocument();
     expect(
-      screen.getByText('Pay-as-you-go Cost-Per-Event Performance units:')
+      screen.getByText('On-Demand Cost-Per-Event Performance units:')
     ).toBeInTheDocument();
     expect(screen.getByText('$1.00000000')).toBeInTheDocument();
-    expect(screen.getByText('Pay-as-you-go Cost-Per-Event Replays:')).toBeInTheDocument();
+    expect(screen.getByText('On-Demand Cost-Per-Event Replays:')).toBeInTheDocument();
     expect(screen.getByText('$0.50000000')).toBeInTheDocument();
-    expect(
-      screen.getByText('Pay-as-you-go Cost-Per-Event Attachments:')
-    ).toBeInTheDocument();
+    expect(screen.getByText('On-Demand Cost-Per-Event Attachments:')).toBeInTheDocument();
     expect(screen.getByText('$0.20300000')).toBeInTheDocument();
     expect(
-      screen.getByText('Pay-as-you-go Cost-Per-Event Cron monitors:')
+      screen.getByText('On-Demand Cost-Per-Event Cron monitors:')
     ).toBeInTheDocument();
     expect(screen.getByText('$0.07550000')).toBeInTheDocument();
   });
@@ -309,7 +307,7 @@ describe('CustomerOverview', () => {
 
   it('renders reserved budget data', () => {
     const organization = OrganizationFixture();
-    const subscription = SubscriptionWithSeerFixture({organization});
+    const subscription = SubscriptionWithLegacySeerFixture({organization});
     subscription.reservedBudgets = [
       SeerReservedBudgetFixture({
         totalReservedSpend: 20_00,
@@ -644,6 +642,7 @@ describe('CustomerOverview', () => {
     const organization = OrganizationFixture({});
     const subscription = SubscriptionFixture({
       organization,
+      plan: 'am3_f',
     });
 
     subscription.planDetails = {
@@ -692,5 +691,67 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('13579')).toBeInTheDocument();
     expect(screen.getByText('null')).toBeInTheDocument();
     expect(screen.queryByText('36925')).not.toBeInTheDocument();
+  });
+
+  it('renders org retention', () => {
+    const organization = OrganizationFixture({});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      orgRetention: {standard: 1234567, downsampled: null},
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('1234567 days')).toBeInTheDocument();
+  });
+
+  it('renders errors retention default', () => {
+    const organization = OrganizationFixture({});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      orgRetention: {standard: null, downsampled: null},
+      categories: {
+        errors: MetricHistoryFixture({
+          retention: {standard: 987, downsampled: null},
+        }),
+      },
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('987 days')).toBeInTheDocument();
+  });
+
+  it('renders org retention default', () => {
+    const organization = OrganizationFixture({});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      orgRetention: {standard: null, downsampled: null},
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('90 days')).toBeInTheDocument();
   });
 });

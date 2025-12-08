@@ -116,45 +116,6 @@ describe('OnDemandBudgets', () => {
     expect(await screen.findByText('Stripe')).toBeInTheDocument();
   });
 
-  it('allows VC partner accounts to set up on-demand budget without credit card', () => {
-    const subscription = SubscriptionFixture({
-      plan: 'am3_business',
-      planTier: PlanTier.AM3,
-      isFree: false,
-      isTrial: false,
-      supportsOnDemand: true,
-      organization,
-      partner: {
-        externalId: 'x123x',
-        name: 'VC Org',
-        partnership: {
-          id: 'VC',
-          displayName: 'VC',
-          supportNote: '',
-        },
-        isActive: true,
-      },
-      onDemandBudgets: {
-        enabled: false,
-        budgetMode: OnDemandBudgetMode.SHARED,
-        sharedMaxBudget: 0,
-        onDemandSpendUsed: 0,
-      },
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const isVCPartner = subscription.partner?.partnership?.id === 'VC';
-    createWrapper({
-      subscription,
-      onDemandEnabled: true,
-      hasPaymentSource: isVCPartner,
-    });
-
-    // Should show Set Up Pay-as-you-go button instead of Add Credit Card
-    expect(screen.getByText('Set Up Pay-as-you-go')).toBeInTheDocument();
-    expect(screen.queryByText('Add Credit Card')).not.toBeInTheDocument();
-  });
-
   it('renders initial on-demand budget setup state', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',

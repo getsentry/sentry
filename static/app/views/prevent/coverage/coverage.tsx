@@ -123,7 +123,7 @@ const LayoutGap = styled('div')`
 //         <Prereq>
 //           <PrereqMainText>{t('Install the GitHub Sentry App')}</PrereqMainText>
 //           <PrereqSubText>
-//             <Link to="https://github.com/apps/sentry-io">{t('Install the app')}</Link>
+//             <Link to="https://github.com/apps/sentry">{t('Install the app')}</Link>
 //             {t(
 //               " on your GitHub org in your Sentry org. You will need to be an Owner of your GitHub organization to fully configure the integration. Note: Once linked, a GitHub org/account can't be connected to another Sentry org."
 //             )}

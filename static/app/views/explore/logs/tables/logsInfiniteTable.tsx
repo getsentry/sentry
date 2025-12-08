@@ -1,4 +1,4 @@
-import type {CSSProperties} from 'react';
+import type {CSSProperties, RefObject} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -17,6 +17,7 @@ import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {
@@ -30,7 +31,7 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LOGS_INSTRUCTIONS_URL,
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
@@ -51,12 +52,15 @@ import {
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {
+  createPseudoLogResponseItem,
   getDynamicLogsNextFetchThreshold,
   getLogBodySearchTerms,
   getLogRowTimestampMillis,
   getTableHeaderLabel,
+  isRegularLogResponseItem,
   logsFieldAlignment,
   quantizeTimestampToMinutes,
+  type LogTableRowItem,
 } from 'sentry/views/explore/logs/utils';
 import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/logsReplayUtils';
 import {
@@ -68,6 +72,10 @@ import {
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
 type LogsTableProps = {
+  additionalData?: {
+    event?: Event;
+    scrollToDisabled?: boolean;
+  };
   allowPagination?: boolean;
   embedded?: boolean;
   embeddedOptions?: {
@@ -100,15 +108,14 @@ export function LogsInfiniteTable({
   scrollContainer,
   embeddedStyling,
   embeddedOptions,
+  additionalData,
 }: LogsTableProps) {
   const theme = useTheme();
   const fields = useQueryParamsFields();
   const search = useQueryParamsSearch();
   const autoRefresh = useLogsAutoRefreshEnabled();
-  const {infiniteLogsQueryResult} = useLogsPageData();
   const lastFetchTime = useRef<number | null>(null);
   const {
-    bytesScanned,
     isPending,
     isEmpty,
     meta,
@@ -120,18 +127,66 @@ export function LogsInfiniteTable({
     isFetchingPreviousPage,
     lastPageLength,
     isRefetching,
-  } = infiniteLogsQueryResult;
+    bytesScanned,
+    canResumeAutoFetch,
+    resumeAutoFetch,
+  } = useLogsPageDataQueryResult();
 
-  // Use filtered items if provided, otherwise use original data
-  const data = localOnlyItemFilters?.filteredItems ?? originalData;
+  const baseData = localOnlyItemFilters?.filteredItems ?? originalData;
+  const baseDataLength = useBox(baseData.length);
+
+  const pseudoRowIndex = useMemo(() => {
+    if (
+      !additionalData?.event ||
+      !baseData ||
+      baseData.length === 0 ||
+      isPending ||
+      isError
+    ) {
+      return -1;
+    }
+    const event = additionalData.event;
+    const eventTimestamp = new Date(event.dateCreated || new Date()).getTime();
+    const index = baseData.findIndex(
+      row =>
+        isRegularLogResponseItem(row) && getLogRowTimestampMillis(row) < eventTimestamp
+    );
+    return index === -1 ? -2 : index; // If the event is older than all the data, add it to the end with a sentinel value of -2. This causes the useEffect to not continously add it.
+  }, [additionalData, baseData, isPending, isError]);
+
+  const data: LogTableRowItem[] = useMemo(() => {
+    if (
+      !additionalData?.event ||
+      !baseData ||
+      baseData.length === 0 ||
+      isPending ||
+      isError ||
+      pseudoRowIndex === -1
+    ) {
+      return baseData || [];
+    }
+
+    const newData: LogTableRowItem[] = [...baseData];
+    const newSelectedIndex =
+      pseudoRowIndex === -2 ? baseDataLength.current : pseudoRowIndex;
+    newData.splice(
+      newSelectedIndex,
+      0,
+      createPseudoLogResponseItem(
+        additionalData.event,
+        additionalData.event.projectID || ''
+      )
+    );
+    return newData;
+  }, [baseData, additionalData, isPending, isError, pseudoRowIndex, baseDataLength]);
 
   // Calculate quantized start and end times for replay links
   const {logStart, logEnd} = useMemo(() => {
-    if (!data || data.length === 0) {
+    if (!baseData || baseData.length === 0) {
       return {logStart: undefined, logEnd: undefined};
     }
 
-    const timestamps = data.map(row => getLogRowTimestampMillis(row)).filter(Boolean);
+    const timestamps = baseData.map(row => getLogRowTimestampMillis(row)).filter(Boolean);
     if (timestamps.length === 0) {
       return {logStart: undefined, logEnd: undefined};
     }
@@ -149,7 +204,7 @@ export function LogsInfiniteTable({
       logStart: new Date(quantizedStart).toISOString(),
       logEnd: new Date(quantizedEnd).toISOString(),
     };
-  }, [data]);
+  }, [baseData]);
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
@@ -227,6 +282,29 @@ export function LogsInfiniteTable({
     },
     [virtualizer]
   );
+
+  useEffect(() => {
+    if (
+      pseudoRowIndex !== -1 &&
+      scrollContainer?.current &&
+      !additionalData?.scrollToDisabled
+    ) {
+      setTimeout(() => {
+        const scrollToIndex =
+          pseudoRowIndex === -2 ? baseDataLength.current : pseudoRowIndex;
+        containerVirtualizer.scrollToIndex(scrollToIndex, {
+          behavior: 'smooth',
+          align: 'center',
+        });
+      }, 100);
+    }
+  }, [
+    pseudoRowIndex,
+    containerVirtualizer,
+    scrollContainer,
+    baseDataLength,
+    additionalData?.scrollToDisabled,
+  ]);
 
   const hasReplay = !!embeddedOptions?.replay;
 
@@ -390,7 +468,17 @@ export function LogsInfiniteTable({
           {/* Only render these in table for non-replay contexts */}
           {!hasReplay && isPending && <LoadingRenderer bytesScanned={bytesScanned} />}
           {!hasReplay && isError && <ErrorRenderer />}
-          {!hasReplay && isEmpty && (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
+          {!hasReplay &&
+            isEmpty &&
+            (emptyRenderer ? (
+              emptyRenderer()
+            ) : (
+              <EmptyRenderer
+                bytesScanned={bytesScanned}
+                canResumeAutoFetch={canResumeAutoFetch}
+                resumeAutoFetch={resumeAutoFetch}
+              />
+            ))}
           {!autoRefresh && !isPending && isFetchingPreviousPage && (
             <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
           )}
@@ -476,9 +564,7 @@ function LogsTableHeader({
   const sortBys = useQueryParamsSortBys();
   const setSortBys = useSetQueryParamsSortBys();
 
-  const {infiniteLogsQueryResult} = useLogsPageData();
-
-  const {data, meta, isError, isPending} = infiniteLogsQueryResult;
+  const {data, meta, isError, isPending} = useLogsPageDataQueryResult();
   return (
     <TableHead>
       <LogTableRow>
@@ -546,7 +632,43 @@ function LogsTableHeader({
   );
 }
 
-function EmptyRenderer() {
+function EmptyRenderer({
+  bytesScanned,
+  canResumeAutoFetch,
+  resumeAutoFetch,
+}: {
+  bytesScanned?: number;
+  canResumeAutoFetch?: boolean;
+  resumeAutoFetch?: () => void;
+}) {
+  if (bytesScanned && canResumeAutoFetch && resumeAutoFetch) {
+    return (
+      <TableStatus>
+        <EmptyStateWarning withIcon>
+          <EmptyStateText size="xl">{t('No logs found yet')}</EmptyStateText>
+          <EmptyStateText size="md">
+            {tct(
+              'We scanned [bytesScanned] already but did not find any matching logs yet.[break]You can narrow your time range or you can [continueScanning].',
+              {
+                bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
+                break: <br />,
+                continueScanning: (
+                  <Button
+                    priority="link"
+                    onClick={resumeAutoFetch}
+                    aria-label={t('continue scanning')}
+                  >
+                    {t('Continue Scanning')}
+                  </Button>
+                ),
+              }
+            )}
+          </EmptyStateText>
+        </EmptyStateWarning>
+      </TableStatus>
+    );
+  }
+
   return (
     <TableStatus>
       <EmptyStateWarning withIcon>
@@ -576,7 +698,7 @@ function ErrorRenderer() {
   );
 }
 
-export function LoadingRenderer({bytesScanned}: {bytesScanned?: number | null}) {
+export function LoadingRenderer({bytesScanned}: {bytesScanned?: number}) {
   return (
     <TableStatus>
       <LoadingStateContainer>
@@ -666,4 +788,10 @@ function BackToTopButton({
       <IconArrow direction="up" size="md" />
     </Button>
   );
+}
+
+function useBox<T>(value: T): RefObject<T> {
+  const box = useRef(value);
+  box.current = value;
+  return box;
 }

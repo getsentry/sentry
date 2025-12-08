@@ -7,7 +7,6 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import type {Organization} from 'sentry/types/organization';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useSortByFields} from 'sentry/views/explore/hooks/useSortByFields';
@@ -22,11 +21,9 @@ function createWrapper(organization: Organization) {
     return (
       <QueryClientProvider client={makeTestQueryClient()}>
         <OrganizationContext value={organization}>
-          <PageParamsProvider>
-            <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-              {children}
-            </TraceItemAttributeProvider>
-          </PageParamsProvider>
+          <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+            {children}
+          </TraceItemAttributeProvider>
         </OrganizationContext>
       </QueryClientProvider>
     );

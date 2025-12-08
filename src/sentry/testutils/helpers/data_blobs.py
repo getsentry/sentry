@@ -761,7 +761,7 @@ EMAIL_ACTION_DATA_BLOBS: list[dict[str, Any]] = [
         "targetType": "IssueOwners",
         "id": "sentry.mail.actions.NotifyEmailAction",
         "targetIdentifier": "None",
-        "fallthroughType": "ActiveMembers",
+        "fallthrough_type": "ActiveMembers",
         "uuid": "2e8847d7-8fe4-44d2-8a16-e25040329790",
     },
     # NoOne Fallthrough (targetIdentifier is "")
@@ -769,7 +769,7 @@ EMAIL_ACTION_DATA_BLOBS: list[dict[str, Any]] = [
         "targetType": "IssueOwners",
         "targetIdentifier": "",
         "id": "sentry.mail.actions.NotifyEmailAction",
-        "fallthroughType": "NoOne",
+        "fallthrough_type": "NoOne",
         "uuid": "fb039430-0848-4fc4-89b4-bc7689a9f851",
     },
     # AllMembers Fallthrough (targetIdentifier is None)
@@ -777,7 +777,7 @@ EMAIL_ACTION_DATA_BLOBS: list[dict[str, Any]] = [
         "targetType": "IssueOwners",
         "id": "sentry.mail.actions.NotifyEmailAction",
         "targetIdentifier": None,
-        "fallthroughType": "AllMembers",
+        "fallthrough_type": "AllMembers",
         "uuid": "41f13756-8f90-4afe-b162-55268c6e3cdb",
     },
     # NoOne Fallthrough (targetIdentifier is "None")
@@ -785,13 +785,13 @@ EMAIL_ACTION_DATA_BLOBS: list[dict[str, Any]] = [
         "targetType": "IssueOwners",
         "id": "sentry.mail.actions.NotifyEmailAction",
         "targetIdentifier": "None",
-        "fallthroughType": "NoOne",
+        "fallthrough_type": "NoOne",
         "uuid": "99c9b517-0a0f-47f0-b3ff-2a9cd2fd9c49",
     },
     # ActiveMembers Fallthrough
     {
         "targetType": "Member",
-        "fallthroughType": "ActiveMembers",
+        "fallthrough_type": "ActiveMembers",
         "id": "sentry.mail.actions.NotifyEmailAction",
         "targetIdentifier": 3234013,
         "uuid": "6e83337b-9561-4167-a208-27d6bdf5e613",
@@ -807,7 +807,7 @@ EMAIL_ACTION_DATA_BLOBS: list[dict[str, Any]] = [
     {
         "targetType": "Team",
         "id": "sentry.mail.actions.NotifyEmailAction",
-        "fallthroughType": "AllMembers",
+        "fallthrough_type": "AllMembers",
         "uuid": "71b445cf-573b-4e0c-86bc-8dfbad93c480",
         "targetIdentifier": 188022,
     },

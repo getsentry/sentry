@@ -4,7 +4,6 @@ import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {
   useProgressiveQuery,
   type RPCQueryExtras,
@@ -14,6 +13,7 @@ import {
   useQueryParamsFields,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
+import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 interface UseExploreSpansTableOptions {
@@ -63,7 +63,7 @@ function useExploreSpansTableImp({
 }: UseExploreSpansTableOptions): SpansTableResult {
   const {selection} = usePageFilters();
 
-  const dataset = useExploreDataset();
+  const dataset = useSpansDataset();
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
 

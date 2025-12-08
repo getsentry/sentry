@@ -5,10 +5,12 @@ import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useProjects from 'sentry/utils/useProjects';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
@@ -263,8 +265,16 @@ const DEFAULT_SORT = {
 const TRANSACTIONS_TABLE_ROW_COUNT = 20;
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
   return (
-    <ModulePageProviders moduleName="http" pageTitle={t('Domain Summary')}>
+    <ModulePageProviders
+      moduleName="http"
+      pageTitle={t('Domain Summary')}
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <HTTPDomainSummaryPage />
     </ModulePageProviders>
   );

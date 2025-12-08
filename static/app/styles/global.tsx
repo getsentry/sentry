@@ -29,7 +29,7 @@ const prismStyles = (theme: Theme) => css`
   code[class*='language-'] {
     color: var(--prism-base);
     background: var(--prism-block-background);
-    font-size: ${theme.codeFontSize};
+    font-size: ${theme.fontSize.sm};
     text-shadow: none;
     font-family: ${theme.text.familyMono};
     direction: ltr;
@@ -135,16 +135,34 @@ const styles = (theme: Theme, isDark: boolean) => css`
     }
 
     .loading .loading-indicator {
-      background: ${theme.tokens.background.primary};
-    }
-
-    .loading.triangle .loading-indicator {
-      background: ${theme.tokens.background.secondary};
+      background: transparent;
     }
 
     color: ${theme.textColor};
     background: ${theme.tokens.background.primary};
   }
+
+  ${theme.type === 'dark' &&
+  css`
+    /*this updates styles set by base.less to match our theme*/
+    body.theme-dark {
+      background: ${theme.tokens.background.primary};
+      color: ${theme.textColor};
+    }
+    body.theme-system {
+      @media (prefers-color-scheme: dark) {
+        background: ${theme.tokens.background.primary};
+        color: ${theme.textColor};
+      }
+    }
+    /*this updates styles set by shared-components.less to match our theme*/
+    .theme-dark .loading .loading-indicator {
+      background: transparent;
+    }
+    .theme-dark .loading.triangle .loading-indicator {
+      background: #fff;
+    }
+  `}
 
   abbr {
     ${theme.tooltipUnderline()};

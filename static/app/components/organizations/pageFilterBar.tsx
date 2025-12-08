@@ -1,6 +1,5 @@
 import {Children} from 'react';
-import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
@@ -124,7 +123,7 @@ const getChildTransforms = (count: number) => {
 
 const chonkPageFilterBarStyles = (p: {
   listSize: number;
-  theme: DO_NOT_USE_ChonkTheme;
+  theme: Theme;
   condensed?: boolean;
 }) => css`
   /* No idea what this is supposed to style, but I am afraid to remove it */

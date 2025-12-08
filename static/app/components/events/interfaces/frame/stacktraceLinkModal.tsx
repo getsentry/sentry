@@ -269,7 +269,12 @@ function StacktraceLinkModal({
                       return (
                         <div key={i} style={{display: 'flex', alignItems: 'center'}}>
                           <SuggestionOverflow>{suggestion}</SuggestionOverflow>
-                          <CopyToClipboardButton borderless text={suggestion} size="xs" />
+                          <CopyToClipboardButton
+                            borderless
+                            text={suggestion}
+                            size="xs"
+                            aria-label={t('Copy suggestion to clipboard')}
+                          />
                         </div>
                       );
                     })}

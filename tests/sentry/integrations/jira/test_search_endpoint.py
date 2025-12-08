@@ -85,9 +85,7 @@ class JiraSearchEndpointTest(APITestCase):
         for field in ("externalIssue", "parent"):
             resp = self.client.get(f"{path}?field={field}&query=test")
             assert resp.status_code == 400
-            assert resp.data == {
-                "detail": "Error Communicating with Jira (HTTP 500): unknown error"
-            }
+            assert resp.data == {"detail": "Something went wrong while communicating with Jira"}
 
     @responses.activate
     def test_assignee_search(self) -> None:

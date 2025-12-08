@@ -213,6 +213,7 @@ export function SpanDescription({
           <CopyToClipboardButton
             borderless
             size="zero"
+            aria-label={t('Copy span URL to clipboard')}
             text={spanURL}
             tooltipProps={{disabled: true}}
           />
@@ -245,6 +246,7 @@ export function SpanDescription({
           borderless
           size="zero"
           text={span.name}
+          aria-label={t('Copy span name to clipboard')}
           tooltipProps={{disabled: true}}
         />
       </DescriptionWrapper>
@@ -260,6 +262,7 @@ export function SpanDescription({
               borderless
               size="zero"
               text={formattedDescription}
+              aria-label={t('Copy formatted description to clipboard')}
               tooltipProps={{disabled: true}}
             />
           </Fragment>
@@ -363,6 +366,7 @@ function ResourceImage(props: {
           borderless
           size="zero"
           text={fileName}
+          aria-label={t('Copy file name to clipboard')}
           title={t('Copy file name')}
         />
       </FilenameContainer>

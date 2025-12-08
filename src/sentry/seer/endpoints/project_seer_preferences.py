@@ -5,7 +5,6 @@ import logging
 import orjson
 import requests
 from django.conf import settings
-from pydantic import BaseModel
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,7 +17,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
-from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models import PreferenceResponse, SeerProjectPreference
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -49,21 +48,25 @@ class RepositorySerializer(CamelSnakeSerializer):
     provider_raw = serializers.CharField(required=False, allow_null=True)
 
 
+class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
+    handoff_point = serializers.ChoiceField(
+        choices=["root_cause"],
+        required=True,
+    )
+    target = serializers.ChoiceField(
+        choices=["cursor_background_agent"],
+        required=True,
+    )
+    integration_id = serializers.IntegerField(required=True)
+    auto_create_pr = serializers.BooleanField(required=False, default=False)
+
+
 class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
     repositories = RepositorySerializer(many=True, required=True)
     automated_run_stopping_point = serializers.CharField(required=False, allow_null=True)
-
-
-class SeerProjectPreference(BaseModel):
-    organization_id: int
-    project_id: int
-    repositories: list[SeerRepoDefinition]
-    automated_run_stopping_point: str | None = None
-
-
-class PreferenceResponse(BaseModel):
-    preference: SeerProjectPreference | None
-    code_mapping_repos: list[SeerRepoDefinition]
+    automation_handoff = SeerAutomationHandoffConfigurationSerializer(
+        required=False, allow_null=True
+    )
 
 
 @region_silo_endpoint

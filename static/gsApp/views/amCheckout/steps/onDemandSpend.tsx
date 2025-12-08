@@ -11,8 +11,9 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+import {displayBudgetName} from 'getsentry/utils/billing';
 import {listDisplayNames} from 'getsentry/utils/dataCategory';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
 type Props = StepProps;
@@ -41,7 +42,7 @@ function OnDemandSpend({
   const onDemandDollars = isNaN(dollars) ? '' : dollars.toString();
 
   const disabled = !(activePlan.allowOnDemand && subscription.supportsOnDemand);
-  const title = t('On-Demand Max Spend');
+  const title = t('%s Max Spend', displayBudgetName(activePlan, {title: true}));
   const oxfordCategories = listDisplayNames({
     plan: activePlan,
     categories: activePlan.checkoutCategories,
@@ -63,9 +64,12 @@ function OnDemandSpend({
             <Header>
               <div>{title}</div>
               <Description>
-                {t(
-                  "On-Demand spend allows you to pay for additional data beyond your subscription's reserved event volume. Applies to %s.",
-                  oxfordCategories
+                {tct(
+                  "[budgetTerm] spend allows you to pay for additional data beyond your subscription's reserved event volume. Applies to [oxfordCategories].",
+                  {
+                    budgetTerm: displayBudgetName(activePlan, {title: true}),
+                    oxfordCategories,
+                  }
                 )}
               </Description>
             </Header>
@@ -73,7 +77,9 @@ function OnDemandSpend({
               <InputHeader>{t('Monthly Max')}</InputHeader>
               <Tooltip
                 disabled={!disabled}
-                title={t('On-demand is not supported for your account.')}
+                title={tct('[budgetTerm] is not supported for your account.', {
+                  budgetTerm: displayBudgetName(activePlan, {title: true}),
+                })}
                 data-test-id="ondemand-disabled-tooltip"
               >
                 <Currency>
@@ -102,9 +108,13 @@ function OnDemandSpend({
       {isActive && (
         <StepFooter data-test-id={title}>
           <div>
-            {tct('Need more info? [link:See on-demand pricing chart]', {
+            {tct('Need more info? [link]', {
               link: (
-                <ExternalLink href="https://docs.sentry.io/pricing/legacy-pricing/#per-category-pricing" />
+                <ExternalLink href="https://docs.sentry.io/pricing/legacy-pricing/#per-category-pricing">
+                  {tct('See [budgetTerm] pricing chart', {
+                    budgetTerm: displayBudgetName(activePlan),
+                  })}
+                </ExternalLink>
               ),
             })}
           </div>

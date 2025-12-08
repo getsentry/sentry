@@ -3,13 +3,14 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -27,6 +28,7 @@ import {
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
+import {isChartDisplayType} from 'sentry/views/dashboards/utils';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
@@ -56,7 +58,6 @@ import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibr
 type WidgetBuilderSlideoutProps = {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
-  isOpen: boolean;
   isWidgetInvalid: boolean;
   onClose: () => void;
   onQueryConditionChange: (valid: boolean) => void;
@@ -69,7 +70,6 @@ type WidgetBuilderSlideoutProps = {
 };
 
 function WidgetBuilderSlideout({
-  isOpen,
   onClose,
   onSave,
   onQueryConditionChange,
@@ -123,9 +123,13 @@ function WidgetBuilderSlideout({
     : isEditing
       ? t('Edit Widget')
       : t('Custom Widget Builder');
-  const isChartWidget =
-    state.displayType !== DisplayType.BIG_NUMBER &&
-    state.displayType !== DisplayType.TABLE;
+  const isChartWidget = isChartDisplayType(state.displayType);
+
+  const showVisualizeSection = state.displayType !== DisplayType.DETAILS;
+  const showQueryFilterBuilder = !(
+    state.dataset === WidgetType.ISSUE && isChartDisplayType(state.displayType)
+  );
+  const showGroupBySelector = isChartWidget && !(state.dataset === WidgetType.ISSUE);
 
   const customPreviewRef = useRef<HTMLDivElement>(null);
   const templatesPreviewRef = useRef<HTMLDivElement>(null);
@@ -205,8 +209,8 @@ function WidgetBuilderSlideout({
 
   return (
     <SlideOverPanel
-      collapsed={!isOpen}
-      slidePosition="left"
+      open
+      position="left"
       data-test-id="widget-slideout"
       transitionProps={animationTransitionSettings}
     >
@@ -341,15 +345,20 @@ function WidgetBuilderSlideout({
                   <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
                 </Section>
               )}
-              <Section>
-                <Visualize error={error} setError={setError} />
-              </Section>
-              <Section>
-                <WidgetBuilderQueryFilterBuilder
-                  onQueryConditionChange={onQueryConditionChange}
-                  validatedWidgetResponse={validatedWidgetResponse}
-                />
-              </Section>
+              {showVisualizeSection && (
+                <Section>
+                  <Visualize error={error} setError={setError} />
+                </Section>
+              )}
+
+              {showQueryFilterBuilder && (
+                <Section>
+                  <WidgetBuilderQueryFilterBuilder
+                    onQueryConditionChange={onQueryConditionChange}
+                    validatedWidgetResponse={validatedWidgetResponse}
+                  />
+                </Section>
+              )}
               {state.displayType === DisplayType.BIG_NUMBER && (
                 <Section>
                   <ThresholdsSection
@@ -360,7 +369,7 @@ function WidgetBuilderSlideout({
                   />
                 </Section>
               )}
-              {isChartWidget && (
+              {showGroupBySelector && (
                 <Section>
                   <WidgetBuilderGroupBySelector
                     validatedWidgetResponse={validatedWidgetResponse}

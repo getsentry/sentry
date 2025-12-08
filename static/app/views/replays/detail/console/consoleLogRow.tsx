@@ -123,7 +123,7 @@ const ConsoleLog = styled('div')<{
 const ICONS = {
   [BreadcrumbLevelType.ERROR]: (
     <Tooltip title={BreadcrumbLevelType.ERROR}>
-      <IconClose size="xs" color="red400" isCircled />
+      <IconClose size="xs" color="red400" />
     </Tooltip>
   ),
   [BreadcrumbLevelType.WARNING]: (

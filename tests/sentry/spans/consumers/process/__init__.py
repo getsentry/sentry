@@ -3,14 +3,13 @@ from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 def build_mock_span(project_id, *, span_op=None, is_segment=False, attributes=None, **kwargs):
     span: SpanEvent = {
-        "is_remote": is_segment,
+        "is_segment": is_segment,
         "parent_span_id": None,
         "project_id": project_id,
         "organization_id": 1,
         "received": 1707953019.044972,
         "retention_days": 90,
         "attributes": {
-            "sentry.is_segment": {"value": is_segment, "type": "boolean"},
             "sentry.duration": {"value": 0.107, "type": "double"},
             "sentry.environment": {"value": "development", "type": "string"},
             "sentry.release": {

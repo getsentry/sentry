@@ -1,11 +1,11 @@
-import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input/index';
 import {TextArea} from 'sentry/components/core/textarea';
 import {space} from 'sentry/styles/space';
-import type {FormSize, StrictCSSObject} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import type {FormSize, StrictCSSObject, Theme} from 'sentry/utils/theme';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 
 export interface InputStyleProps {
   leadingWidth?: number;
@@ -35,7 +35,7 @@ const chonkInputStyles = ({
   trailingWidth,
   size = 'md',
   theme,
-}: InputStyleProps & {theme: DO_NOT_USE_ChonkTheme}): StrictCSSObject => css`
+}: InputStyleProps & {theme: Theme}): StrictCSSObject => css`
   ${leadingWidth &&
   css`
     padding-left: calc(

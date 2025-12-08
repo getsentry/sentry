@@ -103,7 +103,7 @@ export default class TableField extends Component<InputFieldProps> {
     const disabled = typeof rawDisabled === 'function' ? false : rawDisabled;
 
     const button = (
-      <Button icon={<IconAdd isCircled />} onClick={addRow} size="xs" disabled={disabled}>
+      <Button icon={<IconAdd />} onClick={addRow} size="xs" disabled={disabled}>
         {addButtonText}
       </Button>
     );

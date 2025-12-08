@@ -109,15 +109,22 @@ class Referrer(StrEnum):
     API_GROUP_HASHES = "api.group-hashes"
 
     # ** Explore **
-    API_EXPLORE_SPANS_STATS = "api.explore.spans-stats"
     API_EXPLORE_SPANS_TIMESERIES = "api.explore.spans-timeseries"
+    API_EXPLORE_OURLOGS_TIMESERIES = "api.explore.ourlogs-timeseries"
+    API_EXPLORE_TRACEMETRICS_TIMESERIES = "api.explore.tracemetrics-timeseries"
     API_EXPLORE_SPANS_AGGREGATES_TABLE = "api.explore.spans-aggregates-table"
     API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
     API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
     API_EXPLORE_LOGS_TABLE = "api.explore.logs-table"
     API_EXPLORE_LOGS_TABLE_ROW = "api.explore.logs-table-row"
+    API_EXPLORE_SPANS_RAW_COUNT_NORMAL = "api.explore.spans.raw-count.normal"
+    API_EXPLORE_SPANS_RAW_COUNT_HIGH_ACCURACY = "api.explore.spans.raw-count.high-accuracy"
     API_EXPLORE_LOGS_RAW_COUNT_NORMAL = "api.explore.logs.raw-count.normal"
     API_EXPLORE_LOGS_RAW_COUNT_HIGH_ACCURACY = "api.explore.logs.raw-count.high-accuracy"
+    API_EXPLORE_TRACEMETRICS_RAW_COUNT_NORMAL = "api.explore.tracemetrics.raw-count.normal"
+    API_EXPLORE_TRACEMETRICS_RAW_COUNT_HIGH_ACCURACY = (
+        "api.explore.tracemetrics.raw-count.high-accuracy"
+    )
     DATA_EXPORT_TASKS_EXPLORE = "data_export.tasks.explore"
 
     # ** Insights **
@@ -289,6 +296,9 @@ class Referrer(StrEnum):
     )
     API_INSIGHTS_TRANSACTION_EVENTS = "api.insights.transaction-events"
     API_INSIGHTS_LANDING_TABLE = "api.insights.landing-table"
+    API_INSIGHTS_LANDING_TABLE_METRICS_ENHANCED_PRIMARY = (
+        "api.insights.landing-table.metrics-enhanced.primary"
+    )
     API_INSIGHTS_STATUS_BREAKDOWN = "api.insights.status-breakdown"
     API_INSIGHTS_DURATIONPERCENTILECHART = "api.insights.durationpercentilechart"
 
@@ -410,6 +420,9 @@ class Referrer(StrEnum):
     API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_METRICS_TOTALS = "api.metrics.totals"
     API_METRICS_TOTALS_INITIAL_QUERY = "api.metrics.totals.initial_query"
+    API_METRICS_TOTALS_SECOND_QUERY = "api.metrics.totals.second_query"
+    API_METRICS_SERIES_SECOND_QUERY = "api.metrics.series.second_query"
+
     API_ORGANIZATION_TRACE_ITEM_DETAILS = "api.organization-trace-item-details"
     API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
     API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
@@ -440,6 +453,7 @@ class Referrer(StrEnum):
     API_ORGANIZATION_EVENTS_METRICS_COMPATIBILITY_SUM_METRICS_METRICS_ENHANCED_PRIMARY = (
         "api.organization-events-metrics-compatibility.sum_metrics.metrics-enhanced.primary"
     )
+    API_ORGANIZATION_EVENTS_METRICS_ENHANCED = "api.organization-events.metrics-enhanced"
     API_ORGANIZATION_EVENTS_METRICS_ENHANCED_PRIMARY = (
         "api.organization-events.metrics-enhanced.primary"
     )
@@ -832,9 +846,6 @@ class Referrer(StrEnum):
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"
     TAGSTORE_GET_GROUPS_USER_COUNTS = "tagstore.get_groups_user_counts"
-    TAGSTORE_GET_GROUPS_USER_COUNTS_OPEN_PR_COMMENT = (
-        "tagstore.get_groups_user_counts.open_pr_comment"
-    )
     TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE = "tagstore.get_groups_user_counts.groupsnooze"
     TAGSTORE_GET_GROUPS_USER_COUNTS_IGNORED = "tagstore.get_groups_user_counts.ignored"
     TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION = (

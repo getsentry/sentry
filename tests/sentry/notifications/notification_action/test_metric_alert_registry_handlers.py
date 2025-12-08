@@ -37,7 +37,6 @@ from sentry.seer.anomaly_detection.types import (
 )
 from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.models import QuerySubscription, SnubaQuery
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
@@ -102,6 +101,8 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
                     "condition_result": DetectorPriorityLevel.OK.value,
                 },
             ],
+            config={},
+            data_sources=[],
             alert_id=self.alert_rule.id,
         )
 
@@ -127,6 +128,8 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
                     "condition_result": DetectorPriorityLevel.HIGH.value,
                 },
             ],
+            config={},
+            data_sources=[],
             alert_id=self.alert_rule.id,
         )
         self.group, self.event, self.group_event = self.create_group_event(
@@ -139,6 +142,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
 
         self.group.priority = PriorityLevel.HIGH.value
         self.group.save()
+        self.create_detector_group(detector=self.detector, group=self.group)
         self.open_period, _ = GroupOpenPeriod.objects.get_or_create(
             group=self.group,
             project=self.project,
@@ -472,33 +476,6 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             )
 
     @mock.patch.object(TestHandler, "send_alert")
-    def test_invoke_legacy_registry_with_activity_ff_not_enabled(
-        self, mock_send_alert: mock.MagicMock
-    ) -> None:
-        # Create an Activity instance with evidence data and priority
-        activity_data = asdict(self.evidence_data)
-
-        activity = Activity(
-            project=self.project,
-            group=self.group,
-            type=ActivityType.SET_RESOLVED.value,
-            data=activity_data,
-        )
-        activity.save()
-
-        # Create event data with Activity instead of GroupEvent
-        event_data_with_activity = WorkflowEventData(
-            event=activity,
-            workflow_env=self.workflow.environment,
-            group=self.group,
-        )
-
-        self.handler.invoke_legacy_registry(event_data_with_activity, self.action, self.detector)
-
-        assert mock_send_alert.call_count == 0
-
-    @mock.patch.object(TestHandler, "send_alert")
-    @with_feature("organizations:workflow-engine-single-process-metric-issues")
     def test_invoke_legacy_registry_with_activity(self, mock_send_alert: mock.MagicMock) -> None:
         # Create an Activity instance with evidence data and priority
         activity_data = asdict(self.evidence_data)
@@ -564,7 +541,6 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         assert isinstance(notification_uuid, str)
 
     @mock.patch.object(TestHandler, "send_alert")
-    @with_feature("organizations:workflow-engine-single-process-metric-issues")
     def test_invoke_legacy_registry_with_activity_anomaly_detection(
         self, mock_send_alert: mock.MagicMock
     ) -> None:
@@ -632,7 +608,6 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         assert organization == self.detector.project.organization
         assert isinstance(notification_uuid, str)
 
-    @with_feature("organizations:workflow-engine-single-process-metric-issues")
     def test_invoke_legacy_registry_activity_missing_data(self) -> None:
         # Test with Activity that has no data field
         activity = Activity.objects.create(
@@ -653,7 +628,6 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 event_data_with_activity, self.action, self.detector
             )
 
-    @with_feature("organizations:workflow-engine-single-process-metric-issues")
     def test_invoke_legacy_registry_activity_empty_data(self) -> None:
         # Test with Activity that has non-empty but insufficient data for MetricIssueEvidenceData
         activity = Activity(

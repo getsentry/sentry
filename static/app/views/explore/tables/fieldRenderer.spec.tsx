@@ -9,7 +9,6 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 
@@ -26,11 +25,7 @@ const mockedEventData = {
 };
 
 function Wrapper({children}: {children: ReactNode}) {
-  return (
-    <SpansQueryParamsProvider>
-      <PageParamsProvider>{children}</PageParamsProvider>
-    </SpansQueryParamsProvider>
-  );
+  return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
 }
 
 describe('FieldRenderer tests', () => {

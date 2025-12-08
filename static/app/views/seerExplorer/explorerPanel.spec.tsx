@@ -12,45 +12,75 @@ jest.mock('react-dom', () => ({
 }));
 
 describe('ExplorerPanel', () => {
+  const organization = OrganizationFixture({
+    features: ['seer-explorer'],
+    hideAiFeatures: false,
+  });
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    sessionStorage.clear();
+
+    // This matches the real behavior when no run ID is provided.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/explorer-chat/`,
+      method: 'GET',
+      body: {session: null},
+      statusCode: 404,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/explorer-runs/`,
+      method: 'GET',
+      body: {
+        data: [
+          {
+            run_id: 456,
+            title: 'Old Run',
+            created_at: '2024-01-02T00:00:00Z',
+            last_triggered_at: '2024-01-03T00:00:00Z',
+          },
+          {
+            run_id: 451,
+            title: 'Another Run',
+            created_at: '2024-01-01T00:00:00Z',
+            last_triggered_at: '2024-01-01T17:53:33Z',
+          },
+        ],
+      },
+    });
   });
 
   describe('Feature Flag and Organization Checks', () => {
     it('renders when feature flag is enabled', () => {
-      const organization = OrganizationFixture({
-        features: ['seer-explorer'],
-        hideAiFeatures: false,
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
-        method: 'GET',
-        body: {session: null},
-      });
-
       render(<ExplorerPanel isVisible />, {organization});
 
-      expect(screen.getByText(/Welcome to Seer Explorer/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Ask Seer anything about your application./)
+      ).toBeInTheDocument();
     });
 
     it('does not render when feature flag is disabled', () => {
-      const organization = OrganizationFixture({
+      const disabledOrg = OrganizationFixture({
         features: [],
       });
 
-      const {container} = render(<ExplorerPanel isVisible />, {organization});
+      const {container} = render(<ExplorerPanel isVisible />, {
+        organization: disabledOrg,
+      });
 
       expect(container).toBeEmptyDOMElement();
     });
 
     it('does not render when AI features are hidden', () => {
-      const organization = OrganizationFixture({
+      const disabledOrg = OrganizationFixture({
         features: ['seer-explorer'],
         hideAiFeatures: true,
       });
 
-      const {container} = render(<ExplorerPanel isVisible />, {organization});
+      const {container} = render(<ExplorerPanel isVisible />, {
+        organization: disabledOrg,
+      });
 
       expect(container).toBeEmptyDOMElement();
     });
@@ -58,32 +88,14 @@ describe('ExplorerPanel', () => {
 
   describe('Empty State', () => {
     it('shows empty state when no messages exist', () => {
-      const organization = OrganizationFixture({
-        features: ['seer-explorer'],
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
-        method: 'GET',
-        body: {session: null},
-      });
-
       render(<ExplorerPanel isVisible />, {organization});
 
-      expect(screen.getByText(/Welcome to Seer Explorer/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Ask Seer anything about your application./)
+      ).toBeInTheDocument();
     });
 
     it('shows input section in empty state', () => {
-      const organization = OrganizationFixture({
-        features: ['seer-explorer'],
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
-        method: 'GET',
-        body: {session: null},
-      });
-
       render(<ExplorerPanel isVisible />, {organization});
 
       expect(
@@ -94,10 +106,6 @@ describe('ExplorerPanel', () => {
 
   describe('Messages Display', () => {
     it('renders messages when session data exists', () => {
-      const organization = OrganizationFixture({
-        features: ['seer-explorer'],
-      });
-
       const mockSessionData = {
         blocks: [
           {
@@ -133,10 +141,14 @@ describe('ExplorerPanel', () => {
         startNewSession: jest.fn(),
         isPolling: false,
         isPending: false,
-        runId: 123,
         deletedFromIndex: null,
         interruptRun: jest.fn(),
         interruptRequested: false,
+        runId: null,
+        setRunId: jest.fn(),
+        respondToUserInput: jest.fn(),
+        switchToRun: jest.fn(),
+        createPR: jest.fn(),
       });
 
       render(<ExplorerPanel isVisible />, {organization});
@@ -145,7 +157,9 @@ describe('ExplorerPanel', () => {
       expect(
         screen.getByText('This error indicates a null pointer exception.')
       ).toBeInTheDocument();
-      expect(screen.queryByText(/Welcome to Seer Explorer/)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/Ask Seer anything about your application./)
+      ).not.toBeInTheDocument();
 
       // Restore the mock
       jest.restoreAllMocks();
@@ -154,35 +168,15 @@ describe('ExplorerPanel', () => {
 
   describe('Input Handling', () => {
     it('can type in textarea', async () => {
-      const organization = OrganizationFixture({
-        features: ['seer-explorer'],
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
-        method: 'GET',
-        body: {session: null},
-      });
-
       render(<ExplorerPanel isVisible />, {organization});
 
-      const textarea = screen.getByRole('textbox');
+      const textarea = screen.getByTestId('seer-explorer-input');
       await userEvent.type(textarea, 'Test message');
 
       expect(textarea).toHaveValue('Test message');
     });
 
     it('sends message when Enter is pressed', async () => {
-      const organization = OrganizationFixture({
-        features: ['seer-explorer'],
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
-        method: 'GET',
-        body: {session: null},
-      });
-
       const postMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/explorer-chat/`,
         method: 'POST',
@@ -204,18 +198,22 @@ describe('ExplorerPanel', () => {
         method: 'GET',
         body: {
           session: {
-            messages: [
+            blocks: [
               {
                 id: 'msg-1',
-                type: 'user-input',
-                content: 'Test message',
+                message: {
+                  role: 'user',
+                  content: 'What is this error?',
+                },
                 timestamp: '2024-01-01T00:00:00Z',
                 loading: false,
               },
               {
-                id: 'response-1',
-                type: 'response',
-                content: 'Response content',
+                id: 'msg-2',
+                message: {
+                  role: 'assistant',
+                  content: 'This error indicates a null pointer exception.',
+                },
                 timestamp: '2024-01-01T00:01:00Z',
                 loading: false,
               },
@@ -229,7 +227,7 @@ describe('ExplorerPanel', () => {
 
       render(<ExplorerPanel isVisible />, {organization});
 
-      const textarea = screen.getByRole('textbox');
+      const textarea = screen.getByTestId('seer-explorer-input');
       await userEvent.type(textarea, 'Test message');
       await userEvent.keyboard('{Enter}');
 
@@ -245,16 +243,6 @@ describe('ExplorerPanel', () => {
     });
 
     it('clears input after sending message', async () => {
-      const organization = OrganizationFixture({
-        features: ['seer-explorer'],
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
-        method: 'GET',
-        body: {session: null},
-      });
-
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/explorer-chat/`,
         method: 'POST',
@@ -276,18 +264,22 @@ describe('ExplorerPanel', () => {
         method: 'GET',
         body: {
           session: {
-            messages: [
+            blocks: [
               {
                 id: 'msg-1',
-                type: 'user-input',
-                content: 'Test message',
+                message: {
+                  role: 'user',
+                  content: 'What is this error?',
+                },
                 timestamp: '2024-01-01T00:00:00Z',
                 loading: false,
               },
               {
-                id: 'response-1',
-                type: 'response',
-                content: 'Response',
+                id: 'msg-2',
+                message: {
+                  role: 'assistant',
+                  content: 'This error indicates a null pointer exception.',
+                },
                 timestamp: '2024-01-01T00:01:00Z',
                 loading: false,
               },
@@ -301,7 +293,7 @@ describe('ExplorerPanel', () => {
 
       render(<ExplorerPanel isVisible />, {organization});
 
-      const textarea = screen.getByRole('textbox');
+      const textarea = screen.getByTestId('seer-explorer-input');
       await userEvent.type(textarea, 'Test message');
       await userEvent.keyboard('{Enter}');
 
@@ -311,37 +303,17 @@ describe('ExplorerPanel', () => {
 
   describe('Visibility Control', () => {
     it('renders when isVisible=true', () => {
-      const organization = OrganizationFixture({
-        features: ['seer-explorer'],
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
-        method: 'GET',
-        body: {session: null},
-      });
-
       render(<ExplorerPanel isVisible />, {organization});
 
-      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(screen.getByTestId('seer-explorer-input')).toBeInTheDocument();
     });
 
     it('can handle visibility changes', () => {
-      const organization = OrganizationFixture({
-        features: ['seer-explorer'],
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
-        method: 'GET',
-        body: {session: null},
-      });
-
       const {rerender} = render(<ExplorerPanel isVisible={false} />, {organization});
 
       rerender(<ExplorerPanel isVisible />);
 
-      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(screen.getByTestId('seer-explorer-input')).toBeInTheDocument();
     });
   });
 });

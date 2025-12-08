@@ -136,6 +136,10 @@ export interface BaseChartProps {
    */
   additionalSeries?: SeriesOption[];
   /**
+   * Whether animations are enabled for the entire chart. If animations are enabled overall, this will cause ZRender to occasionally attempt to run animations and call `requestAnimationFrame` which might cause UI stutter.
+   */
+  animation?: boolean;
+  /**
    * If true, ignores height value and auto-scales chart to fit container height.
    */
   autoHeightResize?: boolean;
@@ -332,6 +336,7 @@ const DEFAULT_Y_AXIS = {};
 const DEFAULT_X_AXIS = {};
 
 function BaseChart({
+  animation,
   brush,
   colors,
   grid,
@@ -564,6 +569,7 @@ function BaseChart({
 
     return {
       ...options,
+      animation,
       useUTC: utc,
       color: color as string[],
       grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
@@ -580,6 +586,7 @@ function BaseChart({
       brush,
     };
   }, [
+    animation,
     chartId,
     color,
     resolvedSeries,

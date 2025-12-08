@@ -1,30 +1,10 @@
-import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
 export function IconDivide(props: SVGIconProps) {
-  const theme = useTheme();
   return (
-    <SvgIcon
-      {...props}
-      data-test-id="icon-divide"
-      kind={theme.isChonk ? 'stroke' : 'path'}
-    >
-      {theme.isChonk ? (
-        <Fragment>
-          <line x1="2.75" y1="8" x2="13.25" y2="8" />
-          <circle cx="8" cy="3.25" r=".5" />
-          <circle cx="8" cy="12.75" r=".5" />
-        </Fragment>
-      ) : (
-        <Fragment>
-          <path d="M14,8.75H2c-.41,0-.75-.34-.75-.75s.34-.75.75-.75h12c.41,0,.75.34.75.75s-.34.75-.75.75Z" />
-          <circle cx="7.95" cy="2.42" r="1.31" />
-          <circle cx="7.95" cy="13.56" r="1.31" />
-        </Fragment>
-      )}
+    <SvgIcon {...props} data-test-id="icon-divide">
+      <path d="M8 12C8.55 12 9 12.45 9 13C9 13.55 8.55 14 8 14C7.45 14 7 13.55 7 13C7 12.45 7.45 12 8 12ZM14.25 7.25C14.66 7.25 15 7.59 15 8C15 8.41 14.66 8.75 14.25 8.75H1.75C1.34 8.75 1 8.41 1 8C1 7.59 1.34 7.25 1.75 7.25H14.25ZM8 2C8.55 2 9 2.45 9 3C9 3.55 8.55 4 8 4C7.45 4 7 3.55 7 3C7 2.45 7.45 2 8 2Z" />
     </SvgIcon>
   );
 }

@@ -33,6 +33,7 @@ import {
   useSetQueryParamsGroupBys,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {
   isVisualizeFunction,
   MAX_VISUALIZES,
@@ -376,7 +377,7 @@ function ToolbarGroupBy({numberTags, stringTags}: LogsToolbarProps) {
     (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => {
       // automatically switch to aggregates mode when a group by is inserted/updated
       if (op === 'insert' || op === 'update') {
-        setGroupBys(columns); // TODO: auto switch to aggregates mode
+        setGroupBys(columns, Mode.AGGREGATE);
       } else {
         setGroupBys(columns);
       }

@@ -14,9 +14,9 @@ import image from 'sentry-images/spot/habitsSuccessfulCustomer.jpg';
 
 import {Image} from './image';
 
-import APIReference from '!!type-loader!sentry/components/core/image/image';
+import documentation from '!!type-loader!@sentry/scraps/image/image';
 
-export const types = {Image: APIReference.Image};
+export {documentation};
 
 The `Image` component is a styled wrapper around the HTML `<img>` element that provides sensible defaults for lazy loading and object-fit behavior. It extends all standard HTML image attributes while adding additional functionality for modern web applications.
 

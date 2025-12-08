@@ -252,8 +252,10 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
         result.sort(key=lambda r: r.key)
         assert result[0].key == "biz"
-        assert result[0].top_values[0].value == "baz"
-        assert result[0].count == 1
+        # Include-empty-values may surface "" alongside "baz"; don't rely on order
+        biz_values = {tv.value: tv.times_seen for tv in result[0].top_values}
+        assert biz_values.get("baz") == 1
+        assert result[0].count == sum(biz_values.values())
 
         assert result[12].key == "sentry:release"
         assert result[12].count == 2
@@ -1055,11 +1057,10 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         SnubaTagStorage.get_group_tag_value_iter,
         "__defaults__",
         (
-            (),
-            "-first_seen",
-            1,
-            0,
-            None,
+            "-first_seen",  # orderby default (unchanged)
+            1,  # limit default (set to 1 for test)
+            0,  # offset default (unchanged)
+            None,  # tenant_ids default (unchanged)
         ),
     )
     def test_get_group_tag_value_paginator_sort_by_last_seen(self) -> None:

@@ -1,4 +1,4 @@
-import {AppleInsightResultsFixture} from 'sentry-fixture/preProdAppSize';
+import {InsightResultsFixture} from 'sentry-fixture/preProdAppSize';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +8,7 @@ import {AppSizeInsightsSidebar} from './appSizeInsightsSidebar';
 
 describe('AppSizeInsightsSidebar', () => {
   const getDefaultProps = () => {
-    const insights = AppleInsightResultsFixture({
+    const insights = InsightResultsFixture({
       large_images: {
         total_savings: 128000,
         files: [
@@ -44,8 +44,8 @@ describe('AppSizeInsightsSidebar', () => {
     render(<AppSizeInsightsSidebar {...getDefaultProps()} />);
 
     // Should render processed insights (the processInsights util creates these display names)
-    expect(screen.getByText('Remove duplicate files')).toBeInTheDocument();
-    expect(screen.getByText('Compress large images')).toBeInTheDocument();
+    expect(screen.getByText('Duplicate Files')).toBeInTheDocument();
+    expect(screen.getByText('Large Images')).toBeInTheDocument();
   });
 
   it('calls onClose when close button is clicked', async () => {

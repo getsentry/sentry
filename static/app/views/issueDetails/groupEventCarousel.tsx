@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -260,31 +260,33 @@ function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) 
     });
   };
 
-  const {onClick: copyLink} = useCopyToClipboard({
-    successMessage: t('Event URL copied to clipboard'),
-    text:
+  const {copy} = useCopyToClipboard();
+
+  const handleCopyLink = useCallback(() => {
+    copy(
       window.location.origin +
-      normalizeUrl(`${makeBaseEventsPath({organization, group})}${event.id}/`),
-    onCopy: () =>
+        normalizeUrl(`${makeBaseEventsPath({organization, group})}${event.id}/`),
+      {successMessage: t('Event URL copied to clipboard')}
+    ).then(() => {
       trackAnalytics('issue_details.copy_event_link_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
         ...getAnalyticsDataForEvent(event),
         streamline: false,
-      }),
-  });
+      });
+    });
+  }, [copy, organization, group, event]);
 
-  const {onClick: copyEventId} = useCopyToClipboard({
-    successMessage: t('Event ID copied to clipboard'),
-    text: event.id,
-    onCopy: () =>
+  const handleCopyEventId = useCallback(() => {
+    copy(event.id, {successMessage: t('Event ID copied to clipboard')}).then(() => {
       trackAnalytics('issue_details.copy_event_id_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
         ...getAnalyticsDataForEvent(event),
         streamline: false,
-      }),
-  });
+      });
+    });
+  }, [copy, organization, group, event]);
 
   return (
     <Fragment>
@@ -300,13 +302,13 @@ function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) 
           {
             key: 'copy-event-id',
             label: t('Copy Event ID'),
-            onAction: copyEventId,
+            onAction: handleCopyEventId,
           },
           {
             key: 'copy-event-url',
             label: t('Copy Event Link'),
             hidden: xlargeViewport,
-            onAction: copyLink,
+            onAction: handleCopyLink,
           },
           {
             key: 'json',
@@ -336,7 +338,7 @@ function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) 
         <Button
           title={t('Copy link to this issue event')}
           size={BUTTON_SIZE}
-          onClick={copyLink}
+          onClick={handleCopyLink}
           aria-label={t('Copy Link')}
           icon={<IconLink />}
         />
@@ -364,10 +366,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   const hasPreviousEvent = defined(event.previousEventID);
   const hasNextEvent = defined(event.nextEventID);
 
-  const {onClick: copyEventId} = useCopyToClipboard({
-    successMessage: t('Event ID copied to clipboard'),
-    text: event.id,
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
     <CarouselAndButtonsWrapper>
@@ -386,7 +385,11 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                   streamline: false,
                 }}
                 borderless
-                onClick={copyEventId}
+                onClick={() =>
+                  copy(event.id, {
+                    successMessage: t('Event ID copied to clipboard'),
+                  })
+                }
                 size="zero"
                 title={event.id}
                 tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}

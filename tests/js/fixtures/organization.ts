@@ -56,7 +56,6 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     enhancedPrivacy: false,
     eventsMemberAdmin: false,
     githubNudgeInvite: false,
-    githubOpenPRBot: false,
     githubPRBot: false,
     gitlabPRBot: false,
     hideAiFeatures: false,

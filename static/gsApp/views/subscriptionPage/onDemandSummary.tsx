@@ -21,7 +21,7 @@ import {openEditCreditCard} from 'getsentry/actionCreators/modal';
 import OnDemandPrice from 'getsentry/components/onDemandPrice';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
-import {hasPerformance} from 'getsentry/utils/billing';
+import {displayBudgetName, hasPerformance} from 'getsentry/utils/billing';
 import {listDisplayNames} from 'getsentry/utils/dataCategory';
 
 function coerceValue(value: number): number {
@@ -98,34 +98,45 @@ class OnDemandSummary extends Component<Props, State> {
     this.setState({initialValue: value});
   };
 
-  renderLabel = () => (
-    <Label>
-      {t('On-Demand Max Spend')}
-      <Tooltip
-        title={t(
-          `On-Demand spend allows you to pay for additional data beyond your subscription's
-  reserved event volume. Billed monthly at the end of the usage period.`
-        )}
-      >
-        <LinkButton
-          priority="link"
-          href="https://docs.sentry.io/pricing/legacy-pricing/#on-demand-volume"
-          icon={<IconQuestion size="xs" />}
-          size="sm"
-          external
-          aria-label={t('Visit docs')}
-        />
-      </Tooltip>
-    </Label>
-  );
+  renderLabel = () => {
+    const {planDetails} = this.props.subscription;
+    return (
+      <Label>
+        {tct('[budgetTerm] Max Spend', {
+          budgetTerm: displayBudgetName(planDetails, {title: true}),
+        })}
+        <Tooltip
+          title={tct(
+            `[budgetTerm] spend allows you to pay for additional data beyond your subscription's
+  reserved event volume. Billed monthly at the end of the usage period.`,
+            {
+              budgetTerm: displayBudgetName(planDetails, {title: true}),
+            }
+          )}
+        >
+          <LinkButton
+            priority="link"
+            href="https://docs.sentry.io/pricing/legacy-pricing/#on-demand-volume"
+            icon={<IconQuestion size="xs" />}
+            size="sm"
+            external
+            aria-label={t('Visit docs')}
+          />
+        </Tooltip>
+      </Label>
+    );
+  };
 
   renderNotEnabled() {
     const {organization} = this.props;
+    const {planDetails} = this.props.subscription;
 
     return (
       <FieldGroup
         label={this.renderLabel()}
-        help={t('On-Demand is not supported for your account.')}
+        help={tct('[budgetTerm] is not supported for your account.', {
+          budgetTerm: displayBudgetName(planDetails, {title: true}),
+        })}
       >
         <div>
           <LinkButton to={`/settings/${organization.slug}/support/`}>
@@ -138,11 +149,17 @@ class OnDemandSummary extends Component<Props, State> {
 
   renderNeedsPaymentSource() {
     const {organization, subscription} = this.props;
+    const {planDetails} = subscription;
 
     return (
       <FieldGroup
         label={this.renderLabel()}
-        help={t("To enable on-demand spend, you'll need a valid credit card on file.")}
+        help={tct(
+          "To enable [budgetTerm] spend, you'll need a valid credit card on file.",
+          {
+            budgetTerm: displayBudgetName(planDetails),
+          }
+        )}
       >
         <div>
           <Button
@@ -216,18 +233,25 @@ class OnDemandSummary extends Component<Props, State> {
       subscription,
     } = this.props;
     const {initialValue, value} = this.state;
+    const {planDetails} = subscription;
 
     if (!enabled) {
       return this.renderNotEnabled();
     }
 
-    if (!hasPaymentSource && !subscription.onDemandInvoicedManual) {
+    if (!hasPaymentSource) {
       return this.renderNeedsPaymentSource();
     }
 
     return (
       <form className={enabled ? '' : 'disabled'} onSubmit={this.onSave}>
-        {withHeader && <PanelHeader>{t('On-Demand Max Spend')}</PanelHeader>}
+        {withHeader && (
+          <PanelHeader>
+            {tct('[budgetTerm] Max Spend', {
+              budgetTerm: displayBudgetName(planDetails, {title: true}),
+            })}
+          </PanelHeader>
+        )}
 
         {/* TODO(TS): Type says error might be an object */}
         {error && <PanelAlert type="error">{error as React.ReactNode}</PanelAlert>}

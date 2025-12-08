@@ -12,16 +12,16 @@ import * as Storybook from 'sentry/stories';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 
 interface APIReferenceProps {
-  types: TypeLoader.ComponentDocWithFilename | undefined;
+  componentProps: TypeLoader.ComponentDocWithFilename | undefined;
 }
 
 export function APIReference(props: APIReferenceProps) {
   const [query, setQuery] = useState('');
-  const nodes = usePropTree(props.types?.props ?? {}, query);
+  const nodes = usePropTree(props.componentProps?.props ?? {}, query);
 
   return (
     <Storybook.Section>
-      {props.types?.description && <p>{props.types.description}</p>}
+      {props.componentProps?.description && <p>{props.componentProps.description}</p>}
       <StoryTypesSearchContainer>
         <InputGroup>
           <InputGroup.LeadingItems disablePointerEvents>
@@ -406,7 +406,7 @@ const StoryTypesTableDefinitionCell = styled('td')`
   }
 
   > span {
-    font-size: ${p => p.theme.fontSizeRelativeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     font-weight: ${p => p.theme.fontWeight.bold};
     margin-right: ${p => p.theme.space.xs};
   }
@@ -417,7 +417,7 @@ const StoryType = styled('div')`
 `;
 
 const StoryPropDescription = styled('div')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-bottom: ${p => p.theme.space.xs};
 `;
 

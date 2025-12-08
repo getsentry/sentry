@@ -32,12 +32,27 @@ class TreemapResults(BaseModel):
     platform: str
 
 
+class AppComponent(BaseModel):
+    """Information about a modular app component (watch app, app extension, dynamic feature, etc.)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    component_type: PreprodArtifactSizeMetrics.MetricsArtifactType
+    name: str
+    app_id: str
+    path: str
+    download_size: int
+    install_size: int
+
+
 # Keep in sync with https://github.com/getsentry/launchpad/blob/main/src/launchpad/size/models/common.py#L92
 class SizeAnalysisResults(BaseModel):
+    analysis_duration: float
     download_size: int
     install_size: int
     treemap: TreemapResults | None
     analysis_version: str | None
+    app_components: list[AppComponent] | None
 
 
 ###
@@ -73,3 +88,6 @@ class SizeMetricDiffItem(BaseModel):
 class ComparisonResults(BaseModel):
     diff_items: list[DiffItem]
     size_metric_diff_item: SizeMetricDiffItem
+    skipped_diff_item_comparison: bool
+    head_analysis_version: str | None
+    base_analysis_version: str | None

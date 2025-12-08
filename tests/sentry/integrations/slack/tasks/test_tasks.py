@@ -161,6 +161,45 @@ class SlackTasksTest(TestCase):
 
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
+    def test_task_new_rule_with_owner(self, mock_set_value: MagicMock) -> None:
+        """Test that owner identifier string is deserialized to Actor correctly."""
+        team = self.create_team(organization=self.organization)
+        owner_identifier = f"team:{team.id}"
+
+        data = {
+            "name": "New Rule with Owner",
+            "environment": None,
+            "project_id": self.project.id,
+            "action_match": "all",
+            "filter_match": "all",
+            "conditions": [
+                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+            ],
+            "actions": [
+                {
+                    "channel": "#my-channel",
+                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                    "tags": "",
+                    "workspace": self.integration.id,
+                }
+            ],
+            "frequency": 5,
+            "uuid": self.uuid,
+            "user_id": self.user.id,
+            "owner": owner_identifier,
+        }
+
+        with self.tasks():
+            find_channel_id_for_rule(**data)
+
+        rule = Rule.objects.exclude(label__in=[DEFAULT_RULE_LABEL]).get(project_id=self.project.id)
+        mock_set_value.assert_called_with("success", rule.id)
+        assert rule.label == "New Rule with Owner"
+        assert rule.owner_team_id == team.id
+        assert rule.owner_user_id is None
+
+    @responses.activate
+    @patch.object(RedisRuleStatus, "set_value", return_value=None)
     def test_task_existing_rule(self, mock_set_value: MagicMock) -> None:
         action_data = {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
         condition_data = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
@@ -204,6 +243,48 @@ class SlackTasksTest(TestCase):
                 "workspace": self.integration.id,
             }
         ]
+
+    @responses.activate
+    @patch.object(RedisRuleStatus, "set_value", return_value=None)
+    def test_task_existing_rule_with_owner(self, mock_set_value: MagicMock) -> None:
+        """Test that owner identifier string is deserialized to Actor correctly during update."""
+        action_data = {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        condition_data = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
+        rule = Rule.objects.create(
+            project=self.project, data={"actions": [action_data], "conditions": [condition_data]}
+        )
+
+        owner_identifier = f"user:{self.user.id}"
+
+        data = {
+            "name": "Updated Rule with Owner",
+            "environment": None,
+            "project_id": self.project.id,
+            "action_match": "all",
+            "filter_match": "all",
+            "conditions": [condition_data],
+            "actions": [
+                {
+                    "channel": "#my-channel",
+                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                    "tags": "",
+                    "workspace": self.integration.id,
+                }
+            ],
+            "frequency": 5,
+            "uuid": self.uuid,
+            "rule_id": rule.id,
+            "owner": owner_identifier,
+        }
+
+        with self.tasks():
+            find_channel_id_for_rule(**data)
+
+        updated_rule = Rule.objects.get(id=rule.id)
+        mock_set_value.assert_called_with("success", rule.id)
+        assert updated_rule.label == "Updated Rule with Owner"
+        assert updated_rule.owner_user_id == self.user.id
+        assert updated_rule.owner_team_id is None
 
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)

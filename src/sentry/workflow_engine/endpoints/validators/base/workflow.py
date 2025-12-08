@@ -43,7 +43,7 @@ class WorkflowValidator(CamelSnakeSerializer):
         self, action_filter: dict[str, Any]
     ) -> tuple[ListInputData, InputData]:
         try:
-            actions = action_filter["actions"]
+            actions = action_filter.pop("actions")
         except KeyError:
             raise serializers.ValidationError("Missing actions key in action filter")
 
@@ -146,6 +146,10 @@ class WorkflowValidator(CamelSnakeSerializer):
             raise serializers.ValidationError(
                 f"Invalid Condition Group ID {condition_group_data.get('id')}"
             )
+
+        # If an instance is provided but no id in the data, use the instance's id to ensure we update the existing condition group
+        if instance and not condition_group_id:
+            condition_group_data["id"] = str(instance.id)
 
         actions = condition_group_data.pop("actions", None)
         condition_group = self._update_or_create(

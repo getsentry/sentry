@@ -3,10 +3,12 @@ from typing import Any, NotRequired
 
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import (
     SpanEvent,
-    _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalueObject,
+    _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalue,
 )
 
-Attribute = _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalueObject
+Attribute = (
+    _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalue
+)
 
 Attributes = dict[str, None | Attribute]
 
@@ -29,7 +31,6 @@ class CompatibleSpan(SpanEvent, total=True):
     exclusive_time: float
     op: str
     sentry_tags: dict[str, str]
-    is_segment: bool
 
     # Added by `SpanGroupingResults.write_to_spans` in `_enrich_spans`
     hash: NotRequired[str]
@@ -39,3 +40,9 @@ def attribute_value(span: Mapping[str, Any], key: str) -> Any:
     attributes = span.get("attributes") or {}
     attr: dict[str, Any] = attributes.get(key) or {}
     return attr.get("value")
+
+
+def is_gen_ai_span(span: SpanEvent) -> bool:
+    return attribute_value(span, "gen_ai.operation.name") is not None or get_span_op(
+        span
+    ).startswith("gen_ai.")

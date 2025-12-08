@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import {type PaymentIntentResult, type Stripe} from '@stripe/stripe-js';
+import type {PaymentIntentResult, Stripe} from '@stripe/stripe-js';
 import camelCase from 'lodash/camelCase';
 import moment from 'moment-timezone';
 
@@ -11,7 +11,7 @@ import {
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {DataCategory} from 'sentry/types/core';
+import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useMutation} from 'sentry/utils/queryClient';
@@ -20,6 +20,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 
+import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
 import {
   DEFAULT_TIER,
   MONTHLY,
@@ -27,18 +28,16 @@ import {
   SUPPORTED_TIERS,
 } from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {
-  AddOnCategory,
+import {AddOnCategory, PlanTier, ReservedBudgetCategoryType} from 'getsentry/types';
+import type {
+  BillingDetails,
+  CheckoutAddOns,
+  EventBucket,
   InvoiceItemType,
-  PlanTier,
-  type BillingDetails,
-  type CheckoutAddOns,
-  type EventBucket,
-  type OnDemandBudgets,
-  type Plan,
-  type PreviewData,
-  type ReservedBudgetCategoryType,
-  type Subscription,
+  OnDemandBudgets,
+  Plan,
+  PreviewData,
+  Subscription,
 } from 'getsentry/types';
 import {
   getAmPlanTier,
@@ -50,14 +49,13 @@ import {
   isTeamPlanFamily,
   isTrialPlan,
 } from 'getsentry/utils/billing';
-import {isByteCategory} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
-import {
-  type CheckoutAPIData,
-  type CheckoutFormData,
-  type PlanContent,
+import type {
+  CheckoutAPIData,
+  CheckoutFormData,
+  PlanContent,
 } from 'getsentry/views/amCheckout/types';
 import {
   normalizeOnDemandBudget,
@@ -326,10 +324,7 @@ export function getDiscountedPrice({
   creditCategory,
 }: DiscountedPriceProps): number {
   let price = basePrice;
-  if (
-    discountType === 'percentPoints' &&
-    creditCategory === InvoiceItemType.SUBSCRIPTION
-  ) {
+  if (discountType === 'percentPoints' && creditCategory === 'subscription') {
     const discount = (basePrice * amount) / 10000;
     price = basePrice - discount;
   } else if (discountType === 'amountCents') {
@@ -345,41 +340,6 @@ export function getShortInterval(billingInterval: string): string {
   return billingInterval === MONTHLY ? 'mo' : 'yr';
 }
 
-function getWithBytes(gigabytes: number): string {
-  if (gigabytes >= 1000) {
-    return `${(gigabytes / 1000).toLocaleString()} TB`;
-  }
-  return `${gigabytes.toLocaleString()} GB`;
-}
-
-/**
- * Used by RangeSlider. As such, a value of zero is not equivalent to unlimited.
- */
-export function getEventsWithUnit(
-  events: number,
-  dataType: string
-): string | number | null {
-  if (!events) {
-    return null;
-  }
-
-  if (isByteCategory(dataType)) {
-    return getWithBytes(events).replace(' ', '');
-  }
-
-  if (events >= 1_000_000_000) {
-    return `${events / 1_000_000_000}B`;
-  }
-  if (events >= 1_000_000) {
-    return `${events / 1_000_000}M`;
-  }
-  if (events >= 1_000) {
-    return `${events / 1_000}K`;
-  }
-
-  return events;
-}
-
 type CheckoutData = {
   plan: string;
 } & Partial<Record<DataCategory, number>>;
@@ -387,6 +347,21 @@ type CheckoutData = {
 type PreviousData = {
   previous_plan: string;
 } & Partial<Record<`previous_${DataCategory}`, number>>;
+
+/**
+ * Nested structure for category reservations in checkout.upgrade event.
+ * This provides a cleaner structure for Amplitude analytics while maintaining
+ * backwards compatibility with flat fields.
+ */
+type CategoryReservations = Partial<
+  Record<
+    DataCategory,
+    {
+      previous_reserved: number | undefined;
+      reserved: number | undefined;
+    }
+  >
+>;
 
 function recordAnalytics(
   organization: Organization,
@@ -407,20 +382,45 @@ function recordAnalytics(
     previous_plan: subscription.plan,
   };
 
+  // Build nested categories structure for better Amplitude analytics
+  const categories: CategoryReservations = {};
+
+  // Parse previous data and populate both flat and nested structures
   Object.entries(subscription.categories).forEach(([category, metricHistory]) => {
     if (
       subscription.planDetails.checkoutCategories.includes(category as DataCategory) &&
       metricHistory.reserved !== null &&
       metricHistory.reserved !== undefined
     ) {
+      const cat = category as DataCategory;
+
+      // Legacy flat structure (backwards compatibility)
       (previousData as any)[`previous_${category}`] = metricHistory.reserved;
+
+      // New nested structure
+      if (!categories[cat]) {
+        categories[cat] = {reserved: undefined, previous_reserved: undefined};
+      }
+      categories[cat].previous_reserved = metricHistory.reserved;
     }
   });
 
+  // Parse current data and populate both flat and nested structures
   Object.keys(data).forEach(key => {
     if (key.startsWith('reserved')) {
-      const targetKey = key.charAt(8).toLowerCase() + key.slice(9);
-      (currentData as any)[targetKey] = data[key as keyof CheckoutAPIData];
+      const targetKey = (key.charAt(8).toLowerCase() + key.slice(9)) as DataCategory;
+      const value = data[key as keyof CheckoutAPIData] as number | undefined;
+
+      // Legacy flat structure (backwards compatibility)
+      (currentData as any)[targetKey] = value;
+
+      // New nested structure - only add if value is defined
+      if (value !== undefined) {
+        if (!categories[targetKey]) {
+          categories[targetKey] = {reserved: undefined, previous_reserved: undefined};
+        }
+        categories[targetKey].reserved = value;
+      }
     }
     if (key.startsWith('addOn')) {
       const targetKey = (key.charAt(5).toLowerCase() + key.slice(6)) as AddOnCategory;
@@ -433,11 +433,20 @@ function recordAnalytics(
     }
   });
 
+  // Filter out categories where both values are undefined
+  const filteredCategories: CategoryReservations = {};
+  Object.entries(categories).forEach(([category, values]) => {
+    if (values.reserved !== undefined || values.previous_reserved !== undefined) {
+      filteredCategories[category as DataCategory] = values;
+    }
+  });
+
   trackGetsentryAnalytics('checkout.upgrade', {
     organization,
     subscription,
     ...previousData,
     ...currentData,
+    categories: filteredCategories, // Add new nested structure
   });
 
   trackGetsentryAnalytics('checkout.product_select', {
@@ -533,7 +542,7 @@ export function getCheckoutAPIData({
       })}`,
       formatReservedData(value),
     ])
-  ) satisfies Partial<Record<`reserved${Capitalize<DataCategory>}`, number>>;
+  ) satisfies Partial<Reservations>;
 
   const onDemandMaxSpend = shouldUpdateOnDemand
     ? (formData.onDemandMaxSpend ?? 0)
@@ -676,8 +685,10 @@ export function useSubmitCheckout({
 
       // seer automation alert
       const alreadyHasSeer =
-        !isTrialPlan(subscription.plan) && subscription.addOns?.seer?.enabled;
-      const justBoughtSeer = _variables.data.addOnSeer && !alreadyHasSeer;
+        !isTrialPlan(subscription.plan) &&
+        (subscription.addOns?.seer?.enabled || subscription.addOns?.legacySeer?.enabled);
+      const justBoughtSeer =
+        (_variables.data.addOnLegacySeer || _variables.data.addOnSeer) && !alreadyHasSeer;
 
       // refresh org and subscription state
       // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
@@ -730,14 +741,11 @@ export function useSubmitCheckout({
         }
         onSubmitting?.(false);
 
-        // Don't capture 402 errors as that status code is used for
-        // customer credit card failures.
-        if (error.status !== 402) {
-          Sentry.withScope(scope => {
-            scope.setExtras({data: _variables.data});
-            Sentry.captureException(error);
-          });
-        }
+        // TODO: add 402 ignoring once we've confirmed all valid error states
+        Sentry.withScope(scope => {
+          scope.setExtras({data: _variables.data});
+          Sentry.captureException(error);
+        });
       }
     },
   });
@@ -786,8 +794,9 @@ export async function submitCheckout(
     recordAnalytics(organization, subscription, data, isMigratingPartnerAccount);
 
     const alreadyHasSeer =
-      !isTrialPlan(subscription.plan) && subscription.addOns?.seer?.enabled;
-    const justBoughtSeer = data.addOnSeer && !alreadyHasSeer;
+      !isTrialPlan(subscription.plan) &&
+      (subscription.addOns?.seer?.enabled || subscription.addOns?.legacySeer?.enabled);
+    const justBoughtSeer = (data.addOnLegacySeer || data.addOnSeer) && !alreadyHasSeer;
 
     // refresh org and subscription state
     // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
@@ -826,14 +835,11 @@ export async function submitCheckout(
       addErrorMessage(msg);
       onSubmitting?.(false);
 
-      // Don't capture 402 errors as that status code is used for
-      // customer credit card failures.
-      if (error.status !== 402) {
-        Sentry.withScope(scope => {
-          scope.setExtras({data});
-          Sentry.captureException(error);
-        });
-      }
+      // TODO: add 402 ignoring once we've confirmed all valid error states
+      Sentry.withScope(scope => {
+        scope.setExtras({data});
+        Sentry.captureException(error);
+      });
     }
   }
 }
@@ -917,12 +923,14 @@ export function invoiceItemTypeToDataCategory(
   ) as DataCategory;
 }
 
-export function invoiceItemTypeToAddOn(type: InvoiceItemType): AddOnCategory | null {
+export function reservedInvoiceItemTypeToAddOn(
+  type: InvoiceItemType
+): AddOnCategory | null {
   switch (type) {
-    case InvoiceItemType.RESERVED_SEER_BUDGET:
+    case 'reserved_seer_budget':
+      return AddOnCategory.LEGACY_SEER;
+    case 'reserved_seer_users':
       return AddOnCategory.SEER;
-    case InvoiceItemType.RESERVED_PREVENT_USERS:
-      return AddOnCategory.PREVENT;
     default:
       return null;
   }
@@ -941,6 +949,10 @@ export function hasBillingInfo(
   subscription: Subscription,
   isComplete: boolean
 ) {
+  if (subscription.isSelfServePartner) {
+    return true;
+  }
+
   if (isComplete) {
     return !!subscription.paymentSource && hasSomeBillingDetails(billingDetails);
   }

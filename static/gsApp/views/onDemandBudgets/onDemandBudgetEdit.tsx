@@ -209,8 +209,9 @@ class OnDemandBudgetEdit extends Component<Props> {
           {activePlan.onDemandCategories.length !== perCategoryCategories.length && (
             <Alert type="warning">
               {tct(
-                'Additional [oxfordCategories] usage [isOrAre] only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.',
+                'Additional [oxfordCategories] usage [isOrAre] only available through a shared [budgetTerm] budget. To enable [budgetTerm] usage switch to a shared [budgetTerm] budget.',
                 {
+                  budgetTerm: displayBudgetName(activePlan),
                   isOrAre: nonPerCategory.length === 1 ? t('is') : t('are'),
                   oxfordCategories: oxfordizeArray(nonPerCategory),
                 }
@@ -292,8 +293,11 @@ class OnDemandBudgetEdit extends Component<Props> {
                         )}
                     </Title>
                     <Description>
-                      {t(
-                        'The on-demand budget is shared among all categories on a first come, first serve basis. There are no restrictions for any single category consuming the entire budget.'
+                      {tct(
+                        'The [budgetTerm] is shared among all categories on a first come, first serve basis. There are no restrictions for any single category consuming the entire budget.',
+                        {
+                          budgetTerm: displayBudgetName(activePlan),
+                        }
                       )}
                     </Description>
                     {this.renderInputFields(OnDemandBudgetMode.SHARED)}
@@ -328,9 +332,12 @@ class OnDemandBudgetEdit extends Component<Props> {
                         )}
                     </Title>
                     <Description>
-                      {t(
-                        'Dedicated on-demand budget for %s. Any overages in one category will not consume the budget of another category.',
-                        perCategoryCategories
+                      {tct(
+                        'Dedicated [budgetTerm] for [perCategoryCategories]. Any overages in one category will not consume the budget of another category.',
+                        {
+                          budgetTerm: displayBudgetName(activePlan, {withBudget: true}),
+                          perCategoryCategories,
+                        }
                       )}
                     </Description>
                     {this.renderInputFields(OnDemandBudgetMode.PER_CATEGORY)}

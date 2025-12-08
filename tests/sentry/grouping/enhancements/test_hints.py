@@ -308,7 +308,14 @@ def test_get_hint_for_frame(
     rust_frame = DummyRustFrame(hint=rust_hint)
 
     assert (
-        _get_hint_for_frame(variant_name, frame, frame_component, rust_frame, desired_hint_type)  # type: ignore[arg-type]
+        _get_hint_for_frame(
+            variant_name,
+            frame,
+            frame_component,
+            rust_frame,  # type: ignore[arg-type] # rust frame mock fails typecheck
+            desired_hint_type,
+            set(),
+        )
         == expected_result
     )
 
@@ -342,4 +349,40 @@ def test_combining_hints(
     assert (
         _combine_hints(variant_name, frame_component, in_app_hint, contributes_hint)
         == expected_result
+    )
+
+
+def test_adds_rule_source_to_stacktrace_rule_hints() -> None:
+    frame = {"in_app": True}
+    frame_component = FrameGroupingComponent(in_app=True, values=[])
+    custom_rules = {"function:roll_over +app"}
+
+    built_in_rule_rust_frame = DummyRustFrame(
+        hint="marked in-app by stack trace rule (function:shake +app)"
+    )
+    custom_rule_rust_frame = DummyRustFrame(
+        hint="marked in-app by stack trace rule (function:roll_over +app)"
+    )
+
+    assert (
+        _get_hint_for_frame(
+            "app",
+            frame,
+            frame_component,
+            built_in_rule_rust_frame,  # type: ignore[arg-type] # rust frame mock fails typecheck
+            "in-app",
+            custom_rules,
+        )
+        == "marked in-app by built-in stack trace rule (function:shake +app)"
+    )
+    assert (
+        _get_hint_for_frame(
+            "app",
+            frame,
+            frame_component,
+            custom_rule_rust_frame,  # type: ignore[arg-type] # rust frame mock fails typecheck
+            "in-app",
+            custom_rules,
+        )
+        == "marked in-app by custom stack trace rule (function:roll_over +app)"
     )

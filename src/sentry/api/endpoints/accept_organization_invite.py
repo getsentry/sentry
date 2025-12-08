@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 
-from django.http import HttpRequest
+from django.contrib.auth import logout
+from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.request import Request
@@ -118,7 +119,13 @@ class AcceptOrganizationInvite(Endpoint):
         member_id: int,
         token: str,
         organization_id_or_slug: int | str | None = None,
-    ) -> Response:
+    ) -> Response | HttpResponse:
+
+        # Demo user can't accept invites, this invite is probably meant for another user
+        # so we log out the demo user and let the invite flow continue since it can handle
+        # unauthenticated users.
+        if is_demo_user(request.user):
+            logout(request)
 
         invite_context = get_invite_state(
             member_id=int(member_id),
