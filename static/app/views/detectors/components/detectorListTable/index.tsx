@@ -8,6 +8,7 @@ import {
 } from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQueryState} from 'nuqs';
 
 import {
   GridLineLabels,
@@ -21,17 +22,15 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
-import type {Sort} from 'sentry/utils/discover/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {DetectorsTableActions} from 'sentry/views/detectors/components/detectorListTable/actions';
 import {
   DetectorListRow,
   DetectorListRowSkeleton,
 } from 'sentry/views/detectors/components/detectorListTable/detectorListRow';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/list/common/constants';
+import {useDetectorListSort} from 'sentry/views/detectors/list/common/useDetectorListSort';
 import {
   useMonitorViewContext,
   type MonitorListAdditionalColumn,
@@ -47,7 +46,6 @@ type DetectorListTableProps = {
   isPending: boolean;
   isSuccess: boolean;
   queryCount: string;
-  sort: Sort | undefined;
 };
 
 function LoadingSkeletons() {
@@ -59,27 +57,22 @@ function LoadingSkeletons() {
 export function HeaderCell({
   children,
   sortKey,
-  sort,
   ...props
 }: {
-  sort: Sort | undefined;
   children?: React.ReactNode;
   divider?: boolean;
   sortKey?: string;
 } & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [sort, setSort] = useDetectorListSort();
+  const [, setCursor] = useQueryState('cursor');
   const isSortedByField = sort?.field === sortKey;
   const handleSort = () => {
     if (!sortKey) {
       return;
     }
-    const newSort =
-      sort && isSortedByField ? `${sort.kind === 'asc' ? '-' : ''}${sortKey}` : sortKey;
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, sort: newSort, cursor: undefined},
-    });
+    const sortDirection = sort && isSortedByField && sort.kind === 'asc' ? 'desc' : 'asc';
+    setSort({field: sortKey, kind: sortDirection});
+    setCursor(null);
   };
 
   return (
@@ -98,7 +91,6 @@ function DetectorListTable({
   isPending,
   isError,
   isSuccess,
-  sort,
   queryCount,
   allResultsVisible,
 }: DetectorListTableProps) {
@@ -160,7 +152,7 @@ function DetectorListTable({
       >
         {selected.size === 0 ? (
           <SimpleTable.Header>
-            <HeaderCell sortKey="name" sort={sort}>
+            <HeaderCell sortKey="name">
               <Flex gap="md" align="center">
                 <SelectAllHeaderCheckbox
                   checked={pageSelected || (anySelected ? 'indeterminate' : false)}
@@ -169,25 +161,19 @@ function DetectorListTable({
                 <span>{t('Name')}</span>
               </Flex>
             </HeaderCell>
-            <HeaderCell data-column-name="type" divider sortKey="type" sort={sort}>
+            <HeaderCell data-column-name="type" divider sortKey="type">
               {t('Type')}
             </HeaderCell>
-            <HeaderCell
-              data-column-name="last-issue"
-              divider
-              sortKey="latestGroup"
-              sort={sort}
-            >
+            <HeaderCell data-column-name="last-issue" divider sortKey="latestGroup">
               {t('Last Issue')}
             </HeaderCell>
-            <HeaderCell data-column-name="assignee" divider sort={sort}>
+            <HeaderCell data-column-name="assignee" divider>
               {t('Assignee')}
             </HeaderCell>
             <HeaderCell
               data-column-name="connected-automations"
               divider
               sortKey="connectedWorkflows"
-              sort={sort}
             >
               {t('Alerts')}
             </HeaderCell>

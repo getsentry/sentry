@@ -19,7 +19,7 @@ export function useDetectorListQuery({
   const {selection, isReady} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query);
-  const sort = useDetectorListSort();
+  const [sort] = useDetectorListSort();
 
   // Build the query with detector type and assignee filters if provided
   // Map DetectorType values to query values (e.g., 'monitor_check_in_failure' -> 'cron')

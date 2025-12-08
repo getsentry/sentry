@@ -100,9 +100,7 @@ const ADDITIONAL_COLUMNS: MonitorListAdditionalColumn[] = [
   {
     id: 'environment-label',
     columnWidth: '120px',
-    renderHeaderCell: () => (
-      <HeaderCell data-column-name="environment-label" sort={undefined} />
-    ),
+    renderHeaderCell: () => <HeaderCell data-column-name="environment-label" />,
     renderCell: (detector: Detector) => {
       if (detector.type !== 'monitor_check_in_failure') {
         return null;
