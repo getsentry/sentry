@@ -107,7 +107,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       const value = this.value.measurements[key];
       if (typeof value === 'number') {
         const normalizedKey = key.replace('measurements.', '');
-        result[normalizedKey] = {value, unit: 'millisecond'};
+        result[normalizedKey] = {value};
       }
     }
     return result;
