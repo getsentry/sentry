@@ -13,6 +13,7 @@ import {usePanelSizing} from 'sentry/views/seerExplorer/hooks/usePanelSizing';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import InputSection from 'sentry/views/seerExplorer/inputSection';
+import {useExternalOpen} from 'sentry/views/seerExplorer/openSeerExplorer';
 import PanelContainers, {
   BlocksContainer,
 } from 'sentry/views/seerExplorer/panelContainers';
@@ -48,10 +49,20 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     isPolling,
     interruptRun,
     interruptRequested,
-    setRunId,
+    switchToRun,
     respondToUserInput,
     createPR,
   } = useSeerExplorer();
+
+  // Handle external open events (from openSeerExplorer() calls)
+  const {isWaitingForSessionData} = useExternalOpen({
+    isVisible,
+    sendMessage,
+    startNewSession,
+    switchToRun,
+    sessionRunId: sessionData?.run_id,
+    sessionBlocks: sessionData?.blocks,
+  });
 
   // Extract repo_pr_states from session
   const repoPRStates = useMemo(
@@ -237,7 +248,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         onMedSize: handleMedSize,
         onNew: startNewSession,
       },
-      onChangeSession: setRunId,
+      onChangeSession: switchToRun,
       menuAnchorRef: sessionHistoryButtonRef,
       inputAnchorRef: textareaRef,
       prWidgetAnchorRef: prWidgetButtonRef,
@@ -464,7 +475,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
         {isEmptyState ? (
-          <EmptyState />
+          <EmptyState isLoading={isWaitingForSessionData} />
         ) : (
           <Fragment>
             {blocks.map((block: Block, index: number) => (
