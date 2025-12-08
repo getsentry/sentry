@@ -207,11 +207,8 @@ export function formatUsageWithUnits(
   if (isContinuousProfiling(dataCategory)) {
     const usageProfileHours = usageQuantity / MILLISECONDS_IN_HOUR;
     return options.isAbbreviated
-      ? formatWithHours(usageProfileHours, displayNumber(usageProfileHours, 1))
-      : formatWithHours(
-          usageProfileHours,
-          usageProfileHours.toLocaleString(undefined, {maximumFractionDigits: 1})
-        );
+      ? displayNumber(usageProfileHours, 1)
+      : usageProfileHours.toLocaleString(undefined, {maximumFractionDigits: 1});
   }
 
   return options.isAbbreviated
@@ -219,7 +216,7 @@ export function formatUsageWithUnits(
     : usageQuantity.toLocaleString();
 }
 
-function formatWithHours(quantityInHours: number, formattedHours: string) {
+export function formatWithHours(quantityInHours: number, formattedHours: string) {
   return `${formattedHours} ${tn('hour', 'hours', quantityInHours)}`;
 }
 
