@@ -1,13 +1,10 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {
   DiffFileType,
   DiffLineType,
@@ -27,10 +24,14 @@ interface FileChangeApprovalData {
   patches: PendingFilePatch[];
 }
 
-interface FileChangeApprovalProps {
-  onSubmit: (decisions: boolean[]) => void;
-  isMinimized?: boolean;
-  pendingInput?: PendingUserInput | null;
+interface FileChangeApprovalBlockProps {
+  currentIndex: number;
+  pendingInput: PendingUserInput;
+  isFocused?: boolean;
+  isLast?: boolean;
+  onClick?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 function DiffLineContent({line}: {line: DiffLine}) {
@@ -61,18 +62,18 @@ function FileDiffView({patch, repoName}: {patch: FilePatch; repoName: string}) {
   return (
     <FileDiffWrapper>
       <FileHeader>
-        <FileAddedRemoved>
+        <Flex gap="md" align="center">
           <FileAdded>+{patch.added}</FileAdded>
           <FileRemoved>-{patch.removed}</FileRemoved>
-        </FileAddedRemoved>
-        <FileName title={`${repoName}:${patch.path}`}>
-          {repoName}:{patch.path}
-        </FileName>
+        </Flex>
+        <FileName
+          title={`${repoName}:${patch.path}`}
+        >{`${repoName}:${patch.path}`}</FileName>
       </FileHeader>
       {isDelete ? (
-        <DeleteMessage>
+        <Flex align="center" justify="center" padding="3xl">
           <Text variant="muted">{t('This file will be deleted.')}</Text>
-        </DeleteMessage>
+        </Flex>
       ) : (
         <DiffContainer>
           {patch.hunks.map((hunk, hunkIndex) => (
@@ -102,21 +103,15 @@ function FileDiffView({patch, repoName}: {patch: FilePatch; repoName: string}) {
   );
 }
 
-function FileChangeApproval({
-  onSubmit,
-  isMinimized = false,
+function FileChangeApprovalBlock({
+  currentIndex,
+  isFocused,
+  isLast,
+  onClick,
+  onMouseEnter,
+  onMouseLeave,
   pendingInput,
-}: FileChangeApprovalProps) {
-  // Track current index and decisions locally
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [decisions, setDecisions] = useState<boolean[]>([]);
-
-  // Reset local state when pendingInput changes (new batch of patches)
-  useEffect(() => {
-    setCurrentIndex(0);
-    setDecisions([]);
-  }, [pendingInput?.id]);
-
+}: FileChangeApprovalBlockProps) {
   const data = useMemo(() => {
     if (!pendingInput || pendingInput.input_type !== 'file_change_approval') {
       return null;
@@ -125,147 +120,70 @@ function FileChangeApproval({
   }, [pendingInput]);
 
   const patches = data?.patches ?? [];
-  const totalPatches = patches.length;
-
-  const handleDecision = useCallback(
-    (approved: boolean) => {
-      const newDecisions = [...decisions, approved];
-      const nextIndex = currentIndex + 1;
-
-      setDecisions(newDecisions);
-      setCurrentIndex(nextIndex);
-
-      if (nextIndex >= totalPatches) {
-        // All patches reviewed - submit to backend
-        const allApproved = newDecisions.every(d => d);
-        const countRejected = newDecisions.filter(d => !d).length;
-        if (!allApproved) {
-          addErrorMessage(
-            t(
-              'You rejected %s change(s). Tell Seer what to do instead to continue.',
-              countRejected
-            )
-          );
-        }
-        onSubmit(newDecisions);
-      }
-    },
-    [decisions, currentIndex, totalPatches, onSubmit]
-  );
-
-  const handleApprove = useCallback(() => handleDecision(true), [handleDecision]);
-  const handleReject = useCallback(() => handleDecision(false), [handleDecision]);
-
-  // Add keyboard shortcuts for approve (Enter) and reject (Backspace/Delete)
-  useEffect(() => {
-    if (
-      !pendingInput ||
-      pendingInput.input_type !== 'file_change_approval' ||
-      isMinimized
-    ) {
-      return undefined;
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
-        return;
-      }
-
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        handleApprove();
-      } else if (e.key === 'Backspace' || e.key === 'Delete') {
-        e.preventDefault();
-        handleReject();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [pendingInput, handleApprove, handleReject, isMinimized]);
-
-  if (!pendingInput || pendingInput.input_type !== 'file_change_approval') {
-    return null;
-  }
-
   if (!patches || patches.length === 0 || currentIndex >= patches.length) {
     return null;
   }
 
   const currentPatch = patches[currentIndex]!;
-  const hasMultiple = totalPatches > 1;
 
   return (
-    <Wrapper
-      initial={{opacity: 0, y: 20}}
-      animate={{opacity: 1, y: 0}}
-      exit={{opacity: 0, y: 20}}
-      transition={{duration: 0.2, ease: 'easeOut'}}
+    <Block
+      isFocused={isFocused}
+      isLast={isLast}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
-      <DiffScrollContainer>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentIndex}
-            initial={{opacity: 0, x: 20}}
-            animate={{opacity: 1, x: 0}}
-            exit={{opacity: 0, x: -20}}
-            transition={{duration: 0.12, ease: 'easeOut'}}
-          >
-            <FileDiffView patch={currentPatch.patch} repoName={currentPatch.repo_name} />
-          </motion.div>
-        </AnimatePresence>
-      </DiffScrollContainer>
-      <ActionBar
-        initial={{opacity: 0, y: 10}}
-        animate={{opacity: 1, y: 0}}
-        transition={{duration: 0.12, delay: 0.1, ease: 'easeOut'}}
-      >
-        <Container borderTop="primary" padding="md" background="secondary">
-          <Flex justify="between" align="center">
-            <Flex align="center" gap="md" paddingLeft="md">
-              <Text size="md" bold>
-                {t('Reviewing Changes')}
-              </Text>
-              {hasMultiple && (
-                <Text size="md" variant="muted">
-                  {t('(%s of %s)', currentIndex + 1, totalPatches)}
-                </Text>
-              )}
-            </Flex>
-            <ButtonBar gap="md">
-              <Button size="md" onClick={handleReject}>
-                {t('Reject')} ⌫
-              </Button>
-              <Button size="md" priority="primary" onClick={handleApprove}>
-                {t('Approve')} ⏎
-              </Button>
-            </ButtonBar>
+      <AnimatePresence>
+        <motion.div
+          initial={{opacity: 0, y: 10}}
+          animate={{opacity: 1, y: 0}}
+          exit={{opacity: 0, y: 10}}
+        >
+          <Flex align="start" width="100%">
+            <BlockContentWrapper>
+              <DiffScrollContainer>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentIndex}
+                    initial={{opacity: 0, x: 20}}
+                    animate={{opacity: 1, x: 0}}
+                    exit={{opacity: 0, x: -20}}
+                    transition={{duration: 0.12, ease: 'easeOut'}}
+                  >
+                    <FileDiffView
+                      patch={currentPatch.patch}
+                      repoName={currentPatch.repo_name}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </DiffScrollContainer>
+            </BlockContentWrapper>
           </Flex>
-        </Container>
-      </ActionBar>
-    </Wrapper>
+        </motion.div>
+      </AnimatePresence>
+    </Block>
   );
 }
 
-export default FileChangeApproval;
+export default FileChangeApprovalBlock;
 
-const Wrapper = styled(motion.div)`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
+  width: 100%;
+  border-bottom: ${p => (p.isLast ? 'none' : `1px solid ${p.theme.border}`)};
+  position: relative;
+  flex-shrink: 0;
+  cursor: pointer;
+  background: ${p => (p.isFocused ? p.theme.hover : 'transparent')};
+`;
+
+const BlockContentWrapper = styled('div')`
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
 `;
 
-const ActionBar = styled(motion.div)`
-  flex-shrink: 0;
-`;
-
 const DiffScrollContainer = styled('div')`
-  flex: 1;
   overflow: auto;
 `;
 
@@ -287,12 +205,6 @@ const FileHeader = styled('div')`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
-const FileAddedRemoved = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
-
 const FileAdded = styled('div')`
   color: ${p => p.theme.successText};
 `;
@@ -307,13 +219,6 @@ const FileName = styled('div')`
   white-space: nowrap;
   direction: rtl;
   text-align: left;
-`;
-
-const DeleteMessage = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${p => p.theme.space['3xl']};
 `;
 
 const DiffContainer = styled('div')`
