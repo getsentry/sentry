@@ -809,13 +809,11 @@ class PullRequestEventWebhook(GitHubWebhook):
                             integration_id=integration.id,
                             external_identifier=self.get_external_id(user["login"]),
                         )
-                        was_pending = (
-                            contributor.num_actions == OrganizationContributionStatus.PENDING
-                        )
                         contributor.num_actions += 1
+                        is_active = contributor.num_actions == OrganizationContributionStatus.ACTIVE
                         contributor.save(update_fields=["num_actions"])
 
-                    if was_pending and is_contributor_eligible_for_seat_assignment(
+                    if is_active and is_contributor_eligible_for_seat_assignment(
                         user_type, author_association
                     ):
                         assign_seat_to_organization_contributor.delay(contributor.id)
