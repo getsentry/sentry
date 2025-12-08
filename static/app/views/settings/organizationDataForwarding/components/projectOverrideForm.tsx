@@ -69,7 +69,7 @@ export function ProjectOverrideForm({
         collapsible
         renderHeader={() => (
           <Flex padding="sm lg" borderBottom="primary" gap="md" align="center">
-            <IconInfo size="sm" />
+            <IconInfo size="sm" color="subText" />
             <Text variant="muted" size="sm" bold>
               {t('Overrides set here will only affect this project')}
             </Text>
