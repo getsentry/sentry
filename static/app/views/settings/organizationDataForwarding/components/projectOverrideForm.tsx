@@ -10,6 +10,7 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import {IconRefresh} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
@@ -75,7 +76,20 @@ export function ProjectOverrideForm({
           </Flex>
         )}
         renderFooter={() => (
-          <Flex justify="end" padding="lg xl">
+          <Flex justify="between" padding="lg xl">
+            <Button
+              size="sm"
+              icon={<IconRefresh color="danger" transform="scale(-1, 1)" />}
+              onClick={() => {
+                updateDataForwarder({
+                  project_id: `${project.id}`,
+                  overrides: {},
+                  is_enabled: projectConfig?.isEnabled ?? false,
+                });
+              }}
+            >
+              {t('Clear Override')}
+            </Button>
             <Button priority="primary" size="sm" type="submit">
               {t('Save Override')}
             </Button>
