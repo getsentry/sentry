@@ -1,5 +1,6 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   setApiQueryData,
   useApiQuery,
@@ -12,7 +13,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import useAsciiSnapshot from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
-import type {Block} from 'sentry/views/seerExplorer/types';
+import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 
 export type PendingUserInput = {
   data: Record<string, any>;
@@ -26,6 +27,7 @@ export type SeerExplorerResponse = {
     status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
     updated_at: string;
     pending_user_input?: PendingUserInput | null;
+    repo_pr_states?: Record<string, RepoPRState>;
     run_id?: number;
   } | null;
 };
@@ -87,11 +89,17 @@ const isPolling = (sessionData: SeerExplorerResponse['session'], runStarted: boo
     return false;
   }
 
+  // Check if any PR is being created
+  const anyPRCreating = Object.values(sessionData?.repo_pr_states ?? {}).some(
+    state => state.pr_creation_status === 'creating'
+  );
+
   return (
     !sessionData ||
     runStarted ||
     sessionData.status === 'processing' ||
-    sessionData.blocks.some(message => message.loading)
+    sessionData.blocks.some(message => message.loading) ||
+    anyPRCreating
   );
 };
 
@@ -117,6 +125,7 @@ export const useSeerExplorer = () => {
     userBlockId: string;
     userQuery: string;
   } | null>(null);
+  const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
   const {data: apiData, isPending} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(orgSlug || '', runId || undefined),
@@ -297,6 +306,37 @@ export const useSeerExplorer = () => {
     [api, orgSlug, runId, queryClient]
   );
 
+  const createPR = useCallback(
+    async (repoName?: string) => {
+      if (!orgSlug || !runId) {
+        return;
+      }
+
+      try {
+        await api.requestPromise(
+          `/organizations/${orgSlug}/seer/explorer-update/${runId}/`,
+          {
+            method: 'POST',
+            data: {
+              payload: {
+                type: 'create_pr',
+                repo_name: repoName,
+              },
+            },
+          }
+        );
+
+        // Invalidate queries to trigger polling for status updates
+        queryClient.invalidateQueries({
+          queryKey: makeSeerExplorerQueryKey(orgSlug, runId),
+        });
+      } catch (e: any) {
+        addErrorMessage(e?.responseJSON?.detail ?? 'Failed to create PR');
+      }
+    },
+    [api, orgSlug, runId, queryClient]
+  );
+
   // Always filter messages based on optimistic state and deletedFromIndex before any other processing
   const sessionData = apiData?.session ?? null;
 
@@ -373,6 +413,28 @@ export const useSeerExplorer = () => {
     }
   }, [apiData?.session?.blocks, optimistic]);
 
+  // Detect PR creation errors and show error messages
+  useEffect(() => {
+    const currentPRStates = sessionData?.repo_pr_states ?? {};
+    const previousPRStates = previousPRStatesRef.current;
+
+    // Check each repo for errors
+    for (const [repoName, currentState] of Object.entries(currentPRStates)) {
+      const previousState = previousPRStates[repoName];
+
+      // Detect transition from 'creating' to 'error'
+      if (
+        previousState?.pr_creation_status === 'creating' &&
+        currentState.pr_creation_status === 'error' &&
+        currentState.pr_creation_error
+      ) {
+        addErrorMessage(currentState.pr_creation_error ?? 'Failed to create PR');
+      }
+    }
+
+    previousPRStatesRef.current = currentPRStates;
+  }, [sessionData?.repo_pr_states]);
+
   if (
     waitingForResponse &&
     filteredSessionData &&
@@ -432,5 +494,6 @@ export const useSeerExplorer = () => {
     interruptRun,
     interruptRequested,
     respondToUserInput,
+    createPR,
   };
 };

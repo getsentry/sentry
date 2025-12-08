@@ -6,7 +6,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 
-type MenuMode = 'slash-commands-keyboard' | 'session-history' | 'hidden';
+type MenuMode = 'slash-commands-keyboard' | 'session-history' | 'pr-widget' | 'hidden';
 
 interface ExplorerMenuProps {
   clearInput: () => void;
@@ -23,9 +23,12 @@ interface ExplorerMenuProps {
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   inputAnchorRef?: React.RefObject<HTMLElement | null>;
   menuAnchorRef?: React.RefObject<HTMLElement | null>;
+  prWidgetAnchorRef?: React.RefObject<HTMLElement | null>;
+  prWidgetFooter?: React.ReactNode;
+  prWidgetItems?: MenuItemProps[];
 }
 
-interface MenuItemProps {
+export interface MenuItemProps {
   description: string | React.ReactNode;
   handler: () => void;
   key: string;
@@ -43,6 +46,9 @@ export function useExplorerMenu({
   onChangeSession,
   menuAnchorRef,
   inputAnchorRef,
+  prWidgetAnchorRef,
+  prWidgetItems,
+  prWidgetFooter,
 }: ExplorerMenuProps) {
   const [menuMode, setMenuMode] = useState<MenuMode>('hidden');
   const [menuPosition, setMenuPosition] = useState<{
@@ -74,10 +80,12 @@ export function useExplorerMenu({
         return filteredSlashCommands;
       case 'session-history':
         return sessionItems;
+      case 'pr-widget':
+        return prWidgetItems ?? [];
       default:
         return [];
     }
-  }, [menuMode, filteredSlashCommands, sessionItems]);
+  }, [menuMode, filteredSlashCommands, sessionItems, prWidgetItems]);
 
   const close = useCallback(() => {
     setMenuMode('hidden');
@@ -210,7 +218,11 @@ export function useExplorerMenu({
     }
 
     const anchorRef =
-      menuMode === 'slash-commands-keyboard' ? inputAnchorRef : menuAnchorRef;
+      menuMode === 'slash-commands-keyboard'
+        ? inputAnchorRef
+        : menuMode === 'pr-widget'
+          ? prWidgetAnchorRef
+          : menuAnchorRef;
     const isSlashCommand = menuMode === 'slash-commands-keyboard';
 
     if (!anchorRef?.current) {
@@ -233,24 +245,31 @@ export function useExplorerMenu({
     const spacing = 8;
     const relativeTop = rect.top - panelRect.top;
     const relativeLeft = rect.left - panelRect.left;
+    const relativeRight = panelRect.right - rect.right;
 
-    setMenuPosition(
-      isSlashCommand
-        ? {
-            bottom: `${panelRect.height - relativeTop + spacing}px`,
-            left: `${relativeLeft}px`,
-          }
-        : {
-            top: `${relativeTop + rect.height + spacing}px`,
-            left: `${relativeLeft}px`,
-          }
-    );
-  }, [isVisible, menuMode, menuAnchorRef, inputAnchorRef]);
+    if (isSlashCommand) {
+      setMenuPosition({
+        bottom: `${panelRect.height - relativeTop + spacing}px`,
+        left: `${relativeLeft}px`,
+      });
+    } else if (menuMode === 'pr-widget') {
+      // Position below anchor, aligned to right edge
+      setMenuPosition({
+        top: `${relativeTop + rect.height + spacing}px`,
+        right: `${relativeRight}px`,
+      });
+    } else {
+      setMenuPosition({
+        top: `${relativeTop + rect.height + spacing}px`,
+        left: `${relativeLeft}px`,
+      });
+    }
+  }, [isVisible, menuMode, menuAnchorRef, inputAnchorRef, prWidgetAnchorRef]);
 
   const menu = (
     <Activity mode={isVisible ? 'visible' : 'hidden'}>
       <MenuPanel panelSize={panelSize} style={menuPosition} data-seer-menu-panel="">
-        {menuItems.map((item, index) => (
+        {menuItems.map((item: MenuItemProps, index: number) => (
           <MenuItem
             key={item.key}
             ref={el => {
@@ -274,6 +293,7 @@ export function useExplorerMenu({
             </ItemName>
           </MenuItem>
         )}
+        {menuMode === 'pr-widget' && prWidgetFooter}
       </MenuPanel>
     </Activity>
   );
@@ -288,12 +308,22 @@ export function useExplorerMenu({
     }
   }, [menuMode, close, refetchSessions]);
 
+  // Handler for opening PR widget from button
+  const openPRWidget = useCallback(() => {
+    if (menuMode === 'pr-widget') {
+      close();
+    } else {
+      setMenuMode('pr-widget');
+    }
+  }, [menuMode, close]);
+
   return {
     menu,
     menuMode,
     isMenuOpen: menuMode !== 'hidden',
     closeMenu: close,
     openSessionHistory,
+    openPRWidget,
   };
 }
 
@@ -370,20 +400,22 @@ function useSessions({
       return [];
     }
 
-    return data.data.map(session => ({
-      title: session.title,
-      key: session.run_id.toString(),
-      description: (
-        <TimeSince
-          tooltipPrefix="Last updated"
-          date={moment.utc(session.last_triggered_at).toDate()}
-          suffix="ago"
-        />
-      ),
-      handler: () => {
-        onChangeSession(session.run_id);
-      },
-    }));
+    return data.data.map(
+      (session: {last_triggered_at: moment.MomentInput; run_id: number; title: any}) => ({
+        title: session.title,
+        key: session.run_id.toString(),
+        description: (
+          <TimeSince
+            tooltipPrefix="Last updated"
+            date={moment.utc(session.last_triggered_at).toDate()}
+            suffix="ago"
+          />
+        ),
+        handler: () => {
+          onChangeSession(session.run_id);
+        },
+      })
+    );
   }, [data, isPending, isError, onChangeSession]);
 
   return {
