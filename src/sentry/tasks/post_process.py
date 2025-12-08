@@ -1606,7 +1606,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         get_issue_summary_lock_key,
     )
     from sentry.seer.autofix.utils import (
-        get_autofix_repos_from_project_code_mappings,
         is_issue_eligible_for_seer_automation,
         is_seer_scanner_rate_limited,
     )
@@ -1684,14 +1683,16 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if not is_issue_eligible_for_seer_automation(group):
                 return
 
-            # Check if project has connected repositories - requirement for new pricing
-            if not get_autofix_repos_from_project_code_mappings(group.project):
-                return
-
             # Atomically set cache to prevent duplicate dispatches (returns False if key exists)
             automation_dispatch_cache_key = f"seer-automation-dispatched:{group.id}"
             if not cache.add(automation_dispatch_cache_key, True, timeout=300):
                 return  # Another process already dispatched automation
+
+            # Check if project has connected repositories - requirement for new pricing
+            from sentry.seer.autofix.utils import has_project_connected_repos
+
+            if not has_project_connected_repos(group.organization.id, group.project.id):
+                return
 
             # Check if summary exists in cache
             cache_key = get_issue_summary_cache_key(group.id)

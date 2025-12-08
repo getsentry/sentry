@@ -173,6 +173,24 @@ def get_project_seer_preferences(project_id: int):
     raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
+def has_project_connected_repos(organization_id: int, project_id: int) -> bool:
+    """
+    Check if a project has connected repositories in Seer.
+    Results are cached for 60 minutes to minimize API calls.
+    """
+    cache_key = f"seer-project-has-repos:{organization_id}:{project_id}"
+    cached_value = cache.get(cache_key)
+
+    if cached_value is not None:
+        return cached_value
+
+    project_preferences = get_project_seer_preferences(project_id)
+    has_repos = bool(project_preferences.code_mapping_repos)
+
+    cache.set(cache_key, has_repos, timeout=60 * 60)  # Cache for 1 hour
+    return has_repos
+
+
 def bulk_get_project_preferences(organization_id: int, project_ids: list[int]) -> dict[str, dict]:
     """Bulk fetch Seer project preferences. Returns dict mapping project ID (string) to preference dict."""
     path = "/v1/project-preference/bulk"
