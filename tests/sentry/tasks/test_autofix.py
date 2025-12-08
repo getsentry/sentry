@@ -5,7 +5,7 @@ import pytest
 from django.test import TestCase
 
 from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
-from sentry.seer.autofix.utils import AutofixState
+from sentry.seer.autofix.utils import AutofixState, get_seer_seat_based_tier_cache_key
 from sentry.seer.models import SeerApiError, SummarizeIssueResponse, SummarizeIssueScores
 from sentry.tasks.autofix import (
     check_autofix_status,
@@ -13,6 +13,7 @@ from sentry.tasks.autofix import (
     generate_issue_summary_only,
 )
 from sentry.testutils.cases import TestCase as SentryTestCase
+from sentry.utils.cache import cache
 
 
 class TestCheckAutofixStatus(TestCase):
@@ -233,3 +234,22 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         # Sentry DB options should still be set before the API call
         assert project1.get_option("sentry:seer_scanner_automation") is True
         assert project2.get_option("sentry:seer_scanner_automation") is True
+
+    @patch("sentry.tasks.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.autofix.bulk_get_project_preferences")
+    def test_invalidates_seat_based_tier_cache(
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
+    ) -> None:
+        """Test that the seat-based tier cache is invalidated after configuring org."""
+        self.create_project(organization=self.organization)
+        mock_bulk_get.return_value = {}
+
+        # Set a cached value before running the task
+        cache_key = get_seer_seat_based_tier_cache_key(self.organization.id)
+        cache.set(cache_key, False, timeout=60 * 60 * 4)
+        assert cache.get(cache_key) is False
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        # Cache should be invalidated
+        assert cache.get(cache_key) is None
