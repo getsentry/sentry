@@ -719,8 +719,8 @@ class PullRequestEventWebhook(APITestCase):
             data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
-            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(PULL_REQUEST_OPENED_EVENT_EXAMPLE),
-            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(PULL_REQUEST_OPENED_EVENT_EXAMPLE),
+            HTTP_X_HUB_SIGNATURE="sha1=6ab37f1f7c8b4f0c223d1c346855fc2ac47ee749",
+            HTTP_X_HUB_SIGNATURE_256="sha256=a9f96076ede4be8eaf808e78c891287617af9d2292b7359c3dc3d063c3e356b8",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -752,8 +752,8 @@ class PullRequestEventWebhook(APITestCase):
             data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
-            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(PULL_REQUEST_OPENED_EVENT_EXAMPLE),
-            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(PULL_REQUEST_OPENED_EVENT_EXAMPLE),
+            HTTP_X_HUB_SIGNATURE="sha1=6ab37f1f7c8b4f0c223d1c346855fc2ac47ee749",
+            HTTP_X_HUB_SIGNATURE_256="sha256=a9f96076ede4be8eaf808e78c891287617af9d2292b7359c3dc3d063c3e356b8",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -850,8 +850,8 @@ class PullRequestEventWebhook(APITestCase):
             data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
-            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(PULL_REQUEST_OPENED_EVENT_EXAMPLE),
-            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(PULL_REQUEST_OPENED_EVENT_EXAMPLE),
+            HTTP_X_HUB_SIGNATURE="sha1=6ab37f1f7c8b4f0c223d1c346855fc2ac47ee749",
+            HTTP_X_HUB_SIGNATURE_256="sha256=a9f96076ede4be8eaf808e78c891287617af9d2292b7359c3dc3d063c3e356b8",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -899,8 +899,8 @@ class PullRequestEventWebhook(APITestCase):
             data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
-            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(PULL_REQUEST_OPENED_EVENT_EXAMPLE),
-            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(PULL_REQUEST_OPENED_EVENT_EXAMPLE),
+            HTTP_X_HUB_SIGNATURE="sha1=6ab37f1f7c8b4f0c223d1c346855fc2ac47ee749",
+            HTTP_X_HUB_SIGNATURE_256="sha256=a9f96076ede4be8eaf808e78c891287617af9d2292b7359c3dc3d063c3e356b8",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -943,8 +943,8 @@ class PullRequestEventWebhook(APITestCase):
             data=PULL_REQUEST_EDITED_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
-            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(PULL_REQUEST_EDITED_EVENT_EXAMPLE),
-            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(PULL_REQUEST_EDITED_EVENT_EXAMPLE),
+            HTTP_X_HUB_SIGNATURE="sha1=fb6c68217745a610c101a904d6ac37cf224d1ff7",
+            HTTP_X_HUB_SIGNATURE_256="sha256=5e4486adcf1478f5ff1981b1dbadf3a3124aa340af6344f27db274261a816b9d",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -984,8 +984,8 @@ class PullRequestEventWebhook(APITestCase):
             data=PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
-            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(PULL_REQUEST_CLOSED_EVENT_EXAMPLE),
-            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(PULL_REQUEST_CLOSED_EVENT_EXAMPLE),
+            HTTP_X_HUB_SIGNATURE="sha1=f5473aab0c319a06023e6569c028203e872a2f6c",
+            HTTP_X_HUB_SIGNATURE_256="sha256=521aebffd5a0a81f572cdcdea69c7062cacb09ff5f821123d5fd7d2f7f0f87ef",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -1101,8 +1101,8 @@ class PullRequestEventWebhook(APITestCase):
             data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
-            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(PULL_REQUEST_OPENED_EVENT_EXAMPLE),
-            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(PULL_REQUEST_OPENED_EVENT_EXAMPLE),
+            HTTP_X_HUB_SIGNATURE="sha1=6ab37f1f7c8b4f0c223d1c346855fc2ac47ee749",
+            HTTP_X_HUB_SIGNATURE_256="sha256=a9f96076ede4be8eaf808e78c891287617af9d2292b7359c3dc3d063c3e356b8",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -1145,17 +1145,17 @@ class PullRequestEventWebhook(APITestCase):
         )
 
         # Modify the fixture to have Bot user type
-        event_data = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-        event_data["pull_request"]["user"]["type"] = "Bot"
-        body = json.dumps(event_data).encode("utf-8")
+        body = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        body["pull_request"]["user"]["type"] = "Bot"
+        modified_body = json.dumps(body).encode("utf-8")
 
         self.client.post(
             path=self.url,
-            data=body,
+            data=modified_body,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
-            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(body),
-            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(body),
+            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(modified_body),
+            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(modified_body),
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -1198,17 +1198,17 @@ class PullRequestEventWebhook(APITestCase):
         )
 
         # Modify the fixture to have COLLABORATOR author_association (not MEMBER/OWNER)
-        event_data = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-        event_data["pull_request"]["author_association"] = "COLLABORATOR"
-        body = json.dumps(event_data).encode("utf-8")
+        body = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        body["pull_request"]["author_association"] = "COLLABORATOR"
+        modified_body = json.dumps(body).encode("utf-8")
 
         self.client.post(
             path=self.url,
-            data=body,
+            data=modified_body,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
-            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(body),
-            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(body),
+            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(modified_body),
+            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(modified_body),
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
