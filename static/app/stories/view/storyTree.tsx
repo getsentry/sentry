@@ -34,7 +34,11 @@ export class StoryTreeNode {
       const [_app, ...segments] = this.filesystemPath.split('/');
       // Remove the filename from the path
       segments.pop()!;
-      this.slug = `${segments.map(segment => segment.toLowerCase()).join('/')}/${this.label.replaceAll(' ', '-').toLowerCase()}`;
+      const pathPrefix =
+        segments.length > 0
+          ? `${segments.map(segment => segment.toLowerCase()).join('/')}/`
+          : '';
+      this.slug = `${pathPrefix}${this.label.replaceAll(' ', '-').toLowerCase()}`;
     } else {
       this.slug = `${this.label.replaceAll(' ', '-').toLowerCase()}`;
     }

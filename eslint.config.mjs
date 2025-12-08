@@ -129,17 +129,17 @@ const restrictedImportPaths = [
   {
     name: 'sentry/views/insights/common/components/insightsTimeSeriesWidget',
     message:
-      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
   },
   {
     name: 'sentry/views/insights/common/components/insightsLineChartWidget',
     message:
-      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
   },
   {
     name: 'sentry/views/insights/common/components/insightsAreaChartWidget',
     message:
-      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
   },
 ];
 
