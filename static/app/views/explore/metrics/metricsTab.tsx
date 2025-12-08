@@ -17,6 +17,7 @@ import {
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
@@ -101,7 +102,15 @@ function MetricsQueryBuilderSection() {
 function MetricsTabBodySection() {
   const metricQueries = useMultiMetricsQueryParams();
   const [interval] = useChartInterval();
-  useMetricsAnalytics({interval, metricQueries});
+  const {isFetching: areToolbarsLoading, isMetricOptionsEmpty} = useMetricOptions({
+    enabled: true,
+  });
+  useMetricsAnalytics({
+    interval,
+    metricQueries,
+    areToolbarsLoading,
+    isMetricOptionsEmpty,
+  });
 
   return (
     <ExploreBodyContent>
