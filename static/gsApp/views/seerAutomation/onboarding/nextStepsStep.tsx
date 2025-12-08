@@ -18,8 +18,10 @@ export function NextStepsStep() {
     useSeerOnboardingContext();
 
   const organization = useOrganization();
-  const totalRepositories =
-    selectedCodeReviewRepositories.length + selectedRootCauseAnalysisRepositories.length;
+  const totalRepositories = new Set([
+    ...selectedCodeReviewRepositories.map(repo => repo.id),
+    ...selectedRootCauseAnalysisRepositories.map(repo => repo.id),
+  ]).size;
 
   return (
     <Fragment>

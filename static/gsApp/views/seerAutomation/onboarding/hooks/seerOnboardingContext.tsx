@@ -195,11 +195,5 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
 }
 
 export function useSeerOnboardingContext() {
-  const context = useContext(SeerOnboardingContext);
-  if (context === undefined) {
-    throw new Error(
-      'useSeerOnboardingContext must be used within a SeerOnboardingProvider'
-    );
-  }
-  return context;
+  return useContext(SeerOnboardingContext);
 }
