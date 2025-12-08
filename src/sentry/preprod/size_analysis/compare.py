@@ -597,7 +597,7 @@ def _diff_insight(
         if len(group_diffs) == 0:
             return None
 
-    # TODO(EME-) Implement non-File/GroupinsightsResult insight diffs in future
+    # TODO(EME-678) Implement non-File/GroupinsightsResult insight diffs in future
 
     return InsightDiffItem(
         insight_type=insight_type,
