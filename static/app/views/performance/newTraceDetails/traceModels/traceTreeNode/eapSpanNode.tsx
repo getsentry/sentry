@@ -321,7 +321,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     const superMatch = super.matchById(id);
 
     // Match by transaction_id if the node represents a transaction, otherwise use the super match.
-    return superMatch || this.value.is_transaction ? id === this.transactionId : false;
+    return superMatch || (this.value.is_transaction ? id === this.transactionId : false);
   }
 
   resolveValueFromSearchKey(key: string): any | null {
