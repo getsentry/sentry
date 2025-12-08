@@ -100,8 +100,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
 def sync_prebuilt_dashboards(organization: Organization) -> None:
     """
     Queries the database to check if prebuilt dashboards have a Dashboard record and
-    creates them if they don't, updates titles if they've changed, or deletes them
-    if they should no longer exist.
+    creates them if they don't, or deletes them if they should no longer exist.
     """
 
     with transaction.atomic(router.db_for_write(Dashboard)):
@@ -110,13 +109,15 @@ def sync_prebuilt_dashboards(organization: Organization) -> None:
             prebuilt_id__isnull=False,
         )
 
-        saved_prebuilt_dashboard_map = {d.prebuilt_id: d for d in saved_prebuilt_dashboards}
+        saved_prebuilt_dashboard_ids = set(
+            saved_prebuilt_dashboards.values_list("prebuilt_id", flat=True)
+        )
 
-        # Create prebuilt dashboards if they don't exist, or update titles if changed
+        # Create prebuilt dashboards if they don't exist
         for prebuilt_dashboard in PREBUILT_DASHBOARDS:
             prebuilt_id: PrebuiltDashboardId = prebuilt_dashboard["prebuilt_id"]
 
-            if prebuilt_id not in saved_prebuilt_dashboard_map:
+            if prebuilt_id not in saved_prebuilt_dashboard_ids:
                 # Create new dashboard
                 Dashboard.objects.create(
                     organization=organization,
@@ -124,10 +125,6 @@ def sync_prebuilt_dashboards(organization: Organization) -> None:
                     created_by_id=None,
                     prebuilt_id=prebuilt_id,
                 )
-            elif saved_prebuilt_dashboard_map[prebuilt_id].title != prebuilt_dashboard["title"]:
-                # Update title if changed
-                saved_prebuilt_dashboard_map[prebuilt_id].title = prebuilt_dashboard["title"]
-                saved_prebuilt_dashboard_map[prebuilt_id].save(update_fields=["title"])
 
         # Delete old prebuilt dashboards if they should no longer exist
         prebuilt_ids = [d["prebuilt_id"] for d in PREBUILT_DASHBOARDS]
