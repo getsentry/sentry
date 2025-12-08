@@ -222,22 +222,20 @@ function StoryUsage() {
 
 function StoryAPI() {
   const {story} = useStory();
-  if (!story.exports.documentation && typeof story.exports.documentation !== 'object')
+
+  const documentation = story.exports.documentation as TypeLoader.TypeLoaderResult;
+
+  if (!documentation || !('props' in documentation)) {
     return null;
+  }
+
   return (
     <Fragment>
-      {Object.entries(
-        (story.exports.documentation as TypeLoader.TypeLoaderResult).props as Record<
-          string,
-          TypeLoader.ComponentDocWithFilename
-        >
-      ).map(([key, value]) => {
+      {Object.entries(documentation.props ?? {}).map(([key, value]) => {
         return <Storybook.APIReference key={key} componentProps={value} />;
       })}
     </Fragment>
   );
-
-  return null;
 }
 
 function StoryGrid(props: React.ComponentProps<typeof Grid>) {

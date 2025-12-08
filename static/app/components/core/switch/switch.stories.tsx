@@ -7,7 +7,7 @@ import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 export default Storybook.story('Switch', (story, APIReference) => {
-  APIReference(documentation.props.Switch);
+  APIReference(documentation.props?.Switch);
 
   story('Default', () => {
     return (

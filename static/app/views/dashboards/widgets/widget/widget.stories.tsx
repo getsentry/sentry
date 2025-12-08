@@ -13,7 +13,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from './widget';
 
 export default Storybook.story('Widget', (story, APIReference) => {
-  APIReference(documentation.props.Widget);
+  APIReference(documentation.props?.Widget);
 
   story('Getting Started', () => {
     return (

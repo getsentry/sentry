@@ -6,7 +6,7 @@ import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 export default Storybook.story('MenuListItem', (story, APIReference) => {
-  APIReference(documentation.props.MenuListItem);
+  APIReference(documentation.props?.MenuListItem);
 
   story('focused', () => {
     return <SizeVariants isFocused />;
