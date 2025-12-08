@@ -106,6 +106,7 @@ class SizeInfoCompleted(BaseModel):
     # Deprecated, use size_metrics instead
     download_size_bytes: int
     size_metrics: list[SizeInfoSizeMetric]
+    base_size_metrics: list[SizeInfoSizeMetric]
 
 
 class SizeInfoFailed(BaseModel):
@@ -129,6 +130,7 @@ class BuildDetailsApiResponse(BaseModel):
     vcs_info: BuildDetailsVcsInfo
     size_info: SizeInfo | None = None
     posted_status_checks: PostedStatusChecks | None = None
+    base_artifact_id: str | None = None
 
 
 def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> Platform:
@@ -143,7 +145,10 @@ def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> 
             raise ValueError(f"Unknown artifact type: {artifact_type}")
 
 
-def to_size_info(size_metrics: list[PreprodArtifactSizeMetrics]) -> None | SizeInfo:
+def to_size_info(
+    size_metrics: list[PreprodArtifactSizeMetrics],
+    base_size_metrics: list[PreprodArtifactSizeMetrics] | None = None,
+) -> None | SizeInfo:
     if len(size_metrics) == 0:
         return None
 
@@ -182,6 +187,15 @@ def to_size_info(size_metrics: list[PreprodArtifactSizeMetrics]) -> None | SizeI
                     )
                     for metric in size_metrics
                 ],
+                base_size_metrics=[
+                    SizeInfoSizeMetric(
+                        metrics_artifact_type=metric.metrics_artifact_type,
+                        install_size_bytes=metric.max_install_size,
+                        download_size_bytes=metric.max_download_size,
+                    )
+                    for metric in (base_size_metrics or [])
+                    if metric.max_install_size is not None and metric.max_download_size is not None
+                ],
             )
         case PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
             error_code = main_metric.error_code
@@ -200,8 +214,18 @@ def transform_preprod_artifact_to_build_details(
     size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
         preprod_artifact=artifact,
     )
+    size_metrics_list = list(size_metrics_qs)
 
-    size_info = to_size_info(list(size_metrics_qs))
+    base_size_metrics_list: list[PreprodArtifactSizeMetrics] = []
+    base_artifact = artifact.get_base_artifact_for_commit().first()
+    if base_artifact:
+        base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=base_artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        )
+        base_size_metrics_list = list(base_size_metrics_qs)
+
+    size_info = to_size_info(size_metrics_list, base_size_metrics_list)
 
     platform = None
     # artifact_type can be null before preprocessing has completed
@@ -274,6 +298,7 @@ def transform_preprod_artifact_to_build_details(
         vcs_info=vcs_info,
         size_info=size_info,
         posted_status_checks=posted_status_checks,
+        base_artifact_id=base_artifact.id if base_artifact else None,
     )
 
 

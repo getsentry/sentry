@@ -95,6 +95,37 @@ class TestToSizeInfo(TestCase):
         assert result.size_metrics[1].install_size_bytes == 512000
         assert result.size_metrics[1].download_size_bytes == 256000
 
+    def test_to_size_info_completed_state_with_base_metrics(self):
+        """Test to_size_info includes base size metrics when provided."""
+        size_metrics = [
+            PreprodArtifactSizeMetrics(
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                max_install_size=1024000,
+                max_download_size=512000,
+            ),
+        ]
+        base_size_metrics = [
+            PreprodArtifactSizeMetrics(
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                max_install_size=512000,
+                max_download_size=256000,
+            ),
+        ]
+
+        result = to_size_info(size_metrics, base_size_metrics)
+
+        assert isinstance(result, SizeInfoCompleted)
+        assert len(result.base_size_metrics) == 1
+        base_metric = result.base_size_metrics[0]
+        assert (
+            base_metric.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        )
+        assert base_metric.install_size_bytes == 512000
+        assert base_metric.download_size_bytes == 256000
+
     def test_to_size_info_failed_state(self):
         """Test to_size_info returns SizeInfoFailed for FAILED state."""
         size_metrics = PreprodArtifactSizeMetrics(
