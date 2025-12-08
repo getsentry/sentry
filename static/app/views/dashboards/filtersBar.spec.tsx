@@ -36,7 +36,6 @@ describe('FiltersBar', () => {
   const renderFilterBar = (overrides: Partial<FiltersBarProps> = {}) => {
     const props: FiltersBarProps = {
       filters: {},
-      hasTemporaryFilters: false,
       hasUnsavedChanges: false,
       isEditingDashboard: false,
       isPreview: false,
