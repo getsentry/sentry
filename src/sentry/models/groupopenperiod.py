@@ -58,6 +58,7 @@ class GroupOpenPeriod(DefaultFieldsModel):
     date_ended = models.DateTimeField(null=True)
 
     data = models.JSONField(default=dict)
+    event_id = models.CharField(max_length=32, null=True)
 
     class Meta:
         app_label = "sentry"
