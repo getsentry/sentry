@@ -49,7 +49,7 @@ export function getCreditDataCategory(credit: RecurringCredit): DataCategory | n
   return category;
 }
 
-export type CategoryNameProps = {
+type CategoryNameProps = {
   category: DataCategory;
   capitalize?: boolean;
   hadCustomDynamicSampling?: boolean;
