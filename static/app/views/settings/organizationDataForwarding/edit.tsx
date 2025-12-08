@@ -149,7 +149,11 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                 tooltip={
                   key === provider
                     ? undefined
-                    : {title: t('Cannot update provider after setup.')}
+                    : {
+                        title: t(
+                          'Cannot update provider after setup, create a new forwarder instead.'
+                        ),
+                      }
                 }
               >
                 <Flex align="center" gap="sm">
