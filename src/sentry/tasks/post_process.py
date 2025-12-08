@@ -23,6 +23,7 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
+from sentry.seer.autofix.utils import has_project_connected_repos
 from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored
@@ -1689,8 +1690,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
                 return  # Another process already dispatched automation
 
             # Check if project has connected repositories - requirement for new pricing
-            from sentry.seer.autofix.utils import has_project_connected_repos
-
             if not has_project_connected_repos(group.organization.id, group.project.id):
                 return
 
