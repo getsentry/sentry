@@ -199,6 +199,7 @@ export function useMetricDetectorChart({
 
   const {anomalyThresholdSeries} = useMetricDetectorAnomalyThresholds({
     detectorId: detector.id,
+    detectionType,
     startTimestamp: metricTimestamps.start,
     endTimestamp: metricTimestamps.end,
     series,
