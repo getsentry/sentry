@@ -396,6 +396,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/notifications/                                           @getsentry/alerts-notifications @getsentry/ecosystem
 /src/sentry/notifications/models/                                    @getsentry/ecosystem
 /src/sentry/notifications/notifications/                             @getsentry/ecosystem
+/src/sentry/notifications/platform/                                  @getsentry/ecosystem
 /src/sentry/pipeline/                                                @getsentry/ecosystem
 /src/sentry/plugins/                                                 @getsentry/ecosystem
 /src/sentry/shared_integrations/                                     @getsentry/ecosystem
@@ -654,6 +655,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/integrations/github/tasks/pr_comment.py                     @getsentry/ecosystem
 /src/sentry/data_secrecy/                                               @getsentry/ecosystem
 /tests/sentry/data_secrecy/                                             @getsentry/ecosystem
+/static/app/views/settings/organizationDataForwarding/                  @getsentry/ecosystem
+/static/app/views/settings/organizationIntegrations/                    @getsentry/ecosystem
+/static/app/views/settings/organizationDeveloperSettings/               @getsentry/ecosystem
 ## End of Ecosystem
 
 
