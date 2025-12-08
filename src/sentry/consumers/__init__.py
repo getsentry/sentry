@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Mapping, Sequence
-from typing import Any, get_args, get_origin, get_type_hints
+from typing import Any, Union, get_args, get_origin, get_type_hints
 
 import click
 from arroyo.backends.abstract import Consumer
@@ -56,8 +56,8 @@ def apply_processor_args_overrides(
             key, value_str = arg.split(":", 1)
             param_type = type_hints[key]
 
-            # Extract the actual type from Optional[T], Union, etc.
-            if get_origin(param_type) is not None:
+            # Extract the actual type from Optional[T] (which is Union[T, None])
+            if get_origin(param_type) is Union:
                 # For Optional[T] (Union[T, None]), extract T
                 type_args = get_args(param_type)
                 param_type = next((t for t in type_args if t is not type(None)), str)
