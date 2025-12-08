@@ -2021,6 +2021,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # hours
 register(
+    "performance.traces.endpoint.query-timeout",
+    type=Float,
+    default=30.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.traces.query_timestamp_projects",
     type=Bool,
     default=False,

@@ -1,9 +1,11 @@
 import logging
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from multiprocessing.context import TimeoutError
+from multiprocessing.pool import ThreadPool
 from typing import Any, NotRequired, TypedDict
 
+from sentry import options
 from sentry.uptime.subscriptions.regions import get_region_config
 
 logger = logging.getLogger(__name__)
@@ -465,32 +467,53 @@ def query_trace_data(
 
     # 1 worker each for spans, errors, performance issues, and optionally uptime
     max_workers = 4 if include_uptime else 3
-    query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=max_workers)
+    query_thread_pool = ThreadPool(processes=max_workers)
     with query_thread_pool:
-        spans_future = query_thread_pool.submit(
-            Spans.run_trace_query,
-            trace_id=trace_id,
-            params=snuba_params,
-            referrer=referrer.value,
-            config=SearchResolverConfig(),
-            additional_attributes=additional_attributes,
-        )
-        errors_future = query_thread_pool.submit(
-            _run_errors_query,
-            errors_query,
-        )
-        occurrence_future = query_thread_pool.submit(
-            _run_perf_issues_query,
-            occurrence_query,
-        )
-        uptime_future = None
+        queries = {
+            query_thread_pool.apply_async(
+                Spans.run_trace_query,
+                kwds={
+                    "trace_id": trace_id,
+                    "params": snuba_params,
+                    "referrer": referrer.value,
+                    "config": SearchResolverConfig(),
+                    "additional_attributes": additional_attributes,
+                },
+            ): "spans",
+            query_thread_pool.apply_async(
+                _run_errors_query,
+                args=(errors_query,),
+            ): "errors",
+            query_thread_pool.apply_async(
+                _run_perf_issues_query,
+                args=(occurrence_query,),
+            ): "occurrences",
+        }
         if include_uptime and uptime_query:
-            uptime_future = query_thread_pool.submit(_run_uptime_results_query, uptime_query)
+            queries[
+                query_thread_pool.apply_async(_run_uptime_results_query, args=(uptime_query,))
+            ] = "uptime"
 
-    spans_data = spans_future.result()
-    errors_data = errors_future.result()
-    occurrence_data = occurrence_future.result()
-    uptime_data = uptime_future.result() if uptime_future else []
+        TRACE_QUERY_TIMEOUT = options.get("performance.traces.endpoint.query-timeout")
+        results = {}
+        for future in queries:
+            label = queries[future]
+            try:
+                results[label] = future.get(timeout=TRACE_QUERY_TIMEOUT)
+            except TimeoutError:
+                logger.warning(
+                    "Query timed out",
+                    extra={
+                        "label": label,
+                        "timeout": TRACE_QUERY_TIMEOUT,
+                    },
+                )
+
+    spans_data = results.get("spans", [])
+    errors_data = results.get("errors", [])
+    occurrence_data = results.get("occurrences", [])
+    uptime_data = results.get("uptime", [])
+
     result: list[dict[str, Any]] = []
     root_span: dict[str, Any] | None = None
 
