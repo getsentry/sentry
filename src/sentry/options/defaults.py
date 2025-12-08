@@ -1862,11 +1862,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "performance.issues.experimental_m_n_plus_one_db_queries.problem-creation",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "performance.issues.http_overhead.problem-creation",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2914,6 +2909,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# TODO: Temporary options to let us play around with expiry times and see what hit rates they give
+# us. Once we've decided, we can stick our values into the two expiry options above and get rid of
+# these two options.
+register(
+    "grouping.ingest_grouphash_existence_cache_expiry.trial_values",
+    type=Sequence,
+    default=[60, 120, 600],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "grouping.ingest_grouphash_object_cache_expiry.trial_values",
+    type=Sequence,
+    default=[60, 120, 600],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Sample rate for double writing to experimental dsn
 register(
@@ -3075,6 +3086,13 @@ register(
 # Data Export Failure notifications
 register(
     "notifications.platform-rate.data-export-failure",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Custom Rule Samples Fulfilled notifications
+register(
+    "notifications.platform-rate.custom-rule-samples-fulfilled",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

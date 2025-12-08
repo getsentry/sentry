@@ -47,7 +47,7 @@ def generate_summary_and_run_automation(group_id: int) -> None:
     name="sentry.tasks.autofix.generate_issue_summary_only",
     namespace=ingest_errors_tasks,
     processing_deadline_duration=35,
-    retry=Retry(times=1),
+    retry=Retry(times=3, delay=3, on=(Exception,)),
 )
 def generate_issue_summary_only(group_id: int) -> None:
     """

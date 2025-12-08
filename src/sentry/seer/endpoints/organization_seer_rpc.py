@@ -12,7 +12,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
@@ -89,10 +89,18 @@ public_project_seer_method_registry: dict[str, Callable] = {
     # Autofix - project-scoped methods
     "get_error_event_details": accept_organization_id_param(get_error_event_details),
     "get_profile_details": get_profile_details,
-    "get_attributes_for_span": get_attributes_for_span,
+    "get_attributes_for_span": map_org_id_param(get_attributes_for_span),
     # Replays - project-scoped methods
     "get_replay_summary_logs": accept_organization_id_param(rpc_get_replay_summary_logs),
 }
+
+
+class SeerRpcPermission(OrganizationPermission):
+    # Seer RPCs uses POST requests but is actually read only
+    # So relax the permissions here.
+    scope_map = {
+        "POST": ["org:read", "org:write", "org:admin"],
+    }
 
 
 @region_silo_endpoint
@@ -114,6 +122,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = False
+    permission_classes = (SeerRpcPermission,)
 
     def _is_allowed(self, organization: Organization) -> bool:
         """Check if the organization is allowed to use this endpoint."""
