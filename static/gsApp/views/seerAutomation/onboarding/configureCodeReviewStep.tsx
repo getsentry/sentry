@@ -9,20 +9,12 @@ import {
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 
-import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
-
+import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {MaxWidthPanel, PanelDescription, StepContent} from './common';
 import {RepositorySelector} from './repositorySelector';
 
 export function ConfigureCodeReviewStep() {
-  const {
-    provider,
-    repositories,
-    isRepositoriesFetching,
-    selectedCodeReviewRepositories,
-    setCodeReviewRepositories,
-    selectedCodeReviewRepositoriesMap,
-  } = useSeerOnboardingContext();
+  const {selectedCodeReviewRepositories} = useSeerOnboardingContext();
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
 
   const handleNextStep = useCallback(() => {
@@ -46,13 +38,8 @@ Now, select which of your repositories you would like to run Seer’s AI Code Re
 `)}
               </p>
             </PanelDescription>
-            <RepositorySelector
-              provider={provider}
-              repositories={repositories}
-              isFetching={isRepositoriesFetching}
-              selectedRepositories={selectedCodeReviewRepositoriesMap}
-              onSelectionChange={setCodeReviewRepositories}
-            />
+
+            <RepositorySelector />
           </PanelBody>
         </MaxWidthPanel>
 

@@ -59,6 +59,10 @@ export function ConfigureRootCauseAnalysisStep() {
     addRepositoryProjectMappings,
   ]);
 
+  const handlePreviousStep = useCallback(() => {
+    setCurrentStep(currentStep - 1);
+  }, [setCurrentStep, currentStep]);
+
   const handleNextStep = useCallback(() => {
     // TODO: Save to backend
     setCurrentStep(currentStep + 1);
@@ -151,7 +155,9 @@ export function ConfigureRootCauseAnalysisStep() {
       </StepContent>
 
       <GuidedSteps.ButtonWrapper>
-        <GuidedSteps.BackButton size="md" />
+        <Button size="md" onClick={handlePreviousStep} aria-label={t('Previous Step')}>
+          {t('Previous Step')}
+        </Button>
         <Button
           size="md"
           onClick={handleNextStep}

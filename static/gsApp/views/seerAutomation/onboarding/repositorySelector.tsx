@@ -12,47 +12,44 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {IntegrationProvider, Repository} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrations';
 import useOrganization from 'sentry/utils/useOrganization';
 import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
-interface RepositorySelectorProps {
-  isFetching: boolean;
-  onSelectionChange: (repositories: Record<string, boolean>) => void;
-  provider: IntegrationProvider | undefined;
-  repositories: Repository[];
-  selectedRepositories: Record<string, boolean>;
-}
+import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
 
-export function RepositorySelector({
-  provider,
-  selectedRepositories,
-  onSelectionChange,
-  repositories,
-  isFetching,
-}: RepositorySelectorProps) {
+export function RepositorySelector() {
+  const {
+    provider,
+    isRepositoriesFetching,
+    repositories,
+    setCodeReviewRepositories,
+    selectedCodeReviewRepositoriesMap,
+  } = useSeerOnboardingContext();
   const organization = useOrganization();
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
 
   const filteredRepositories = useMemo(() => {
     if (!deferredSearchQuery) {
-      return repositories;
+      return repositories ?? [];
     }
-    return repositories.filter(repo =>
-      repo.name.toLowerCase().includes(deferredSearchQuery.toLowerCase())
+    return (
+      repositories?.filter(repo =>
+        repo.name.toLowerCase().includes(deferredSearchQuery.toLowerCase())
+      ) ?? []
     );
   }, [repositories, deferredSearchQuery]);
 
   const selectedIds = useMemo(
     () =>
       new Set(
-        Object.entries(selectedRepositories)
+        Object.entries(selectedCodeReviewRepositoriesMap)
           .filter(([_, value]) => value)
           .map(([key]) => key)
       ),
-    [selectedRepositories]
+    [selectedCodeReviewRepositoriesMap]
   );
 
   const selected = useMemo(
@@ -66,22 +63,22 @@ export function RepositorySelector({
   // This is gonna lag if we have a lot of repositories, as we need to re-render all rows
   const handleToggleAll = useCallback(() => {
     if (allSelected) {
-      onSelectionChange(
+      setCodeReviewRepositories(
         Object.fromEntries(filteredRepositories.map(repo => [repo.id, false]))
       );
       return;
     }
 
-    onSelectionChange(
+    setCodeReviewRepositories(
       Object.fromEntries(filteredRepositories.map(repo => [repo.id, true]))
     );
-  }, [allSelected, filteredRepositories, onSelectionChange]);
+  }, [allSelected, filteredRepositories, setCodeReviewRepositories]);
 
   const handleToggleRepository = useCallback(
     (repositoryId: string, newValue: boolean) => {
-      onSelectionChange({[repositoryId]: newValue});
+      setCodeReviewRepositories({[repositoryId]: newValue});
     },
-    [onSelectionChange]
+    [setCodeReviewRepositories]
   );
 
   return (
@@ -97,7 +94,7 @@ export function RepositorySelector({
           </Description>
         </Label>
         <Checkbox
-          disabled={isFetching || filteredRepositories.length === 0}
+          disabled={isRepositoriesFetching || filteredRepositories.length === 0}
           checked={!allSelected && !allUnselected ? 'indeterminate' : allSelected}
           onChange={handleToggleAll}
           id="select-all-repositories"
@@ -118,7 +115,7 @@ export function RepositorySelector({
         />
       </InputGroup>
 
-      {isFetching ? (
+      {isRepositoriesFetching ? (
         <Placeholder height={MAX_HEIGHT} />
       ) : (
         <RepositoryList>
@@ -151,21 +148,24 @@ export function RepositorySelector({
             {({hasAccess}) =>
               hasAccess ? (
                 <p>
-                  {tct(`Cant't find a repository? [link]`, {
-                    link: (
-                      <IntegrationButton
-                        userHasAccess={hasAccess}
-                        onAddIntegration={() => {
-                          window.location.reload();
-                        }}
-                        onExternalClick={() => {}}
-                        buttonProps={{
-                          buttonText: t('Manage GitHub integration'),
-                          priority: 'link',
-                        }}
-                      />
-                    ),
-                  })}
+                  {tct(
+                    `Cant't find a repository? Go [link:manage your GitHub integration] and ensure you have granted access to the correct repositories.`,
+                    {
+                      link: (
+                        <IntegrationButton
+                          userHasAccess={hasAccess}
+                          onAddIntegration={() => {
+                            window.location.reload();
+                          }}
+                          onExternalClick={() => {}}
+                          buttonProps={{
+                            buttonText: t('manage your GitHub integration'),
+                            priority: 'link',
+                          }}
+                        />
+                      ),
+                    }
+                  )}
                 </p>
               ) : null
             }
