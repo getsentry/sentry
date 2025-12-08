@@ -69,7 +69,9 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.data == {"run_id": 456}
 
         # Verify client was called correctly
-        mock_client_class.assert_called_once_with(self.organization, ANY, is_interactive=True)
+        mock_client_class.assert_called_once_with(
+            self.organization, ANY, is_interactive=True, enable_coding=True
+        )
         mock_client.start_run.assert_called_once_with(
             prompt="What is this error about?", on_page_context=None
         )
@@ -90,7 +92,9 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.data == {"run_id": 789}
 
         # Verify client was called correctly
-        mock_client_class.assert_called_once_with(self.organization, ANY, is_interactive=True)
+        mock_client_class.assert_called_once_with(
+            self.organization, ANY, is_interactive=True, enable_coding=True
+        )
         mock_client.continue_run.assert_called_once_with(
             run_id=789, prompt="Follow up question", insert_index=2, on_page_context=None
         )
