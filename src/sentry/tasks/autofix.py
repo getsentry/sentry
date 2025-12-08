@@ -9,10 +9,12 @@ from sentry.seer.autofix.utils import (
     bulk_get_project_preferences,
     bulk_set_project_preferences,
     get_autofix_state,
+    get_seer_seat_based_tier_cache_key,
 )
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +124,9 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
     # Set org-level options
     organization.update_option("sentry:enable_seer_coding", True)
+
+    # Invalidate seat-based tier cache so new settings take effect immediately
+    cache.delete(get_seer_seat_based_tier_cache_key(organization_id))
 
     projects = list(Project.objects.filter(organization_id=organization_id, status=0))
     project_ids = [p.id for p in projects]
