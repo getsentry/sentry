@@ -473,7 +473,7 @@ def _compare_groups(
             # For unchanged groups, we need to show all files as unchanged
             if size_diff == 0 and len(file_diffs) == 0:
                 # No size change and no file diffs, so the group is unchanged
-                return []
+                continue
 
             # Always add group-level diff for groups that exist in both
             diff_type = DiffType.INCREASED if size_diff > 0 else DiffType.DECREASED
