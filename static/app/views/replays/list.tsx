@@ -55,17 +55,16 @@ export default function ReplaysListContainer() {
       <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
         <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
           <Layout.Header unified>
-            <Layout.HeaderContent>
-              <Layout.Title>
-                {t('Session Replay')}
-                <PageHeadingQuestionTooltip
-                  title={t(
-                    'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
-                  )}
-                  docsUrl="https://docs.sentry.io/product/session-replay/"
-                />
-              </Layout.Title>
-            </Layout.HeaderContent>
+            <Layout.Title>
+              {t('Session Replay')}
+              <PageHeadingQuestionTooltip
+                title={t(
+                  'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
+                )}
+                docsUrl="https://docs.sentry.io/product/session-replay/"
+              />
+            </Layout.Title>
+
             <Layout.HeaderActions>
               <ReplayIndexTimestampPrefPicker />
             </Layout.HeaderActions>

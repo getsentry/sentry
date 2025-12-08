@@ -6,8 +6,12 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {IssuesConfig} from 'sentry/views/dashboards/datasetConfig/issues';
+import {
+  IssuesConfig,
+  type IssuesSeriesResponse,
+} from 'sentry/views/dashboards/datasetConfig/issues';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 
 import type {
   GenericWidgetQueriesChildrenProps,
@@ -26,9 +30,11 @@ type Props = {
   limit?: number;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
+  queue?: WidgetQueryQueue;
 };
 
 function IssueWidgetQueries({
+  queue,
   children,
   api,
   organization,
@@ -58,7 +64,8 @@ function IssueWidgetQueries({
 
   return getDynamicText({
     value: (
-      <GenericWidgetQueries<never, Group[]>
+      <GenericWidgetQueries<IssuesSeriesResponse, Group[]>
+        queue={queue}
         config={config}
         api={api}
         organization={organization}

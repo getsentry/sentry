@@ -23,6 +23,7 @@ interface MetricInfoTabsProps {
   traceMetric: TraceMetric;
   additionalActions?: React.ReactNode;
   contentsHidden?: boolean;
+  isMetricOptionsEmpty?: boolean;
 }
 
 export default function MetricInfoTabs({
@@ -30,6 +31,7 @@ export default function MetricInfoTabs({
   additionalActions,
   contentsHidden,
   orientation,
+  isMetricOptionsEmpty,
 }: MetricInfoTabsProps) {
   const visualize = useMetricVisualize();
   const queryParamsMode = useQueryParamsMode();
@@ -61,10 +63,16 @@ export default function MetricInfoTabs({
         <BodyContainer>
           <StyledTabPanels>
             <TabPanels.Item key={Mode.AGGREGATE}>
-              <AggregatesTab traceMetric={traceMetric} />
+              <AggregatesTab
+                traceMetric={traceMetric}
+                isMetricOptionsEmpty={isMetricOptionsEmpty}
+              />
             </TabPanels.Item>
             <TabPanels.Item key={Mode.SAMPLES}>
-              <SamplesTab traceMetric={traceMetric} />
+              <SamplesTab
+                traceMetric={traceMetric}
+                isMetricOptionsEmpty={isMetricOptionsEmpty}
+              />
             </TabPanels.Item>
           </StyledTabPanels>
         </BodyContainer>

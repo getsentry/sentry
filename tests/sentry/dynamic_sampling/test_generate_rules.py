@@ -889,6 +889,46 @@ def test_generate_rules_minimum_sample_rate_with_100_percent_sample_rate(
 
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
+def test_generate_rules_trace_health_checks_feature_enabled(
+    get_blended_sample_rate, default_old_project
+):
+    get_blended_sample_rate.return_value = 0.4
+    default_old_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+            {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
+            {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
+        ],
+    )
+
+    rules = generate_rules(default_old_project)
+    assert len(rules) == 2
+    assert rules[0]["id"] == 1002
+    assert rules[0]["type"] == "transaction"
+    assert rules[0]["condition"]["op"] == "or"
+    assert rules[0]["condition"]["inner"][0]["op"] == "glob"
+    assert rules[0]["condition"]["inner"][0]["name"] == "event.transaction"
+    assert rules[0]["condition"]["inner"][0]["value"] == HEALTH_CHECK_GLOBS
+
+    with Feature({"organizations:ds-health-checks-trace-based": True}):
+        rules = generate_rules(default_old_project)
+        assert len(rules) == 2
+        assert rules[0]["id"] == 1002
+        assert rules[0]["type"] == "trace"
+        assert rules[0]["condition"]["op"] == "or"
+        assert rules[0]["condition"]["inner"][0]["op"] == "glob"
+        assert rules[0]["condition"]["inner"][0]["name"] == "trace.transaction"
+        assert rules[0]["condition"]["inner"][0]["value"] == HEALTH_CHECK_GLOBS
+
+    _validate_rules(default_old_project)
+
+
+@django_db_all
+@patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old_project) -> None:
     """
     Tests the generation of custom rules ( from CustomDynamicSamplingRule models )

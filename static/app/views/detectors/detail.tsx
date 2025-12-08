@@ -14,8 +14,10 @@ import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 function DetectorDetailsLoadingStates({
   detectorId,
   project,
+  isFetchingProjects,
 }: {
   detectorId: string;
+  isFetchingProjects: boolean;
   project: Project | undefined;
 }) {
   const {
@@ -26,7 +28,7 @@ function DetectorDetailsLoadingStates({
     refetch,
   } = useDetectorQuery(detectorId);
 
-  if (isPending || !project) {
+  if (isPending || isFetchingProjects) {
     return <LoadingIndicator />;
   }
 
@@ -67,7 +69,11 @@ export default function DetectorDetails() {
       id="DetectorDetails-Body"
       isLoading={isLoading}
     >
-      <DetectorDetailsLoadingStates detectorId={params.detectorId} project={project} />
+      <DetectorDetailsLoadingStates
+        detectorId={params.detectorId}
+        project={project}
+        isFetchingProjects={isFetchingProjects}
+      />
     </VisuallyCompleteWithData>
   );
 }

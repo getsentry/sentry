@@ -131,15 +131,6 @@ export interface Monitor {
   };
 }
 
-export interface MonitorStat {
-  duration: number;
-  error: number;
-  missed: number;
-  ok: number;
-  timeout: number;
-  ts: number;
-}
-
 export interface CheckIn {
   /**
    * Date the opening check-in was received.

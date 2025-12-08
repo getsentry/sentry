@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {RepositoryStatus} from 'sentry/types/integrations';
 import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
-import type {PreventAIConfig} from 'sentry/types/prevent';
+import type {PreventAIConfig, PreventAIFeatureTriggers} from 'sentry/types/prevent';
 import {PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT} from 'sentry/types/prevent';
 import ManageReposPanel, {
   getRepoConfig,
@@ -136,16 +136,28 @@ describe('ManageReposPanel', () => {
     configWithOverride.repo_overrides['ext-1'] = {
       vanilla: {
         enabled: true,
-        triggers: {on_command_phrase: false, on_ready_for_review: true},
+        triggers: {
+          on_command_phrase: false,
+          on_ready_for_review: true,
+          on_new_commit: false,
+        },
         sensitivity: 'low',
       },
       test_generation: {
         enabled: false,
-        triggers: {on_command_phrase: false, on_ready_for_review: false},
+        triggers: {
+          on_command_phrase: false,
+          on_ready_for_review: false,
+          on_new_commit: false,
+        },
       },
       bug_prediction: {
         enabled: true,
-        triggers: {on_command_phrase: true, on_ready_for_review: false},
+        triggers: {
+          on_command_phrase: true,
+          on_ready_for_review: false,
+          on_new_commit: false,
+        },
         sensitivity: 'medium',
       },
     };
@@ -161,11 +173,11 @@ describe('ManageReposPanel', () => {
 
     render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
     expect(await screen.findByLabelText(/Enable PR Review/i)).toBeChecked();
-    expect(await screen.findByLabelText(/Enable Test Generation/i)).not.toBeChecked();
     expect(await screen.findByLabelText(/Enable Error Prediction/i)).toBeChecked();
     expect(
       await screen.findByLabelText(/Auto Run on Opened Pull Requests/i)
     ).not.toBeChecked();
+    expect(await screen.findByLabelText(/Auto Run on New Commits/i)).not.toBeChecked();
     expect(await screen.findByLabelText(/Run when mentioned/i)).toBeChecked();
   });
 
@@ -189,14 +201,12 @@ describe('ManageReposPanel', () => {
 
     render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
     expect(await screen.findByLabelText(/Enable PR Review/i)).toBeDisabled();
-    expect(await screen.findByLabelText(/Enable Test Generation/i)).toBeDisabled();
     expect(await screen.findByLabelText(/Enable Error Prediction/i)).toBeDisabled();
   });
 
   it('hides all feature toggles when using org defaults', () => {
     render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
     expect(screen.queryByLabelText(/Enable PR Review/i)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Enable Test Generation/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Enable Error Prediction/i)).not.toBeInTheDocument();
   });
 
@@ -205,16 +215,28 @@ describe('ManageReposPanel', () => {
     configWithOverride.repo_overrides['ext-1'] = {
       bug_prediction: {
         enabled: true,
-        triggers: {on_command_phrase: true, on_ready_for_review: false},
+        triggers: {
+          on_command_phrase: true,
+          on_ready_for_review: false,
+          on_new_commit: false,
+        },
         sensitivity: 'high',
       },
       test_generation: {
         enabled: false,
-        triggers: {on_command_phrase: false, on_ready_for_review: false},
+        triggers: {
+          on_command_phrase: false,
+          on_ready_for_review: false,
+          on_new_commit: false,
+        },
       },
       vanilla: {
         enabled: true,
-        triggers: {on_command_phrase: false, on_ready_for_review: false},
+        triggers: {
+          on_command_phrase: false,
+          on_ready_for_review: false,
+          on_new_commit: false,
+        },
         sensitivity: 'medium',
       },
     };
@@ -230,7 +252,6 @@ describe('ManageReposPanel', () => {
 
     render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
     expect(await screen.findByLabelText(/Enable PR Review/i)).toBeEnabled();
-    expect(await screen.findByLabelText(/Enable Test Generation/i)).toBeEnabled();
     expect(await screen.findByLabelText(/Enable Error Prediction/i)).toBeEnabled();
   });
 
@@ -324,15 +345,27 @@ describe('ManageReposPanel', () => {
     configWithOverride.repo_overrides['ext-1'] = {
       bug_prediction: {
         enabled: false,
-        triggers: {on_command_phrase: false, on_ready_for_review: false},
+        triggers: {
+          on_command_phrase: false,
+          on_ready_for_review: false,
+          on_new_commit: false,
+        },
       },
       test_generation: {
         enabled: true,
-        triggers: {on_command_phrase: false, on_ready_for_review: false},
+        triggers: {
+          on_command_phrase: false,
+          on_ready_for_review: false,
+          on_new_commit: false,
+        },
       },
       vanilla: {
         enabled: false,
-        triggers: {on_command_phrase: false, on_ready_for_review: false},
+        triggers: {
+          on_command_phrase: false,
+          on_ready_for_review: false,
+          on_new_commit: false,
+        },
       },
     };
 
@@ -350,6 +383,201 @@ describe('ManageReposPanel', () => {
     expect(toggle).toBeChecked();
   });
 
+  describe('on_new_commit trigger', () => {
+    it('shows on_new_commit toggle when error prediction is enabled', async () => {
+      const configWithOverride = PreventAIConfigFixture();
+      configWithOverride.repo_overrides['ext-1'] = {
+        ...PreventAIConfigFixture().org_defaults,
+        bug_prediction: {
+          enabled: true,
+          triggers: {
+            on_command_phrase: false,
+            on_ready_for_review: false,
+            on_new_commit: false,
+          },
+          sensitivity: 'medium',
+        },
+      };
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
+        body: {
+          schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
+          default_org_config: PreventAIConfigFixture(),
+          organization: configWithOverride,
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
+      expect(await screen.findByLabelText(/Enable Error Prediction/i)).toBeChecked();
+      expect(
+        await screen.findByLabelText(/Auto Run on New Commits/i)
+      ).toBeInTheDocument();
+    });
+
+    it('shows correct initial state for on_new_commit toggle', async () => {
+      const configWithOverride = PreventAIConfigFixture();
+      configWithOverride.repo_overrides['ext-1'] = {
+        ...PreventAIConfigFixture().org_defaults,
+        bug_prediction: {
+          enabled: true,
+          triggers: {
+            on_command_phrase: false,
+            on_ready_for_review: true,
+            on_new_commit: true,
+          },
+          sensitivity: 'medium',
+        },
+      };
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
+        body: {
+          schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
+          default_org_config: PreventAIConfigFixture(),
+          organization: configWithOverride,
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
+      expect(await screen.findByLabelText(/Auto Run on New Commits/i)).toBeChecked();
+    });
+
+    it('defaults to false when on_new_commit is undefined', async () => {
+      const configWithOverride = PreventAIConfigFixture();
+      configWithOverride.repo_overrides['ext-1'] = {
+        ...PreventAIConfigFixture().org_defaults,
+        bug_prediction: {
+          enabled: true,
+          triggers: {
+            on_command_phrase: false,
+            on_ready_for_review: false,
+            // on_new_commit is undefined
+          } as PreventAIFeatureTriggers,
+          sensitivity: 'medium',
+        },
+      };
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
+        body: {
+          schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
+          default_org_config: PreventAIConfigFixture(),
+          organization: configWithOverride,
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
+      expect(await screen.findByLabelText(/Auto Run on New Commits/i)).not.toBeChecked();
+    });
+
+    it('calls enableFeature with on_new_commit when toggle is clicked', async () => {
+      const mockEnableFeature = jest.fn();
+      mockUpdatePreventAIFeatureReturn = {
+        enableFeature: mockEnableFeature,
+        isLoading: false,
+      };
+
+      const configWithOverride = PreventAIConfigFixture();
+      configWithOverride.repo_overrides['ext-1'] = {
+        ...PreventAIConfigFixture().org_defaults,
+        bug_prediction: {
+          enabled: true,
+          triggers: {
+            on_command_phrase: false,
+            on_ready_for_review: false,
+            on_new_commit: false,
+          },
+          sensitivity: 'medium',
+        },
+      };
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
+        body: {
+          schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
+          default_org_config: PreventAIConfigFixture(),
+          organization: configWithOverride,
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
+      const toggle = await screen.findByLabelText(/Auto Run on New Commits/i);
+      await userEvent.click(toggle);
+
+      expect(mockEnableFeature).toHaveBeenCalledWith({
+        feature: 'bug_prediction',
+        trigger: {on_new_commit: true},
+        enabled: true,
+        gitOrgName: 'org-1',
+        originalConfig: configWithOverride,
+        repoId: 'ext-1',
+      });
+    });
+
+    it('disables on_new_commit toggle when loading', async () => {
+      mockUpdatePreventAIFeatureReturn = {
+        enableFeature: jest.fn(),
+        isLoading: true,
+      };
+
+      const configWithOverride = PreventAIConfigFixture();
+      configWithOverride.repo_overrides['ext-1'] = {
+        ...PreventAIConfigFixture().org_defaults,
+        bug_prediction: {
+          enabled: true,
+          triggers: {
+            on_command_phrase: false,
+            on_ready_for_review: false,
+            on_new_commit: false,
+          },
+          sensitivity: 'medium',
+        },
+      };
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
+        body: {
+          schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
+          default_org_config: PreventAIConfigFixture(),
+          organization: configWithOverride,
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
+      expect(await screen.findByLabelText(/Auto Run on New Commits/i)).toBeDisabled();
+    });
+
+    it('hides on_new_commit toggle when error prediction is disabled', async () => {
+      const configWithOverride = PreventAIConfigFixture();
+      configWithOverride.repo_overrides['ext-1'] = {
+        ...PreventAIConfigFixture().org_defaults,
+        bug_prediction: {
+          enabled: false,
+          triggers: {
+            on_command_phrase: false,
+            on_ready_for_review: false,
+            on_new_commit: false,
+          },
+          sensitivity: 'medium',
+        },
+      };
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
+        body: {
+          schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
+          default_org_config: PreventAIConfigFixture(),
+          organization: configWithOverride,
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
+      expect(await screen.findByLabelText(/Enable Error Prediction/i)).not.toBeChecked();
+      expect(screen.queryByLabelText(/Auto Run on New Commits/i)).not.toBeInTheDocument();
+    });
+  });
+
   describe('getRepoConfig', () => {
     it('returns org defaults when repoName is null', () => {
       const orgConfig: PreventAIConfig = {
@@ -357,30 +585,54 @@ describe('ManageReposPanel', () => {
         org_defaults: {
           bug_prediction: {
             enabled: true,
-            triggers: {on_command_phrase: true, on_ready_for_review: false},
+            triggers: {
+              on_command_phrase: true,
+              on_ready_for_review: false,
+              on_new_commit: false,
+            },
           },
           test_generation: {
             enabled: false,
-            triggers: {on_command_phrase: false, on_ready_for_review: false},
+            triggers: {
+              on_command_phrase: false,
+              on_ready_for_review: false,
+              on_new_commit: false,
+            },
           },
           vanilla: {
             enabled: true,
-            triggers: {on_command_phrase: false, on_ready_for_review: false},
+            triggers: {
+              on_command_phrase: false,
+              on_ready_for_review: false,
+              on_new_commit: false,
+            },
           },
         },
         repo_overrides: {
           'ext-1': {
             bug_prediction: {
               enabled: false,
-              triggers: {on_command_phrase: false, on_ready_for_review: false},
+              triggers: {
+                on_command_phrase: false,
+                on_ready_for_review: false,
+                on_new_commit: false,
+              },
             },
             test_generation: {
               enabled: true,
-              triggers: {on_command_phrase: false, on_ready_for_review: false},
+              triggers: {
+                on_command_phrase: false,
+                on_ready_for_review: false,
+                on_new_commit: false,
+              },
             },
             vanilla: {
               enabled: false,
-              triggers: {on_command_phrase: false, on_ready_for_review: false},
+              triggers: {
+                on_command_phrase: false,
+                on_ready_for_review: false,
+                on_new_commit: false,
+              },
             },
           },
         },
@@ -397,30 +649,54 @@ describe('ManageReposPanel', () => {
         org_defaults: {
           bug_prediction: {
             enabled: true,
-            triggers: {on_command_phrase: true, on_ready_for_review: true},
+            triggers: {
+              on_command_phrase: true,
+              on_ready_for_review: true,
+              on_new_commit: false,
+            },
           },
           test_generation: {
             enabled: false,
-            triggers: {on_command_phrase: true, on_ready_for_review: false},
+            triggers: {
+              on_command_phrase: true,
+              on_ready_for_review: false,
+              on_new_commit: false,
+            },
           },
           vanilla: {
             enabled: true,
-            triggers: {on_command_phrase: true, on_ready_for_review: false},
+            triggers: {
+              on_command_phrase: true,
+              on_ready_for_review: false,
+              on_new_commit: false,
+            },
           },
         },
         repo_overrides: {
           'ext-1': {
             bug_prediction: {
               enabled: false,
-              triggers: {on_command_phrase: true, on_ready_for_review: false},
+              triggers: {
+                on_command_phrase: true,
+                on_ready_for_review: false,
+                on_new_commit: false,
+              },
             },
             test_generation: {
               enabled: true,
-              triggers: {on_command_phrase: true, on_ready_for_review: false},
+              triggers: {
+                on_command_phrase: true,
+                on_ready_for_review: false,
+                on_new_commit: false,
+              },
             },
             vanilla: {
               enabled: false,
-              triggers: {on_command_phrase: true, on_ready_for_review: false},
+              triggers: {
+                on_command_phrase: true,
+                on_ready_for_review: false,
+                on_new_commit: false,
+              },
             },
           },
         },
@@ -430,15 +706,27 @@ describe('ManageReposPanel', () => {
         repoConfig: {
           bug_prediction: {
             enabled: false,
-            triggers: {on_command_phrase: true, on_ready_for_review: false},
+            triggers: {
+              on_command_phrase: true,
+              on_ready_for_review: false,
+              on_new_commit: false,
+            },
           },
           test_generation: {
             enabled: true,
-            triggers: {on_command_phrase: true, on_ready_for_review: false},
+            triggers: {
+              on_command_phrase: true,
+              on_ready_for_review: false,
+              on_new_commit: false,
+            },
           },
           vanilla: {
             enabled: false,
-            triggers: {on_command_phrase: true, on_ready_for_review: false},
+            triggers: {
+              on_command_phrase: true,
+              on_ready_for_review: false,
+              on_new_commit: false,
+            },
           },
         },
       });
@@ -450,15 +738,27 @@ describe('ManageReposPanel', () => {
         org_defaults: {
           bug_prediction: {
             enabled: true,
-            triggers: {on_command_phrase: true, on_ready_for_review: false},
+            triggers: {
+              on_command_phrase: true,
+              on_ready_for_review: false,
+              on_new_commit: false,
+            },
           },
           test_generation: {
             enabled: false,
-            triggers: {on_command_phrase: false, on_ready_for_review: false},
+            triggers: {
+              on_command_phrase: false,
+              on_ready_for_review: false,
+              on_new_commit: false,
+            },
           },
           vanilla: {
             enabled: true,
-            triggers: {on_command_phrase: false, on_ready_for_review: false},
+            triggers: {
+              on_command_phrase: false,
+              on_ready_for_review: false,
+              on_new_commit: false,
+            },
           },
         },
         repo_overrides: {},

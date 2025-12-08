@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:57.229406+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,7 +22,7 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "49b6f72b6635cb43190c57ee56b026b0"
+    hash: "12f18dcb1efe33b32c7afe5004addaaa"
     contributing component: exception
     hint: None
     root_component:
@@ -48,6 +46,3 @@ contributing variants:
             frame*
               function*
                 "stripped_application_code"
-            frame*
-              function*
-                "std::terminate"

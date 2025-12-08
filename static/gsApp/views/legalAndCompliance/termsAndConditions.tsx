@@ -167,7 +167,7 @@ export function TermsAndConditions({subscription}: TermsProps) {
             </div>
             <PolicyStatusRow>
               <StatusIconWithTooltip
-                icon={<IconCheckmark isCircled size="sm" color="success" />}
+                icon={<IconCheckmark size="sm" color="success" />}
                 tooltip="Included with all accounts"
               />
               <LinkButton size="sm" external href="https://sentry.io/security/">

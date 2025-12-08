@@ -14,7 +14,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.testutils.asserts import assert_count_of_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import (
@@ -85,12 +85,11 @@ class NotificationServiceTest(TestCase):
 
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
     def test_notify_sync_collects_errors(self, mock_send: mock.MagicMock) -> None:
-        mock_send.side_effect = ApiError("Provider error", 400)
+        mock_send.side_effect = IntegrationConfigurationError("Provider error", 400)
 
         service = NotificationService(data=MockNotification(message="test"))
         errors = service.notify_sync(targets=[self.target])
 
-        assert NotificationProviderKey.EMAIL in errors
         assert len(errors[NotificationProviderKey.EMAIL]) == 1
         assert "Provider error" in errors[NotificationProviderKey.EMAIL][0]
 

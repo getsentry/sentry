@@ -1,44 +1,45 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Switch} from 'sentry/components/core/switch';
-import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PercentChange} from 'sentry/components/percentChange';
-import {
-  IconArrow,
-  IconChevron,
-  IconCode,
-  IconDownload,
-  IconRefresh,
-  IconSearch,
-} from 'sentry/icons';
+import {IconChevron, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {BuildComparisonMetricCards} from 'sentry/views/preprod/buildComparison/main/buildComparisonMetricCards';
 import {SizeCompareItemDiffTable} from 'sentry/views/preprod/buildComparison/main/sizeCompareItemDiffTable';
 import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectedBuilds';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {
+  isSizeAnalysisComparisonInProgress,
   MetricsArtifactType,
   SizeAnalysisComparisonState,
 } from 'sentry/views/preprod/types/appSizeTypes';
 import type {
+  SizeAnalysisComparison,
   SizeAnalysisComparisonResults,
   SizeComparisonApiResponse,
 } from 'sentry/views/preprod/types/appSizeTypes';
-import {getLabels} from 'sentry/views/preprod/utils/labelUtils';
+
+function getMainComparison(
+  response: SizeComparisonApiResponse | undefined
+): SizeAnalysisComparison | undefined {
+  return response?.comparisons.find(
+    c => c.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
+  );
+}
 
 export function SizeCompareMainContent() {
   const organization = useOrganization();
@@ -61,12 +62,14 @@ export function SizeCompareMainContent() {
       {
         staleTime: 0,
         enabled: !!projectId && !!headArtifactId && !!baseArtifactId,
+        refetchInterval: query => {
+          const mainComparison = getMainComparison(query.state.data?.[0]);
+          return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
+        },
       }
     );
 
-  const mainArtifactComparison = sizeComparisonQuery.data?.comparisons.find(
-    comp => comp.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
-  );
+  const mainArtifactComparison = getMainComparison(sizeComparisonQuery.data);
 
   // Query the comparison download endpoint to get detailed data
   const comparisonDataQuery = useApiQuery<SizeAnalysisComparisonResults>(
@@ -107,54 +110,6 @@ export function SizeCompareMainContent() {
       addErrorMessage(errorMessage);
     },
   });
-
-  // Process the comparison data for metrics cards
-  const processedMetrics = useMemo(() => {
-    if (!comparisonDataQuery.data) {
-      return [];
-    }
-
-    const {size_metric_diff_item} = comparisonDataQuery.data;
-
-    // Calculate summary data
-    const installSizeDiff =
-      size_metric_diff_item.head_install_size - size_metric_diff_item.base_install_size;
-    const downloadSizeDiff =
-      size_metric_diff_item.head_download_size - size_metric_diff_item.base_download_size;
-    const installSizePercentage =
-      installSizeDiff / size_metric_diff_item.base_install_size;
-    const downloadSizePercentage =
-      downloadSizeDiff / size_metric_diff_item.base_download_size;
-
-    const labels = getLabels(
-      sizeComparisonQuery.data?.head_build_details.app_info?.platform ?? undefined
-    );
-    // Calculate metrics
-    const metrics = [
-      {
-        title: labels.installSizeLabel,
-        head: size_metric_diff_item.head_install_size,
-        base: size_metric_diff_item.base_install_size,
-        diff:
-          size_metric_diff_item.head_install_size -
-          size_metric_diff_item.base_install_size,
-        percentageChange: installSizePercentage,
-        icon: IconCode,
-      },
-      {
-        title: labels.downloadSizeLabel,
-        head: size_metric_diff_item.head_download_size,
-        base: size_metric_diff_item.base_download_size,
-        diff:
-          size_metric_diff_item.head_download_size -
-          size_metric_diff_item.base_download_size,
-        percentageChange: downloadSizePercentage,
-        icon: IconDownload,
-      },
-    ];
-
-    return metrics;
-  }, [comparisonDataQuery.data, sizeComparisonQuery.data]);
 
   // Filter diff items based on the toggle and search query
   const filteredDiffItems = useMemo(() => {
@@ -279,75 +234,10 @@ export function SizeCompareMainContent() {
         }}
       />
 
-      {/* Metrics Grid */}
-      <Flex gap="lg" wrap="wrap">
-        {processedMetrics.map((metric, index) => {
-          let variant: 'danger' | 'success' | 'muted' = 'muted';
-          let icon: React.ReactNode | undefined;
-          if (metric.diff > 0) {
-            variant = 'danger';
-            icon = <IconArrow direction="up" size="xs" />;
-          } else if (metric.diff < 0) {
-            variant = 'success';
-            icon = <IconArrow direction="down" size="xs" />;
-          }
-
-          return (
-            <Container
-              background="primary"
-              radius="lg"
-              padding="xl"
-              border="primary"
-              key={index}
-              flex="1"
-              style={{minWidth: '250px'}}
-            >
-              <Flex direction="column" gap="md">
-                <Flex gap="sm">
-                  <metric.icon size="sm" />
-                  <Text variant="muted" size="sm">
-                    {metric.title}
-                  </Text>
-                </Flex>
-                <Flex direction="column" gap="xs">
-                  <Flex align="end" gap="sm" wrap="wrap">
-                    <Heading as="h3">{formatBytesBase10(metric.head)}</Heading>
-                    <Flex align="center" gap="xs">
-                      {icon}
-                      <DiffText variant={variant} size="sm">
-                        {metric.diff > 0 ? '+' : metric.diff < 0 ? '-' : ''}
-                        {formatBytesBase10(Math.abs(metric.diff))}
-                        {metric.percentageChange && (
-                          <Text as="span" variant={variant}>
-                            {' ('}
-                            <PercentChange
-                              value={metric.percentageChange}
-                              minimumValue={0.001}
-                              preferredPolarity="-"
-                              colorize
-                            />
-                            {')'}
-                          </Text>
-                        )}
-                      </DiffText>
-                    </Flex>
-                  </Flex>
-                  <Flex gap="xs" wrap="wrap">
-                    <Text variant="muted" size="sm">
-                      {t('Comparison:')}
-                    </Text>
-                    <Text variant="muted" size="sm" bold>
-                      {metric.base === 0
-                        ? t('Not present')
-                        : formatBytesBase10(metric.base)}
-                    </Text>
-                  </Flex>
-                </Flex>
-              </Flex>
-            </Container>
-          );
-        })}
-      </Flex>
+      <BuildComparisonMetricCards
+        comparisonResults={comparisonDataQuery.data}
+        comparisonResponse={sizeComparisonQuery.data}
+      />
 
       {/* Items Changed Section */}
       <Container background="primary" radius="lg" padding="0" border="primary">
@@ -420,16 +310,3 @@ export function SizeCompareMainContent() {
     </Flex>
   );
 }
-
-const DiffText = styled(Text)`
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.25em;
-
-  span {
-    display: inline-flex;
-    align-items: center;
-    white-space: nowrap;
-  }
-`;

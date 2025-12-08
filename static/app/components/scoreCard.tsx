@@ -12,7 +12,6 @@ type ScoreCardProps = {
   title: React.ReactNode;
   className?: string;
   help?: React.ReactNode;
-  isEstimate?: boolean;
   isTooltipHoverable?: boolean;
   renderOpenButton?: () => React.ReactNode;
   score?: React.ReactNode;

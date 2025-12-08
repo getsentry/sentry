@@ -55,8 +55,15 @@ function alignDateToBoundary(date: moment.Moment, minuteInterval: number) {
 }
 
 function getTimeMarkersFromConfig(config: TimeWindowConfig) {
-  const {periodStart, end, elapsedMinutes, intervals, dateTimeProps, timelineWidth} =
-    config;
+  const {
+    periodStart,
+    end,
+    elapsedMinutes,
+    intervals,
+    dateTimeProps,
+    timelineWidth,
+    timezone,
+  } = config;
 
   const {referenceMarkerInterval, minimumMarkerInterval, normalMarkerInterval} =
     intervals;
@@ -78,19 +85,26 @@ function getTimeMarkersFromConfig(config: TimeWindowConfig) {
 
   // The mark after the first mark will be aligned to a boundary to make it
   // easier to understand the rest of the marks
-  const currentMark = alignDateToBoundary(moment(periodStart), normalMarkerInterval);
+  const currentMark = alignDateToBoundary(
+    moment.tz(periodStart, timezone),
+    normalMarkerInterval
+  );
 
   // The first label is larger since we include the date, time, and timezone.
 
   while (
-    currentMark.isBefore(moment(periodStart).add(referenceMarkerInterval, 'minutes'))
+    currentMark.isBefore(
+      moment.tz(periodStart, timezone).add(referenceMarkerInterval, 'minutes')
+    )
   ) {
     currentMark.add(normalMarkerInterval, 'minute');
   }
 
   // Generate time markers which represent location of grid lines/time labels.
   // Stop adding markers once there's no more room for more markers
-  while (moment(currentMark).add(minimumMarkerInterval, 'minutes').isBefore(end)) {
+  while (
+    moment.tz(currentMark, timezone).add(minimumMarkerInterval, 'minutes').isBefore(end)
+  ) {
     const position =
       startOffset + (currentMark.valueOf() - periodStart.valueOf()) / msPerPixel;
     markers.push({date: currentMark.toDate(), position, dateTimeProps});
@@ -215,7 +229,8 @@ export function GridLineOverlay({
   resetPaginationOnZoom,
 }: GridLineOverlayProps) {
   const router = useRouter();
-  const {periodStart, timelineWidth, dateLabelFormat, rollupConfig} = timeWindowConfig;
+  const {periodStart, timelineWidth, dateLabelFormat, rollupConfig, timezone} =
+    timeWindowConfig;
   const {timelineUnderscanWidth} = rollupConfig;
 
   const msPerPixel = (timeWindowConfig.elapsedMinutes * 60 * 1000) / timelineWidth;
@@ -224,8 +239,11 @@ export function GridLineOverlay({
   // to the pixel value after the timelineUnderscanWidth.
   const dateFromPosition = useCallback(
     (position: number) =>
-      moment(periodStart.getTime() + msPerPixel * (position - timelineUnderscanWidth)),
-    [msPerPixel, periodStart, timelineUnderscanWidth]
+      moment.tz(
+        periodStart.getTime() + msPerPixel * (position - timelineUnderscanWidth),
+        timezone
+      ),
+    [msPerPixel, periodStart, timelineUnderscanWidth, timezone]
   );
 
   const makeCursorLabel = useCallback(

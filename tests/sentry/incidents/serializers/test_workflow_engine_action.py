@@ -15,7 +15,10 @@ from tests.sentry.incidents.serializers.test_workflow_engine_base import (
 class TestActionSerializer(TestWorkflowEngineSerializer):
     def test_simple(self) -> None:
         serialized_action = serialize(
-            self.critical_action, self.user, WorkflowEngineActionSerializer()
+            self.critical_action,
+            self.user,
+            WorkflowEngineActionSerializer(),
+            alert_rule_trigger_id=self.critical_trigger.id,
         )
         assert serialized_action == self.expected_critical_action[0]
 
@@ -36,7 +39,10 @@ class TestActionSerializer(TestWorkflowEngineSerializer):
         self.warning_action, _, _ = migrate_metric_action(self.warning_trigger_action)
 
         serialized_action = serialize(
-            self.warning_action, self.user, WorkflowEngineActionSerializer()
+            self.warning_action,
+            self.user,
+            WorkflowEngineActionSerializer(),
+            alert_rule_trigger_id=self.warning_trigger.id,
         )
         warning_expected = self.expected_critical_action[0].copy()
         warning_expected["id"] = str(self.warning_trigger_action.id)
@@ -76,7 +82,10 @@ class TestActionSerializer(TestWorkflowEngineSerializer):
         self.sentry_app_action, _, _ = migrate_metric_action(self.sentry_app_trigger_action)
 
         serialized_action = serialize(
-            self.sentry_app_action, self.user, WorkflowEngineActionSerializer()
+            self.sentry_app_action,
+            self.user,
+            WorkflowEngineActionSerializer(),
+            alert_rule_trigger_id=self.sentry_app_trigger.id,
         )
         sentry_app_expected = self.expected_critical_action[0].copy()
         sentry_app_expected["type"] = "sentry_app"
@@ -110,7 +119,10 @@ class TestActionSerializer(TestWorkflowEngineSerializer):
         self.slack_action, _, _ = migrate_metric_action(self.slack_trigger_action)
 
         serialized_action = serialize(
-            self.slack_action, self.user, WorkflowEngineActionSerializer()
+            self.slack_action,
+            self.user,
+            WorkflowEngineActionSerializer(),
+            alert_rule_trigger_id=self.slack_trigger.id,
         )
         slack_expected = self.expected_critical_action[0].copy()
         slack_expected["type"] = self.integration.provider

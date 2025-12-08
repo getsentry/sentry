@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import internal_region_silo_endpoint
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
@@ -60,6 +60,7 @@ def validate_preprod_artifact_update_schema(
                     "is_code_signature_valid": {"type": "boolean"},
                     "code_signature_errors": {"type": "array", "items": {"type": "string"}},
                     "missing_dsym_binaries": {"type": "array", "items": {"type": "string"}},
+                    "build_date": {"type": "string"},
                 },
             },
             "android_app_info": {
@@ -90,6 +91,7 @@ def validate_preprod_artifact_update_schema(
         "apple_app_info.is_code_signature_valid": "The is_code_signature_valid field must be a boolean.",
         "apple_app_info.code_signature_errors": "The code_signature_errors field must be an array of strings.",
         "apple_app_info.missing_dsym_binaries": "The missing_dsym_binaries field must be an array of strings.",
+        "apple_app_info.build_date": "The build_date field must be a string.",
         "android_app_info": "The android_app_info field must be an object.",
         "android_app_info.has_proguard_mapping": "The has_proguard_mapping field must be a boolean.",
         "dequeued_at": "The dequeued_at field must be a string.",
@@ -189,7 +191,7 @@ def find_or_create_release(
         return None
 
 
-@region_silo_endpoint
+@internal_region_silo_endpoint
 class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -288,31 +290,14 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 head_artifact.main_binary_identifier = apple_info["main_binary_uuid"]
                 updated_fields.append("main_binary_identifier")
 
-            # Truncate missing_dsym_binaries if total character count exceeds 1024
             if "missing_dsym_binaries" in apple_info:
                 binaries = apple_info["missing_dsym_binaries"]
                 if isinstance(binaries, list):
-                    total_chars = sum(len(str(b)) for b in binaries)
-                    if total_chars > 1024:
-                        truncated = []
-                        char_count = 0
-                        for binary in binaries:
-                            binary_str = str(binary)
-                            if char_count + len(binary_str) <= 1024:
-                                truncated.append(binary_str)
-                                char_count += len(binary_str)
-                            else:
-                                break
-                        apple_info["missing_dsym_binaries"] = truncated
-                        logger.warning(
-                            "Truncated missing_dsym_binaries list to not exceed 1024 characters limit",
-                            extra={
-                                "artifact_id": artifact_id_int,
-                                "original_count": len(binaries),
-                                "truncated_count": len(truncated),
-                                "total_chars": total_chars,
-                            },
-                        )
+                    extras_updates["has_missing_dsym_binaries"] = len(binaries) > 0
+
+            if "build_date" in apple_info:
+                head_artifact.date_built = apple_info["build_date"]
+                updated_fields.append("date_built")
 
             for field in [
                 "is_simulator",
@@ -322,7 +307,6 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 "certificate_expiration_date",
                 "is_code_signature_valid",
                 "code_signature_errors",
-                "missing_dsym_binaries",
             ]:
                 if field in apple_info:
                     extras_updates[field] = apple_info[field]

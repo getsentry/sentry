@@ -8,6 +8,7 @@ interface PreventAIFeatureConfig {
 
 export interface PreventAIFeatureTriggers {
   on_command_phrase: boolean;
+  on_new_commit: boolean;
   on_ready_for_review: boolean;
 }
 

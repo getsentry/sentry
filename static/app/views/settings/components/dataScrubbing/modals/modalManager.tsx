@@ -29,7 +29,7 @@ import {
 import Form from './form';
 import handleError, {ErrorType} from './handleError';
 import Modal from './modal';
-import {useSourceGroupData} from './utils';
+import {hasCaptureGroups, useSourceGroupData} from './utils';
 
 type FormProps = React.ComponentProps<typeof Form>;
 type Values = FormProps['values'];
@@ -118,6 +118,7 @@ class ModalManager extends Component<ModalManagerWithLocalStorageProps, State> {
       source: initialState?.source ?? '',
       placeholder: initialState?.placeholder ?? '',
       pattern: initialState?.pattern ?? '',
+      replaceCaptured: initialState?.replaceCaptured ?? false,
     };
   }
 
@@ -244,8 +245,13 @@ class ModalManager extends Component<ModalManagerWithLocalStorageProps, State> {
       [field]: value,
     };
 
-    if (values.type !== RuleType.PATTERN && values.pattern) {
+    if (values.type !== RuleType.PATTERN) {
       values.pattern = '';
+      values.replaceCaptured = false;
+    }
+
+    if (values.type === RuleType.PATTERN && !hasCaptureGroups(values.pattern)) {
+      values.replaceCaptured = false;
     }
 
     if (values.method !== MethodType.REPLACE && values.placeholder) {
@@ -291,7 +297,12 @@ class ModalManager extends Component<ModalManagerWithLocalStorageProps, State> {
   handleValidate =
     <K extends keyof Values>(field: K) =>
     () => {
-      const isFieldValueEmpty = !this.state.values[field].trim();
+      const value = this.state.values[field];
+      if (typeof value !== 'string') {
+        return;
+      }
+
+      const isFieldValueEmpty = !value.trim();
 
       const fieldErrorAlreadyExist = this.state.errors[field];
 

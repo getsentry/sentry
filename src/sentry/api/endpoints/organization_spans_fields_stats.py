@@ -12,7 +12,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
@@ -29,11 +29,11 @@ class OrganizationSpansFieldsStatsEndpointSerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class OrganizationSpansFieldsStatsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationSpansFieldsStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
     def get(self, request: Request, organization: Organization) -> Response:
 

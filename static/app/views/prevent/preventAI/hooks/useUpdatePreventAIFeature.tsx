@@ -29,11 +29,11 @@ export function useUpdatePreventAIFeature() {
 
       return fetchMutation<{
         default_org_config: PreventAIConfig;
-        organization: Record<string, PreventAIConfig>;
+        organization: PreventAIConfig;
       }>({
         method: 'PUT',
         url: `/organizations/${organization.slug}/prevent/ai/github/config/${params.gitOrgName}/`,
-        data: newConfig as unknown as Record<string, PreventAIConfig>,
+        data: newConfig as unknown as Record<string, unknown>,
       });
     },
     onSuccess: (_data, variables) => {

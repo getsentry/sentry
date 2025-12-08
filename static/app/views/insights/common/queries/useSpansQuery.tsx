@@ -19,7 +19,6 @@ import type {
   RPCQueryExtras,
   SamplingMode,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   getRetryDelay,
   shouldRetryHandler,
@@ -113,7 +112,9 @@ function useSpansQueryBase<T>({
     caseInsensitive: queryExtras?.caseInsensitive,
     samplingMode: queryExtras?.samplingMode,
     disableAggregateExtrapolation: queryExtras?.disableAggregateExtrapolation,
-    traceMetric: queryExtras?.traceMetric,
+    logQuery: queryExtras?.logQuery,
+    metricQuery: queryExtras?.metricQuery,
+    spanQuery: queryExtras?.spanQuery,
   });
 
   if (trackResponseAnalytics) {
@@ -129,9 +130,12 @@ type WrappedDiscoverTimeseriesQueryProps = {
   cursor?: string;
   enabled?: boolean;
   initialData?: any;
+  logQuery?: string[];
+  metricQuery?: string[];
   overriddenRoute?: string;
   referrer?: string;
   samplingMode?: SamplingMode;
+  spanQuery?: string[];
 };
 
 function useWrappedDiscoverTimeseriesQueryBase<T>({
@@ -143,6 +147,9 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
   overriddenRoute,
   samplingMode,
   caseInsensitive,
+  logQuery,
+  metricQuery,
+  spanQuery,
 }: WrappedDiscoverTimeseriesQueryProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -181,6 +188,9 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
           ? samplingMode
           : undefined,
       caseInsensitive,
+      logQuery,
+      metricQuery,
+      spanQuery,
     }),
     options: {
       enabled,
@@ -241,11 +251,13 @@ type WrappedDiscoverQueryProps<T> = {
   initialData?: T;
   keepPreviousData?: boolean;
   limit?: number;
+  logQuery?: string[];
+  metricQuery?: string[];
   noPagination?: boolean;
   referrer?: string;
   refetchInterval?: number;
   samplingMode?: SamplingMode;
-  traceMetric?: TraceMetric;
+  spanQuery?: string[];
 };
 
 function useWrappedDiscoverQueryBase<T>({
@@ -264,14 +276,16 @@ function useWrappedDiscoverQueryBase<T>({
   additionalQueryKey,
   refetchInterval,
   caseInsensitive,
-  traceMetric,
+  logQuery,
+  metricQuery,
+  spanQuery,
 }: WrappedDiscoverQueryProps<T> & {
   pageFiltersReady: boolean;
 }) {
   const location = useLocation();
   const organization = useOrganization();
 
-  const queryExtras: Record<string, string> = {};
+  const queryExtras: Record<string, string | string[]> = {};
   if (
     [DiscoverDatasets.SPANS, DiscoverDatasets.TRACEMETRICS].includes(
       eventView.dataset as DiscoverDatasets
@@ -281,22 +295,29 @@ function useWrappedDiscoverQueryBase<T>({
       queryExtras.sampling = samplingMode;
     }
 
-    if (typeof caseInsensitive === 'number') {
-      queryExtras.caseInsensitive = caseInsensitive.toString();
-    }
-
     if (disableAggregateExtrapolation) {
       queryExtras.disableAggregateExtrapolation = '1';
     }
   }
 
-  if (allowAggregateConditions !== undefined) {
-    queryExtras.allowAggregateConditions = allowAggregateConditions ? '1' : '0';
+  if (typeof caseInsensitive === 'number') {
+    queryExtras.caseInsensitive = caseInsensitive.toString();
   }
 
-  if (traceMetric?.name && traceMetric?.type) {
-    queryExtras.metricName = traceMetric.name;
-    queryExtras.metricType = traceMetric.type;
+  if (Array.isArray(logQuery) && logQuery.length > 0) {
+    queryExtras.logQuery = logQuery;
+  }
+
+  if (Array.isArray(metricQuery) && metricQuery.length > 0) {
+    queryExtras.metricQuery = metricQuery;
+  }
+
+  if (Array.isArray(spanQuery) && spanQuery.length > 0) {
+    queryExtras.spanQuery = spanQuery;
+  }
+
+  if (allowAggregateConditions !== undefined) {
+    queryExtras.allowAggregateConditions = allowAggregateConditions ? '1' : '0';
   }
 
   const result = useDiscoverQuery({

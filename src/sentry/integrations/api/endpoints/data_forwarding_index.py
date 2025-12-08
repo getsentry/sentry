@@ -2,17 +2,21 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_CONFLICT, RESPONSE_FORBIDDEN
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.api.serializers.models.data_forwarder import (
     DataForwarderSerializer as DataForwarderModelSerializer,
 )
@@ -40,12 +44,21 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationDataForwardingDetailsPermission,)
 
+    def convert_args(self, request: Request, *args, **kwargs):
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        if not features.has("organizations:data-forwarding-revamp-access", kwargs["organization"]):
+            raise PermissionDenied
+        return args, kwargs
+
     @extend_schema(
         operation_id="Retrieve Data Forwarding Configurations for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         responses={
-            200: DataForwarderModelSerializer,
+            200: inline_sentry_response_serializer(
+                "ListDataForwarderResponse", list[DataForwarderSerializer]
+            )
         },
+        examples=IntegrationExamples.LIST_DATA_FORWARDERS,
     )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
@@ -67,12 +80,15 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
             201: DataForwarderModelSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
-            409: RESPONSE_CONFLICT,
         },
+        examples=IntegrationExamples.SINGLE_DATA_FORWARDER,
     )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
     def post(self, request: Request, organization) -> Response:
+        if not features.has("organizations:data-forwarding", organization):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
+
         data = request.data
         data["organization_id"] = organization.id
 

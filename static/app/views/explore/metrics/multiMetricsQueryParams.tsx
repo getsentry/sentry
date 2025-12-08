@@ -18,12 +18,10 @@ import {
   type MetricQuery,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
+import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {
-  isVisualizeFunction,
-  VisualizeFunction,
-} from 'sentry/views/explore/queryParams/visualize';
+import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 
 interface MultiMetricsQueryParamsContextValue {
   metricQueries: MetricQuery[];
@@ -39,16 +37,18 @@ const [
 
 interface MultiMetricsQueryParamsProviderProps {
   children: ReactNode;
+  allowUpTo?: number;
 }
 
 export function MultiMetricsQueryParamsProvider({
   children,
+  allowUpTo,
 }: MultiMetricsQueryParamsProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
   const value: MultiMetricsQueryParamsContextValue = useMemo(() => {
-    const metricQueries = getMultiMetricsQueryParamsFromLocation(location);
+    const metricQueries = getMultiMetricsQueryParamsFromLocation(location, allowUpTo);
 
     function setQueryParamsForIndex(i: number) {
       return function (newQueryParams: ReadableQueryParams) {
@@ -91,25 +91,20 @@ export function MultiMetricsQueryParamsProvider({
               const allowedAggregations = OPTIONS_BY_TYPE[newTraceMetric.type];
 
               if (
-                !allowedAggregations?.find(option => option.value === selectedAggregation)
+                selectedAggregation &&
+                allowedAggregations?.find(option => option.value === selectedAggregation)
               ) {
+                // the currently selected aggregation changed types
+                aggregateFields = [
+                  updateVisualizeYAxis(visualize, selectedAggregation, newTraceMetric),
+                  ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
+                ];
+              } else {
                 // the currently selected aggregation isn't supported on the new metric
                 const defaultAggregation =
                   DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'per_second';
                 aggregateFields = [
-                  new VisualizeFunction(`${defaultAggregation}(value)`),
-                  ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
-                ];
-              } else if (
-                selectedAggregation === 'per_second' ||
-                selectedAggregation === 'per_minute'
-              ) {
-                // TODO: this else if branch can go away once the metric type is lifted
-                // to the top level
-
-                // the currently selected aggregation changed types
-                aggregateFields = [
-                  new VisualizeFunction(`${selectedAggregation}(value)`),
+                  updateVisualizeYAxis(visualize, defaultAggregation, newTraceMetric),
                   ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
                 ];
               }
@@ -158,7 +153,7 @@ export function MultiMetricsQueryParamsProvider({
         };
       }),
     };
-  }, [location, navigate]);
+  }, [location, navigate, allowUpTo]);
 
   return (
     <MultiMetricsQueryParamsContext value={value}>
@@ -167,14 +162,17 @@ export function MultiMetricsQueryParamsProvider({
   );
 }
 
-function getMultiMetricsQueryParamsFromLocation(location: Location): BaseMetricQuery[] {
+function getMultiMetricsQueryParamsFromLocation(
+  location: Location,
+  limit?: number
+): BaseMetricQuery[] {
   const rawQueryParams = decodeList(location.query.metric);
 
   const metricQueries = rawQueryParams.map(decodeMetricsQueryParams).filter(defined);
-  if (metricQueries.length) {
-    return metricQueries;
-  }
-  return [defaultMetricQuery()];
+
+  const queries = metricQueries.length ? metricQueries : [defaultMetricQuery()];
+
+  return limit ? queries.slice(0, limit) : queries;
 }
 
 export function useMultiMetricsQueryParams() {
@@ -190,7 +188,10 @@ export function useAddMetricQuery() {
   return function () {
     const target = {...location, query: {...location.query}};
 
-    const newMetricQueries: string[] = [...metricQueries, defaultMetricQuery()]
+    const newMetricQueries: string[] = [
+      ...metricQueries,
+      metricQueries[metricQueries.length - 1] ?? defaultMetricQuery(),
+    ]
       .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
       .filter(defined)
       .filter(Boolean);

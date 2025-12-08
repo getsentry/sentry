@@ -19,9 +19,11 @@ export function StackedOrientation({
   canChangeOrientation,
   infoContentHidden,
   setInfoContentHidden,
+  isMetricOptionsEmpty,
 }: {
   canChangeOrientation: boolean;
   infoContentHidden: boolean;
+  isMetricOptionsEmpty: boolean;
   orientation: TableOrientation;
   queryIndex: number;
   setInfoContentHidden: (hidden: boolean) => void;
@@ -50,6 +52,7 @@ export function StackedOrientation({
           timeseriesResult={timeseriesResult}
           queryIndex={queryIndex}
           orientation={orientation}
+          isMetricOptionsEmpty={isMetricOptionsEmpty}
         />
       </StackedGraphWrapper>
       <MetricInfoTabs
@@ -57,6 +60,7 @@ export function StackedOrientation({
         additionalActions={additionalInfoTabActions}
         contentsHidden={infoContentHidden}
         orientation={orientation}
+        isMetricOptionsEmpty={isMetricOptionsEmpty}
       />
     </Stack>
   );

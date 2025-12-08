@@ -32,6 +32,7 @@ interface ColumnEditorModalProps extends ModalRenderProps {
   handleReset?: () => void;
   hiddenKeys?: string[];
   isDocsButtonHidden?: boolean;
+  requiredTags?: string[];
 }
 
 export function ColumnEditorModal({
@@ -41,6 +42,7 @@ export function ColumnEditorModal({
   closeModal,
   columns,
   onColumnsChange,
+  requiredTags,
   numberTags,
   stringTags,
   hiddenKeys,
@@ -146,6 +148,7 @@ export function ColumnEditorModal({
                 <ColumnEditorRow
                   key={column.id}
                   canDelete={editableColumns.length > 1}
+                  required={requiredTags?.includes(column.column)}
                   column={column}
                   options={tags}
                   onColumnChange={c => updateColumnAtIndex(i, c)}
@@ -159,7 +162,7 @@ export function ColumnEditorModal({
                   size="sm"
                   aria-label={t('Add a Column')}
                   onClick={() => insertColumn('')}
-                  icon={<IconAdd isCircled />}
+                  icon={<IconAdd />}
                 >
                   {t('Add a Column')}
                 </Button>
@@ -201,11 +204,13 @@ interface ColumnEditorRowProps {
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
   options: Array<SelectOption<string>>;
+  required?: boolean;
 }
 
 function ColumnEditorRow({
   canDelete,
   column,
+  required,
   options,
   onColumnChange,
   onColumnDelete,
@@ -266,6 +271,7 @@ function ColumnEditorRow({
         options={options}
         value={column.column ?? ''}
         onChange={handleColumnChange}
+        disabled={required}
         searchable
         triggerProps={{
           children: label,
@@ -278,7 +284,7 @@ function ColumnEditorRow({
       <StyledButton
         aria-label={t('Remove Column')}
         borderless
-        disabled={!canDelete}
+        disabled={!canDelete || required}
         size="sm"
         icon={<IconDelete size="sm" />}
         onClick={onColumnDelete}

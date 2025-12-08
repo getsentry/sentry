@@ -1,9 +1,31 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
-import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
+import {Button} from '@sentry/scraps/button';
+import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {TextArea} from '@sentry/scraps/textarea/textarea';
 
-import SlashCommands, {type SlashCommand} from './slashCommands';
+import {t} from 'sentry/locale';
+
+interface FileApprovalActions {
+  currentIndex: number;
+  onApprove: () => void;
+  onReject: () => void;
+  totalPatches: number;
+}
+
+interface QuestionActions {
+  canSubmit: boolean;
+  currentIndex: number;
+  onBack: () => void;
+  onMoveDown: () => void;
+  onMoveUp: () => void;
+  onNext: () => void;
+  totalQuestions: number;
+}
 
 interface InputSectionProps {
   focusedBlockIndex: number;
@@ -11,30 +33,29 @@ interface InputSectionProps {
   interruptRequested: boolean;
   isPolling: boolean;
   onClear: () => void;
-  onCommandSelect: (command: SlashCommand) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onInputClick: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  onMaxSize: () => void;
-  onMedSize: () => void;
-  onSlashCommandsVisibilityChange: (isVisible: boolean) => void;
-  ref?: React.RefObject<HTMLTextAreaElement | null>;
+  textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
+  fileApprovalActions?: FileApprovalActions;
+  isMinimized?: boolean;
+  isVisible?: boolean;
+  questionActions?: QuestionActions;
 }
 
 function InputSection({
   inputValue,
   focusedBlockIndex,
+  isMinimized = false,
   isPolling,
   interruptRequested,
-  onClear,
+  isVisible = false,
   onInputChange,
-  onKeyDown,
   onInputClick,
-  onCommandSelect,
-  onSlashCommandsVisibilityChange,
-  onMaxSize,
-  onMedSize,
-  ref,
+  onKeyDown,
+  textAreaRef,
+  fileApprovalActions,
+  questionActions,
 }: InputSectionProps) {
   const getPlaceholder = () => {
     if (focusedBlockIndex !== -1) {
@@ -49,30 +70,167 @@ function InputSection({
     return 'Type your message or / command and press Enter ↵';
   };
 
+  // Handle keyboard shortcuts for file approval
+  useEffect(() => {
+    if (!fileApprovalActions || !isVisible || isMinimized) {
+      return undefined;
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        fileApprovalActions.onApprove();
+      } else if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        fileApprovalActions.onReject();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [fileApprovalActions, isVisible, isMinimized]);
+
+  // Handle keyboard shortcuts for questions
+  useEffect(() => {
+    if (!questionActions || !isVisible || isMinimized) {
+      return undefined;
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if user is typing in the custom text input
+      const isTypingInCustomInput = e.target instanceof HTMLInputElement;
+
+      if (e.key === 'ArrowUp') {
+        // Always allow ArrowUp to move selection (exits custom input back to options)
+        e.preventDefault();
+        questionActions.onMoveUp();
+      } else if (e.key === 'ArrowDown' && !isTypingInCustomInput) {
+        // Only allow ArrowDown when not in custom input (nowhere to go down from "Other")
+        e.preventDefault();
+        questionActions.onMoveDown();
+      } else if (e.key === 'Enter') {
+        // Submit on Enter
+        if (questionActions.canSubmit) {
+          e.preventDefault();
+          questionActions.onNext();
+        }
+      } else if (
+        (e.key === 'Backspace' || e.key === 'Delete') &&
+        !isTypingInCustomInput
+      ) {
+        // Go back on Backspace/Delete when not typing
+        if (questionActions.currentIndex > 0) {
+          e.preventDefault();
+          questionActions.onBack();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [questionActions, isVisible, isMinimized]);
+
+  // Render file approval action bar instead of entire input section
+  if (fileApprovalActions) {
+    const {currentIndex, totalPatches, onApprove, onReject} = fileApprovalActions;
+    const hasMultiple = totalPatches > 1;
+
+    return (
+      <ActionBar
+        initial={{opacity: 0, y: 10}}
+        animate={{opacity: 1, y: 0}}
+        exit={{opacity: 0, y: 10}}
+        transition={{duration: 0.12, delay: 0.1, ease: 'easeOut'}}
+      >
+        <Container borderTop="primary" padding="md" background="secondary">
+          <Flex justify="between" align="center">
+            <Flex align="center" gap="md" paddingLeft="md">
+              <Text size="md" bold>
+                {t('Make this change?')}
+              </Text>
+              {hasMultiple && (
+                <Text size="md" variant="muted">
+                  {t('(%s of %s)', currentIndex + 1, totalPatches)}
+                </Text>
+              )}
+            </Flex>
+            <ButtonBar gap="md">
+              <Button size="md" onClick={onReject}>
+                {t('Reject')} ⌫
+              </Button>
+              <Button size="md" priority="primary" onClick={onApprove}>
+                {t('Approve')} ⏎
+              </Button>
+            </ButtonBar>
+          </Flex>
+        </Container>
+      </ActionBar>
+    );
+  }
+
+  // Render question action bar
+  if (questionActions) {
+    const {currentIndex, totalQuestions, onBack, onNext, canSubmit} = questionActions;
+    const hasMultiple = totalQuestions > 1;
+    const isLastQuestion = currentIndex >= totalQuestions - 1;
+
+    return (
+      <ActionBar
+        initial={{opacity: 0, y: 10}}
+        animate={{opacity: 1, y: 0}}
+        exit={{opacity: 0, y: 10}}
+        transition={{duration: 0.12, delay: 0.1, ease: 'easeOut'}}
+      >
+        <Container borderTop="primary" padding="md" background="secondary">
+          <Flex justify="between" align="center">
+            <Flex align="center" gap="md" paddingLeft="md">
+              <Text size="md" bold>
+                {t('Asking some questions...')}
+              </Text>
+              {hasMultiple && (
+                <Text size="md" variant="muted">
+                  {t('(%s of %s)', currentIndex + 1, totalQuestions)}
+                </Text>
+              )}
+            </Flex>
+            <ButtonBar gap="md">
+              {currentIndex > 0 && (
+                <Button size="md" onClick={onBack}>
+                  {t('Back')} ⌫
+                </Button>
+              )}
+              <Button size="md" priority="primary" onClick={onNext} disabled={!canSubmit}>
+                {isLastQuestion ? t('Submit') : t('Next')} ⏎
+              </Button>
+            </ButtonBar>
+          </Flex>
+        </Container>
+      </ActionBar>
+    );
+  }
+
   return (
     <InputBlock>
-      <InputContainer onClick={onInputClick}>
-        <SlashCommands
-          inputValue={inputValue}
-          onCommandSelect={onCommandSelect}
-          onVisibilityChange={onSlashCommandsVisibilityChange}
-          onMaxSize={onMaxSize}
-          onMedSize={onMedSize}
-          onClear={onClear}
+      <InputRow>
+        <InputTextarea
+          ref={textAreaRef}
+          value={inputValue}
+          onChange={onInputChange}
+          onKeyDown={onKeyDown}
+          onClick={onInputClick}
+          placeholder={getPlaceholder()}
+          rows={1}
+          data-test-id="seer-explorer-input"
         />
-        <InputRow>
-          <ChevronIcon direction="right" size="sm" />
-          <InputTextarea
-            ref={ref}
-            value={inputValue}
-            onChange={onInputChange}
-            onKeyDown={onKeyDown}
-            placeholder={getPlaceholder()}
-            rows={1}
-          />
-        </InputRow>
-        {focusedBlockIndex === -1 && <FocusIndicator />}
-      </InputContainer>
+      </InputRow>
     </InputBlock>
   );
 }
@@ -82,59 +240,30 @@ export default InputSection;
 // Styled components
 const InputBlock = styled('div')`
   width: 100%;
-  border-top: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.background};
   position: sticky;
   bottom: 0;
 `;
 
-const InputContainer = styled('div')`
-  position: relative;
-  width: 100%;
-`;
-
 const InputRow = styled('div')`
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   width: 100%;
+  padding: 0;
 `;
 
-const ChevronIcon = styled(IconChevron)`
-  color: ${p => p.theme.subText};
-  margin-top: 18px;
-  margin-left: ${space(2)};
-  margin-right: ${space(1)};
-  flex-shrink: 0;
-`;
-
-const FocusIndicator = styled('div')`
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 3px;
-  background: ${p => p.theme.purple400};
-`;
-
-const InputTextarea = styled('textarea')`
+const InputTextarea = styled(TextArea)`
   width: 100%;
-  border: none;
-  outline: none;
-  background: transparent;
-  padding: ${space(2)} ${space(2)} ${space(2)} 0;
+  margin: ${p => p.theme.space.sm};
   color: ${p => p.theme.textColor};
   resize: none;
-  min-height: 40px;
-  max-height: 120px;
-  line-height: 1.4;
   overflow-y: auto;
-  box-sizing: border-box;
+`;
 
-  &::placeholder {
-    color: ${p => p.theme.subText};
-  }
-
-  &:focus {
-    outline: none;
-  }
+const ActionBar = styled(motion.div)`
+  flex-shrink: 0;
+  width: 100%;
+  background: ${p => p.theme.background};
+  position: sticky;
+  bottom: 0;
 `;

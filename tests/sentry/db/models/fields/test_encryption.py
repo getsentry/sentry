@@ -10,8 +10,11 @@ from sentry.db.models.fields.encryption import (
     MARKER_PLAINTEXT,
     EncryptedCharField,
     EncryptedField,
+    EncryptedJSONField,
 )
-from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers import override_options
+from sentry.utils import json
+from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
 
 ENCRYPTION_METHODS = ("plaintext", "fernet")
 
@@ -27,19 +30,45 @@ def fernet_instance(fernet_key):
 
 
 @pytest.fixture
-def fernet_keys_value(fernet_key):
-    return {"key_id_1": fernet_key.decode()}
+def fernet_keys_store(fernet_key):
+    """Single key for testing. Mocks the FernetKeyStore._keys attribute."""
+    key_id = "key_id_1"
+    original_keys = FernetKeyStore._keys
+    original_is_loaded = FernetKeyStore._is_loaded
+
+    # Mock the key store
+    FernetKeyStore._keys = {key_id: Fernet(fernet_key)}
+    FernetKeyStore._is_loaded = True
+
+    yield key_id, fernet_key
+
+    # Restore original state
+    FernetKeyStore._keys = original_keys
+    FernetKeyStore._is_loaded = original_is_loaded
 
 
 @pytest.fixture
-def multi_fernet_keys_value():
-    """Multiple keys for testing key rotation."""
+def multi_fernet_keys_store():
+    """Multiple keys for testing key rotation. Mocks the FernetKeyStore._keys attribute."""
     key1 = Fernet.generate_key()
     key2 = Fernet.generate_key()
-    return {
-        "key_primary": key1.decode(),
-        "key_secondary": key2.decode(),
+    keys_dict = {
+        "key_primary": Fernet(key1),
+        "key_secondary": Fernet(key2),
     }
+
+    original_keys = FernetKeyStore._keys
+    original_is_loaded = FernetKeyStore._is_loaded
+
+    # Mock the key store
+    FernetKeyStore._keys = keys_dict
+    FernetKeyStore._is_loaded = True
+
+    yield {"key_primary": key1, "key_secondary": key2}
+
+    # Restore original state
+    FernetKeyStore._keys = original_keys
+    FernetKeyStore._is_loaded = original_is_loaded
 
 
 def test_plaintext_encryption():
@@ -59,101 +88,122 @@ def test_plaintext_encryption():
         assert isinstance(decrypted, bytes)
 
 
-@override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=None)
 def test_fernet_encryption_without_key():
     """Test that Fernet encryption raises an error without key."""
-    with override_options({"database.encryption.method": "fernet"}):
+    # Reset the key store to simulate no keys loaded
+    original_keys = FernetKeyStore._keys
+    original_is_loaded = FernetKeyStore._is_loaded
+
+    FernetKeyStore._keys = None
+    FernetKeyStore._is_loaded = True
+
+    try:
+        with (
+            override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": "test_key"}),
+            override_options({"database.encryption.method": "fernet"}),
+        ):
+            field = EncryptedField()
+            with pytest.raises(ValueError, match="Fernet encryption keys are not loaded"):
+                field.get_prep_value("test value")
+    finally:
+        FernetKeyStore._keys = original_keys
+        FernetKeyStore._is_loaded = original_is_loaded
+
+
+def test_fernet_encryption_with_key(multi_fernet_keys_store):
+    """Test Fernet encryption with a valid key using new format."""
+    with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": "key_primary"}),
+        override_options({"database.encryption.method": "fernet"}),
+    ):
         field = EncryptedField()
 
-        with pytest.raises(ValueError, match="DATABASE_ENCRYPTION_FERNET_KEYS is not configured"):
-            field.get_prep_value("test value")
+        # Test encryption
+        encrypted = field.get_prep_value("test value")
+        assert isinstance(encrypted, str)
+        assert encrypted is not None
+
+        # Should have the new format: enc:fernet:key_id:data
+        parts = encrypted.split(":")
+        assert len(parts) == 4
+        enc, method, key_id, encoded_data = parts
+
+        # Should start with enc:fernet marker
+        assert f"{enc}:{method}" == MARKER_FERNET
+
+        # Should use the first key (key_primary)
+        assert key_id == "key_primary"
+
+        # Verify the rest is valid fernet encrypted data
+        fernet_data = base64.b64decode(encoded_data)
+        # Should be able to decrypt with the correct key
+        first_key = multi_fernet_keys_store["key_primary"]
+        fernet_instance = Fernet(first_key)
+        decrypted_bytes = fernet_instance.decrypt(fernet_data)
+        assert decrypted_bytes == b"test value"
+
+        # Test decryption through field
+        decrypted = field.to_python(encrypted)
+        assert decrypted == b"test value"
 
 
-def test_fernet_encryption_with_key(multi_fernet_keys_value):
-    """Test Fernet encryption with a valid key using new format."""
-    with override_options({"database.encryption.method": "fernet"}):
-        with override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=multi_fernet_keys_value):
-            field = EncryptedField()
-
-            # Test encryption
-            encrypted = field.get_prep_value("test value")
-            assert isinstance(encrypted, str)
-            assert encrypted is not None
-
-            # Should have the new format: enc:fernet:key_id:data
-            parts = encrypted.split(":")
-            assert len(parts) == 4
-            enc, method, key_id, encoded_data = parts
-
-            # Should start with enc:fernet marker
-            assert f"{enc}:{method}" == MARKER_FERNET
-
-            # Should use the first key (key_primary)
-            assert key_id == "key_primary"
-
-            # Verify the rest is valid fernet encrypted data
-            fernet_data = base64.b64decode(encoded_data)
-            # Should be able to decrypt with the correct key
-            first_key = list(multi_fernet_keys_value.values())[0]
-            fernet_instance = Fernet(first_key.encode())
-            decrypted_bytes = fernet_instance.decrypt(fernet_data)
-            assert decrypted_bytes == b"test value"
-
-            # Test decryption through field
-            decrypted = field.to_python(encrypted)
-            assert decrypted == b"test value"
-
-
-def test_fernet_key_rotation(multi_fernet_keys_value):
+def test_fernet_key_rotation(multi_fernet_keys_store):
     """Test that data encrypted with different keys can be decrypted."""
-    with override_options({"database.encryption.method": "fernet"}):
-        with override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=multi_fernet_keys_value):
-            field = EncryptedField()
+    with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": "key_primary"}),
+        override_options({"database.encryption.method": "fernet"}),
+    ):
+        field = EncryptedField()
 
-            # Encrypt some data
-            encrypted_value = field.get_prep_value("test data")
+        # Encrypt some data
+        encrypted_value = field.get_prep_value("test data")
 
-            # Should be able to decrypt it
-            decrypted_value = field.to_python(encrypted_value)
-            assert decrypted_value == b"test data"
+        # Should be able to decrypt it
+        decrypted_value = field.to_python(encrypted_value)
+        assert decrypted_value == b"test data"
 
-            # Manually create encrypted data with the second key
-            second_key_id = list(multi_fernet_keys_value.keys())[1]
-            second_key = multi_fernet_keys_value[second_key_id]
-            fernet_instance = Fernet(second_key.encode())
-            manual_encrypted = fernet_instance.encrypt(b"second key data")
-            manual_encoded = base64.b64encode(manual_encrypted).decode("ascii")
-            manual_formatted = f"{MARKER_FERNET}:{second_key_id}:{manual_encoded}"
+        # Manually create encrypted data with the second key
+        second_key_id = "key_secondary"
+        second_key = multi_fernet_keys_store[second_key_id]
+        fernet_instance = Fernet(second_key)
+        manual_encrypted = fernet_instance.encrypt(b"second key data")
+        manual_encoded = base64.b64encode(manual_encrypted).decode("ascii")
+        manual_formatted = f"{MARKER_FERNET}:{second_key_id}:{manual_encoded}"
 
-            # Should be able to decrypt data encrypted with the second key
-            decrypted_manual = field.to_python(manual_formatted)
-            assert decrypted_manual == b"second key data"
+        # Should be able to decrypt data encrypted with the second key
+        decrypted_manual = field.to_python(manual_formatted)
+        assert decrypted_manual == b"second key data"
 
 
-def test_fernet_format_without_key_id_rejected(fernet_keys_value):
+def test_fernet_format_without_key_id_rejected(fernet_keys_store):
     """Test that Fernet format without key_id is rejected."""
-    with override_options({"database.encryption.method": "fernet"}):
-        with override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=fernet_keys_value):
-            field = EncryptedField()
+    key_id, fernet_key = fernet_keys_store
 
-            # Create invalid format without key_id
-            key = list(fernet_keys_value.values())[0]
-            fernet_instance = Fernet(key.encode())
-            encrypted_data = fernet_instance.encrypt(b"test data")
-            encoded_data = base64.b64encode(encrypted_data).decode("ascii")
-            invalid_format = f"{MARKER_FERNET}:{encoded_data}"
+    with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
+        override_options({"database.encryption.method": "fernet"}),
+    ):
+        field = EncryptedField()
 
-            # Should return the original value as it's invalid format
-            result = field.to_python(invalid_format)
-            assert result == invalid_format
+        # Create invalid format without key_id
+        fernet_instance = Fernet(fernet_key)
+        encrypted_data = fernet_instance.encrypt(b"test data")
+        encoded_data = base64.b64encode(encrypted_data).decode("ascii")
+        invalid_format = f"{MARKER_FERNET}:{encoded_data}"
+
+        # Should return the original value as it's invalid format
+        result = field.to_python(invalid_format)
+        assert result == invalid_format
 
 
-def test_encryption_method_switching(fernet_keys_value):
+def test_encryption_method_switching(fernet_keys_store):
     """Test that values can be decrypted after switching encryption methods."""
+    key_id, _fernet_key = fernet_keys_store
+
     # encrypt with Fernet
     with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
         override_options({"database.encryption.method": "fernet"}),
-        override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=fernet_keys_value),
     ):
         field = EncryptedField()
         encrypted_fernet = field.get_prep_value("fernet encrypted")
@@ -166,8 +216,8 @@ def test_encryption_method_switching(fernet_keys_value):
     # assert that both can be decrypted independently of the encryption method
     for encryption_method in ENCRYPTION_METHODS:
         with (
+            override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
             override_options({"database.encryption.method": encryption_method}),
-            override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=fernet_keys_value),
         ):
             field = EncryptedField()
 
@@ -180,120 +230,13 @@ def test_encryption_method_switching(fernet_keys_value):
             assert decrypted_plain == b"plain text value"
 
 
-def test_invalid_fernet_key():
-    """Test handling of invalid Fernet keys."""
-    with override_options({"database.encryption.method": "fernet"}):
-        with override_settings(DATABASE_ENCRYPTION_FERNET_KEYS={"key1": "invalid-key"}):
-            field = EncryptedField()
-
-            # Should raise an error due to invalid key
-            with pytest.raises(ValueError, match="Invalid Fernet key for key_id 'key1'"):
-                field.get_prep_value("test value")
-
-
-def test_fernet_key_dict_format():
-    """Test that fernet key dictionary format works correctly."""
-    key1 = Fernet.generate_key()
-    key2 = Fernet.generate_key()
-    keys_dict = {
-        "key1": key1.decode(),
-        "key2": key2.decode(),
-    }
-
-    with override_options({"database.encryption.method": "fernet"}):
-        with override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=keys_dict):
-            field = EncryptedField()
-
-            # Should use first key by default and include key_id
-            encrypted = field.get_prep_value("test value")
-            assert isinstance(encrypted, str)
-
-            # Should have new format with key_id
-            parts = encrypted.split(":")
-            assert len(parts) == 4
-            enc, method, key_id, _encoded_data = parts
-            assert f"{enc}:{method}" == MARKER_FERNET
-            assert key_id == "key1"  # First key in dict
-
-            # Should be able to decrypt
-            decrypted = field.to_python(encrypted)
-            assert decrypted == b"test value"
-
-
-def test_fernet_key_dict_must_be_dict():
-    """Test that DATABASE_ENCRYPTION_FERNET_KEYS must be a dictionary."""
-    with override_options({"database.encryption.method": "fernet"}):
-        # Test with string instead of dict
-        with override_settings(DATABASE_ENCRYPTION_FERNET_KEYS="not-a-dict"):
-            field = EncryptedField()
-
-            with pytest.raises(
-                ValueError, match="DATABASE_ENCRYPTION_FERNET_KEYS must be a dictionary"
-            ):
-                field.get_prep_value("test value")
-
-        # Test with list instead of dict
-        with override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=["key1", "key2"]):
-            field = EncryptedField()
-
-            with pytest.raises(
-                ValueError, match="DATABASE_ENCRYPTION_FERNET_KEYS must be a dictionary"
-            ):
-                field.get_prep_value("test value")
-
-
-def test_fernet_empty_keys_dict():
-    """Test handling of empty keys dictionary."""
-    with (
-        override_options({"database.encryption.method": "fernet"}),
-        override_settings(DATABASE_ENCRYPTION_FERNET_KEYS={}),
-    ):
-        field = EncryptedField()
-
-        with pytest.raises(ValueError, match="DATABASE_ENCRYPTION_FERNET_KEYS is empty"):
-            field.get_prep_value("test value")
-
-
-@pytest.mark.parametrize(
-    "key_id,key_value,expected_error_match",
-    [
-        (
-            "",
-            "valid_key",
-            r"DATABASE_ENCRYPTION_FERNET_KEYS has invalid key_id or key \(, valid_key\)",
-        ),
-        (
-            None,
-            "valid_key",
-            r"DATABASE_ENCRYPTION_FERNET_KEYS has invalid key_id or key \(None, valid_key\)",
-        ),
-        (
-            "valid_key_id",
-            "",
-            r"DATABASE_ENCRYPTION_FERNET_KEYS has invalid key_id or key \(valid_key_id, \)",
-        ),
-        (
-            "valid_key_id",
-            None,
-            r"DATABASE_ENCRYPTION_FERNET_KEYS has invalid key_id or key \(valid_key_id, None\)",
-        ),
-    ],
-)
-def test_fernet_invalid_key_id_or_key_values(key_id, key_value, expected_error_match):
-    """Test handling of None or empty key_id or key values in the keys dictionary."""
-    with override_options({"database.encryption.method": "fernet"}):
-        field = EncryptedField()
-
-        with override_settings(DATABASE_ENCRYPTION_FERNET_KEYS={key_id: key_value}):
-            with pytest.raises(ValueError, match=expected_error_match):
-                field.get_prep_value("test value")
-
-
-def test_fernet_non_utf_8_chars(fernet_keys_value):
+def test_fernet_non_utf_8_chars(fernet_keys_store):
     """Test that different encrypted field types work correctly."""
+    key_id, _fernet_key = fernet_keys_store
+
     with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
         override_options({"database.encryption.method": "fernet"}),
-        override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=fernet_keys_value),
     ):
         text_field = EncryptedField()
         invalid_utf_8 = b"\xc0"
@@ -319,25 +262,29 @@ def test_keysets_not_implemented():
             field.get_prep_value("test value")
 
 
-def test_fernet_marker_handling(fernet_keys_value):
+def test_fernet_marker_handling(fernet_keys_store):
     """Test that the fernet marker is handled correctly."""
-    with override_options({"database.encryption.method": "fernet"}):
-        with override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=fernet_keys_value):
-            field = EncryptedField()
+    key_id, _fernet_key = fernet_keys_store
 
-            # Create a value with fernet encryption
-            test_value = "test value"
-            encrypted = field.get_prep_value(test_value)
-            assert encrypted is not None
+    with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
+        override_options({"database.encryption.method": "fernet"}),
+    ):
+        field = EncryptedField()
 
-            # Verify it has the new format: enc:fernet:key_id:data
-            parts = encrypted.split(":")
-            assert len(parts) == 4
-            assert f"{parts[0]}:{parts[1]}" == MARKER_FERNET
+        # Create a value with fernet encryption
+        test_value = "test value"
+        encrypted = field.get_prep_value(test_value)
+        assert encrypted is not None
 
-            # Test that decryption works with marker and key_id
-            decrypted = field.to_python(encrypted)
-            assert decrypted == test_value.encode("utf-8")
+        # Verify it has the new format: enc:fernet:key_id:data
+        parts = encrypted.split(":")
+        assert len(parts) == 4
+        assert f"{parts[0]}:{parts[1]}" == MARKER_FERNET
+
+        # Test that decryption works with marker and key_id
+        decrypted = field.to_python(encrypted)
+        assert decrypted == test_value.encode("utf-8")
 
 
 def test_data_without_marker():
@@ -367,21 +314,19 @@ def test_to_python_conversion():
         assert field.to_python(encrypted) == b"test bytes"
 
 
-def test_non_utf8_data_handling(fernet_keys_value):
+def test_non_utf8_data_handling(fernet_keys_store):
     """Test handling of non-UTF8 data."""
-
+    key_id, _fernet_key = fernet_keys_store
     invalid_value = b"\xc0"  # invalid UTF-8 char
 
     for encryption_method in ENCRYPTION_METHODS:
-        with override_options({"database.encryption.method": encryption_method}):
-            settings_override = {}
-            if encryption_method == "fernet":
-                settings_override["DATABASE_ENCRYPTION_FERNET_KEYS"] = fernet_keys_value
-
-            with override_settings(**settings_override):
-                field = EncryptedField()
-                result = field.to_python(invalid_value)
-                assert result == invalid_value
+        with (
+            override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
+            override_options({"database.encryption.method": encryption_method}),
+        ):
+            field = EncryptedField()
+            result = field.to_python(invalid_value)
+            assert result == invalid_value
 
 
 @pytest.mark.parametrize("encryption_method", ENCRYPTION_METHODS)
@@ -398,29 +343,30 @@ def test_non_utf8_data_handling(fernet_keys_value):
         b"invalid utf-8: \xc0",
     ],
 )
-def test_encryption_decryption_roundtrip(encryption_method, test_value, fernet_keys_value):
+def test_encryption_decryption_roundtrip(encryption_method, test_value, fernet_keys_store):
     """Test that encryption and decryption work correctly in roundtrip."""
-    with override_options({"database.encryption.method": encryption_method}):
-        settings_override = {}
-        if encryption_method == "fernet":
-            settings_override["DATABASE_ENCRYPTION_FERNET_KEYS"] = fernet_keys_value
+    key_id, _fernet_key = fernet_keys_store
 
-        with override_settings(**settings_override):
-            field = EncryptedField()
+    with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
+        override_options({"database.encryption.method": encryption_method}),
+    ):
+        field = EncryptedField()
 
-            encrypted = field.get_prep_value(test_value)
-            decrypted = field.to_python(encrypted)
+        encrypted = field.get_prep_value(test_value)
+        decrypted = field.to_python(encrypted)
 
-            if test_value is None:
-                assert decrypted is None
-            elif isinstance(test_value, str):
-                assert decrypted == test_value.encode("utf-8")
-            else:
-                assert decrypted == test_value
+        if test_value is None:
+            assert decrypted is None
+        elif isinstance(test_value, str):
+            assert decrypted == test_value.encode("utf-8")
+        else:
+            assert decrypted == test_value
 
 
-def test_marker_format_consistency(fernet_keys_value):
+def test_marker_format_consistency(fernet_keys_store):
     """Test that the marker format is consistent across methods."""
+    key_id, _fernet_key = fernet_keys_store
     field = EncryptedField()
 
     with override_options({"database.encryption.method": "plaintext"}):
@@ -428,54 +374,60 @@ def test_marker_format_consistency(fernet_keys_value):
         assert encrypted is not None
         assert encrypted.startswith(f"{MARKER_PLAINTEXT}:")
 
-    with override_options({"database.encryption.method": "fernet"}):
-        with override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=fernet_keys_value):
-            encrypted = field.get_prep_value("test")
-            assert encrypted is not None
-            assert encrypted.startswith(f"{MARKER_FERNET}:")
+    with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
+        override_options({"database.encryption.method": "fernet"}),
+    ):
+        encrypted = field.get_prep_value("test")
+        assert encrypted is not None
+        assert encrypted.startswith(f"{MARKER_FERNET}:")
 
 
-def test_fernet_missing_key_decryption():
+def test_fernet_missing_key_decryption(fernet_keys_store):
     """Test that decryption fails gracefully when key_id is not found."""
-    keys_dict = {
-        "key1": Fernet.generate_key().decode(),
-    }
+    key_id, _fernet_key = fernet_keys_store
 
-    with override_options({"database.encryption.method": "fernet"}):
-        with override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=keys_dict):
-            field = EncryptedField()
+    with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
+        override_options({"database.encryption.method": "fernet"}),
+    ):
+        field = EncryptedField()
 
-            # Try to decrypt data that was "encrypted" with a missing key
-            fake_encrypted_data = base64.b64encode(b"fake data").decode("ascii")
-            formatted_value = f"{MARKER_FERNET}:missing_key:{fake_encrypted_data}"
+        # Try to decrypt data that was "encrypted" with a missing key
+        fake_encrypted_data = base64.b64encode(b"fake data").decode("ascii")
+        formatted_value = f"{MARKER_FERNET}:missing_key:{fake_encrypted_data}"
 
-            # Should fall back to returning the original value when key is missing
-            result = field.to_python(formatted_value)
-            assert result == formatted_value  # Should return the original encrypted string
+        # Should fall back to returning the original value when key is missing
+        result = field.to_python(formatted_value)
+        assert result == formatted_value  # Should return the original encrypted string
 
 
-def test_fernet_format_with_plaintext_data(fernet_keys_value):
+def test_fernet_format_with_plaintext_data(fernet_keys_store):
     """Test that data in fernet format but containing plain text (not encrypted) falls back correctly."""
-    with override_options({"database.encryption.method": "fernet"}):
-        with override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=fernet_keys_value):
-            field = EncryptedField()
+    key_id, _fernet_key = fernet_keys_store
 
-            # Create data that looks like fernet format but contains plain text instead of encrypted data
-            # This could happen during migration from plain text to encrypted storage
-            plaintext_content = "this is just plain text, not encrypted"
-            fake_fernet_data = f"{MARKER_FERNET}:key_id_1:{plaintext_content}"
+    with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
+        override_options({"database.encryption.method": "fernet"}),
+    ):
+        field = EncryptedField()
 
-            # Should fall back to returning the original string since it's not valid encrypted data
-            result = field.to_python(fake_fernet_data)
-            assert result == fake_fernet_data  # Should return the original string as-is
+        # Create data that looks like fernet format but contains plain text instead of encrypted data
+        # This could happen during migration from plain text to encrypted storage
+        plaintext_content = "this is just plain text, not encrypted"
+        fake_fernet_data = f"{MARKER_FERNET}:{key_id}:{plaintext_content}"
 
-            # Test with a format that has valid base64 but invalid fernet data
-            fake_base64_data = base64.b64encode(b"not fernet encrypted").decode("ascii")
-            fake_fernet_with_base64 = f"{MARKER_FERNET}:key_id_1:{fake_base64_data}"
+        # Should fall back to returning the original string since it's not valid encrypted data
+        result = field.to_python(fake_fernet_data)
+        assert result == fake_fernet_data  # Should return the original string as-is
 
-            result = field.to_python(fake_fernet_with_base64)
-            # This should also fall back to the original string since it's not valid Fernet data
-            assert result == fake_fernet_with_base64
+        # Test with a format that has valid base64 but invalid fernet data
+        fake_base64_data = base64.b64encode(b"not fernet encrypted").decode("ascii")
+        fake_fernet_with_base64 = f"{MARKER_FERNET}:{key_id}:{fake_base64_data}"
+
+        result = field.to_python(fake_fernet_with_base64)
+        # This should also fall back to the original string since it's not valid Fernet data
+        assert result == fake_fernet_with_base64
 
 
 class EncryptedFieldModel(models.Model):
@@ -487,12 +439,13 @@ class EncryptedFieldModel(models.Model):
 
 
 @pytest.mark.django_db
-def test_encrypted_char_field_fernet_end_to_end(fernet_keys_value):
+def test_encrypted_char_field_fernet_end_to_end(fernet_keys_store):
     """Test complete save/retrieve cycle with EncryptedField."""
+    key_id, _fernet_key = fernet_keys_store
 
     with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
         override_options({"database.encryption.method": "fernet"}),
-        override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=fernet_keys_value),
     ):
         test_data = "This is sensitive data that should be encrypted"
 
@@ -518,38 +471,311 @@ def test_encrypted_char_field_fernet_end_to_end(fernet_keys_value):
 @pytest.mark.django_db
 def test_encrypted_char_field_plaintext_end_to_end():
     """Test complete save/retrieve cycle with EncryptedCharField."""
-    test_data = "This is plain text data"
+    with override_options({"database.encryption.method": "plaintext"}):
+        test_data = "This is plain text data"
 
-    model_instance = EncryptedFieldModel.objects.create(data=test_data)
-    assert model_instance.id is not None
+        model_instance = EncryptedFieldModel.objects.create(data=test_data)
+        assert model_instance.id is not None
 
-    # Verify the data was correctly encrypted and decrypted
-    retrieved_instance = EncryptedFieldModel.objects.get(id=model_instance.id)
-    assert retrieved_instance.data == test_data
+        # Verify the data was correctly encrypted and decrypted
+        retrieved_instance = EncryptedFieldModel.objects.get(id=model_instance.id)
+        assert retrieved_instance.data == test_data
 
-    with connection.cursor() as cursor:
-        cursor.execute(
-            "SELECT data FROM fixtures_encryptedfieldmodel WHERE id = %s",
-            [model_instance.id],
-        )
-        # Should be in a format enc:plaintext:base64data
-        raw_value = cursor.fetchone()[0]
-        assert raw_value.startswith(f"{MARKER_PLAINTEXT}:")
-        assert test_data not in raw_value
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT data FROM fixtures_encryptedfieldmodel WHERE id = %s",
+                [model_instance.id],
+            )
+            # Should be in a format enc:plaintext:base64data
+            raw_value = cursor.fetchone()[0]
+            assert raw_value.startswith(f"{MARKER_PLAINTEXT}:")
+            assert test_data not in raw_value
 
 
 @pytest.mark.django_db
 def test_encrypted_char_field_null_value():
-    model_instance = EncryptedFieldModel.objects.create(data=None)
-    assert model_instance.id is not None
+    with override_options({"database.encryption.method": "plaintext"}):
+        model_instance = EncryptedFieldModel.objects.create(data=None)
+        assert model_instance.id is not None
 
-    retrieved_instance = EncryptedFieldModel.objects.get(id=model_instance.id)
-    assert retrieved_instance.data is None
+        retrieved_instance = EncryptedFieldModel.objects.get(id=model_instance.id)
+        assert retrieved_instance.data is None
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT data FROM fixtures_encryptedfieldmodel WHERE id = %s",
+                [model_instance.id],
+            )
+            raw_value = cursor.fetchone()[0]
+            assert raw_value is None
+
+
+# EncryptedJSONField Tests
+
+
+def test_encrypted_json_field_plaintext_encryption():
+    """Test EncryptedJSONField encryption with plaintext method."""
+    with override_options({"database.encryption.method": "plaintext"}):
+        field = EncryptedJSONField()
+
+        test_data = {"key": "value", "nested": {"data": [1, 2, 3]}}
+        encrypted = field.get_prep_value(test_data)
+
+        # Should be a dict (will be stored as jsonb)
+        assert isinstance(encrypted, dict)
+        assert EncryptedJSONField._encrypted_field_key in encrypted
+        assert encrypted[EncryptedJSONField._encrypted_field_key].startswith(MARKER_PLAINTEXT)
+
+        # Decrypt and verify
+        decrypted = field.to_python(encrypted)
+        assert decrypted == test_data
+
+
+def test_encrypted_json_field_fernet_encryption(fernet_keys_store):
+    """Test EncryptedJSONField encryption with Fernet method."""
+    key_id, _ = fernet_keys_store
+
+    with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
+        override_options({"database.encryption.method": "fernet"}),
+    ):
+        field = EncryptedJSONField()
+
+        test_data = {"user": "john", "email": "john@example.com", "age": 30}
+        encrypted = field.get_prep_value(test_data)
+
+        # Should be a dict (will be stored as jsonb)
+        assert isinstance(encrypted, dict)
+        assert EncryptedJSONField._encrypted_field_key in encrypted
+        assert encrypted[EncryptedJSONField._encrypted_field_key].startswith(MARKER_FERNET)
+
+        # Decrypt and verify
+        decrypted = field.to_python(encrypted)
+        assert decrypted == test_data
+
+
+@pytest.mark.parametrize("encryption_method", ENCRYPTION_METHODS)
+@pytest.mark.parametrize(
+    "test_value",
+    [
+        {"simple": "dict"},
+        {"nested": {"data": {"deep": "value"}}},
+        {"list": [1, 2, 3, 4, 5]},
+        {"mixed": [{"a": 1}, {"b": 2}]},
+        {"unicode": "你好世界"},
+        {"special": "!@#$%^&*()"},
+        {},
+        {"empty_string": ""},
+        {"null_value": None},
+        {"boolean": True},
+        {"numbers": 123.456},
+        # test case when JSON contains encrypted field key used to store it
+        {EncryptedJSONField._encrypted_field_key: "value"},
+    ],
+)
+def test_encrypted_json_field_roundtrip(encryption_method, test_value, fernet_keys_store):
+    """Test that JSON encryption and decryption work correctly in roundtrip."""
+    key_id, _ = fernet_keys_store
+
+    with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
+        override_options({"database.encryption.method": encryption_method}),
+    ):
+        field = EncryptedJSONField()
+
+        encrypted = field.get_prep_value(test_value)
+        decrypted = field.to_python(encrypted)
+
+        assert decrypted == test_value
+
+
+def test_encrypted_json_field_fallback_unencrypted():
+    """Test that EncryptedJSONField falls back to unencrypted JSON."""
+    field = EncryptedJSONField()
+
+    # Simulate unencrypted JSON data already in the database (as dict from jsonb)
+    unencrypted_data = {"legacy": "data", "from": "migration"}
+
+    # Should be able to read it without encryption
+    decrypted = field.to_python(unencrypted_data)
+    assert decrypted == {"legacy": "data", "from": "migration"}
+
+
+def test_encrypted_json_field_fallback_with_similar_structure():
+    """Test fallback when JSON has similar but not exact encryption structure."""
+    field = EncryptedJSONField()
+
+    # Data that has the key but is not our encryption format (has extra keys)
+    similar_data = {EncryptedJSONField._encrypted_field_key: "regular_value", "other": "data"}
+
+    # Should return as-is since it doesn't match our exact structure (has extra keys)
+    decrypted = field.to_python(similar_data)
+    assert decrypted == {EncryptedJSONField._encrypted_field_key: "regular_value", "other": "data"}
+
+
+class EncryptedJSONFieldModel(models.Model):
+    id = models.AutoField(primary_key=True)
+    data = EncryptedJSONField(null=True, blank=True)
+
+    class Meta:
+        app_label = "fixtures"
+
+
+@pytest.mark.django_db
+def test_encrypted_json_field_fernet_end_to_end(fernet_keys_store):
+    """Test complete save/retrieve cycle with EncryptedJSONField and Fernet."""
+    key_id, _fernet_key = fernet_keys_store
+
+    with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
+        override_options({"database.encryption.method": "fernet"}),
+    ):
+        test_data = {
+            "sensitive": "data",
+            "user": {"id": 123, "email": "user@example.com"},
+            "tokens": ["token1", "token2"],
+        }
+
+        model_instance = EncryptedJSONFieldModel.objects.create(data=test_data)
+        assert model_instance.id is not None
+
+        # Verify the data was correctly encrypted and decrypted
+        retrieved_instance = EncryptedJSONFieldModel.objects.get(id=model_instance.id)
+        assert retrieved_instance.data == test_data
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT data FROM fixtures_encryptedjsonfieldmodel WHERE id = %s",
+                [model_instance.id],
+            )
+            raw_value = cursor.fetchone()[0]
+
+            # raw_value is a string and needs to be parsed
+            json_value = json.loads(raw_value)
+            assert EncryptedJSONField._encrypted_field_key in json_value
+            assert json_value["sentry_encrypted_field_value"].startswith(MARKER_FERNET)
+
+            assert "sensitive" not in raw_value
+            assert "user@example.com" not in raw_value
+
+
+@pytest.mark.django_db
+def test_encrypted_json_field_plaintext_end_to_end():
+    """Test complete save/retrieve cycle with EncryptedJSONField and plaintext."""
+    with override_options({"database.encryption.method": "plaintext"}):
+        test_data = {"plain": "data", "numbers": [1, 2, 3]}
+
+        model_instance = EncryptedJSONFieldModel.objects.create(data=test_data)
+        assert model_instance.id is not None
+
+        # Verify the data was correctly encrypted and decrypted
+        retrieved_instance = EncryptedJSONFieldModel.objects.get(id=model_instance.id)
+        assert retrieved_instance.data == test_data
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT data FROM fixtures_encryptedjsonfieldmodel WHERE id = %s",
+                [model_instance.id],
+            )
+            raw_value = cursor.fetchone()[0]
+
+            json_value = json.loads(raw_value)
+            assert "sentry_encrypted_field_value" in json_value
+            assert json_value["sentry_encrypted_field_value"].startswith(MARKER_PLAINTEXT)
+
+
+@pytest.mark.django_db
+def test_encrypted_json_field_migration_compatibility(fernet_keys_store):
+    """Test that EncryptedJSONField can read unencrypted legacy data."""
+    key_id, _fernet_key = fernet_keys_store
+
+    legacy_data = {"legacy": True, "migrated": False}
 
     with connection.cursor() as cursor:
         cursor.execute(
-            "SELECT data FROM fixtures_encryptedfieldmodel WHERE id = %s",
-            [model_instance.id],
+            "INSERT INTO fixtures_encryptedjsonfieldmodel (data) VALUES (%s::jsonb) RETURNING id",
+            [json.dumps(legacy_data)],
         )
-        raw_value = cursor.fetchone()[0]
-        assert raw_value is None
+        inserted_id = cursor.fetchone()[0]
+
+    # Now try to read it with EncryptedJSONField
+    with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
+        override_options({"database.encryption.method": "fernet"}),
+    ):
+        retrieved_instance = EncryptedJSONFieldModel.objects.get(id=inserted_id)
+
+        # Should fall back to reading unencrypted data
+        assert retrieved_instance.data == legacy_data
+
+        # Now update it - should encrypt on save
+        retrieved_instance.data = {"legacy": True, "migrated": True}
+        retrieved_instance.save()
+
+        # Verify it's now encrypted
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT data FROM fixtures_encryptedjsonfieldmodel WHERE id = %s",
+                [inserted_id],
+            )
+            raw_value = cursor.fetchone()[0]
+
+            # raw_value is a string
+            json_value = json.loads(raw_value)
+            assert "sentry_encrypted_field_value" in json_value
+            assert json_value["sentry_encrypted_field_value"].startswith(MARKER_FERNET)
+
+
+@pytest.mark.django_db
+def test_encrypted_json_field_fake_encrypted_format_fallback(fernet_keys_store):
+    """
+    Test that EncryptedJSONField falls back gracefully when data has the encrypted
+    wrapper structure but contains non-encrypted plain text values.
+
+    This simulates a scenario where data was manually inserted or corrupted to look
+    like encrypted data but is actually just plain text.
+    """
+    key_id, _fernet_key = fernet_keys_store
+
+    # Directly insert a value that looks like our encrypted format but isn't actually encrypted
+    fake_encrypted_data = {
+        EncryptedJSONField._encrypted_field_key: "this is just plain text, not encrypted"
+    }
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "INSERT INTO fixtures_encryptedjsonfieldmodel (data) VALUES (%s::jsonb) RETURNING id",
+            [json.dumps(fake_encrypted_data)],
+        )
+        inserted_id = cursor.fetchone()[0]
+
+    # Try to read it back with EncryptedJSONField
+    with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
+        override_options({"database.encryption.method": "fernet"}),
+    ):
+        retrieved_instance = EncryptedJSONFieldModel.objects.get(id=inserted_id)
+
+        # Should fall back to returning the original structure since decryption fails
+        assert retrieved_instance.data == fake_encrypted_data
+
+    # Test with a value that looks more like our encrypted format but still isn't valid
+    fake_fernet_like = {
+        EncryptedJSONField._encrypted_field_key: f"{MARKER_FERNET}:some_key:not_real_encrypted_data"
+    }
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "INSERT INTO fixtures_encryptedjsonfieldmodel (data) VALUES (%s::jsonb) RETURNING id",
+            [json.dumps(fake_fernet_like)],
+        )
+        inserted_id = cursor.fetchone()[0]
+
+    with (
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": key_id}),
+        override_options({"database.encryption.method": "fernet"}),
+    ):
+        retrieved_instance = EncryptedJSONFieldModel.objects.get(id=inserted_id)
+
+        # Should fall back to returning the original structure
+        assert retrieved_instance.data == fake_fernet_like

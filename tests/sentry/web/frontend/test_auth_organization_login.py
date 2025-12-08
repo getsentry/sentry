@@ -1349,7 +1349,6 @@ class OrganizationAuthLoginDemoModeTest(AuthProviderTestCase):
                 "demo-mode.enabled": True,
                 "demo-mode.users": [self.demo_user.id],
                 "demo-mode.orgs": [self.demo_org.id],
-                "demo-user.auth.pipelines.always.unauthenticated.enabled": True,
             }
         ):
             sso_org = self.create_organization(name="sso-org", owner=self.normal_user)

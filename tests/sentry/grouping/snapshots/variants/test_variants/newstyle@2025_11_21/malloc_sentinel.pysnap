@@ -1,7 +1,5 @@
 ---
-created: '2025-11-03T21:48:48.738331+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -101,7 +99,7 @@ app:
               "__pthread_kill"
 --------------------------------------------------------------------------
 system:
-  hash: "ca6e8f30e1e7b088514deb26ec59b379"
+  hash: "44fcfaf834a1238bfaa22fcfabeea65f"
   contributing component: exception
   hint: None
   root_component:
@@ -112,7 +110,7 @@ system:
         value (ignored because stacktrace takes precedence)
           "<redacted>"
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "_pthread_start"
           frame*
@@ -175,7 +173,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "std::__1::basic_string<T>::~basic_string"
           frame*
@@ -184,15 +182,15 @@ system:
           frame*
             function*
               "malloc_report"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "malloc_vreport"
-          frame*
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
             function*
               "pthread_kill"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
             function*
               "__pthread_kill"

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
@@ -270,19 +269,17 @@ export function DetectorDetailsOpenPeriodIssues({
 
   return (
     <Section
-      title={
-        <Flex justify="between" align="center">
-          {tn('Ongoing Issue', 'Ongoing Issues', numIssues)}
-          <LinkButton
-            size="xs"
-            to={{
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query: issueSearchQueryParams,
-            }}
-          >
-            {t('View All')}
-          </LinkButton>
-        </Flex>
+      title={tn('Ongoing Issue', 'Ongoing Issues', numIssues)}
+      trailingItems={
+        <LinkButton
+          size="xs"
+          to={{
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: issueSearchQueryParams,
+          }}
+        >
+          {t('View All')}
+        </LinkButton>
       }
     >
       <ErrorBoundary mini>

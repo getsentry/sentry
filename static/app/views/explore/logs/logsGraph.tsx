@@ -27,14 +27,12 @@ import {
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import {
-  ChartIntervalUnspecifiedStrategy,
-  useChartInterval,
-} from 'sentry/views/explore/hooks/useChartInterval';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {ConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
-import type {RawLogCounts} from 'sentry/views/explore/logs/useLogsQuery';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
@@ -49,6 +47,7 @@ import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {isVisualize, type Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
+import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
   prettifyAggregation,
@@ -58,7 +57,7 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 interface LogsGraphProps {
-  rawLogCounts: RawLogCounts;
+  rawLogCounts: RawCounts;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
 
@@ -119,22 +118,31 @@ function Graph({
   timeseriesResult,
   visualize,
 }: GraphProps) {
+  const {isEmpty: tableIsEmpty, isPending: tableIsPending} = useLogsPageDataQueryResult();
+
   const aggregate = visualize.yAxis;
   const userQuery = useQueryParamsQuery();
   const topEventsLimit = useQueryParamsTopEventsLimit();
 
-  const [interval, setInterval, intervalOptions] = useChartInterval({
-    unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
-  });
+  const [interval, setInterval, intervalOptions] = useChartInterval();
 
-  const chartInfo = useMemo(() => {
-    const series = timeseriesResult.data[aggregate] ?? [];
+  const chartInfo: ChartInfo = useMemo(() => {
+    // If the table is empty or pending, we want to withhold the chart data.
+    // This is to avoid a state where there is data in the chart but not in
+    // the table which is very weird. By withholding the chart data, we create
+    // the illusion the 2 are being queries in sync.
+    const withholdData = tableIsEmpty || tableIsPending;
+
+    const series = withholdData ? [] : (timeseriesResult.data[aggregate] ?? []);
     const isTopEvents = defined(topEventsLimit);
     const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
     return {
       chartType: visualize.chartType,
       series,
-      timeseriesResult,
+      timeseriesResult: {
+        ...timeseriesResult,
+        isPending: timeseriesResult.isPending || tableIsPending,
+      } as ChartInfo['timeseriesResult'],
       yAxis: aggregate,
       confidence: combineConfidenceForSeries(series),
       dataScanned: samplingMeta.dataScanned,
@@ -143,7 +151,14 @@ function Graph({
       samplingMode: undefined,
       topEvents: isTopEvents ? TOP_EVENTS_LIMIT : undefined,
     };
-  }, [visualize.chartType, timeseriesResult, aggregate, topEventsLimit]);
+  }, [
+    visualize.chartType,
+    timeseriesResult,
+    aggregate,
+    topEventsLimit,
+    tableIsEmpty,
+    tableIsPending,
+  ]);
 
   const Title = (
     <Widget.WidgetTitle title={prettifyAggregation(aggregate) ?? aggregate} />
@@ -204,9 +219,11 @@ function Graph({
         visualize.visible && (
           <ConfidenceFooter
             chartInfo={chartInfo}
-            isLoading={timeseriesResult.isLoading}
+            // hold off on showing the chart while the table is loading
+            isLoading={timeseriesResult.isLoading || tableIsPending}
             rawLogCounts={rawLogCounts}
             hasUserQuery={!!userQuery}
+            disabled={tableIsPending ? false : tableIsEmpty}
           />
         )
       }

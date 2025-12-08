@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
+import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
 interface Props {
   feedbackItem: FeedbackIssue;
@@ -114,5 +114,5 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
 
 const ShortId = styled(TextOverflow)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

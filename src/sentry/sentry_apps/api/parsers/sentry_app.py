@@ -176,10 +176,18 @@ class SentryAppParser(Serializer):
         if not value:
             return value
 
+        from sentry.conf.server import SENTRY_TOKEN_ONLY_SCOPES
+
         validation_errors = []
         for scope in value:
             # if the existing instance already has this scope, skip the check
             if self.instance and self.instance.has_scope(scope):
+                continue
+
+            # Token-only scopes can be granted even if the user doesn't have them.
+            # These are specialized scopes (like project:distribution) that are not
+            # included in any user role but can be granted to integration tokens.
+            if scope in SENTRY_TOKEN_ONLY_SCOPES:
                 continue
 
             assert (

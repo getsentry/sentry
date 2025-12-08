@@ -1,6 +1,7 @@
+import type {Simplify} from 'type-fest';
+
 import type {PlatformKey} from 'sentry/types/project';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {Flatten} from 'sentry/utils/types/flatten';
 import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 
 export enum ModuleName {
@@ -12,9 +13,12 @@ export enum ModuleName {
   SCREEN_LOAD = 'screen_load',
   APP_START = 'app_start',
   RESOURCE = 'resource',
-  AGENTS = 'agents',
+  AGENT_MODELS = 'agent-models',
+  AGENT_TOOLS = 'agent-tools',
   AI_GENERATIONS = 'ai-generations',
-  MCP = 'mcp',
+  MCP_TOOLS = 'mcp-tools',
+  MCP_RESOURCES = 'mcp-resources',
+  MCP_PROMPTS = 'mcp-prompts',
   MOBILE_UI = 'mobile-ui',
   MOBILE_VITALS = 'mobile-vitals',
   SCREEN_RENDERING = 'screen-rendering',
@@ -496,7 +500,7 @@ type SpanResponseRaw = {
     [Property in SpanFields as `${SpanFunction.COUNT_IF}(${Property},${string},${string})`]: number;
   };
 
-export type SpanResponse = Flatten<SpanResponseRaw>;
+export type SpanResponse = Simplify<SpanResponseRaw>;
 export type SpanProperty = keyof SpanResponse;
 
 export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
@@ -533,7 +537,7 @@ type ErrorResponseRaw = {
   [Property in NoArgErrorFunction as `${Property}()`]: number;
 };
 
-export type ErrorResponse = Flatten<ErrorResponseRaw>;
+export type ErrorResponse = Simplify<ErrorResponseRaw>;
 export type ErrorProperty = keyof ErrorResponse;
 
 // Maps the subregion code to the subregion name according to UN m49 standard

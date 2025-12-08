@@ -1,7 +1,5 @@
 ---
-created: '2025-11-03T21:52:54.990338+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,7 +22,7 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "ca6e8f30e1e7b088514deb26ec59b379"
+    hash: "44fcfaf834a1238bfaa22fcfabeea65f"
     contributing component: exception
     hint: None
     root_component:
@@ -50,6 +48,3 @@ contributing variants:
             frame*
               function*
                 "malloc_report"
-            frame*
-              function*
-                "abort"

@@ -262,7 +262,7 @@ function PlatformPicker({
       </PlatformList>
       {platformList.length === 0 && (
         <EmptyMessage
-          icon={<IconProject size="xl" />}
+          icon={<IconProject />}
           title={t("We don't have an SDK for that yet!")}
         >
           {tct(
@@ -353,7 +353,7 @@ const PlatformCard = styled(
       <h3>{platform.name}</h3>
       {selected && visibleSelection && (
         <ClearButton
-          icon={<IconClose isCircled />}
+          icon={<IconClose />}
           borderless
           size="xs"
           onClick={onClear}

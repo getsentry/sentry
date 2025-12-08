@@ -23,7 +23,7 @@ from sentry.workflow_engine.endpoints.organization_workflow_index import (
 )
 from sentry.workflow_engine.endpoints.utils.test_fire_action import test_fire_action
 from sentry.workflow_engine.endpoints.validators.base.action import BaseActionValidator
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
 
 logger = logging.getLogger(__name__)
@@ -121,14 +121,6 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project):
         group=test_event.group,
     )
 
-    detector = Detector(
-        id=TEST_NOTIFICATION_ID,
-        project=project,
-        name="Test Detector",
-        enabled=True,
-        type="error",
-    )
-
     for action_data in actions:
         # Create a temporary Action object (not saved to database)
         action = Action(
@@ -143,7 +135,7 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project):
         setattr(action, "workflow_id", workflow_id)
 
         # Test fire the action and collect any exceptions
-        exceptions = test_fire_action(action, workflow_event_data, detector)
+        exceptions = test_fire_action(action, workflow_event_data)
         if exceptions:
             action_exceptions.extend(exceptions)
 

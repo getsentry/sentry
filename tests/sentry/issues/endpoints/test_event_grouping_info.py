@@ -45,7 +45,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         content = orjson.loads(response.content)
 
         assert response.status_code == 200
-        assert content["system_exception_stacktrace"]["type"] == "component"
+        assert content["variants"]["system_exception_stacktrace"]["type"] == "component"
 
     def test_error_event_stacktrace_order(self) -> None:
         """Test that the response stacktrace order matches the user's stacktrace order preference"""
@@ -81,7 +81,9 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
 
             # Dig into the JSON to grab the context lines, in order
             response_context_lines = []
-            exception_component = content["app_exception_stacktrace"]["component"]["values"][0]
+            exception_component = content["variants"]["app_exception_stacktrace"]["component"][
+                "values"
+            ][0]
             for exception_component_subcomponent in exception_component["values"]:
                 if exception_component_subcomponent["id"] == "stacktrace":
                     stacktrace_component = exception_component_subcomponent
@@ -137,9 +139,9 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
 
             # Dig into the JSON to grab the error types, in order
             response_error_types = []
-            chained_exception_component = content["app_chained_exception_message"]["component"][
-                "values"
-            ][0]
+            chained_exception_component = content["variants"]["app_chained_exception_message"][
+                "component"
+            ]["values"][0]
             for exception_component in chained_exception_component["values"]:
                 for exception_component_subcomponent in exception_component["values"]:
                     if exception_component_subcomponent["id"] == "type":

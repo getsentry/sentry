@@ -4,6 +4,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {getFilterValueType} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {cleanFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/utils';
+import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {
   TermOperator,
@@ -52,6 +53,19 @@ export function parseFilterValue(
     return [];
   }
   return parsedResult.filter(token => token.type === Token.FILTER);
+}
+
+export function getFilterToken(
+  globalFilter: GlobalFilter,
+  fieldDefinition: FieldDefinition | null
+) {
+  const {tag, value} = globalFilter;
+  let filterValue = value;
+  if (value === '') {
+    filterValue = getInitialFilterText(tag.key, fieldDefinition);
+  }
+  const filterTokens = parseFilterValue(filterValue, globalFilter);
+  return filterTokens[0] ?? null;
 }
 
 export function isValidNumericFilterValue(
@@ -103,8 +117,7 @@ export function newNumericFilterQuery(
   const newFilterQuery = modifyFilterOperatorQuery(
     newFilterValue,
     newFilterToken,
-    newOperator,
-    false
+    newOperator
   );
   return newFilterQuery;
 }

@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -17,7 +18,8 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.examples.integration_examples import IntegrationExamples
+from sentry.apidocs.parameters import DataForwarderParams, GlobalParams
 from sentry.integrations.api.serializers.models.data_forwarder import (
     DataForwarderSerializer as DataForwarderModelSerializer,
 )
@@ -78,6 +80,14 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     ):
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
+        if not features.has("organizations:data-forwarding-revamp-access", kwargs["organization"]):
+            raise PermissionDenied
+
+        if request.method == "PUT" and not features.has(
+            "organizations:data-forwarding", kwargs["organization"]
+        ):
+            raise PermissionDenied
+
         try:
             data_forwarder = DataForwarder.objects.get(
                 id=data_forwarder_id,
@@ -91,13 +101,13 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
 
     def _update_data_forwarder_config(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
-    ) -> Response:
+    ) -> Response | None:
         """
         Request body: {"is_enabled": true, "enroll_new_projects": true, "provider": "segment", "config": {...}, "project_ids": [1, 2, 3]}
 
         Returns:
-            Response: 200 OK with serialized data forwarder on success,
-                     400 Bad Request with validation errors on failure
+            Response: 200 OK with serialized data forwarder on success
+            None: If validation fails (signals caller to try other operations)
         """
         data: dict[str, Any] = request.data
         data["organization_id"] = organization.id
@@ -111,7 +121,8 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
                 serialize(data_forwarder, request.user),
                 status=status.HTTP_200_OK,
             )
-        return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Validation failed - return None to signal caller ddto try other operations
+        return None
 
     def _validate_enrollment_changes(
         self,
@@ -160,19 +171,24 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
             )
 
         # Validate permissions on all projects
-        unauthorized_project_ids: set[int] = {
-            project_id
-            for project_id in all_projects_by_id.keys()
-            if not request.access.has_project_scope(all_projects_by_id[project_id], "project:write")
-        }
-        if unauthorized_project_ids:
-            raise PermissionDenied(
-                detail={
-                    "project_ids": [
-                        f"Insufficient access to projects: {', '.join(map(str, unauthorized_project_ids))}"
-                    ]
-                }
-            )
+        # org:write users can enroll/unenroll any project in the organization
+        # project:write users need explicit permission on each project
+        if not request.access.has_scope("org:write"):
+            unauthorized_project_ids: set[int] = {
+                project_id
+                for project_id in all_projects_by_id.keys()
+                if not request.access.has_project_scope(
+                    all_projects_by_id[project_id], "project:write"
+                )
+            }
+            if unauthorized_project_ids:
+                raise PermissionDenied(
+                    detail={
+                        "project_ids": [
+                            f"Insufficient access to projects: {', '.join(map(str, unauthorized_project_ids))}"
+                        ]
+                    }
+                )
 
         return project_ids_to_enroll, project_ids_to_unenroll
 
@@ -275,25 +291,19 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     @method_decorator(never_cache)
     @extend_schema(
         operation_id="Update a Data Forwarding Configuration for an Organization",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, DataForwarderParams.DATA_FORWARDER_ID],
         request=DataForwarderSerializer,
         responses={
             200: DataForwarderModelSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
+        examples=IntegrationExamples.SINGLE_DATA_FORWARDER,
     )
     def put(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
     ) -> Response:
-        # org:write users can update the main data forwarder configuration
-        if request.access.has_scope("org:write"):
-            return self._update_data_forwarder_config(request, organization, data_forwarder)
-
-        # project:write users have two operation types:
-        # 1. Bulk enrollment/unenrollment: {"project_ids": [...]}
-        # 2. Single project override update: {"project_id": X, "overrides": {...}}
-
+        # Determine operation type based on request body
         has_project_ids = "project_ids" in request.data
         has_project_id = "project_id" in request.data
 
@@ -303,18 +313,28 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
                 "Use 'project_ids' for bulk enrollment or 'project_id' with 'overrides' for single project update."
             )
 
+        # org:write users can perform all operations
+        # Try to update main config first - if serializer is valid, use that
+        # Otherwise fall through to project-specific operations
+        if request.access.has_scope("org:write"):
+            response = self._update_data_forwarder_config(request, organization, data_forwarder)
+            if response is not None:
+                return response
+
+        # Project-specific operations
         if has_project_ids:
             return self._update_enrollment(request, organization, data_forwarder)
         elif has_project_id:
             return self._update_single_project_configuration(request, organization, data_forwarder)
         else:
             raise serializers.ValidationError(
-                "Must specify either 'project_ids' for bulk enrollment or 'project_id' with 'overrides' for single project update."
+                "Must specify provider, config, project_ids, etc. for main config update, "
+                "'project_ids' for bulk enrollment, or 'project_id' for single project update."
             )
 
     @extend_schema(
         operation_id="Delete a Data Forwarding Configuration for an Organization",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, DataForwarderParams.DATA_FORWARDER_ID],
         responses={
             204: RESPONSE_NO_CONTENT,
             403: RESPONSE_FORBIDDEN,

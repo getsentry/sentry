@@ -12,6 +12,7 @@ import type {Project} from 'sentry/types/project';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 import type {
   RoutableModuleNames,
   URLBuilder,
@@ -27,7 +28,6 @@ import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
-import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 export enum TraceViewSources {
   TRACES = 'traces',
@@ -513,6 +513,17 @@ export function getTraceViewBreadcrumbs({
           label: t('Logs'),
           to: getBreadCrumbTarget(
             normalizeUrl(`/organizations/${organization.slug}/explore/logs/`),
+            location.query
+          ),
+        },
+        leafBreadcrumb,
+      ];
+    case TraceViewSources.TRACE_METRICS:
+      return [
+        {
+          label: t('Metrics'),
+          to: getBreadCrumbTarget(
+            normalizeUrl(`/organizations/${organization.slug}/explore/metrics/`),
             location.query
           ),
         },

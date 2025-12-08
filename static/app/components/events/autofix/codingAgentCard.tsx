@@ -68,7 +68,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
   const getProviderName = (provider: CodingAgentProvider) => {
     switch (provider) {
       case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
-        return t('Cursor Background Agent');
+        return t('Cursor Cloud Agent');
       default:
         return t('Coding Agent');
     }

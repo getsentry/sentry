@@ -18,7 +18,6 @@ function OpenInDiscoverBtn(props: Props) {
       onClick={async () => {
         await openUpsellModal({
           source: 'issue-detail-open-in-discover',
-          defaultSelection: 'discover-query',
           organization: props.organization,
         });
         trackGetsentryAnalytics('growth.issue_open_in_discover_upsell_clicked', {

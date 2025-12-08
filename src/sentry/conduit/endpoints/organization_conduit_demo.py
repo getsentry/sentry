@@ -8,6 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.conduit.auth import get_conduit_credentials
 from sentry.conduit.tasks import stream_demo_data
 from sentry.models.organization import Organization
@@ -23,8 +24,21 @@ class ConduitCredentialsResponseSerializer(serializers.Serializer):
     conduit = ConduitCredentialsSerializer()
 
 
+class OrganizationConduitDemoPermission(OrganizationPermission):
+    """
+    Permission for the conduit demo endpoint.
+    We want members to be able to generate temporary credentials for the demo.
+    This is a demo-only feature and doesn't modify organization state.
+    """
+
+    scope_map = {
+        "POST": ["org:read", "org:write", "org:admin"],
+    }
+
+
 @region_silo_endpoint
 class OrganizationConduitDemoEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationConduitDemoPermission,)
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

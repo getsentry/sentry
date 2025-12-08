@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Heading} from '@sentry/scraps/text';
+
 import {Flex} from 'sentry/components/core/layout';
 
 type SectionProps = {
@@ -7,12 +9,22 @@ type SectionProps = {
   children?: React.ReactNode;
   className?: string;
   description?: React.ReactNode;
+  trailingItems?: React.ReactNode;
 };
 
-export default function Section({children, className, title, description}: SectionProps) {
+export default function Section({
+  children,
+  className,
+  title,
+  description,
+  trailingItems,
+}: SectionProps) {
   return (
     <SectionContainer direction="column" gap="md" className={className}>
-      <SectionHeading>{title}</SectionHeading>
+      <Flex justify="between" align="center" gap="md">
+        <Heading as="h3">{title}</Heading>
+        {trailingItems && <Flex gap="md">{trailingItems}</Flex>}
+      </Flex>
       {description && <SectionDescription>{description}</SectionDescription>}
       {children}
     </SectionContainer>
@@ -40,12 +52,6 @@ const SectionContainer = styled(Flex)`
   ${SectionDescription} + ${SectionDescription} {
     margin-top: ${p => p.theme.space.md};
   }
-`;
-
-const SectionHeading = styled('h4')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin: 0;
 `;
 
 // moved above to reference in SectionContainer
