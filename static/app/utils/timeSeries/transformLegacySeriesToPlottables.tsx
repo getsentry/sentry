@@ -70,6 +70,8 @@ function createPlottableFromTimeSeries(
   timeSeries: TimeSeries,
   widget: Widget
 ): Plottable | null {
+  const shouldStack = widget.queries[0]?.columns.length! > 0;
+
   const {displayType, title} = widget;
   switch (displayType) {
     case DisplayType.LINE:
@@ -77,7 +79,7 @@ function createPlottableFromTimeSeries(
     case DisplayType.AREA:
       return new Area(timeSeries);
     case DisplayType.BAR:
-      return new Bars(timeSeries, {stack: title});
+      return new Bars(timeSeries, {stack: shouldStack ? title : undefined});
     default:
       return null;
   }
