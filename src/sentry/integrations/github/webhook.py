@@ -10,7 +10,7 @@ from typing import Any
 
 import orjson
 from dateutil.parser import parse as parse_date
-from django.db import IntegrityError, models, router, transaction
+from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
@@ -800,19 +800,23 @@ class PullRequestEventWebhook(GitHubWebhook):
                             "repository_id": repo.id,
                         },
                     )
-                    contributor, _ = OrganizationContributors.objects.get_or_create(
-                        organization_id=organization.id,
-                        integration_id=integration.id,
-                        external_identifier=self.get_external_id(user["login"]),
-                    )
-                    OrganizationContributors.objects.filter(id=contributor.id).update(
-                        num_actions=models.F("num_actions") + 1
-                    )
-                    contributor.refresh_from_db()
+                    with transaction.atomic(router.db_for_write(OrganizationContributors)):
+                        (
+                            contributor,
+                            _,
+                        ) = OrganizationContributors.objects.select_for_update().get_or_create(
+                            organization_id=organization.id,
+                            integration_id=integration.id,
+                            external_identifier=self.get_external_id(user["login"]),
+                        )
+                        was_pending = (
+                            contributor.num_actions == OrganizationContributionStatus.PENDING
+                        )
+                        contributor.num_actions += 1
+                        contributor.save(update_fields=["num_actions"])
 
-                    if (
-                        is_contributor_eligible_for_seat_assignment(user_type, author_association)
-                        and contributor.num_actions == OrganizationContributionStatus.ACTIVE
+                    if was_pending and is_contributor_eligible_for_seat_assignment(
+                        user_type, author_association
                     ):
                         assign_seat_to_organization_contributor.delay(contributor.id)
 
