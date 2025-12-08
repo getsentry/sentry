@@ -255,13 +255,13 @@ function PriorityRow({
     />
   ) : (
     <DirectionField
+      key={conditionType}
       aria-label={t('Threshold direction')}
       name="conditionTypeDisplay"
       hideLabel
       inline
       flexibleControlStateSize
       choices={conditionChoices}
-      value={conditionType}
       defaultValue={conditionType}
       disabled
     />

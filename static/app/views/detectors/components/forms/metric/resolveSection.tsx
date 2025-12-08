@@ -31,13 +31,23 @@ function validateResolutionThreshold({
   form: MetricDetectorFormData;
   id: string;
 }): Array<[string, string]> {
-  const {conditionType, highThreshold, detectionType, resolutionStrategy} = form;
-  if (!conditionType || detectionType !== 'static' || resolutionStrategy !== 'custom') {
+  const {
+    conditionType,
+    highThreshold,
+    mediumThreshold,
+    detectionType,
+    resolutionStrategy,
+  } = form;
+  if (
+    !conditionType ||
+    (detectionType !== 'static' && detectionType !== 'percent') ||
+    resolutionStrategy !== 'custom'
+  ) {
     return [];
   }
 
   const resolutionNum = Number(form.resolutionValue);
-  const conditionNum = Number(highThreshold);
+  const conditionNum = Number(mediumThreshold || highThreshold);
 
   if (
     Number.isFinite(resolutionNum) &&
