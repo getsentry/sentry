@@ -115,7 +115,7 @@ function useExploreTimeseriesImpl({
 
   const timeseriesResult = useSortedTimeSeries(
     options,
-    'api.explore.trace-items-timeseries',
+    `api.explore.${dataset}-timeseries`,
     dataset
   );
 

@@ -101,16 +101,20 @@ class Referrer(StrEnum):
     API_GROUP_EVENTS_ERROR = "api.group-events.error"
     API_GROUP_EVENTS_PERFORMANCE_DIRECT_HIT = "api.group-events.performance.direct-hit"
     API_GROUP_EVENTS_PERFORMANCE = "api.group-events.performance"
-    API_GROUP_HASHES_LEVELS_GET_LEVEL_NEW_ISSUES = "api.group_hashes_levels.get_level_new_issues"
+    API_GROUP_HASHES_LEVELS_GET_LEVEL_NEW_ISSUES = (
+        "api.group_hashes_levels.get_level_new_issues"
+    )
     API_GROUP_HASHES_LEVELS_GET_HASH_FOR_PARENT_LEVEL = (
         "api.group_hashes_levels.get_hash_for_parent_level"
     )
-    API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
+    API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = (
+        "api.group_hashes_levels.get_levels_overview"
+    )
     API_GROUP_HASHES = "api.group-hashes"
 
     # ** Explore **
     API_EXPLORE_SPANS_TIMESERIES = "api.explore.spans-timeseries"
-    API_EXPLORE_LOGS_TIMESERIES = "api.explore.logs-timeseries"
+    API_EXPLORE_OURLOGS_TIMESERIES = "api.explore.ourlogs-timeseries"
     API_EXPLORE_TRACEMETRICS_TIMESERIES = "api.explore.tracemetrics-timeseries"
     API_EXPLORE_SPANS_AGGREGATES_TABLE = "api.explore.spans-aggregates-table"
     API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"

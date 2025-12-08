@@ -135,7 +135,7 @@ function useLogsTimeseriesImpl({
       caseInsensitive,
       ...queryExtras,
     },
-    'explore.ourlogs.main-chart',
+    'api.explore.ourlogs-timeseries',
     DiscoverDatasets.OURLOGS
   );
 
