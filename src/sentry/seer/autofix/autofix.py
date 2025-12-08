@@ -350,8 +350,6 @@ def _get_github_username_for_user(user: User | RpcUser, organization_id: int) ->
     2. Falling back to CommitAuthor records matched by email (like suspect commits)
     3. Extracting the GitHub username from the CommitAuthor external_id
     """
-    from sentry.users.services.user.service import user_service
-
     # Method 1: Check ExternalActor for direct user→GitHub mapping
     external_actor: ExternalActor | None = (
         ExternalActor.objects.filter(
@@ -374,16 +372,10 @@ def _get_github_username_for_user(user: User | RpcUser, organization_id: int) ->
     # Get all verified emails for this user
     user_emails: list[str] = []
     try:
-        # For RpcUser, get verified emails directly from the object
+        # Both User and RpcUser models have a get_verified_emails method
         if hasattr(user, "get_verified_emails"):
             verified_emails = user.get_verified_emails()
             user_emails.extend([e.email for e in verified_emails])
-        else:
-            # For ORM User, fetch from service
-            user_details = user_service.get_user(user_id=user.id)
-            if user_details and hasattr(user_details, "get_verified_emails"):
-                verified_emails = user_details.get_verified_emails()
-                user_emails.extend([e.email for e in verified_emails])
     except Exception:
         # If we can't get verified emails, don't use any
         pass
