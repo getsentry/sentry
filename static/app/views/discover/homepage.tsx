@@ -41,6 +41,8 @@ function makeDiscoverHomepageQueryKey(organization: Organization): ApiQueryKey {
 }
 
 function Homepage(props: Props) {
+  // eslint-disable-next-line no-console
+  console.log('goodbye!');
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const location = useLocation();
