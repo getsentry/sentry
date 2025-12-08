@@ -417,40 +417,26 @@ describe('MetricsTabContent', () => {
     await userEvent.type(searchInput, 'has:environment{enter}');
 
     await waitFor(() => {
-      const panelMetadataCall = trackAnalyticsMock.mock.calls.find(
-        call => call[0] === 'metrics.explorer.panel.metadata'
+      expect(trackAnalyticsMock).toHaveBeenCalledWith(
+        'metrics.explorer.panel.metadata',
+        expect.objectContaining({
+          panel_index: 0,
+          user_queries: 'has:environment',
+          user_queries_count: 1,
+        })
       );
-      expect(panelMetadataCall).toBeDefined();
     });
-
-    const panelMetadataCall = trackAnalyticsMock.mock.calls.find(
-      call => call[0] === 'metrics.explorer.panel.metadata'
-    );
-    expect(panelMetadataCall![1]).toEqual(
-      expect.objectContaining({
-        panel_index: 0,
-        user_queries: 'has:environment',
-        user_queries_count: 1,
-      })
-    );
 
     await waitFor(() => {
-      const explorerMetadataCall = trackAnalyticsMock.mock.calls.find(
-        call => call[0] === 'metrics.explorer.metadata'
+      expect(trackAnalyticsMock).toHaveBeenCalledWith(
+        'metrics.explorer.metadata',
+        expect.objectContaining({
+          metric_panels_with_filters_count: 1,
+          metric_panels_with_group_bys_count: 0,
+          metric_queries_count: 1,
+        })
       );
-      expect(explorerMetadataCall).toBeDefined();
     });
-
-    const explorerMetadataCall = trackAnalyticsMock.mock.calls.find(
-      call => call[0] === 'metrics.explorer.metadata'
-    );
-    expect(explorerMetadataCall![1]).toEqual(
-      expect.objectContaining({
-        metric_panels_with_filters_count: 1,
-        metric_panels_with_group_bys_count: 0,
-        metric_queries_count: 1,
-      })
-    );
   });
 
   it('should fire analytics with no metrics available', async () => {
