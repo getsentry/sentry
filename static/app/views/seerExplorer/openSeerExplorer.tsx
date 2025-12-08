@@ -7,7 +7,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
  * context changes to the App component.
  */
 
-export type OpenSeerExplorerOptions = {
+type OpenSeerExplorerOptions = {
   /**
    * Optional initial message to send when opening the explorer.
    * If provided with `startNewRun: true`, a new run will be started with this message.
