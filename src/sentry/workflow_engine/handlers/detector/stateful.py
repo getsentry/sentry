@@ -9,6 +9,8 @@ from django.conf import settings
 from django.db.models import Q
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
+from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
@@ -19,8 +21,9 @@ from sentry.workflow_engine.handlers.detector.base import (
     DetectorHandler,
     DetectorOccurrence,
     EventData,
+    GroupedDetectorEvaluationResult,
 )
-from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
+from sentry.workflow_engine.models import DataPacket, DataSource, Detector, DetectorState
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
     process_data_condition_group,
@@ -352,6 +355,30 @@ class StatefulDetectorHandler(
         """
         return {}
 
+    def _build_evidence_data_sources(
+        self, data_packet: DataPacket[DataPacketType]
+    ) -> list[dict[str, Any]]:
+        try:
+            data_sources = list(
+                DataSource.objects.filter(detectors=self.detector, source_id=data_packet.source_id)
+            )
+            if not data_sources:
+                logger.warning(
+                    "Matching data source not found for detector while generating occurrence evidence data",
+                    extra={
+                        "detector_id": self.detector.id,
+                        "data_packet_source_id": data_packet.source_id,
+                    },
+                )
+                return []
+            # Serializers return camelcased keys, but evidence data should use snakecase
+            return convert_dict_key_case(serialize(data_sources), camel_to_snake_case)
+        except Exception:
+            logger.exception(
+                "Failed to serialize data source definition when building workflow engine evidence data"
+            )
+            return []
+
     def _build_workflow_engine_evidence_data(
         self,
         evaluation_result: ProcessedDataConditionGroup,
@@ -362,22 +389,28 @@ class StatefulDetectorHandler(
         Build the workflow engine specific evidence data.
         This is data that is common to all detectors.
         """
-        return {
+        base: dict[str, Any] = {
             "detector_id": self.detector.id,
             "value": evaluation_value,
             "data_packet_source_id": str(data_packet.source_id),
             "conditions": [
                 result.condition.get_snapshot() for result in evaluation_result.condition_results
             ],
+            "config": self.detector.config,
+            "data_sources": self._build_evidence_data_sources(data_packet),
         }
 
-    def evaluate(
+        return base
+
+    def evaluate_impl(
         self, data_packet: DataPacket[DataPacketType]
-    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+    ) -> GroupedDetectorEvaluationResult:
         dedupe_value = self.extract_dedupe_value(data_packet)
         group_data_values = self._extract_value_from_packet(data_packet)
         state = self.state_manager.get_state_data(list(group_data_values.keys()))
         results: dict[DetectorGroupKey, DetectorEvaluationResult] = {}
+
+        tainted = False
 
         for group_key, data_value in group_data_values.items():
             state_data: DetectorStateData = state[group_key]
@@ -391,7 +424,10 @@ class StatefulDetectorHandler(
                 group_data_values[group_key]
             )
 
-            if condition_results is None or condition_results.logic_result is False:
+            if condition_results is not None and condition_results.logic_result.is_tainted():
+                tainted = True
+
+            if condition_results is None or condition_results.logic_result.triggered is False:
                 # Invalid condition result, nothing we can do
                 # Or if we didn't match any conditions in the evaluation
                 continue
@@ -403,7 +439,7 @@ class StatefulDetectorHandler(
                 # Reset counters if any were incremented while evaluating a
                 # different priority (but not reaching thresholds)
                 if any(state_data.counter_updates.values()):
-                    self.state_manager.enqueue_counter_reset()
+                    self.state_manager.enqueue_counter_reset(group_key)
 
                 continue
 
@@ -441,7 +477,7 @@ class StatefulDetectorHandler(
             )
 
         self.state_manager.commit_state_updates()
-        return results
+        return GroupedDetectorEvaluationResult(result=results, tainted=tainted)
 
     def _create_resolve_message(
         self,
@@ -624,7 +660,7 @@ class StatefulDetectorHandler(
                 },
             )
 
-        if condition_evaluation.logic_result:
+        if condition_evaluation.logic_result.triggered:
             validated_condition_results: list[DetectorPriorityLevel] = [
                 condition_result.result
                 for condition_result in condition_evaluation.condition_results

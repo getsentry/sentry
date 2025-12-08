@@ -1,3 +1,4 @@
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -72,13 +73,11 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
                 )
             except Environment.DoesNotExist:
                 raise ResourceDoesNotExist
-        elif stat == "forwarded":
-            stat_model = TSDBModel.project_total_forwarded
         else:
             try:
                 stat_model = FILTER_STAT_KEYS_TO_VALUES[stat]
             except KeyError:
-                raise ValueError("Invalid stat: %s" % stat)
+                raise ValidationError("Invalid stat: %s" % stat)
 
         data = tsdb.backend.get_range(
             model=stat_model,

@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:56.810506+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: fallback
 hashing_metadata: {

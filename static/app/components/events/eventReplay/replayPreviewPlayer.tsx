@@ -1,6 +1,7 @@
 import type {ComponentProps} from 'react';
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import type {Query} from 'history';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -24,7 +25,7 @@ import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -38,6 +39,7 @@ import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
 
 export default function ReplayPreviewPlayer({
+  query,
   errorBeforeReplayStart,
   replayId,
   fullReplayButtonProps,
@@ -56,6 +58,7 @@ export default function ReplayPreviewPlayer({
   handleForwardClick?: () => void;
   overlayContent?: React.ReactNode;
   playPausePriority?: ComponentProps<typeof ReplayPlayPauseButton>['priority'];
+  query?: Query;
   showNextAndPrevious?: boolean;
 }) {
   const routes = useRoutes();
@@ -100,6 +103,10 @@ export default function ReplayPreviewPlayer({
       )}
       <HeaderWrapper>
         <ReplaySessionColumn.Component
+          to={{
+            pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
+            query,
+          }}
           replay={replayRecord as ReplayListRecord}
           rowIndex={0}
           columnIndex={0}
@@ -117,6 +124,7 @@ export default function ReplayPreviewPlayer({
               t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
               t: (currentTime + startOffsetMs) / 1000,
               groupId,
+              ...query,
             },
           }}
           {...fullReplayButtonProps}

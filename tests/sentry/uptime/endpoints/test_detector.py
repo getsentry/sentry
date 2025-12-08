@@ -78,8 +78,58 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
             "request": self.make_request(),
         }
 
+    def test_update_non_superuser_cannot_change_mode_via_endpoint(self) -> None:
+        """Integration test: non-superuser cannot change mode via API endpoint."""
+        # Create a detector with MANUAL mode specifically for this test
+        manual_uptime_subscription = self.create_uptime_subscription(
+            url="https://manual-test-site.com",
+            interval_seconds=UptimeSubscription.IntervalSeconds.ONE_MINUTE,
+            timeout_ms=30000,
+        )
+        manual_detector = self.create_uptime_detector(
+            project=self.project,
+            env=self.environment,
+            uptime_subscription=manual_uptime_subscription,
+            name="Manual Test Detector",
+            mode=UptimeMonitorMode.MANUAL,
+        )
+
+        assert manual_detector.workflow_condition_group is not None
+        invalid_data = {
+            "id": manual_detector.id,
+            "projectId": self.project.id,
+            "name": "Manual Test Detector",
+            "type": UptimeDomainCheckFailure.slug,
+            "dateCreated": manual_detector.date_added,
+            "dateUpdated": timezone.now(),
+            "conditionGroup": {
+                "id": manual_detector.workflow_condition_group.id,
+                "organizationId": self.organization.id,
+            },
+            "config": {
+                "environment": self.environment.name,
+                "mode": UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
+                "recovery_threshold": 1,
+                "downtime_threshold": 1,
+            },
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            manual_detector.id,
+            **invalid_data,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            method="PUT",
+        )
+
+        assert response.data["config"] == ["Only superusers can modify `mode`"]
+
+        # Verify that mode was NOT changed
+        manual_detector.refresh_from_db()
+        assert manual_detector.config["mode"] == UptimeMonitorMode.MANUAL.value
+
     def test_update(self) -> None:
-        assert self.detector.workflow_condition_group
+        assert self.detector.workflow_condition_group is not None
         valid_data = {
             "id": self.detector.id,
             "projectId": self.project.id,
@@ -112,9 +162,54 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
         )
         assert updated_sub.timeout_ms == 15000
 
-    def test_update_invalid(self) -> None:
-        assert self.detector.workflow_condition_group
+    def test_update_auto_detected_switches_to_manual(self) -> None:
+        """Test that when a user modifies an AUTO_DETECTED detector, it automatically switches to MANUAL mode."""
+        # Create an AUTO_DETECTED detector
+        auto_uptime_subscription = self.create_uptime_subscription(
+            url="https://auto-detected-site.com",
+            interval_seconds=UptimeSubscription.IntervalSeconds.ONE_MINUTE,
+            timeout_ms=30000,
+        )
+        auto_detector = self.create_uptime_detector(
+            project=self.project,
+            env=self.environment,
+            uptime_subscription=auto_uptime_subscription,
+            name="Auto Detected Monitor",
+            mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
+        )
 
+        assert auto_detector.workflow_condition_group is not None
+        # User modifies the detector (e.g., changes name)
+        # They pass the current config including the AUTO_DETECTED mode
+        valid_data = {
+            "id": auto_detector.id,
+            "projectId": self.project.id,
+            "name": "User Modified Monitor",
+            "type": UptimeDomainCheckFailure.slug,
+            "dateCreated": auto_detector.date_added,
+            "dateUpdated": timezone.now(),
+            "conditionGroup": {
+                "id": auto_detector.workflow_condition_group.id,
+                "organizationId": self.organization.id,
+            },
+            "config": auto_detector.config,  # Passing existing config with AUTO_DETECTED mode
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            auto_detector.id,
+            **valid_data,
+            status_code=status.HTTP_200_OK,
+            method="PUT",
+        )
+
+        # Verify that mode was automatically switched to MANUAL
+        auto_detector.refresh_from_db()
+        assert auto_detector.name == "User Modified Monitor"
+        assert auto_detector.config["mode"] == UptimeMonitorMode.MANUAL.value
+
+    def test_update_invalid(self) -> None:
+        assert self.detector.workflow_condition_group is not None
         valid_data = {
             "id": self.detector.id,
             "projectId": self.project.id,
@@ -252,3 +347,24 @@ class OrganizationDetectorIndexPostTest(APITestCase):
 
         assert "config" in response.data
         assert "downtime_threshold" in str(response.data["config"])
+
+    def test_create_detector_non_superuser_cannot_set_auto_detected_mode(self):
+        """Integration test: non-superuser cannot create with AUTO_DETECTED mode via API."""
+        invalid_data = _get_valid_data(
+            self.project.id,
+            self.environment.name,
+            config={
+                "environment": self.environment.name,
+                "mode": UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
+                "recovery_threshold": 1,
+                "downtime_threshold": 1,
+            },
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            **invalid_data,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        assert response.data["config"] == ["Only superusers can modify `mode`"]

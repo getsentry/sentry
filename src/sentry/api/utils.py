@@ -44,6 +44,7 @@ from sentry.search.events.types import SnubaParams
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
+from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.sdk import capture_exception, merge_context_into_scope, set_span_attribute
 from sentry.utils.snuba import (
@@ -384,6 +385,13 @@ def handle_query_errors() -> Generator[None]:
             sentry_sdk.set_tag("query.error_reason", "Timeout")
             raise TimeoutException(detail=TIMEOUT_RPC_ERROR_MESSAGE)
         sentry_sdk.capture_exception(error)
+        if hasattr(error, "debug"):
+            raise APIException(
+                detail={
+                    "detail": message,
+                    "meta": {"debug_info": {"query": json.loads(error.debug)}},
+                }
+            )
         raise APIException(detail=message)
     except SnubaError as error:
         message = "Internal error. Please try again."

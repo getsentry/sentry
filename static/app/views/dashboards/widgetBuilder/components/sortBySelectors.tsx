@@ -109,8 +109,8 @@ export function SortBySelectors({
   }, [
     datasetConfig,
     organization,
-    tags,
-    widgetQuery,
+    tags, // This dependency is unstable!
+    widgetQuery, // This dependency is unstable!
     widgetType,
     displayType,
     values.sortBy,
@@ -144,7 +144,7 @@ export function SortBySelectors({
         title={disableSortReason}
         disabled={!disableSort || (disableSortDirection && disableSort)}
       >
-        {displayType === DisplayType.TABLE ? (
+        {displayType === DisplayType.TABLE || displayType === DisplayType.DETAILS ? (
           <Select
             name="sortBy"
             aria-label={t('Sort by')}

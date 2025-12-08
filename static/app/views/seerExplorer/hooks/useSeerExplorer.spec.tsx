@@ -7,6 +7,7 @@ import {useSeerExplorer} from './useSeerExplorer';
 describe('useSeerExplorer', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    sessionStorage.clear();
   });
 
   const organization = OrganizationFixture({

@@ -18,7 +18,7 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.constants import ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -35,11 +35,13 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
     ScheduleType,
     check_organization_monitor_limit,
+    get_cron_monitor,
 )
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule, slugify_monitor_slug
 from sentry.monitors.utils import (
     create_issue_alert_rule,
+    ensure_cron_detector,
     get_checkin_margin,
     get_max_runtime,
     signal_monitor_created,
@@ -52,7 +54,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataSourceValidator,
     BaseDetectorTypeValidator,
 )
-from sentry.workflow_engine.models import DataSource, Detector
+from sentry.workflow_engine.models import Detector
 
 MONITOR_STATUSES = {
     "active": ObjectStatus.ACTIVE,
@@ -328,7 +330,7 @@ class MonitorValidator(CamelSnakeSerializer):
         #      context. It is the caller's responsibility to ensure that a
         #      monitor is provided in context for this to be validated.
         if status == ObjectStatus.ACTIVE and monitor:
-            result = quotas.backend.check_assign_monitor_seat(monitor)
+            result = quotas.backend.check_assign_seat(DataCategory.MONITOR_SEAT, monitor)
             if not result.assignable:
                 raise ValidationError(result.reason)
 
@@ -369,18 +371,25 @@ class MonitorValidator(CamelSnakeSerializer):
             name=validated_data["name"],
             slug=validated_data.get("slug"),
             status=validated_data["status"],
-            is_muted=validated_data.get("is_muted", False),
             config=validated_data["config"],
         )
 
-        # Attempt to assign a seat for this monitor
-        seat_outcome = quotas.backend.assign_monitor_seat(monitor)
-        if seat_outcome != Outcome.ACCEPTED:
-            monitor.update(status=ObjectStatus.DISABLED)
+        # When called from the new detector flow, skip detector and quota operations
+        # since they're handled at a higher level by the detector validator
+        from_detector_flow = self.context.get("from_detector_flow", False)
+
+        if not from_detector_flow:
+            detector = ensure_cron_detector(monitor)
+            assert detector
+
+            # Attempt to assign a seat for this monitor
+            seat_outcome = quotas.backend.assign_seat(DataCategory.MONITOR_SEAT, monitor)
+            if seat_outcome != Outcome.ACCEPTED:
+                detector.update(enabled=False)
+                monitor.update(status=ObjectStatus.DISABLED)
 
         request = self.context["request"]
         signal_monitor_created(project, request.user, False, monitor, request)
-
         validated_issue_alert_rule = validated_data.get("alert_rule")
         if validated_issue_alert_rule:
             issue_alert_rule_id = create_issue_alert_rule(
@@ -441,7 +450,7 @@ class MonitorValidator(CamelSnakeSerializer):
         if "status" in params:
             # Attempt to assign a monitor seat
             if params["status"] == ObjectStatus.ACTIVE and instance.status != ObjectStatus.ACTIVE:
-                outcome = quotas.backend.assign_monitor_seat(instance)
+                outcome = quotas.backend.assign_seat(DataCategory.MONITOR_SEAT, instance)
                 # The MonitorValidator checks if a seat assignment is available.
                 # This protects against a race condition
                 if outcome != Outcome.ACCEPTED:
@@ -454,7 +463,12 @@ class MonitorValidator(CamelSnakeSerializer):
                 params["status"] == ObjectStatus.DISABLED
                 and instance.status != ObjectStatus.DISABLED
             ):
-                quotas.backend.disable_monitor_seat(instance)
+                quotas.backend.disable_seat(DataCategory.MONITOR_SEAT, instance)
+
+        # Forward propagate is_muted to all monitor environments when changed
+        is_muted = params.pop("is_muted", None)
+        if is_muted is not None:
+            MonitorEnvironment.objects.filter(monitor_id=instance.id).update(is_muted=is_muted)
 
         if params:
             instance.update(**params)
@@ -638,7 +652,7 @@ class MonitorDataSourceValidator(BaseDataSourceValidator[Monitor]):
 
         monitor_validator = MonitorValidator(
             data=monitor_data,
-            context=self.context,
+            context={**self.context, "from_detector_flow": True},
             instance=monitor_instance,
             partial=self.partial,
         )
@@ -676,6 +690,28 @@ class MonitorDataSourceValidator(BaseDataSourceValidator[Monitor]):
             return monitor_validator.update(instance, monitor_validator.validated_data)
 
 
+class MonitorDataSourceListField(serializers.ListField):
+    """
+    Custom ListField that properly binds the Monitor instance to child validators.
+
+    When updating a detector, we need to ensure the MonitorDataSourceValidator
+    knows about the existing Monitor so slug validation works correctly.
+    """
+
+    def to_internal_value(self, data):
+        # If we're updating (parent has instance), bind the Monitor instance to child validator
+        if hasattr(self.parent, "instance") and self.parent.instance:
+            detector = self.parent.instance
+            monitor = get_cron_monitor(detector)
+
+            # Bind the monitor instance so slug validation recognizes this as an update
+            # Type ignore: self.child is typed as Field but is actually MonitorDataSourceValidator
+            self.child.instance = monitor  # type: ignore[attr-defined]
+            self.child.partial = self.parent.partial  # type: ignore[attr-defined]
+
+        return super().to_internal_value(data)
+
+
 class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
     """
     Validator for monitor incident detection configuration.
@@ -684,9 +720,55 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
     data_source field (MonitorDataSourceValidator).
     """
 
-    data_sources = serializers.ListField(child=MonitorDataSourceValidator(), required=False)
+    enforce_single_datasource = True
+    data_sources = MonitorDataSourceListField(child=MonitorDataSourceValidator(), required=False)
+
+    def validate_enabled(self, value: bool) -> bool:
+        """
+        Validate that enabling a detector is allowed based on seat availability.
+        """
+        detector = self.instance
+        if detector and value and not detector.enabled:
+            monitor = get_cron_monitor(detector)
+            result = quotas.backend.check_assign_seat(DataCategory.MONITOR_SEAT, monitor)
+            if not result.assignable:
+                raise serializers.ValidationError(result.reason)
+        return value
+
+    def create(self, validated_data):
+        detector = super().create(validated_data)
+
+        with in_test_hide_transaction_boundary():
+            monitor = get_cron_monitor(detector)
+
+        # Try to assign a seat for the monitor
+        seat_outcome = quotas.backend.assign_seat(DataCategory.MONITOR_SEAT, monitor)
+        if seat_outcome != Outcome.ACCEPTED:
+            detector.update(enabled=False)
+            monitor.update(status=ObjectStatus.DISABLED)
+
+        return detector
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+        was_enabled = instance.enabled
+        enabled = validated_data.get("enabled", was_enabled)
+
+        # Handle enable/disable seat operations
+        if was_enabled != enabled:
+            monitor = get_cron_monitor(instance)
+
+            if enabled:
+                seat_outcome = quotas.backend.assign_seat(DataCategory.MONITOR_SEAT, monitor)
+                # We should have already validated that a seat was available in
+                # validate_enabled, avoid races by failing here if we can't
+                # accept the seat
+                if seat_outcome != Outcome.ACCEPTED:
+                    raise serializers.ValidationError("Failed to update monitor")
+                monitor.update(status=ObjectStatus.ACTIVE)
+            else:
+                quotas.backend.disable_seat(DataCategory.MONITOR_SEAT, monitor)
+                monitor.update(status=ObjectStatus.DISABLED)
+
         super().update(instance, validated_data)
 
         data_source_data = None
@@ -694,8 +776,7 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
             data_source_data = validated_data.pop("data_sources")[0]
 
         if data_source_data is not None:
-            data_source = DataSource.objects.get(detectors=instance)
-            monitor = Monitor.objects.get(id=data_source.source_id)
+            monitor = get_cron_monitor(instance)
 
             monitor_validator = MonitorDataSourceValidator(
                 instance=monitor,
@@ -709,3 +790,12 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
                     monitor_validator.save()
 
         return instance
+
+    def delete(self) -> None:
+        assert self.instance is not None
+        monitor = get_cron_monitor(self.instance)
+
+        # Remove the seat immediately
+        quotas.backend.remove_seat(DataCategory.MONITOR_SEAT, monitor)
+
+        super().delete()

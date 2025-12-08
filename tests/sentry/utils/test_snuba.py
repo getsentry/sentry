@@ -9,7 +9,6 @@ from urllib3 import HTTPConnectionPool
 from urllib3.exceptions import HTTPError, ReadTimeoutError
 from urllib3.response import HTTPResponse
 
-from sentry import options
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
@@ -313,7 +312,7 @@ class PrepareQueryParamsTest(TestCase):
         g1 = self.create_group(id=1)
         g2 = self.create_group(id=2)
         g3 = self.create_group(id=3)
-        self.create_group(id=4)
+        g4 = self.create_group(id=4)
 
         GroupRedirect.objects.create(
             organization_id=g1.project.organization_id,
@@ -326,13 +325,49 @@ class PrepareQueryParamsTest(TestCase):
             previous_group_id=g3.id,
         )
 
-        options.set("snuba.preprocess-group-redirects", True)
-
         params = SnubaQueryParams(dataset=Dataset.Events, filter_keys={"group_id": {g1.id}})
-        assert params.filter_keys["group_id"] == {g1.id, g2.id, g3.id}
+        assert params.conditions[0] == ["group_id", "IN", {g1.id, g2.id, g3.id}]
 
         params = SnubaQueryParams(dataset=Dataset.Events, conditions=[["group_id", "=", g1.id]])
         assert params.conditions[0] == ["group_id", "IN", {g1.id, g2.id, g3.id}]
+
+        params = SnubaQueryParams(
+            dataset=Dataset.Events,
+            filter_keys={"group_id": {g4.id}},
+            conditions=[["group_id", "IN", [g1.id, g4.id]]],
+        )
+        assert params.conditions[0] == ["group_id", "IN", {g4.id}]
+
+        params = SnubaQueryParams(
+            dataset=Dataset.Events,
+            conditions=[["group_id", "IN", [g1.id, g4.id]], ["group_id", "IN", [g1.id]]],
+        )
+        assert params.conditions[0] == ["group_id", "IN", {g1.id, g2.id, g3.id}]
+
+        params = SnubaQueryParams(
+            dataset=Dataset.Events,
+            conditions=[["group_id", "IN", [g1.id, g4.id]], ["group_id", "NOT IN", [g1.id]]],
+        )
+        assert params.conditions[0] == ["group_id", "IN", {g4.id}]
+
+        params = SnubaQueryParams(
+            dataset=Dataset.Events,
+            conditions=[["foo", "=", "bar"]],
+        )
+        assert params.conditions[0] == ["foo", "=", "bar"]
+        assert len(params.conditions) == 1
+
+        # Should not mutate inputs
+        filter_keys = {"group_id": {g4.id}}
+        conditions = [["group_id", "IN", [g1.id, g4.id]]]
+
+        SnubaQueryParams(
+            dataset=Dataset.Events,
+            filter_keys=filter_keys,
+            conditions=conditions,
+        )
+        assert filter_keys == {"group_id": {g4.id}}
+        assert conditions == [["group_id", "IN", [g1.id, g4.id]]]
 
 
 class QuantizeTimeTest(unittest.TestCase):

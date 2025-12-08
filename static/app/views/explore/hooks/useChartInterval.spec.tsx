@@ -29,7 +29,7 @@ describe('useChartInterval', () => {
       {value: '12h', label: '12 hours'},
       {value: '1d', label: '1 day'},
     ]);
-    expect(chartInterval).toBe('12h'); // default
+    expect(chartInterval).toBe('1h'); // default
 
     act(() => setChartInterval('3h'));
     expect(chartInterval).toBe('3h');
@@ -50,9 +50,9 @@ describe('useChartInterval', () => {
       {value: '15m', label: '15 minutes'},
     ]);
     act(() => {
-      setChartInterval('1m');
+      setChartInterval('15m');
     });
-    expect(chartInterval).toBe('1m');
+    expect(chartInterval).toBe('15m');
   });
 });
 

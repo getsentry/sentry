@@ -101,6 +101,8 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
                     "condition_result": DetectorPriorityLevel.OK.value,
                 },
             ],
+            config={},
+            data_sources=[],
             alert_id=self.alert_rule.id,
         )
 
@@ -126,6 +128,8 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
                     "condition_result": DetectorPriorityLevel.HIGH.value,
                 },
             ],
+            config={},
+            data_sources=[],
             alert_id=self.alert_rule.id,
         )
         self.group, self.event, self.group_event = self.create_group_event(
@@ -138,6 +142,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
 
         self.group.priority = PriorityLevel.HIGH.value
         self.group.save()
+        self.create_detector_group(detector=self.detector, group=self.group)
         self.open_period, _ = GroupOpenPeriod.objects.get_or_create(
             group=self.group,
             project=self.project,

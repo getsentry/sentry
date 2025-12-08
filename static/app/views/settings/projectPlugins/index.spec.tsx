@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PluginFixture} from 'sentry-fixture/plugin';
 import {PluginsFixture} from 'sentry-fixture/plugins';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {
   render,
@@ -18,28 +17,13 @@ import type {Project} from 'sentry/types/project';
 import ProjectPluginsContainer from 'sentry/views/settings/projectPlugins';
 
 describe('ProjectPluginsContainer', () => {
-  let org: TOrganization,
-    project: Project,
-    plugins: Plugin[],
-    params: {projectId: string};
+  let org: TOrganization, project: Project, plugins: Plugin[];
 
   function renderProjectPluginsContainer() {
-    render(
-      <ProjectPluginsContainer
-        {...RouteComponentPropsFixture()}
-        params={params}
-        organization={org}
-        project={project}
-      />,
-      {
-        initialRouterConfig: {
-          location: {
-            pathname: `/settings/${org.slug}/projects/${project.slug}/plugins/`,
-          },
-          route: '/settings/:orgId/projects/:projectId/plugins/',
-        },
-      }
-    );
+    render(<ProjectPluginsContainer />, {
+      organization: org,
+      outletContext: {project},
+    });
   }
 
   beforeEach(() => {
@@ -54,15 +38,7 @@ describe('ProjectPluginsContainer', () => {
         canDisable: true,
       }),
     ]);
-    params = {
-      projectId: project.slug,
-    };
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/`,
-      method: 'GET',
-      body: org,
-    });
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/integrations/`,
       method: 'GET',

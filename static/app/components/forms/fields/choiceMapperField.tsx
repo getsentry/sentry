@@ -1,5 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
+import type {DistributedOmit} from 'type-fest';
 
 import {Button} from 'sentry/components/core/button';
 import {
@@ -48,7 +49,7 @@ export interface ChoiceMapperProps extends DefaultProps {
   /**
    * Props forwarded to the add mapping dropdown.
    */
-  addDropdown: Omit<SingleSelectProps<string>, 'options'> & {
+  addDropdown: DistributedOmit<SingleSelectProps<string>, 'options' | 'clearable'> & {
     items: Array<SelectOption<string>>;
     noResultsMessage?: string;
   };
@@ -194,7 +195,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
           ...addDropdown.triggerProps,
           children: (
             <Flex gap="xs">
-              <IconAdd isCircled /> {addButtonText}
+              <IconAdd /> {addButtonText}
             </Flex>
           ),
         }}

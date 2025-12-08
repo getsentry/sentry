@@ -6,7 +6,6 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import ListLayout from 'sentry/components/workflowEngine/layout/list';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -22,11 +21,9 @@ import AutomationListTable from 'sentry/views/automations/components/automationL
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
-import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 
 export default function AutomationsList() {
-  useWorkflowEngineFeatureGate({redirect: true});
-
   const location = useLocation();
   const navigate = useNavigate();
   const {selection, isReady} = usePageFilters();
@@ -85,7 +82,7 @@ export default function AutomationsList() {
         description={t(
           'Alerts are triggered when issue changes state, is created, or passes a threshold. They perform external actions like sending notifications, creating tickets, or calling webhooks and integrations.'
         )}
-        docsUrl="https://docs.sentry.io/product/automations/"
+        docsUrl="https://docs.sentry.io/product/new-monitors-and-alerts/alerts/"
       >
         <TableHeader />
         <div>
@@ -151,7 +148,7 @@ function Actions() {
     <Flex gap="sm">
       <AutomationFeedbackButton />
       <LinkButton
-        to={`${makeAutomationBasePathname(organization.slug)}new/`}
+        to={makeAutomationCreatePathname(organization.slug)}
         priority="primary"
         icon={<IconAdd />}
         size="sm"

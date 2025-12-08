@@ -18,7 +18,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
@@ -175,6 +174,7 @@ function AutomationDetailLoadingStates({automationId}: {automationId: string}) {
     data: automation,
     isPending,
     isError,
+    error,
     refetch,
   } = useAutomationQuery(automationId);
 
@@ -183,14 +183,18 @@ function AutomationDetailLoadingStates({automationId}: {automationId: string}) {
   }
 
   if (isError) {
-    return <LoadingError onRetry={refetch} />;
+    return (
+      <LoadingError
+        message={error.status === 404 ? t('The alert could not be found.') : undefined}
+        onRetry={refetch}
+      />
+    );
   }
 
   return <AutomationDetailContent automation={automation} />;
 }
 
 export default function AutomationDetail() {
-  useWorkflowEngineFeatureGate({redirect: true});
   const params = useParams<{automationId: string}>();
 
   const {data: automation, isPending} = useAutomationQuery(params.automationId);

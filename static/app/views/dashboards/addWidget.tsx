@@ -76,7 +76,7 @@ function AddWidget({onAddWidget}: Props) {
               'aria-label': t('Add Widget'),
               size: 'md',
               showChevron: false,
-              icon: <IconAdd isCircled size="lg" color="subText" />,
+              icon: <IconAdd size="lg" color="subText" />,
               borderless: true,
             }}
           />

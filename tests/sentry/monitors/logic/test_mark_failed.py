@@ -16,6 +16,7 @@ from sentry.monitors.models import (
     MonitorIncident,
     MonitorStatus,
     ScheduleType,
+    is_monitor_muted,
 )
 from sentry.testutils.cases import TestCase
 
@@ -82,12 +83,12 @@ class MarkFailedTestCase(TestCase):
                 "max_runtime": None,
                 "checkin_margin": None,
             },
-            is_muted=True,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment_id=self.environment.id,
             status=MonitorStatus.OK,
+            is_muted=True,
         )
         assert monitor_environment.active_incident is None
         checkin = MonitorCheckIn.objects.create(
@@ -100,47 +101,9 @@ class MarkFailedTestCase(TestCase):
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
-        assert monitor.is_muted
+        assert is_monitor_muted(monitor)
         assert monitor_environment.status == MonitorStatus.ERROR
 
-        assert mock_dispatch_incident_occurrence.call_count == 0
-        assert monitor_environment.active_incident is not None
-
-    @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
-    def test_mark_failed_env_muted(self, mock_dispatch_incident_occurrence: mock.MagicMock) -> None:
-        monitor = Monitor.objects.create(
-            name="test monitor",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            config={
-                "schedule": [1, "month"],
-                "schedule_type": ScheduleType.INTERVAL,
-                "max_runtime": None,
-                "checkin_margin": None,
-            },
-            is_muted=False,
-        )
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment_id=self.environment.id,
-            status=MonitorStatus.OK,
-            is_muted=True,
-        )
-        assert monitor_environment.active_incident is None
-
-        checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
-            project_id=self.project.id,
-            status=CheckInStatus.UNKNOWN,
-        )
-        assert mark_failed(checkin, failed_at=checkin.date_added)
-
-        monitor.refresh_from_db()
-        monitor_environment.refresh_from_db()
-        assert not monitor.is_muted
-        assert monitor_environment.is_muted
-        assert monitor_environment.status == MonitorStatus.ERROR
         assert mock_dispatch_incident_occurrence.call_count == 0
         assert monitor_environment.active_incident is not None
 
@@ -361,12 +324,12 @@ class MarkFailedTestCase(TestCase):
                 "max_runtime": None,
                 "checkin_margin": None,
             },
-            is_muted=True,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment_id=self.environment.id,
             status=MonitorStatus.OK,
+            is_muted=True,
         )
         assert monitor_environment.active_incident is None
         for _ in range(0, failure_issue_threshold):
@@ -380,7 +343,7 @@ class MarkFailedTestCase(TestCase):
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
-        assert monitor.is_muted
+        assert is_monitor_muted(monitor)
         assert monitor_environment.status == MonitorStatus.ERROR
 
         assert mock_dispatch_incident_occurrence.call_count == 0

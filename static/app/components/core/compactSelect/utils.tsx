@@ -6,7 +6,9 @@ import type {ListState} from '@react-stately/list';
 import type {Node, Selection} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 
+import type {SelectProps} from './compactSelect';
 import {SectionToggleButton} from './styles';
 import type {
   SelectKey,
@@ -326,4 +328,23 @@ export function itemIsSectionWithKey<T extends SelectKey>(
   item: SelectOptionOrSectionWithKey<T>
 ): item is SelectSectionWithKey<T> {
   return 'options' in item;
+}
+
+export function shouldCloseOnSelect({
+  multiple,
+  closeOnSelect,
+  selectedOptions,
+}: Pick<SelectProps<any>, 'multiple' | 'closeOnSelect'> & {
+  selectedOptions: Array<SelectOption<any>>;
+}) {
+  if (typeof closeOnSelect === 'function') {
+    // type assertions are necessary here because we don't have the discriminated union anymore
+    return closeOnSelect((multiple ? selectedOptions : selectedOptions[0]) as never);
+  }
+  if (defined(closeOnSelect)) {
+    return closeOnSelect;
+  }
+  // By default, single-selection lists close on select, while multiple-selection
+  // lists stay open
+  return !multiple;
 }

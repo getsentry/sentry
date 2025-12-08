@@ -105,10 +105,12 @@ interface ContainerLayoutProps {
 export type ContainerElement =
   | 'article'
   | 'aside'
+  | 'blockquote'
   | 'div'
   | 'figure'
   | 'footer'
   | 'header'
+  | 'label'
   | 'li'
   | 'main'
   | 'nav'

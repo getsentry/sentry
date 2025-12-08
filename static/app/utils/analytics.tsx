@@ -40,6 +40,8 @@ import {
 
 import type {AgentMonitoringEventParameters} from './analytics/agentMonitoringAnalyticsEvents';
 import {agentMonitoringEventMap} from './analytics/agentMonitoringAnalyticsEvents';
+import type {BreadcrumbsAnalyticsEventParameters} from './analytics/breadcrumbsAnalyticsEvents';
+import {breadcrumbsAnalyticsEventMap} from './analytics/breadcrumbsAnalyticsEvents';
 import type {CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
 import {coreUIEventMap} from './analytics/coreuiAnalyticsEvents';
 import type {DashboardsEventParameters} from './analytics/dashboardsAnalyticsEvents';
@@ -71,6 +73,8 @@ import type {OnboardingEventParameters} from './analytics/onboardingAnalyticsEve
 import {onboardingEventMap} from './analytics/onboardingAnalyticsEvents';
 import type {PerformanceEventParameters} from './analytics/performanceAnalyticsEvents';
 import {performanceEventMap} from './analytics/performanceAnalyticsEvents';
+import type {PreprodBuildEventParameters} from './analytics/preprodBuildAnalyticsEvents';
+import {preprodBuildEventMap} from './analytics/preprodBuildAnalyticsEvents';
 import type {ProfilingEventParameters} from './analytics/profilingAnalyticsEvents';
 import {profilingEventMap} from './analytics/profilingAnalyticsEvents';
 import type {ProjectCreationEventParameters} from './analytics/projectCreationAnalyticsEvents';
@@ -98,6 +102,7 @@ interface EventParameters
   extends GrowthEventParameters,
     AgentMonitoringEventParameters,
     AlertsEventParameters,
+    BreadcrumbsAnalyticsEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
     DiscoverEventParameters,
@@ -110,6 +115,7 @@ interface EventParameters
     MonitorsEventParameters,
     PerformanceEventParameters,
     ProfilingEventParameters,
+    PreprodBuildEventParameters,
     ReleasesEventParameters,
     ReplayEventParameters,
     SearchEventParameters,
@@ -135,6 +141,7 @@ interface EventParameters
 const allEventMap: Record<string, string | null> = {
   ...agentMonitoringEventMap,
   ...alertsEventMap,
+  ...breadcrumbsAnalyticsEventMap,
   ...coreUIEventMap,
   ...dashboardsEventMap,
   ...discoverEventMap,
@@ -147,6 +154,7 @@ const allEventMap: Record<string, string | null> = {
   ...monitorsEventMap,
   ...nextJsInsightsEventMap,
   ...performanceEventMap,
+  ...preprodBuildEventMap,
   ...tracingEventMap,
   ...profilingEventMap,
   ...exploreAnalyticsEventMap,

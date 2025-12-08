@@ -24,17 +24,19 @@ describe('ProjectToolbarSettings', () => {
   it('displays previously saved setting', () => {
     const initialOptionValue = 'sentry.io';
     project.options = {'sentry:toolbar_allowed_origins': initialOptionValue};
-    render(<ProjectToolbarSettings project={project} />, {
+    render(<ProjectToolbarSettings />, {
       initialRouterConfig,
       organization,
+      outletContext: {project},
     });
     expect(screen.getByRole('textbox')).toHaveValue(initialOptionValue);
   });
 
   it('can submit new allowed origins', async () => {
-    render(<ProjectToolbarSettings project={project} />, {
+    render(<ProjectToolbarSettings />, {
       initialRouterConfig,
       organization,
+      outletContext: {project},
     });
 
     const mockPut = MockApiClient.addMockResponse({
@@ -63,18 +65,20 @@ describe('ProjectToolbarSettings', () => {
 
   it('displays nothing when project options are undefined', () => {
     project.options = undefined;
-    render(<ProjectToolbarSettings project={project} />, {
+    render(<ProjectToolbarSettings />, {
       initialRouterConfig,
       organization,
+      outletContext: {project},
     });
     expect(screen.getByRole('textbox')).toHaveValue('');
   });
 
   it('displays nothing when project options are empty', () => {
     project.options = {};
-    render(<ProjectToolbarSettings project={project} />, {
+    render(<ProjectToolbarSettings />, {
       initialRouterConfig,
       organization,
+      outletContext: {project},
     });
     expect(screen.getByRole('textbox')).toHaveValue('');
   });

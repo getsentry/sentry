@@ -10,7 +10,11 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import type {
+  Dataset,
+  EventTypes,
+  ExtrapolationMode,
+} from 'sentry/views/alerts/rules/metric/types';
 import type {
   MetricDetectorInterval,
   MetricDetectorTimePeriod,
@@ -49,18 +53,19 @@ interface DetectorSeriesQueryOptions {
    * The filter query. eg: `span.op:http`
    */
   query: string;
-  end?: string;
+  end?: string | null;
   /**
    * Extra query parameters to pass
    */
   extra?: {
     useOnDemandMetrics: 'true';
   };
-  start?: string;
+  extrapolationMode?: ExtrapolationMode;
+  start?: string | null;
   /**
    * Relative time period for the query. Example: '7d'.
    */
-  statsPeriod?: string;
+  statsPeriod?: string | null;
 }
 
 /**

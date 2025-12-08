@@ -406,7 +406,7 @@ const StoryTypesTableDefinitionCell = styled('td')`
   }
 
   > span {
-    font-size: ${p => p.theme.fontSizeRelativeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     font-weight: ${p => p.theme.fontWeight.bold};
     margin-right: ${p => p.theme.space.xs};
   }
@@ -417,7 +417,7 @@ const StoryType = styled('div')`
 `;
 
 const StoryPropDescription = styled('div')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-bottom: ${p => p.theme.space.xs};
 `;
 

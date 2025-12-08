@@ -422,6 +422,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("messaging.destination.name"),
         simple_sentry_field("messaging.message.id"),
         simple_sentry_field("platform"),
+        simple_sentry_field("previous_trace"),
         simple_sentry_field("raw_domain"),
         simple_sentry_field("release"),
         simple_sentry_field("sdk.name"),
@@ -552,6 +553,7 @@ def device_class_context_constructor(params: SnubaParams) -> VirtualColumnContex
         from_column_name="sentry.device.class",
         to_column_name="device.class",
         value_map=value_map,
+        default_value="Unknown",
     )
 
 
@@ -630,6 +632,18 @@ SPANS_REPLACEMENT_MAP: dict[str, str] = {
     definition.public_alias: definition.replacement
     for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
     if definition.replacement
+}
+
+# Attributes excluded from stats queries (e.g., attribute distributions)
+# These are typically system-level identifiers that don't provide useful distribution insights
+SPANS_STATS_EXCLUDED_ATTRIBUTES: set[str] = {
+    "sentry.item_id",
+    "sentry.trace_id",
+    "sentry.segment_id",
+    "sentry.parent_span_id",
+    "sentry.profile_id",
+    "sentry.event_id",
+    "sentry.group",
 }
 
 

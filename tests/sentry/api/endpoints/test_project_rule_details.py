@@ -27,7 +27,6 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
@@ -1450,7 +1449,6 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             id=self.rule.id, project=self.project, status=ObjectStatus.PENDING_DELETION
         ).exists()
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_dual_delete_workflow_engine(self) -> None:
         rule = self.create_project_rule(
             self.project,

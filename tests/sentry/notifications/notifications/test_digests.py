@@ -1,6 +1,7 @@
 import uuid
 from unittest import mock
 from unittest.mock import ANY, MagicMock, patch
+from urllib.parse import quote
 
 import orjson
 from django.core import mail
@@ -13,6 +14,7 @@ from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.projectownership import ProjectOwnership
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
 from sentry.testutils.helpers.analytics import (
@@ -32,6 +34,7 @@ USER_COUNT = 2
 
 class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTestCase):
     def add_event(self, fingerprint: str, backend: Backend, event_type: str = "error") -> None:
+        event: Event | GroupEvent | None
         if event_type == "performance":
             event = self.create_performance_issue()
         elif event_type == "generic":
@@ -56,6 +59,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
                 project_id=self.project.id,
             )
 
+        assert event is not None
         backend.add(
             self.key, event_to_record(event, [self.rule]), increment_delay=0, maximum_delay=0
         )
@@ -328,3 +332,64 @@ class DigestSlackNotification(SlackActivityNotificationTest):
             blocks[7]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/?referrer=digest-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
+
+    @mock.patch.object(sentry, "digests")
+    def test_slack_digest_notification_truncates_at_48_blocks(self, digests: MagicMock) -> None:
+        """
+        Test that digest notifications are truncated to 48 blocks to respect Slack's 50 block limit.
+        With 13+ events generating ~53 blocks, we truncate to 48 content blocks + 1 warning block + 1 title block.
+        """
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        backend = RedisBackend()
+        digests.backend.digest = backend.digest
+        digests.enabled.return_value = True
+        timestamp = before_now(days=1).isoformat()
+        key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
+        rule = self.create_project_rule(project=self.project)
+        notification_uuid = str(uuid.uuid4())
+
+        # Create 13 events to exceed 49 blocks (assuming each event generates ~4 blocks)
+        for i in range(13):
+            event = self.store_event(
+                data={
+                    "timestamp": timestamp,
+                    "message": f"Error message {i}",
+                    "level": "error",
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=self.project.id,
+            )
+            backend.add(
+                key,
+                event_to_record(event, [rule], notification_uuid),
+                increment_delay=0,
+                maximum_delay=0,
+            )
+
+        with self.tasks():
+            deliver_digest(key)
+
+        assert self.mock_post.call_count == 1
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+
+        # Should be truncated (< 50 blocks to respect Slack's limit)
+        assert len(blocks) < 50
+
+        # Last block should be truncation warning with issue count
+        last_block = blocks[-1]
+        assert last_block["type"] == "context"
+        warning_text = last_block["elements"][0]["text"]
+        warning_text_lower = warning_text.lower()
+
+        assert "showing" in warning_text_lower
+        # Should show X issues out of Y where X < 13 and Y = 13
+        assert "/13" in warning_text
+        assert "view all issues in sentry" in warning_text_lower
+
+        # Check URL components and values (URL-encoded)
+        assert f"/organizations/{self.organization.slug}/issues/" in warning_text_lower
+        assert f"project={self.project.id}" in warning_text_lower
+        # Timestamps are URL-encoded in the link
+        encoded_timestamp = quote(timestamp, safe="")
+        assert f"start={encoded_timestamp.lower()}" in warning_text_lower
+        assert f"end={encoded_timestamp.lower()}" in warning_text_lower

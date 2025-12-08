@@ -1,345 +1,306 @@
 ---
-created: '2025-10-29T21:19:28.397665+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
-  "app_exception_message": {
-    "component": {
+  "grouping_config": "newstyle:2025-11-21",
+  "variants": {
+    "app_exception_message": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "Error"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "value",
+                "name": null,
+                "values": [
+                  "bad"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because it contains no in-app frames",
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (module:@babel/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "@babel/runtime/helpers/asyncToGenerator"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "<anonymous>"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (module:core-js/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "core-js/internals/task"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "listener"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (module:tslib/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "tslib/tslib.es6"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": "trimmed javascript function",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "sent"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": true,
+      "description": "exception message",
+      "hash": "be36642f41f047346396f018f62375d3",
       "hint": null,
-      "id": "app",
-      "name": "in-app",
-      "values": [
-        {
-          "contributes": true,
-          "hint": null,
-          "id": "exception",
-          "name": "exception",
-          "values": [
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "Error"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": [
-                "bad"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because it contains no in-app frames",
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": [
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (module:@babel/** -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "@babel/runtime/helpers/asyncToGenerator"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "<anonymous>"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (module:core-js/** -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "core-js/internals/task"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "listener"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by stack trace rule (module:tslib/** -app)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "tslib/tslib.es6"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": "trimmed javascript function",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "sent"
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
+      "key": "app_exception_message",
+      "type": "component"
     },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": true,
-    "description": "exception message",
-    "hash": "be36642f41f047346396f018f62375d3",
-    "hint": null,
-    "key": "app_exception_message",
-    "type": "component"
-  },
-  "system_exception_message": {
-    "component": {
+    "system_exception_message": {
+      "component": {
+        "contributes": false,
+        "hint": "ignored because app exception takes precedence",
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": false,
+            "hint": "ignored because hash matches app variant",
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "Error"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "value",
+                "name": null,
+                "values": [
+                  "bad"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because it contains no contributing frames",
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (module:@babel/** -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "@babel/runtime/helpers/asyncToGenerator"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored unknown function name",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "<anonymous>"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (module:core-js/** -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "core-js/internals/task"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "listener"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (module:tslib/** -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "tslib/tslib.es6"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": "trimmed javascript function",
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "sent"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": false,
+      "description": "exception message",
+      "hash": null,
       "hint": "ignored because app exception takes precedence",
-      "id": "system",
-      "name": null,
-      "values": [
-        {
-          "contributes": false,
-          "hint": "ignored because hash matches app variant",
-          "id": "exception",
-          "name": "exception",
-          "values": [
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "Error"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": [
-                "bad"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because it contains no contributing frames",
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": [
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (module:@babel/** -group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "@babel/runtime/helpers/asyncToGenerator"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored unknown function name",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "<anonymous>"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (module:core-js/** -group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "core-js/internals/task"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "listener"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (module:tslib/** -group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "tslib/tslib.es6"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": "trimmed javascript function",
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "sent"
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": false,
-    "description": "exception message",
-    "hash": null,
-    "hint": "ignored because app exception takes precedence",
-    "key": "system_exception_message",
-    "type": "component"
+      "key": "system_exception_message",
+      "type": "component"
+    }
   }
 }

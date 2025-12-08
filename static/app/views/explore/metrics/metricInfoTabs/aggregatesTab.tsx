@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import throttle from 'lodash/throttle';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -36,19 +35,21 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 const RESULT_LIMIT = 50;
 
 interface AggregatesTabProps {
   traceMetric: TraceMetric;
+  isMetricOptionsEmpty?: boolean;
 }
 
-export function AggregatesTab({traceMetric}: AggregatesTabProps) {
+export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTabProps) {
   const topEvents = useTopEvents();
   const tableRef = useRef<HTMLDivElement>(null);
 
   const {result, eventView, fields} = useMetricAggregatesTable({
-    enabled: Boolean(traceMetric.name),
+    enabled: Boolean(traceMetric.name) && !isMetricOptionsEmpty,
     limit: RESULT_LIMIT,
     traceMetric,
   });
@@ -151,9 +152,11 @@ export function AggregatesTab({traceMetric}: AggregatesTabProps) {
     };
   }, [result.data, fields.length]);
 
+  const isPending = result.isPending && !isMetricOptionsEmpty;
+
   return (
     <StickyCompatibleSimpleTable ref={tableRef} style={tableStyle}>
-      {result.isPending && <TransparentLoadingMask />}
+      {isPending && <TransparentLoadingMask />}
 
       <StickyCompatibleStyledHeader>
         {fields.map((field, i) => {
@@ -221,15 +224,13 @@ export function AggregatesTab({traceMetric}: AggregatesTabProps) {
               ))}
             </SimpleTable.Row>
           ))
-        ) : result.isPending ? (
+        ) : isPending ? (
           <SimpleTable.Empty>
             <LoadingIndicator />
           </SimpleTable.Empty>
         ) : (
           <SimpleTable.Empty>
-            <EmptyStateWarning>
-              <p>{t('No aggregates found')}</p>
-            </EmptyStateWarning>
+            <GenericWidgetEmptyStateWarning title={t('No aggregates found')} message="" />
           </SimpleTable.Empty>
         )}
       </StickyCompatibleTableBody>

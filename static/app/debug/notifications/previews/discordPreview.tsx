@@ -8,6 +8,7 @@ import {Image} from 'sentry/components/core/image';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
+import {NotificationBodyRenderer} from 'sentry/debug/notifications/components/notificationBodyRenderer';
 import {
   NotificationProviderKey,
   type NotificationTemplateRegistration,
@@ -46,7 +47,14 @@ export function DiscordPreview({
             <DiscordWhiteText size="md" bold>
               {subject}
             </DiscordWhiteText>
-            <DiscordWhiteText size="sm">{body}</DiscordWhiteText>
+            <DiscordWhiteText size="sm">
+              <NotificationBodyRenderer
+                body={body}
+                codeBlockBackground="#2f3136"
+                codeBlockBorder="#202225"
+                codeBlockTextColor="#dcddde"
+              />
+            </DiscordWhiteText>
             {chart && (
               <DiscordChart
                 height="100px"

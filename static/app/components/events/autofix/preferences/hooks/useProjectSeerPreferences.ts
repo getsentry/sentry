@@ -11,7 +11,7 @@ export interface SeerPreferencesResponse {
   preference?: ProjectSeerPreferences | null;
 }
 
-function makeProjectSeerPreferencesQueryKey(orgSlug: string, projectSlug: string) {
+export function makeProjectSeerPreferencesQueryKey(orgSlug: string, projectSlug: string) {
   return `/projects/${orgSlug}/${projectSlug}/seer/preferences/`;
 }
 

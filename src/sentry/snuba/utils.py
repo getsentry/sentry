@@ -17,6 +17,7 @@ from sentry.snuba import (
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.uptime_results import UptimeResults
@@ -37,6 +38,7 @@ DATASET_OPTIONS = {
     "profiles": profiles,
     "issuePlatform": issue_platform,
     "profileFunctions": functions,
+    "profile_functions": ProfileFunctions,
     "spans": Spans,
     "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
@@ -45,6 +47,7 @@ DATASET_OPTIONS = {
 }
 DEPRECATED_LABELS = {"ourlogs"}
 RPC_DATASETS = {
+    ProfileFunctions,
     Spans,
     TraceMetrics,
     OurLogs,

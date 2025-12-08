@@ -70,6 +70,8 @@ import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegen
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
+import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {
   convertTableDataToTabularData,
@@ -78,6 +80,7 @@ import {
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import {type SpanResponse} from 'sentry/views/insights/types';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -198,6 +201,15 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     );
   }
 
+  if (widget.displayType === DisplayType.DETAILS) {
+    return (
+      <TransitionChart loading={loading} reloading={loading}>
+        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
+        <DetailsComponent tableResults={tableResults} {...props} />
+      </TransitionChart>
+    );
+  }
+
   const {start, end, period, utc} = selection.datetime;
   const {projects, environments} = selection;
 
@@ -303,6 +315,8 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   };
 
   const chartOptions = {
+    animation: false, // Turn off all chart animations. This turns off all ZRender hooks that might `requestAnimationFrame`
+    notMerge: false, // Enable ECharts option merging. Chart components are only re-drawn if they've changed
     autoHeightResize: shouldResize ?? true,
     useMultilineDate: true,
     grid: {
@@ -557,7 +571,11 @@ function TableComponent({
           tableData={tableData}
           frameless
           scrollable
-          fit="max-content"
+          fit={
+            widget?.tableWidths?.length && widget?.tableWidths?.length > 0
+              ? undefined
+              : 'max-content'
+          }
           aliases={aliases}
           onChangeSort={onWidgetTableSort}
           sort={sort}
@@ -656,12 +674,27 @@ function BigNumberComponent({
   });
 }
 
+function DetailsComponent(props: TableComponentProps): React.ReactNode {
+  const {tableResults} = props;
+
+  const singleSpan = tableResults?.[0]?.data?.[0] as
+    | Pick<SpanResponse, DefaultDetailWidgetFields>
+    | undefined;
+
+  // TODO: Handle this case gracefully
+  if (!singleSpan) {
+    return null;
+  }
+
+  return <DetailsWidgetVisualization span={singleSpan} />;
+}
+
 function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {
   const stacked = widget.queries[0]?.columns.length! > 0;
 
   switch (widget.displayType) {
     case 'bar':
-      return <BarChart {...chartProps} stacked={stacked} animation={false} />;
+      return <BarChart {...chartProps} stacked={stacked} />;
     case 'area':
     case 'top_n':
       return <AreaChart stacked {...chartProps} />;
