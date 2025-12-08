@@ -367,11 +367,7 @@ def is_seer_scanner_rate_limited(project: Project, organization: Organization) -
 
 def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     """
-    Check if organization has Seer seat-based tier via billing.
-
-    Returns True if the organization has either:
-    - triage-signals-v0-org feature flag enabled (org-level triage signals)
-    - seat-based-seer-enabled feature enabled (seat-based Seer subscription, cached for 24 hours)
+    Check if organization has Seer seat-based pricing via billing.
     """
     if features.has("organizations:triage-signals-v0-org", organization):
         return True
@@ -381,6 +377,7 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     if cached_value is not None:
         return cached_value
 
+    logger.info("Checking if seat-based Seer tier is enabled for organization=%s", organization.id)
     has_seat_based_seer = features.has("organizations:seat-based-seer-enabled", organization)
     cache.set(cache_key, has_seat_based_seer, timeout=60 * 60 * 4)  # 4 hours TTL
 

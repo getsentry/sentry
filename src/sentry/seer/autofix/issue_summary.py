@@ -344,21 +344,24 @@ def run_automation(
 
     # Only log for orgs with seat-based Seer tier
     try:
-        if is_seer_seat_based_tier_enabled(group.organization):
-            try:
-                times_seen = group.times_seen_with_pending
-            except (AssertionError, AttributeError):
-                times_seen = group.times_seen
-            logger.info(
-                "Triage signals V0: %s: run_automation called: project_slug=%s, source=%s, times_seen=%s",
-                group.id,
-                group.project.slug,
-                source.value,
-                times_seen,
-            )
+        should_log = is_seer_seat_based_tier_enabled(group.organization)
     except Exception:
         logger.exception(
             "Error checking if seat-based Seer tier is enabled", extra={"group_id": group.id}
+        )
+        should_log = False
+
+    if should_log:
+        try:
+            times_seen = group.times_seen_with_pending
+        except (AssertionError, AttributeError):
+            times_seen = group.times_seen
+        logger.info(
+            "Triage signals V0: %s: run_automation called: project_slug=%s, source=%s, times_seen=%s",
+            group.id,
+            group.project.slug,
+            source.value,
+            times_seen,
         )
 
     user_id = user.id if user else None
