@@ -1440,6 +1440,7 @@ function getDashboardUrl(
         dataset: widget.widgetType,
         tag: {key: field, name: field, kind: FieldKind.TAG},
         value: formattedValue,
+        isTemporary: true,
       });
 
       // Preserve project, environment, and time range query params
@@ -1455,7 +1456,7 @@ function getDashboardUrl(
       const url = `/organizations/${organization.slug}/dashboard/${dashboardLink.dashboardId}/?${qs.stringify(
         {
           ...filterParams,
-          [DashboardFilterKeys.TEMPORARY_FILTERS]: newTemporaryFilters.map(filter =>
+          [DashboardFilterKeys.GLOBAL_FILTER]: newTemporaryFilters.map(filter =>
             JSON.stringify(filter)
           ),
         }

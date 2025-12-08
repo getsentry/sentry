@@ -23,12 +23,8 @@ import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
 import GenericFilterSelector from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {globalFilterKeysAreEqual} from 'sentry/views/dashboards/globalFilter/utils';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
-import {useHasDrillDownFlows} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
-import {
-  getCombinedDashboardFilters,
-  getDashboardFiltersFromURL,
-} from 'sentry/views/dashboards/utils';
+import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
 import {
   PREBUILT_DASHBOARDS,
   type PrebuiltDashboardId,
@@ -39,9 +35,8 @@ import ReleasesSelectControl from './releasesSelectControl';
 import type {DashboardFilters, DashboardPermissions, GlobalFilter} from './types';
 import {DashboardFilterKeys} from './types';
 
-type FiltersBarProps = {
+export type FiltersBarProps = {
   filters: DashboardFilters;
-  hasTemporaryFilters: boolean;
   hasUnsavedChanges: boolean;
   isEditingDashboard: boolean;
   isPreview: boolean;
@@ -57,7 +52,6 @@ type FiltersBarProps = {
 
 export default function FiltersBar({
   filters,
-  hasTemporaryFilters,
   dashboardPermissions,
   dashboardCreator,
   hasUnsavedChanges,
@@ -75,7 +69,6 @@ export default function FiltersBar({
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const getSearchBarData = useDatasetSearchBarData();
-  const hasDrillDownFlowsFeature = useHasDrillDownFlows();
   const isPrebuiltDashboard = defined(prebuiltDashboardId);
   const prebuiltDashboardFilters: GlobalFilter[] = prebuiltDashboardId
     ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
@@ -98,31 +91,22 @@ export default function FiltersBar({
     [];
 
   const [activeGlobalFilters, setActiveGlobalFilters] = useState<GlobalFilter[]>(() => {
-    const globalFilters =
+    return (
       dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER] ??
       filters?.[DashboardFilterKeys.GLOBAL_FILTER] ??
-      [];
-
-    if (hasDrillDownFlowsFeature && dashboardFiltersFromURL) {
-      return getCombinedDashboardFilters(
-        globalFilters,
-        dashboardFiltersFromURL?.[DashboardFilterKeys.TEMPORARY_FILTERS]
-      );
-    }
-
-    return globalFilters;
+      []
+    );
   });
 
   const updateGlobalFilters = (newGlobalFilters: GlobalFilter[]) => {
     setActiveGlobalFilters(newGlobalFilters);
-    const temporaryFilters = newGlobalFilters.filter(filter => filter.isTemporary);
-    const globalFilters = newGlobalFilters.filter(filter => !filter.isTemporary);
     onDashboardFilterChange({
       [DashboardFilterKeys.RELEASE]: selectedReleases,
-      [DashboardFilterKeys.GLOBAL_FILTER]: globalFilters,
-      [DashboardFilterKeys.TEMPORARY_FILTERS]: temporaryFilters,
+      [DashboardFilterKeys.GLOBAL_FILTER]: newGlobalFilters,
     });
   };
+
+  const hasTemporaryFilters = activeGlobalFilters.some(filter => filter.isTemporary);
 
   return (
     <Wrapper>
