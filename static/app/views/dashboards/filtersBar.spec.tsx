@@ -15,6 +15,7 @@ import {
   WidgetType,
   type GlobalFilter,
 } from 'sentry/views/dashboards/types';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 describe('FiltersBar', () => {
   let organization: Organization;
@@ -76,9 +77,6 @@ describe('FiltersBar', () => {
     });
     renderFilterBar({location: newLocation, hasUnsavedChanges: true});
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-    expect(
-      screen.getByRole('button', {name: /browser\.name.*Chrome/i})
-    ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Save'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
   });
@@ -96,6 +94,28 @@ describe('FiltersBar', () => {
     });
 
     renderFilterBar({location: newLocation});
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    expect(
+      screen.getByRole('button', {name: /browser\.name.*Chrome/i})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
+  });
+
+  it('should not render save button on prebuilt dashboard', async () => {
+    const newLocation = LocationFixture({
+      query: {
+        [DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify({
+          dataset: WidgetType.SPANS,
+          tag: {key: 'browser.name', name: 'Browser Name', kind: FieldKind.FIELD},
+          value: `browser.name:[Chrome]`,
+        } satisfies GlobalFilter),
+      },
+    });
+    renderFilterBar({
+      location: newLocation,
+      prebuiltDashboardId: PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+    });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(
       screen.getByRole('button', {name: /browser\.name.*Chrome/i})
