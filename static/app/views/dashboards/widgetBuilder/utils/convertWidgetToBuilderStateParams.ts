@@ -74,6 +74,7 @@ export function convertWidgetToBuilderStateParams(
     legendAlias,
     selectedAggregate: firstWidgetQuery?.selectedAggregate,
     thresholds: widget.thresholds ? serializeThresholds(widget.thresholds) : undefined,
-    traceMetrics: serializeTraceMetrics(traceMetrics),
+    traceMetrics:
+      traceMetrics.length > 0 ? serializeTraceMetrics(traceMetrics) : undefined,
   };
 }
