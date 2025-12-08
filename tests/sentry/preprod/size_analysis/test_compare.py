@@ -6,6 +6,8 @@ from sentry.preprod.size_analysis.compare import (
 from sentry.preprod.size_analysis.models import (
     ComparisonResults,
     DiffType,
+    FileAnalysis,
+    FileInfo,
     SizeAnalysisResults,
     SizeMetricDiffItem,
     TreemapElement,
@@ -20,25 +22,32 @@ class CompareSizeAnalysisTest(TestCase):
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
 
-    def _create_treemap_element(self, name, size, path=None, children=None):
-        """Helper to create TreemapElement."""
+    def _create_treemap_element(self, name, size, path=None, children=None, element_type="files"):
         return TreemapElement(
             name=name,
             size=size,
             path=path,
             is_dir=children is not None,
+            type=element_type,
             children=children or [],
         )
 
+    def _create_file_info(self, path: str, hash_value: str, children=None) -> FileInfo:
+        return FileInfo(path=path, hash=hash_value, children=children or [])
+
     def _create_size_analysis_results(
-        self, download_size=500, install_size=1000, treemap_root=None
+        self,
+        download_size=500,
+        install_size=1000,
+        treemap_root=None,
+        file_analysis=None,
+        analysis_version=None,
     ):
-        """Helper to create SizeAnalysisResults."""
         treemap = None
         if treemap_root:
             treemap = TreemapResults(
                 root=treemap_root,
-                file_count=1,  # Required field
+                file_count=1,
                 category_breakdown={},
                 platform="test",
             )
@@ -48,6 +57,8 @@ class CompareSizeAnalysisTest(TestCase):
             download_size=download_size,
             install_size=install_size,
             treemap=treemap,
+            file_analysis=file_analysis,
+            analysis_version=analysis_version,
         )
 
     def test_compare_size_analysis_no_treemaps(self):
@@ -652,43 +663,7 @@ class ShouldSkipDiffItemComparisonTest(TestCase):
         assert result is False
 
 
-class CompareWithVersionSkippingTest(TestCase):
-    def setUp(self):
-        super().setUp()
-        self.organization = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.organization)
-
-    def _create_treemap_element(self, name, size, path=None, children=None):
-        """Helper to create TreemapElement."""
-        return TreemapElement(
-            name=name,
-            size=size,
-            path=path,
-            is_dir=children is not None,
-            children=children or [],
-        )
-
-    def _create_size_analysis_results(
-        self, download_size=500, install_size=1000, treemap_root=None, analysis_version=None
-    ):
-        """Helper to create SizeAnalysisResults."""
-        treemap = None
-        if treemap_root:
-            treemap = TreemapResults(
-                root=treemap_root,
-                file_count=1,
-                category_breakdown={},
-                platform="test",
-            )
-
-        return SizeAnalysisResults(
-            analysis_duration=1.0,
-            download_size=download_size,
-            install_size=install_size,
-            treemap=treemap,
-            analysis_version=analysis_version,
-        )
-
+class CompareWithVersionSkippingTest(CompareSizeAnalysisTest):
     def test_compare_skips_diff_items_on_major_version_mismatch(self):
         """Integration test: diff items should be skipped when major versions differ."""
         head_metrics = PreprodArtifactSizeMetrics(
@@ -796,3 +771,515 @@ class CompareWithVersionSkippingTest(TestCase):
         assert result.skipped_diff_item_comparison is False
         assert result.diff_items[0].size_diff == 50
         assert result.diff_items[0].type == DiffType.INCREASED
+
+
+class CompareWithRenameDetectionTest(CompareSizeAnalysisTest):
+    def test_renamed_file_excluded_from_diff(self):
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+
+        head_treemap = self._create_treemap_element(
+            "new_name.txt", 100, path="new_name.txt", element_type="files"
+        )
+        base_treemap = self._create_treemap_element(
+            "old_name.txt", 100, path="old_name.txt", element_type="files"
+        )
+
+        head_file_analysis = FileAnalysis(
+            items=[self._create_file_info("new_name.txt", "same_hash")]
+        )
+        base_file_analysis = FileAnalysis(
+            items=[self._create_file_info("old_name.txt", "same_hash")]
+        )
+
+        head_results = self._create_size_analysis_results(
+            treemap_root=head_treemap, file_analysis=head_file_analysis
+        )
+        base_results = self._create_size_analysis_results(
+            treemap_root=base_treemap, file_analysis=base_file_analysis
+        )
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        assert len(result.diff_items) == 0
+
+    def test_mixed_renames_and_real_changes(self):
+        """Test rename detection with mix of renamed and actually changed files."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+
+        # Head has:
+        # - renamed_new.txt (renamed from renamed_old.txt - same hash)
+        # - actually_new.txt (truly new file)
+        head_treemap = self._create_treemap_element(
+            "root",
+            0,
+            children=[
+                self._create_treemap_element(
+                    "renamed_new.txt", 100, path="renamed_new.txt", element_type="files"
+                ),
+                self._create_treemap_element(
+                    "actually_new.txt", 200, path="actually_new.txt", element_type="files"
+                ),
+            ],
+        )
+
+        # Base has:
+        # - renamed_old.txt (will be renamed to renamed_new.txt)
+        # - actually_removed.txt (truly removed file)
+        base_treemap = self._create_treemap_element(
+            "root",
+            0,
+            children=[
+                self._create_treemap_element(
+                    "renamed_old.txt", 100, path="renamed_old.txt", element_type="files"
+                ),
+                self._create_treemap_element(
+                    "actually_removed.txt", 300, path="actually_removed.txt", element_type="files"
+                ),
+            ],
+        )
+
+        head_file_analysis = FileAnalysis(
+            items=[
+                self._create_file_info("renamed_new.txt", "rename_hash"),
+                self._create_file_info("actually_new.txt", "new_hash"),
+            ]
+        )
+        base_file_analysis = FileAnalysis(
+            items=[
+                self._create_file_info("renamed_old.txt", "rename_hash"),
+                self._create_file_info("actually_removed.txt", "removed_hash"),
+            ]
+        )
+
+        head_results = self._create_size_analysis_results(
+            treemap_root=head_treemap, file_analysis=head_file_analysis
+        )
+        base_results = self._create_size_analysis_results(
+            treemap_root=base_treemap, file_analysis=base_file_analysis
+        )
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # Should only have 2 diff items: actually_new (added) and actually_removed (removed)
+        # The renamed file should be excluded
+        assert len(result.diff_items) == 2
+
+        diff_items = sorted(result.diff_items, key=lambda x: x.path)
+
+        assert diff_items[0].path == "actually_new.txt"
+        assert diff_items[0].type == DiffType.ADDED
+        assert diff_items[0].size_diff == 200
+
+        assert diff_items[1].path == "actually_removed.txt"
+        assert diff_items[1].type == DiffType.REMOVED
+        assert diff_items[1].size_diff == -300
+
+    def test_no_file_analysis_falls_back_to_default_behavior(self):
+        """Test that when file_analysis is None, default behavior is used."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+
+        # Files at different paths, no file_analysis to detect rename
+        head_treemap = self._create_treemap_element(
+            "new_name.txt", 100, path="new_name.txt", element_type="files"
+        )
+        base_treemap = self._create_treemap_element(
+            "old_name.txt", 100, path="old_name.txt", element_type="files"
+        )
+
+        head_results = self._create_size_analysis_results(
+            treemap_root=head_treemap, file_analysis=None
+        )
+        base_results = self._create_size_analysis_results(
+            treemap_root=base_treemap, file_analysis=None
+        )
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # Without file_analysis, both should appear as added/removed
+        assert len(result.diff_items) == 2
+        types = {item.type for item in result.diff_items}
+        assert types == {DiffType.ADDED, DiffType.REMOVED}
+
+    def test_rename_with_duplication_shows_additions(self):
+        """Test that when a file is renamed AND duplicated, only one rename is detected.
+
+        Scenario: Base has 1 file, head has 3 files with same hash at different paths.
+        Expected: 1 rename (excluded from diff), 2 additions shown.
+        """
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+
+        # Head has 3 copies of the same file in different frameworks
+        head_treemap = self._create_treemap_element(
+            "root",
+            0,
+            children=[
+                self._create_treemap_element(
+                    "resource.png", 100, path="Framework1/resource.png", element_type="files"
+                ),
+                self._create_treemap_element(
+                    "resource.png", 100, path="Framework2/resource.png", element_type="files"
+                ),
+                self._create_treemap_element(
+                    "resource.png", 100, path="Framework3/resource.png", element_type="files"
+                ),
+            ],
+        )
+
+        # Base has 1 copy at a different path
+        base_treemap = self._create_treemap_element(
+            "root",
+            0,
+            children=[
+                self._create_treemap_element(
+                    "resource.png", 100, path="OldFramework/resource.png", element_type="files"
+                ),
+            ],
+        )
+
+        # All files have the same hash
+        head_file_analysis = FileAnalysis(
+            items=[
+                self._create_file_info("Framework1/resource.png", "same_hash"),
+                self._create_file_info("Framework2/resource.png", "same_hash"),
+                self._create_file_info("Framework3/resource.png", "same_hash"),
+            ]
+        )
+        base_file_analysis = FileAnalysis(
+            items=[
+                self._create_file_info("OldFramework/resource.png", "same_hash"),
+            ]
+        )
+
+        head_results = self._create_size_analysis_results(
+            treemap_root=head_treemap, file_analysis=head_file_analysis
+        )
+        base_results = self._create_size_analysis_results(
+            treemap_root=base_treemap, file_analysis=base_file_analysis
+        )
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # Should have 2 additions (3 head files - 1 rename = 2 additions)
+        # The base file and one head file are detected as a rename and excluded
+        assert len(result.diff_items) == 2
+
+        # All should be additions
+        for item in result.diff_items:
+            assert item.type == DiffType.ADDED
+            assert item.size_diff == 100
+
+    def test_rename_selection_is_deterministic(self):
+        """Test that rename selection is deterministic when multiple paths share the same hash.
+
+        When multiple files on each side share the same hash, we need to deterministically
+        select which paths are treated as renames vs additions/removals. This test verifies
+        that selection is based on alphabetical ordering, not arbitrary set ordering.
+        """
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+
+        # Head has 3 files with same hash (z, a, m - intentionally not alphabetical)
+        head_treemap = self._create_treemap_element(
+            "root",
+            0,
+            children=[
+                self._create_treemap_element("z.txt", 100, path="z.txt", element_type="files"),
+                self._create_treemap_element("a.txt", 100, path="a.txt", element_type="files"),
+                self._create_treemap_element("m.txt", 100, path="m.txt", element_type="files"),
+            ],
+        )
+
+        # Base has 2 files with same hash (y, b - intentionally not alphabetical)
+        base_treemap = self._create_treemap_element(
+            "root",
+            0,
+            children=[
+                self._create_treemap_element("y.txt", 100, path="y.txt", element_type="files"),
+                self._create_treemap_element("b.txt", 100, path="b.txt", element_type="files"),
+            ],
+        )
+
+        # All files have the same hash
+        head_file_analysis = FileAnalysis(
+            items=[
+                self._create_file_info("z.txt", "same_hash"),
+                self._create_file_info("a.txt", "same_hash"),
+                self._create_file_info("m.txt", "same_hash"),
+            ]
+        )
+        base_file_analysis = FileAnalysis(
+            items=[
+                self._create_file_info("y.txt", "same_hash"),
+                self._create_file_info("b.txt", "same_hash"),
+            ]
+        )
+
+        head_results = self._create_size_analysis_results(
+            treemap_root=head_treemap, file_analysis=head_file_analysis
+        )
+        base_results = self._create_size_analysis_results(
+            treemap_root=base_treemap, file_analysis=base_file_analysis
+        )
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # With 3 head paths and 2 base paths, we should have:
+        # - 2 renames (min(3, 2) = 2, excluded from diff)
+        # - 1 addition (3 - 2 = 1)
+        # The alphabetically-first paths should be selected as renames:
+        # - Head: a.txt, m.txt (first 2 alphabetically) -> renames
+        # - Base: b.txt, y.txt (first 2 alphabetically) -> renames
+        # - z.txt should be the addition (alphabetically last on head side)
+        assert len(result.diff_items) == 1
+        assert result.diff_items[0].path == "z.txt"
+        assert result.diff_items[0].type == DiffType.ADDED
+
+    def test_duplicate_treemap_elements_at_renamed_path_all_skipped(self):
+        """Test that duplicate treemap elements at a renamed path are all skipped.
+
+        iOS Assets.car files can have duplicate treemap entries for the same image at the
+        same path. These duplicates represent the same file, so when that file is detected
+        as a rename, ALL duplicate treemap entries should be skipped - not just one.
+
+        This is the primary use case: AppIcon images get renamed (UUID changes) between builds
+        but the content is identical. The treemap may have multiple entries for the same icon.
+        """
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+
+        # Head has 2 IDENTICAL duplicate treemap elements at same path (same size = same file)
+        # This simulates Assets.car having duplicate entries for the same image
+        head_treemap = self._create_treemap_element(
+            "Assets.car",
+            200,
+            path="Assets.car",
+            children=[
+                self._create_treemap_element(
+                    "AppIcon_ABC123.png",
+                    100,
+                    path="Assets.car/AppIcon_ABC123.png",
+                    element_type="assets",
+                ),
+                self._create_treemap_element(
+                    "AppIcon_ABC123.png",
+                    100,
+                    path="Assets.car/AppIcon_ABC123.png",
+                    element_type="assets",
+                ),
+            ],
+        )
+
+        # Base has 2 IDENTICAL duplicate treemap elements at a DIFFERENT path
+        base_treemap = self._create_treemap_element(
+            "Assets.car",
+            200,
+            path="Assets.car",
+            children=[
+                self._create_treemap_element(
+                    "AppIcon_XYZ789.png",
+                    100,
+                    path="Assets.car/AppIcon_XYZ789.png",
+                    element_type="assets",
+                ),
+                self._create_treemap_element(
+                    "AppIcon_XYZ789.png",
+                    100,
+                    path="Assets.car/AppIcon_XYZ789.png",
+                    element_type="assets",
+                ),
+            ],
+        )
+
+        # File analysis has only 1 entry per path (it's the same file, just duplicated in treemap)
+        # Same hash = this is a rename
+        head_file_analysis = FileAnalysis(
+            items=[
+                FileInfo(
+                    path="Assets.car",
+                    hash="parent_hash",
+                    children=[
+                        self._create_file_info("AppIcon_ABC123.png", "same_content_hash"),
+                    ],
+                ),
+            ]
+        )
+        base_file_analysis = FileAnalysis(
+            items=[
+                FileInfo(
+                    path="Assets.car",
+                    hash="parent_hash",
+                    children=[
+                        self._create_file_info("AppIcon_XYZ789.png", "same_content_hash"),
+                    ],
+                ),
+            ]
+        )
+
+        head_results = self._create_size_analysis_results(
+            treemap_root=head_treemap, file_analysis=head_file_analysis
+        )
+        base_results = self._create_size_analysis_results(
+            treemap_root=base_treemap, file_analysis=base_file_analysis
+        )
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # ALL elements should be skipped because:
+        # - The head path is detected as a rename (same hash exists at different base path)
+        # - The duplicate treemap entries are identical, representing the same file
+        # - Therefore all duplicates should be excluded from diff
+        assert len(result.diff_items) == 0, (
+            f"Expected 0 diff items (all duplicates at renamed path should be skipped), "
+            f"got {len(result.diff_items)}. "
+            "Bug: not all duplicate treemap elements are being skipped for renamed files."
+        )
+
+    def test_rename_detection_with_nested_children(self):
+        """Test rename detection works with nested file_analysis children (e.g., Assets.car).
+
+        Assets.car files contain nested images as children in file_analysis.
+        Rename detection should work for these nested files.
+        """
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+
+        # Treemap shows image moved from old Assets.car path to new path
+        head_treemap = self._create_treemap_element(
+            "Assets.car",
+            100,
+            path="Assets.car",
+            children=[
+                self._create_treemap_element(
+                    "NewIcon.png", 100, path="Assets.car/NewIcon.png", element_type="assets"
+                ),
+            ],
+        )
+        base_treemap = self._create_treemap_element(
+            "Assets.car",
+            100,
+            path="Assets.car",
+            children=[
+                self._create_treemap_element(
+                    "OldIcon.png", 100, path="Assets.car/OldIcon.png", element_type="assets"
+                ),
+            ],
+        )
+
+        # File analysis has Assets.car with children - same hash means it's a rename
+        head_assets_car = FileInfo(
+            path="Assets.car",
+            hash="parent_hash",
+            children=[
+                self._create_file_info("NewIcon.png", "icon_hash"),
+            ],
+        )
+        base_assets_car = FileInfo(
+            path="Assets.car",
+            hash="parent_hash",
+            children=[
+                self._create_file_info("OldIcon.png", "icon_hash"),
+            ],
+        )
+
+        head_file_analysis = FileAnalysis(items=[head_assets_car])
+        base_file_analysis = FileAnalysis(items=[base_assets_car])
+
+        head_results = self._create_size_analysis_results(
+            treemap_root=head_treemap, file_analysis=head_file_analysis
+        )
+        base_results = self._create_size_analysis_results(
+            treemap_root=base_treemap, file_analysis=base_file_analysis
+        )
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # The renamed asset should be excluded - no diff items
+        assert len(result.diff_items) == 0
