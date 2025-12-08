@@ -19,6 +19,7 @@ from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
+from sentry.seer.assisted_query.issues_tools import execute_issues_query, get_issues_stats
 from sentry.seer.assisted_query.traces_tools import (
     get_attribute_names,
     get_attribute_values_with_substring,
@@ -38,7 +39,18 @@ from sentry.seer.explorer.index_data import (
     rpc_get_trace_for_transaction,
     rpc_get_transactions_for_project,
 )
-from sentry.seer.explorer.tools import get_repository_definition, rpc_get_trace_waterfall
+from sentry.seer.explorer.tools import (
+    execute_table_query,
+    execute_timeseries_query,
+    get_issue_and_event_details,
+    get_log_attributes_for_trace,
+    get_metric_attributes_for_trace,
+    get_replay_metadata,
+    get_repository_definition,
+    get_trace_item_attributes,
+    rpc_get_profile_flamegraph,
+    rpc_get_trace_waterfall,
+)
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.utils.env import in_test_environment
 
@@ -67,10 +79,19 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "get_attribute_values_with_substring": map_org_id_param(get_attribute_values_with_substring),
     "get_attributes_and_values": map_org_id_param(get_attributes_and_values),
     "get_spans": map_org_id_param(get_spans),
+    "execute_issues_query": map_org_id_param(execute_issues_query),
+    "execute_table_query": map_org_id_param(execute_table_query),
     #
     # Explorer (cross-project)
     "get_trace_waterfall": rpc_get_trace_waterfall,
     "get_repository_definition": get_repository_definition,
+    "execute_timeseries_query": map_org_id_param(execute_timeseries_query),
+    "get_issue_and_event_details": get_issue_and_event_details,
+    "get_profile_flamegraph": rpc_get_profile_flamegraph,
+    "get_replay_metadata": get_replay_metadata,
+    "get_log_attributes_for_trace": map_org_id_param(get_log_attributes_for_trace),
+    "get_metric_attributes_for_trace": map_org_id_param(get_metric_attributes_for_trace),
+    "get_issues_stats": map_org_id_param(get_issues_stats),
 }
 
 
@@ -90,6 +111,7 @@ public_project_seer_method_registry: dict[str, Callable] = {
     "get_error_event_details": accept_organization_id_param(get_error_event_details),
     "get_profile_details": get_profile_details,
     "get_attributes_for_span": map_org_id_param(get_attributes_for_span),
+    "get_trace_item_attributes": map_org_id_param(get_trace_item_attributes),
     # Replays - project-scoped methods
     "get_replay_summary_logs": accept_organization_id_param(rpc_get_replay_summary_logs),
 }
