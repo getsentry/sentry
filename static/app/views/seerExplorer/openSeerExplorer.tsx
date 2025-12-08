@@ -31,14 +31,14 @@ export type OpenSeerExplorerOptions = {
   startNewRun?: boolean;
 };
 
-export const SEER_EXPLORER_OPEN_EVENT = 'seer-explorer:open';
-export const SEER_EXPLORER_RUN_CREATED_EVENT = 'seer-explorer:run-created';
-export const SEER_EXPLORER_SESSION_READY_EVENT = 'seer-explorer:session-ready';
+const SEER_EXPLORER_OPEN_EVENT = 'seer-explorer:open';
+const SEER_EXPLORER_RUN_CREATED_EVENT = 'seer-explorer:run-created';
+const SEER_EXPLORER_SESSION_READY_EVENT = 'seer-explorer:session-ready';
 
 /**
  * Custom event for opening the Seer Explorer panel with options.
  */
-export class SeerExplorerOpenEvent extends CustomEvent<OpenSeerExplorerOptions> {
+class SeerExplorerOpenEvent extends CustomEvent<OpenSeerExplorerOptions> {
   constructor(options: OpenSeerExplorerOptions = {}) {
     super(SEER_EXPLORER_OPEN_EVENT, {
       detail: options,
@@ -50,7 +50,7 @@ export class SeerExplorerOpenEvent extends CustomEvent<OpenSeerExplorerOptions> 
 /**
  * Custom event dispatched when a new run is created.
  */
-export class SeerExplorerRunCreatedEvent extends CustomEvent<{runId: number}> {
+class SeerExplorerRunCreatedEvent extends CustomEvent<{runId: number}> {
   constructor(runId: number) {
     super(SEER_EXPLORER_RUN_CREATED_EVENT, {
       detail: {runId},
@@ -62,7 +62,7 @@ export class SeerExplorerRunCreatedEvent extends CustomEvent<{runId: number}> {
 /**
  * Custom event dispatched when a session has data ready (first poll completed).
  */
-export class SeerExplorerSessionReadyEvent extends CustomEvent<{runId: number}> {
+class SeerExplorerSessionReadyEvent extends CustomEvent<{runId: number}> {
   constructor(runId: number) {
     super(SEER_EXPLORER_SESSION_READY_EVENT, {
       detail: {runId},
