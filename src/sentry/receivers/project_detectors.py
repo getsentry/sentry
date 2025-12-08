@@ -66,7 +66,7 @@ def create_metric_detector_with_owner(project: Project, user=None, user_id=None,
 
     try:
         detector = _ensure_metric_detector(
-            project, owner_team_id=owner_team.id if owner_team else None, enabled=False
+            project, owner_team_id=owner_team.id if owner_team else None, enabled=True
         )
         logger.info(
             "create_metric_detector_with_owner.created",
