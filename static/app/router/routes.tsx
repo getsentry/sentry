@@ -2547,10 +2547,6 @@ function buildRoutes(): RouteObject[] {
               path: 'new/',
               component: make(() => import('sentry/views/prevent/preventAI/onboarding')),
             },
-            {
-              path: 'home/',
-              component: make(() => import('sentry/views/prevent/preventAI/index')),
-            },
           ],
         },
       ],
