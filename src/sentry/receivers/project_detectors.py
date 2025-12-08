@@ -58,9 +58,19 @@ def create_metric_detector_with_owner(project: Project, user=None, user_id=None,
     if not features.has("organizations:default-anomaly-detector", project.organization, actor=user):
         return
 
+    if owner_team is None:
+        logger.info(
+            "create_metric_detector_with_owner.no_team",
+            extra={"project_id": project.id, "organization_id": project.organization_id},
+        )
+
     try:
-        _ensure_metric_detector(
+        detector = _ensure_metric_detector(
             project, owner_team_id=owner_team.id if owner_team else None, enabled=False
+        )
+        logger.info(
+            "create_metric_detector_with_owner.created",
+            extra={"project_id": project.id, "detector_id": detector.id},
         )
     except UnableToAcquireLockApiError as e:
         sentry_sdk.capture_exception(e)
