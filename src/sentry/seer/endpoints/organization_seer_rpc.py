@@ -19,7 +19,16 @@ from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
-from sentry.seer.assisted_query.issues_tools import execute_issues_query, get_issues_stats
+from sentry.seer.assisted_query.discover_tools import (
+    get_event_filter_key_values,
+    get_event_filter_keys,
+)
+from sentry.seer.assisted_query.issues_tools import (
+    execute_issues_query,
+    get_filter_key_values,
+    get_issue_filter_keys,
+    get_issues_stats,
+)
 from sentry.seer.assisted_query.traces_tools import (
     get_attribute_names,
     get_attribute_values_with_substring,
@@ -81,6 +90,10 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "get_spans": map_org_id_param(get_spans),
     "execute_issues_query": map_org_id_param(execute_issues_query),
     "execute_table_query": map_org_id_param(execute_table_query),
+    "get_event_filter_keys": map_org_id_param(get_event_filter_keys),
+    "get_event_filter_key_values": map_org_id_param(get_event_filter_key_values),
+    "get_issue_filter_keys": map_org_id_param(get_issue_filter_keys),
+    "get_filter_key_values": map_org_id_param(get_filter_key_values),
     #
     # Explorer (cross-project)
     "get_trace_waterfall": rpc_get_trace_waterfall,
