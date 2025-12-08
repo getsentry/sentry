@@ -233,13 +233,13 @@ def _validate_request_body(
 
 
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
-    _fix_issue_paths(result)
-
     # Add servers override from endpoint class definitions
     for path, servers in _ENDPOINT_SERVERS.items():
         if path in result["paths"]:
             for method_info in result["paths"][path].values():
                 method_info["servers"] = servers
+
+    _fix_issue_paths(result)
 
     # Fetch schema component references
     schema_components = result["components"]["schemas"]
