@@ -72,7 +72,7 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
     metricSamplesTableResult,
     metricTimeseriesResult: timeseriesResult,
     mode,
-    yAxis: traceMetric.name || '',
+    traceMetric,
     sortBys,
     aggregateSortBys,
     panelIndex: queryIndex,

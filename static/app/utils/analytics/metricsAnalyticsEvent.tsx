@@ -11,19 +11,21 @@ export type MetricsAnalyticsEventParameters = {
     metric_panels_with_group_bys_count: number;
     metric_queries_count: number;
     project_count: number;
+    title: string;
   };
   'metrics.explorer.panel.metadata': {
-    columns: readonly string[];
-    columns_count: number;
+    aggregate_function: string;
     confidences: string[];
     dataScanned: string;
     dataset: string;
     empty_buckets_percentage: number[];
+    group_bys: readonly string[];
     interval: string;
+    metric_name: string;
+    metric_type: string;
     query_status: 'success' | 'error' | 'pending';
     sample_counts: number[];
     table_result_length: number;
-    table_result_missing_root: number;
     table_result_mode: 'metric samples' | 'aggregates';
     table_result_sort: string[];
     user_queries: string;
