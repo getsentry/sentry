@@ -67,7 +67,6 @@ export function GroupInsightItemDiffTable({
           increased: 1,
           decreased: 2,
           removed: 3,
-          unchanged: 4,
         };
         aValue = order[a.type];
         bValue = order[b.type];

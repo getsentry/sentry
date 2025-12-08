@@ -8,7 +8,7 @@ import {Heading} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {FileInsightItemDiffTable} from 'sentry/views/preprod/buildComparison/main/insights/fileInsightDiffTable';
 import {GroupInsightItemDiffTable} from 'sentry/views/preprod/buildComparison/main/insights/groupInsightDiffTable';
-import {InsightDiffRow} from 'sentry/views/preprod/buildComparison/main/insights/InsightDiffRow';
+import {InsightDiffRow} from 'sentry/views/preprod/buildComparison/main/insights/insightDiffRow';
 import type {
   InsightDiffItem,
   InsightStatus,

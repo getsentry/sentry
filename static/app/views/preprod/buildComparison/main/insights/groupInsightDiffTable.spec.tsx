@@ -35,7 +35,7 @@ const mockGroupDiffItems: DiffItem[] = [
   },
   {
     path: 'LICENSE.txt',
-    type: 'unchanged',
+    type: 'added',
     size_diff: 0,
     head_size: 2000,
     base_size: 2000,
@@ -43,7 +43,7 @@ const mockGroupDiffItems: DiffItem[] = [
     diff_items: [
       {
         path: '/META-INF/LICENSE1.txt',
-        type: 'unchanged',
+        type: 'added',
         size_diff: 0,
         head_size: 1000,
         base_size: 1000,
@@ -52,7 +52,7 @@ const mockGroupDiffItems: DiffItem[] = [
       },
       {
         path: '/META-INF/LICENSE2.txt',
-        type: 'unchanged',
+        type: 'removed',
         size_diff: 0,
         head_size: 1000,
         base_size: 1000,

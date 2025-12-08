@@ -25,7 +25,7 @@ const mockFileDiffItems: DiffItem[] = [
   },
   {
     path: '/lib/library.so',
-    type: 'unchanged',
+    type: 'increased',
     size_diff: 0,
     head_size: 1000000,
     base_size: 1000000,
