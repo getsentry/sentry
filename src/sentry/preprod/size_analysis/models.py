@@ -8,10 +8,12 @@ from sentry.preprod.models import PreprodArtifactSizeMetrics
 
 ###
 # Size analysis results (non-comparison)
+# Keep in sync with https://github.com/getsentry/launchpad/blob/main/src/launchpad/size/models/common.py#L92
 ###
 
 
 class TreemapElement(BaseModel):
+
     model_config = ConfigDict(frozen=True)
 
     name: str
@@ -26,10 +28,34 @@ class TreemapElement(BaseModel):
 class TreemapResults(BaseModel):
     """Complete treemap analysis results."""
 
+    model_config = ConfigDict(frozen=True)
+
     root: TreemapElement
     file_count: int
     category_breakdown: dict[str, dict[str, int]]
     platform: str
+
+
+class FileInfo(BaseModel):
+    """Slim file info for rename detection.
+
+    Only contains fields needed for hash-based rename detection.
+    Other fields (size, file_type, etc.) are available in the treemap.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    path: str
+    hash: str
+    children: list[FileInfo] = []
+
+
+class FileAnalysis(BaseModel):
+    """Analysis results for files and directories in the app bundle."""
+
+    model_config = ConfigDict(frozen=True)
+
+    items: list[FileInfo]
 
 
 class AppComponent(BaseModel):
@@ -45,14 +71,17 @@ class AppComponent(BaseModel):
     install_size: int
 
 
-# Keep in sync with https://github.com/getsentry/launchpad/blob/main/src/launchpad/size/models/common.py#L92
 class SizeAnalysisResults(BaseModel):
+
+    model_config = ConfigDict(frozen=True)
+
     analysis_duration: float
     download_size: int
     install_size: int
-    treemap: TreemapResults | None
-    analysis_version: str | None
-    app_components: list[AppComponent] | None
+    treemap: TreemapResults | None = None
+    analysis_version: str | None = None
+    file_analysis: FileAnalysis | None = None
+    app_components: list[AppComponent] | None = None
 
 
 ###
