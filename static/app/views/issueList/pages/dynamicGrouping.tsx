@@ -1079,6 +1079,7 @@ const PageWrapper = styled('div')`
 
 const HeaderSection = styled('div')`
   padding: ${space(4)} ${space(4)} ${space(3)};
+  background: ${p => p.theme.backgroundSecondary};
 `;
 
 const ClickableHeading = styled(Heading)`
@@ -1089,6 +1090,7 @@ const ClickableHeading = styled(Heading)`
 const CardsSection = styled('div')`
   flex: 1;
   padding: ${space(2)} ${space(4)} ${space(4)};
+  background: ${p => p.theme.backgroundSecondary};
 `;
 
 const CardsGrid = styled('div')`
@@ -1190,7 +1192,6 @@ const CardFooter = styled('div')`
   display: flex;
   justify-content: flex-end;
   gap: ${space(1)};
-  background: ${p => p.theme.backgroundSecondary};
 `;
 
 // Split button for Send to Seer action
