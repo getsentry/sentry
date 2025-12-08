@@ -911,10 +911,12 @@ export function useMetricsAnalytics({
 
   const metricPanelsWithGroupBys = metricQueries
     .filter(mq => !isEmptyTraceMetric(mq.metric))
-    .map(mq => mq.queryParams.groupBys.some((gb: string) => gb.trim().length > 0)).length;
+    .filter(mq =>
+      mq.queryParams.groupBys.some((gb: string) => gb.trim().length > 0)
+    ).length;
   const metricPanelsWithFilters = metricQueries
     .filter(mq => !isEmptyTraceMetric(mq.metric))
-    .map(mq => mq.queryParams.query.trim().length > 0).length;
+    .filter(mq => mq.queryParams.query.trim().length > 0).length;
 
   useEffect(() => {
     if (isLoadingSubscriptionDetails || areToolbarsLoading) {
