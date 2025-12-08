@@ -40,9 +40,16 @@ def reset_num_actions_for_organization_contributors(organization_id: int) -> Non
     namespace=integrations_tasks,
     silo_mode=SiloMode.REGION,
 )
-def assign_seat_to_organization_contributor(
-    organization_contributor: OrganizationContributors,
-) -> None:
+def assign_seat_to_organization_contributor(contributor_id) -> None:
+    try:
+        organization_contributor = OrganizationContributors.objects.get(id=contributor_id)
+    except OrganizationContributors.DoesNotExist:
+        logger.warning(
+            "organization_contributors.assign_seat.contributor_not_found",
+            extra={"contributor_id": contributor_id},
+        )
+        return
+
     outcome = quotas.backend.assign_seat(DataCategory.SEER_USER, organization_contributor)
 
     if outcome != Outcome.ACCEPTED:

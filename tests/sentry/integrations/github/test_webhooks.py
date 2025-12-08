@@ -1111,7 +1111,7 @@ class PullRequestEventWebhook(APITestCase):
 
         contributor.refresh_from_db()
         assert contributor.num_actions == 2
-        mock_assign_seat.delay.assert_called_once_with(contributor)
+        mock_assign_seat.delay.assert_called_once_with(contributor.id)
 
     @patch("sentry.integrations.github.webhook.assign_seat_to_organization_contributor")
     @patch(

@@ -145,7 +145,7 @@ class AssignSeatToOrganizationContributorTest(TestCase):
 
         mock_assign_seat.return_value = Outcome.ACCEPTED
 
-        assign_seat_to_organization_contributor(contributor)
+        assign_seat_to_organization_contributor(contributor.id)
 
         mock_assign_seat.assert_called_once()
         mock_logger.warning.assert_not_called()
@@ -164,7 +164,7 @@ class AssignSeatToOrganizationContributorTest(TestCase):
 
         mock_assign_seat.return_value = Outcome.RATE_LIMITED
 
-        assign_seat_to_organization_contributor(contributor)
+        assign_seat_to_organization_contributor(contributor.id)
 
         mock_assign_seat.assert_called_once()
         mock_logger.warning.assert_called_once_with(
@@ -176,4 +176,16 @@ class AssignSeatToOrganizationContributorTest(TestCase):
                 "external_identifier": "user2",
                 "outcome": Outcome.RATE_LIMITED,
             },
+        )
+
+    @patch("sentry.tasks.organization_contributors.logger")
+    @patch("sentry.tasks.organization_contributors.quotas.backend.assign_seat")
+    def test_contributor_not_found_logs_warning(self, mock_assign_seat, mock_logger):
+        """When contributor is not found, a warning is logged."""
+        assign_seat_to_organization_contributor(999999)
+
+        mock_assign_seat.assert_not_called()
+        mock_logger.warning.assert_called_once_with(
+            "organization_contributors.assign_seat.contributor_not_found",
+            extra={"contributor_id": 999999},
         )

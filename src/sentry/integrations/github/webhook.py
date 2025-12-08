@@ -814,7 +814,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                         is_contributor_eligible_for_seat_assignment(user_type, author_association)
                         and contributor.num_actions == OrganizationContributionStatus.ACTIVE
                     ):
-                        assign_seat_to_organization_contributor.delay(contributor)
+                        assign_seat_to_organization_contributor.delay(contributor.id)
 
                 metrics.incr(
                     "github.webhook.pull_request.created",
