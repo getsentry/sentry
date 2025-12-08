@@ -68,7 +68,7 @@ class DataForwarderSerializer(Serializer):
         allow_empty=True,
         required=False,
         default=list,
-        help_text="The IDs of the projects to attach the data forwarder to.",
+        help_text="The IDs of the projects connected to the data forwarder. Missing project IDs will be unenrolled if previously enrolled.",
     )
 
     def validate_config(self, config) -> SQSConfig | SegmentConfig | SplunkConfig:
