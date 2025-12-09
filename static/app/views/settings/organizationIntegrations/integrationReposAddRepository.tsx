@@ -3,8 +3,9 @@ import {useMemo, useState} from 'react';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {ExternalLink} from 'sentry/components/core/link';
 import DropdownButton from 'sentry/components/dropdownButton';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import type {
   Integration,
@@ -132,8 +133,11 @@ export function IntegrationReposAddRepository({
         query.isFetching
           ? t('Searching\u2026')
           : debouncedSearch
-            ? t(
-                'No repositories found. Newly added repositories may take a few minutes to appear.'
+            ? tct(
+                'No repositories found. Newly added repositories may take a few minutes to appear. You may also need to check repository permissions for the [link:Sentry Github App].',
+                {
+                  link: <ExternalLink href="https://github.com/apps/sentry" />,
+                }
               )
             : t('Please enter a repository name')
       }
