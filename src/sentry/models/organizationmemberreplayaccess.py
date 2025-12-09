@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from django.db import models
-from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 
 
 @region_silo_model
-class OrganizationMemberReplayAccess(Model):
+class OrganizationMemberReplayAccess(DefaultFieldsModel):
     """
     Tracks which organization members have permission to access replay data.
 
@@ -24,7 +23,6 @@ class OrganizationMemberReplayAccess(Model):
         on_delete=models.CASCADE,
         related_name="replay_access",
     )
-    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
