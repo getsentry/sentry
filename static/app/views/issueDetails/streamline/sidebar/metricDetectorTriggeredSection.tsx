@@ -18,6 +18,7 @@ import {space} from 'sentry/styles/space';
 import type {Event, EventOccurrence} from 'sentry/types/event';
 import type {
   MetricCondition,
+  MetricDetectorConfig,
   SnubaQueryDataSource,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
@@ -36,6 +37,10 @@ interface MetricDetectorEvidenceData {
    * The triggered conditions that caused the occurrence to be created
    */
   conditions: MetricCondition[];
+  /**
+   * The detector configuration at the time that the occurrence was created
+   */
+  config: MetricDetectorConfig;
   /**
    * The data source at the time that the occurrence was created
    */
@@ -247,8 +252,7 @@ function TriggeredConditionDetails({
                   {getConditionDescription({
                     aggregate: snubaQuery.aggregate,
                     condition: triggeredCondition,
-                    // TODO: Record detector config in issue occurrence and use that here
-                    config: {
+                    config: evidenceData.config ?? {
                       detectionType: 'static',
                     },
                   })}
