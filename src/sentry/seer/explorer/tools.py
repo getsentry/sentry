@@ -713,13 +713,8 @@ def _get_trace_with_spans(
     """
     Given a list of trace IDs, return a trace ID with at least one span (non-deterministic).
     """
-    valid, start = outside_retention_with_modified_start(start, end, organization)
-    if not valid:
-        logger.error(
-            "_get_trace_with_spans: Invalid date range",
-            extra={"organization_id": organization.id, "start": start, "end": end},
-        )
-        return None
+    # Allow errors if start is outside retention.
+    _, start = outside_retention_with_modified_start(start, end, organization)
 
     if not trace_ids:
         return None
@@ -762,18 +757,8 @@ def _get_event_with_valid_trace(
     if end is None:
         end = group.last_seen
 
-    valid, start = outside_retention_with_modified_start(start, end, organization)
-    if not valid:
-        logger.error(
-            "_get_event_with_valid_trace: Invalid date range",
-            extra={
-                "organization_id": organization.id,
-                "group_id": group.id,
-                "start": start,
-                "end": end,
-            },
-        )
-        return None
+    # Allow errors if end is outside retention.
+    _, start = outside_retention_with_modified_start(start, end, organization)
 
     # Get up to 50 event IDs and their traces.
     events_result = execute_table_query(
