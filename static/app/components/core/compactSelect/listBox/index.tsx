@@ -19,7 +19,11 @@ import type {FormSize} from 'sentry/utils/theme';
 import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';
 
-interface ListBoxProps
+// explicitly using object here because Record<PropertyKey, unknown> requires an index signature
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
+type ObjectLike = object;
+
+interface ListBoxProps<T extends ObjectLike>
   extends Omit<
       React.HTMLAttributes<HTMLUListElement>,
       'onBlur' | 'onFocus' | 'autoFocus' | 'children'
@@ -38,8 +42,8 @@ interface ListBoxProps
    * Object containing the selection state and focus position, needed for
    * `useListBox()`.
    */
-  listState: ListState<any>;
-  children?: CollectionChildren<any>;
+  listState: ListState<T>;
+  children?: CollectionChildren<T>;
   /**
    * Whether the list is filtered by search query or not.
    * Used to determine whether to show the size limit message or not.
@@ -110,7 +114,7 @@ const DEFAULT_KEY_DOWN_HANDLER = () => true;
  * If interactive children are necessary, consider using grid lists instead (by setting
  * the `grid` prop on CompactSelect to true).
  */
-export function ListBox({
+export function ListBox<T extends ObjectLike>({
   ref,
   listState,
   size = 'md',
@@ -128,7 +132,7 @@ export function ListBox({
   onAction,
   virtualThreshold,
   ...props
-}: ListBoxProps) {
+}: ListBoxProps<T>) {
   const listElementRef = useRef<HTMLUListElement>(null);
 
   const {listBoxProps, labelProps} = useListBox(
@@ -240,10 +244,10 @@ export function ListBox({
   );
 }
 
-function useVirtualizedItems({
+function useVirtualizedItems<T extends ObjectLike>({
   listItems,
   virtualThreshold,
-}: {listItems: Array<Node<any>>} & Pick<ListBoxProps, 'virtualThreshold'>) {
+}: {listItems: Array<Node<T>>} & Pick<ListBoxProps<T>, 'virtualThreshold'>) {
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const isVirtualized =
     virtualThreshold === undefined ? false : listItems.length > virtualThreshold;
@@ -253,7 +257,7 @@ function useVirtualizedItems({
     getScrollElement: () => scrollElementRef?.current,
     estimateSize: index => {
       const item = listItems[index];
-      if (item?.value?.details) {
+      if (item?.value && 'details' in item.value) {
         return 50;
       }
       return 30;
