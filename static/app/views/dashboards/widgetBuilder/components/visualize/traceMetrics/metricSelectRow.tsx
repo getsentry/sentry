@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {type QueryFieldValue} from 'sentry/utils/discover/fields';
 import {AggregateSelector} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/aggregateSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -24,7 +26,7 @@ export function MetricSelectRow({
       : (state.traceMetrics?.[index] ?? {name: '', type: ''});
 
   return (
-    <PrimarySelectRow>
+    <Flex gap="0" width="100%" minWidth="0">
       <MetricSelectorWrapper>
         <MetricSelector
           traceMetric={traceMetric}
@@ -58,11 +60,14 @@ export function MetricSelectRow({
           index={index}
         />
       </AggregateSelectorWrapper>
-    </PrimarySelectRow>
+    </Flex>
   );
 }
 
 const MetricSelectorWrapper = styled('div')`
+  flex: 1 1 auto;
+  min-width: 0;
+
   button {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
@@ -75,23 +80,10 @@ const MetricSelectorWrapper = styled('div')`
 `;
 
 const AggregateSelectorWrapper = styled('div')`
+  flex: 0 0 auto;
+
   button {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
-  }
-`;
-
-const PrimarySelectRow = styled('div')`
-  display: flex;
-  width: 100%;
-  min-width: 0;
-
-  & > :first-child {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  & > :last-child {
-    flex: 0 0 auto;
   }
 `;

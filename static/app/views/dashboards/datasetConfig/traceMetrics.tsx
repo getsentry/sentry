@@ -19,6 +19,7 @@ import {
   type WidgetBuilderSearchBarProps,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {getTableSortOptions} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
@@ -26,7 +27,6 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
@@ -187,33 +187,7 @@ function getPrimaryFieldOptions(
   tags?: TagCollection,
   _customMeasurements?: CustomMeasurementCollection
 ): Record<string, FieldValueOption> {
-  const baseFieldOptions = generateFieldOptions({
-    organization,
-    tagKeys: [],
-    fieldKeys: [],
-    aggregations: {},
-  });
-
-  const metricTags = Object.values(tags ?? {}).reduce(
-    function combineTag(acc, tag) {
-      acc[`${tag.kind}:${tag.key}`] = {
-        label: tag.name,
-        value: {
-          kind: FieldValueKind.TAG,
-
-          // We have numeric and string tags which have the same
-          // display name, but one is used for aggregates and the other
-          // is used for grouping.
-          meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
-        },
-      };
-
-      return acc;
-    },
-    {} as Record<string, FieldValueOption>
-  );
-
-  return {...baseFieldOptions, ...metricTags};
+  return combineBaseFieldsWithTags(organization, tags, {});
 }
 
 function filterYAxisOptions() {
