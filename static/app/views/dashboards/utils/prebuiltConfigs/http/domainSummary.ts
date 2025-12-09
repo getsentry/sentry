@@ -74,7 +74,7 @@ const BIG_NUMBER_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
     },
     {
       id: '4xx-count-big-number',
-      title: AVERAGE_DURATION_TEXT,
+      title: t('4XX'),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
