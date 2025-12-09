@@ -1077,11 +1077,14 @@ def get_sample_event(
 
     # Fetch the group from issue_id.
     if issue_id.isdigit():
-        group = (
-            Group.objects.get(project__slug=project_slug, id=int(issue_id))
-            if project_slug
-            else Group.objects.get(project__organization=organization, id=int(issue_id))
+        project_ids = list(
+            Project.objects.filter(
+                organization=organization,
+                status=ObjectStatus.ACTIVE,
+                **({"slug": project_slug} if project_slug else {}),
+            ).values_list("id", flat=True)
         )
+        group = Group.objects.get(project__in=project_ids, id=int(issue_id))
     else:
         group = Group.objects.by_qualified_short_id(organization_id, issue_id)
 
