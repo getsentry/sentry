@@ -47,7 +47,6 @@ def _query_replay_urls_eap(
             Condition(Column("category"), Op.EQ, "navigation"),
         ],
         groupby=[Column("to")],
-        granularity=Granularity(3600),
     )
 
     settings = Settings(
