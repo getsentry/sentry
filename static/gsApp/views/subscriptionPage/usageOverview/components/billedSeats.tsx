@@ -57,9 +57,11 @@ function BilledSeats({
 
   return (
     <Fragment>
-      <Table>
+      <Table hasBorderTop={(billedSeats?.length ?? 0) > 0}>
         <SimpleTable.Header
-          style={{borderBottom: billedSeats?.length === 0 ? 'none' : undefined}}
+          style={{
+            borderBottom: billedSeats?.length === 0 ? 'none' : undefined,
+          }}
         >
           <SimpleTable.HeaderCell style={{textTransform: 'uppercase'}}>
             {tct('Active Contributors ([count])', {count: billedSeats?.length ?? 0})}
@@ -98,9 +100,9 @@ function BilledSeats({
 
 export default BilledSeats;
 
-const Table = styled(SimpleTable)`
+const Table = styled(SimpleTable)<{hasBorderTop: boolean}>`
   grid-template-columns: 1fr 1fr;
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   border: none;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: ${p => (p.hasBorderTop ? '1px solid ${p.theme.border}' : 'none')};
 `;
