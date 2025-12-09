@@ -1,5 +1,5 @@
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
+from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
