@@ -17,6 +17,7 @@ interface SeerOnboardingContextProps {
     index: number,
     newValue: string | undefined
   ) => void;
+  changeRootCauseAnalysisRepository: (oldRepoId: string, newRepoId: string) => void;
   installationData: OrganizationIntegration[] | undefined;
   isInstallationPending: boolean;
   isProviderPending: boolean;
@@ -43,6 +44,7 @@ const SeerOnboardingContext = createContext<SeerOnboardingContextProps>({
   selectedRootCauseAnalysisRepositories: [],
   repositoryProjectMapping: {},
   changeRepositoryProjectMapping: () => {},
+  changeRootCauseAnalysisRepository: () => {},
   setCodeReviewRepositories: () => {},
   removeRootCauseAnalysisRepository: () => {},
   addRepositoryProjectMappings: () => {},
@@ -110,6 +112,28 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
       setRootCauseAnalysisRepositories(prev => prev.filter(repo => repo.id !== repoId));
     },
     [setRootCauseAnalysisRepositories]
+  );
+
+  const changeRootCauseAnalysisRepository = useCallback(
+    (oldRepoId: string, newRepoId: string) => {
+      const newRepo = repositoriesMap[newRepoId];
+      if (!newRepo) {
+        return;
+      }
+
+      // Clear project mappings for the old repository
+      setRepositoryProjectMapping(prev => {
+        const newMappings = {...prev};
+        delete newMappings[oldRepoId];
+        return newMappings;
+      });
+
+      // Replace the old repository with the new one
+      setRootCauseAnalysisRepositories(prev =>
+        prev.map(repo => (repo.id === oldRepoId ? newRepo : repo))
+      );
+    },
+    [repositoriesMap]
   );
 
   const addRepositoryProjectMappings = useCallback(
@@ -184,6 +208,7 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         setCodeReviewRepositories,
         selectedRootCauseAnalysisRepositories,
         removeRootCauseAnalysisRepository,
+        changeRootCauseAnalysisRepository,
         repositoryProjectMapping,
         addRepositoryProjectMappings,
         changeRepositoryProjectMapping,
