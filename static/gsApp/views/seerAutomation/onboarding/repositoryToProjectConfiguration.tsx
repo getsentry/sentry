@@ -39,21 +39,27 @@ export function RepositoryToProjectConfiguration({
     repositories,
   } = useSeerOnboardingContext();
 
-  // Convert repositories to options for Select
-  const repositoryOptions = useMemo(() => {
-    return (
-      repositories?.map(repo => ({
-        value: repo.id,
-        label: repo.name,
-        textValue: repo.name,
-      })) ?? []
-    );
-  }, [repositories]);
+  // Create a set of selected repository IDs for efficient lookup
+  const selectedRepoIds = useMemo(
+    () => new Set(selectedRootCauseAnalysisRepositories.map(repo => repo.id)),
+    [selectedRootCauseAnalysisRepositories]
+  );
 
   return (
     <Fragment>
       {selectedRootCauseAnalysisRepositories.length > 0 &&
         selectedRootCauseAnalysisRepositories.map(repository => {
+          // Filter repository options to exclude already-selected ones
+          // (except the current repository being edited)
+          const availableRepositoryOptions =
+            repositories
+              ?.filter(repo => !selectedRepoIds.has(repo.id) || repo.id === repository.id)
+              .map(repo => ({
+                value: repo.id,
+                label: repo.name,
+                textValue: repo.name,
+              })) ?? [];
+
           return (
             <RepositoryRow
               isPending={isPending}
@@ -62,7 +68,7 @@ export function RepositoryToProjectConfiguration({
               nonMemberProjects={nonMemberProjects}
               selectedProjects={repositoryProjectMapping[repository.id] || []}
               repository={repository}
-              repositories={repositoryOptions}
+              repositories={availableRepositoryOptions}
               onRemoveRepository={removeRootCauseAnalysisRepository}
               onChangeRepository={onChangeRepository}
               onChange={onChange}

@@ -121,17 +121,25 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         return;
       }
 
+      setRootCauseAnalysisRepositories(prev => {
+        // Check if the new repository is already selected
+        const isDuplicate = prev.some(
+          repo => repo.id === newRepoId && repo.id !== oldRepoId
+        );
+        if (isDuplicate) {
+          return prev;
+        }
+
+        // Replace the old repository with the new one
+        return prev.map(repo => (repo.id === oldRepoId ? newRepo : repo));
+      });
+
       // Clear project mappings for the old repository
       setRepositoryProjectMapping(prev => {
         const newMappings = {...prev};
         delete newMappings[oldRepoId];
         return newMappings;
       });
-
-      // Replace the old repository with the new one
-      setRootCauseAnalysisRepositories(prev =>
-        prev.map(repo => (repo.id === oldRepoId ? newRepo : repo))
-      );
     },
     [repositoriesMap]
   );
