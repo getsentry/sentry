@@ -264,7 +264,6 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
             #     cache.set(cache_key, grouphash_exists, cache_expiry)
             # once we've settled on a good retention period
             cache.set(cache_key, grouphash_exists, cache_expiry)
-            cache.set(cache_key + "_expiry", cache_expiry, cache_expiry)
 
         return grouphash_exists
 
@@ -314,7 +313,6 @@ def _get_or_create_single_grouphash(
             #     cache.set(cache_key, grouphash, cache_expiry)
             # once we've settled on a good retention period
             cache.set(cache_key, grouphash, cache_expiry)
-            cache.set(cache_key + "_expiry", cache_expiry, cache_expiry)
 
         return (grouphash, created)
 
