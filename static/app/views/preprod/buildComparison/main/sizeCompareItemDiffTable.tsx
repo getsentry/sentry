@@ -271,11 +271,3 @@ export function SizeCompareItemDiffTable({
     </Flex>
   );
 }
-
-// const FilePathTooltipText = styled('span')`
-//   flex: 1;
-//   overflow-wrap: break-word;
-//   word-break: break-all;
-//   white-space: normal;
-//   user-select: text;
-// `;
