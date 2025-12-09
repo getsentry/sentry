@@ -3761,3 +3761,11 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Enabled Prebuilt Dashboard IDs
+register(
+    "dashboards.prebuilt-dashboard-ids",
+    default=[],
+    type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
