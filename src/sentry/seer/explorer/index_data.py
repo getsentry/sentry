@@ -86,7 +86,7 @@ def get_transactions_for_project(
         orderby=["-sum(span.duration)"],
         offset=0,
         limit=limit,
-        referrer=Referrer.SEER_RPC,
+        referrer=Referrer.SEER_EXPLORER_INDEX,
         config=config,
         sampling_mode="NORMAL",
     )
@@ -158,7 +158,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
         orderby=["precise.start_ts"],
         offset=0,
         limit=1,
-        referrer=Referrer.SEER_RPC,
+        referrer=Referrer.SEER_EXPLORER_INDEX,
         config=config,
         sampling_mode="NORMAL",
     )
@@ -190,7 +190,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
         orderby=["precise.start_ts"],
         offset=0,
         limit=1000,
-        referrer=Referrer.SEER_RPC,
+        referrer=Referrer.SEER_EXPLORER_INDEX,
         config=config,
         sampling_mode="NORMAL",
     )
@@ -340,7 +340,7 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         orderby=[],
         offset=0,
         limit=5,
-        referrer=Referrer.SEER_RPC,
+        referrer=Referrer.SEER_EXPLORER_INDEX,
         config=config,
         sampling_mode="NORMAL",
     )
@@ -465,7 +465,7 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
         search_filters=search_filters_only,
         sort_by="freq",
         limit=3,
-        referrer=Referrer.SEER_RPC,
+        referrer=Referrer.SEER_EXPLORER_INDEX,
     )
     issues = list(results_cursor)
 
