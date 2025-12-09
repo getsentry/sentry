@@ -237,7 +237,7 @@ disabled. The options are:
 - `safari` - Safari Version 15 and lower
 - `firefox` - Firefox Version 110 and lower
 - `chrome` - Chrome Version 110 and lower
-- `opera` - Opera Version 110 and lower
+- `opera` - Opera Version 99 and lower
 - `android` - Android Version 3 and lower
 - `opera_mini` - Opera Mini Version 34 and lower
 
