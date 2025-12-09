@@ -42,7 +42,8 @@ def invalidate_grouphash_cache_on_save(instance: GroupHash, **kwargs: Any) -> No
         return
 
     cache_key = get_grouphash_object_cache_key(instance.hash, instance.project.id)
-    cache.delete(cache_key)
+    # TODO: We can remove the version once we've settled on a good retention period
+    cache.delete(cache_key, version=get_grouphash_cache_version("object"))
 
 
 def invalidate_grouphash_caches_on_delete(instance: GroupHash, **kwargs: Any) -> None:
@@ -57,4 +58,8 @@ def invalidate_grouphash_caches_on_delete(instance: GroupHash, **kwargs: Any) ->
     object_cache_key = get_grouphash_object_cache_key(instance.hash, instance.project.id)
     existence_cache_key = get_grouphash_existence_cache_key(instance.hash, instance.project.id)
 
-    cache.delete_many([object_cache_key, existence_cache_key])
+    # TODO: This can go back to being just
+    #     cache.delete_many([object_cache_key, existence_cache_key])
+    # once we've settled on a good retention period
+    cache.delete(object_cache_key, version=get_grouphash_cache_version("object"))
+    cache.delete(existence_cache_key, version=get_grouphash_cache_version("existence"))
