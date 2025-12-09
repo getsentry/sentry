@@ -106,6 +106,7 @@ describe('BuildDetails', () => {
               download_size_bytes: 512000,
             },
           ],
+          base_size_metrics: [],
         },
         {
           vcs_info: PreprodVcsInfoFullFixture(),
@@ -181,6 +182,7 @@ describe('BuildDetails', () => {
               download_size_bytes: 512000,
             },
           ],
+          base_size_metrics: [],
         });
       },
     });
@@ -233,6 +235,7 @@ describe('BuildDetails', () => {
             download_size_bytes: 512000,
           },
         ],
+        base_size_metrics: [],
       }),
     });
 

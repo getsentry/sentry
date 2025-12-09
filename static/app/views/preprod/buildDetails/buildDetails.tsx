@@ -161,6 +161,7 @@ export default function BuildDetails() {
                 buildDetailsData={buildDetailsQuery.data}
                 isBuildDetailsPending={buildDetailsQuery.isLoading}
                 projectType={projectType}
+                projectId={projectId}
               />
             </BuildDetailsMain>
           </UrlParamBatchProvider>
