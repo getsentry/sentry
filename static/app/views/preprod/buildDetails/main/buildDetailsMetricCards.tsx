@@ -110,9 +110,10 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
   );
 
   // Build comparison URL using route params
-  const comparisonUrl = baseArtifactId
-    ? `/organizations/${organization.slug}/preprod/${projectId}/compare/${artifactId}/${baseArtifactId}/`
-    : undefined;
+  const comparisonUrl =
+    baseArtifactId && projectId && artifactId
+      ? `/organizations/${organization.slug}/preprod/${projectId}/compare/${artifactId}/${baseArtifactId}/`
+      : undefined;
 
   const totalPotentialSavings = processedInsights.reduce(
     (sum, insight) => sum + (insight.totalSavings ?? 0),
