@@ -24,7 +24,7 @@ export function StoryFooter() {
         <Card
           to={{
             pathname: normalizeUrl(
-              `/organizations/${organization.slug}/stories/${pagination.prev.category}/${pagination.prev.slug}`
+              `/organizations/${organization.slug}/stories/${pagination.prev.category}/${pagination.prev.slug}/`
             ),
           }}
           icon={<IconArrow direction="left" />}
@@ -42,7 +42,7 @@ export function StoryFooter() {
           data-flip
           to={{
             pathname: normalizeUrl(
-              `/organizations/${organization.slug}/stories/${pagination.next.category}/${pagination.next.slug}`
+              `/organizations/${organization.slug}/stories/${pagination.next.category}/${pagination.next.slug}/`
             ),
           }}
           icon={<IconArrow direction="right" />}
