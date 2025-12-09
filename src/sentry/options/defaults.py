@@ -2762,6 +2762,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "profiling.killswitch.ingest-profiles",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # max number of profiles to use for computing
 # the aggregated flamegraph.
 register(
