@@ -86,7 +86,7 @@ const traceWithVitals = makeTrace({
     makeTransaction({
       start_timestamp: start,
       timestamp: start + 2,
-      measurements: {ttfb: {value: 0, unit: 'millisecond'}},
+      measurements: {ttfb: {value: 1, unit: 'millisecond'}},
     }),
   ],
 });
@@ -409,6 +409,22 @@ describe('TraceTree', () => {
       const tree = TraceTree.FromTrace(traceWithVitals, traceOptions);
       expect(tree.indicators).toHaveLength(1);
       expect(tree.indicators[0]!.start).toBe(start * 1e3);
+    });
+
+    it('zero measurements are not converted to indicators', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: start,
+              timestamp: start + 2,
+              measurements: {ttfb: {value: 0, unit: 'millisecond'}},
+            }),
+          ],
+        }),
+        traceOptions
+      );
+      expect(tree.indicators).toHaveLength(0);
     });
 
     it('sorts indicators by start', () => {
