@@ -13,7 +13,6 @@ import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onD
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
-  handleOrderByReset,
   type DatasetConfig,
   type SearchBarData,
   type SearchBarDataProviderProps,
@@ -168,7 +167,6 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
       value: option.value,
     })),
   getGroupByFieldOptions,
-  handleOrderByReset,
   supportedDisplayTypes: [DisplayType.AREA, DisplayType.BAR, DisplayType.LINE],
   getSeriesRequest,
   transformTable: () => ({data: []}),

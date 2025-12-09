@@ -2,9 +2,9 @@ import {useEffect, useMemo} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {t} from 'sentry/locale';
-import type {
-  AggregationKeyWithAlias,
-  QueryFieldValue,
+import {
+  type AggregationKeyWithAlias,
+  type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {AggregateCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize';

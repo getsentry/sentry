@@ -33,6 +33,7 @@ import {
   DEFAULT_RESULTS_LIMIT,
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
+import {generateMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/generateMetricAggregate';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -525,14 +526,21 @@ function useWidgetBuilderState(): {
               field => field.kind !== FieldValueKind.EQUATION
             );
             // Adding a grouping, so default the sort to the first aggregate if possible
+            const sortField =
+              dataset === WidgetType.TRACEMETRICS
+                ? (generateMetricAggregate(
+                    traceMetrics?.[0] ?? {name: '', type: ''},
+                    firstYAxisNotEquation as QueryFieldValue
+                  ) ?? '')
+                : (generateFieldAsString(firstYAxisNotEquation as QueryFieldValue) ??
+                  generateFieldAsString(
+                    firstActionPayloadNotEquation as QueryFieldValue
+                  ));
             setSort(
               [
                 {
                   kind: 'desc',
-                  field: generateFieldAsString(
-                    (firstYAxisNotEquation as QueryFieldValue) ??
-                      (firstActionPayloadNotEquation as QueryFieldValue)
-                  ),
+                  field: sortField,
                 },
               ],
               options
@@ -648,6 +656,7 @@ function useWidgetBuilderState(): {
       dataset,
       limit,
       setTraceMetrics,
+      traceMetrics,
     ]
   );
 

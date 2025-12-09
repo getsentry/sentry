@@ -11,6 +11,7 @@ import {
   serializeSorts,
   type WidgetBuilderState,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {generateMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/generateMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
@@ -32,7 +33,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
         state.yAxis?.map((axis, index) => {
           const traceMetric = state.traceMetrics?.[index] ?? {name: '', type: ''};
           if (axis.kind === 'function') {
-            return `${axis.function[0]}(value,${traceMetric.name},${traceMetric.type},-)`;
+            return generateMetricAggregate(traceMetric, axis);
           }
           return axis.field;
         }) ?? [];
