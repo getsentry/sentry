@@ -1017,7 +1017,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_attributes_for_span": get_attributes_for_span,
     "trigger_coding_agent_launch": trigger_coding_agent_launch,
     #
-    # Bug prediction
+    # Bug prediction - dummy comment
     "get_sentry_organization_ids": get_sentry_organization_ids,
     "get_issues_by_function_name": by_function_name.fetch_issues,
     "get_issues_related_to_exception_type": by_error_type.fetch_issues,
