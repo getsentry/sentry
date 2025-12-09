@@ -1,8 +1,14 @@
+import {uuid4} from '@sentry/core';
+
 import type {FieldValue} from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
 import {ActionType, type Action} from 'sentry/types/workflowEngine/actions';
 import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
-import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
+import type {
+  DataCondition,
+  DataConditionGroup,
+  Subfilter,
+} from 'sentry/types/workflowEngine/dataConditions';
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
@@ -147,4 +153,42 @@ export function validateActions({actions}: {actions: Action[]}): Record<string, 
     }
   }
   return errors;
+}
+
+/**
+ * Subfilter IDs are stripped on form submission, so they need to be re-assigned
+ * when loading the edit form for the remove/update logic to work correctly.
+ */
+export function assignSubfilterIds(
+  actionFilters: DataConditionGroup[]
+): DataConditionGroup[] {
+  return actionFilters.map(assignConditionGroupSubfilterIds);
+}
+
+function assignConditionGroupSubfilterIds(group: DataConditionGroup): DataConditionGroup {
+  return {
+    ...group,
+    conditions: group.conditions.map(assignConditionSubfilterIds),
+  };
+}
+
+function assignConditionSubfilterIds(condition: DataCondition): DataCondition {
+  const filters = condition.comparison?.filters;
+  if (!filters) {
+    return condition;
+  }
+  return {
+    ...condition,
+    comparison: {
+      ...condition.comparison,
+      filters: filters.map(assignSubfilterId),
+    },
+  };
+}
+
+function assignSubfilterId(filter: Subfilter): Subfilter {
+  return {
+    ...filter,
+    id: filter.id ?? uuid4(),
+  };
 }
