@@ -210,10 +210,18 @@ def find_grouphash_with_group(
 
 
 # TODO: This can go once we've settled on an expiry time for each cache
-def _get_cache_expiry(cache_key: str, cache_type: Literal["existence", "object"]) -> int:
+def _get_cache_expiry(
+    cache_key: str, cache_type: Literal["existence", "object"]
+) -> tuple[int, int]:
     option_name = f"grouping.ingest_grouphash_{cache_type}_cache_expiry.trial_values"
     possible_cache_expiries = options.get(option_name)
-    return possible_cache_expiries[hash(cache_key) % len(possible_cache_expiries)]
+    expiry_for_cache_key = possible_cache_expiries[hash(cache_key) % len(possible_cache_expiries)]
+
+    # Calculate a option version value so that when the option value changes, we invalidate the
+    # cache entries stored under the old value of the option
+    option_version = abs(hash(tuple(possible_cache_expiries)))
+
+    return (expiry_for_cache_key, option_version)
 
 
 def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_caching: bool) -> bool:
