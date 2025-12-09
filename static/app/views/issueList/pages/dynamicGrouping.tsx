@@ -349,7 +349,13 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
   );
 }
 
-function ClusterCard({cluster}: {cluster: ClusterSummary}) {
+interface ClusterCardProps {
+  cluster: ClusterSummary;
+  filterByEscalating?: boolean;
+  filterByRegressed?: boolean;
+}
+
+function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCardProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -454,6 +460,17 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
       ]),
     ];
   }, [cluster.error_type_tags, cluster.code_area_tags, cluster.service_tags]);
+
+  // Apply filters - hide card if it doesn't match active filters
+  // Only filter once stats are loaded to avoid hiding cards prematurely
+  if (!clusterStats.isPending) {
+    if (filterByRegressed && !clusterStats.hasRegressedIssues) {
+      return null;
+    }
+    if (filterByEscalating && !clusterStats.isEscalating) {
+      return null;
+    }
+  }
 
   return (
     <CardContainer>
@@ -720,6 +737,8 @@ function DynamicGrouping() {
   const [disableFilters, setDisableFilters] = useState(false);
   const [showDevTools, setShowDevTools] = useState(false);
   const [visibleClusterCount, setVisibleClusterCount] = useState(CLUSTERS_PER_PAGE);
+  const [filterByRegressed, setFilterByRegressed] = useState(false);
+  const [filterByEscalating, setFilterByEscalating] = useState(false);
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
@@ -1046,6 +1065,30 @@ function DynamicGrouping() {
                             </Flex>
                           </Flex>
                         )}
+
+                        <Flex direction="column" gap="sm">
+                          <FilterLabel>{t('Filter by status')}</FilterLabel>
+                          <Flex direction="column" gap="xs" style={{paddingLeft: 8}}>
+                            <Flex gap="sm" align="center">
+                              <Checkbox
+                                checked={filterByRegressed}
+                                onChange={e => setFilterByRegressed(e.target.checked)}
+                                aria-label={t('Show only clusters with regressed issues')}
+                                size="sm"
+                              />
+                              <FilterLabel>{t('Has regressed issues')}</FilterLabel>
+                            </Flex>
+                            <Flex gap="sm" align="center">
+                              <Checkbox
+                                checked={filterByEscalating}
+                                onChange={e => setFilterByEscalating(e.target.checked)}
+                                aria-label={t('Show only escalating clusters')}
+                                size="sm"
+                              />
+                              <FilterLabel>{t('Escalating (>1.5x events)')}</FilterLabel>
+                            </Flex>
+                          </Flex>
+                        </Flex>
                       </Flex>
                     </Disclosure.Content>
                   </Disclosure>
@@ -1070,14 +1113,24 @@ function DynamicGrouping() {
                 {displayedClusters
                   .filter((_, index) => index % 2 === 0)
                   .map(cluster => (
-                    <ClusterCard key={cluster.cluster_id} cluster={cluster} />
+                    <ClusterCard
+                      key={cluster.cluster_id}
+                      cluster={cluster}
+                      filterByRegressed={filterByRegressed}
+                      filterByEscalating={filterByEscalating}
+                    />
                   ))}
               </CardsColumn>
               <CardsColumn>
                 {displayedClusters
                   .filter((_, index) => index % 2 === 1)
                   .map(cluster => (
-                    <ClusterCard key={cluster.cluster_id} cluster={cluster} />
+                    <ClusterCard
+                      key={cluster.cluster_id}
+                      cluster={cluster}
+                      filterByRegressed={filterByRegressed}
+                      filterByEscalating={filterByEscalating}
+                    />
                   ))}
               </CardsColumn>
             </CardsGrid>
