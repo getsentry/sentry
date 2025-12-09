@@ -27,6 +27,7 @@ import Redirect from 'sentry/components/redirect';
 import TimeSince from 'sentry/components/timeSince';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {
+  IconArrow,
   IconCalendar,
   IconChevron,
   IconClock,
@@ -35,7 +36,9 @@ import {
   IconEllipsis,
   IconFire,
   IconFix,
+  IconRefresh,
   IconSeer,
+  IconStar,
   IconUpload,
   IconUser,
 } from 'sentry/icons';
@@ -190,8 +193,11 @@ function CompactIssuePreview({group}: {group: Group}) {
 
 interface ClusterStats {
   firstSeen: string | null;
+  hasRegressedIssues: boolean;
+  isEscalating: boolean;
   isPending: boolean;
   lastSeen: string | null;
+  newIssuesCount: number;
   totalEvents: number;
   totalUsers: number;
 }
@@ -222,6 +228,9 @@ function useClusterStats(groupIds: number[]): ClusterStats {
         totalUsers: 0,
         firstSeen: null,
         lastSeen: null,
+        newIssuesCount: 0,
+        hasRegressedIssues: false,
+        isEscalating: false,
         isPending,
       };
     }
@@ -230,6 +239,19 @@ function useClusterStats(groupIds: number[]): ClusterStats {
     let totalUsers = 0;
     let earliestFirstSeen: Date | null = null;
     let latestLastSeen: Date | null = null;
+
+    // Calculate new issues (first seen within last week)
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    let newIssuesCount = 0;
+
+    // Check for regressed issues
+    let hasRegressedIssues = false;
+
+    // Calculate escalation by summing event stats across all issues
+    // We'll compare the first half of the 24h stats to the second half
+    let firstHalfEvents = 0;
+    let secondHalfEvents = 0;
 
     for (const group of groups) {
       totalEvents += parseInt(group.count, 10) || 0;
@@ -240,6 +262,10 @@ function useClusterStats(groupIds: number[]): ClusterStats {
         if (!earliestFirstSeen || firstSeenDate < earliestFirstSeen) {
           earliestFirstSeen = firstSeenDate;
         }
+        // Check if this issue is new (first seen within last week)
+        if (firstSeenDate >= oneWeekAgo) {
+          newIssuesCount++;
+        }
       }
 
       if (group.lastSeen) {
@@ -248,13 +274,39 @@ function useClusterStats(groupIds: number[]): ClusterStats {
           latestLastSeen = lastSeenDate;
         }
       }
+
+      // Check for regressed substatus
+      if (group.substatus === GroupSubstatus.REGRESSED) {
+        hasRegressedIssues = true;
+      }
+
+      // Aggregate 24h stats for escalation detection
+      const stats24h = group.stats?.['24h'];
+      if (stats24h && stats24h.length > 0) {
+        const midpoint = Math.floor(stats24h.length / 2);
+        for (let i = 0; i < stats24h.length; i++) {
+          const eventCount = stats24h[i]?.[1] ?? 0;
+          if (i < midpoint) {
+            firstHalfEvents += eventCount;
+          } else {
+            secondHalfEvents += eventCount;
+          }
+        }
+      }
     }
+
+    // Determine if escalating: second half has >1.5x events compared to first half
+    // Only consider escalating if there were events in the first half (avoid division by zero)
+    const isEscalating = firstHalfEvents > 0 && secondHalfEvents > firstHalfEvents * 1.5;
 
     return {
       totalEvents,
       totalUsers,
       firstSeen: earliestFirstSeen?.toISOString() ?? null,
       lastSeen: latestLastSeen?.toISOString() ?? null,
+      newIssuesCount,
+      hasRegressedIssues,
+      isEscalating,
       isPending,
     };
   }, [groups, isPending]);
@@ -297,7 +349,13 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
   );
 }
 
-function ClusterCard({cluster}: {cluster: ClusterSummary}) {
+interface ClusterCardProps {
+  cluster: ClusterSummary;
+  filterByEscalating?: boolean;
+  filterByRegressed?: boolean;
+}
+
+function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCardProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -403,6 +461,17 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
     ];
   }, [cluster.error_type_tags, cluster.code_area_tags, cluster.service_tags]);
 
+  // Apply filters - hide card if it doesn't match active filters
+  // Only filter once stats are loaded to avoid hiding cards prematurely
+  if (!clusterStats.isPending) {
+    if (filterByRegressed && !clusterStats.hasRegressedIssues) {
+      return null;
+    }
+    if (filterByEscalating && !clusterStats.isEscalating) {
+      return null;
+    }
+  }
+
   return (
     <CardContainer>
       <CardHeader>
@@ -473,6 +542,41 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
             </StatItem>
           )}
         </ClusterStats>
+        {!clusterStats.isPending &&
+          (clusterStats.newIssuesCount > 0 ||
+            clusterStats.hasRegressedIssues ||
+            clusterStats.isEscalating) && (
+            <ClusterStatusTags>
+              {clusterStats.newIssuesCount > 0 && (
+                <StatusTag color="purple">
+                  <IconStar size="xs" />
+                  <Text size="xs" bold>
+                    {tn(
+                      '%s new issue this week',
+                      '%s new issues this week',
+                      clusterStats.newIssuesCount
+                    )}
+                  </Text>
+                </StatusTag>
+              )}
+              {clusterStats.hasRegressedIssues && (
+                <StatusTag color="yellow">
+                  <IconRefresh size="xs" />
+                  <Text size="xs" bold>
+                    {t('Has regressed issues')}
+                  </Text>
+                </StatusTag>
+              )}
+              {clusterStats.isEscalating && (
+                <StatusTag color="red">
+                  <IconArrow direction="up" size="xs" />
+                  <Text size="xs" bold>
+                    {t('Escalating')}
+                  </Text>
+                </StatusTag>
+              )}
+            </ClusterStatusTags>
+          )}
       </CardHeader>
 
       <TabSection>
@@ -633,6 +737,8 @@ function DynamicGrouping() {
   const [disableFilters, setDisableFilters] = useState(false);
   const [showDevTools, setShowDevTools] = useState(false);
   const [visibleClusterCount, setVisibleClusterCount] = useState(CLUSTERS_PER_PAGE);
+  const [filterByRegressed, setFilterByRegressed] = useState(false);
+  const [filterByEscalating, setFilterByEscalating] = useState(false);
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
@@ -959,6 +1065,30 @@ function DynamicGrouping() {
                             </Flex>
                           </Flex>
                         )}
+
+                        <Flex direction="column" gap="sm">
+                          <FilterLabel>{t('Filter by status')}</FilterLabel>
+                          <Flex direction="column" gap="xs" style={{paddingLeft: 8}}>
+                            <Flex gap="sm" align="center">
+                              <Checkbox
+                                checked={filterByRegressed}
+                                onChange={e => setFilterByRegressed(e.target.checked)}
+                                aria-label={t('Show only clusters with regressed issues')}
+                                size="sm"
+                              />
+                              <FilterLabel>{t('Has regressed issues')}</FilterLabel>
+                            </Flex>
+                            <Flex gap="sm" align="center">
+                              <Checkbox
+                                checked={filterByEscalating}
+                                onChange={e => setFilterByEscalating(e.target.checked)}
+                                aria-label={t('Show only escalating clusters')}
+                                size="sm"
+                              />
+                              <FilterLabel>{t('Escalating (>1.5x events)')}</FilterLabel>
+                            </Flex>
+                          </Flex>
+                        </Flex>
                       </Flex>
                     </Disclosure.Content>
                   </Disclosure>
@@ -983,14 +1113,24 @@ function DynamicGrouping() {
                 {displayedClusters
                   .filter((_, index) => index % 2 === 0)
                   .map(cluster => (
-                    <ClusterCard key={cluster.cluster_id} cluster={cluster} />
+                    <ClusterCard
+                      key={cluster.cluster_id}
+                      cluster={cluster}
+                      filterByRegressed={filterByRegressed}
+                      filterByEscalating={filterByEscalating}
+                    />
                   ))}
               </CardsColumn>
               <CardsColumn>
                 {displayedClusters
                   .filter((_, index) => index % 2 === 1)
                   .map(cluster => (
-                    <ClusterCard key={cluster.cluster_id} cluster={cluster} />
+                    <ClusterCard
+                      key={cluster.cluster_id}
+                      cluster={cluster}
+                      filterByRegressed={filterByRegressed}
+                      filterByEscalating={filterByEscalating}
+                    />
                   ))}
               </CardsColumn>
             </CardsGrid>
@@ -1107,6 +1247,45 @@ const MoreProjectsCount = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
   margin-left: ${space(0.25)};
+`;
+
+// Status tags row for new/regressed/escalating indicators
+const ClusterStatusTags = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(1)};
+  margin-top: ${space(1)};
+`;
+
+const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
+  display: inline-flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  padding: ${space(0.5)} ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSize.xs};
+
+  ${p => {
+    switch (p.color) {
+      case 'purple':
+        return `
+          background: ${p.theme.purple100};
+          color: ${p.theme.purple400};
+        `;
+      case 'yellow':
+        return `
+          background: ${p.theme.yellow100};
+          color: ${p.theme.yellow400};
+        `;
+      case 'red':
+        return `
+          background: ${p.theme.red100};
+          color: ${p.theme.red400};
+        `;
+      default:
+        return '';
+    }
+  }}
 `;
 
 // Tab section for Summary / Preview Issues
