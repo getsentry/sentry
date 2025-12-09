@@ -1218,7 +1218,6 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'projects/',
-          name: t('Seer'),
           component: make(() => import('getsentry/views/seerAutomation/projects')),
         },
         {
