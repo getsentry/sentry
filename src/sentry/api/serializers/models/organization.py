@@ -764,11 +764,13 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 .first()
             )
             context["hasGranularReplayPermissions"] = bool(permissions_enabled)
-            context["replayAccessMembers"] = list(
-                OrganizationMemberReplayAccess.objects.filter(
+            context["replayAccessMembers"] = [
+                user_id
+                for user_id in OrganizationMemberReplayAccess.objects.filter(
                     organizationmember__organization=obj
                 ).values_list("organizationmember__user_id", flat=True)
-            )
+                if user_id is not None
+            ]
 
         if has_custom_dynamic_sampling(obj, actor=user):
             context["targetSampleRate"] = float(

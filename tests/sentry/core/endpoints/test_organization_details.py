@@ -1515,6 +1515,39 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert "to False" in log.data["hasGranularReplayPermissions"]
 
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_no_spurious_audit_log(self) -> None:
+        self.organization.update_option("sentry:granular-replay-permissions", True)
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"hasGranularReplayPermissions": True}
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            audit_logs = AuditLogEntry.objects.filter(organization_id=self.organization.id)
+            assert audit_logs.count() == 0
+
+    @with_feature("organizations:granular-replay-permissions")
+    def test_granular_replay_permissions_change_logs_old_value(self) -> None:
+        self.organization.update_option("sentry:granular-replay-permissions", False)
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"hasGranularReplayPermissions": True}
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        option_value = OrganizationOption.objects.get(
+            organization=self.organization, key="sentry:granular-replay-permissions"
+        )
+        assert option_value.value is True
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            log = AuditLogEntry.objects.get(organization_id=self.organization.id)
+        assert log.data["hasGranularReplayPermissions"] == "from False to True"
+
     def test_granular_replay_permissions_flag_requires_feature(self) -> None:
         data = {"hasGranularReplayPermissions": True}
         self.get_error_response(self.organization.slug, **data, status_code=404)

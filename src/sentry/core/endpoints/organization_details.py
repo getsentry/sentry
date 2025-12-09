@@ -622,10 +622,16 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         if "hasGranularReplayPermissions" in data:
             option_key = "sentry:granular-replay-permissions"
             new_value = data["hasGranularReplayPermissions"]
-            option_inst, created = OrganizationOption.objects.update_or_create(
+            option_inst, created = OrganizationOption.objects.get_or_create(
                 organization=org, key=option_key, defaults={"value": new_value}
             )
-            changed_data["hasGranularReplayPermissions"] = f"to {new_value}"
+            if not created and option_inst.value != new_value:
+                old_val = option_inst.value
+                option_inst.value = new_value
+                option_inst.save()
+                changed_data["hasGranularReplayPermissions"] = f"from {old_val} to {new_value}"
+            elif created:
+                changed_data["hasGranularReplayPermissions"] = f"to {new_value}"
 
         if "replayAccessMembers" in data:
             user_ids = data["replayAccessMembers"]
