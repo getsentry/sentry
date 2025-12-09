@@ -137,7 +137,6 @@ const getCustomerRow = (row: any) => [
             </span>
           )}
         </small>
-        {row.isGracePeriod && <Tag type="warning">Grace Period</Tag>}
         {row.usageExceeded && <Tag type="warning">Capacity Limit</Tag>}
         {row.isSuspended && (
           <Tooltip title={row.suspensionReason}>

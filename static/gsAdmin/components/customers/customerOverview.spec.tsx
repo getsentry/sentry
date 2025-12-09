@@ -41,7 +41,6 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('Gifted Errors:')).toBeInTheDocument();
     expect(screen.getByText('Gifted Transactions:')).toBeInTheDocument();
     expect(screen.getByText('Can Trial:')).toBeInTheDocument();
-    expect(screen.getByText('Can Grace Period:')).toBeInTheDocument();
     expect(screen.getByText('Legacy Soft Cap:')).toBeInTheDocument();
     expect(screen.getByText('Soft Cap By Category:')).toBeInTheDocument();
   });
