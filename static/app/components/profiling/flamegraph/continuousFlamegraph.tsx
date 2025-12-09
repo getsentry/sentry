@@ -604,7 +604,14 @@ export function ContinuousFlamegraph(): ReactElement {
           minWidth: flamegraph.profile.minFrameDuration,
           barHeight: flamegraphTheme.SIZES.BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
-          configSpaceTransform: getProfileOffset(profile, configSpaceQueryParam[0]),
+          configSpaceTransform:
+            // For continuous flamegraphs, we only want to adjust when the sorting is
+            // call order. This is because we need to offset it to align with the
+            // specified start/end but when sorting by left heavy or alphabetical,
+            // we always align it at 0.
+            sorting === 'call order'
+              ? getProfileOffset(profile, configSpaceQueryParam[0])
+              : undefined,
         },
       });
 
