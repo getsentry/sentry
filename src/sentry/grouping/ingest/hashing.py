@@ -239,6 +239,10 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
     ) as metrics_tags:
         if use_caching:
             cache_key = get_grouphash_existence_cache_key(hash_value, project.id)
+            # TODO: This can go back to being just
+            #     cache_expiry = options.get("grouping.ingest_grouphash_existence_cache_expiry")
+            # once we've settled on a good retention period
+            cache_expiry, option_version = _get_cache_expiry(cache_key, cache_type="existence")
 
             grouphash_exists = cache.get(cache_key)
             cache_expiry_used_when_setting = cache.get(
@@ -262,10 +266,8 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
             metrics_tags["cache_set"] = True
 
             # TODO: This can go back to being just
-            #     cache_expiry = options.get("grouping.ingest_grouphash_existence_cache_expiry")
             #     cache.set(cache_key, grouphash_exists, cache_expiry)
             # once we've settled on a good retention period
-            cache_expiry = _get_cache_expiry(cache_key, cache_type="existence")
             cache.set(cache_key, grouphash_exists, cache_expiry)
             cache.set(cache_key + "_expiry", cache_expiry, cache_expiry)
 
@@ -291,6 +293,10 @@ def _get_or_create_single_grouphash(
     ) as metrics_tags:
         if use_caching:
             cache_key = get_grouphash_object_cache_key(hash_value, project.id)
+            # TODO: This can go back to being just
+            #     cache_expiry = options.get("grouping.ingest_grouphash_object_cache_expiry")
+            # once we've settled on a good retention period
+            cache_expiry, option_version = _get_cache_expiry(cache_key, cache_type="object")
 
             grouphash = cache.get(cache_key)
             cache_expiry_used_when_setting = cache.get(
@@ -315,10 +321,8 @@ def _get_or_create_single_grouphash(
             metrics_tags["cache_set"] = True
 
             # TODO: This can go back to being just
-            #     cache_expiry = options.get("grouping.ingest_grouphash_object_cache_expiry")
             #     cache.set(cache_key, grouphash, cache_expiry)
             # once we've settled on a good retention period
-            cache_expiry = _get_cache_expiry(cache_key, cache_type="object")
             cache.set(cache_key, grouphash, cache_expiry)
             cache.set(cache_key + "_expiry", cache_expiry, cache_expiry)
 
