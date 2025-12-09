@@ -41,13 +41,17 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
-STORE_DATA_RETRY = Retry(
-    total=settings.SEER_ANOMALY_DETECTION_STORE_DATA_RETRIES,
-    connect=settings.SEER_ANOMALY_DETECTION_STORE_DATA_RETRIES,
-    read=settings.SEER_ANOMALY_DETECTION_STORE_DATA_RETRIES,
-    backoff_factor=settings.SEER_ANOMALY_DETECTION_STORE_DATA_RETRY_BACKOFF,
-    allowed_methods=frozenset({"POST"}),
-) if settings.SEER_ANOMALY_DETECTION_STORE_DATA_RETRIES > 0 else None
+STORE_DATA_RETRY = (
+    Retry(
+        total=settings.SEER_ANOMALY_DETECTION_STORE_DATA_RETRIES,
+        connect=settings.SEER_ANOMALY_DETECTION_STORE_DATA_RETRIES,
+        read=settings.SEER_ANOMALY_DETECTION_STORE_DATA_RETRIES,
+        backoff_factor=settings.SEER_ANOMALY_DETECTION_STORE_DATA_RETRY_BACKOFF,
+        allowed_methods=frozenset({"POST"}),
+    )
+    if settings.SEER_ANOMALY_DETECTION_STORE_DATA_RETRIES > 0
+    else None
+)
 MIN_DAYS = 7
 
 
