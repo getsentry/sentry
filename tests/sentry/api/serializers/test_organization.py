@@ -17,13 +17,13 @@ from sentry.features.base import OrganizationFeature
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
 )
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 
@@ -204,12 +204,8 @@ class DetailedOrganizationSerializerTest(TestCase):
         member2 = self.create_member(
             organization=organization, user=self.create_user(), role="member"
         )
-        OrganizationMemberReplayAccess.objects.create(
-            organization=organization, organizationmember=member1
-        )
-        OrganizationMemberReplayAccess.objects.create(
-            organization=organization, organizationmember=member2
-        )
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member1)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member2)
         acc = access.from_user(user, organization)
 
         with self.feature("organizations:granular-replay-permissions"):

@@ -97,7 +97,6 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
 from sentry.models.project import Project
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
@@ -106,6 +105,7 @@ from sentry.organizations.services.organization.model import (
     RpcOrganizationDeleteState,
 )
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
+from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
@@ -633,9 +633,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             if member_ids is None:
                 member_ids = []
             current_member_ids = set(
-                OrganizationMemberReplayAccess.objects.filter(organization=org).values_list(
-                    "organizationmember_id", flat=True
-                )
+                OrganizationMemberReplayAccess.objects.filter(
+                    organizationmember__organization=org
+                ).values_list("organizationmember_id", flat=True)
             )
             new_member_ids = set(member_ids)
 
@@ -657,9 +657,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
                 OrganizationMemberReplayAccess.objects.bulk_create(
                     [
-                        OrganizationMemberReplayAccess(
-                            organization=org, organizationmember_id=member_id
-                        )
+                        OrganizationMemberReplayAccess(organizationmember_id=member_id)
                         for member_id in to_add
                     ],
                     ignore_conflicts=True,
@@ -667,7 +665,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
             if to_remove:
                 OrganizationMemberReplayAccess.objects.filter(
-                    organization=org, organizationmember_id__in=to_remove
+                    organizationmember__organization=org, organizationmember_id__in=to_remove
                 ).delete()
 
             if to_add or to_remove:

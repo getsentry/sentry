@@ -76,12 +76,12 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
-from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
 from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -765,9 +765,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             )
             context["hasGranularReplayPermissions"] = bool(permissions_enabled)
             context["replayAccessMembers"] = list(
-                OrganizationMemberReplayAccess.objects.filter(organization=obj).values_list(
-                    "organizationmember_id", flat=True
-                )
+                OrganizationMemberReplayAccess.objects.filter(
+                    organizationmember__organization=obj
+                ).values_list("organizationmember_id", flat=True)
             )
 
         if has_custom_dynamic_sampling(obj, actor=user):

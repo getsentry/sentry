@@ -473,12 +473,10 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         # OrganizationMemberReplayAccess - add for the owner member
-        from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
+        from sentry.replays.models import OrganizationMemberReplayAccess
 
         owner_member = OrganizationMember.objects.get(organization=org, user_id=owner_id)
-        OrganizationMemberReplayAccess.objects.create(
-            organization=org, organizationmember=owner_member
-        )
+        OrganizationMemberReplayAccess.objects.create(organizationmember=owner_member)
 
         # Team
         team = self.create_team(name=f"test_team_in_{slug}", organization=org)

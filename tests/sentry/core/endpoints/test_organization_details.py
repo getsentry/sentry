@@ -31,8 +31,8 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
+from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
 from sentry.snuba.metrics import TransactionMRI
@@ -1548,7 +1548,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         access_members = list(
             OrganizationMemberReplayAccess.objects.filter(
-                organization=self.organization
+                organizationmember__organization=self.organization
             ).values_list("organizationmember_id", flat=True)
         )
         assert set(access_members) == {member1.id, member2.id}
@@ -1566,12 +1566,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         member2 = self.create_member(
             organization=self.organization, user=self.create_user(), role="member"
         )
-        OrganizationMemberReplayAccess.objects.create(
-            organization=self.organization, organizationmember=member1
-        )
-        OrganizationMemberReplayAccess.objects.create(
-            organization=self.organization, organizationmember=member2
-        )
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member1)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member2)
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
@@ -1581,7 +1577,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         access_members = list(
             OrganizationMemberReplayAccess.objects.filter(
-                organization=self.organization
+                organizationmember__organization=self.organization
             ).values_list("organizationmember_id", flat=True)
         )
         assert access_members == [member1.id]
@@ -1602,9 +1598,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         member3 = self.create_member(
             organization=self.organization, user=self.create_user(), role="member"
         )
-        OrganizationMemberReplayAccess.objects.create(
-            organization=self.organization, organizationmember=member1
-        )
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member1)
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
@@ -1614,7 +1608,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         access_members = set(
             OrganizationMemberReplayAccess.objects.filter(
-                organization=self.organization
+                organizationmember__organization=self.organization
             ).values_list("organizationmember_id", flat=True)
         )
         assert access_members == {member2.id, member3.id}
@@ -1630,9 +1624,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         member1 = self.create_member(
             organization=self.organization, user=self.create_user(), role="member"
         )
-        OrganizationMemberReplayAccess.objects.create(
-            organization=self.organization, organizationmember=member1
-        )
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member1)
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
@@ -1641,7 +1633,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.get_success_response(self.organization.slug, **data)
 
         access_count = OrganizationMemberReplayAccess.objects.filter(
-            organization=self.organization
+            organizationmember__organization=self.organization
         ).count()
         assert access_count == 0
 
@@ -1703,7 +1695,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert str(valid_member.id) not in response.data["replayAccessMembers"]
 
         access_count = OrganizationMemberReplayAccess.objects.filter(
-            organization=self.organization
+            organizationmember__organization=self.organization
         ).count()
         assert access_count == 0
 
