@@ -22,6 +22,7 @@ interface AnomalyThresholdDataResponse {
 
 interface UseMetricDetectorAnomalyThresholdsProps {
   detectorId: string;
+  detectionType?: string;
   endTimestamp?: number;
   series?: Series[];
   startTimestamp?: number;
@@ -38,6 +39,7 @@ interface UseMetricDetectorAnomalyThresholdsResult {
  */
 export function useMetricDetectorAnomalyThresholds({
   detectorId,
+  detectionType,
   startTimestamp,
   endTimestamp,
   series = [],
@@ -48,6 +50,7 @@ export function useMetricDetectorAnomalyThresholds({
   const hasAnomalyDataFlag = organization.features.includes(
     'anomaly-detection-threshold-data'
   );
+  const isAnomalyDetection = detectionType === 'dynamic';
 
   const {
     data: anomalyData,
@@ -66,7 +69,9 @@ export function useMetricDetectorAnomalyThresholds({
     {
       staleTime: 0,
       enabled:
-        hasAnomalyDataFlag && Boolean(detectorId && startTimestamp && endTimestamp),
+        hasAnomalyDataFlag &&
+        isAnomalyDetection &&
+        Boolean(detectorId && startTimestamp && endTimestamp),
     }
   );
 
