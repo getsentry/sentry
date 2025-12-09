@@ -296,7 +296,11 @@ class OrganizationExamples:
                 "aggregatedDataConsent": False,
                 "defaultAutofixAutomationTuning": AutofixAutomationTuningSettings.OFF,
                 "autoEnableCodeReview": True,
-                "defaultCodeReviewTriggers": ["on_command_phrase", "on_ready_for_review", "on_new_commit"],
+                "defaultCodeReviewTriggers": [
+                    "on_command_phrase",
+                    "on_ready_for_review",
+                    "on_new_commit",
+                ],
                 "defaultSeerScannerAutomation": True,
                 "enableSeerCoding": True,
                 "enableSeerEnhancedAlerts": True,
