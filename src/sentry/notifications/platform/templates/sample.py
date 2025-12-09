@@ -22,7 +22,6 @@ from sentry.notifications.platform.types import (
 
 @dataclass
 class ErrorAlertData(NotificationData):
-    source = "error-alert-service"
     error_type: str
     error_message: str
     project_name: str
