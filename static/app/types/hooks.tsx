@@ -8,6 +8,7 @@ import type {ProductSelectionProps} from 'sentry/components/onboarding/productSe
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SentryRouteObject} from 'sentry/router/types';
+import type {DataCategory} from 'sentry/types/core';
 import type {
   useDefaultMaxPickableDays,
   useMaxPickableDays,
@@ -344,6 +345,7 @@ type ReactHooks = {
     isError: boolean;
     isLoading: boolean;
   };
+  'react-hook:use-product-billing-access': (product: DataCategory) => boolean;
 };
 
 /**

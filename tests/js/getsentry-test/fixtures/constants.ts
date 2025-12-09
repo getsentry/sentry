@@ -15,12 +15,7 @@ export const AM_ADD_ON_CATEGORIES = {
   },
   [AddOnCategory.SEER]: {
     apiName: AddOnCategory.SEER,
-    dataCategories: [
-      DataCategory.SEER_USER,
-      DataCategory.PREVENT_REVIEW,
-      DataCategory.SEER_AUTOFIX,
-      DataCategory.SEER_SCANNER,
-    ],
+    dataCategories: [DataCategory.SEER_USER],
     name: 'seer',
     billingFlag: 'seer-user-billing',
     order: 2,
