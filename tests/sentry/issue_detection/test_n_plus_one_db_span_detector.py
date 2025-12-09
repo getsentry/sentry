@@ -16,11 +16,13 @@ from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
-from sentry.testutils.issue_detection.event_generators import get_event
+from sentry.testutils.issue_detection.event_generators import create_event, create_span, get_event
 
 
 @pytest.mark.django_db
-class NPlusOneDbDetectorTest(unittest.TestCase):
+class NPlusOneDBSpanDetectorTest(unittest.TestCase):
+    fingerprint_prefix = "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES"
+
     def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
@@ -46,7 +48,7 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
         event = get_event("n-plus-one-db/n-plus-one-in-django-index-view-unparameterized")
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
+                fingerprint=f"{self.fingerprint_prefix}-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 op="db",
                 desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = 1 LIMIT 21",
                 type=PerformanceNPlusOneGroupType,
@@ -120,7 +122,7 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
         event = get_event("n-plus-one-db/n-plus-one-in-django-index-view-activerecord")
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
+                fingerprint=f"{self.fingerprint_prefix}-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 op="db",
                 desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
                 type=PerformanceNPlusOneGroupType,
@@ -180,7 +182,7 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
 
         assert self.find_problems(event, {"duration_threshold": 0}) == [
             PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-e55ea09e1cff0ca2369f287cf624700f98cf4b50",
+                fingerprint=f"{self.fingerprint_prefix}-e55ea09e1cff0ca2369f287cf624700f98cf4b50",
                 op="db",
                 type=PerformanceNPlusOneGroupType,
                 desc='SELECT "expense_expenses"."id", "expense_expenses"."report_id", "expense_expenses"."amount" FROM "expense_expenses" WHERE "expense_expenses"."report_id" = %s',
@@ -243,7 +245,7 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
         event = get_event("n-plus-one-db/parallel-n-plus-one-in-django-index-view")
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
+                fingerprint=f"{self.fingerprint_prefix}-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 op="db",
                 desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
                 type=PerformanceNPlusOneGroupType,
@@ -281,6 +283,116 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
                 evidence_display=[],
             )
         ]
+
+    def test_detects_n_plus_one_with_mongodb(self) -> None:
+        event = get_event("n-plus-one-db/n-plus-one-db-mongodb")
+        offender_spans_ids = [
+            "1b956e6208c12234",
+            "507ac1e45eeb6f48",
+            "a26f142f8f4ddf8c",
+            "943646644c6cd1e2",
+            "382d73298e39b6ad",
+            "825c930f96d2413e",
+            "34ed0679baf34c21",
+            "828489c5141f7e98",
+            "4951058576fc8740",
+            "cec67e0ed8212153",
+            "e6f2d476420b4142",
+            "d9fea64390f835e6",
+            "6bb43d3c81cff71e",
+            "d46e8e0ec4894684",
+            "03112ecef7f2d2a8",
+        ]
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint=f"{self.fingerprint_prefix}-4e7d5e9be7cb7af2dc8af3ab6be354707e3ab2bc",
+                op="db",
+                desc='{"filter":{"productid":{"buffer":"?"}},"find":"reviews"}',
+                type=PerformanceNPlusOneGroupType,
+                parent_span_ids=["991fdf5c47a068b0"],
+                cause_span_ids=["398687f1a7e9cf73"],
+                offender_span_ids=offender_spans_ids,
+                evidence_data={
+                    "cause_span_ids": ["398687f1a7e9cf73"],
+                    "num_repeating_spans": "15",
+                    "offender_span_ids": offender_spans_ids,
+                    "op": "db",
+                    "parent_span": "http.server",
+                    "parent_span_ids": ["991fdf5c47a068b0"],
+                    "repeating_spans": """db - '{"filter":{"productid":{"buffer":"?"}},"find":"reviews"}'""",
+                    "repeating_spans_compact": """'{"filter":{"productid":{"buffer":"?"}},"find":"reviews"}'""",
+                    "transaction_name": "GET /products",
+                },
+                evidence_display=[
+                    IssueEvidence(
+                        name="Offending Spans",
+                        value="""db - '{"filter":{"productid":{"buffer":"?"}},"find":"reviews"}'""",
+                        important=True,
+                    ),
+                ],
+            ),
+        ]
+
+    def test_ignores_quick_n_plus_one_with_mongodb(self) -> None:
+        event = get_event("n-plus-one-db/n-plus-one-db-mongodb")
+        # Shorten spans to ~10-20ms
+        for index, span in enumerate(event["spans"]):
+            if span.get("op") == "db" and span["data"].get("db.collection.name") == "reviews":
+                span["start_timestamp"] = index
+                span["timestamp"] = index + 0.001  # Each span takes 1ms
+        assert self.find_problems(event) == []
+
+    def test_ignores_few_spans_n_plus_one_with_mongodb(self) -> None:
+        event = get_event("n-plus-one-db/n-plus-one-db-mongodb")
+        override_spans = []
+        allowed_span_count = 3
+        # Remove all but 'allowed_span_count' N+1 spans
+        for span in event["spans"]:
+            if span.get("op") == "db" and span["data"].get("db.collection.name") == "reviews":
+                if allowed_span_count == 0:
+                    continue
+                allowed_span_count -= 1
+            override_spans.append(span)
+        event["spans"] = override_spans
+        assert self.find_problems(event) == []
+
+    def test_detects_n_plus_one_with_mongoose(self) -> None:
+        """
+        Without the check for "{" in the description, this event would have 2 problems, due to
+        the mongoose.findOne spans.
+        """
+        event = get_event("n-plus-one-db/n-plus-one-db-mongoose")
+        problems = self.find_problems(event)
+        assert len(problems) == 1
+        assert "mongoose" not in problems[0].desc
+
+    def test_does_not_detect_n_plus_one_with_pg_pool_connect(self) -> None:
+        source_span = create_span(
+            "db",
+            100,
+            "SELECT * FROM users WHERE id = 1",
+            hash="source_hash",
+        )
+
+        repeating_spans = [
+            create_span(
+                "db",
+                100,
+                "pg-pool.connect",
+                hash="pool_hash",
+            )
+            for _ in range(11)
+        ]
+
+        event = create_event([source_span] + repeating_spans)
+        event["contexts"] = {
+            "trace": {
+                "span_id": "a" * 16,
+                "op": "http.server",
+            }
+        }
+
+        assert self.find_problems(event) == []
 
 
 @pytest.mark.django_db

@@ -9,7 +9,7 @@ import type {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import {UNLIMITED, UNLIMITED_RESERVED} from 'getsentry/constants';
+import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import type {
   BillingMetricHistory,
   Plan,
@@ -18,9 +18,11 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {
+  checkIsAddOnChildCategory,
   displayBudgetName,
   formatReservedWithUnits,
   getSoftCapType,
+  hasPaygBudgetForCategory,
   isTrialPlan,
   supportsPayg,
 } from 'getsentry/utils/billing';
@@ -96,7 +98,9 @@ function UsageBreakdownInfo({
     !!formattedAdditionalReserved ||
     !!formattedGifted;
   const shouldShowReservedSpend =
-    defined(recurringReservedSpend) && subscription.canSelfServe;
+    defined(recurringReservedSpend) &&
+    recurringReservedSpend > 0 &&
+    subscription.canSelfServe;
   const shouldShowAdditionalSpend =
     shouldShowReservedSpend || canUsePayg || defined(formattedSoftCapType);
 
@@ -104,13 +108,15 @@ function UsageBreakdownInfo({
     return null;
   }
 
+  const interval = plan.contractInterval === 'monthly' ? t('month') : t('year');
+
   return (
     <Grid columns="repeat(2, 1fr)" gap="md lg" padding="xl">
       {shouldShowIncludedVolume && (
         <Flex direction="column" gap="lg">
           <Text bold>{t('Included volume')}</Text>
           {activeProductTrial && (
-            <UsageBreakdownField field={t('Trial')} value={UNLIMITED} />
+            <UsageBreakdownField field={t('Trial')} value={t('Unlimited')} />
           )}
           {formattedPlatformReserved && (
             <UsageBreakdownField
@@ -165,7 +171,7 @@ function UsageBreakdownInfo({
           {shouldShowReservedSpend && (
             <UsageBreakdownField
               field={t('Reserved spend')}
-              value={displayPriceWithCents({cents: recurringReservedSpend})}
+              value={`${displayPriceWithCents({cents: recurringReservedSpend})} / ${interval}`}
               help={t(
                 'The amount you spend on additional reserved volume for this product per billing cycle.'
               )}
@@ -184,7 +190,9 @@ function DataCategoryUsageBreakdownInfo({
   activeProductTrial,
 }: DataCategoryUsageBreakdownInfoProps) {
   const {planDetails: plan} = subscription;
-  const productCanUsePayg = plan.onDemandCategories.includes(category);
+  const productCanUsePayg =
+    plan.onDemandCategories.includes(category) &&
+    hasPaygBudgetForCategory(subscription, category);
   const platformReserved =
     plan.planCategories[category]?.find(
       bucket => bucket.price === 0 && bucket.events >= 0
@@ -192,29 +200,28 @@ function DataCategoryUsageBreakdownInfo({
   const platformReservedField = tct('[planName] plan', {planName: plan.name});
   const reserved = metricHistory.reserved ?? 0;
   const isUnlimited = reserved === UNLIMITED_RESERVED;
+  const isAddOnChildCategory = checkIsAddOnChildCategory(subscription, category, true);
 
-  const addOnDataCategories = Object.values(plan.addOnCategories).flatMap(
-    addOn => addOn.dataCategories
-  );
-  const isAddOnChildCategory = addOnDataCategories.includes(category) && !isUnlimited;
-
-  const shouldShowAdditionalReserved =
-    !isAddOnChildCategory && !isUnlimited && subscription.canSelfServe;
-  const formattedPlatformReserved = isAddOnChildCategory
-    ? null
-    : formatReservedWithUnits(
-        shouldShowAdditionalReserved ? platformReserved : reserved,
-        category
-      );
   const additionalReserved = Math.max(0, reserved - platformReserved);
+  const shouldShowAdditionalReserved =
+    !isAddOnChildCategory &&
+    !isUnlimited &&
+    subscription.canSelfServe &&
+    additionalReserved > 0;
   const formattedAdditionalReserved = shouldShowAdditionalReserved
     ? formatReservedWithUnits(additionalReserved, category)
     : null;
+  const formattedPlatformReserved =
+    isAddOnChildCategory || !reserved
+      ? null
+      : formatReservedWithUnits(
+          shouldShowAdditionalReserved ? platformReserved : reserved,
+          category
+        );
 
   const gifted = metricHistory.free ?? 0;
-  const formattedGifted = isAddOnChildCategory
-    ? null
-    : formatReservedWithUnits(gifted, category);
+  const formattedGifted =
+    isAddOnChildCategory || !gifted ? null : formatReservedWithUnits(gifted, category);
 
   const paygSpend = metricHistory.onDemandSpendUsed ?? 0;
   const paygCategoryBudget = metricHistory.onDemandBudget ?? 0;
@@ -248,8 +255,10 @@ function ReservedBudgetUsageBreakdownInfo({
   activeProductTrial,
 }: ReservedBudgetUsageBreakdownInfoProps) {
   const {planDetails: plan, categories: metricHistories} = subscription;
-  const productCanUsePayg = reservedBudget.dataCategories.every(category =>
-    plan.onDemandCategories.includes(category)
+  const productCanUsePayg = reservedBudget.dataCategories.every(
+    category =>
+      plan.onDemandCategories.includes(category) &&
+      hasPaygBudgetForCategory(subscription, category)
   );
   const onTrialOrSponsored = isTrialPlan(subscription.plan) || subscription.isSponsored;
 
@@ -265,7 +274,10 @@ function ReservedBudgetUsageBreakdownInfo({
   });
 
   const formattedAdditionalReserved = null;
-  const formattedGifted = displayPriceWithCents({cents: reservedBudget.freeBudget});
+  const formattedGifted =
+    reservedBudget.freeBudget > 0
+      ? displayPriceWithCents({cents: reservedBudget.freeBudget})
+      : null;
   const paygSpend = reservedBudget.dataCategories.reduce((acc, category) => {
     return acc + (metricHistories[category]?.onDemandSpendUsed ?? 0);
   }, 0);

@@ -30,9 +30,7 @@ const datePageFilterProps: DatePageFilterProps = {
 };
 
 describe('LogsTabContent', () => {
-  const {organization, project, setupPageFilters} = initializeLogsTest({
-    orgFeatures: ['search-query-builder-case-insensitivity'],
-  });
+  const {organization, project, setupPageFilters} = initializeLogsTest();
 
   let eventTableMock: jest.Mock;
   let eventsTimeSeriesMock: jest.Mock;
@@ -207,7 +205,7 @@ describe('LogsTabContent', () => {
           partial: 1,
           project: [2],
           query: 'severity:error timestamp_precise:<=1508208040000000000',
-          referrer: 'explore.ourlogs.main-chart',
+          referrer: 'api.explore.ourlogs-timeseries',
           sampling: 'NORMAL',
           sort: '-count_message',
           statsPeriod: '14d',
@@ -311,7 +309,7 @@ describe('LogsTabContent', () => {
           partial: 1,
           project: [2],
           query: 'severity:error timestamp_precise:<=1508208040000000000',
-          referrer: 'explore.ourlogs.main-chart',
+          referrer: 'api.explore.ourlogs-timeseries',
           sampling: 'NORMAL',
           sort: '-count_message',
           statsPeriod: '14d',

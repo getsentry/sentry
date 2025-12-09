@@ -102,9 +102,19 @@ type GetsentryEventParameters = {
   'checkout.updated_billing_details': BillingInfoUpdateEvent;
   'checkout.updated_cc': BillingInfoUpdateEvent;
   // no sub here
-  'checkout.upgrade': Partial<
-    Record<DataCategory | `previous_${DataCategory}`, number | undefined>
-  > & {previous_plan: string} & Checkout;
+  'checkout.upgrade': {
+    previous_plan: string;
+    categories?: Partial<
+      Record<
+        DataCategory,
+        {
+          previous_reserved: number | undefined;
+          reserved: number | undefined;
+        }
+      >
+    >;
+  } & Partial<Record<DataCategory | `previous_${DataCategory}`, number | undefined>> &
+    Checkout;
   'data_consent_modal.learn_more': Record<PropertyKey, unknown>;
   'data_consent_priority.viewed': Record<PropertyKey, unknown>;
   'data_consent_settings.updated': {setting: string; value: FieldValue};

@@ -610,6 +610,23 @@ export function supportsPayg(subscription: Subscription) {
 }
 
 /**
+ * Whether the category can use PAYG on the subscription given existing budgets.
+ * Does not check if there is PAYG left.
+ */
+export function hasPaygBudgetForCategory(
+  subscription: Subscription,
+  category: DataCategory
+) {
+  if (!subscription.onDemandBudgets) {
+    return false;
+  }
+  if (subscription.onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+    return (subscription.onDemandBudgets.budgets?.[category] ?? 0) > 0;
+  }
+  return subscription.onDemandBudgets.sharedMaxBudget > 0;
+}
+
+/**
  * Returns true if the current user has billing perms.
  */
 export function hasBillingAccess(organization: Organization) {
@@ -878,6 +895,34 @@ export function checkIsAddOn(
   selectedProduct: DataCategory | AddOnCategory | string
 ): boolean {
   return Object.values(AddOnCategory).includes(selectedProduct as AddOnCategory);
+}
+
+/**
+ * Check if a data category is a child category of an add-on.
+ * If `checkReserved` is true, the category is only considered a child if it has a reserved volume of 0 or RESERVED_BUDGET_QUOTA.
+ * If `checkReserved` is false, the category is considered a child if it is included in `dataCategories` for any available add-on.
+ */
+export function checkIsAddOnChildCategory(
+  subscription: Subscription,
+  category: DataCategory,
+  checkReserved: boolean
+) {
+  const parentAddOn = Object.values(subscription.addOns ?? {})
+    .filter(addOn => addOn.isAvailable)
+    .find(addOn => addOn.dataCategories.includes(category));
+  if (!parentAddOn) {
+    return false;
+  }
+
+  if (checkReserved) {
+    const metricHistory = subscription.categories[category];
+    if (!metricHistory) {
+      return false;
+    }
+    return [RESERVED_BUDGET_QUOTA, 0].includes(metricHistory.reserved ?? 0);
+  }
+
+  return true;
 }
 
 /**

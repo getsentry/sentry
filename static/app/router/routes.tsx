@@ -135,18 +135,17 @@ function buildRoutes(): RouteObject[] {
     {
       index: true,
       component: make(() => import('sentry/views/auth/login')),
-      deprecatedRouteProps: true,
     },
     {
       path: ':orgId/',
       component: make(() => import('sentry/views/auth/login')),
-      deprecatedRouteProps: true,
     },
   ];
   const experimentalSpaRoutes: SentryRouteObject = EXPERIMENTAL_SPA
     ? {
         path: '/auth/login/',
         component: errorHandler(AuthLayout),
+        deprecatedRouteProps: true,
         children: experimentalSpaChildRoutes,
       }
     : {};
@@ -201,7 +200,6 @@ function buildRoutes(): RouteObject[] {
       path: '/user-feedback/',
       redirectTo: '/feedback/',
     },
-    // TODO: remove share/issue orgless url
     {
       path: '/share/issue/:shareId/',
       component: make(() => import('sentry/views/sharedGroupDetails')),
@@ -1220,7 +1218,6 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'projects/',
-          name: t('Seer'),
           component: make(() => import('getsentry/views/seerAutomation/projects')),
         },
         {
@@ -2444,82 +2441,10 @@ function buildRoutes(): RouteObject[] {
     children: exploreChildren,
   };
 
-  // This is a layout route that will render a header for a commit
-  const codecovCommitRoutes: SentryRouteObject = {
-    path: 'commits/:sha/',
-    component: make(() => import('sentry/views/prevent/coverage/commits/commitWrapper')),
-    children: [
-      {
-        index: true,
-        component: make(
-          () => import('sentry/views/prevent/coverage/commits/commitDetail')
-        ),
-      },
-      {
-        path: 'history/',
-        component: make(
-          () => import('sentry/views/prevent/coverage/commits/commitHistory')
-        ),
-      },
-      {
-        path: 'yaml/',
-        component: make(() => import('sentry/views/prevent/coverage/commits/commitYaml')),
-      },
-    ],
-  };
-
-  // This is a layout route that will render a header for a pull request
-  const codecovPRRoutes: SentryRouteObject = {
-    path: 'pulls/:pullId/',
-    component: make(() => import('sentry/views/prevent/coverage/pulls/pullWrapper')),
-    children: [
-      {
-        index: true,
-        component: make(() => import('sentry/views/prevent/coverage/pulls/pullDetail')),
-      },
-    ],
-  };
-
   const codecovChildren: SentryRouteObject[] = [
     {
       index: true,
       redirectTo: 'ai-code-review/new/',
-    },
-    {
-      path: 'coverage/',
-      children: [
-        // This is a layout route that will render a header for coverage
-        {
-          component: make(() => import('sentry/views/prevent/coverage/coverageWrapper')),
-          children: [
-            {
-              path: 'file-explorer/',
-              component: make(() => import('sentry/views/prevent/coverage/coverage')),
-            },
-            {
-              path: 'commits/',
-              component: make(() => import('sentry/views/prevent/coverage/commits')),
-            },
-            {
-              path: 'pulls/',
-              component: make(() => import('sentry/views/prevent/coverage/pulls')),
-            },
-            {
-              path: 'coverage-trend/',
-              component: make(
-                () => import('sentry/views/prevent/coverage/coverageTrend')
-              ),
-            },
-          ],
-        },
-        // Render coverage onboarding without any layout wrapping
-        {
-          path: 'new/',
-          component: make(() => import('sentry/views/prevent/coverage/onboarding')),
-        },
-        codecovCommitRoutes,
-        codecovPRRoutes,
-      ],
     },
     {
       path: 'tests/',
@@ -2548,10 +2473,6 @@ function buildRoutes(): RouteObject[] {
             {
               path: 'new/',
               component: make(() => import('sentry/views/prevent/preventAI/onboarding')),
-            },
-            {
-              path: 'home/',
-              component: make(() => import('sentry/views/prevent/preventAI/index')),
             },
           ],
         },

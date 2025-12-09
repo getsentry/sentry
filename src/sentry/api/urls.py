@@ -646,7 +646,6 @@ from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
-from .endpoints.check_am2_compatibility import CheckAM2CompatibilityEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
 from .endpoints.custom_rules import CustomRulesEndpoint
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
@@ -1359,6 +1358,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/",
         include(create_group_urls("sentry-api-0-organization-group")),
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/shared/(?:issues|groups)/(?P<share_id>[^/]+)/$",
+        SharedGroupDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-shared-group-details",
     ),
     # Alert Rules
     re_path(
@@ -3504,11 +3508,6 @@ INTERNAL_URLS = [
         name="sentry-api-0-prevent-pr-review-github-sentry-org",
     ),
     re_path(
-        r"^check-am2-compatibility/$",
-        CheckAM2CompatibilityEndpoint.as_view(),
-        name="sentry-api-0-internal-check-am2-compatibility",
-    ),
-    re_path(
         r"^feature-flags/$",
         InternalFeatureFlagsEndpoint.as_view(),
         name="sentry-api-0-internal-feature-flags",
@@ -3667,17 +3666,6 @@ urlpatterns = [
         r"^notification-defaults/$",
         NotificationDefaultsEndpoints.as_view(),
         name="sentry-api-0-notification-defaults",
-    ),
-    # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
-    re_path(
-        r"^organizations/(?P<organization_id_or_slug>[^/]+)/shared/(?:issues|groups)/(?P<share_id>[^/]+)/$",
-        SharedGroupDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-shared-group-details",
-    ),
-    re_path(
-        r"^shared/(?:issues|groups)/(?P<share_id>[^/]+)/$",
-        SharedGroupDetailsEndpoint.as_view(),
-        name="sentry-api-0-shared-group-details",
     ),
     re_path(
         r"^sentry-apps-stats/$",
