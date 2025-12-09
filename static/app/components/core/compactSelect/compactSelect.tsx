@@ -1,4 +1,4 @@
-import {useId, useMemo} from 'react';
+import {useId, useMemo, useState} from 'react';
 import {Item, Section} from '@react-stately/collections';
 import type {DistributedOmit} from 'type-fest';
 
@@ -74,6 +74,7 @@ export function CompactSelect<Value extends SelectKey>({
   size = 'md',
   closeOnSelect,
   triggerProps,
+  menuWidth,
   ...controlProps
 }: SelectProps<Value>) {
   const triggerId = useId();
@@ -114,13 +115,29 @@ export function CompactSelect<Value extends SelectKey>({
     };
   }, [multiple, clearable, value, onChange, closeOnSelect, grid]);
 
-  const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
+  const [measuredMenuWidth, setMeasuredMenuWidth] = useState<number>();
+
+  const itemsWithKey = useMemo(() => {
+    if (
+      shouldVirtualize(options, virtualThreshold) &&
+      !menuWidth &&
+      measuredMenuWidth === undefined
+    ) {
+      // todo find longest option
+      if (options.length > 10) {
+        return getItemsWithKeys([options.at(5)!]);
+      }
+      return getItemsWithKeys(options.slice(0, 1));
+    }
+    return getItemsWithKeys(options);
+  }, [options, virtualThreshold, menuWidth, measuredMenuWidth]);
 
   const controlDisabled = disabled ?? options?.length === 0;
 
   return (
     <Control
       {...controlProps}
+      menuWidth={menuWidth ?? measuredMenuWidth}
       triggerProps={{...triggerProps, id: triggerId}}
       disabled={controlDisabled}
       grid={grid}
@@ -140,6 +157,15 @@ export function CompactSelect<Value extends SelectKey>({
           }
         }
       }}
+      menuRef={
+        measuredMenuWidth === undefined
+          ? (element: HTMLElement | null) => {
+              if (element) {
+                setMeasuredMenuWidth(element.offsetWidth + 25);
+              }
+            }
+          : undefined
+      }
     >
       <List
         {...listProps}
@@ -149,11 +175,7 @@ export function CompactSelect<Value extends SelectKey>({
         size={size}
         sizeLimit={sizeLimit}
         sizeLimitMessage={sizeLimitMessage}
-        shouldVirtualize={shouldVirtualize(
-          itemsWithKey,
-          controlProps.menuWidth,
-          virtualThreshold
-        )}
+        isVirtualized={shouldVirtualize(itemsWithKey, virtualThreshold)}
         aria-labelledby={triggerId}
       >
         {(item: SelectOptionOrSectionWithKey<Value>) => {
@@ -184,14 +206,13 @@ export function CompactSelect<Value extends SelectKey>({
 }
 
 function shouldVirtualize<Value extends SelectKey>(
-  items: Array<SelectOptionOrSectionWithKey<Value>>,
-  menuWidth?: ControlProps['menuWidth'],
+  items: Array<SelectOptionOrSection<Value>>,
   virtualThreshold = 100
 ) {
   const hasSections = items.some(item => 'options' in item);
-  if (hasSections || !menuWidth) {
-    return () => false;
+  if (hasSections) {
+    return false;
   }
 
-  return (listItems: unknown[]) => listItems.length > virtualThreshold;
+  return items.length > virtualThreshold;
 }

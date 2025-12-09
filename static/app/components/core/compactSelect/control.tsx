@@ -233,9 +233,11 @@ export function Control({
   loading = false,
   grid = false,
   children,
+  menuRef,
   ...wrapperProps
 }: ControlProps & {
   items?: Array<SelectOptionOrSection<SelectKey>>;
+  menuRef?: React.Ref<HTMLDivElement>;
   value?: SelectKey | SelectKey[] | undefined;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -483,6 +485,7 @@ export function Control({
         >
           {overlayIsOpen && (
             <StyledOverlay
+              ref={menuRef}
               width={menuWidth ?? menuFullWidth}
               minWidth={overlayProps.style!.minWidth}
               maxWidth={

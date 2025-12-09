@@ -79,11 +79,6 @@ interface ListBoxProps<T extends ObjectLike>
   overlayIsOpen?: boolean;
   ref?: React.Ref<HTMLUListElement>;
   /**
-   * A function that determines whether list should be rendered with virtualized scrolling.
-   * @param items The list of items to be rendered.
-   */
-  shouldVirtualize?: (items: unknown[]) => boolean;
-  /**
    * When false, hides option details.
    */
   showDetails?: boolean;
@@ -130,7 +125,7 @@ export function ListBox<T extends ObjectLike>({
   showSectionHeaders = true,
   showDetails = true,
   onAction,
-  shouldVirtualize,
+  isVirtualized,
   ...props
 }: ListBoxProps<T>) {
   const listElementRef = useRef<HTMLUListElement>(null);
@@ -175,7 +170,7 @@ export function ListBox<T extends ObjectLike>({
     listState.selectionManager.setFocusedKey(null);
   };
 
-  const virtualizer = useVirtualizedItems({listItems, shouldVirtualize, size});
+  const virtualizer = useVirtualizedItems({listItems, isVirtualized, size});
 
   return (
     <Fragment>
@@ -252,14 +247,14 @@ const sizeEstimations = {
 
 function useVirtualizedItems<T extends ObjectLike>({
   listItems,
-  shouldVirtualize,
+  isVirtualized = false,
   size,
-}: {listItems: Array<Node<T>>; size: FormSize} & Pick<
-  ListBoxProps<T>,
-  'shouldVirtualize'
->) {
+}: {
+  isVirtualized: boolean | undefined;
+  listItems: Array<Node<T>>;
+  size: FormSize;
+}) {
   const scrollElementRef = useRef<HTMLDivElement>(null);
-  const isVirtualized = shouldVirtualize?.(listItems) ?? false;
   const sizeEstimation = sizeEstimations[size];
 
   const virtualizer = useVirtualizer({

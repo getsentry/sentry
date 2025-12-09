@@ -77,11 +77,6 @@ interface BaseListProps<Value extends SelectKey>
    * and before `onChange`.
    */
   onSectionToggle?: (section: SelectSection<SelectKey>) => void;
-  /**
-   * A function that determines whether list should be rendered with virtualized scrolling.
-   * @param items The list of items to be rendered.
-   */
-  shouldVirtualize?: (items: unknown[]) => boolean;
   size?: FormSize;
   /**
    * Upper limit for the number of options to display in the menu at a time. Users can
