@@ -14,6 +14,7 @@ import modifyColor from 'color';
 import {spring, type Transition} from 'framer-motion';
 
 import {color} from 'sentry/utils/theme/scraps/color';
+import {breakpoints, radius, size, space} from 'sentry/utils/theme/scraps/size';
 
 type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
 
@@ -424,19 +425,6 @@ type ButtonColors = Record<
   }
 >;
 
-type Breakpoint = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-type Breakpoints = Record<Breakpoint, string>;
-
-const breakpoints = {
-  '2xs': '0px',
-  xs: '500px',
-  sm: '800px',
-  md: '992px',
-  lg: '1200px',
-  xl: '1440px',
-  '2xl': '2560px',
-} as const satisfies Breakpoints;
-
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
 // @TODO: this needs to directly reference the icon direction
@@ -494,42 +482,6 @@ const iconSizes: Record<Size, string> = {
   '2xl': '72px',
 } as const;
 
-const space = {
-  '0': '0px',
-  /**
-   * Equivalent to deprecated `space(0.25)`
-   */
-  '2xs': '2px',
-  /**
-   * Equivalent to deprecated `space(0.5)`
-   */
-  xs: '4px',
-  /**
-   * Equivalent to deprecated `space(0.75)`
-   */
-  sm: '6px',
-  /**
-   * Equivalent to deprecated `space(1)`
-   */
-  md: '8px',
-  /**
-   * Equivalent to deprecated `space(1.5)`
-   */
-  lg: '12px',
-  /**
-   * Equivalent to deprecated `space(2)`
-   */
-  xl: '16px',
-  /**
-   * Equivalent to deprecated `space(3)` (was `20px`)
-   */
-  '2xl': '24px',
-  /**
-   * Equivalent to deprecated `space(4)` (was `30px`)
-   */
-  '3xl': '32px',
-} as const;
-
 /**
  * Values shared between light and dark theme
  */
@@ -537,6 +489,7 @@ const commonTheme = {
   breakpoints,
 
   space,
+  size,
   motion: generateMotion(),
 
   // Icons
@@ -1169,18 +1122,6 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
     },
   };
 }
-
-const radius = {
-  '0': '0px',
-  '2xs': '2px',
-  xs: '3px',
-  sm: '4px',
-  md: '6px',
-  lg: '8px',
-  xl: '12px',
-  '2xl': '16px',
-  full: 'calc(infinity*1px)',
-} as const;
 
 const lightColors = {
   black: color.black,
