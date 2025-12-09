@@ -16,6 +16,7 @@ import {DataCategory} from 'sentry/types/core';
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
 import {
+  calculateSeerUserSpend,
   formatCategoryQuantityWithDisplayName,
   getPlanCategoryName,
   getReservedBudgetDisplayName,
@@ -493,6 +494,18 @@ describe('formatCategoryQuantityWithDisplayName', () => {
     expect(
       formatCategoryQuantityWithDisplayName({
         dataCategory: DataCategory.PROFILE_DURATION,
+        quantity: MILLISECONDS_IN_HOUR * 1.5,
+        formattedQuantity: '1.5',
+        subscription,
+        options: {
+          capitalize: false,
+        },
+      })
+    ).toBe('1.5 hours');
+
+    expect(
+      formatCategoryQuantityWithDisplayName({
+        dataCategory: DataCategory.PROFILE_DURATION,
         quantity: MILLISECONDS_IN_HOUR * 2,
         formattedQuantity: '2',
         subscription,
@@ -575,5 +588,66 @@ describe('formatCategoryQuantityWithDisplayName', () => {
         },
       })
     ).toBe('Unlimited active contributors');
+  });
+});
+
+describe('calculateSeerUserSpend', () => {
+  it('returns 0 if the category is not SEER_USER', () => {
+    expect(
+      calculateSeerUserSpend(
+        MetricHistoryFixture({
+          category: DataCategory.ERRORS,
+          reserved: 0,
+          usage: 100,
+          prepaid: 0,
+        })
+      )
+    ).toBe(0);
+  });
+
+  it('returns 0 if the reserved is not 0', () => {
+    expect(
+      calculateSeerUserSpend(
+        MetricHistoryFixture({
+          category: DataCategory.SEER_USER,
+          reserved: 100,
+          usage: 100,
+          prepaid: 100,
+        })
+      )
+    ).toBe(0);
+    expect(
+      calculateSeerUserSpend(
+        MetricHistoryFixture({
+          category: DataCategory.SEER_USER,
+          reserved: UNLIMITED_RESERVED,
+          usage: 100,
+          prepaid: UNLIMITED_RESERVED,
+        })
+      )
+    ).toBe(0);
+  });
+
+  it('returns the spend if the reserved is 0', () => {
+    expect(
+      calculateSeerUserSpend(
+        MetricHistoryFixture({
+          category: DataCategory.SEER_USER,
+          reserved: 0,
+          usage: 100,
+          prepaid: 0,
+        })
+      )
+    ).toBe(4000_00);
+    expect(
+      calculateSeerUserSpend(
+        MetricHistoryFixture({
+          category: DataCategory.SEER_USER,
+          reserved: 0,
+          usage: 100,
+          prepaid: 50,
+        })
+      )
+    ).toBe(2000_00);
   });
 });

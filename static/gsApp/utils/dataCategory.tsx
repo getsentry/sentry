@@ -1,7 +1,7 @@
 import upperFirst from 'lodash/upperFirst';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
@@ -301,10 +301,10 @@ function formatWithHours(
     quantityInMilliseconds === UNLIMITED_RESERVED
       ? quantityInMilliseconds
       : quantityInMilliseconds / MILLISECONDS_IN_HOUR;
-  if (quantityInHours === UNLIMITED_RESERVED) {
-    return `${formattedHours} ${options.title ? t('Hours') : t('hours')}`;
+  if (quantityInHours === 1) {
+    return `${formattedHours} ${options.title ? t('Hour') : t('hour')}`;
   }
-  return `${formattedHours} ${options.title ? tn('Hour', 'Hours', quantityInHours) : tn('hour', 'hours', quantityInHours)}`;
+  return `${formattedHours} ${options.title ? t('Hours') : t('hours')}`;
 }
 
 /**
@@ -348,4 +348,20 @@ export function formatCategoryQuantityWithDisplayName({
     hadCustomDynamicSampling: options.hadCustomDynamicSampling,
   });
   return `${formattedQuantity} ${displayName}`;
+}
+
+/**
+ * Calculate the accumulated variable spend for active contributors, in cents.
+ */
+export function calculateSeerUserSpend(metricHistory: BillingMetricHistory) {
+  const {category, usage, reserved, prepaid} = metricHistory;
+  if (category !== DataCategory.SEER_USER) {
+    return 0;
+  }
+  if (reserved !== 0) {
+    // if they have reserved or unlimited seats, we assume there is no variable spend
+    return 0;
+  }
+  // TODO(seer): serialize pricing info
+  return Math.max(0, usage - prepaid) * 40_00;
 }

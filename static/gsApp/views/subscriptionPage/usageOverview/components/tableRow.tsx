@@ -25,6 +25,7 @@ import {
   supportsPayg,
 } from 'getsentry/utils/billing';
 import {
+  calculateSeerUserSpend,
   formatCategoryQuantityWithDisplayName,
   isByteCategory,
   isContinuousProfiling,
@@ -172,9 +173,7 @@ function UsageOverviewTableRow({
     events: reserved ?? 0, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
     buckets: subscription.planDetails.planCategories[billedCategory],
   });
-  if (billedCategory === DataCategory.SEER_USER && reserved === 0) {
-    otherSpend = Math.max(0, metricHistory.usage - metricHistory.prepaid) * 40_00; // TODO(seer): serialize pricing info
-  }
+  otherSpend = calculateSeerUserSpend(metricHistory);
   const recurringReservedSpend = isChildProduct ? 0 : (bucket.price ?? 0);
   const additionalSpend = recurringReservedSpend + paygSpend + otherSpend;
 

@@ -2,6 +2,7 @@ import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
+import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {
   SubscriptionFixture,
   SubscriptionWithLegacySeerFixture,
@@ -372,12 +373,13 @@ describe('ProductBreakdownPanel', () => {
         },
       ],
     });
-    subscription.categories.seerUsers = {
-      ...subscription.categories.seerUsers!,
+    subscription.categories.seerUsers = MetricHistoryFixture({
+      category: DataCategory.SEER_USER,
       usage: 3,
       free: 1,
       prepaid: 1,
-    };
+      reserved: 0,
+    });
     subscription.addOns!.seer = {
       ...subscription.addOns!.seer!,
       enabled: true,

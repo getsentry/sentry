@@ -26,6 +26,7 @@ import {
   isTrialPlan,
   supportsPayg,
 } from 'getsentry/utils/billing';
+import {calculateSeerUserSpend} from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 interface BaseProps {
@@ -236,13 +237,13 @@ function DataCategoryUsageBreakdownInfo({
     : (plan.planCategories[category]?.find(bucket => bucket.events === reserved)?.price ??
       0);
 
-  // TODO(seer): serialize pricing info
+  const otherSpend = calculateSeerUserSpend(metricHistory);
   const formattedOtherSpend =
-    category === DataCategory.SEER_USER ? (
+    otherSpend > 0 ? (
       <UsageBreakdownField
         field={t('Active contributors spend')}
         value={displayPriceWithCents({
-          cents: Math.max(0, metricHistory.usage - metricHistory.prepaid) * 40_00,
+          cents: otherSpend,
         })}
         help={t(
           'An active contributor is anyone who opens 2 or more PRs in a connected GitHub repository. Count resets each month.'
