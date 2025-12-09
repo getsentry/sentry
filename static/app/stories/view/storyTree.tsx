@@ -221,7 +221,6 @@ export const COMPONENT_SUBCATEGORY_ORDER: ComponentSubcategory[] = [
 // Hierarchical structure for sidebar rendering
 export interface StoryHierarchyData {
   stories: StoryTreeNode[];
-  subcategories?: Map<ComponentSubcategory, StoryTreeNode[]>;
 }
 
 /**
@@ -302,22 +301,15 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
   return useMemo(() => {
     const hierarchy = new Map<StorySection, StoryHierarchyData>();
 
-    // Initialize sections
+    // Initialize sections (all use same structure now)
     for (const section of SECTION_ORDER) {
-      if (section === 'core') {
-        hierarchy.set(section, {
-          stories: [],
-          subcategories: new Map(),
-        });
-      } else {
-        hierarchy.set(section, {stories: []});
-      }
+      hierarchy.set(section, {stories: []});
     }
 
-    // Collect 'product' files separately for tree building
+    // Collect files by section
     const productFiles: string[] = [];
+    const coreFilesBySubcategory = new Map<ComponentSubcategory, string[]>();
 
-    // Group files by section and subcategory
     for (const file of files) {
       const loc = inferStoryLocation(file);
       const sectionData = hierarchy.get(loc.section);
@@ -331,17 +323,19 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
         continue;
       }
 
+      // Special handling for 'core' section - collect by subcategory
+      if (loc.section === 'core' && loc.subcategory) {
+        if (!coreFilesBySubcategory.has(loc.subcategory)) {
+          coreFilesBySubcategory.set(loc.subcategory, []);
+        }
+        coreFilesBySubcategory.get(loc.subcategory)!.push(file);
+        continue;
+      }
+
+      // Other sections: add directly
       const name = inferComponentName(file);
       const node = new StoryTreeNode(formatName(name), loc.section, file);
-
-      if (loc.subcategory && sectionData.subcategories) {
-        if (!sectionData.subcategories.has(loc.subcategory)) {
-          sectionData.subcategories.set(loc.subcategory, []);
-        }
-        sectionData.subcategories.get(loc.subcategory)!.push(node);
-      } else {
-        sectionData.stories.push(node);
-      }
+      sectionData.stories.push(node);
     }
 
     // Build tree structure for 'product'/'Shared' section
@@ -350,19 +344,20 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
       hierarchy.set('product', {stories: productTree});
     }
 
-    // Sort stories within each section/subcategory
+    // Build tree structure for 'core'/'Components' section
+    if (coreFilesBySubcategory.size > 0) {
+      const componentTree = buildComponentTree(coreFilesBySubcategory);
+      hierarchy.set('core', {stories: componentTree});
+    }
+
+    // Sort stories within each section
     for (const [section, sectionData] of hierarchy) {
-      // Skip 'product' section - already sorted by buildProductTree
-      if (section === 'product') {
+      // Skip 'product' and 'core' - already sorted by tree builders
+      if (section === 'product' || section === 'core') {
         continue;
       }
 
       sectionData.stories.sort((a, b) => a.label.localeCompare(b.label));
-      if (sectionData.subcategories) {
-        for (const [, nodes] of sectionData.subcategories) {
-          nodes.sort((a, b) => a.label.localeCompare(b.label));
-        }
-      }
     }
 
     return hierarchy;
@@ -540,6 +535,38 @@ function sortTreeRecursively(node: StoryTreeNode) {
   }
 }
 
+/**
+ * Builds a nested tree structure from component files grouped by subcategory.
+ * Creates folder nodes for each subcategory (Typography, Buttons, Layout, etc.).
+ */
+function buildComponentTree(
+  filesBySubcategory: Map<ComponentSubcategory, string[]>
+): StoryTreeNode[] {
+  const roots: StoryTreeNode[] = [];
+
+  // Iterate in display order
+  for (const subcategory of COMPONENT_SUBCATEGORY_ORDER) {
+    const files = filesBySubcategory.get(subcategory);
+    if (!files || files.length === 0) {
+      continue;
+    }
+
+    // Create folder node for subcategory
+    const label = COMPONENT_SUBCATEGORY_CONFIG[subcategory].label;
+    const folderNode = new StoryTreeNode(label, subcategory, files[0]);
+
+    // Add component stories as children
+    for (const file of files.sort()) {
+      const name = inferComponentName(file);
+      folderNode.children[name] = new StoryTreeNode(formatName(name), 'core', file);
+    }
+
+    roots.push(folderNode);
+  }
+
+  return roots;
+}
+
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
   nodes: StoryTreeNode[];
 }
@@ -577,71 +604,18 @@ export function CategorizedStoryTree() {
     <ul>
       {SECTION_ORDER.map(section => {
         const data = hierarchy.get(section);
-        if (!data || (data.stories.length === 0 && !data.subcategories?.size)) {
+        if (!data || data.stories.length === 0) {
           return null;
         }
 
         return (
           <li key={section}>
             <SectionHeader>{SECTION_CONFIG[section].label}</SectionHeader>
-
-            {section === 'core' && data.subcategories ? (
-              <SubcategoryList>
-                {COMPONENT_SUBCATEGORY_ORDER.map(subcategory => {
-                  const nodes = data.subcategories!.get(subcategory);
-                  if (!nodes?.length) {
-                    return null;
-                  }
-
-                  return (
-                    <SubcategorySection
-                      key={subcategory}
-                      label={COMPONENT_SUBCATEGORY_CONFIG[subcategory].label}
-                      nodes={nodes}
-                    />
-                  );
-                })}
-              </SubcategoryList>
-            ) : (
-              <StoryTree nodes={data.stories} />
-            )}
+            <StoryTree nodes={data.stories} />
           </li>
         );
       })}
     </ul>
-  );
-}
-
-function SubcategorySection({label, nodes}: {label: string; nodes: StoryTreeNode[]}) {
-  const [expanded, setExpanded] = useState(false);
-  const location = useLocation();
-
-  // Check if any child is active to auto-expand
-  const hasActiveChild = useMemo(() => {
-    for (const node of nodes) {
-      const match = node.find(
-        n => n.filesystemPath === (location.state?.storyPath ?? location.query.name)
-      );
-      if (match) {
-        return true;
-      }
-    }
-    return false;
-  }, [location, nodes]);
-
-  // Auto-expand if has active child
-  if (hasActiveChild && !expanded) {
-    setExpanded(true);
-  }
-
-  return (
-    <li>
-      <SubcategoryHeader onClick={() => setExpanded(!expanded)}>
-        <Flex flex={1}>{label}</Flex>
-        <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
-      </SubcategoryHeader>
-      {expanded && <StoryTree nodes={nodes} />}
-    </li>
   );
 }
 
@@ -738,40 +712,6 @@ const SectionHeader = styled('h3')`
   font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;
   padding: ${p => p.theme.space.md};
-`;
-
-const SubcategoryList = styled('ul')`
-  list-style-type: none;
-  padding-left: 0;
-`;
-
-const SubcategoryHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-  padding: ${p => p.theme.space.md};
-  padding-right: ${p => p.theme.space.xl};
-  color: ${p => p.theme.tokens.content.muted};
-  cursor: pointer;
-  position: relative;
-  font-weight: ${p => p.theme.fontWeight.bold};
-
-  &:before {
-    background: ${p => p.theme.gray100};
-    content: '';
-    inset: 0 ${p => p.theme.space['2xs']} 0 -${p => p.theme.space['2xs']};
-    position: absolute;
-    z-index: -1;
-    border-radius: ${p => p.theme.borderRadius};
-    opacity: 0;
-  }
-
-  &:hover {
-    color: ${p => p.theme.tokens.content.primary};
-    &:before {
-      opacity: 1;
-    }
-  }
 `;
 
 const FolderName = styled('div')`
