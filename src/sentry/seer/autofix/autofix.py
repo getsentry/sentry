@@ -23,7 +23,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
-from sentry.models.options.project_option import ProjectOption
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
@@ -598,11 +598,11 @@ def onboarding_seer_settings_update(
     # If RCA is explicitly disabled, set the automation tuning to off for org and projects.
     # If RCA is disabled then other settings don't matter.
     if not is_rca_enabled:
-        organization.update_option(
-            "sentry:default_autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
-        )
-        # Ensure all projects are updated in a single transaction
-        with transaction.atomic(router.db_for_write(ProjectOption)):
+        # Ensure org and all projects are updated in a single transaction to maintain consistency
+        with transaction.atomic(using=router.db_for_write(OrganizationOption)):
+            organization.update_option(
+                "sentry:default_autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
+            )
             for project in projects:
                 project.update_option(
                     "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
