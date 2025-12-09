@@ -271,7 +271,7 @@ const PlanDetails = styled('div')`
   display: inline-grid;
   gap: ${space(0.75)};
   font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const PlanName = styled('div')`
@@ -294,7 +294,7 @@ const PriceHeader = styled('div')`
 const Price = styled('div')`
   display: inline-grid;
   grid-template-columns: repeat(3, auto);
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Currency = styled('span')`
