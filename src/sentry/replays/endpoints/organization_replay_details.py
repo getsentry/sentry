@@ -4,7 +4,17 @@ from datetime import datetime, timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Granularity,
+    Op,
+    OrderBy,
+    Query,
+)
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -34,9 +44,11 @@ def _query_replay_urls_eap(
     """Query URLs for a replay from EAP breadcrumb events."""
     replay_id_no_dashes = replay_id.replace("-", "")
 
+    first_seen_agg = Function("min", parameters=[Column("sentry.timestamp")], alias="first_seen")
+
     select = [
         Column("to"),
-        Function("min", parameters=[Column("sentry.timestamp")], alias="first_seen"),
+        first_seen_agg,
     ]
 
     snuba_query = Query(
@@ -47,6 +59,7 @@ def _query_replay_urls_eap(
             Condition(Column("category"), Op.EQ, "navigation"),
         ],
         groupby=[Column("to")],
+        orderby=[OrderBy(first_seen_agg, Direction.ASC)],
     )
 
     settings = Settings(
@@ -55,7 +68,6 @@ def _query_replay_urls_eap(
             "category": str,
             "sentry.timestamp": float,
             "to": str,
-            "first_seen": float,
         },
         default_limit=1000,
         default_offset=0,
@@ -75,12 +87,8 @@ def _query_replay_urls_eap(
 
     result = eap_read.query(snuba_query, settings, request_meta, [])
 
-    # Sort by timestamp and extract URLs
-    rows = result.get("data", [])
-    rows.sort(key=lambda r: r.get("first_seen") or 0)
-
     urls: list[str] = []
-    for row in rows:
+    for row in result.get("data", []):
         url = row.get("to")
         if url and isinstance(url, str):
             urls.append(url)
