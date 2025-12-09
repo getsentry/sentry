@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import responses
+from django.db import connection
 
 from fixtures.github import (
     INSTALLATION_API_RESPONSE,
@@ -658,6 +659,36 @@ class PushEventWebhookTest(APITestCase):
         assert len(repos) == 1
 
         assert repos[0] == repo
+
+    @responses.activate
+    def test_commit_file_change_process_resource_change_outside_transaction(self) -> None:
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+
+        atomic_depth_when_called: list[int] = []
+        baseline_depth = len(connection.savepoint_ids)
+
+        def mock_post_bulk_create(file_changes):
+            # Record how many levels deep we are beyond the test's baseline transaction
+            current_depth = len(connection.savepoint_ids)
+            atomic_depth_when_called.append(current_depth - baseline_depth)
+
+        with patch(
+            "sentry.integrations.github.webhook.post_bulk_create",
+            side_effect=mock_post_bulk_create,
+        ):
+            self._create_integration_and_send_push_event()
+
+        assert len(atomic_depth_when_called) > 0
+        for depth in atomic_depth_when_called:
+            assert depth == 0, (
+                "post_bulk_create must be called outside the atomic transaction block "
+                "to prevent race conditions with triggered tasks"
+            )
 
 
 class PullRequestEventWebhook(APITestCase):
