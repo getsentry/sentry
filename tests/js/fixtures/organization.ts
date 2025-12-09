@@ -35,6 +35,7 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     features: [],
     onboardingTasks: [],
     alertsMemberWrite: false,
+    autoOpenPrs: false,
     allowBackgroundAgentDelegation: false,
     allowJoinRequests: false,
     allowMemberInvite: true,
