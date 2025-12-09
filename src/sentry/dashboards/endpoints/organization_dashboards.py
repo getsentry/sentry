@@ -141,7 +141,7 @@ def sync_prebuilt_dashboards(organization: Organization) -> None:
             Dashboard.objects.bulk_update(dashboards_to_update, ["title"])
 
         # Delete old prebuilt dashboards if they should no longer exist
-        prebuilt_ids = [d["prebuilt_id"] for d in PREBUILT_DASHBOARDS]
+        prebuilt_ids = [d["prebuilt_id"] for d in enabled_prebuilt_dashboards]
         Dashboard.objects.filter(
             organization=organization,
             prebuilt_id__isnull=False,
