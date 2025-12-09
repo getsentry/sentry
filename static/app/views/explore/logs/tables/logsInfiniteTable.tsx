@@ -532,7 +532,9 @@ export function LogsInfiniteTable({
         {!embeddedOptions?.replay && (
           <BackToTopButton
             virtualizer={virtualizer}
-            hidden={isPending || (firstItemIndex ?? 0) === 0}
+            hidden={
+              isPending || ((firstItemIndex ?? 0) === 0 && (scrollOffset ?? 0) < 550)
+            }
             setIsFunctionScrolling={setIsFunctionScrolling}
           />
         )}
