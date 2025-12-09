@@ -311,10 +311,13 @@ class OutboxBase(Model):
                     try:
                         coalesced.send_signal()
                     except Exception as e:
-                        raise OutboxFlushError(
-                            f"Could not flush shard category={coalesced.category} ({OutboxCategory(coalesced.category).name})",
-                            coalesced,
-                        ) from e
+                        category_number = coalesced.category
+                        category_name = OutboxCategory(category_number).name
+                        error_message = (
+                            f"Could not flush shard category={category_number} ({category_name})"
+                        )
+
+                        raise OutboxFlushError(error_message, coalesced) from e
 
                 return True
         return False
