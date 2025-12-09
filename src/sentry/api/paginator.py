@@ -259,11 +259,11 @@ class OffsetPaginator(PaginatorLike):
     def get_result(
         self,
         limit: int = 100,
-        cursor: Any = None,
-        count_hits: Any = False,
-        known_hits: Any = None,
-        max_hits: Any = None,
-    ):
+        cursor: Cursor | None = None,
+        count_hits: bool = False,
+        known_hits: int | None = None,
+        max_hits: int | None = None,
+    ) -> CursorResult[Any]:
         # offset is page #
         # value is page limit
         if cursor is None:
@@ -276,8 +276,10 @@ class OffsetPaginator(PaginatorLike):
             queryset = queryset.order_by(*self.key)
 
         page = cursor.offset
-        offset = cursor.offset * cursor.value
-        stop = offset + (cursor.value or limit) + 1
+        # OffsetPaginator always uses numeric cursor values
+        cursor_value = int(cursor.value) if cursor.value else 0
+        offset = cursor.offset * cursor_value
+        stop = offset + (cursor_value or limit) + 1
 
         if self.max_offset is not None and offset >= self.max_offset:
             raise BadPaginationError("Pagination offset too large")

@@ -925,7 +925,7 @@ def get_previous_release(release: Release) -> Release | None:
     )
 
 
-def filter_releases_by_projects(queryset: Any, project_ids: list[int]):
+def filter_releases_by_projects(queryset: Any, project_ids: list[int]) -> ReleaseQuerySet:
     """Return releases belonging to a project."""
     if not project_ids:
         return queryset
