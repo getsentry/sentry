@@ -44,11 +44,11 @@ class TraceViewFromExploreTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase)
         self.dismiss_assistant(which="tour.explore.spans")
 
     def tearDown(self) -> None:
+        super().tearDown()
         # Close all database connections to prevent
         # databases being accessed by other tests
         for connection in connections.all():
             connection.close()
-        super().tearDown()
 
     @patch("django.utils.timezone.now")
     def test_navigation(self, mock_now: MagicMock) -> None:

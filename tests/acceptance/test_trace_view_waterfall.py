@@ -41,11 +41,11 @@ class TraceViewWaterfallTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
         self.dismiss_assistant()
 
     def tearDown(self) -> None:
+        super().tearDown()
         # Close all database connections to prevent
         # databases being accessed by other tests
         for connection in connections.all():
             connection.close()
-        super().tearDown()
 
     @patch("django.utils.timezone.now")
     def test_trace_view_waterfall_loads(self, mock_now: MagicMock) -> None:
