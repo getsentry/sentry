@@ -584,7 +584,6 @@ class SnubaEventStream(SnubaProtocolEventStream):
             is_new_group_environment,
             primary_hash,
             skip_consume,
-            group_states,
             occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,
             eventstream_type=eventstream_type,
         )
