@@ -7,6 +7,7 @@ from sentry.seer.autofix.on_completion_hook import (
     AutofixOnCompletionHook,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.explorer.client_models import Artifact
 from sentry.testutils.cases import TestCase
 
 
@@ -48,7 +49,7 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
 
     def test_get_current_step_none(self):
         """Returns None when no artifacts or code changes exist."""
-        artifacts = {}
+        artifacts: dict[str, Artifact] = {}
         state = MagicMock()
         state.has_code_changes.return_value = (False, True)
 

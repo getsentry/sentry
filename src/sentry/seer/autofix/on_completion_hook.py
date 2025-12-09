@@ -13,7 +13,7 @@ from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 
 if TYPE_CHECKING:
-    from sentry.seer.explorer.client_models import SeerRunState
+    from sentry.seer.explorer.client_models import Artifact, SeerRunState
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         cls._maybe_continue_pipeline(organization, run_id, state, artifacts)
 
     @classmethod
-    def _send_step_webhook(cls, organization, run_id, artifacts, state):
+    def _send_step_webhook(cls, organization, run_id, artifacts: dict[str, Artifact], state):
         """
         Send webhook for the completed step.
 
@@ -125,7 +125,9 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 )
 
     @classmethod
-    def _get_current_step(cls, artifacts: dict, state: SeerRunState) -> AutofixStep | None:
+    def _get_current_step(
+        cls, artifacts: dict[str, Artifact], state: SeerRunState
+    ) -> AutofixStep | None:
         """Determine which step just completed based on artifacts and state."""
         # Check in pipeline order (reverse) to find the most recent completed step
         if state.has_code_changes()[0]:
@@ -149,7 +151,11 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
 
     @classmethod
     def _maybe_continue_pipeline(
-        cls, organization: Organization, run_id: int, state: SeerRunState, artifacts: dict
+        cls,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+        artifacts: dict[str, Artifact],
     ) -> None:
         """
         Continue to the next step if stopping_point hasn't been reached.
