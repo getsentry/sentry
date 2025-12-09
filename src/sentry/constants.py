@@ -724,7 +724,11 @@ AUTO_OPEN_PRS_DEFAULT = False
 # Seer Org level setting to automatically enable code review for all new GitHub repo's that become connected
 AUTO_ENABLE_CODE_REVIEW = False
 # Seer Org level default for code review triggers
-DEFAULT_CODE_REVIEW_TRIGGERS: list[str] = ["on_command_phrase", "on_ready_for_review", "on_new_commit"]
+DEFAULT_CODE_REVIEW_TRIGGERS: list[str] = [
+    "on_command_phrase",
+    "on_ready_for_review",
+    "on_new_commit",
+]
 # Org level setting to allow/disallow Projects to delegate Seer scanner automation to other LLMS
 ALLOW_BACKGROUND_AGENT_DELEGATION = True
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
@@ -1062,4 +1066,4 @@ EXTENSION_LANGUAGE_MAP = {
 
 # After this date APIs that are incompatible with cell routing
 # will begin periodic brownouts.
-CELL_API_DEPRECATION_DATE = datetime(2025, 5, 15, 0, 0, 0, tzinfo=UTC)
+CELL_API_DEPRECATION_DATE = datetime(2026, 5, 15, 0, 0, 0, tzinfo=UTC)
