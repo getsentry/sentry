@@ -220,6 +220,8 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
         if not self._is_allowed(organization):
             raise NotFound()
 
+        sentry_sdk.set_tag("rpc.method", method_name)
+
         try:
             arguments: dict[str, Any] = request.data.get("args", {})
         except (KeyError, AttributeError) as e:
