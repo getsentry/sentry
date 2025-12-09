@@ -1,10 +1,7 @@
 import type {Organization} from 'sentry/types/organization';
 
-import type {SubmitData} from 'getsentry/components/creditCardEdit/legacyForm';
-import LegacyCreditCardForm from 'getsentry/components/creditCardEdit/legacyForm';
 import StripeCreditCardForm from 'getsentry/components/creditCardEdit/stripeForm';
 import type {FTCConsentLocation, Subscription} from 'getsentry/types';
-import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
 
 interface CreditCardFormProps {
   /**
@@ -19,10 +16,6 @@ interface CreditCardFormProps {
    * The endpoint to get the intent data.
    */
   intentDataEndpoint: string;
-  /**
-   * Handler for submission for the legacy form.
-   */
-  onSubmitLegacy: (data: SubmitData) => void;
   /**
    * The organization for the customer using the form
    */
@@ -79,14 +72,7 @@ interface CreditCardFormProps {
 }
 
 function CreditCardForm(props: CreditCardFormProps) {
-  const {organization} = props;
-  const shouldUseStripe = hasStripeComponentsFeature(organization);
-
-  if (shouldUseStripe) {
-    return <StripeCreditCardForm {...props} />;
-  }
-
-  return <LegacyCreditCardForm {...props} onSubmit={props.onSubmitLegacy} />;
+  return <StripeCreditCardForm {...props} />;
 }
 
 export default CreditCardForm;

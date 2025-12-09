@@ -336,10 +336,6 @@ export const hasActiveVCFeature = (organization: Organization) =>
 export const hasNewBillingUI = (organization: Organization) =>
   organization.features.includes('subscriptions-v3');
 
-// TODO(isabella): clean this up after GA
-export const hasStripeComponentsFeature = (organization: Organization) =>
-  organization.features.includes('stripe-components');
-
 export const isDeveloperPlan = (plan?: Plan) => plan?.name === PlanName.DEVELOPER;
 
 export const isBizPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.BUSINESS);

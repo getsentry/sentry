@@ -16,10 +16,8 @@ import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import LegacyBillingDetailsForm from 'getsentry/components/billingDetails/legacyForm';
 import StripeWrapper from 'getsentry/components/stripeWrapper';
 import type {BillingDetails} from 'getsentry/types';
-import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
 import {countryCodes} from 'getsentry/utils/ISO3166codes';
 import type {TaxFieldInfo} from 'getsentry/utils/salesTax';
 import {
@@ -166,7 +164,6 @@ function BillingDetailsForm({
     showTaxNumber:
       !!initialData?.taxNumber || countryHasSalesTax(initialData?.countryCode),
   });
-  const hasStripeComponents = hasStripeComponentsFeature(organization);
   const location = useLocation();
 
   const taxFieldInfo = useMemo(
@@ -215,31 +212,12 @@ function BillingDetailsForm({
     if (analyticsEvent) {
       trackGetsentryAnalytics(analyticsEvent, {
         organization,
-        isStripeComponent: hasStripeComponents,
+        isStripeComponent: true,
         referrer: decodeScalar(location.query?.referrer),
       });
     }
     onSubmitSuccess(data);
   };
-
-  if (!hasStripeComponents) {
-    return (
-      <LegacyBillingDetailsForm
-        initialData={initialData}
-        onSubmitSuccess={handleSubmit}
-        organization={organization}
-        onSubmitError={onSubmitError}
-        onPreSubmit={onPreSubmit}
-        footerStyle={footerStyle}
-        requireChanges={requireChanges}
-        isDetailed={isDetailed}
-        wrapper={wrapper}
-        submitLabel={submitLabel}
-        fieldProps={fieldProps}
-        extraButton={extraButton}
-      />
-    );
-  }
 
   const FieldWrapper = wrapper;
 

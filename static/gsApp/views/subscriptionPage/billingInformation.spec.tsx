@@ -445,8 +445,6 @@ describe('Billing details form', () => {
   });
   const subscription = SubscriptionFixture({organization});
 
-  let updateMock: any;
-
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -463,7 +461,7 @@ describe('Billing details form', () => {
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
     });
-    updateMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'PUT',
     });
@@ -484,7 +482,7 @@ describe('Billing details form', () => {
     organization.features = [];
   });
 
-  it('renders billing details form', async () => {
+  it('renders with Stripe component', async () => {
     render(
       <BillingInformation
         organization={organization}
@@ -494,63 +492,21 @@ describe('Billing details form', () => {
     );
 
     await screen.findByRole('button', {name: 'Update details'});
-    await userEvent.click(screen.getByRole('button', {name: 'Update details'}));
-    renderGlobalModal();
-    const modal = await screen.findByRole('dialog');
-    const inModal = within(modal);
 
-    expect(inModal.getByRole('textbox', {name: 'Street Address 1'})).toBeInTheDocument();
-    expect(inModal.getByRole('textbox', {name: 'Street Address 2'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Country'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'City'})).toBeInTheDocument();
-    expect(inModal.getByRole('textbox', {name: 'State / Region'})).toBeInTheDocument();
-    expect(inModal.getByRole('textbox', {name: 'Postal Code'})).toBeInTheDocument();
-    expect(inModal.getByRole('textbox', {name: 'Company Name'})).toBeInTheDocument();
-    expect(inModal.getByRole('textbox', {name: 'Billing Email'})).toBeInTheDocument();
-    expect(inModal.queryByRole('textbox', {name: 'Vat Number'})).not.toBeInTheDocument();
-  });
-
-  it('can submit form', async () => {
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-details/`,
-      method: 'GET',
-      body: BillingDetailsFixture(),
+    await act(async () => {
+      await userEvent.click(screen.getByRole('button', {name: 'Update details'}));
+      renderGlobalModal();
     });
-
-    render(
-      <BillingInformation
-        organization={organization}
-        subscription={subscription}
-        location={router.location}
-      />
-    );
-
-    await screen.findByRole('button', {name: 'Update details'});
-    await userEvent.click(screen.getByRole('button', {name: 'Update details'}));
-    renderGlobalModal();
     const modal = await screen.findByRole('dialog');
     const inModal = within(modal);
 
-    // renders initial data
-    expect(inModal.getByDisplayValue('123 Street')).toBeInTheDocument();
-    expect(inModal.getByDisplayValue('San Francisco')).toBeInTheDocument();
-    expect(inModal.getByText('California')).toBeInTheDocument();
-    expect(inModal.getByText('United States')).toBeInTheDocument();
-    expect(inModal.getByDisplayValue('12345')).toBeInTheDocument();
+    // check for our custom fields outside of the Stripe components
+    expect(inModal.getByRole('textbox', {name: 'Billing email'})).toBeInTheDocument();
 
-    // update field
-    await userEvent.clear(inModal.getByRole('textbox', {name: /postal code/i}));
-    await userEvent.type(inModal.getByRole('textbox', {name: /postal code/i}), '98765');
-
-    await userEvent.click(inModal.getByRole('button', {name: /save changes/i}));
-
-    expect(updateMock).toHaveBeenCalledWith(
-      `/customers/${organization.slug}/billing-details/`,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {...BillingDetailsFixture(), postalCode: '98765'},
-      })
-    );
+    // There shouldn't be any of the fields from the LegacyBillingDetailsForm
+    expect(
+      inModal.queryByRole('textbox', {name: 'Street Address 1'})
+    ).not.toBeInTheDocument();
   });
 
   it('displays tax number field for country with sales tax', async () => {
@@ -585,35 +541,6 @@ describe('Billing details form', () => {
 
     // Help text should mention Taxpayer Identification Number
     expect(inModal.getByText(/Taxpayer Identification Number/)).toBeInTheDocument();
-  });
-
-  it('uses stripe components when flag is enabled', async () => {
-    organization.features = ['stripe-components'];
-
-    render(
-      <BillingInformation
-        organization={organization}
-        subscription={subscription}
-        location={router.location}
-      />
-    );
-
-    await screen.findByRole('button', {name: 'Update details'});
-
-    await act(async () => {
-      await userEvent.click(screen.getByRole('button', {name: 'Update details'}));
-      renderGlobalModal();
-    });
-    const modal = await screen.findByRole('dialog');
-    const inModal = within(modal);
-
-    // check for our custom fields outside of the Stripe components
-    expect(inModal.getByRole('textbox', {name: 'Billing email'})).toBeInTheDocument();
-
-    // There shouldn't be any of the fields from the LegacyBillingDetailsForm
-    expect(
-      inModal.queryByRole('textbox', {name: 'Street Address 1'})
-    ).not.toBeInTheDocument();
   });
 
   it('displays credit card expiration date', async () => {

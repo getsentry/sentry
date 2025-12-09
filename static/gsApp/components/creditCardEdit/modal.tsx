@@ -37,7 +37,6 @@ function CreditCardEditModal({
       <Header>{t('Update Credit Card')}</Header>
       <Body>
         <CreditCardSetup
-          isModal
           onCancel={closeModal}
           onSuccessWithSubscription={onSuccess}
           onSuccess={closeModal}
