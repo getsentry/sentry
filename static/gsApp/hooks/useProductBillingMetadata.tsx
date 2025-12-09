@@ -71,13 +71,17 @@ const EMPTY_PRODUCT_BILLING_METADATA: ProductBillingMetadata = {
 };
 
 export function useProductBillingMetadata(
-  subscription: Subscription,
+  subscription: Subscription | null,
   product: DataCategory | AddOnCategory,
   parentProduct?: DataCategory | AddOnCategory,
   excludeProductTrials?: boolean
 ): ProductBillingMetadata {
   const organization = useOrganization();
   const isAddOn = checkIsAddOn(parentProduct ?? product);
+
+  if (!subscription) {
+    return EMPTY_PRODUCT_BILLING_METADATA;
+  }
   const billedCategory = getBilledCategory(subscription, product);
 
   if (!billedCategory) {
