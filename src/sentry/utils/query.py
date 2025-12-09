@@ -214,12 +214,14 @@ class RangeQuerySetWrapper[V]:
         queryset = self.queryset.order_by(*order_clause)
 
         cursor_values: dict[str, Any] | None = None
-        if self.min_value is not None:
+
+        if not self.use_compound_keyset_pagination and self.min_value is not None:
             cursor_values = {self.order_by_fields[0]: self.min_value}
 
         num = 0
         limit = self.limit
-        last_seen_value: Any = None  # For deduplication in single-field mode
+        start = 0
+        last_object_pk: Any = None
 
         has_results = True
         while has_results:
@@ -239,14 +241,18 @@ class RangeQuerySetWrapper[V]:
                 cb(results)
 
             for result in results:
-                cursor_values = self._get_cursor_values(result)
-
-                # Deduplication for single-field mode (uses >= so may see same value twice)
                 if not self.use_compound_keyset_pagination:
-                    field_value = cursor_values[self.order_by_fields[0]]
-                    if last_seen_value is not None and field_value == last_seen_value:
+                    pk = (
+                        self.result_value_getter(result)
+                        if self.result_value_getter
+                        else getattr(result, "pk")
+                    )
+                    if last_object_pk is not None and pk == last_object_pk:
                         continue
-                    last_seen_value = field_value
+                    last_object_pk = pk
+
+                # Update cursor for next batch
+                cursor_values = self._get_cursor_values(result)
 
                 num += 1
                 yield result
