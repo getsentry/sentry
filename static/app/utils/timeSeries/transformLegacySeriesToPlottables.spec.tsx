@@ -88,31 +88,31 @@ describe('transformLegacySeriesToPlottables', () => {
     expect(sessionResult[1]!.timeSeries.yAxis).toBe('sum(session)');
     expect(sessionResult[0]!.timeSeries.values).toEqual([
       {
-        timestamp: 172979640000,
+        timestamp: 172979640,
         value: 100,
         incomplete: false,
       },
       {
-        timestamp: 172980000000,
+        timestamp: 172980000,
         value: 200,
         incomplete: false,
       },
     ]);
     expect(sessionResult[1]!.timeSeries.values).toEqual([
       {
-        timestamp: 172979640000,
+        timestamp: 172979640,
         value: 300,
         incomplete: false,
       },
       {
-        timestamp: 172980000000,
+        timestamp: 172980000,
         value: 400,
         incomplete: false,
       },
     ]);
     expect(sessionResult[0]!.timeSeries.meta.valueType).toBe('percentage');
     expect(sessionResult[1]!.timeSeries.meta.valueType).toBe('number');
-    expect(sessionResult[0]!.timeSeries.meta.interval).toBe(360000);
-    expect(sessionResult[1]!.timeSeries.meta.interval).toBe(360000);
+    expect(sessionResult[0]!.timeSeries.meta.interval).toBe(360);
+    expect(sessionResult[1]!.timeSeries.meta.interval).toBe(360);
   });
 });

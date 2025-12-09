@@ -1150,6 +1150,7 @@ def process_commits(job: PostProcessJob) -> None:
                             IntegrationProviderSlug.GITHUB.value,
                             IntegrationProviderSlug.GITLAB.value,
                             IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+                            IntegrationProviderSlug.PERFORCE.value,
                         ],
                     )
                     has_integrations = len(org_integrations) > 0
@@ -1607,6 +1608,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     from sentry.seer.autofix.utils import (
         is_issue_eligible_for_seer_automation,
         is_seer_scanner_rate_limited,
+        is_seer_seat_based_tier_enabled,
     )
     from sentry.tasks.autofix import (
         generate_issue_summary_only,
@@ -1618,7 +1620,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     group = event.group
 
     # Default behaviour
-    if not features.has("organizations:triage-signals-v0-org", group.organization):
+    if not is_seer_seat_based_tier_enabled(group.organization):
         # Only run on issues with no existing scan
         if group.seer_fixability_score is not None:
             return

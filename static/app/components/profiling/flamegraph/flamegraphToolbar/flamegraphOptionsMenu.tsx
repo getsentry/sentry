@@ -46,8 +46,8 @@ function FlamegraphOptionsMenu({
     });
   }, [canvasPoolManager, organization, profileType]);
 
-  const continuousLocationDescriptor: {end: string; start: string} | null =
-    useMemo(() => {
+  const continuousLocationDescriptor: {end: string; start: string} | null = useMemo(
+    () => {
       if (
         typeof location.query.start !== 'string' ||
         typeof location.query.end !== 'string' ||
@@ -60,7 +60,16 @@ function FlamegraphOptionsMenu({
         start: new Date(location.query.start).toISOString(),
         end: new Date(location.query.end).toISOString(),
       };
-    }, [location.query]);
+    },
+    // DO NOT CHANGE THE DEPENDENCY LIST TO `[location.query]`
+    //
+    // Not 100% sure what's causing it yet but when interacting with the flamegraph,
+    // sometimes, the `location.query` reference changes non stop causing an
+    // Maximum update depth exceeded error.
+    //
+    // By depenending on the individual values, which are strings, this becomes stable.
+    [location.query.profilerId, location.query.start, location.query.end]
+  );
 
   return (
     <Fragment>

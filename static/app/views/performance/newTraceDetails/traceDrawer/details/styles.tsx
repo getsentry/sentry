@@ -694,7 +694,7 @@ const HighlightsDurationWrapper = styled(FlexBox)`
 `;
 
 const HighlightDuration = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 400;
 `;
 
@@ -1346,7 +1346,7 @@ function MultilineJSON({
 
 const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const MultilineTextLabel = styled('div')`

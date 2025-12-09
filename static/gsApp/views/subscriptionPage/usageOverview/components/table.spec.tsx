@@ -9,7 +9,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
-import {GIGABYTE, UNLIMITED, UNLIMITED_RESERVED} from 'getsentry/constants';
+import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import UsageOverviewTable from 'getsentry/views/subscriptionPage/usageOverview/components/table';
 
@@ -163,7 +163,7 @@ describe('UsageOverviewTable', () => {
     await screen.findByRole('columnheader', {name: 'Feature'});
 
     // Errors usage and gifted units
-    expect(screen.getByRole('cell', {name: '6K / 51K'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '6K / 51K (1K gifted)'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '$10.00'})).toBeInTheDocument();
 
     // Attachments usage should be in the correct unit + above platform volume
@@ -175,7 +175,7 @@ describe('UsageOverviewTable', () => {
     expect(screen.getByRole('cell', {name: '$32.00'})).toBeInTheDocument();
 
     // Unlimited usage for Replays
-    expect(screen.getByRole('cell', {name: `500K / ${UNLIMITED}`})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'Unlimited'})).toBeInTheDocument();
   });
 
   it('renders table based on add-on state', async () => {
@@ -226,7 +226,38 @@ describe('UsageOverviewTable', () => {
 
     // issue fixes is unlimited
     expect(screen.getByRole('cell', {name: 'Issue Fixes'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: `0 / ${UNLIMITED}`})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'Unlimited'})).toBeInTheDocument();
+
+    // issue scans is 0 so is not rendered
+    expect(screen.queryByRole('cell', {name: 'Issue Scans'})).not.toBeInTheDocument();
+
+    // add-on is not rendered since at least one of its sub-categories is unlimited
+    expect(screen.queryByRole('cell', {name: 'Seer'})).not.toBeInTheDocument();
+  });
+
+  it('renders add-on sub-categories if non-zero non-unlimited reserved volume', async () => {
+    const sub = SubscriptionFixture({organization});
+    sub.categories.seerAutofix = {
+      ...sub.categories.seerAutofix!,
+      reserved: 100,
+      prepaid: 100,
+    };
+
+    render(
+      <UsageOverviewTable
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    // issue fixes is unlimited
+    expect(screen.getByRole('cell', {name: 'Issue Fixes'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '0 / 100'})).toBeInTheDocument();
 
     // issue scans is 0 so is not rendered
     expect(screen.queryByRole('cell', {name: 'Issue Scans'})).not.toBeInTheDocument();

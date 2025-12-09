@@ -13,14 +13,17 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import type {Block} from './types';
+import type {Block, TodoItem} from './types';
 import {buildToolLinkUrl, getToolsStringFromBlock, postProcessLLMMarkdown} from './utils';
 
 interface BlockProps {
   block: Block;
   blockIndex: number;
+  isAwaitingFileApproval?: boolean;
+  isAwaitingQuestion?: boolean;
   isFocused?: boolean;
   isLast?: boolean;
+  isLatestTodoBlock?: boolean;
   isPolling?: boolean;
   onClick?: () => void;
   onDelete?: () => void;
@@ -42,20 +45,47 @@ function hasValidContent(content: string): boolean {
 }
 
 /**
+ * Convert todos to markdown format
+ */
+function todosToMarkdown(todos: TodoItem[]): string {
+  return todos
+    .map(todo => {
+      const checkbox = todo.status === 'completed' ? '[x]' : '[ ]';
+      const content =
+        todo.status === 'completed'
+          ? `~~${todo.content}~~`
+          : todo.status === 'in_progress'
+            ? `_${todo.content}_`
+            : todo.content;
+      return `${checkbox} ${content}`;
+    })
+    .join('  \n');
+}
+
+/**
  * Determine the dot color based on tool execution status
  */
 function getToolStatus(
   block: Block
-): 'loading' | 'content' | 'success' | 'failure' | 'mixed' {
+): 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending' {
   if (block.loading) {
     return 'loading';
   }
 
   // Check tool_links for empty_results metadata
   const toolLinks = block.tool_links || [];
-  const hasTools = (block.message.tool_calls?.length || 0) > 0;
+  const toolCalls = block.message.tool_calls || [];
+  const hasTools = toolCalls.length > 0;
 
   if (hasTools) {
+    // Check if any tool has pending approval or pending question
+    const hasPending = toolLinks.some(
+      link => link?.params?.pending_approval || link?.params?.pending_question
+    );
+    if (hasPending) {
+      return 'pending';
+    }
+
     if (toolLinks.length === 0) {
       // No metadata available, assume success
       return 'success';
@@ -93,7 +123,10 @@ function getToolStatus(
 function BlockComponent({
   block,
   blockIndex: _blockIndex,
+  isAwaitingFileApproval,
+  isAwaitingQuestion,
   isLast,
+  isLatestTodoBlock,
   isFocused,
   isPolling,
   onClick,
@@ -263,7 +296,8 @@ function BlockComponent({
     }
   };
 
-  const showActions = isFocused && !block.loading;
+  const showActions =
+    isFocused && !block.loading && !isAwaitingFileApproval && !isAwaitingQuestion;
 
   return (
     <Block
@@ -322,20 +356,32 @@ function BlockComponent({
                         hasValidLinks &&
                         correspondingLinkIndex !== undefined &&
                         correspondingLinkIndex === selectedLinkIndex;
+                      const isTodoWriteCall = toolCall.function === 'todo_write';
+                      const showTodoList =
+                        isTodoWriteCall &&
+                        isLatestTodoBlock &&
+                        block.todos &&
+                        block.todos.length > 0;
+
                       return (
-                        <ToolCallTextContainer key={`${toolCall.function}-${idx}`}>
-                          <ToolCallText
-                            size="xs"
-                            variant="muted"
-                            monospace
-                            isHighlighted={isHighlighted}
-                          >
-                            {toolString}
-                          </ToolCallText>
-                          {hasLink && (
-                            <ToolCallLinkIcon size="xs" isHighlighted={isHighlighted} />
+                        <ToolCallWithTodos key={`${toolCall.function}-${idx}`}>
+                          <ToolCallTextContainer>
+                            <ToolCallText
+                              size="xs"
+                              variant="muted"
+                              monospace
+                              isHighlighted={isHighlighted}
+                            >
+                              {toolString}
+                            </ToolCallText>
+                            {hasLink && (
+                              <ToolCallLinkIcon size="xs" isHighlighted={isHighlighted} />
+                            )}
+                          </ToolCallTextContainer>
+                          {showTodoList && (
+                            <TodoListContent text={todosToMarkdown(block.todos!)} />
                           )}
-                        </ToolCallTextContainer>
+                        </ToolCallWithTodos>
                       );
                     })}
                   </ToolCallStack>
@@ -393,7 +439,9 @@ export default BlockComponent;
 
 const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   width: 100%;
-  border-bottom: ${p => (p.isLast ? 'none' : `1px solid ${p.theme.border}`)};
+  border-top: 1px solid transparent;
+  border-bottom: ${p =>
+    p.isLast ? '1px solid transparent' : `1px solid ${p.theme.border}`};
   position: relative;
   flex-shrink: 0; /* Prevent blocks from shrinking */
   cursor: pointer;
@@ -415,7 +463,7 @@ const BlockChevronIcon = styled(IconChevron)`
 `;
 
 const ResponseDot = styled('div')<{
-  status: 'loading' | 'content' | 'success' | 'failure' | 'mixed';
+  status: 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending';
   hasOnlyTools?: boolean;
 }>`
   width: 8px;
@@ -427,6 +475,8 @@ const ResponseDot = styled('div')<{
   background: ${p => {
     switch (p.status) {
       case 'loading':
+        return p.theme.pink400;
+      case 'pending':
         return p.theme.pink400;
       case 'content':
         return p.theme.purple400;
@@ -512,6 +562,12 @@ const ToolCallStack = styled(Stack)`
   padding-right: ${p => p.theme.space.lg};
 `;
 
+const ToolCallWithTodos = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xs};
+`;
+
 const ToolCallTextContainer = styled('div')`
   display: inline-flex;
   align-items: center;
@@ -543,4 +599,12 @@ const ActionButtonBar = styled(ButtonBar)`
   white-space: nowrap;
   font-size: ${p => p.theme.fontSize.sm};
   background: ${p => p.theme.background};
+`;
+
+const TodoListContent = styled(MarkedText)`
+  margin-top: ${p => p.theme.space.xs};
+  margin-bottom: -${p => p.theme.space.xl};
+  font-size: ${p => p.theme.fontSize.xs};
+  font-family: ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.subText};
 `;

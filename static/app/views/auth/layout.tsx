@@ -9,7 +9,7 @@ import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 
 const BODY_CLASSES = ['narrow'];
 
-function Layout({children}: any) {
+function Layout({children}: {children: React.ReactNode}) {
   useEffect(() => {
     document.body.classList.add(...BODY_CLASSES);
     return () => document.body.classList.remove(...BODY_CLASSES);

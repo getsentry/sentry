@@ -196,7 +196,7 @@ function Spacer() {
 }
 
 const Subtitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
 `;

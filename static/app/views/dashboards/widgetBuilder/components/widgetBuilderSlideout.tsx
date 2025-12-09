@@ -129,6 +129,7 @@ function WidgetBuilderSlideout({
   const showQueryFilterBuilder = !(
     state.dataset === WidgetType.ISSUE && isChartDisplayType(state.displayType)
   );
+  const showGroupBySelector = isChartWidget && !(state.dataset === WidgetType.ISSUE);
 
   const customPreviewRef = useRef<HTMLDivElement>(null);
   const templatesPreviewRef = useRef<HTMLDivElement>(null);
@@ -208,8 +209,8 @@ function WidgetBuilderSlideout({
 
   return (
     <SlideOverPanel
-      collapsed={false}
-      slidePosition="left"
+      open
+      position="left"
       data-test-id="widget-slideout"
       transitionProps={animationTransitionSettings}
     >
@@ -368,7 +369,7 @@ function WidgetBuilderSlideout({
                   />
                 </Section>
               )}
-              {isChartWidget && (
+              {showGroupBySelector && (
                 <Section>
                   <WidgetBuilderGroupBySelector
                     validatedWidgetResponse={validatedWidgetResponse}

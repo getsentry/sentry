@@ -18,7 +18,8 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.examples.integration_examples import IntegrationExamples
+from sentry.apidocs.parameters import DataForwarderParams, GlobalParams
 from sentry.integrations.api.serializers.models.data_forwarder import (
     DataForwarderSerializer as DataForwarderModelSerializer,
 )
@@ -290,13 +291,14 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     @method_decorator(never_cache)
     @extend_schema(
         operation_id="Update a Data Forwarding Configuration for an Organization",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, DataForwarderParams.DATA_FORWARDER_ID],
         request=DataForwarderSerializer,
         responses={
             200: DataForwarderModelSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
+        examples=IntegrationExamples.SINGLE_DATA_FORWARDER,
     )
     def put(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
@@ -332,7 +334,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Delete a Data Forwarding Configuration for an Organization",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, DataForwarderParams.DATA_FORWARDER_ID],
         responses={
             204: RESPONSE_NO_CONTENT,
             403: RESPONSE_FORBIDDEN,

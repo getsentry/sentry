@@ -396,6 +396,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/notifications/                                           @getsentry/alerts-notifications @getsentry/ecosystem
 /src/sentry/notifications/models/                                    @getsentry/ecosystem
 /src/sentry/notifications/notifications/                             @getsentry/ecosystem
+/src/sentry/notifications/platform/                                  @getsentry/ecosystem
 /src/sentry/pipeline/                                                @getsentry/ecosystem
 /src/sentry/plugins/                                                 @getsentry/ecosystem
 /src/sentry/shared_integrations/                                     @getsentry/ecosystem
@@ -526,6 +527,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/components/events/autofix/                      @getsentry/machine-learning-ai
 /static/app/views/seerExplorer/                             @getsentry/machine-learning-ai
 /src/sentry/seer/                                           @getsentry/machine-learning-ai
+/tests/sentry/seer/                                         @getsentry/machine-learning-ai
 ## End of ML & AI
 
 ## Issues
@@ -578,7 +580,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/tasks/merge.py                                  @getsentry/issue-detection-backend
 /src/sentry/tasks/unmerge.py                                @getsentry/issue-detection-backend
 /src/sentry/tasks/weekly_escalating_forecast.py             @getsentry/issue-detection-backend
-/src/sentry/tasks/llm_issue_detection.py                    @getsentry/issue-detection-backend
+/src/sentry/tasks/llm_issue_detection/                      @getsentry/issue-detection-backend
 /static/app/components/events/contexts/                     @getsentry/issue-workflow
 /static/app/components/events/eventTags/                    @getsentry/issue-workflow
 /static/app/components/events/highlights/                   @getsentry/issue-workflow
@@ -653,6 +655,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/integrations/github/tasks/pr_comment.py                     @getsentry/ecosystem
 /src/sentry/data_secrecy/                                               @getsentry/ecosystem
 /tests/sentry/data_secrecy/                                             @getsentry/ecosystem
+/static/app/views/settings/organizationDataForwarding/                  @getsentry/ecosystem
+/static/app/views/settings/organizationIntegrations/                    @getsentry/ecosystem
+/static/app/views/settings/organizationDeveloperSettings/               @getsentry/ecosystem
 ## End of Ecosystem
 
 
