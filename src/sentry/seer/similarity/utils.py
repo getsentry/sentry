@@ -507,9 +507,11 @@ def set_default_project_autofix_automation_tuning(
     """Called once at project creation time to set the initial autofix automation tuning."""
     org_default = organization.get_option("sentry:default_autofix_automation_tuning")
 
-    if org_default == "off":
+    if org_default == AutofixAutomationTuningSettings.OFF:
         # Explicit "off" is always respected, regardless of feature flag
-        project.update_option("sentry:autofix_automation_tuning", "off")
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
+        )
     elif is_seer_seat_based_tier_enabled(organization):
         # Feature flag ON overrides everything except explicit "off"
         project.update_option(
