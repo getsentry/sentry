@@ -35,7 +35,7 @@ class TestReplayGranularPermissions(APITestCase):
         ):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
-                organization=self.organization, organizationmember=self.member_with_access
+                organizationmember=self.member_with_access
             )
             self.login_as(self.user_with_access)
             url = f"/api/0/organizations/{self.organization.slug}/replays/"
@@ -49,7 +49,7 @@ class TestReplayGranularPermissions(APITestCase):
         ):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
-                organization=self.organization, organizationmember=self.member_with_access
+                organizationmember=self.member_with_access
             )
             self.login_as(self.user_without_access)
             url = f"/api/0/organizations/{self.organization.slug}/replays/"
@@ -63,7 +63,7 @@ class TestReplayGranularPermissions(APITestCase):
         ):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
-                organization=self.organization, organizationmember=self.member_with_access
+                organizationmember=self.member_with_access
             )
             self.login_as(self.user_with_access)
             url = f"/api/0/organizations/{self.organization.slug}/replays/123e4567-e89b-12d3-a456-426614174000/"
@@ -78,7 +78,7 @@ class TestReplayGranularPermissions(APITestCase):
         ):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
-                organization=self.organization, organizationmember=self.member_with_access
+                organizationmember=self.member_with_access
             )
             self.login_as(self.user_without_access)
             url = f"/api/0/organizations/{self.organization.slug}/replays/123e4567-e89b-12d3-a456-426614174000/"
@@ -92,7 +92,7 @@ class TestReplayGranularPermissions(APITestCase):
         ):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
-                organization=self.organization, organizationmember=self.member_with_access
+                organizationmember=self.member_with_access
             )
             self.login_as(self.user_without_access)
             url = f"/api/0/organizations/{self.organization.slug}/replay-count/"
@@ -106,15 +106,15 @@ class TestReplayGranularPermissions(APITestCase):
         ):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
-                organization=self.organization, organizationmember=self.member_with_access
+                organizationmember=self.member_with_access
             )
             self.login_as(self.user_without_access)
             url = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/replays/123e4567-e89b-12d3-a456-426614174000/"
             response = self.client.get(url)
             assert response.status_code == 403
 
-    def test_empty_allowlist_allows_all_users(self) -> None:
-        """When allowlist is empty, all org members have access (even with org option enabled)"""
+    def test_empty_allowlist_denies_all_users(self) -> None:
+        """When allowlist is empty and org option is enabled, no org members have access"""
         with self.feature(
             ["organizations:session-replay", "organizations:granular-replay-permissions"]
         ):
@@ -122,7 +122,7 @@ class TestReplayGranularPermissions(APITestCase):
             self.login_as(self.user_without_access)
             url = f"/api/0/organizations/{self.organization.slug}/replays/"
             response = self.client.get(url)
-            assert response.status_code == 200
+            assert response.status_code == 403
 
     def test_org_option_disabled_allows_all_users(self) -> None:
         """When org option is disabled, all org members have access even with allowlist"""
@@ -130,7 +130,7 @@ class TestReplayGranularPermissions(APITestCase):
             ["organizations:session-replay", "organizations:granular-replay-permissions"]
         ):
             OrganizationMemberReplayAccess.objects.create(
-                organization=self.organization, organizationmember=self.member_with_access
+                organizationmember=self.member_with_access
             )
             self.login_as(self.user_without_access)
             url = f"/api/0/organizations/{self.organization.slug}/replays/"
@@ -142,21 +142,21 @@ class TestReplayGranularPermissions(APITestCase):
         with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
-                organization=self.organization, organizationmember=self.member_with_access
+                organizationmember=self.member_with_access
             )
             self.login_as(self.user_without_access)
             url = f"/api/0/organizations/{self.organization.slug}/replays/"
             response = self.client.get(url)
             assert response.status_code == 200
 
-    def test_removing_last_user_from_allowlist_reopens_access(self) -> None:
-        """When the last user is removed from allowlist, all org members regain access"""
+    def test_removing_last_user_from_allowlist_keeps_access_denied(self) -> None:
+        """When the last user is removed from allowlist, access remains denied (empty allowlist = no access)"""
         with self.feature(
             ["organizations:session-replay", "organizations:granular-replay-permissions"]
         ):
             self._enable_granular_permissions()
             access_record = OrganizationMemberReplayAccess.objects.create(
-                organization=self.organization, organizationmember=self.member_with_access
+                organizationmember=self.member_with_access
             )
 
             self.login_as(self.user_without_access)
@@ -167,11 +167,11 @@ class TestReplayGranularPermissions(APITestCase):
             access_record.delete()
 
             assert not OrganizationMemberReplayAccess.objects.filter(
-                organization=self.organization
+                organizationmember__organization=self.organization
             ).exists()
 
             response = self.client.get(url)
-            assert response.status_code == 200
+            assert response.status_code == 403
 
     def test_disabling_org_option_reopens_access(self) -> None:
         """When org option is disabled, all org members regain access"""
@@ -180,7 +180,7 @@ class TestReplayGranularPermissions(APITestCase):
         ):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
-                organization=self.organization, organizationmember=self.member_with_access
+                organizationmember=self.member_with_access
             )
 
             self.login_as(self.user_without_access)

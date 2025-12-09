@@ -45,14 +45,12 @@ def has_replay_permission(organization: Organization, user: User | AnonymousUser
         return True
 
     allowlist_exists = OrganizationMemberReplayAccess.objects.filter(
-        organization=organization
+        organizationmember__organization=organization
     ).exists()
 
     if not allowlist_exists:
         return False
 
-    has_access = OrganizationMemberReplayAccess.objects.filter(
-        organization=organization, organizationmember=member
-    ).exists()
+    has_access = OrganizationMemberReplayAccess.objects.filter(organizationmember=member).exists()
 
     return has_access

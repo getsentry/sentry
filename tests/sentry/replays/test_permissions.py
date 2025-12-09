@@ -33,9 +33,7 @@ class TestReplayPermissions(TestCase):
     def test_org_option_disabled_returns_true(self) -> None:
         """When org option is disabled, all members should have access even with allowlist"""
         with self.feature("organizations:granular-replay-permissions"):
-            OrganizationMemberReplayAccess.objects.create(
-                organization=self.organization, organizationmember=self.member1
-            )
+            OrganizationMemberReplayAccess.objects.create(organizationmember=self.member1)
             assert has_replay_permission(self.organization, self.user2) is True
 
     def test_empty_allowlist_returns_false(self) -> None:
@@ -49,30 +47,22 @@ class TestReplayPermissions(TestCase):
         """When member is in allowlist, they should have access"""
         with self.feature("organizations:granular-replay-permissions"):
             self._enable_granular_permissions()
-            OrganizationMemberReplayAccess.objects.create(
-                organization=self.organization, organizationmember=self.member1
-            )
+            OrganizationMemberReplayAccess.objects.create(organizationmember=self.member1)
             assert has_replay_permission(self.organization, self.user1) is True
 
     def test_member_not_in_allowlist_returns_false(self) -> None:
         """When member is not in allowlist and allowlist exists, they should not have access"""
         with self.feature("organizations:granular-replay-permissions"):
             self._enable_granular_permissions()
-            OrganizationMemberReplayAccess.objects.create(
-                organization=self.organization, organizationmember=self.member1
-            )
+            OrganizationMemberReplayAccess.objects.create(organizationmember=self.member1)
             assert has_replay_permission(self.organization, self.user2) is False
 
     def test_multiple_members_in_allowlist(self) -> None:
         """Test multiple members in allowlist"""
         with self.feature("organizations:granular-replay-permissions"):
             self._enable_granular_permissions()
-            OrganizationMemberReplayAccess.objects.create(
-                organization=self.organization, organizationmember=self.member1
-            )
-            OrganizationMemberReplayAccess.objects.create(
-                organization=self.organization, organizationmember=self.member2
-            )
+            OrganizationMemberReplayAccess.objects.create(organizationmember=self.member1)
+            OrganizationMemberReplayAccess.objects.create(organizationmember=self.member2)
 
             assert has_replay_permission(self.organization, self.user1) is True
             assert has_replay_permission(self.organization, self.user2) is True
@@ -95,9 +85,7 @@ class TestReplayPermissions(TestCase):
         """When org option is disabled after being enabled, access is restored"""
         with self.feature("organizations:granular-replay-permissions"):
             self._enable_granular_permissions()
-            OrganizationMemberReplayAccess.objects.create(
-                organization=self.organization, organizationmember=self.member1
-            )
+            OrganizationMemberReplayAccess.objects.create(organizationmember=self.member1)
             assert has_replay_permission(self.organization, self.user2) is False
 
             OrganizationOption.objects.set_value(
