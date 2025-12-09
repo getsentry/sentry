@@ -37,6 +37,7 @@ from sentry.constants import (
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
@@ -724,7 +725,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     AUTO_ENABLE_CODE_REVIEW,
                 )
             ),
-            "defaultCodeReviewTriggers": obj.get_option("sentry:default_code_review_triggers"),
+            "defaultCodeReviewTriggers": obj.get_option(
+                "sentry:default_code_review_triggers", DEFAULT_CODE_REVIEW_TRIGGERS
+            ),
             "allowBackgroundAgentDelegation": bool(
                 obj.get_option(
                     "sentry:allow_background_agent_delegation",
