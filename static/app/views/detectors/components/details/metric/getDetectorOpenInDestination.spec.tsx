@@ -37,8 +37,10 @@ describe('getDetectorOpenInDestination', () => {
       });
 
       const result = getDetectorOpenInDestination({
-        detector,
+        detectorName: detector.name,
         organization,
+        projectId: detector.projectId,
+        snubaQuery: detector.dataSources[0].queryObj.snubaQuery,
         statsPeriod: '7d',
       });
 
@@ -83,8 +85,10 @@ describe('getDetectorOpenInDestination', () => {
       });
 
       const result = getDetectorOpenInDestination({
-        detector,
+        detectorName: detector.name,
         organization,
+        projectId: detector.projectId,
+        snubaQuery: detector.dataSources[0].queryObj.snubaQuery,
         statsPeriod: '14d',
       });
 
@@ -126,8 +130,10 @@ describe('getDetectorOpenInDestination', () => {
       });
 
       const result = getDetectorOpenInDestination({
-        detector,
+        detectorName: detector.name,
         organization,
+        projectId: detector.projectId,
+        snubaQuery: detector.dataSources[0].queryObj.snubaQuery,
         statsPeriod: '7d',
       });
 
@@ -166,8 +172,10 @@ describe('getDetectorOpenInDestination', () => {
         });
 
         const result = getDetectorOpenInDestination({
-          detector,
+          detectorName: detector.name,
           organization,
+          projectId: detector.projectId,
+          snubaQuery: detector.dataSources[0].queryObj.snubaQuery,
           statsPeriod: '24h',
         });
 
@@ -204,8 +212,10 @@ describe('getDetectorOpenInDestination', () => {
         });
 
         const result = getDetectorOpenInDestination({
-          detector,
+          detectorName: detector.name,
           organization,
+          projectId: detector.projectId,
+          snubaQuery: detector.dataSources[0].queryObj.snubaQuery,
           statsPeriod: '7d',
         });
 
@@ -236,8 +246,10 @@ describe('getDetectorOpenInDestination', () => {
         });
 
         const result = getDetectorOpenInDestination({
-          detector,
+          detectorName: detector.name,
           organization,
+          projectId: detector.projectId,
+          snubaQuery: detector.dataSources[0].queryObj.snubaQuery,
           statsPeriod: '14d',
         });
 

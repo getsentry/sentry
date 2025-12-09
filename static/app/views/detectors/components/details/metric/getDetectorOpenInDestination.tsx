@@ -2,7 +2,7 @@ import type {LocationDescriptor} from 'history';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
+import type {SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias, parseFunction} from 'sentry/utils/discover/fields';
@@ -17,9 +17,11 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {DEFAULT_PROJECT_THRESHOLD} from 'sentry/views/performance/data';
 
-interface GetDetectorExploreUrlOptions {
-  detector: MetricDetector;
+interface GetDetectorDestinationOptions {
   organization: Organization;
+  projectId: string | number;
+  snubaQuery: SnubaQuery;
+  detectorName?: string | null;
   end?: string | null;
   start?: string | null;
   statsPeriod?: string | null;
@@ -38,14 +40,15 @@ function convertTimeWindowSecondsToInterval(timeWindowSeconds: number): string {
 }
 
 function getDetectorDiscoverUrl({
-  detector,
+  detectorName,
   organization,
+  projectId,
+  snubaQuery,
   statsPeriod,
   start,
   end,
-}: GetDetectorExploreUrlOptions): LocationDescriptor {
-  const snubaQuery = detector.dataSources[0].queryObj.snubaQuery;
-  const projectId = Number(detector.projectId);
+}: GetDetectorDestinationOptions): LocationDescriptor {
+  const numericProjectId = Number(projectId);
   const datasetConfig = getDatasetConfig(
     getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes)
   );
@@ -70,7 +73,7 @@ function getDetectorDiscoverUrl({
 
   const eventView = EventView.fromSavedQuery({
     id: undefined,
-    name: detector.name || 'Transactions',
+    name: detectorName || 'Transactions',
     dataset:
       snubaQuery.dataset === Dataset.ERRORS
         ? DiscoverDatasets.ERRORS
@@ -79,7 +82,7 @@ function getDetectorDiscoverUrl({
     orderby: `-${aggregateAlias}`,
     query: datasetConfig.toSnubaQueryString(snubaQuery),
     version: 2,
-    projects: [projectId],
+    projects: [numericProjectId],
     environment: snubaQuery.environment ? [snubaQuery.environment] : undefined,
     ...timePeriodFields,
   });
@@ -98,15 +101,15 @@ function getDetectorDiscoverUrl({
 }
 
 function getDetectorExploreUrl({
-  detector,
   organization,
+  projectId,
+  snubaQuery,
   statsPeriod,
   start,
   end,
-}: GetDetectorExploreUrlOptions): string {
-  const snubaQuery = detector.dataSources[0].queryObj.snubaQuery;
+}: GetDetectorDestinationOptions): string {
   const interval = convertTimeWindowSecondsToInterval(snubaQuery.timeWindow);
-  const projectId = Number(detector.projectId);
+  const numericProjectId = Number(projectId);
   const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
 
   const query =
@@ -124,7 +127,7 @@ function getDetectorExploreUrl({
         utc: null,
       },
       environments: snubaQuery.environment ? [snubaQuery.environment] : [],
-      projects: [projectId],
+      projects: [numericProjectId],
     },
     interval,
     visualize: [
@@ -138,13 +141,13 @@ function getDetectorExploreUrl({
 }
 
 function getDetectorLogsUrl({
-  detector,
   organization,
+  projectId,
+  snubaQuery,
   statsPeriod,
   start,
   end,
-}: GetDetectorExploreUrlOptions): string {
-  const snubaQuery = detector.dataSources[0].queryObj.snubaQuery;
+}: GetDetectorDestinationOptions): string {
   const parsed = snubaQuery.aggregate ? parseFunction(snubaQuery.aggregate) : null;
 
   return getLogsUrl({
@@ -157,7 +160,7 @@ function getDetectorLogsUrl({
         utc: null,
       },
       environments: snubaQuery.environment ? [snubaQuery.environment] : [],
-      projects: [Number(detector.projectId)],
+      projects: [Number(projectId)],
     },
     query: snubaQuery.query,
     aggregateFn: parsed?.name,
@@ -174,10 +177,9 @@ function getDetectorLogsUrl({
  * - ERRORS: Open in Discover
  */
 export function getDetectorOpenInDestination(
-  options: GetDetectorExploreUrlOptions
+  options: GetDetectorDestinationOptions
 ): OpenInDestination | null {
-  const {detector} = options;
-  const snubaQuery = detector.dataSources[0].queryObj.snubaQuery;
+  const {snubaQuery} = options;
 
   if (!defined(snubaQuery)) {
     return null;

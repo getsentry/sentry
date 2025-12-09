@@ -382,9 +382,17 @@ interface OpenInButtonProps {
 function OpenInButton({detector}: OpenInButtonProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const snubaQuery = detector.dataSources[0]?.queryObj?.snubaQuery;
+
+  if (!snubaQuery) {
+    return null;
+  }
+
   const destination = getDetectorOpenInDestination({
-    detector,
+    detectorName: detector.name,
     organization,
+    projectId: detector.projectId,
+    snubaQuery,
     statsPeriod: decodeScalar(location.query.statsPeriod),
     start: decodeScalar(location.query.start),
     end: decodeScalar(location.query.end),
@@ -433,14 +441,19 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
   const location = useLocation();
   const organization = useOrganization();
   const dateParams = normalizeDateTimeParams(location.query);
+  const snubaQuery = detector.dataSources[0]?.queryObj?.snubaQuery;
 
-  const destination = getDetectorOpenInDestination({
-    detector,
-    organization,
-    statsPeriod: decodeScalar(location.query.statsPeriod),
-    start: decodeScalar(location.query.start),
-    end: decodeScalar(location.query.end),
-  });
+  const destination =
+    snubaQuery &&
+    getDetectorOpenInDestination({
+      detectorName: detector.name,
+      organization,
+      projectId: detector.projectId,
+      snubaQuery,
+      statsPeriod: decodeScalar(location.query.statsPeriod),
+      start: decodeScalar(location.query.start),
+      end: decodeScalar(location.query.end),
+    });
 
   const {data: openPeriods = []} = useOpenPeriods({
     detectorId: detector.id,
