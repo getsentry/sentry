@@ -759,116 +759,110 @@ class IntegrationExamples:
         OpenApiExample(
             "List all data forwarders for an organization",
             value=[
-                [
-                    {
-                        "id": "1",
-                        "organizationId": "1",
-                        "isEnabled": True,
-                        "enrollNewProjects": True,
-                        "enrolledProjects": [],
-                        "provider": "sqs",
-                        "config": {
-                            "region": "us-east-1",
-                            "queue_url": "https://sqs.us-east-1.amazonaws.com/01234567890/sentry-errors.fifo",
-                            "s3_bucket": "sentry-errors-bucket",
-                            "access_key": "AKIAIOSFODNN7EXAMPLE",
-                            "secret_key": "wJalrXUtnFEMI1K7MDENGSbPxRfiCYEXAMPLEKEY",
-                            "message_group_id": "sentry-errors",
-                        },
-                        "projectConfigs": [],
-                        "dateAdded": "2025-11-01T00:00:00.000000Z",
-                        "dateUpdated": "2025-11-01T00:00:00.000000Z",
+                {
+                    "id": "1",
+                    "organizationId": "1",
+                    "isEnabled": True,
+                    "enrollNewProjects": True,
+                    "enrolledProjects": [],
+                    "provider": "sqs",
+                    "config": {
+                        "region": "us-east-1",
+                        "queue_url": "https://sqs.us-east-1.amazonaws.com/01234567890/sentry-errors.fifo",
+                        "s3_bucket": "sentry-errors-bucket",
+                        "access_key": "AKIAIOSFODNN7EXAMPLE",
+                        "secret_key": "wJalrXUtnFEMI1K7MDENGSbPxRfiCYEXAMPLEKEY",
+                        "message_group_id": "sentry-errors",
                     },
-                    {
-                        "id": "2",
-                        "organizationId": "1",
-                        "isEnabled": True,
-                        "enrollNewProjects": False,
-                        "enrolledProjects": [
-                            {"id": "1", "slug": "proj-1", "platform": "javascript-react"},
-                            {"id": "2", "slug": "proj-2", "platform": "python-flask"},
-                        ],
-                        "provider": "segment",
-                        "config": {"write_key": "itA5bLOPNxccvZ9ON1NYg9EXAMPLEKEY"},
-                        "projectConfigs": [
-                            {
+                    "projectConfigs": [],
+                    "dateAdded": "2025-11-01T00:00:00.000000Z",
+                    "dateUpdated": "2025-11-01T00:00:00.000000Z",
+                },
+                {
+                    "id": "2",
+                    "organizationId": "1",
+                    "isEnabled": True,
+                    "enrollNewProjects": False,
+                    "enrolledProjects": [
+                        {"id": "1", "slug": "proj-1", "platform": "javascript-react"},
+                        {"id": "2", "slug": "proj-2", "platform": "python-flask"},
+                    ],
+                    "provider": "segment",
+                    "config": {"write_key": "itA5bLOPNxccvZ9ON1NYg9EXAMPLEKEY"},
+                    "projectConfigs": [
+                        {
+                            "id": "1",
+                            "isEnabled": True,
+                            "dataForwarderId": "2",
+                            "project": {
                                 "id": "1",
-                                "isEnabled": True,
-                                "dataForwarderId": "2",
-                                "project": {
-                                    "id": "1",
-                                    "slug": "proj-1",
-                                    "platform": "javascript-react",
-                                },
-                                "overrides": {},
-                                "effectiveConfig": {
-                                    "write_key": "itA5bLOPNxccvZ9ON1NYg9EXAMPLEKEY"
-                                },
-                                "dateAdded": "2025-11-01T00:00:00.000000Z",
-                                "dateUpdated": "2025-11-01T00:00:00.000000Z",
+                                "slug": "proj-1",
+                                "platform": "javascript-react",
                             },
-                            {
-                                "id": "2",
-                                "isEnabled": True,
-                                "dataForwarderId": "2",
-                                "project": {
-                                    "id": "2",
-                                    "slug": "proj-2",
-                                    "platform": "python-flask",
-                                },
-                                "overrides": {},
-                                "effectiveConfig": {
-                                    "write_key": "itA5bLOPNxccvZ9ON1NYg9EXAMPLEKEY"
-                                },
-                                "dateAdded": "2025-11-01T00:00:00.000000Z",
-                                "dateUpdated": "2025-11-01T00:00:00.000000Z",
-                            },
-                        ],
-                        "dateAdded": "2025-11-01T00:00:00.000000Z",
-                        "dateUpdated": "2025-11-01T00:00:00.000000Z",
-                    },
-                    {
-                        "id": "3",
-                        "organizationId": "1",
-                        "isEnabled": True,
-                        "enrollNewProjects": True,
-                        "enrolledProjects": [
-                            {"id": "1", "slug": "proj-1", "platform": "javascript-react"},
-                        ],
-                        "provider": "splunk",
-                        "config": {
-                            "index": "main",
-                            "token": "ab13cdef-45aa-1bcd-a123-bcEXAMPLEKEY",
-                            "source": "sentry",
-                            "instance_url": "https://prd-a-abcde.splunkcloud.com:8088",
+                            "overrides": {},
+                            "effectiveConfig": {"write_key": "itA5bLOPNxccvZ9ON1NYg9EXAMPLEKEY"},
+                            "dateAdded": "2025-11-01T00:00:00.000000Z",
+                            "dateUpdated": "2025-11-01T00:00:00.000000Z",
                         },
-                        "projectConfigs": [
-                            {
-                                "id": "3",
-                                "isEnabled": True,
-                                "dataForwarderId": "3",
-                                "project": {
-                                    "id": "1",
-                                    "slug": "proj-1",
-                                    "platform": "javascript-react",
-                                },
-                                "overrides": {
-                                    "source": "sentry-custom",
-                                },
-                                "effectiveConfig": {
-                                    "index": "main",
-                                    "token": "ab13cdef-45aa-1bcd-a123-bcEXAMPLEKEY",
-                                    "source": "sentry-custom",
-                                    "instance_url": "https://prd-a-abcde.splunkcloud.com:8088",
-                                },
-                                "dateAdded": "2025-11-01T00:00:00.000000Z",
-                                "dateUpdated": "2025-11-01T00:00:00.000000Z",
-                            }
-                        ],
-                        "dateAdded": "2025-11-01T00:00:00.000000Z",
-                        "dateUpdated": "2025-11-01T00:00:00.000000Z",
+                        {
+                            "id": "2",
+                            "isEnabled": True,
+                            "dataForwarderId": "2",
+                            "project": {
+                                "id": "2",
+                                "slug": "proj-2",
+                                "platform": "python-flask",
+                            },
+                            "overrides": {},
+                            "effectiveConfig": {"write_key": "itA5bLOPNxccvZ9ON1NYg9EXAMPLEKEY"},
+                            "dateAdded": "2025-11-01T00:00:00.000000Z",
+                            "dateUpdated": "2025-11-01T00:00:00.000000Z",
+                        },
+                    ],
+                    "dateAdded": "2025-11-01T00:00:00.000000Z",
+                    "dateUpdated": "2025-11-01T00:00:00.000000Z",
+                },
+                {
+                    "id": "3",
+                    "organizationId": "1",
+                    "isEnabled": True,
+                    "enrollNewProjects": True,
+                    "enrolledProjects": [
+                        {"id": "1", "slug": "proj-1", "platform": "javascript-react"},
+                    ],
+                    "provider": "splunk",
+                    "config": {
+                        "index": "main",
+                        "token": "ab13cdef-45aa-1bcd-a123-bcEXAMPLEKEY",
+                        "source": "sentry",
+                        "instance_url": "https://prd-a-abcde.splunkcloud.com:8088",
                     },
-                ]
+                    "projectConfigs": [
+                        {
+                            "id": "3",
+                            "isEnabled": True,
+                            "dataForwarderId": "3",
+                            "project": {
+                                "id": "1",
+                                "slug": "proj-1",
+                                "platform": "javascript-react",
+                            },
+                            "overrides": {
+                                "source": "sentry-custom",
+                            },
+                            "effectiveConfig": {
+                                "index": "main",
+                                "token": "ab13cdef-45aa-1bcd-a123-bcEXAMPLEKEY",
+                                "source": "sentry-custom",
+                                "instance_url": "https://prd-a-abcde.splunkcloud.com:8088",
+                            },
+                            "dateAdded": "2025-11-01T00:00:00.000000Z",
+                            "dateUpdated": "2025-11-01T00:00:00.000000Z",
+                        }
+                    ],
+                    "dateAdded": "2025-11-01T00:00:00.000000Z",
+                    "dateUpdated": "2025-11-01T00:00:00.000000Z",
+                },
             ],
             status_codes=["200"],
             response_only=True,
