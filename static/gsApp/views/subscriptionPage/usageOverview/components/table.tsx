@@ -145,7 +145,7 @@ export default UsageOverviewTable;
 
 const Table = styled('table')`
   display: grid;
-  grid-template-columns: auto max-content auto;
+  grid-template-columns: repeat(3, auto);
   background: ${p => p.theme.background};
   border-top: 1px solid ${p => p.theme.border};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
@@ -159,10 +159,6 @@ const Table = styled('table')`
     display: grid;
     grid-template-columns: subgrid;
     grid-column: 1 / -1;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: repeat(3, auto);
   }
 `;
 
