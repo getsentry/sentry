@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, cast
 
+from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
@@ -40,7 +41,7 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
-from sentry.utils.dates import parse_stats_period
+from sentry.utils.dates import outside_retention_with_modified_start, parse_stats_period
 from sentry.utils.snuba_rpc import get_trace_rpc
 
 logger = logging.getLogger(__name__)
@@ -590,6 +591,66 @@ def get_repository_definition(*, organization_id: int, repo_full_name: str) -> d
     }
 
 
+def _get_event_details_response(event: Event | GroupEvent) -> dict[str, Any]:
+    """
+    Serialize an event into a format shared by issue and event RPCs.
+    """
+    # Serialize event.
+    serialized_event: IssueEventSerializerResponse = serialize(
+        event, user=None, serializer=EventSerializer()
+    )
+
+    return {
+        "event": serialized_event,
+        "event_id": event.event_id,
+        "event_trace_id": event.trace_id,
+        "project_id": event.project_id,
+        "project_slug": event.project.slug,
+    }
+
+
+def get_event_details(*, organization_id: int, event_id: str) -> dict[str, Any] | None:
+    """
+    Tool to get details for a Sentry event.
+
+    Args:
+        organization_id: The ID of the organization to query.
+        event_id: The full UUID of the event to query.
+
+    Returns:
+        A dict containing:
+            `event`: Serialized event details.
+            `event_id`: The event ID of the selected event.
+            `event_trace_id`: The trace ID of the selected event. Nullable.
+            `project_id`: The event and issue's project ID.
+            `project_slug`: The event and issue's project slug.
+    """
+    uuid.UUID(event_id)  # Raises ValueError if not valid UUID
+    organization = Organization.objects.get(id=organization_id)
+    org_project_ids = list(
+        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values_list(
+            "id", flat=True
+        )
+    )
+
+    # We can't use get_event_by_id since we don't know the exact project yet.
+    events_result = eventstore.backend.get_events(
+        filter=eventstore.Filter(
+            event_ids=[event_id],
+            organization_id=organization_id,
+            project_ids=org_project_ids,
+        ),
+        limit=1,
+        tenant_ids={"organization_id": organization_id},
+    )
+    if not events_result:
+        raise NotFound(
+            detail=f"get_event_details: Event not found in organization {organization_id}"
+        )
+
+    return _get_event_details_response(events_result[0])
+
+
 # Tuples of (total period, interval) (both in sentry stats period format).
 EVENT_TIMESERIES_RESOLUTIONS = (
     ("6h", "15m"),  # 24 buckets
@@ -647,11 +708,18 @@ def _get_issue_event_timeseries(
 
 
 def _get_trace_with_spans(
-    trace_ids: list[str], org_id: int, start: datetime, end: datetime
+    trace_ids: list[str], organization: Organization, start: datetime, end: datetime
 ) -> str | None:
     """
     Given a list of trace IDs, return a trace ID with at least one span (non-deterministic).
     """
+    valid, start = outside_retention_with_modified_start(start, end, organization)
+    if not valid:
+        logger.error(
+            "_get_trace_with_spans: Invalid date range",
+            extra={"organization_id": organization.id, "start": start, "end": end},
+        )
+        return None
 
     if not trace_ids:
         return None
@@ -663,7 +731,7 @@ def _get_trace_with_spans(
 
     # Table query for a single item that has one of the trace IDs.
     result = execute_table_query(
-        org_id=org_id,
+        org_id=organization.id,
         dataset="spans",
         per_page=1,
         fields=["trace"],
@@ -679,22 +747,45 @@ def _get_trace_with_spans(
     return result["data"][0]["trace"]
 
 
-def _get_event_with_valid_trace(group: Group, org_id: int) -> Event | GroupEvent | None:
+def _get_event_with_valid_trace(
+    group: Group,
+    organization: Organization,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> Event | GroupEvent | None:
     """
-    Given a group, find an event with a trace that has at least one span.
+    Given a group and time range, find an event with a trace that has at least one span. Time range defaults to the group's first and last seen times.
     """
+
+    if start is None:
+        start = group.first_seen
+    if end is None:
+        end = group.last_seen
+
+    valid, start = outside_retention_with_modified_start(start, end, organization)
+    if not valid:
+        logger.error(
+            "_get_event_with_valid_trace: Invalid date range",
+            extra={
+                "organization_id": organization.id,
+                "group_id": group.id,
+                "start": start,
+                "end": end,
+            },
+        )
+        return None
 
     # Get up to 50 event IDs and their traces.
     events_result = execute_table_query(
-        org_id=org_id,
+        org_id=organization.id,
         dataset="errors",
         per_page=50,
         fields=["trace"],
         query=f"issue:{group.qualified_short_id}",
         sort="-timestamp",
         project_ids=[group.project_id],
-        start=group.first_seen.isoformat(),
-        end=group.last_seen.isoformat(),
+        start=start.isoformat(),
+        end=end.isoformat(),
     )
 
     if not events_result or not events_result.get("data"):
@@ -706,23 +797,27 @@ def _get_event_with_valid_trace(group: Group, org_id: int) -> Event | GroupEvent
             trace_to_event_ids[trace].append(e["id"])
 
     # Query spans to select one of the event traces with at least one span.
-    trace_with_spans = _get_trace_with_spans(
+    # Extend the time range by +-1 day to account for min/max trace start/end times.
+    spans_start = start - timedelta(days=1)
+    spans_end = end + timedelta(days=1)
+
+    selected_trace_id = _get_trace_with_spans(
         list(trace_to_event_ids.keys()),
-        org_id,
-        group.first_seen - timedelta(days=1),
-        group.last_seen + timedelta(days=1),
+        organization,
+        spans_start,
+        spans_end,
     )
 
-    if not trace_with_spans:
+    if not selected_trace_id:
         return None
 
-    event_id = trace_to_event_ids[trace_with_spans][0]
+    event_id = trace_to_event_ids[selected_trace_id][0]
 
     return eventstore.backend.get_event_by_id(
         project_id=group.project_id,
         event_id=event_id,
         group_id=group.id,
-        tenant_ids={"organization_id": org_id},
+        tenant_ids={"organization_id": organization.id},
     )
 
 
@@ -882,7 +977,7 @@ def get_issue_and_event_details(
             or event.trace_id is None
             or _get_trace_with_spans(
                 [event.trace_id],
-                organization_id,
+                organization,
                 group.first_seen - timedelta(days=1),
                 group.last_seen + timedelta(days=1),
             )
@@ -898,7 +993,7 @@ def get_issue_and_event_details(
                 },
             )
 
-            candidate_event = _get_event_with_valid_trace(group, organization_id)
+            candidate_event = _get_event_with_valid_trace(group, organization)
             if candidate_event:
                 event = candidate_event
 
@@ -933,10 +1028,7 @@ def get_issue_and_event_details(
         )
         return None
 
-    # Serialize event.
-    serialized_event: IssueEventSerializerResponse = serialize(
-        event, user=None, serializer=EventSerializer()
-    )
+    event_details = _get_event_details_response(event)
 
     return {
         "issue": serialized_group,
@@ -944,12 +1036,47 @@ def get_issue_and_event_details(
         "timeseries_stats_period": timeseries_stats_period,
         "timeseries_interval": timeseries_interval,
         "tags_overview": tags_overview,
-        "event": serialized_event,
-        "event_id": event.event_id,
-        "event_trace_id": event.trace_id,
-        "project_id": event.project_id,
-        "project_slug": event.project.slug,
+        **event_details,
     }
+
+
+def get_sample_event(
+    *,
+    organization_id: int,
+    issue_id: str,
+    start: str | None = None,
+    end: str | None = None,
+) -> dict[str, Any] | None:
+    """
+    Tool to get a sample event for an issue and time range. Events with a trace with 1 or more spans are preferred.
+
+    Args:
+        organization_id: The ID of the organization to query.
+        issue_id: The ID of the issue to query.
+        start: The start time of the event.
+        end: The end time of the event.
+    """
+    organization = Organization.objects.get(id=organization_id)
+
+    # Fetch the group from issue_id.
+    if issue_id.isdigit():
+        group = Group.objects.get(project__organization=organization, id=int(issue_id))
+    else:
+        group = Group.objects.by_qualified_short_id(organization_id, issue_id)
+
+    start_dt = datetime.fromisoformat(start) if start else group.first_seen
+    end_dt = datetime.fromisoformat(end) if end else group.last_seen
+
+    event = _get_event_with_valid_trace(
+        group,
+        organization,
+        start_dt,
+        end_dt,
+    )
+    if event is None:
+        return None
+
+    return _get_event_details_response(event)
 
 
 def get_replay_metadata(
