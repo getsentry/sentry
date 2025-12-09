@@ -247,12 +247,11 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
             grouphash_exists = cache.get(cache_key)
             got_cache_hit = grouphash_exists is not None
             metrics_tags["cache_result"] = "hit" if got_cache_hit else "miss"
+            # TODO: Temporary tag to let us compare hit rates across different retention periods
+            metrics_tags["expiry_seconds"] = cache_expiry
 
             if got_cache_hit:
                 metrics_tags["grouphash_exists"] = grouphash_exists
-                # TODO: Temporary tag to let us compare hit rates across different retention periods
-                metrics_tags["expiry_seconds"] = cache_expiry
-
                 return grouphash_exists
 
         grouphash_exists = GroupHash.objects.filter(project=project, hash=hash_value).exists()
@@ -297,11 +296,10 @@ def _get_or_create_single_grouphash(
             grouphash = cache.get(cache_key)
             got_cache_hit = grouphash is not None
             metrics_tags["cache_result"] = "hit" if got_cache_hit else "miss"
+            # TODO: Temporary tag to let us compare hit rates across different retention periods
+            metrics_tags["expiry_seconds"] = cache_expiry
 
             if got_cache_hit:
-                # TODO: Temporary tag to let us compare hit rates across different retention periods
-                metrics_tags["expiry_seconds"] = cache_expiry
-
                 return (grouphash, False)
 
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
