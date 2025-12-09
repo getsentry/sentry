@@ -27,6 +27,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
+    is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
@@ -320,32 +321,26 @@ def run_automation(
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return
 
-    # Check event count for ALERT source with triage-signals-v0
-    if source == SeerAutomationSource.ALERT and features.has(
-        "projects:triage-signals-v0", group.project
-    ):
-        # Use times_seen_with_pending if available (set by post_process), otherwise fall back
-        times_seen = (
-            group.times_seen_with_pending
-            if hasattr(group, "_times_seen_pending")
-            else group.times_seen
-        )
-        if times_seen < 10:
-            logger.info(
-                "Triage signals V0: skipping alert automation, event count < 10",
-                extra={"group_id": group.id, "event_count": times_seen},
+    # Check event count for ALERT source with triage-signals-v0-org
+    if is_seer_seat_based_tier_enabled(group.organization):
+        if source == SeerAutomationSource.ALERT:
+            # Use times_seen_with_pending if available (set by post_process), otherwise fall back
+            times_seen = (
+                group.times_seen_with_pending
+                if hasattr(group, "_times_seen_pending")
+                else group.times_seen
             )
-            return
+            if times_seen < 10:
+                return
 
-    # Only log for projects with triage-signals-v0
-    if features.has("projects:triage-signals-v0", group.project):
         try:
             times_seen = group.times_seen_with_pending
         except (AssertionError, AttributeError):
             times_seen = group.times_seen
         logger.info(
-            "Triage signals V0: %s: run_automation called: source=%s, times_seen=%s",
+            "Triage signals V0: %s: run_automation called: project_slug=%s, source=%s, times_seen=%s",
             group.id,
+            group.project.slug,
             source.value,
             times_seen,
         )
@@ -389,22 +384,14 @@ def run_automation(
         return
 
     stopping_point = None
-    if features.has("projects:triage-signals-v0", group.project):
-        logger.info("Triage signals V0: %s: generating stopping point", group.id)
+    if is_seer_seat_based_tier_enabled(group.organization):
         fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
-        logger.info("Fixability-based stopping point: %s", fixability_stopping_point)
 
         # Fetch user preference and apply as upper bound
         user_preference = _fetch_user_preference(group.project.id)
-        logger.info("User preference stopping point: %s", user_preference)
 
         stopping_point = _apply_user_preference_upper_bound(
             fixability_stopping_point, user_preference
-        )
-        logger.info(
-            "Triage signals V0: %s: Final stopping point after upper bound: %s",
-            group.id,
-            stopping_point,
         )
 
     _trigger_autofix_task.delay(

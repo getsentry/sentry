@@ -87,6 +87,9 @@ function Controls({
   const {teams: userTeams} = useUserTeams();
   const api = useApi();
   const navigate = useNavigate();
+  const hasPrebuiltControlsFeature = organization.features.includes(
+    'dashboards-prebuilt-controls'
+  );
 
   const {duplicatePrebuiltDashboard, isLoading: isLoadingDuplicatePrebuiltDashboard} =
     useDuplicatePrebuiltDashboard({
@@ -96,6 +99,10 @@ function Controls({
     });
 
   const isPrebuiltDashboard = defined(dashboard.prebuiltId);
+
+  if (isPrebuiltDashboard && !hasPrebuiltControlsFeature) {
+    return null;
+  }
 
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (

@@ -313,7 +313,7 @@ const getStylesConfig = ({
       marginLeft: '4px',
 
       '&:hover': {
-        color: theme.headingColor,
+        color: theme.tokens.content.primary,
         background: theme.backgroundTertiary,
       },
     }),
@@ -372,7 +372,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   const defaultStyles = useMemo(() => {
     return theme.isChonk
       ? getChonkStylesConfig({
-          theme: theme as any,
+          theme,
           size,
           maxMenuWidth,
           isInsideModal,

@@ -50,12 +50,14 @@ export interface Organization extends OrganizationSummary {
   access: Scope[];
   aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
+  allowBackgroundAgentDelegation: boolean;
   allowJoinRequests: boolean;
   allowMemberInvite: boolean;
   allowMemberProjectCreation: boolean;
   allowSharedIssues: boolean;
   allowSuperuserAccess: boolean;
   attachmentsRole: string;
+  autoOpenPrs: boolean;
   /** @deprecated use orgRoleList instead. */
   availableRoles: Array<{id: string; name: string}>;
   dataScrubber: boolean;

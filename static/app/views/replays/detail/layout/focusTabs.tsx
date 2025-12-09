@@ -51,7 +51,7 @@ function getReplayTabs({
           >
             {t('AI Summary')}
           </Tooltip>
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </Flex>
       ) : null,
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
@@ -75,7 +75,7 @@ type Props = {
 
 export default function FocusTabs({isVideoReplay}: Props) {
   const organization = useOrganization();
-  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
   const replay = useReplayReader();
@@ -95,15 +95,9 @@ export default function FocusTabs({isVideoReplay}: Props) {
     if (isAiTabAvailable) {
       trackAnalytics('replay.ai_tab_shown', {
         organization,
-        isSeerSetup: setupAcknowledgement.orgHasAcknowledged,
       });
     }
-  }, [
-    organization,
-    areAiFeaturesAllowed,
-    isVideoReplay,
-    setupAcknowledgement.orgHasAcknowledged,
-  ]);
+  }, [organization, areAiFeaturesAllowed, isVideoReplay]);
 
   return (
     <TabContainer>

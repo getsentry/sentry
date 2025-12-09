@@ -45,7 +45,10 @@ import {
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {
+  TraceItemDetailsResponse,
+  TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useFetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
@@ -502,11 +505,23 @@ function LogRowDetails({
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
   const attributes =
-    data?.attributes?.reduce((it, {name, value}) => ({...it, [name]: value}), {
-      [OurLogKnownFieldKey.TIMESTAMP]: dataRow[OurLogKnownFieldKey.TIMESTAMP],
-    }) ?? {};
+    data?.attributes?.reduce<Record<string, TraceItemResponseAttribute['value']>>(
+      (it, attr) => {
+        it[attr.name] = attr.value;
+        return it;
+      },
+      {
+        [OurLogKnownFieldKey.TIMESTAMP]: dataRow[OurLogKnownFieldKey.TIMESTAMP],
+      }
+    ) ?? {};
   const attributeTypes =
-    data?.attributes?.reduce((it, {name, type}) => ({...it, [name]: type}), {}) ?? {};
+    data?.attributes?.reduce<Record<string, TraceItemResponseAttribute['type']>>(
+      (it, attr) => {
+        it[attr.name] = attr.type;
+        return it;
+      },
+      {}
+    ) ?? {};
 
   if (missingLogId || isError) {
     return (

@@ -571,7 +571,11 @@ function TableComponent({
           tableData={tableData}
           frameless
           scrollable
-          fit="max-content"
+          fit={
+            widget?.tableWidths?.length && widget?.tableWidths?.length > 0
+              ? undefined
+              : 'max-content'
+          }
           aliases={aliases}
           onChangeSort={onWidgetTableSort}
           sort={sort}
@@ -787,7 +791,7 @@ const BigNumber = styled('div')`
   width: 100%;
   min-height: 0;
   font-size: 32px;
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   * {
     text-align: left !important;

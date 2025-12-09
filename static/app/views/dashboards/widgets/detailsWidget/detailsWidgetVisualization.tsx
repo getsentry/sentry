@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
@@ -36,7 +37,13 @@ export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProp
 }
 
 function Wrapper({children}: any) {
-  return <GrowingWrapper>{children}</GrowingWrapper>;
+  return (
+    <GrowingWrapper>
+      <AutoResizeParent>
+        <AutoSizedText>{children}</AutoSizedText>
+      </AutoResizeParent>
+    </GrowingWrapper>
+  );
 }
 
 // Takes up 100% of the parent. If within flex context, grows to fill.
@@ -46,6 +53,22 @@ const GrowingWrapper = styled('div')`
   flex-grow: 1;
   height: 100%;
   width: 100%;
+`;
+
+const AutoResizeParent = styled('div')`
+  position: absolute;
+  inset: 0;
+
+  color: ${p => p.theme.tokens.content.primary};
+
+  container-type: size;
+  container-name: auto-resize-parent;
+  padding: ${p => p.theme.space.xl};
+
+  * {
+    line-height: 1;
+    text-align: left !important;
+  }
 `;
 
 const LoadingPlaceholder = styled('span')`

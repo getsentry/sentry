@@ -21,6 +21,7 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   detectorType: DetectorType;
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   initialFormData: Partial<TFormData>;
+  disabledCreate?: string;
   mapFormErrors?: (error: any) => any;
   noEnvironment?: boolean;
   previewChart?: React.ReactNode;
@@ -33,6 +34,7 @@ export function NewDetectorLayout<
   children,
   formDataToEndpointPayload,
   initialFormData,
+  disabledCreate,
   mapFormErrors,
   noEnvironment,
   previewChart,
@@ -44,6 +46,7 @@ export function NewDetectorLayout<
   const maxWidth = theme.breakpoints.xl;
 
   const formSubmitHandler = useCreateDetectorFormSubmit({
+    detectorType,
     formDataToEndpointPayload,
   });
 
@@ -92,7 +95,7 @@ export function NewDetectorLayout<
 
       <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
 
-      <NewDetectorFooter maxWidth={maxWidth} />
+      <NewDetectorFooter maxWidth={maxWidth} disabledCreate={disabledCreate} />
     </EditLayout>
   );
 }

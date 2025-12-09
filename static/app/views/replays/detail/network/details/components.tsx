@@ -94,7 +94,7 @@ const SectionData = styled('dd')`
 const ToggleButton = styled('button')`
   background: ${p => p.theme.background};
   border: 0;
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
   line-height: ${p => p.theme.text.lineHeightBody};
