@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from django.core.cache import cache
 
@@ -19,6 +19,13 @@ def get_grouphash_existence_cache_key(hash_value: str, project_id: int) -> str:
 
 def get_grouphash_object_cache_key(hash_value: str, project_id: int) -> str:
     return f"grouphash_with_assigned_group:{project_id}:{hash_value}"
+
+
+# TODO: Once we settle on a good expiry time for both caches, this can go
+def get_grouphash_cache_version(cache_type: Literal["existence", "object"]) -> int:
+    option_name = f"grouping.ingest_grouphash_{cache_type}_cache_expiry.trial_values"
+    possible_cache_expiries = options.get(option_name)
+    return abs(hash(tuple(possible_cache_expiries)))
 
 
 def invalidate_grouphash_cache_on_save(instance: GroupHash, **kwargs: Any) -> None:
