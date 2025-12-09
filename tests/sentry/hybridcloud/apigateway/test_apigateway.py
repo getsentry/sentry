@@ -1,12 +1,14 @@
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 import pytest
 import responses
 from django.conf import settings
-from django.test import override_settings
+from django.test import RequestFactory, override_settings
 from django.urls import get_resolver, reverse
 from rest_framework.response import Response
 
+from sentry.hybridcloud.apigateway.proxy import proxy_region_request
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.helpers.apigateway import ApiGatewayTestCase, verify_request_params
 from sentry.testutils.helpers.response import close_streaming_response
@@ -395,3 +397,31 @@ class ApiGatewayTest(ApiGatewayTestCase):
 
             resp = self.client.get("/sentry-app-installations/abc123/external-issue-actions/")
             assert resp.status_code == 404
+
+    @patch("sentry.hybridcloud.apigateway.proxy.external_request")
+    def test_artifactbundle_assemble_timeout_override(self, mock_request) -> None:
+        class _DummyResponse:
+            status_code = 200
+
+            def __init__(self) -> None:
+                self.headers = {"Content-Type": "application/json"}
+
+            def iter_content(self, chunk_size):
+                yield b"{}"
+
+        mock_request.return_value = _DummyResponse()
+
+        request = RequestFactory().post(
+            "/api/0/organizations/example/artifactbundle/assemble/",
+            data='{"checksum":"abc"}',
+            content_type="application/json",
+        )
+
+        with override_settings(GATEWAY_PROXY_TIMEOUT=5.0):
+            proxy_region_request(
+                request,
+                self.REGION,
+                "sentry-api-0-organization-artifactbundle-assemble",
+            )
+
+        assert mock_request.call_args.kwargs["timeout"] == 90.0
