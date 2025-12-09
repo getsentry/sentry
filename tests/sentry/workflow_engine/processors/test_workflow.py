@@ -418,7 +418,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @patch("sentry.workflow_engine.processors.workflow.logger")
     def test_logs_triggered_workflows(self, mock_logger: MagicMock) -> None:
-        WorkflowEventContext.set(
+        ctx_token = WorkflowEventContext.set(
             WorkflowEventContextData(
                 detector=self.detector,
             )
@@ -434,6 +434,8 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
                 "group_type": self.event_data.group.type,
             },
         )
+
+        WorkflowEventContext.reset(ctx_token)
 
     def test_workflow_trigger__no_conditions(self) -> None:
         assert self.workflow.when_condition_group
