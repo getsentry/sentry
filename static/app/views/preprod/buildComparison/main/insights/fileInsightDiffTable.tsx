@@ -176,6 +176,12 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
               break;
           }
 
+          const actualDiff =
+            fileDiffItem.size_diff === 0
+              ? (fileDiffItem.head_size ?? 0) - (fileDiffItem.base_size ?? 0)
+              : fileDiffItem.size_diff;
+          const changeAmount = `${actualDiff > 0 ? '+' : '-'}${formatBytesBase10(Math.abs(actualDiff))}`;
+
           return (
             <Fragment key={rowIndex}>
               <SimpleTable.Row key={rowIndex}>
@@ -213,7 +219,7 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
                   </Tooltip>
                 </SimpleTable.RowCell>
                 <DiffTableChangeAmountCell changeType={fileDiffItem.type}>
-                  {`${fileDiffItem.size_diff > 0 ? '+' : '-'}${formatBytesBase10(Math.abs(fileDiffItem.size_diff))}`}
+                  {changeAmount}
                 </DiffTableChangeAmountCell>
               </SimpleTable.Row>
             </Fragment>
