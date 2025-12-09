@@ -220,6 +220,15 @@ export function hasCodeChanges(blocks: Block[]): boolean {
   return blocks.some(block => block.file_patches && block.file_patches.length > 0);
 }
 
+interface UseExplorerAutofixOptions {
+  /**
+   * Whether to enable the hook and make API calls.
+   * When false, the hook returns null state and no-op functions.
+   * Defaults to true.
+   */
+  enabled?: boolean;
+}
+
 /**
  * Hook for managing Explorer-based autofix state and actions.
  *
@@ -228,7 +237,11 @@ export function hasCodeChanges(blocks: Block[]): boolean {
  * - Starting autofix steps (root_cause, solution, code_changes, etc.)
  * - Creating pull requests from code changes
  */
-export function useExplorerAutofix(groupId: string) {
+export function useExplorerAutofix(
+  groupId: string,
+  options: UseExplorerAutofixOptions = {}
+) {
+  const {enabled = true} = options;
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -241,7 +254,11 @@ export function useExplorerAutofix(groupId: string) {
     {
       staleTime: 0,
       retry: false,
+      enabled,
       refetchInterval: query => {
+        if (!enabled) {
+          return false;
+        }
         return getPollInterval(
           query.state.data?.[0]?.autofix || null,
           waitingForResponse
