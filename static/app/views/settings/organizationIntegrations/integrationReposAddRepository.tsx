@@ -133,12 +133,16 @@ export function IntegrationReposAddRepository({
         query.isFetching
           ? t('Searching\u2026')
           : debouncedSearch
-            ? tct(
-                'No repositories found. Newly added repositories may take a few minutes to appear. You may also need to check repository permissions for the [link:Sentry Github App].',
-                {
-                  link: <ExternalLink href="https://github.com/apps/sentry" />,
-                }
-              )
+            ? integration.provider.key === 'github'
+              ? tct(
+                  'No repositories found. Newly added repositories may take a few minutes to appear. You may also need to check repository permissions for the [link:Sentry Github App].',
+                  {
+                    link: <ExternalLink href="https://github.com/apps/sentry" />,
+                  }
+                )
+              : t(
+                  'No repositories found. Newly added repositories may take a few minutes to appear. You may also need to check repository permissions.'
+                )
             : t('Please enter a repository name')
       }
       searchPlaceholder={t('Search Repositories')}
