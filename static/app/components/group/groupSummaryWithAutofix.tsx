@@ -1,9 +1,9 @@
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Button} from 'sentry/components/core/button';
+import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {
   getAutofixRunExists,
@@ -18,7 +18,7 @@ import {
 } from 'sentry/components/events/autofix/utils';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import Placeholder from 'sentry/components/placeholder';
-import {IconCode, IconFix, IconFocus, IconThumb} from 'sentry/icons';
+import {IconCode, IconFix, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -31,7 +31,6 @@ import testableTransition from 'sentry/utils/testableTransition';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 
 const pulseAnimation = {
   initial: {opacity: 1},
@@ -58,60 +57,6 @@ interface InsightCardObject {
   insightElement?: React.ReactNode;
   isLoading?: boolean;
   onClick?: () => void;
-}
-
-interface CardFeedbackProps {
-  feedbackType: 'root_cause' | 'solution' | 'changes';
-  groupId: string;
-  runId: string;
-}
-
-function CardFeedback({feedbackType, groupId, runId}: CardFeedbackProps) {
-  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
-  const organization = useOrganization();
-  const user = useUser();
-
-  const handleFeedback = useCallback(
-    (positive: boolean, e: React.MouseEvent) => {
-      e.stopPropagation();
-
-      const analyticsData = {
-        step_type: feedbackType,
-        positive,
-        group_id: groupId,
-        autofix_run_id: runId,
-        user_id: user.id,
-        organization,
-      };
-
-      trackAnalytics('seer.autofix.feedback_submitted', analyticsData);
-      setFeedbackSubmitted(true);
-    },
-    [feedbackType, groupId, runId, organization, user]
-  );
-
-  if (feedbackSubmitted) {
-    return <FeedbackText onClick={e => e.stopPropagation()}>{t('Thanks!')}</FeedbackText>;
-  }
-
-  return (
-    <FeedbackContainer onClick={e => e.stopPropagation()}>
-      <Button
-        size="zero"
-        borderless
-        icon={<IconThumb direction="up" size="xs" />}
-        onClick={e => handleFeedback(true, e)}
-        aria-label={t('This was helpful')}
-      />
-      <Button
-        size="zero"
-        borderless
-        icon={<IconThumb direction="down" size="xs" />}
-        onClick={e => handleFeedback(false, e)}
-        aria-label={t('This was not helpful')}
-      />
-    </FeedbackContainer>
-  );
 }
 
 export function GroupSummaryWithAutofix({
@@ -326,10 +271,13 @@ export function AutofixSummary({
                     </CardTitleSpacer>
                     <CardActions>
                       {!card.isLoading && card.feedbackType && autofixData?.run_id && (
-                        <CardFeedback
-                          feedbackType={card.feedbackType}
+                        <AutofixStepFeedback
+                          stepType={card.feedbackType}
                           groupId={group.id}
                           runId={autofixData.run_id}
+                          buttonSize="zero"
+                          compact
+                          onFeedbackClick={e => e.stopPropagation()}
                         />
                       )}
                       {card.copyText && card.copyTitle && (
@@ -500,16 +448,4 @@ const CardActions = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-`;
-
-const FeedbackContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.25)};
-`;
-
-const FeedbackText = styled('span')`
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
-  padding: 0 ${space(0.5)};
 `;
