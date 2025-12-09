@@ -7,7 +7,7 @@ from django.contrib.auth.models import AnonymousUser
 from sentry import features
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
+from sentry.replays.models import OrganizationMemberReplayAccess
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
