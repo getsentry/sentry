@@ -77,6 +77,11 @@ interface BaseListProps<Value extends SelectKey>
    * and before `onChange`.
    */
   onSectionToggle?: (section: SelectSection<SelectKey>) => void;
+  /**
+   * A function that determines whether list should be rendered with virtualized scrolling.
+   * @param items The list of items to be rendered.
+   */
+  shouldVirtualize?: (items: unknown[]) => boolean;
   size?: FormSize;
   /**
    * Upper limit for the number of options to display in the menu at a time. Users can
@@ -89,12 +94,6 @@ interface BaseListProps<Value extends SelectKey>
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
-
-  /**
-   * Number of options above which virtualization will be enabled.
-   * @default 100
-   */
-  virtualThreshold?: number;
 }
 
 /**

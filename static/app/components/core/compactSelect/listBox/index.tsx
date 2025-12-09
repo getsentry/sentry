@@ -79,6 +79,11 @@ interface ListBoxProps<T extends ObjectLike>
   overlayIsOpen?: boolean;
   ref?: React.Ref<HTMLUListElement>;
   /**
+   * A function that determines whether list should be rendered with virtualized scrolling.
+   * @param items The list of items to be rendered.
+   */
+  shouldVirtualize?: (items: unknown[]) => boolean;
+  /**
    * When false, hides option details.
    */
   showDetails?: boolean;
@@ -94,11 +99,6 @@ interface ListBoxProps<T extends ObjectLike>
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
-  /**
-   * Number of options above which virtualization will be enabled.
-   * @default 100
-   */
-  virtualThreshold?: number;
 }
 
 const EMPTY_SET = new Set<never>();
@@ -130,7 +130,7 @@ export function ListBox<T extends ObjectLike>({
   showSectionHeaders = true,
   showDetails = true,
   onAction,
-  virtualThreshold,
+  shouldVirtualize,
   ...props
 }: ListBoxProps<T>) {
   const listElementRef = useRef<HTMLUListElement>(null);
@@ -175,7 +175,7 @@ export function ListBox<T extends ObjectLike>({
     listState.selectionManager.setFocusedKey(null);
   };
 
-  const virtualizer = useVirtualizedItems({listItems, virtualThreshold});
+  const virtualizer = useVirtualizedItems({listItems, shouldVirtualize});
 
   return (
     <Fragment>
@@ -246,11 +246,10 @@ export function ListBox<T extends ObjectLike>({
 
 function useVirtualizedItems<T extends ObjectLike>({
   listItems,
-  virtualThreshold,
-}: {listItems: Array<Node<T>>} & Pick<ListBoxProps<T>, 'virtualThreshold'>) {
+  shouldVirtualize,
+}: {listItems: Array<Node<T>>} & Pick<ListBoxProps<T>, 'shouldVirtualize'>) {
   const scrollElementRef = useRef<HTMLDivElement>(null);
-  const isVirtualized =
-    virtualThreshold === undefined ? false : listItems.length > virtualThreshold;
+  const isVirtualized = shouldVirtualize?.(listItems) ?? false;
 
   const virtualizer = useVirtualizer({
     count: listItems.length,

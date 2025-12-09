@@ -22,6 +22,11 @@ export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 interface BaseSelectProps<Value extends SelectKey>
   extends Omit<ControlProps, 'onClear' | 'clearable'> {
   options: Array<SelectOptionOrSection<Value>>;
+  /**
+   * Number of options above which virtualization will be enabled.
+   * @default 100
+   */
+  virtualThreshold?: number;
 }
 
 export type SingleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> &
@@ -144,7 +149,11 @@ export function CompactSelect<Value extends SelectKey>({
         size={size}
         sizeLimit={sizeLimit}
         sizeLimitMessage={sizeLimitMessage}
-        virtualThreshold={virtualThreshold}
+        shouldVirtualize={shouldVirtualize(
+          itemsWithKey,
+          controlProps.menuWidth,
+          virtualThreshold
+        )}
         aria-labelledby={triggerId}
       >
         {(item: SelectOptionOrSectionWithKey<Value>) => {
@@ -172,4 +181,17 @@ export function CompactSelect<Value extends SelectKey>({
       {/* <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage> */}
     </Control>
   );
+}
+
+function shouldVirtualize<Value extends SelectKey>(
+  items: Array<SelectOptionOrSectionWithKey<Value>>,
+  menuWidth?: ControlProps['menuWidth'],
+  virtualThreshold = 100
+) {
+  const hasSections = items.some(item => 'options' in item);
+  if (hasSections || !menuWidth) {
+    return () => false;
+  }
+
+  return (listItems: unknown[]) => listItems.length > virtualThreshold;
 }
