@@ -23,7 +23,8 @@ export function useStoryParams(): {storyCategory?: StoryCategory; storySlug?: st
   const location = useLocation();
   // Match: /stories/:category/(one/optional/or/more/path/segments)
   // Handles both /stories/... and /organizations/{org}/stories/...
-  const match = location.pathname.match(/\/stories\/([^/]+)\/(.+)/);
+  // Supports optional trailing slashes
+  const match = location.pathname.match(/\/stories\/([^/]+)\/(.+?)\/?$/);
   return {
     storyCategory: match?.[1] as StoryCategory | undefined,
     storySlug: match?.[2] ?? undefined,

@@ -32,7 +32,7 @@ const frontmatter = {
     actions: [
       {
         children: 'Get Started',
-        to: '/stories/foundations/colors',
+        to: '/stories/foundations/colors/',
         priority: 'primary',
       },
       {
@@ -99,7 +99,7 @@ export function StoryLanding() {
             <Card
               to={{
                 pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/stories/foundations/colors`
+                  `/organizations/${organization.slug}/stories/foundations/colors/`
                 ),
               }}
               title="Color"
@@ -111,7 +111,7 @@ export function StoryLanding() {
             <Card
               to={{
                 pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/stories/foundations/icons`
+                  `/organizations/${organization.slug}/stories/foundations/icons/`
                 ),
               }}
               title="Icons"
@@ -123,7 +123,7 @@ export function StoryLanding() {
             <Card
               to={{
                 pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/stories/foundations/typography`
+                  `/organizations/${organization.slug}/stories/foundations/typography/`
                 ),
               }}
               title="Typography"
@@ -135,7 +135,7 @@ export function StoryLanding() {
             <Card
               to={{
                 pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/stories/foundations/images`
+                  `/organizations/${organization.slug}/stories/foundations/images/`
                 ),
               }}
               title="Images"
