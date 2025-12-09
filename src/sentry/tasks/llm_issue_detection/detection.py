@@ -7,7 +7,7 @@ from uuid import uuid4
 
 import sentry_sdk
 from django.conf import settings
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from sentry import features, options
 from sentry.constants import VALID_PLATFORMS
@@ -249,7 +249,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     response = make_signed_seer_api_request(
         connection_pool=seer_issue_detection_connection_pool,
         path=SEER_ANALYZE_ISSUE_ENDPOINT_PATH,
-        body=json.dumps(seer_request).encode("utf-8"),
+        body=json.dumps(seer_request.dict()).encode("utf-8"),
     )
 
     if response.status < 200 or response.status >= 300:
@@ -264,7 +264,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     try:
         raw_response_data = response.json()
         response_data = IssueDetectionResponse.parse_obj(raw_response_data)
-    except (ValueError, TypeError) as e:
+    except (ValueError, TypeError, ValidationError) as e:
         raise LLMIssueDetectionError(
             message="Seer response parsing error",
             status=response.status,
