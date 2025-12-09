@@ -4,7 +4,7 @@ from unittest import mock
 
 from sentry.constants import ObjectStatus
 from sentry.prevent.models import PreventAIConfiguration
-from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT
+from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT, PREVENT_AI_CONFIG_DEFAULT_V1
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -55,6 +55,28 @@ class OrganizationPreventGitHubConfigTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data == PREVENT_AI_CONFIG_DEFAULT
         assert resp.data["organization"] == {}
+        # Default config has on_new_commit disabled for bug_prediction
+        assert (
+            resp.data["default_org_config"]["org_defaults"]["bug_prediction"]["triggers"][
+                "on_new_commit"
+            ]
+            is False
+        )
+
+    def test_get_returns_v1_default_when_feature_flag_enabled(self):
+        """Test GET endpoint returns V1 default config when code-review-run-per-commit flag is enabled."""
+        with self.feature("organizations:code-review-run-per-commit"):
+            resp = self.client.get(self.url)
+            assert resp.status_code == 200
+            assert resp.data == PREVENT_AI_CONFIG_DEFAULT_V1
+            # V1 config has on_new_commit enabled for bug_prediction
+            assert (
+                resp.data["default_org_config"]["org_defaults"]["bug_prediction"]["triggers"][
+                    "on_new_commit"
+                ]
+                is True
+            )
+            assert resp.data["organization"] == {}
 
     def test_get_returns_config_when_exists(self):
         """Test GET endpoint returns the saved configuration when it exists."""
