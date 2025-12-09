@@ -1,12 +1,12 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {AutofixSummary} from 'sentry/components/group/groupSummaryWithAutofix';
+import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/components/events/autofix/useAutofix');
@@ -14,13 +14,13 @@ jest.mock('sentry/utils/analytics');
 
 describe('AutofixSummary', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture();
   const group = GroupFixture({id: '1', shortId: 'TEST-1'});
   const user = UserFixture();
 
   beforeEach(() => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
+    ConfigStore.set('user', user);
 
     jest.mocked(useAutofixData).mockReturnValue({
       data: {
@@ -34,7 +34,7 @@ describe('AutofixSummary', () => {
     } as any);
   });
 
-  it('renders feedback buttons for root cause card', async () => {
+  it('renders feedback buttons for root cause card', () => {
     render(
       <AutofixSummary
         group={group}
@@ -55,7 +55,7 @@ describe('AutofixSummary', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders feedback buttons for solution card', async () => {
+  it('renders feedback buttons for solution card', () => {
     render(
       <AutofixSummary
         group={group}
@@ -86,7 +86,7 @@ describe('AutofixSummary', () => {
         codeChangesDescription={null}
         codeChangesIsLoading={false}
       />,
-      {organization, user}
+      {organization}
     );
 
     const thumbsUpButton = screen.getByRole('button', {name: 'This was helpful'});
@@ -119,7 +119,7 @@ describe('AutofixSummary', () => {
         codeChangesDescription={null}
         codeChangesIsLoading={false}
       />,
-      {organization, user}
+      {organization}
     );
 
     const thumbsDownButton = screen.getByRole('button', {
@@ -166,7 +166,7 @@ describe('AutofixSummary', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('does not render feedback buttons when loading', async () => {
+  it('does not render feedback buttons when loading', () => {
     render(
       <AutofixSummary
         group={group}
@@ -201,12 +201,16 @@ describe('AutofixSummary', () => {
         codeChangesDescription={null}
         codeChangesIsLoading={false}
       />,
-      {organization, user}
+      {organization}
     );
 
     const thumbsUpButtons = screen.getAllByRole('button', {name: 'This was helpful'});
     // Click the second thumbs up (solution)
-    await userEvent.click(thumbsUpButtons[1]);
+    const secondButton = thumbsUpButtons[1];
+    if (!secondButton) {
+      throw new Error('Second thumbs up button not found');
+    }
+    await userEvent.click(secondButton);
 
     await waitFor(() => {
       expect(trackAnalytics).toHaveBeenCalledWith(
@@ -231,12 +235,16 @@ describe('AutofixSummary', () => {
         codeChangesDescription="These are the code changes"
         codeChangesIsLoading={false}
       />,
-      {organization, user}
+      {organization}
     );
 
     const thumbsUpButtons = screen.getAllByRole('button', {name: 'This was helpful'});
     // Click the third thumbs up (code changes)
-    await userEvent.click(thumbsUpButtons[2]);
+    const thirdButton = thumbsUpButtons[2];
+    if (!thirdButton) {
+      throw new Error('Third thumbs up button not found');
+    }
+    await userEvent.click(thirdButton);
 
     await waitFor(() => {
       expect(trackAnalytics).toHaveBeenCalledWith(
@@ -249,7 +257,7 @@ describe('AutofixSummary', () => {
     });
   });
 
-  it('does not render feedback buttons when run_id is missing', async () => {
+  it('does not render feedback buttons when run_id is missing', () => {
     jest.mocked(useAutofixData).mockReturnValue({
       data: null,
       isPending: false,
