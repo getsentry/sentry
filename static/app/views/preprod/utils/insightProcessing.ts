@@ -43,7 +43,7 @@ interface InsightConfig {
   name: string;
 }
 
-export const INSIGHT_CONFIGS: InsightConfig[] = [
+const INSIGHT_CONFIGS: InsightConfig[] = [
   {
     key: 'image_optimization',
     name: t('Image Optimization'),

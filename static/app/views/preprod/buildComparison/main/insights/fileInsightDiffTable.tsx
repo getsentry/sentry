@@ -143,12 +143,12 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
             </Stack>
           </SimpleTable.Empty>
         )}
-        {currentDiffItems.map(groupDiffItem => {
+        {currentDiffItems.map(fileDiffItem => {
           rowIndex++;
           let changeTypeLabel: string;
           let changeTypeIcon: React.ReactNode;
           let changeTypeTagType: 'success' | 'error' | 'warning';
-          switch (groupDiffItem.type) {
+          switch (fileDiffItem.type) {
             case 'added':
               changeTypeTagType = 'error';
               changeTypeLabel = t('Added');
@@ -157,6 +157,16 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
             case 'removed':
               changeTypeTagType = 'success';
               changeTypeLabel = t('Removed');
+              changeTypeIcon = <IconSubtract />;
+              break;
+            case 'increased':
+              changeTypeTagType = 'error';
+              changeTypeLabel = t('Increased');
+              changeTypeIcon = <IconAdd />;
+              break;
+            case 'decreased':
+              changeTypeTagType = 'success';
+              changeTypeLabel = t('Decreased');
               changeTypeIcon = <IconSubtract />;
               break;
             default:
@@ -177,20 +187,20 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
                 <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
                   <Tooltip
                     title={
-                      groupDiffItem.path ? (
+                      fileDiffItem.path ? (
                         <Flex align="start" gap="xs">
-                          <Text monospace>{groupDiffItem.path}</Text>
+                          <Text monospace>{fileDiffItem.path}</Text>
                           <CopyToClipboardButton
                             borderless
                             size="zero"
-                            text={groupDiffItem.path}
+                            text={fileDiffItem.path}
                             style={{flexShrink: 0}}
                             aria-label="Copy path to clipboard"
                           />
                         </Flex>
                       ) : null
                     }
-                    disabled={!groupDiffItem.path}
+                    disabled={!fileDiffItem.path}
                     isHoverable
                     maxWidth={420}
                   >
@@ -198,13 +208,12 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
                       ellipsisDirection="right"
                       style={{display: 'block', width: '100%'}}
                     >
-                      {groupDiffItem.path ?? ''}
+                      {fileDiffItem.path ?? ''}
                     </TextOverflow>
                   </Tooltip>
                 </SimpleTable.RowCell>
-                <DiffTableChangeAmountCell changeType={groupDiffItem.type}>
-                  {groupDiffItem.size_diff > 0 ? '+' : '-'}
-                  {formatBytesBase10(Math.abs(groupDiffItem.size_diff))}
+                <DiffTableChangeAmountCell changeType={fileDiffItem.type}>
+                  {`${fileDiffItem.size_diff > 0 ? '+' : '-'}${formatBytesBase10(Math.abs(fileDiffItem.size_diff))}`}
                 </DiffTableChangeAmountCell>
               </SimpleTable.Row>
             </Fragment>

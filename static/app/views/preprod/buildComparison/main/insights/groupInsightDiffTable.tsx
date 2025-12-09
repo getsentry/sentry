@@ -102,7 +102,9 @@ export function GroupInsightItemDiffTable({
     while (i < items.length && runningRowCount < page * itemsPerPage) {
       runningRowCount += 1; // count parent
       const childCount =
-        items[i] && Array.isArray(items[i].diff_items) ? items[i].diff_items.length : 0;
+        items[i] && Array.isArray(items[i]!.diff_items)
+          ? items[i]!.diff_items!.length
+          : 0;
       runningRowCount += childCount; // count children
       i++;
     }
@@ -111,13 +113,14 @@ export function GroupInsightItemDiffTable({
     // i points to first parent to be included on this page
     while (i < items.length && runningRowCount < itemsPerPage) {
       const parent = items[i];
-      const childCount = Array.isArray(parent.diff_items) ? parent.diff_items.length : 0;
+      const childCount =
+        parent && Array.isArray(parent.diff_items) ? parent.diff_items.length : 0;
       const totalRowsForParent = 1 + childCount;
       // If adding this parent would cross the page boundary (i.e., would not fit), break
       if (runningRowCount + totalRowsForParent > itemsPerPage) {
         break;
       }
-      pagedParents.push(parent);
+      pagedParents.push(parent!);
       runningRowCount += totalRowsForParent;
       i++;
     }
@@ -209,6 +212,16 @@ export function GroupInsightItemDiffTable({
               changeTypeLabel = t('Removed');
               changeTypeIcon = <IconSubtract />;
               break;
+            case 'increased':
+              changeTypeTagType = 'error';
+              changeTypeLabel = t('Increased');
+              changeTypeIcon = <IconAdd />;
+              break;
+            case 'decreased':
+              changeTypeTagType = 'success';
+              changeTypeLabel = t('Decreased');
+              changeTypeIcon = <IconSubtract />;
+              break;
             default:
               changeTypeTagType = 'warning';
               changeTypeLabel = t('Unchanged');
@@ -253,26 +266,26 @@ export function GroupInsightItemDiffTable({
                   </Tooltip>
                 </SimpleTable.RowCell>
                 <DiffTableChangeAmountCell changeType={groupDiffItem.type}>
-                  {groupDiffItem.size_diff > 0 ? '+' : '-'}
-                  {formatBytesBase10(Math.abs(groupDiffItem.size_diff))}
+                  {`${groupDiffItem.size_diff > 0 ? '+' : '-'}${formatBytesBase10(Math.abs(groupDiffItem.size_diff))}`}
                 </DiffTableChangeAmountCell>
               </SimpleTable.Row>
-              {groupDiffItem.diff_items?.map(diffItem => (
-                <SimpleTable.Row key={++rowIndex}>
-                  <SimpleTable.RowCell>
-                    <Tag icon={changeTypeIcon} type={changeTypeTagType}>
-                      {changeTypeLabel}
-                    </Tag>
-                  </SimpleTable.RowCell>
-                  <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
-                    <Text variant="muted">{diffItem.path ?? ''}</Text>
-                  </SimpleTable.RowCell>
-                  <DiffTableChangeAmountCell changeType={diffItem.type}>
-                    {diffItem.size_diff > 0 ? '+' : '-'}
-                    {formatBytesBase10(Math.abs(diffItem.size_diff))}
-                  </DiffTableChangeAmountCell>
-                </SimpleTable.Row>
-              ))}
+              {groupDiffItem.diff_items?.map(diffItem => {
+                return (
+                  <SimpleTable.Row key={++rowIndex}>
+                    <SimpleTable.RowCell>
+                      <Tag icon={changeTypeIcon} type={changeTypeTagType}>
+                        {changeTypeLabel}
+                      </Tag>
+                    </SimpleTable.RowCell>
+                    <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
+                      <Text variant="muted">{diffItem.path ?? ''}</Text>
+                    </SimpleTable.RowCell>
+                    <DiffTableChangeAmountCell changeType={diffItem.type}>
+                      {`${diffItem.size_diff > 0 ? '+' : '-'}${formatBytesBase10(Math.abs(diffItem.size_diff))}`}
+                    </DiffTableChangeAmountCell>
+                  </SimpleTable.Row>
+                );
+              })}
             </Fragment>
           );
         })}

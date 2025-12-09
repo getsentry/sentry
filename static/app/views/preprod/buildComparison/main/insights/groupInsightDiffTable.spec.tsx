@@ -35,7 +35,7 @@ const mockGroupDiffItems: DiffItem[] = [
   },
   {
     path: 'LICENSE.txt',
-    type: 'added',
+    type: 'removed',
     size_diff: 0,
     head_size: 2000,
     base_size: 2000,
@@ -43,7 +43,7 @@ const mockGroupDiffItems: DiffItem[] = [
     diff_items: [
       {
         path: '/META-INF/LICENSE1.txt',
-        type: 'added',
+        type: 'removed',
         size_diff: 0,
         head_size: 1000,
         base_size: 1000,
@@ -52,7 +52,7 @@ const mockGroupDiffItems: DiffItem[] = [
       },
       {
         path: '/META-INF/LICENSE2.txt',
-        type: 'removed',
+        type: 'added',
         size_diff: 0,
         head_size: 1000,
         base_size: 1000,
@@ -91,14 +91,14 @@ describe('GroupInsightItemDiffTable', () => {
     const addedTags = screen.getAllByText('Added');
     expect(addedTags).toHaveLength(3); // 1 group + 2 children
 
-    // Check "Unchanged" tags for LICENSE.txt group
-    const unchangedTags = screen.getAllByText('Unchanged');
-    expect(unchangedTags).toHaveLength(3); // 1 group + 2 children
+    // Check "Removed" tags for LICENSE.txt group
+    const removedTags = screen.getAllByText('Removed');
+    expect(removedTags).toHaveLength(3); // 1 group + 2 children
 
     // Check sizes
-    expect(screen.getByText('+1.5 kB')).toBeInTheDocument(); // Group total
+    expect(screen.getByText('+1.5 KB')).toBeInTheDocument(); // Group total
     expect(screen.getByText('+500 B')).toBeInTheDocument(); // Child 1
-    expect(screen.getByText('+1 kB')).toBeInTheDocument(); // Child 2
+    expect(screen.getByText('+1 KB')).toBeInTheDocument(); // Child 2
   });
 
   it('supports sorting by different fields', async () => {
@@ -111,7 +111,7 @@ describe('GroupInsightItemDiffTable', () => {
     // After sorting by status, "added" items should come first (order: added < unchanged)
     const rows = screen.getAllByRole('row');
     // First data row should contain the "added" group
-    expect(within(rows[1]).getByText('icon.png')).toBeInTheDocument();
+    expect(within(rows[1]!).getByText('icon.png')).toBeInTheDocument();
   });
 
   it('handles pagination correctly with nested items', async () => {
@@ -194,6 +194,6 @@ describe('GroupInsightItemDiffTable', () => {
     await userEvent.hover(pathElement);
 
     // Should show copy button in tooltip
-    expect(screen.getByLabelText('Copy path to clipboard')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Copy path to clipboard')).toBeInTheDocument();
   });
 });

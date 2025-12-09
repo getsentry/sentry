@@ -1,6 +1,6 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import type {DiffItem} from 'sentry/views/preprod/types/appSizeTypes';
+import {TreemapType, type DiffItem} from 'sentry/views/preprod/types/appSizeTypes';
 
 import {FileInsightItemDiffTable} from './fileInsightDiffTable';
 
@@ -11,7 +11,7 @@ const mockFileDiffItems: DiffItem[] = [
     size_diff: 2500000,
     head_size: 2500000,
     base_size: null,
-    item_type: 'assets',
+    item_type: TreemapType.ASSETS,
     diff_items: null,
   },
   {
@@ -20,16 +20,16 @@ const mockFileDiffItems: DiffItem[] = [
     size_diff: -150000,
     head_size: null,
     base_size: 150000,
-    item_type: 'executables',
+    item_type: TreemapType.EXECUTABLES,
     diff_items: null,
   },
   {
     path: '/lib/library.so',
-    type: 'increased',
+    type: 'decreased',
     size_diff: 0,
-    head_size: 1000000,
+    head_size: 0,
     base_size: 1000000,
-    item_type: 'native_libraries',
+    item_type: TreemapType.NATIVE_LIBRARIES,
     diff_items: null,
   },
 ];
@@ -52,12 +52,12 @@ describe('FileInsightItemDiffTable', () => {
     // Check status tags
     expect(screen.getByText('Added')).toBeInTheDocument();
     expect(screen.getByText('Removed')).toBeInTheDocument();
-    expect(screen.getByText('Unchanged')).toBeInTheDocument();
+    expect(screen.getByText('Decreased')).toBeInTheDocument();
 
     // Check sizes
     expect(screen.getByText('+2.5 MB')).toBeInTheDocument();
-    expect(screen.getByText('-150 kB')).toBeInTheDocument();
-    expect(screen.getByText('-1 MB')).toBeInTheDocument(); // Unchanged shows as negative for consistency
+    expect(screen.getByText('-150 KB')).toBeInTheDocument();
+    expect(screen.getByText('-1 MB')).toBeInTheDocument();
   });
 
   it('supports sorting by different fields', async () => {
@@ -69,13 +69,13 @@ describe('FileInsightItemDiffTable', () => {
 
     // After sorting by status ascending, "added" should come first
     const rows = screen.getAllByRole('row');
-    expect(within(rows[1]).getByText('/assets/large-image.png')).toBeInTheDocument();
+    expect(within(rows[1]!).getByText('/assets/large-image.png')).toBeInTheDocument();
 
     // Click again to sort descending
     await userEvent.click(statusHeader);
 
-    // Now "unchanged" should come first
-    expect(within(rows[1]).getByText('/lib/library.so')).toBeInTheDocument();
+    // Now "removed" (highest order value) should come first
+    expect(within(rows[1]!).getByText('/components/utils.js')).toBeInTheDocument();
   });
 
   it('supports sorting by path', async () => {
@@ -87,7 +87,7 @@ describe('FileInsightItemDiffTable', () => {
 
     // Should sort alphabetically by path
     const rows = screen.getAllByRole('row');
-    expect(within(rows[1]).getByText('/assets/large-image.png')).toBeInTheDocument();
+    expect(within(rows[1]!).getByText('/assets/large-image.png')).toBeInTheDocument();
   });
 
   it('handles pagination correctly', async () => {
@@ -100,7 +100,7 @@ describe('FileInsightItemDiffTable', () => {
         size_diff: 1000 + i,
         head_size: 1000 + i,
         base_size: null,
-        item_type: 'files',
+        item_type: TreemapType.FILES,
         diff_items: null,
       });
     }
@@ -123,10 +123,10 @@ describe('FileInsightItemDiffTable', () => {
     expect(screen.getByText(/Page 1 of \d+/)).toBeInTheDocument();
   });
 
-  it('handles items with null paths gracefully', () => {
+  it('handles items with empty paths gracefully', () => {
     const itemsWithNullPaths: DiffItem[] = [
       {
-        path: null,
+        path: '',
         type: 'added',
         size_diff: 1000,
         head_size: 1000,
@@ -140,7 +140,7 @@ describe('FileInsightItemDiffTable', () => {
 
     // Should render without crashing and show empty string for path
     expect(screen.getByText('Added')).toBeInTheDocument();
-    expect(screen.getByText('+1 kB')).toBeInTheDocument();
+    expect(screen.getByText('+1 KB')).toBeInTheDocument();
   });
 
   it('displays tooltips with copy functionality for paths', async () => {
@@ -151,18 +151,18 @@ describe('FileInsightItemDiffTable', () => {
     await userEvent.hover(pathElement);
 
     // Should show copy button in tooltip
-    expect(screen.getByLabelText('Copy path to clipboard')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Copy path to clipboard')).toBeInTheDocument();
   });
 
   it('handles zero size diff correctly', () => {
     const zeroSizeDiffItems: DiffItem[] = [
       {
         path: '/zero-change.txt',
-        type: 'unchanged',
+        type: 'decreased',
         size_diff: 0,
-        head_size: 500,
+        head_size: 0,
         base_size: 500,
-        item_type: 'files',
+        item_type: TreemapType.FILES,
         diff_items: null,
       },
     ];
@@ -170,7 +170,7 @@ describe('FileInsightItemDiffTable', () => {
     render(<FileInsightItemDiffTable fileDiffItems={zeroSizeDiffItems} />);
 
     expect(screen.getByText('/zero-change.txt')).toBeInTheDocument();
-    expect(screen.getByText('Unchanged')).toBeInTheDocument();
+    expect(screen.getByText('Decreased')).toBeInTheDocument();
     expect(screen.getByText('-500 B')).toBeInTheDocument(); // Should show absolute value with minus
   });
 
@@ -184,7 +184,7 @@ describe('FileInsightItemDiffTable', () => {
         size_diff: 1000,
         head_size: 1000,
         base_size: null,
-        item_type: 'files',
+        item_type: TreemapType.FILES,
         diff_items: null,
       });
     }
