@@ -14,8 +14,6 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
-from sentry.models.project import Project
-from sentry.models.repository import Repository
 from sentry.models.repositoryseersettings import RepositorySeerSettings
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -39,15 +37,10 @@ def check_github_integration(organization_id: int) -> bool:
 
 def check_code_review_enabled(organization_id: int) -> bool:
     """Check if code review is enabled for any active repository in the organization."""
-    repo_ids = Repository.objects.filter(
-        organization_id=organization_id, status=ObjectStatus.ACTIVE
-    ).values_list("id", flat=True)
-
-    if not repo_ids:
-        return False
-
     return RepositorySeerSettings.objects.filter(
-        repository_id__in=repo_ids, enabled_code_review=True
+        repository__organization_id=organization_id,
+        repository__status=ObjectStatus.ACTIVE,
+        enabled_code_review=True,
     ).exists()
 
 
@@ -56,16 +49,11 @@ def check_autofix_enabled(organization_id: int) -> bool:
     Check if autofix/RCA is enabled for any active project in the organization,
     ie, if any project has sentry:autofix_automation_tuning not set to "off" or None.
     """
-    projects = Project.objects.filter(
-        organization_id=organization_id, status=ObjectStatus.ACTIVE
-    ).values_list("id", flat=True)
-
-    if not projects:
-        return False
-
     return (
         ProjectOption.objects.filter(
-            project_id__in=projects, key="sentry:autofix_automation_tuning"
+            project__organization_id=organization_id,
+            project__status=ObjectStatus.ACTIVE,
+            key="sentry:autofix_automation_tuning",
         )
         .exclude(value="off")
         .exclude(value__isnull=True)
