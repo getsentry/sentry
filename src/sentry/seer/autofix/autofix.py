@@ -10,6 +10,7 @@ import requests
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.db import router, transaction
 from django.utils import timezone
 from rest_framework.response import Response
 
@@ -22,6 +23,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
@@ -599,10 +601,12 @@ def onboarding_seer_settings_update(
         organization.update_option(
             "sentry:default_autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
         )
-        for project in projects:
-            project.update_option(
-                "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
-            )
+        # Ensure all projects are updated in a single transaction
+        with transaction.atomic(router.db_for_write(ProjectOption)):
+            for project in projects:
+                project.update_option(
+                    "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
+                )
         return
 
     # Set the default stopping point for projects
