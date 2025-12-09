@@ -141,14 +141,14 @@ export enum DataCategoryExact {
  * - 'durationHours': Categories measured in hours (e.g., continuous profiling)
  * - 'count': Categories measured as simple counts (e.g., errors, transactions)
  */
-export type DataCategoryUnitType = 'bytes' | 'durationHours' | 'count';
+type DataCategoryUnitType = 'bytes' | 'durationHours' | 'count';
 
 /**
  * Formatting configuration for data categories.
  * This centralizes category-specific formatting logic that was previously
  * scattered across helper functions like isByteCategory() and isContinuousProfiling().
  */
-export interface DataCategoryFormattingInfo {
+interface DataCategoryFormattingInfo {
   /**
    * BigNum unit type for formatting large numbers.
    * 0 = numbers (standard numeric formatting)
