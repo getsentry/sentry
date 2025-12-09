@@ -693,7 +693,6 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
         ]
     )
     def test_create_detector_trace_metrics_valid_aggregates(self) -> None:
-        # Test per_second aggregate
         data_per_second = {
             **self.trace_metrics_data,
             "name": "Trace Metrics Per Second Detector",
@@ -720,7 +719,6 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
             == "per_second(value,metric_name_one,counter,-)"
         )
 
-        # Test count aggregate
         data_count = {
             **self.trace_metrics_data,
             "name": "Trace Metrics Count Detector",
