@@ -1,14 +1,19 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert/alert';
 import {Flex} from '@sentry/scraps/layout';
 
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import Panel from 'sentry/components/panels/panel';
+import {IconChevron} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -34,6 +39,8 @@ export function AttributeDistribution() {
   const [searchQuery, setSearchQuery] = useQueryParamState({
     fieldName: 'attributeBreakdownsSearch',
   });
+
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(0);
 
   const query = useQueryParamsQuery();
@@ -56,12 +63,6 @@ export function AttributeDistribution() {
   }, [dataset, query, selection]);
 
   const {
-    data: attributeBreakdownsData,
-    isLoading: isAttributeBreakdownsLoading,
-    error: attributeBreakdownsError,
-  } = useAttributeBreakdowns();
-
-  const {
     data: cohortCountResponse,
     isLoading: isCohortCountLoading,
     error: cohortCountError,
@@ -76,8 +77,7 @@ export function AttributeDistribution() {
       },
     ],
     {
-      staleTime: Infinity,
-      refetchOnWindowFocus: false,
+      staleTime: 0,
     }
   );
 
@@ -86,6 +86,17 @@ export function AttributeDistribution() {
   // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
   // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
   const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 100);
+
+  const {
+    data: attributeBreakdownsData,
+    getResponseHeader: getAttributeBreakdownsResponseHeader,
+    isLoading: isAttributeBreakdownsLoading,
+    error: attributeBreakdownsError,
+  } = useAttributeBreakdowns({cursor, substringMatch: debouncedSearchQuery});
+
+  const parsedLinks = parseLinkHeader(
+    getAttributeBreakdownsResponseHeader?.('Link') ?? null
+  );
 
   const filteredAttributeDistribution: AttributeDistribution = useMemo(() => {
     const attributeDistribution =
@@ -111,29 +122,13 @@ export function AttributeDistribution() {
       []
     );
 
-    // We sort the attributes by descending population density
-    //  (i.e. the number of spans with the attribute populated / total number of spans)
-    filtered.sort((a, b) => {
-      const sumA = a.values.reduce(
-        (sum, v) => sum + (typeof v.value === 'number' ? v.value : 0),
-        0
-      );
-      const sumB = b.values.reduce(
-        (sum, v) => sum + (typeof v.value === 'number' ? v.value : 0),
-        0
-      );
-      const ratioA = cohortCount > 0 ? sumA / cohortCount : 0;
-      const ratioB = cohortCount > 0 ? sumB / cohortCount : 0;
-      return ratioB - ratioA;
-    });
-
     return filtered;
-  }, [attributeBreakdownsData, debouncedSearchQuery, cohortCount]);
+  }, [attributeBreakdownsData, debouncedSearchQuery]);
 
   useEffect(() => {
-    // Ensure that we are on the first page whenever filtered attributes change.
+    setCursor(undefined);
     setPage(0);
-  }, [filteredAttributeDistribution]);
+  }, [searchQuery]);
 
   const error = attributeBreakdownsError ?? cohortCountError;
 
@@ -170,11 +165,35 @@ export function AttributeDistribution() {
                   />
                 ))}
             </AttributeBreakdownsComponent.ChartsGrid>
-            <AttributeBreakdownsComponent.Pagination
-              currentPage={page}
-              onPageChange={setPage}
-              totalItems={filteredAttributeDistribution?.length ?? 0}
-            />
+            <PaginationContainer>
+              <ButtonBar merged gap="0">
+                <Button
+                  icon={<IconChevron direction="left" />}
+                  aria-label={t('Previous')}
+                  size="sm"
+                  disabled={page === 0}
+                  onClick={() => {
+                    setPage(page - 1);
+                  }}
+                />
+                <Button
+                  icon={<IconChevron direction="right" />}
+                  aria-label={t('Next')}
+                  size="sm"
+                  disabled={
+                    page ===
+                    Math.ceil(filteredAttributeDistribution.length / CHARTS_PER_PAGE) - 1
+                  }
+                  onClick={() => {
+                    if (parsedLinks.next?.results) {
+                      setCursor(parsedLinks.next?.cursor);
+                    }
+
+                    setPage(page + 1);
+                  }}
+                />
+              </ButtonBar>
+            </PaginationContainer>
           </Fragment>
         ) : (
           <AttributeBreakdownsComponent.EmptySearchState />
@@ -204,3 +223,7 @@ function ChartSelectionAlert() {
     </Alert>
   );
 }
+
+const PaginationContainer = styled(Flex)`
+  justify-content: end;
+`;
