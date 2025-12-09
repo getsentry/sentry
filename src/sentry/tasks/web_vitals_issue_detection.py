@@ -126,7 +126,9 @@ def dispatch_detection_for_project_ids(
     namespace=issues_tasks,
     processing_deadline_duration=120,
 )
-def detect_web_vitals_issues_for_project(project_id: int, organization_slug: str) -> None:
+def detect_web_vitals_issues_for_project(
+    project_id: int, organization_slug: str | None = None
+) -> None:
     """
     Process a single project for Web Vitals issue detection.
     """
