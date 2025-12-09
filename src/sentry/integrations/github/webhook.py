@@ -440,8 +440,6 @@ class PushEventWebhook(GitHubWebhook):
 
             if author:
                 author.preload_users()
-
-            file_changes: list[CommitFileChange] = []
             try:
                 with transaction.atomic(router.db_for_write(Commit)):
                     c = Commit.objects.create(
@@ -452,6 +450,8 @@ class PushEventWebhook(GitHubWebhook):
                         author=author,
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
+
+                    file_changes: list[CommitFileChange] = []
 
                     for fname in commit["added"]:
                         languages.add(get_file_language(fname))
@@ -488,12 +488,10 @@ class PushEventWebhook(GitHubWebhook):
 
                     if file_changes:
                         CommitFileChange.objects.bulk_create(file_changes)
+                        post_bulk_create(file_changes)
 
             except IntegrityError:
-                file_changes = []
-
-            if file_changes:
-                post_bulk_create(file_changes)
+                pass
 
         languages.discard(None)
         repo.languages = list(set(repo.languages or []).union(languages))
