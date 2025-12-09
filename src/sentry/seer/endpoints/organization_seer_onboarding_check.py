@@ -47,7 +47,7 @@ def check_github_integration(organization_id: int) -> bool:
 
 
 def check_code_review_enabled(organization_id: int) -> bool:
-    """Check if code review is enabled for any repository in the organization."""
+    """Check if code review is enabled for any active repository in the organization."""
     repo_ids = Repository.objects.filter(
         organization_id=organization_id, status=ObjectStatus.ACTIVE
     ).values_list("id", flat=True)
@@ -62,7 +62,7 @@ def check_code_review_enabled(organization_id: int) -> bool:
 
 def check_autofix_enabled(organization_id: int) -> bool:
     """
-    Check if autofix/RCA automation is enabled for any project in the organization,
+    Check if autofix/RCA automation is enabled for any active project in the organization,
     ie, if any project has sentry:autofix_automation_tuning not set to "off" or None.
     """
     projects = Project.objects.filter(

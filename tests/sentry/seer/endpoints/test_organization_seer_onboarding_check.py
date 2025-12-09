@@ -8,7 +8,9 @@ from sentry.seer.endpoints.organization_seer_onboarding_check import (
     check_code_review_enabled,
     check_github_integration,
 )
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class TestCheckGithubIntegration(TestCase):
@@ -53,9 +55,6 @@ class TestCheckGithubIntegration(TestCase):
     def test_no_installation(self) -> None:
         # Create an integration WITHOUT adding it to the organization
         # (no OrganizationIntegration record)
-        from sentry.silo.base import SiloMode
-        from sentry.testutils.silo import assume_test_silo_mode
-
         with assume_test_silo_mode(SiloMode.CONTROL):
             Integration.objects.create(
                 provider="github",
@@ -241,8 +240,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
         url = f"/api/0/organizations/{organization_slug}/seer/onboarding-check/"
         return self.client.get(url, format="json", **kwargs)
 
-    def test_default_state(self) -> None:
-        """Returns all False when nothing is configured"""
+    def test_nothing_configured(self) -> None:
         response = self.get_response(self.organization.slug)
 
         assert response.status_code == 200
@@ -250,5 +248,146 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "hasGithubIntegration": False,
             "isCodeReviewEnabled": False,
             "isAutofixEnabled": False,
+            "isSeerConfigured": False,
+        }
+
+    def test_all_configured(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="GitHub Test",
+            external_id="123",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        repo = self.create_repo(project=self.project)
+        RepositorySeerSettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+        )
+
+        self.project.update_option("sentry:autofix_automation_tuning", "high")
+
+        response = self.get_response(self.organization.slug)
+
+        assert response.status_code == 200
+        assert response.data == {
+            "hasGithubIntegration": True,
+            "isCodeReviewEnabled": True,
+            "isAutofixEnabled": True,
+            "isSeerConfigured": True,
+        }
+
+    def test_github_integration_only(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="GitHub Test",
+            external_id="123",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        response = self.get_response(self.organization.slug)
+
+        assert response.status_code == 200
+        assert response.data == {
+            "hasGithubIntegration": True,
+            "isCodeReviewEnabled": False,
+            "isAutofixEnabled": False,
+            "isSeerConfigured": False,
+        }
+
+    def test_code_review_enabled_only(self) -> None:
+        repo = self.create_repo(project=self.project)
+        RepositorySeerSettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+        )
+
+        response = self.get_response(self.organization.slug)
+
+        assert response.status_code == 200
+        assert response.data == {
+            "hasGithubIntegration": False,
+            "isCodeReviewEnabled": True,
+            "isAutofixEnabled": False,
+            "isSeerConfigured": False,
+        }
+
+    def test_autofix_enabled_only(self) -> None:
+        self.project.update_option("sentry:autofix_automation_tuning", "high")
+
+        response = self.get_response(self.organization.slug)
+
+        assert response.status_code == 200
+        assert response.data == {
+            "hasGithubIntegration": False,
+            "isCodeReviewEnabled": False,
+            "isAutofixEnabled": True,
+            "isSeerConfigured": False,
+        }
+
+    def test_github_and_code_review_enabled(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="GitHub Test",
+            external_id="123",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        repo = self.create_repo(project=self.project)
+        RepositorySeerSettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+        )
+
+        response = self.get_response(self.organization.slug)
+
+        assert response.status_code == 200
+        assert response.data == {
+            "hasGithubIntegration": True,
+            "isCodeReviewEnabled": True,
+            "isAutofixEnabled": False,
+            "isSeerConfigured": True,
+        }
+
+    def test_github_and_autofix_enabled(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="GitHub Test",
+            external_id="123",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        self.project.update_option("sentry:autofix_automation_tuning", "high")
+
+        response = self.get_response(self.organization.slug)
+
+        assert response.status_code == 200
+        assert response.data == {
+            "hasGithubIntegration": True,
+            "isCodeReviewEnabled": False,
+            "isAutofixEnabled": True,
+            "isSeerConfigured": True,
+        }
+
+    def test_code_review_and_autofix_enabled(self) -> None:
+        repo = self.create_repo(project=self.project)
+        RepositorySeerSettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+        )
+
+        self.project.update_option("sentry:autofix_automation_tuning", "high")
+
+        response = self.get_response(self.organization.slug)
+
+        assert response.status_code == 200
+        assert response.data == {
+            "hasGithubIntegration": False,
+            "isCodeReviewEnabled": True,
+            "isAutofixEnabled": True,
             "isSeerConfigured": False,
         }
