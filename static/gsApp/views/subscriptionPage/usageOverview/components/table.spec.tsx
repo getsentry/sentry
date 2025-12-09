@@ -234,4 +234,35 @@ describe('UsageOverviewTable', () => {
     // add-on is not rendered since at least one of its sub-categories is unlimited
     expect(screen.queryByRole('cell', {name: 'Seer'})).not.toBeInTheDocument();
   });
+
+  it('renders add-on sub-categories if non-zero non-unlimited reserved volume', async () => {
+    const sub = SubscriptionFixture({organization});
+    sub.categories.seerAutofix = {
+      ...sub.categories.seerAutofix!,
+      reserved: 100,
+      prepaid: 100,
+    };
+
+    render(
+      <UsageOverviewTable
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    // issue fixes is unlimited
+    expect(screen.getByRole('cell', {name: 'Issue Fixes'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '0 / 100'})).toBeInTheDocument();
+
+    // issue scans is 0 so is not rendered
+    expect(screen.queryByRole('cell', {name: 'Issue Scans'})).not.toBeInTheDocument();
+
+    // add-on is not rendered since at least one of its sub-categories is unlimited
+    expect(screen.queryByRole('cell', {name: 'Seer'})).not.toBeInTheDocument();
+  });
 });

@@ -28,6 +28,7 @@ from sentry.seer.models import (
 )
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.utils import json
+from sentry.utils.cache import cache
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -170,6 +171,44 @@ def get_project_seer_preferences(project_id: int):
             raise SeerApiResponseValidationError(str(e)) from e
 
     raise SeerApiError(response.data.decode("utf-8"), response.status)
+
+
+def bulk_get_project_preferences(organization_id: int, project_ids: list[int]) -> dict[str, dict]:
+    """Bulk fetch Seer project preferences. Returns dict mapping project ID (string) to preference dict."""
+    path = "/v1/project-preference/bulk"
+    body = orjson.dumps({"organization_id": organization_id, "project_ids": project_ids})
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=10,
+    )
+
+    if response.status >= 400:
+        raise SeerApiError(response.data.decode("utf-8"), response.status)
+
+    result = orjson.loads(response.data)
+    return result.get("preferences", {})
+
+
+def bulk_set_project_preferences(organization_id: int, preferences: list[dict]) -> None:
+    """Bulk set Seer project preferences for multiple projects."""
+    if not preferences:
+        return
+
+    path = "/v1/project-preference/bulk-set"
+    body = orjson.dumps({"organization_id": organization_id, "preferences": preferences})
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=15,
+    )
+
+    if response.status >= 400:
+        raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
@@ -324,6 +363,30 @@ def is_seer_scanner_rate_limited(project: Project, organization: Organization) -
             category=DataCategory.SEER_SCANNER,
         )
     return is_rate_limited
+
+
+def get_seer_seat_based_tier_cache_key(organization_id: int) -> str:
+    """Get the cache key for seat-based Seer tier check."""
+    return f"seer:seat-based-tier:{organization_id}"
+
+
+def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
+    """
+    Check if organization has Seer seat-based pricing via billing.
+    """
+    if features.has("organizations:triage-signals-v0-org", organization):
+        return True
+
+    cache_key = get_seer_seat_based_tier_cache_key(organization.id)
+    cached_value = cache.get(cache_key)
+    if cached_value is not None:
+        return cached_value
+
+    logger.info("Checking if seat-based Seer tier is enabled for organization=%s", organization.id)
+    has_seat_based_seer = features.has("organizations:seat-based-seer-enabled", organization)
+    cache.set(cache_key, has_seat_based_seer, timeout=60 * 60 * 4)  # 4 hours TTL
+
+    return has_seat_based_seer
 
 
 def is_issue_eligible_for_seer_automation(group: Group) -> bool:

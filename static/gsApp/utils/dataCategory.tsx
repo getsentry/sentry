@@ -1,6 +1,7 @@
 import upperFirst from 'lodash/upperFirst';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import {t} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
@@ -68,13 +69,11 @@ export function getPlanCategoryName({
 }: CategoryNameProps) {
   const displayNames = plan?.categoryDisplayNames?.[category];
   const categoryName =
-    category === DataCategory.LOG_BYTE
-      ? 'logs'
-      : category === DataCategory.SPANS && hadCustomDynamicSampling
-        ? 'accepted spans'
-        : displayNames
-          ? displayNames.plural
-          : category;
+    category === DataCategory.SPANS && hadCustomDynamicSampling
+      ? t('accepted spans')
+      : displayNames
+        ? displayNames.plural
+        : category;
   return title
     ? toTitleCase(categoryName, {allowInnerUpperCase: true})
     : capitalize
@@ -95,7 +94,7 @@ export function getSingularCategoryName({
   const displayNames = plan?.categoryDisplayNames?.[category];
   const categoryName =
     category === DataCategory.SPANS && hadCustomDynamicSampling
-      ? 'accepted span'
+      ? t('accepted span')
       : displayNames
         ? displayNames.singular
         : category.substring(0, category.length - 1);

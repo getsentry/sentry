@@ -18,6 +18,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {
+  checkIsAddOnChildCategory,
   displayBudgetName,
   formatReservedWithUnits,
   getSoftCapType,
@@ -199,11 +200,7 @@ function DataCategoryUsageBreakdownInfo({
   const platformReservedField = tct('[planName] plan', {planName: plan.name});
   const reserved = metricHistory.reserved ?? 0;
   const isUnlimited = reserved === UNLIMITED_RESERVED;
-
-  const addOnDataCategories = Object.values(plan.addOnCategories).flatMap(
-    addOn => addOn.dataCategories
-  );
-  const isAddOnChildCategory = addOnDataCategories.includes(category) && !isUnlimited;
+  const isAddOnChildCategory = checkIsAddOnChildCategory(subscription, category, true);
 
   const additionalReserved = Math.max(0, reserved - platformReserved);
   const shouldShowAdditionalReserved =
