@@ -23,63 +23,6 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 logger = logging.getLogger(__name__)
 
 
-def check_github_integration(organization_id: int) -> bool:
-    """Check if the organization has an active GitHub or GitHub Enterprise integration."""
-    organization_integrations = integration_service.get_organization_integrations(
-        organization_id=organization_id,
-        providers=[
-            IntegrationProviderSlug.GITHUB.value,
-            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
-        ],
-    )
-
-    for organization_integration in organization_integrations:
-        integration = integration_service.get_integration(
-            organization_integration_id=organization_integration.id, status=ObjectStatus.ACTIVE
-        )
-        if integration:
-            installation = integration.get_installation(organization_id=organization_id)
-            if installation:
-                return True
-
-    return False
-
-
-def check_code_review_enabled(organization_id: int) -> bool:
-    """Check if code review is enabled for any repository in the organization."""
-    repo_ids = Repository.objects.filter(
-        organization_id=organization_id, status=ObjectStatus.ACTIVE
-    ).values_list("id", flat=True)
-
-    if not repo_ids:
-        return False
-
-    return RepositorySeerSettings.objects.filter(
-        repository_id__in=repo_ids, enabled_code_review=True
-    ).exists()
-
-
-def check_autofix_enabled(organization_id: int) -> bool:
-    """
-    Check if autofix/RCA automation is enabled for any project in the organization,
-    i.e. if any project in the organization has sentry:autofix_automation_tuning not set to "off".
-    """
-    projects = Project.objects.filter(
-        organization_id=organization_id, status=ObjectStatus.ACTIVE
-    ).values_list("id", flat=True)
-
-    if not projects:
-        return False
-
-    return (
-        ProjectOption.objects.filter(
-            project_id__in=projects, key="sentry:autofix_automation_tuning"
-        )
-        .exclude(value="off")
-        .exists()
-    )
-
-
 @region_silo_endpoint
 class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
     publish_status = {
@@ -99,6 +42,62 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
         }
     )
 
+    def _check_github_integration(self, organization_id: int) -> bool:
+        """Check if the organization has an active GitHub or GitHub Enterprise integration."""
+        organization_integrations = integration_service.get_organization_integrations(
+            organization_id=organization_id,
+            providers=[
+                IntegrationProviderSlug.GITHUB.value,
+                IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+            ],
+        )
+
+        for organization_integration in organization_integrations:
+            integration = integration_service.get_integration(
+                organization_integration_id=organization_integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+            if integration:
+                installation = integration.get_installation(organization_id=organization_id)
+                if installation:
+                    return True
+
+        return False
+
+    def _check_code_review_enabled(self, organization_id: int) -> bool:
+        """Check if code review is enabled for any repository in the organization."""
+        repo_ids = Repository.objects.filter(
+            organization_id=organization_id, status=ObjectStatus.ACTIVE
+        ).values_list("id", flat=True)
+
+        if not repo_ids:
+            return False
+
+        return RepositorySeerSettings.objects.filter(
+            repository_id__in=repo_ids, enabled_code_review=True
+        ).exists()
+
+    def _check_autofix_enabled(self, organization_id: int) -> bool:
+        """
+        Check if autofix/RCA automation is enabled for any project in the organization.
+
+        Returns True if any project has sentry:autofix_automation_tuning not set to "off".
+        """
+        projects = Project.objects.filter(
+            organization_id=organization_id, status=ObjectStatus.ACTIVE
+        ).values_list("id", flat=True)
+
+        if not projects:
+            return False
+
+        return (
+            ProjectOption.objects.filter(
+                project_id__in=projects, key="sentry:autofix_automation_tuning"
+            )
+            .exclude(value="off")
+            .exists()
+        )
+
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Check if the organization has completed Seer onboarding/configuration.
@@ -106,9 +105,9 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
         if not request.user.is_authenticated:
             return Response(status=400)
 
-        has_github_integration = check_github_integration(organization.id)
-        is_code_review_enabled = check_code_review_enabled(organization.id)
-        is_autofix_enabled = check_autofix_enabled(organization.id)
+        has_github_integration = self._check_github_integration(organization.id)
+        is_code_review_enabled = self._check_code_review_enabled(organization.id)
+        is_autofix_enabled = self._check_autofix_enabled(organization.id)
         is_seer_configured = has_github_integration and (
             is_code_review_enabled or is_autofix_enabled
         )
