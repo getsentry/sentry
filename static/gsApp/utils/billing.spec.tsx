@@ -7,11 +7,19 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 
 import {DataCategory} from 'sentry/types/core';
 
-import {BILLION, GIGABYTE, MILLION, UNLIMITED} from 'getsentry/constants';
+import {
+  BILLION,
+  GIGABYTE,
+  MILLION,
+  RESERVED_BUDGET_QUOTA,
+  UNLIMITED,
+  UNLIMITED_RESERVED,
+} from 'getsentry/constants';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
 import type {ProductTrial, Subscription} from 'getsentry/types';
 import {
   checkIsAddOn,
+  checkIsAddOnChildCategory,
   convertUsageToReservedUnit,
   formatReservedWithUnits,
   formatUsageWithUnits,
@@ -1152,6 +1160,65 @@ describe('checkIsAddOn', () => {
   it('returns false for data category', () => {
     expect(checkIsAddOn(DataCategory.ERRORS)).toBe(false);
     expect(checkIsAddOn(DataCategory.SEER_AUTOFIX)).toBe(false);
+  });
+});
+
+describe('checkIsAddOnChildCategory', () => {
+  const organization = OrganizationFixture();
+  let subscription: Subscription;
+
+  beforeEach(() => {
+    subscription = SubscriptionFixture({organization, plan: 'am3_team'});
+  });
+
+  it('returns false when parent add-on is unavailable', () => {
+    subscription.addOns!.seer = {
+      ...subscription.addOns?.seer!,
+      isAvailable: false,
+    };
+    expect(checkIsAddOnChildCategory(subscription, DataCategory.SEER_USER, true)).toBe(
+      false
+    );
+  });
+
+  it('returns true for zero reserved volume', () => {
+    subscription.categories.seerUsers = {
+      ...subscription.categories.seerUsers!,
+      reserved: 0,
+    };
+    expect(checkIsAddOnChildCategory(subscription, DataCategory.SEER_USER, true)).toBe(
+      true
+    );
+  });
+
+  it('returns true for RESERVED_BUDGET_QUOTA reserved volume', () => {
+    subscription.categories.seerAutofix = {
+      ...subscription.categories.seerAutofix!,
+      reserved: RESERVED_BUDGET_QUOTA,
+    };
+    expect(checkIsAddOnChildCategory(subscription, DataCategory.SEER_AUTOFIX, true)).toBe(
+      true
+    );
+  });
+
+  it('returns true for sub-categories regardless of reserved volume if not checking', () => {
+    subscription.categories.seerAutofix = {
+      ...subscription.categories.seerAutofix!,
+      reserved: UNLIMITED_RESERVED,
+    };
+    expect(
+      checkIsAddOnChildCategory(subscription, DataCategory.SEER_AUTOFIX, false)
+    ).toBe(true);
+  });
+
+  it('returns false for sub-categories with non-zero reserved volume if checking', () => {
+    subscription.categories.seerAutofix = {
+      ...subscription.categories.seerAutofix!,
+      reserved: UNLIMITED_RESERVED,
+    };
+    expect(checkIsAddOnChildCategory(subscription, DataCategory.SEER_AUTOFIX, true)).toBe(
+      false
+    );
   });
 });
 
