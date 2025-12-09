@@ -18,14 +18,14 @@ def format_datetime(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
-@dataclass(frozen=True)
+@dataclass
 class CustomRuleSamplesFulfilled(NotificationData):
-    source = "custom-rule-samples-fulfilled"
     query: str | None
     num_samples: int
     start_date: datetime
     end_date: datetime
     discover_link: str
+    source: str = "custom-rule-samples-fulfilled"
 
 
 @template_registry.register(CustomRuleSamplesFulfilled.source)
