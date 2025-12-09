@@ -1,11 +1,14 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
 from django.db import connections
 from django.db.utils import OperationalError
+from django.utils import timezone
 
 from sentry.db.models.query import in_iexact
 from sentry.models.commit import Commit
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import TestCase
@@ -170,6 +173,220 @@ class RangeQuerySetWrapperTest(TestCase):
                 list(self.range_wrapper(qs, step=10, query_timeout_retries=None))
 
         assert attempt_count["count"] == 1
+
+    def test_min_id_skips_earlier_records(self) -> None:
+        """min_id parameter should skip records with id < min_id."""
+        users = [self.create_user() for _ in range(5)]
+        user_ids = sorted([u.id for u in users])
+
+        qs = User.objects.filter(id__in=user_ids)
+        results = list(RangeQuerySetWrapper(qs, min_id=user_ids[2]))
+
+        # Should only return users with id >= min_id
+        result_ids = [u.id for u in results]
+        assert all(uid >= user_ids[2] for uid in result_ids)
+        assert len(result_ids) == 3
+
+    def test_descending_single_field_returns_all(self) -> None:
+        """Descending order in single-field mode should return all items."""
+        users = [self.create_user() for _ in range(5)]
+        expected_ids = {u.id for u in users}
+
+        qs = User.objects.filter(id__in=expected_ids)
+        results = list(RangeQuerySetWrapper(qs, step=-2))
+
+        assert {u.id for u in results} == expected_ids
+        # Verify descending order
+        result_ids = [u.id for u in results]
+        assert result_ids == sorted(result_ids, reverse=True)
+
+    def test_callbacks_are_called_for_each_batch(self) -> None:
+        """Callbacks should be called once per batch with the batch results."""
+        users = [self.create_user() for _ in range(5)]
+        user_ids = [u.id for u in users]
+
+        qs = User.objects.filter(id__in=user_ids)
+        batches_received: list[list[User]] = []
+
+        def capture_batch(batch: list[User]) -> None:
+            batches_received.append(list(batch))
+
+        results = list(RangeQuerySetWrapper(qs, step=2, callbacks=[capture_batch]))
+
+        assert len(results) == 5
+        assert len(batches_received) == 5  # 5 batches with step=2 due to >= overlap
+        # Callbacks receive items before deduplication, so total > yielded results
+        # Batches: [1,2], [2,3], [3,4], [4,5], [5] = 9 total items
+        total_in_batches = sum(len(b) for b in batches_received)
+        assert total_in_batches == 9
+
+    def test_limit_with_multiple_batches(self) -> None:
+        """Limit should stop iteration even when spanning multiple batches."""
+        for _ in range(10):
+            self.create_user()
+
+        qs = User.objects.all()
+        results = list(RangeQuerySetWrapper(qs, step=3, limit=7))
+
+        assert len(results) == 7
+
+    def test_single_field_non_unique_deduplicates_by_pk(self) -> None:
+        """
+        When iterating model instances with a non-unique order_by field,
+        deduplication should use pk, not the order_by field value.
+
+        Regression test: Previously, items with the same order_by value
+        were incorrectly skipped as "duplicates" even though they had
+        different pks. This broke auto_ongoing_issues which orders by
+        first_seen (non-unique).
+        """
+        project = self.create_project()
+        same_timestamp = timezone.now() - timedelta(days=1)
+
+        # Create multiple groups with the exact same first_seen timestamp
+        groups = [self.create_group(project=project, first_seen=same_timestamp) for _ in range(5)]
+        expected_ids = {g.id for g in groups}
+
+        qs = Group.objects.filter(id__in=expected_ids)
+
+        # Single-field mode with non-unique field, step large enough to get all in one batch
+        # Note: limit is required to prevent infinite loop when all items have same order_by value
+        results = list(
+            RangeQuerySetWrapper(
+                qs, step=10, limit=10, order_by="first_seen", override_unique_safety_check=True
+            )
+        )
+
+        # All groups should be returned, not just the first one
+        assert {g.id for g in results} == expected_ids
+
+
+@no_silo_test
+class RangeQuerySetWrapperKeysetPaginationTest(TestCase):
+    """Tests for keyset pagination with compound order_by fields."""
+
+    def test_keyset_pagination_returns_all_rows_with_duplicate_keys(self) -> None:
+        """Keyset pagination handles duplicate first-field values across batches."""
+        project = self.create_project()
+        ts1 = timezone.now() - timedelta(days=3)
+        ts2 = timezone.now() - timedelta(days=2)
+
+        # Mix of duplicate and unique timestamps
+        groups = [
+            self.create_group(project=project, last_seen=ts1),
+            self.create_group(project=project, last_seen=ts1),  # duplicate
+            self.create_group(project=project, last_seen=ts1),  # duplicate
+            self.create_group(project=project, last_seen=ts2),
+            self.create_group(project=project, last_seen=ts2),  # duplicate
+        ]
+        expected_ids = {g.id for g in groups}
+
+        qs = Group.objects.filter(id__in=expected_ids)
+        results = list(
+            RangeQuerySetWrapper(
+                qs, step=2, order_by=["last_seen", "id"], use_compound_keyset_pagination=True
+            )
+        )
+
+        assert {g.id for g in results} == expected_ids
+
+    def test_keyset_pagination_validates_last_field_unique(self) -> None:
+        """Last order_by field must be unique to prevent infinite loops."""
+        qs = Group.objects.all()
+
+        with pytest.raises(InvalidQuerySetError):
+            RangeQuerySetWrapper(
+                qs, order_by=["id", "last_seen"], use_compound_keyset_pagination=True
+            )
+
+        # Should succeed with unique last field
+        RangeQuerySetWrapper(qs, order_by=["last_seen", "id"], use_compound_keyset_pagination=True)
+
+    def test_keyset_pagination_with_values_list(self) -> None:
+        """Keyset pagination works with values_list when result_value_getter returns dict."""
+        project = self.create_project()
+        same_timestamp = timezone.now() - timedelta(days=1)
+
+        groups = [self.create_group(project=project, last_seen=same_timestamp) for _ in range(3)]
+        expected_ids = {g.id for g in groups}
+
+        qs = Group.objects.filter(id__in=expected_ids).values_list("id", "last_seen")
+
+        results = list(
+            RangeQuerySetWrapper(
+                qs,
+                step=1,
+                order_by=["last_seen", "id"],
+                use_compound_keyset_pagination=True,
+                result_value_getter=lambda item: {"last_seen": item[1], "id": item[0]},
+            )
+        )
+
+        assert {r[0] for r in results} == expected_ids
+
+    def test_keyset_pagination_descending(self) -> None:
+        """Keyset pagination works with descending order."""
+        project = self.create_project()
+        ts1 = timezone.now() - timedelta(days=3)
+        ts2 = timezone.now() - timedelta(days=1)
+
+        groups = [
+            self.create_group(project=project, last_seen=ts1),
+            self.create_group(project=project, last_seen=ts2),
+            self.create_group(project=project, last_seen=ts2),  # duplicate
+        ]
+        expected_ids = {g.id for g in groups}
+
+        qs = Group.objects.filter(id__in=expected_ids)
+        results = list(
+            RangeQuerySetWrapper(
+                qs, step=-2, order_by=["last_seen", "id"], use_compound_keyset_pagination=True
+            )
+        )
+
+        assert {g.id for g in results} == expected_ids
+        # Verify descending order
+        last_seens = [g.last_seen for g in results]
+        assert last_seens == sorted(last_seens, reverse=True)
+
+    def test_keyset_pagination_rejects_min_id(self) -> None:
+        """min_id is not supported with compound keyset pagination."""
+        qs = Group.objects.all()
+
+        with pytest.raises(InvalidQuerySetError, match="min_id is not supported"):
+            RangeQuerySetWrapper(
+                qs, order_by=["last_seen", "id"], use_compound_keyset_pagination=True, min_id=1
+            )
+
+    def test_keyset_pagination_forces_row_comparison_across_batches(self) -> None:
+        """
+        Keyset pagination with step=1 forces ROW comparison on every iteration.
+        This verifies the SQL is actually correct.
+        """
+        project = self.create_project()
+        ts1 = timezone.now() - timedelta(days=3)
+        ts2 = timezone.now() - timedelta(days=2)
+        ts3 = timezone.now() - timedelta(days=1)
+
+        # Create groups with distinct timestamps to force actual cursor movement
+        groups = [
+            self.create_group(project=project, last_seen=ts1),
+            self.create_group(project=project, last_seen=ts2),
+            self.create_group(project=project, last_seen=ts3),
+        ]
+        expected_ids = {g.id for g in groups}
+
+        qs = Group.objects.filter(id__in=expected_ids)
+        # step=1 forces a new query with ROW comparison for each item after the first
+        results = list(
+            RangeQuerySetWrapper(
+                qs, step=1, order_by=["last_seen", "id"], use_compound_keyset_pagination=True
+            )
+        )
+        assert {g.id for g in results} == expected_ids
+        # Verify ascending order by last_seen
+        last_seens = [g.last_seen for g in results]
+        assert last_seens == sorted(last_seens)
 
 
 @no_silo_test
