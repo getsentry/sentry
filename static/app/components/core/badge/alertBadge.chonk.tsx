@@ -11,14 +11,14 @@ function makeChonkAlertBadgeDiamondBackgroundTheme(
 ): React.CSSProperties {
   if (isDisabled) {
     return {
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       background: theme.colors.surface500,
       border: `1px solid ${theme.colors.surface100}`,
     };
   }
   if (isIssue) {
     return {
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       background: theme.colors.surface500,
       border: `1px solid ${theme.colors.surface100}`,
     };

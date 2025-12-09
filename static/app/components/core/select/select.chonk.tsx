@@ -109,7 +109,7 @@ export const getChonkStylesConfig = ({
 
     option: provided => ({
       ...provided,
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       background: 'transparent',
       padding: 0,
       ':active': {
@@ -139,7 +139,7 @@ export const getChonkStylesConfig = ({
     }),
     input: provided => ({
       ...provided,
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       margin: 0,
     }),
     singleValue: (provided, state) => ({

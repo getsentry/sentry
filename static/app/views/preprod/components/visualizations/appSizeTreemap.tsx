@@ -300,7 +300,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     padding: 12,
     extraCssText: 'border-radius: 6px;',
     textStyle: {
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       fontFamily: 'Rubik',
     },
     formatter: function (params: any) {

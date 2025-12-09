@@ -61,7 +61,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
         formatter: '{b}\n{d}%',
         fontSize: 12,
         fontFamily: 'Rubik',
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
       },
       labelLine: {
         show: true,
@@ -94,7 +94,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
     padding: 12,
     extraCssText: 'border-radius: 6px;',
     textStyle: {
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       fontFamily: 'Rubik',
     },
     formatter: function (params: any) {

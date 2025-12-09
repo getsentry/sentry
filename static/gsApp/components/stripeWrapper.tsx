@@ -48,7 +48,7 @@ function StripeWrapper({
             colorDanger: theme.danger,
             colorSuccess: theme.success,
             colorWarning: theme.warning,
-            iconColor: theme.textColor,
+            iconcolor: theme.tokens.content.primary,
           },
           rules: {
             '.Input': {
