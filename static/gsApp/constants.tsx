@@ -213,5 +213,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
     canProductTrial: true,
     maxAdminGift: 10_000, // TODO(seer): Update this to the actual max admin gift
     tallyType: 'seat',
+    shortenedUnitName: t('contributor'),
   },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;

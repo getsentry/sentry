@@ -39,6 +39,7 @@ const AM1_CATEGORY_DISPLAY_NAMES = {
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
   logBytes: {singular: 'log', plural: 'logs'},
+  seerUsers: {singular: 'active contributor', plural: 'active contributors'},
 };
 
 const AM1_AVAILABLE_RESERVED_BUDGET_TYPES = {

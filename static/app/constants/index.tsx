@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 import type {DataCategoryInfo, Scope} from 'sentry/types/core';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import type {PermissionResource} from 'sentry/types/integrations';
-import type {OrgRole} from 'sentry/types/organization';
+import type {Organization, OrgRole} from 'sentry/types/organization';
 
 /**
  * Common constants here
@@ -611,8 +611,8 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.SEER_USER,
     plural: DataCategory.SEER_USER,
     singular: 'seerUser',
-    displayName: 'seer user',
-    titleName: t('Seer'),
+    displayName: 'active contributor',
+    titleName: t('Active Contributors'),
     productName: t('Seer'),
     uid: 34,
     isBilledCategory: true,
@@ -620,6 +620,8 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: false, // TODO(seer): add external stats when ready
     },
+    getProductLink: (organization: Organization) =>
+      `/settings/${organization.slug}/seer/`,
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
