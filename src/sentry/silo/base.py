@@ -157,6 +157,7 @@ class SiloLimit(abc.ABC):
             if is_available:
                 return original_method(*args, **kwargs)
             else:
+                # breakpoint()
                 modes = list(self.modes)
                 if SiloMode.MONOLITH not in self.modes:
                     modes = modes + [SiloMode.MONOLITH]
