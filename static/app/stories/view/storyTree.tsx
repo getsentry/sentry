@@ -582,7 +582,7 @@ function File(props: {node: StoryTreeNode}) {
       <FolderLink
         to={{
           pathname: normalizeUrl(
-            `/organizations/${organization.slug}/stories/${props.node.category}/${props.node.slug}`
+            `/organizations/${organization.slug}/stories/${props.node.category}/${props.node.slug}/`
           ),
         }}
         aria-current={active ? 'page' : undefined}
