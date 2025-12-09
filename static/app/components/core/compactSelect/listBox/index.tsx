@@ -126,11 +126,10 @@ export function ListBox({
   showSectionHeaders = true,
   showDetails = true,
   onAction,
-  virtualThreshold = 100,
+  virtualThreshold,
   ...props
 }: ListBoxProps) {
   const listElementRef = useRef<HTMLUListElement>(null);
-  const parentRef = useRef<HTMLDivElement>(null);
 
   const {listBoxProps, labelProps} = useListBox(
     {
@@ -172,69 +171,37 @@ export function ListBox({
     listState.selectionManager.setFocusedKey(null);
   };
 
-  const isVirtualized = listItems.length > virtualThreshold;
-
-  const virtualizer = useVirtualizer({
-    count: listItems.length,
-    getScrollElement: () => parentRef?.current,
-    estimateSize: index => {
-      const item = listItems[index];
-      if (item?.value?.details) {
-        return 50;
-      }
-      return 30;
-    },
-    enabled: true,
-  });
-
-  const virtualizedItems = virtualizer.getVirtualItems();
-
-  // useLayoutEffect(() => {
-  //   if (overlayIsOpen) {
-  //     virtualizer.scrollToIndex(100);
-  //   }
-  // }, [virtualizer, overlayIsOpen]);
+  const virtualizer = useVirtualizedItems({listItems, virtualThreshold});
 
   return (
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
       <div
-        ref={parentRef}
+        ref={virtualizer.scrollElementRef}
         style={{
           height: '100%',
           overflowY: 'auto',
         }}
       >
-        <div
-          style={{
-            height: virtualizer.getTotalSize(),
-            width: '100%',
-            position: 'relative',
-          }}
-        >
+        <div {...virtualizer.wrapperProps}>
           <ListWrap
             {...mergedProps}
             style={{
               ...mergedProps.style,
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              transform: `translateY(${virtualizedItems[0]?.start ?? 0}px)`,
+              ...virtualizer.listWrapStyle,
             }}
             onKeyDown={onKeyDown}
             onMouseLeave={onMouseLeave}
             ref={mergeRefs(listElementRef, ref)}
           >
             {overlayIsOpen &&
-              virtualizedItems.map(virtualRow => {
-                const item = listItems[virtualRow.index]!;
+              virtualizer.items.map(row => {
+                const item = listItems[row.index]!;
                 if (item.type === 'section') {
                   return (
                     <ListBoxSection
-                      ref={virtualizer.measureElement}
-                      data-index={virtualRow.index}
+                      {...virtualizer.itemProps(row.index)}
                       key={item.key}
                       item={item}
                       listState={listState}
@@ -251,26 +218,12 @@ export function ListBox({
                   <Fragment key={item.key}>
                     <ListBoxOption
                       key={item.key}
-                      ref={virtualizer.measureElement}
-                      data-index={virtualRow.index}
+                      {...virtualizer.itemProps(row.index)}
                       item={item}
                       listState={listState}
                       size={size}
                       showDetails={showDetails}
                     />
-                    {/* <ListBoxOption */}
-                    {/*  ref={{current: undefined}} */}
-                    {/*  key={item.key} */}
-                    {/*  item={item} */}
-                    {/*  listState={listState} */}
-                    {/*  size={size} */}
-                    {/*  showDetails={showDetails} */}
-                    {/*  aria-hidden="true" */}
-                    {/*  role="presentation" */}
-                    {/*  style={{ */}
-                    {/*    visibility: 'hidden', */}
-                    {/*  }} */}
-                    {/* /> */}
                   </Fragment>
                 );
               })}
@@ -285,4 +238,62 @@ export function ListBox({
       </div>
     </Fragment>
   );
+}
+
+function useVirtualizedItems({
+  listItems,
+  virtualThreshold = 100,
+}: {listItems: any[]} & Pick<ListBoxProps, 'virtualThreshold'>) {
+  const scrollElementRef = useRef<HTMLDivElement>(null);
+  const isVirtualized = listItems.length > virtualThreshold;
+
+  const virtualizer = useVirtualizer({
+    count: listItems.length,
+    getScrollElement: () => scrollElementRef?.current,
+    estimateSize: index => {
+      const item = listItems[index];
+      if (item?.value?.details) {
+        return 50;
+      }
+      return 30;
+    },
+    enabled: isVirtualized,
+  });
+
+  if (isVirtualized) {
+    const virtualizedItems = virtualizer.getVirtualItems();
+    return {
+      items: virtualizedItems,
+      scrollElementRef,
+      itemProps: (index: number) => ({
+        ref: virtualizer.measureElement,
+        'data-index': index,
+      }),
+      wrapperProps: {
+        'data-is-virtualized': true,
+        style: {
+          height: virtualizer.getTotalSize(),
+          width: '100%',
+          position: 'relative',
+        },
+      },
+      listWrapStyle: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        transform: `translateY(${virtualizedItems[0]?.start ?? 0}px)`,
+      },
+    } as const;
+  }
+
+  return {
+    items: listItems.map((_, index) => ({index, start: 0})),
+    scrollElementRef: undefined,
+    itemProps: () => undefined,
+    wrapperProps: {
+      'data-is-virtualized': false,
+    },
+    listWrapStyle: {},
+  } as const;
 }
