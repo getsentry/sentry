@@ -175,7 +175,7 @@ export function ListBox<T extends ObjectLike>({
     listState.selectionManager.setFocusedKey(null);
   };
 
-  const virtualizer = useVirtualizedItems({listItems, shouldVirtualize});
+  const virtualizer = useVirtualizedItems({listItems, shouldVirtualize, size});
 
   return (
     <Fragment>
@@ -244,12 +244,23 @@ export function ListBox<T extends ObjectLike>({
   );
 }
 
+const sizeEstimations = {
+  sm: {regular: 31, large: 48},
+  md: {regular: 35, large: 52},
+  xs: {regular: 24, large: 41},
+} as const satisfies Record<FormSize, {large: number; regular: number}>;
+
 function useVirtualizedItems<T extends ObjectLike>({
   listItems,
   shouldVirtualize,
-}: {listItems: Array<Node<T>>} & Pick<ListBoxProps<T>, 'shouldVirtualize'>) {
+  size,
+}: {listItems: Array<Node<T>>; size: FormSize} & Pick<
+  ListBoxProps<T>,
+  'shouldVirtualize'
+>) {
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const isVirtualized = shouldVirtualize?.(listItems) ?? false;
+  const sizeEstimation = sizeEstimations[size];
 
   const virtualizer = useVirtualizer({
     count: listItems.length,
@@ -257,9 +268,9 @@ function useVirtualizedItems<T extends ObjectLike>({
     estimateSize: index => {
       const item = listItems[index];
       if (item?.value && 'details' in item.value) {
-        return 50;
+        return sizeEstimation.large;
       }
-      return 30;
+      return sizeEstimation.regular;
     },
     enabled: isVirtualized,
   });
