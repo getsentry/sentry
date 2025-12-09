@@ -393,14 +393,6 @@ def run_automation(
         stopping_point = _apply_user_preference_upper_bound(
             fixability_stopping_point, user_preference
         )
-        logger.info(
-            "Triage signals V0 stopping point for group=%s project=%s: fixability=%s, user preference=%s, final=%s",
-            group.id,
-            group.project.slug,
-            fixability_stopping_point,
-            user_preference,
-            stopping_point,
-        )
 
     _trigger_autofix_task.delay(
         group_id=group.id,
