@@ -101,26 +101,6 @@ export default function SeerAutomationSettings() {
                   label: t('additional settings'),
                   fields: [
                     {
-                      name: 'defaultProjectPRSensitivity',
-                      label: t('Error Prediction Sensitivity'),
-                      help: t('Set the sensitivity level for error prediction.'),
-                      type: 'select',
-                      options: [
-                        {
-                          label: t('Low'),
-                          value: 'low',
-                        },
-                        {
-                          label: t('Medium'),
-                          value: 'medium',
-                        },
-                        {
-                          label: t('High'),
-                          value: 'high',
-                        },
-                      ],
-                    },
-                    {
                       name: 'defaultRepoPRRunOnOpenedPullRequests',
                       label: t('Auto Run on Opened Pull Requests'),
                       help: t(
