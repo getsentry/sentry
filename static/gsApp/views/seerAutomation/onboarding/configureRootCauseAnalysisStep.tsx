@@ -1,0 +1,189 @@
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Flex} from 'sentry/components/core/layout/flex';
+import {Switch} from 'sentry/components/core/switch';
+import {
+  GuidedSteps,
+  useGuidedStepsContext,
+} from 'sentry/components/guidedSteps/guidedSteps';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelItem from 'sentry/components/panels/panelItem';
+import Placeholder from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
+import useProjects from 'sentry/utils/useProjects';
+
+import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
+import {useCodeMappings} from './hooks/useCodeMappings';
+import {MaxWidthPanel, PanelDescription, StepContent} from './common';
+import {RepositoryToProjectConfiguration} from './repositoryToProjectConfiguration';
+
+export function ConfigureRootCauseAnalysisStep() {
+  const [proposeFixesEnabled, setProposeFixesEnabled] = useState(true);
+  const [autoCreatePREnabled, setAutoCreatePREnabled] = useState(true);
+
+  const {currentStep, setCurrentStep} = useGuidedStepsContext();
+  const {
+    selectedRootCauseAnalysisRepositories,
+    repositoryProjectMapping,
+    changeRepositoryProjectMapping,
+    addRepositoryProjectMappings,
+  } = useSeerOnboardingContext();
+
+  const {
+    projects,
+    initiallyLoaded: isProjectsLoaded,
+    fetching: isProjectsFetching,
+  } = useProjects();
+
+  const {codeMappingsMap, isLoading: isCodeMappingsLoading} = useCodeMappings({
+    enabled: selectedRootCauseAnalysisRepositories.length > 0,
+  });
+
+  useEffect(() => {
+    if (!isCodeMappingsLoading && codeMappingsMap.size > 0) {
+      const additionalMappings: Record<string, string[]> = {};
+      selectedRootCauseAnalysisRepositories.forEach(repo => {
+        const mappedProjects = Array.from(codeMappingsMap.get(repo.id) || []);
+        additionalMappings[repo.id] = mappedProjects;
+      });
+      addRepositoryProjectMappings(additionalMappings);
+    }
+  }, [
+    isCodeMappingsLoading,
+    selectedRootCauseAnalysisRepositories,
+    codeMappingsMap,
+    addRepositoryProjectMappings,
+  ]);
+
+  const handlePreviousStep = useCallback(() => {
+    setCurrentStep(currentStep - 1);
+  }, [setCurrentStep, currentStep]);
+
+  const handleNextStep = useCallback(() => {
+    // TODO: Save to backend
+    setCurrentStep(currentStep + 1);
+  }, [setCurrentStep, currentStep]);
+
+  const handleRepositoryProjectMappingsChange = useCallback(
+    (repoId: string, index: number, newValue: string | undefined) => {
+      const currentProjects = repositoryProjectMapping[repoId] || [];
+
+      if (newValue && currentProjects.includes(newValue)) {
+        // Project is already mapped to this repo, show an error message and don't update anything
+        // We could make our dropdowns smarter by filtering out selected projects,
+        // but this is much simpler.
+        addErrorMessage(t('Project is already mapped to this repo'));
+        return;
+      }
+
+      changeRepositoryProjectMapping(repoId, index, newValue);
+    },
+    [changeRepositoryProjectMapping, repositoryProjectMapping]
+  );
+
+  const isFinishDisabled = useMemo(() => {
+    const mappings = Object.values(repositoryProjectMapping);
+    return (
+      !mappings.length ||
+      mappings.length !== selectedRootCauseAnalysisRepositories.length ||
+      Boolean(mappings.some(mappedProjects => mappedProjects.length === 0)) ||
+      selectedRootCauseAnalysisRepositories.length === 0
+    );
+  }, [repositoryProjectMapping, selectedRootCauseAnalysisRepositories.length]);
+
+  return (
+    <Fragment>
+      <StepContent>
+        <MaxWidthPanel>
+          <PanelBody>
+            <PanelDescription>
+              <p>
+                {t(
+                  'Pair your projects with your repositories to enable Seer to analyze your codebase.'
+                )}
+              </p>
+            </PanelDescription>
+
+            <Field>
+              <Flex direction="column" flex="1" gap="xs">
+                <FieldLabel>{t('Propose Fixes For Root Cause Analysis')}</FieldLabel>
+                <FieldDescription>
+                  {t(
+                    'For all projects below, Seer will automatically analyze highly actionable issues, and create a root cause analysis and proposed solution without a user needing to prompt it.'
+                  )}
+                </FieldDescription>
+              </Flex>
+              <Switch
+                size="lg"
+                checked={proposeFixesEnabled}
+                onChange={() => setProposeFixesEnabled(!proposeFixesEnabled)}
+              />
+            </Field>
+            <Field>
+              <Flex direction="column" flex="1" gap="xs">
+                <FieldLabel>{t('Automatic PR Creation')}</FieldLabel>
+                <FieldDescription>
+                  {t('For all projects below, Seer will be able to make a pull request.')}
+                </FieldDescription>
+              </Flex>
+              <Switch
+                size="lg"
+                checked={autoCreatePREnabled}
+                onChange={() => setAutoCreatePREnabled(!autoCreatePREnabled)}
+              />
+            </Field>
+
+            {isProjectsLoaded && !isProjectsFetching ? (
+              <RepositoryToProjectConfiguration
+                isPending={isCodeMappingsLoading}
+                projects={projects}
+                onChange={handleRepositoryProjectMappingsChange}
+              />
+            ) : (
+              <Flex direction="column" gap="md" padding="md">
+                {selectedRootCauseAnalysisRepositories.map(repository => (
+                  <Placeholder key={repository.id} />
+                ))}
+              </Flex>
+            )}
+          </PanelBody>
+        </MaxWidthPanel>
+      </StepContent>
+
+      <GuidedSteps.ButtonWrapper>
+        <Button size="md" onClick={handlePreviousStep} aria-label={t('Previous Step')}>
+          {t('Previous Step')}
+        </Button>
+        <Button
+          size="md"
+          onClick={handleNextStep}
+          priority={isFinishDisabled ? 'default' : 'primary'}
+          disabled={isFinishDisabled}
+          aria-label={t('Last Step')}
+        >
+          {t('Last Step')}
+        </Button>
+      </GuidedSteps.ButtonWrapper>
+    </Fragment>
+  );
+}
+
+const Field = styled(PanelItem)`
+  align-items: start;
+  justify-content: space-between;
+  gap: ${p => p.theme.space.xl};
+`;
+
+const FieldLabel = styled('div')`
+  font-weight: ${p => p.theme.fontWeight.bold};
+`;
+
+const FieldDescription = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  line-height: 1.4;
+`;
