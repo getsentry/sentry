@@ -14,99 +14,64 @@ import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/token
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
+import {
+  COMPONENT_SUBCATEGORY_CONFIG,
+  COMPONENT_SUBCATEGORY_ORDER,
+  SECTION_CONFIG,
+  SECTION_ORDER,
+  useStoryHierarchy,
+} from 'sentry/stories/view/storyTree';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import {useStoryBookFilesByCategory} from './storySidebar';
-
-interface StorySection {
+interface SearchSection {
   key: string;
   label: string;
   options: StoryTreeNode[];
 }
 
-function isStorySection(item: StoryTreeNode | StorySection): item is StorySection {
+function isSearchSection(item: StoryTreeNode | SearchSection): item is SearchSection {
   return 'options' in item;
 }
 
 export function StorySearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const {
-    foundations: foundationsTree,
-    core: coreTree,
-    product: productTree,
-    typography: typographyTree,
-    layout: layoutTree,
-    shared: sharedTree,
-  } = useStoryBookFilesByCategory();
-  const foundations = useMemo(
-    () => foundationsTree.flatMap(tree => tree.flat()),
-    [foundationsTree]
-  );
-  const core = useMemo(() => coreTree.flatMap(tree => tree.flat()), [coreTree]);
-  const product = useMemo(() => productTree.flatMap(tree => tree.flat()), [productTree]);
-  const typography = useMemo(
-    () => typographyTree.flatMap(tree => tree.flat()),
-    [typographyTree]
-  );
-  const layout = useMemo(() => layoutTree.flatMap(tree => tree.flat()), [layoutTree]);
-  const shared = useMemo(() => sharedTree.flatMap(tree => tree.flat()), [sharedTree]);
+  const hierarchy = useStoryHierarchy();
   useHotkeys([{match: '/', callback: () => inputRef.current?.focus()}]);
 
   const sectionedItems = useMemo(() => {
-    const sections: StorySection[] = [];
+    const sections: SearchSection[] = [];
 
-    if (foundations.length > 0) {
-      sections.push({
-        key: 'foundations',
-        label: 'Foundations',
-        options: foundations,
-      });
-    }
+    for (const section of SECTION_ORDER) {
+      const data = hierarchy.get(section);
+      if (!data) {
+        continue;
+      }
 
-    if (typography.length > 0) {
-      sections.push({
-        key: 'typography',
-        label: 'Typography',
-        options: typography,
-      });
-    }
-
-    if (layout.length > 0) {
-      sections.push({
-        key: 'layout',
-        label: 'Layout',
-        options: layout,
-      });
-    }
-
-    if (core.length > 0) {
-      sections.push({
-        key: 'components',
-        label: 'Components',
-        options: core,
-      });
-    }
-
-    if (product.length > 0) {
-      sections.push({
-        key: 'product',
-        label: 'Product',
-        options: product,
-      });
-    }
-
-    if (shared.length > 0) {
-      sections.push({
-        key: 'shared',
-        label: 'Shared',
-        options: shared,
-      });
+      // For components section, flatten all subcategories into component groups
+      if (section === 'core' && data.subcategories) {
+        for (const subcategory of COMPONENT_SUBCATEGORY_ORDER) {
+          const nodes = data.subcategories.get(subcategory);
+          if (nodes?.length) {
+            sections.push({
+              key: subcategory,
+              label: COMPONENT_SUBCATEGORY_CONFIG[subcategory].label,
+              options: nodes,
+            });
+          }
+        }
+      } else if (data.stories.length > 0) {
+        sections.push({
+          key: section,
+          label: SECTION_CONFIG[section].label,
+          options: data.stories,
+        });
+      }
     }
 
     return sections;
-  }, [foundations, core, product, layout, typography, shared]);
+  }, [hierarchy]);
 
   return (
     <SearchComboBox
@@ -116,7 +81,7 @@ export function StorySearch() {
       defaultItems={sectionedItems}
     >
       {item => {
-        if (isStorySection(item)) {
+        if (isSearchSection(item)) {
           return (
             <Section key={item.key} title={<SectionTitle>{item.label}</SectionTitle>}>
               {item.options.map(storyItem => (
@@ -160,7 +125,7 @@ function SearchInput(
   );
 }
 
-type SearchComboBoxItem<T extends StoryTreeNode> = T | StorySection;
+type SearchComboBoxItem<T extends StoryTreeNode> = T | SearchSection;
 
 interface SearchComboBoxProps
   extends Omit<AriaComboBoxProps<SearchComboBoxItem<StoryTreeNode>>, 'children'> {
@@ -278,7 +243,7 @@ function getStoryTreeNodeFromKey(
   props: SearchComboBoxProps
 ): StoryTreeNode | undefined {
   for (const category of props.defaultItems) {
-    if (isStorySection(category)) {
+    if (isSearchSection(category)) {
       for (const node of category.options) {
         const match = node.find(item => item.filesystemPath === key);
         if (match) {

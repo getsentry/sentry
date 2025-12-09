@@ -5,14 +5,14 @@ import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconArrow} from 'sentry/icons';
 
-import {useStoryBookFilesByCategory} from './storySidebar';
 import type {StoryTreeNode} from './storyTree';
+import {useFlatStoryList} from './storyTree';
 import {type StoryDescriptor} from './useStoriesLoader';
 import {useStory} from './useStory';
 
 export function StoryFooter() {
   const {story} = useStory();
-  const stories = useStoryBookFilesByCategory();
+  const stories = useFlatStoryList();
   const pagination = findPreviousAndNextStory(story, stories);
 
   return (
@@ -47,12 +47,11 @@ export function StoryFooter() {
 
 function findPreviousAndNextStory(
   story: StoryDescriptor,
-  categories: ReturnType<typeof useStoryBookFilesByCategory>
+  stories: StoryTreeNode[]
 ): {
   next?: StoryTreeNode;
   prev?: StoryTreeNode;
 } | null {
-  const stories = Object.values(categories).flat();
   const currentIndex = stories.findIndex(s => s.filesystemPath === story.filename);
 
   if (currentIndex === -1) {

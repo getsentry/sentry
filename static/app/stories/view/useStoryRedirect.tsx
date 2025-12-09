@@ -5,8 +5,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
-import {useStoryBookFilesByCategory} from './storySidebar';
+import {STORY_REDIRECTS} from './storyRedirects';
 import type {StoryCategory, StoryTreeNode} from './storyTree';
+import {useFlatStoryList} from './storyTree';
 
 type LegacyStoryQuery = {
   name: string;
@@ -20,16 +21,25 @@ export function useStoryRedirect() {
   const location = useLocation<LegacyStoryQuery>();
   const params = useParams<StoryParams>();
   const navigate = useNavigate();
-  const stories = useStoryBookFilesByCategory();
+  const stories = useFlatStoryList();
 
   useLayoutEffect(() => {
+    if (!location.pathname.startsWith('/stories')) {
+      return;
+    }
+
+    // Handle redirects for renamed sections (e.g., foundations -> principles)
+    const newPath = STORY_REDIRECTS[location.pathname];
+    if (newPath) {
+      navigate({pathname: newPath, hash: location.hash}, {replace: true});
+      return;
+    }
+
     // If we already have a `storyPath` in state, bail out
     if (location.state?.storyPath) {
       return;
     }
-    if (!location.pathname.startsWith('/stories')) {
-      return;
-    }
+
     const story = getStory(stories, {query: location.query, params});
     if (!story) {
       return;
@@ -48,9 +58,9 @@ interface StoryRouteContext {
 }
 
 function getStory(
-  stories: ReturnType<typeof useStoryBookFilesByCategory>,
+  stories: StoryTreeNode[],
   context: StoryRouteContext
-) {
+): StoryTreeNode | undefined {
   if (context.params.storyType && context.params.storySlug) {
     return getStoryFromParams(stories, context);
   }
@@ -61,30 +71,33 @@ function getStory(
 }
 
 function legacyGetStoryFromQuery(
-  stories: ReturnType<typeof useStoryBookFilesByCategory>,
+  stories: StoryTreeNode[],
   context: StoryRouteContext
 ): StoryTreeNode | undefined {
-  for (const category of Object.keys(stories) as StoryCategory[]) {
-    const nodes = stories[category as keyof typeof stories];
-    for (const node of nodes) {
-      const match = node.find(n => n.filesystemPath === context.query.name);
-      if (match) {
-        return match;
-      }
+  for (const node of stories) {
+    const match = node.find(n => n.filesystemPath === context.query.name);
+    if (match) {
+      return match;
     }
   }
   return undefined;
 }
 
 function getStoryFromParams(
-  stories: ReturnType<typeof useStoryBookFilesByCategory>,
+  stories: StoryTreeNode[],
   context: StoryRouteContext
 ): StoryTreeNode | undefined {
   const {storyType: category, storySlug} = context.params;
-  const nodes =
-    category && category in stories ? stories[category as keyof typeof stories] : [];
-  for (const node of nodes) {
-    const match = node.find(n => kebabCase(n.label) === storySlug);
+
+  for (const node of stories) {
+    // Match by category and slug
+    if (node.category === category && kebabCase(node.label) === storySlug) {
+      return node;
+    }
+    // Also search children for nested nodes
+    const match = node.find(
+      n => n.category === category && kebabCase(n.label) === storySlug
+    );
     if (match) {
       return match;
     }
