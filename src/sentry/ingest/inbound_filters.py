@@ -233,11 +233,11 @@ class _LegacyBrowserFilterSerializer(_FilterSerializer):
 Specifies which legacy browser filters should be active. Anything excluded from the list will be
 disabled. The options are:
 - `ie` - Internet Explorer Version 11 and lower
-- `edge` - Edge Version 18 and lower
-- `safari` - Safari Version 11 and lower
-- `firefox` - Firefox Version 66 and lower
-- `chrome` - Chrome Version 62 and lower
-- `opera` - Opera Version 50 and lower
+- `edge` - Edge Version 110 and lower
+- `safari` - Safari Version 15 and lower
+- `firefox` - Firefox Version 110 and lower
+- `chrome` - Chrome Version 110 and lower
+- `opera` - Opera Version 99 and lower
 - `android` - Android Version 3 and lower
 - `opera_mini` - Opera Mini Version 34 and lower
 
