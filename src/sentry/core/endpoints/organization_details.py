@@ -5,14 +5,13 @@ from copy import copy
 from datetime import datetime, timedelta, timezone
 from typing import TypedDict
 
-from django.core.exceptions import PermissionDenied
 from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
 from django.utils import timezone as django_timezone
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, PermissionDenied
 from sentry_sdk import capture_exception
 
 from bitfield.types import BitHandler
