@@ -44,6 +44,6 @@ def attribute_value(span: Mapping[str, Any], key: str) -> Any:
 
 
 def is_gen_ai_span(span: SpanEvent) -> bool:
-    return attribute_value(span, ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME) is not None or get_span_op(
+    return attribute_value(span, ATTRIBUTE_NAMES.GEN_AI_OPERATION_NAME) is not None or get_span_op(
         span
     ).startswith("gen_ai.")
