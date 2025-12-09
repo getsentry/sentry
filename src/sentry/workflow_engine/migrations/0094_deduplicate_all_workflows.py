@@ -126,7 +126,6 @@ def deduplicate_workflows(app: StateApps, schema_editor: BaseDatabaseSchemaEdito
                     ),
                     to_attr="prefetched_action_groups",
                 ),
-                # TODO -- :thinking: should i also update this relationship or is it no longer needed?
                 Prefetch(
                     "alertruleworkflow_set",
                     queryset=AlertRuleWorkflow.objects.all(),
@@ -137,7 +136,7 @@ def deduplicate_workflows(app: StateApps, schema_editor: BaseDatabaseSchemaEdito
         )
 
         workflow_data_to_ids: dict[str, list[int]] = {}
-        # TODO - should this use a RangeQuerySet? :thinking:
+        # TODO - use the range selector here
         for workflow in workflows:
             workflow_data = WorkflowData(workflow)
             workflow_hash = workflow_data.serialize()
