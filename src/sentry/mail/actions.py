@@ -47,12 +47,14 @@ class NotifyEmailAction(EventAction):
             "group_id": group.id,
             "notification_uuid": notification_uuid,
         }
-
         target_type = ActionTargetType(self.data["targetType"])
         target_identifier = self.data.get("targetIdentifier", None)
         skip_digests = self.data.get("skipDigests", False)
 
-        fallthrough_choice = self.data.get("fallthroughType", None)
+        # XXX: temporarily support both types, but after GA we should only need to support fallthrough_type
+        fallthrough_choice = self.data.get("fallthrough_type", None) or self.data.get(
+            "fallthroughType", None
+        )
         fallthrough_type = (
             FallthroughChoiceType(fallthrough_choice)
             if fallthrough_choice

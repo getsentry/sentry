@@ -249,7 +249,7 @@ const TabWrap = withChonk(
     cursor: pointer;
 
     &:hover {
-      color: ${p => (p.selected ? p.theme.activeText : p.theme.headingColor)};
+      color: ${p => (p.selected ? p.theme.activeText : p.theme.tokens.content.primary)};
     }
 
     &:focus {

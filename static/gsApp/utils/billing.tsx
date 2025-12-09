@@ -899,30 +899,56 @@ export function checkIsAddOn(
 
 /**
  * Check if a data category is a child category of an add-on.
- * If `checkReserved` is true, the category is only considered a child if it has a reserved volume of 0 or RESERVED_BUDGET_QUOTA.
- * If `checkReserved` is false, the category is considered a child if it is included in `dataCategories` for any available add-on.
+ * If `checkReserved` is true, we check if the data category is a child of an add-on
+ * for this particular subscription.
  */
 export function checkIsAddOnChildCategory(
   subscription: Subscription,
   category: DataCategory,
   checkReserved: boolean
 ) {
+  const parentAddOn = getParentAddOn(subscription, category, checkReserved);
+  return !!parentAddOn;
+}
+
+/**
+ * Get the parent add-on for a data category, if any.
+ *
+ * When `checkReserved` is true and a potential parent is found, we check if the data category
+ * has any sibling categories also tallied for billing. If so, we need to check if the data category
+ * should be treated as part of the add-on (reserved budget or zero prepaid) or as a separate
+ * product (any other prepaid volume).
+ *
+ * If the data category has no sibling categories, `checkReserved` is ignored and we return the parent add-on.
+ */
+export function getParentAddOn(
+  subscription: Subscription | null,
+  category: DataCategory,
+  checkReserved: boolean
+): AddOnCategory | null {
+  if (!subscription) {
+    return null;
+  }
   const parentAddOn = Object.values(subscription.addOns ?? {})
     .filter(addOn => addOn.isAvailable)
     .find(addOn => addOn.dataCategories.includes(category));
+
   if (!parentAddOn) {
-    return false;
+    return null;
   }
 
-  if (checkReserved) {
+  const hasMultipleTalliedCategories = parentAddOn.dataCategories.length > 1;
+  if (hasMultipleTalliedCategories && checkReserved) {
     const metricHistory = subscription.categories[category];
     if (!metricHistory) {
-      return false;
+      return null;
     }
-    return [RESERVED_BUDGET_QUOTA, 0].includes(metricHistory.reserved ?? 0);
+    if (![RESERVED_BUDGET_QUOTA, 0].includes(metricHistory.reserved ?? 0)) {
+      return null;
+    }
   }
 
-  return true;
+  return parentAddOn.apiName;
 }
 
 /**

@@ -4,7 +4,7 @@ import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconLightning, IconLock, IconOpen} from 'sentry/icons';
+import {IconLightning, IconLock, IconOpen, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -42,6 +42,8 @@ function Cta({
       borderBottom={hasContentBelow ? 'primary' : undefined}
       radius={hasContentBelow ? undefined : '0 0 md md'}
       align="center"
+      justify="center"
+      height={hasContentBelow ? undefined : '100%'}
     >
       <Flex direction="column" gap="lg" align="center">
         {icon && (
@@ -86,6 +88,44 @@ function FindOutMoreButton({
   );
 }
 
+/**
+ * Full panel CTA for Seer
+ */
+function SeerCta({action, footerText}: {action: React.ReactNode; footerText?: string}) {
+  // TODO(isabella): If we ever extend the full panel CTA to other products, we should
+  // add copy to BILLED_DATA_CATEGORY_INFO or serialize them in some endpoint
+  return (
+    <Container background="secondary" height="100%" radius="md" alignSelf="stretch">
+      <Flex
+        direction="column"
+        gap="xl"
+        align="center"
+        justify="center"
+        maxWidth="80%"
+        justifySelf="center"
+        height="100%"
+      >
+        <Flex direction="column" gap="md">
+          <Text align="center" size="xl" bold>
+            {t('Find and fix issues anywhere with Seer AI debugger')}
+          </Text>
+          <Text as="div" align="center" size="sm">
+            {/* TODO(seer): serialize pricing info */}
+            <Text>$40 </Text>
+            <Text variant="muted">{t('per active contributor / month')}</Text>
+          </Text>
+        </Flex>
+        {action}
+        {footerText && (
+          <Text align="center" variant="muted" size="sm">
+            {footerText}
+          </Text>
+        )}
+      </Flex>
+    </Container>
+  );
+}
+
 function ProductTrialCta({
   organization,
   subscription,
@@ -120,6 +160,38 @@ function ProductTrialCta({
         category: billedCategory,
         title: true,
       });
+
+  if (selectedProduct === AddOnCategory.SEER) {
+    return (
+      <SeerCta
+        action={
+          <StartTrialButton
+            size="md"
+            icon={<IconLightning />}
+            organization={organization}
+            source="usage-overview"
+            requestData={{
+              productTrial: {
+                category: potentialProductTrial.category,
+                reasonCode: potentialProductTrial.reasonCode,
+              },
+            }}
+            priority="primary"
+            handleClick={() => setTrialButtonBusy(true)}
+            onTrialStarted={() => setTrialButtonBusy(true)}
+            onTrialFailed={() => setTrialButtonBusy(false)}
+            busy={trialButtonBusy}
+            disabled={trialButtonBusy}
+          >
+            {t('Start 14 day free trial')}
+          </StartTrialButton>
+        }
+        footerText={t(
+          "Trial begins immediately. You won't be billed unless you upgrade after the trial ends."
+        )}
+      />
+    );
+  }
 
   return (
     <Cta
@@ -160,8 +232,10 @@ function ProductTrialCta({
 function UpgradeCta({
   organization,
   subscription,
+  selectedProduct,
 }: {
   organization: Organization;
+  selectedProduct: DataCategory | AddOnCategory;
   subscription: Subscription;
 }) {
   const isSalesAccount =
@@ -169,6 +243,36 @@ function UpgradeCta({
     subscription.type === BillingType.INVOICED ||
     // Custom-priced subscriptions (price > 0) are managed by sales
     (subscription.customPrice !== null && subscription.customPrice > 0);
+
+  if (selectedProduct === AddOnCategory.SEER) {
+    return (
+      <SeerCta
+        action={
+          subscription.canSelfServe ? (
+            <LinkButton
+              icon={<IconUpload />}
+              priority="primary"
+              href={`/checkout/${organization.slug}/?referrer=product-breakdown-panel`}
+            >
+              {t('Add to plan')}
+            </LinkButton>
+          ) : isSalesAccount ? (
+            <Text variant="muted" size="sm">
+              {tct('Contact us at [mailto:sales@sentry.io] to upgrade.', {
+                mailto: <a href="mailto:sales@sentry.io" />,
+              })}
+            </Text>
+          ) : (
+            <Text variant="muted" size="sm">
+              {tct('Contact us at [mailto:support@sentry.io] to upgrade.', {
+                mailto: <a href="mailto:support@sentry.io" />,
+              })}
+            </Text>
+          )
+        }
+      />
+    );
+  }
 
   return (
     <Cta
