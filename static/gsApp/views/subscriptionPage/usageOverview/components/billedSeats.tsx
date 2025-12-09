@@ -104,5 +104,5 @@ const Table = styled(SimpleTable)<{hasBorderTop: boolean}>`
   grid-template-columns: 1fr 1fr;
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   border: none;
-  border-top: ${p => (p.hasBorderTop ? '1px solid ${p.theme.border}' : 'none')};
+  border-top: ${p => (p.hasBorderTop ? `1px solid ${p.theme.border}` : 'none')};
 `;
