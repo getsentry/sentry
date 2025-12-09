@@ -2,18 +2,16 @@ import {useCallback, useEffect, useMemo} from 'react';
 import {forceCheck} from 'react-lazyload';
 import styled from '@emotion/styled';
 
+import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -201,6 +199,65 @@ export default function ReleasesList() {
     return projects?.find(p => p.id === `${selectedProjectId}`);
   }, [selection.projects, projects]);
 
+  const shouldShowMobileBuildsTab = useMemo(() => {
+    const singleProjectSelected =
+      selection.projects?.length === 1 && selection.projects[0] !== ALL_ACCESS_PROJECTS;
+
+    if (!singleProjectSelected || !selectedProject?.platform) {
+      return false;
+    }
+
+    return (
+      organization.features?.includes('preprod-frontend-routes') &&
+      isMobileRelease(selectedProject.platform, false)
+    );
+  }, [organization.features, selectedProject?.platform, selection.projects]);
+
+  const activeDataset = useMemo(() => {
+    const dataset = decodeScalar(location.query.dataset);
+    if (dataset === 'mobile-builds' && shouldShowMobileBuildsTab) {
+      return 'mobile-builds';
+    }
+    return 'releases';
+  }, [location.query.dataset, shouldShowMobileBuildsTab]);
+
+  const releasesDatasetQuery = useMemo(() => {
+    const {dataset: _removed, ...restQuery} = location.query;
+    return restQuery;
+  }, [location.query]);
+
+  const mobileBuildsDatasetQuery = useMemo(() => {
+    const {dataset: _removed, ...restQuery} = location.query;
+    return {...restQuery, dataset: 'mobile-builds'};
+  }, [location.query]);
+
+  useEffect(() => {
+    const dataset = decodeScalar(location.query.dataset);
+    if (dataset !== 'mobile-builds') {
+      return;
+    }
+
+    if (shouldShowMobileBuildsTab) {
+      return;
+    }
+
+    const {dataset: _removed, ...queryWithoutDataset} = location.query;
+
+    addMessage(
+      t('Mobile builds are only available for supported mobile projects.'),
+      'error'
+    );
+    navigate(
+      {
+        pathname: location.pathname,
+        query: {
+          ...queryWithoutDataset,
+        },
+      },
+      {replace: true}
+    );
+  }, [location.pathname, location.query, navigate, shouldShowMobileBuildsTab]);
+
   const handleSearch = useCallback(
     (query: string) => {
       navigate({
@@ -325,8 +382,14 @@ export default function ReleasesList() {
     <PageFiltersContainer showAbsolute={false} defaultSelection={selection}>
       <SentryDocumentTitle title={t('Releases')} orgSlug={organization.slug} />
       <NoProjectMessage organization={organization}>
-        <Header />
-        <Layout.Body>
+        <Header
+          activeDataset={activeDataset}
+          shouldShowMobileBuildsTab={shouldShowMobileBuildsTab}
+          releasesDatasetQuery={releasesDatasetQuery}
+          mobileBuildsDatasetQuery={mobileBuildsDatasetQuery}
+          pathname={location.pathname}
+        />
+        <Layout.Body data-dataset={activeDataset}>
           <Layout.Main width="full">
             <ReleaseHealthCTA
               organization={organization}
@@ -334,17 +397,6 @@ export default function ReleasesList() {
               selectedProject={selectedProject}
               selection={selection}
             />
-            <ReleasesPageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter
-                disallowArbitraryRelativeRanges
-                menuFooterMessage={t(
-                  'Changing this date range will recalculate the release metrics. Select a supported date range from the options above.'
-                )}
-              />
-            </ReleasesPageFilterBar>
-
             {shouldShowQuickstart ? null : (
               <SortAndFilterWrapper>
                 <StyledSearchQueryBuilder
@@ -404,10 +456,6 @@ export default function ReleasesList() {
     </PageFiltersContainer>
   );
 }
-
-const ReleasesPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(2)};
-`;
 
 const SortAndFilterWrapper = styled('div')`
   display: grid;
