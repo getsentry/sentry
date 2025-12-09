@@ -1,9 +1,10 @@
 import logging
 
 import sentry_sdk
-from django.db import router, transaction
+from django.db import router
 
 from sentry import features
+from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.subscription_processor import MetricIssueDetectorConfig
@@ -20,7 +21,7 @@ from sentry.snuba.models import (
     SnubaQuery,
     SnubaQueryEventType,
 )
-from sentry.snuba.tasks import update_subscription_in_snuba
+from sentry.snuba.subscriptions import bulk_update_snuba_subscriptions
 from sentry.utils.db import atomic_transaction
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.data_source import DataSource
@@ -35,9 +36,14 @@ COUNT_BASED_ALERT_AGGREAGTES = [
     "count_unique",
 ]
 
+COUNT_AGGREGATE_PREFIX = "count("
+
 
 def snapshot_snuba_query(snuba_query: SnubaQuery):
-    if snuba_query.dataset in [Dataset.PerformanceMetrics.value, Dataset.Transactions.value]:
+    if not snuba_query.query_snapshot and snuba_query.dataset in [
+        Dataset.PerformanceMetrics.value,
+        Dataset.Transactions.value,
+    ]:
         query_snapshot = {
             "type": snuba_query.type,
             "dataset": snuba_query.dataset,
@@ -89,6 +95,7 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
 
     snapshot = snuba_query.query_snapshot
     if not snapshot:
+        logger.info("No snapshot created for snuba query %s", snuba_query.id)
         return
 
     if snapshot.get("user_updated"):
@@ -99,9 +106,13 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
 
     old_query_type, old_dataset, old_query, old_aggregate = _get_old_query_info(snuba_query)
 
+    snapshot_aggregate = snapshot["aggregate"]
+    if snapshot["aggregate"].startswith(COUNT_AGGREGATE_PREFIX):
+        snapshot_aggregate = "count()"
+
     eap_query_parts, dropped_fields = translate_mep_to_eap(
         QueryParts(
-            selected_columns=[snapshot["aggregate"]],
+            selected_columns=[snapshot_aggregate],
             query=snapshot["query"],
             equations=None,
             orderby=None,
@@ -109,6 +120,7 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
     )
 
     if dropped_fields["selected_columns"]:
+        logger.info("Unsupported column dropped for snuba query %s", snuba_query.id)
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("dropped_fields", dropped_fields["selected_columns"])
             scope.set_tag("snuba_query", snuba_query.id)
@@ -116,6 +128,9 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
         return
 
     translated_aggregate = eap_query_parts["selected_columns"][0]
+    # some functions like apdex() are translated to equations, but alerts doesn't need that so we can just strip the equation prefix
+    if is_equation(translated_aggregate):
+        translated_aggregate = strip_equation(translated_aggregate)
     translated_query = eap_query_parts["query"]
 
     snuba_query.aggregate = translated_aggregate
@@ -135,6 +150,8 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
         using=(
             router.db_for_write(SnubaQuery),
             router.db_for_write(SnubaQueryEventType),
+            router.db_for_write(QuerySubscription),
+            router.db_for_read(DataCondition),
         )
     ):
         snuba_query.save()
@@ -143,38 +160,42 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
             snuba_query=snuba_query, type=SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.value
         )
 
-    query_subscriptions = list(snuba_query.subscriptions.all())
-    for subscription in query_subscriptions:
-        with transaction.atomic(router.db_for_write(QuerySubscription)):
-            subscription.update(status=QuerySubscription.Status.UPDATING.value)
-
-            transaction.on_commit(
-                lambda: update_subscription_in_snuba(
-                    query_subscription_id=subscription.id,
-                    old_query_type=old_query_type.value,
-                    old_dataset=old_dataset.value,
-                    old_aggregate=old_aggregate,
-                    old_query=old_query,
-                ),
-                using=router.db_for_write(QuerySubscription),
+        query_subscriptions = list(snuba_query.subscriptions.all())
+        try:
+            bulk_update_snuba_subscriptions(
+                query_subscriptions, old_query_type, old_dataset, old_aggregate, old_query
             )
-
-    for detector in detectors:
-        detector_cfg: MetricIssueDetectorConfig = detector.config
-        if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
-            data_condition = DataCondition.objects.get(
-                condition_group=detector.workflow_condition_group
+        except Exception as e:
+            logger.info(
+                "Query not migrated: error updating subscriptions in snuba",
+                extra={"snuba_query_id": snuba_query.id, "error": e},
             )
-            handle_send_historical_data_to_seer(
-                detector,
-                data_source,
-                data_condition,
-                snuba_query,
-                detector.project,
-                SeerMethod.UPDATE,
-                event_types=[SnubaQueryEventType.EventType.TRACE_ITEM_SPAN],
-            )
+            raise
 
+        try:
+            for detector in detectors:
+                detector_cfg: MetricIssueDetectorConfig = detector.config
+                if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
+                    data_condition = DataCondition.objects.get(
+                        condition_group=detector.workflow_condition_group
+                    )
+                    handle_send_historical_data_to_seer(
+                        detector,
+                        data_source,
+                        data_condition,
+                        snuba_query,
+                        detector.project,
+                        SeerMethod.UPDATE,
+                        event_types=[SnubaQueryEventType.EventType.TRACE_ITEM_SPAN],
+                    )
+        except Exception as e:
+            logger.info(
+                "Query not migrated: error sending historical data to seer",
+                extra={"snuba_query_id": snuba_query.id, "error": e},
+            )
+            raise
+
+        logger.info("Query successfully migrated to EAP", extra={"snuba_query_id": snuba_query.id})
     return
 
 
@@ -220,6 +241,8 @@ def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQ
         using=(
             router.db_for_write(SnubaQuery),
             router.db_for_write(SnubaQueryEventType),
+            router.db_for_write(QuerySubscription),
+            router.db_for_read(DataCondition),
         )
     ):
         snuba_query.update(
@@ -234,39 +257,42 @@ def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQ
             snuba_query=snuba_query, type=SnubaQueryEventType.EventType.TRANSACTION.value
         )
 
-    query_subscriptions = list(snuba_query.subscriptions.all())
-    for subscription in query_subscriptions:
-        with transaction.atomic(router.db_for_write(QuerySubscription)):
-            subscription.update(status=QuerySubscription.Status.UPDATING.value)
-
-            transaction.on_commit(
-                lambda: update_subscription_in_snuba(
-                    query_subscription_id=subscription.id,
-                    old_query_type=old_query_type.value,
-                    old_dataset=old_dataset.value,
-                    old_aggregate=old_aggregate,
-                    old_query=old_query,
-                ),
-                using=router.db_for_write(QuerySubscription),
+        query_subscriptions = list(snuba_query.subscriptions.all())
+        try:
+            bulk_update_snuba_subscriptions(
+                query_subscriptions, old_query_type, old_dataset, old_aggregate, old_query
             )
-
-    for detector in detectors:
-        detector_cfg: MetricIssueDetectorConfig = detector.config
-        if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
-            data_condition = DataCondition.objects.get(
-                condition_group=detector.workflow_condition_group
+        except Exception as e:
+            logger.info(
+                "Query not rolled back: error updating subscriptions in snuba",
+                extra={"snuba_query_id": snuba_query.id, "error": e},
             )
-            handle_send_historical_data_to_seer(
-                detector,
-                data_source,
-                data_condition,
-                snuba_query,
-                detector.project,
-                SeerMethod.UPDATE,
-                event_types=[SnubaQueryEventType.EventType.TRANSACTION],
-            )
+            raise
 
-    logger.info(
-        "Query successfully rolled back to legacy", extra={"snuba_query_id": snuba_query.id}
-    )
+        try:
+            for detector in detectors:
+                detector_cfg: MetricIssueDetectorConfig = detector.config
+                if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
+                    data_condition = DataCondition.objects.get(
+                        condition_group=detector.workflow_condition_group
+                    )
+                    handle_send_historical_data_to_seer(
+                        detector,
+                        data_source,
+                        data_condition,
+                        snuba_query,
+                        detector.project,
+                        SeerMethod.UPDATE,
+                        event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+                    )
+        except Exception as e:
+            logger.info(
+                "Query not rolled back: error sending historical data to seer",
+                extra={"snuba_query_id": snuba_query.id, "error": e},
+            )
+            raise
+
+        logger.info(
+            "Query successfully rolled back to legacy", extra={"snuba_query_id": snuba_query.id}
+        )
     return
