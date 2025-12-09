@@ -20,7 +20,7 @@ MIN_LAST_SEEN_HOURS = 6
 
 
 @instrumented_task(
-    name="sentry.tasks.delete_pending_groups",
+    name="sentry.deletions.tasks.delete_pending_groups",
     namespace=deletion_tasks,
     processing_deadline_duration=10 * 60,
     retry=Retry(times=3, delay=60),

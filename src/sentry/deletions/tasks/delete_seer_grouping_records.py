@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.delete_seer_grouping_records_by_hash",
+    name="sentry.deletions.tasks.delete_seer_grouping_records_by_hash",
     namespace=seer_tasks,
     processing_deadline_duration=60 * (15 + 5),
     silo_mode=SiloMode.REGION,
