@@ -7,6 +7,7 @@
 import type {getInterval} from 'sentry/components/charts/utils';
 import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
 import type {ALLOWED_SCOPES} from 'sentry/constants';
+import type {Organization} from 'sentry/types/organization';
 
 /**
  * Visual representation of a project/team/organization/user
@@ -149,6 +150,7 @@ export interface DataCategoryInfo {
   titleName: string;
   uid: number;
   docsUrl?: string;
+  getProductLink?: (organization: Organization) => string;
 }
 
 export enum Outcome {

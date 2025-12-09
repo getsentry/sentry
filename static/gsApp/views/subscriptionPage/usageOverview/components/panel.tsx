@@ -1,21 +1,23 @@
 import {Fragment} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {IconClock, IconWarning} from 'sentry/icons';
+import {IconClock, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
-import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
+import {OnDemandBudgetMode} from 'getsentry/types';
 import {
   displayBudgetName,
   getReservedBudgetCategoryForAddOn,
   supportsPayg,
 } from 'getsentry/utils/billing';
+import BilledSeats from 'getsentry/views/subscriptionPage/usageOverview/components/billedSeats';
 import {
   DataCategoryUsageBreakdownInfo,
   ReservedBudgetUsageBreakdownInfo,
@@ -29,10 +31,13 @@ import {USAGE_OVERVIEW_PANEL_HEADER_HEIGHT} from 'getsentry/views/subscriptionPa
 import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
 function PanelHeader({
+  panelIsOnlyCta,
   selectedProduct,
   subscription,
   isInline,
-}: Pick<BreakdownPanelProps, 'selectedProduct' | 'subscription' | 'isInline'>) {
+}: Pick<BreakdownPanelProps, 'selectedProduct' | 'subscription' | 'isInline'> & {
+  panelIsOnlyCta: boolean;
+}) {
   const {onDemandBudgets: paygBudgets} = subscription;
 
   const {
@@ -42,14 +47,10 @@ function PanelHeader({
     addOnInfo,
     usageExceeded,
     activeProductTrial,
+    productLink,
   } = useProductBillingMetadata(subscription, selectedProduct);
 
-  if (
-    // special case for seer add-on
-    selectedProduct === AddOnCategory.SEER ||
-    !billedCategory ||
-    (isAddOn && !addOnInfo)
-  ) {
+  if (!billedCategory || (isAddOn && !addOnInfo) || panelIsOnlyCta) {
     return null;
   }
 
@@ -84,13 +85,24 @@ function PanelHeader({
   return (
     <Flex
       gap="md"
+      justify="between"
       align="center"
       borderBottom="primary"
       padding="xl"
       height={USAGE_OVERVIEW_PANEL_HEADER_HEIGHT}
     >
-      {!isInline && <Heading as="h3">{displayName}</Heading>}
-      {status}
+      <Flex gap="md" align="center" height={USAGE_OVERVIEW_PANEL_HEADER_HEIGHT}>
+        {!isInline && <Heading as="h3">{displayName}</Heading>}
+        {status}
+      </Flex>
+      {productLink && (
+        <LinkButton
+          to={productLink}
+          icon={<IconSettings />}
+          aria-label={t('Configure %s', displayName)}
+          title={tct('Configure [productName]', {productName: displayName})}
+        />
+      )}
     </Flex>
   );
 }
@@ -135,6 +147,18 @@ function ProductBreakdownPanel({
           activeProductTrial={activeProductTrial}
         />
       );
+    } else {
+      const metricHistory = subscription.categories[billedCategory];
+      if (metricHistory) {
+        breakdownInfo = (
+          <DataCategoryUsageBreakdownInfo
+            subscription={subscription}
+            category={billedCategory}
+            metricHistory={metricHistory}
+            activeProductTrial={activeProductTrial}
+          />
+        );
+      }
     }
   } else {
     const category = selectedProduct as DataCategory;
@@ -157,9 +181,8 @@ function ProductBreakdownPanel({
 
   return (
     <Container
-      background="primary"
+      height={isEnabled ? undefined : '100%'}
       border={isInline ? undefined : 'primary'}
-      borderBottom={isInline ? 'primary' : undefined}
       radius={isInline ? undefined : 'md'}
       style={
         isInline
@@ -173,6 +196,7 @@ function ProductBreakdownPanel({
         selectedProduct={selectedProduct}
         subscription={subscription}
         isInline={isInline}
+        panelIsOnlyCta={!isEnabled}
       />
       {potentialProductTrial && (
         <ProductTrialCta
@@ -195,8 +219,17 @@ function ProductBreakdownPanel({
         </Fragment>
       )}
       {shouldShowUpgradeCta && (
-        <UpgradeCta organization={organization} subscription={subscription} />
+        <UpgradeCta
+          organization={organization}
+          subscription={subscription}
+          selectedProduct={selectedProduct}
+        />
       )}
+      <BilledSeats
+        organization={organization}
+        selectedProduct={selectedProduct}
+        subscription={subscription}
+      />
     </Container>
   );
 }

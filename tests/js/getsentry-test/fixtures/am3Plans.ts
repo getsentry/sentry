@@ -66,6 +66,7 @@ const AM3_CATEGORY_DISPLAY_NAMES = {
   logBytes: {singular: 'log', plural: 'logs'},
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
+  seerUsers: {singular: 'active contributor', plural: 'active contributors'},
 };
 
 const AM3_DS_CATEGORY_DISPLAY_NAMES = {

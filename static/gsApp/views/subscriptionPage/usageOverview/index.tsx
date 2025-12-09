@@ -106,7 +106,7 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
       <Container radius="md" border="primary" background="primary" width="100%">
         <Flex
           justify="between"
-          align={{xs: 'start', sm: 'center'}}
+          align="center"
           padding="lg xl"
           gap="xl"
           height={USAGE_OVERVIEW_PANEL_HEADER_HEIGHT}

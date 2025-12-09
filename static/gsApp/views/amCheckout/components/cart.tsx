@@ -478,6 +478,7 @@ function SubtotalSummary({
                         size="xs"
                         position="bottom"
                         title={t(
+                          // TODO(seer): serialize pricing info
                           '$40 per active contributor. Total varies month to month based on your active contributor count.'
                         )}
                       />
