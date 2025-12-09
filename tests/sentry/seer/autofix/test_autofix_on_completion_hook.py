@@ -16,7 +16,9 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
 
     def test_get_current_step_root_cause(self):
         """Returns ROOT_CAUSE when root_cause artifact exists."""
-        artifacts = {"root_cause": MagicMock(data={"cause": "test"})}
+        artifacts = {
+            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test")
+        }
         state = MagicMock()
         state.has_code_changes.return_value = (False, True)
 
@@ -26,8 +28,8 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
     def test_get_current_step_solution(self):
         """Returns SOLUTION when solution artifact exists."""
         artifacts = {
-            "root_cause": MagicMock(data={"cause": "test"}),
-            "solution": MagicMock(data={"steps": []}),
+            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test"),
+            "solution": Artifact(key="solution", data={"steps": []}, reason="test"),
         }
         state = MagicMock()
         state.has_code_changes.return_value = (False, True)
@@ -38,8 +40,8 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
     def test_get_current_step_code_changes(self):
         """Returns CODE_CHANGES when code changes exist."""
         artifacts = {
-            "root_cause": MagicMock(data={"cause": "test"}),
-            "solution": MagicMock(data={"steps": []}),
+            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test"),
+            "solution": Artifact(key="solution", data={"steps": []}, reason="test"),
         }
         state = MagicMock()
         state.has_code_changes.return_value = (True, False)
@@ -91,7 +93,9 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         """Does not continue when metadata is missing."""
         state = MagicMock()
         state.metadata = None
-        artifacts = {"root_cause": MagicMock(data={"cause": "test"})}
+        artifacts = {
+            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test")
+        }
 
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, artifacts)
 
@@ -102,7 +106,9 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         """Does not continue when stopping_point is missing from metadata."""
         state = MagicMock()
         state.metadata = {"group_id": self.group.id}
-        artifacts = {"root_cause": MagicMock(data={"cause": "test"})}
+        artifacts = {
+            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test")
+        }
 
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, artifacts)
 
@@ -117,7 +123,9 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             "group_id": self.group.id,
         }
         state.has_code_changes.return_value = (False, True)
-        artifacts = {"root_cause": MagicMock(data={"cause": "test"})}
+        artifacts = {
+            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test")
+        }
 
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, artifacts)
 
@@ -132,7 +140,9 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             "group_id": self.group.id,
         }
         state.has_code_changes.return_value = (False, True)
-        artifacts = {"root_cause": MagicMock(data={"cause": "test"})}
+        artifacts = {
+            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test")
+        }
 
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, artifacts)
 
@@ -155,8 +165,8 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         }
         state.has_code_changes.return_value = (True, False)  # has changes, not synced
         artifacts = {
-            "root_cause": MagicMock(data={"cause": "test"}),
-            "solution": MagicMock(data={"steps": []}),
+            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test"),
+            "solution": Artifact(key="solution", data={"steps": []}, reason="test"),
         }
 
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, artifacts)
