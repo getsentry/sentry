@@ -103,7 +103,7 @@ def dispatch_detection_for_project_ids(
             results[project.id] = {"success": False, "reason": "web_vitals_detection_not_enabled"}
             continue
 
-        detect_web_vitals_issues_for_project.delay(project)
+        detect_web_vitals_issues_for_project.delay(project.id, project.organization.slug)
         results[project.id] = {"success": True}
         projects_dispatched_count += 1
 
@@ -126,7 +126,7 @@ def dispatch_detection_for_project_ids(
     namespace=issues_tasks,
     processing_deadline_duration=120,
 )
-def detect_web_vitals_issues_for_project(project: Project) -> None:
+def detect_web_vitals_issues_for_project(project_id: int, organization_slug: str) -> None:
     """
     Process a single project for Web Vitals issue detection.
     """
@@ -136,15 +136,15 @@ def detect_web_vitals_issues_for_project(project: Project) -> None:
             amount=1,
             tags={
                 "reason": "disabled",
-                "project_id": project.id,
-                "organization": project.organization.slug,
+                "project_id": project_id,
+                "organization": organization_slug,
             },
             sample_rate=1.0,
         )
         return
 
     web_vital_issue_groups = get_highest_opportunity_page_vitals_for_project(
-        project.id, limit=TRANSACTIONS_PER_PROJECT_LIMIT
+        project_id, limit=TRANSACTIONS_PER_PROJECT_LIMIT
     )
     sent_counts: dict[WebVitalIssueDetectionGroupingType, int] = defaultdict(int)
     rejected_no_trace_count = 0
@@ -160,7 +160,7 @@ def detect_web_vitals_issues_for_project(project: Project) -> None:
 
         trace = get_trace_by_web_vital_measurement(
             web_vital_issue_group["transaction"],
-            project.id,
+            project_id,
             vital,
             p75_vital_value,
             start_time_delta=DEFAULT_START_TIME_DELTA,
@@ -180,8 +180,8 @@ def detect_web_vitals_issues_for_project(project: Project) -> None:
             amount=count,
             tags={
                 "kind": vital_grouping,
-                "project_id": project.id,
-                "organization": project.organization.slug,
+                "project_id": project_id,
+                "organization": organization_slug,
             },  # rendering, cls, or inp
             sample_rate=1.0,
         )
@@ -191,8 +191,8 @@ def detect_web_vitals_issues_for_project(project: Project) -> None:
         amount=rejected_no_trace_count,
         tags={
             "reason": "no_trace",
-            "project_id": project.id,
-            "organization": project.organization.slug,
+            "project_id": project_id,
+            "organization": organization_slug,
         },
         sample_rate=1.0,
     )
@@ -202,8 +202,8 @@ def detect_web_vitals_issues_for_project(project: Project) -> None:
         amount=rejected_already_exists_count,
         tags={
             "reason": "already_exists",
-            "project_id": project.id,
-            "organization": project.organization.slug,
+            "project_id": project_id,
+            "organization": organization_slug,
         },
         sample_rate=1.0,
     )
