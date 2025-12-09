@@ -4,6 +4,7 @@ from django.core.cache import cache
 
 from sentry import options
 from sentry.grouping.ingest.caching import (
+    get_grouphash_cache_version,
     get_grouphash_existence_cache_key,
     get_grouphash_object_cache_key,
     invalidate_grouphash_cache_on_save,
@@ -123,6 +124,7 @@ class CacheInvalidationTest(TestCase):
     def test_removes_from_cache_on_queryset_update(self) -> None:
         project = self.project
         get_cache_key = get_grouphash_object_cache_key
+        expiry_option_version = get_grouphash_cache_version("object")
         cache_expiry_seconds = options.get("grouping.ingest_grouphash_existence_cache_expiry")
 
         maisey_key = get_cache_key(hash_value="maisey", project_id=project.id)
@@ -136,25 +138,27 @@ class CacheInvalidationTest(TestCase):
         grouphash2 = GroupHash.objects.create(project=project, group=group1, hash="charlie")
         grouphash3 = GroupHash.objects.create(project=project, group=group1, hash="dogs_are_great")
 
-        cache.set(maisey_key, grouphash1, cache_expiry_seconds)
-        cache.set(charlie_key, grouphash2, cache_expiry_seconds)
-        cache.set(dogs_key, grouphash3, cache_expiry_seconds)
+        cache.set(maisey_key, grouphash1, cache_expiry_seconds, version=expiry_option_version)
+        cache.set(charlie_key, grouphash2, cache_expiry_seconds, version=expiry_option_version)
+        cache.set(dogs_key, grouphash3, cache_expiry_seconds, version=expiry_option_version)
 
-        assert maisey_key in cache
-        assert charlie_key in cache
-        assert dogs_key in cache
+        # TODO: These (and the checks below) can be simplified to use in/not in once version is gone
+        assert cache.has_key(maisey_key, version=expiry_option_version)
+        assert cache.has_key(charlie_key, version=expiry_option_version)
+        assert cache.has_key(dogs_key, version=expiry_option_version)
 
         GroupHash.objects.filter(hash__in=["maisey", "charlie"]).update(group=group2)
 
         # The updated grouphashes have been removed from the cache, but the one we didn't update is
         # still there
-        assert maisey_key not in cache
-        assert charlie_key not in cache
-        assert dogs_key in cache
+        assert not cache.has_key(maisey_key, version=expiry_option_version)
+        assert not cache.has_key(charlie_key, version=expiry_option_version)
+        assert cache.has_key(dogs_key, version=expiry_option_version)
 
     def test_removes_from_cache_on_model_update(self) -> None:
         project = self.project
         get_cache_key = get_grouphash_object_cache_key
+        expiry_option_version = get_grouphash_cache_version("object")
         cache_expiry_seconds = options.get("grouping.ingest_grouphash_existence_cache_expiry")
 
         maisey_key = get_cache_key(hash_value="maisey", project_id=project.id)
@@ -168,26 +172,28 @@ class CacheInvalidationTest(TestCase):
         grouphash2 = GroupHash.objects.create(project=project, group=group1, hash="charlie")
         grouphash3 = GroupHash.objects.create(project=project, group=group1, hash="dogs_are_great")
 
-        cache.set(maisey_key, grouphash1, cache_expiry_seconds)
-        cache.set(charlie_key, grouphash2, cache_expiry_seconds)
-        cache.set(dogs_key, grouphash3, cache_expiry_seconds)
+        cache.set(maisey_key, grouphash1, cache_expiry_seconds, version=expiry_option_version)
+        cache.set(charlie_key, grouphash2, cache_expiry_seconds, version=expiry_option_version)
+        cache.set(dogs_key, grouphash3, cache_expiry_seconds, version=expiry_option_version)
 
-        assert maisey_key in cache
-        assert charlie_key in cache
-        assert dogs_key in cache
+        # TODO: These (and the checks below) can be simplified to use in/not in once version is gone
+        assert cache.has_key(maisey_key, version=expiry_option_version)
+        assert cache.has_key(charlie_key, version=expiry_option_version)
+        assert cache.has_key(dogs_key, version=expiry_option_version)
 
         grouphash1.update(group=group2)
         grouphash2.update(group=group2)
 
         # The updated grouphashes have been removed from the cache, but the one we didn't update is
         # still there
-        assert maisey_key not in cache
-        assert charlie_key not in cache
-        assert dogs_key in cache
+        assert not cache.has_key(maisey_key, version=expiry_option_version)
+        assert not cache.has_key(charlie_key, version=expiry_option_version)
+        assert cache.has_key(dogs_key, version=expiry_option_version)
 
     def test_removes_from_cache_on_model_save(self) -> None:
         project = self.project
         get_cache_key = get_grouphash_object_cache_key
+        expiry_option_version = get_grouphash_cache_version("object")
         cache_expiry_seconds = options.get("grouping.ingest_grouphash_existence_cache_expiry")
 
         maisey_key = get_cache_key(hash_value="maisey", project_id=project.id)
@@ -201,13 +207,14 @@ class CacheInvalidationTest(TestCase):
         grouphash2 = GroupHash.objects.create(project=project, group=group1, hash="charlie")
         grouphash3 = GroupHash.objects.create(project=project, group=group1, hash="dogs_are_great")
 
-        cache.set(maisey_key, grouphash1, cache_expiry_seconds)
-        cache.set(charlie_key, grouphash2, cache_expiry_seconds)
-        cache.set(dogs_key, grouphash3, cache_expiry_seconds)
+        cache.set(maisey_key, grouphash1, cache_expiry_seconds, version=expiry_option_version)
+        cache.set(charlie_key, grouphash2, cache_expiry_seconds, version=expiry_option_version)
+        cache.set(dogs_key, grouphash3, cache_expiry_seconds, version=expiry_option_version)
 
-        assert maisey_key in cache
-        assert charlie_key in cache
-        assert dogs_key in cache
+        # TODO: These (and the checks below) can be simplified to use in/not in once version is gone
+        assert cache.has_key(maisey_key, version=expiry_option_version)
+        assert cache.has_key(charlie_key, version=expiry_option_version)
+        assert cache.has_key(dogs_key, version=expiry_option_version)
 
         grouphash1.group = group2
         grouphash1.save()
@@ -216,14 +223,16 @@ class CacheInvalidationTest(TestCase):
 
         # The grouphashes on which we called `save` have been removed from the cache, but the one we
         # didn't update is still there
-        assert maisey_key not in cache
-        assert charlie_key not in cache
-        assert dogs_key in cache
+        assert not cache.has_key(maisey_key, version=expiry_option_version)
+        assert not cache.has_key(charlie_key, version=expiry_option_version)
+        assert cache.has_key(dogs_key, version=expiry_option_version)
 
     def test_removes_from_cache_on_queryset_delete(self) -> None:
         project = self.project
         get_object_cache_key = get_grouphash_object_cache_key
         get_existence_cache_key = get_grouphash_existence_cache_key
+        object_expiry_option_version = get_grouphash_cache_version("object")
+        existence_expiry_option_version = get_grouphash_cache_version("existence")
         cache_expiry_seconds = options.get("grouping.ingest_grouphash_existence_cache_expiry")
 
         maisey_object_key = get_object_cache_key(hash_value="maisey", project_id=project.id)
@@ -241,35 +250,62 @@ class CacheInvalidationTest(TestCase):
         grouphash2 = GroupHash.objects.create(project=project, group=group, hash="charlie")
         grouphash3 = GroupHash.objects.create(project=project, group=group, hash="dogs_are_great")
 
-        cache.set(maisey_object_key, grouphash1, cache_expiry_seconds)
-        cache.set(charlie_object_key, grouphash2, cache_expiry_seconds)
-        cache.set(dogs_object_key, grouphash3, cache_expiry_seconds)
-        cache.set(maisey_existence_key, True, cache_expiry_seconds)
-        cache.set(charlie_existence_key, True, cache_expiry_seconds)
-        cache.set(dogs_existence_key, True, cache_expiry_seconds)
+        cache.set(
+            maisey_object_key,
+            grouphash1,
+            cache_expiry_seconds,
+            version=object_expiry_option_version,
+        )
+        cache.set(
+            charlie_object_key,
+            grouphash2,
+            cache_expiry_seconds,
+            version=object_expiry_option_version,
+        )
+        cache.set(
+            dogs_object_key, grouphash3, cache_expiry_seconds, version=object_expiry_option_version
+        )
+        cache.set(
+            maisey_existence_key,
+            True,
+            cache_expiry_seconds,
+            version=existence_expiry_option_version,
+        )
+        cache.set(
+            charlie_existence_key,
+            True,
+            cache_expiry_seconds,
+            version=existence_expiry_option_version,
+        )
+        cache.set(
+            dogs_existence_key, True, cache_expiry_seconds, version=existence_expiry_option_version
+        )
 
-        assert maisey_object_key in cache
-        assert charlie_object_key in cache
-        assert dogs_object_key in cache
-        assert maisey_existence_key in cache
-        assert charlie_existence_key in cache
-        assert dogs_existence_key in cache
+        # TODO: These (and the checks below) can be simplified to use in/not in once version is gone
+        assert cache.has_key(maisey_object_key, version=object_expiry_option_version)
+        assert cache.has_key(charlie_object_key, version=object_expiry_option_version)
+        assert cache.has_key(dogs_object_key, version=object_expiry_option_version)
+        assert cache.has_key(maisey_existence_key, version=existence_expiry_option_version)
+        assert cache.has_key(charlie_existence_key, version=existence_expiry_option_version)
+        assert cache.has_key(dogs_existence_key, version=existence_expiry_option_version)
 
         GroupHash.objects.filter(hash__in=["maisey", "charlie"]).delete()
 
         # The deleted grouphashes have been removed from the cache, but the one we didn't delete is
         # still there
-        assert maisey_object_key not in cache
-        assert charlie_object_key not in cache
-        assert dogs_object_key in cache
-        assert maisey_existence_key not in cache
-        assert charlie_existence_key not in cache
-        assert dogs_existence_key in cache
+        assert not cache.has_key(maisey_object_key, version=object_expiry_option_version)
+        assert not cache.has_key(charlie_object_key, version=object_expiry_option_version)
+        assert cache.has_key(dogs_object_key, version=object_expiry_option_version)
+        assert not cache.has_key(maisey_existence_key, version=existence_expiry_option_version)
+        assert not cache.has_key(charlie_existence_key, version=existence_expiry_option_version)
+        assert cache.has_key(dogs_existence_key, version=existence_expiry_option_version)
 
     def test_removes_from_cache_on_model_delete(self) -> None:
         project = self.project
         get_object_cache_key = get_grouphash_object_cache_key
         get_existence_cache_key = get_grouphash_existence_cache_key
+        object_expiry_option_version = get_grouphash_cache_version("object")
+        existence_expiry_option_version = get_grouphash_cache_version("existence")
         cache_expiry_seconds = options.get("grouping.ingest_grouphash_existence_cache_expiry")
 
         maisey_object_key = get_object_cache_key(hash_value="maisey", project_id=project.id)
@@ -287,36 +323,62 @@ class CacheInvalidationTest(TestCase):
         grouphash2 = GroupHash.objects.create(project=project, group=group, hash="charlie")
         grouphash3 = GroupHash.objects.create(project=project, group=group, hash="dogs_are_great")
 
-        cache.set(maisey_object_key, grouphash1, cache_expiry_seconds)
-        cache.set(charlie_object_key, grouphash2, cache_expiry_seconds)
-        cache.set(dogs_object_key, grouphash3, cache_expiry_seconds)
-        cache.set(maisey_existence_key, True, cache_expiry_seconds)
-        cache.set(charlie_existence_key, True, cache_expiry_seconds)
-        cache.set(dogs_existence_key, True, cache_expiry_seconds)
+        cache.set(
+            maisey_object_key,
+            grouphash1,
+            cache_expiry_seconds,
+            version=object_expiry_option_version,
+        )
+        cache.set(
+            charlie_object_key,
+            grouphash2,
+            cache_expiry_seconds,
+            version=object_expiry_option_version,
+        )
+        cache.set(
+            dogs_object_key, grouphash3, cache_expiry_seconds, version=object_expiry_option_version
+        )
+        cache.set(
+            maisey_existence_key,
+            True,
+            cache_expiry_seconds,
+            version=existence_expiry_option_version,
+        )
+        cache.set(
+            charlie_existence_key,
+            True,
+            cache_expiry_seconds,
+            version=existence_expiry_option_version,
+        )
+        cache.set(
+            dogs_existence_key, True, cache_expiry_seconds, version=existence_expiry_option_version
+        )
 
-        assert maisey_object_key in cache
-        assert charlie_object_key in cache
-        assert dogs_object_key in cache
-        assert maisey_existence_key in cache
-        assert charlie_existence_key in cache
-        assert dogs_existence_key in cache
+        # TODO: These (and the checks below) can be simplified to use in/not in once version is gone
+        assert cache.has_key(maisey_object_key, version=object_expiry_option_version)
+        assert cache.has_key(charlie_object_key, version=object_expiry_option_version)
+        assert cache.has_key(dogs_object_key, version=object_expiry_option_version)
+        assert cache.has_key(maisey_existence_key, version=existence_expiry_option_version)
+        assert cache.has_key(charlie_existence_key, version=existence_expiry_option_version)
+        assert cache.has_key(dogs_existence_key, version=existence_expiry_option_version)
 
         grouphash1.delete()
         grouphash2.delete()
 
         # The deleted grouphashes have been removed from the cache, but the one we didn't delete is
         # still there
-        assert maisey_object_key not in cache
-        assert charlie_object_key not in cache
-        assert dogs_object_key in cache
-        assert maisey_existence_key not in cache
-        assert charlie_existence_key not in cache
-        assert dogs_existence_key in cache
+        assert not cache.has_key(maisey_object_key, version=object_expiry_option_version)
+        assert not cache.has_key(charlie_object_key, version=object_expiry_option_version)
+        assert cache.has_key(dogs_object_key, version=object_expiry_option_version)
+        assert not cache.has_key(maisey_existence_key, version=existence_expiry_option_version)
+        assert not cache.has_key(charlie_existence_key, version=existence_expiry_option_version)
+        assert cache.has_key(dogs_existence_key, version=existence_expiry_option_version)
 
     @patch("sentry.grouping.ingest.caching.cache.delete")
     def test_no_ops_on_grouphash_creation(self, cache_delete_mock: MagicMock) -> None:
         project = self.project
         get_cache_key = get_grouphash_object_cache_key
+        expiry_option_version = get_grouphash_cache_version("object")
         maisey_key = get_cache_key(hash_value="maisey", project_id=project.id)
 
         group1 = self.create_group(project)
@@ -327,12 +389,16 @@ class CacheInvalidationTest(TestCase):
         # We listen to the `pre_save` signal, which gets triggered by both `create` and `save`
         # calls, but there's only something to invalidate in the latter case, so we bail early
         # during grouphash creation.
-        assert count_matching_calls(cache_delete_mock, maisey_key) == 0
+        assert (
+            count_matching_calls(cache_delete_mock, maisey_key, version=expiry_option_version) == 0
+        )
 
         grouphash.group = group2
         grouphash.save()
 
-        assert count_matching_calls(cache_delete_mock, maisey_key) == 1
+        assert (
+            count_matching_calls(cache_delete_mock, maisey_key, version=expiry_option_version) == 1
+        )
 
     @patch("sentry.grouping.ingest.caching.cache.delete")
     @patch("sentry.grouping.ingest.caching.cache.delete_many")
@@ -343,6 +409,8 @@ class CacheInvalidationTest(TestCase):
         get_object_cache_key = get_grouphash_object_cache_key
         get_existence_cache_key = get_grouphash_existence_cache_key
 
+        object_expiry_option_version = get_grouphash_cache_version("object")
+        existence_expiry_option_version = get_grouphash_cache_version("existence")
         object_key = get_object_cache_key(hash_value="maisey", project_id=project.id)
         existence_key = get_existence_cache_key(hash_value="maisey", project_id=project.id)
 
@@ -354,12 +422,40 @@ class CacheInvalidationTest(TestCase):
             invalidate_grouphash_cache_on_save(grouphash)
             invalidate_grouphash_caches_on_delete(grouphash)
 
-            assert count_matching_calls(cache_delete_mock, object_key) == 0
-            assert count_matching_calls(cache_delete_many_mock, [object_key, existence_key]) == 0
+            # TODO: These two can go back to being
+            #    assert count_matching_calls(cache_delete_mock, object_key) == 0
+            #    assert count_matching_calls(cache_delete_many_mock, [object_key, existence_key]) == 0
+            # once version is gone
+            assert (
+                count_matching_calls(
+                    cache_delete_mock, object_key, version=object_expiry_option_version
+                )
+                == 0
+            )
+            assert (
+                count_matching_calls(
+                    cache_delete_mock, existence_key, version=existence_expiry_option_version
+                )
+                == 0
+            )
 
         with override_options({"grouping.use_ingest_grouphash_caching": True}):
             invalidate_grouphash_cache_on_save(grouphash)
             invalidate_grouphash_caches_on_delete(grouphash)
 
-            assert count_matching_calls(cache_delete_mock, object_key) == 1
-            assert count_matching_calls(cache_delete_many_mock, [object_key, existence_key]) == 1
+            # TODO: These two can go back to being
+            #    assert count_matching_calls(cache_delete_mock, object_key) == 1
+            #    assert count_matching_calls(cache_delete_many_mock, [object_key, existence_key]) == 1
+            # once version is gone
+            assert (
+                count_matching_calls(
+                    cache_delete_mock, object_key, version=object_expiry_option_version
+                )
+                == 2
+            )
+            assert (
+                count_matching_calls(
+                    cache_delete_mock, existence_key, version=existence_expiry_option_version
+                )
+                == 1
+            )
