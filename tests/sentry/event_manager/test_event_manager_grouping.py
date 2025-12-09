@@ -402,7 +402,9 @@ class GroupHashCachingTest(TestCase):
             cache_key = get_grouphash_existence_cache_key(hash_value, self.project.id)
             # TODO: This can go back to being `options.get("grouping.ingest_grouphash_existence_cache_expiry")`
             # once we've settled on a retention period
-            cache_expiry = _get_cache_expiry(cache_key, cache_type="existence")
+            cache_expiry, expiry_option_version = _get_cache_expiry(
+                cache_key, cache_type="existence"
+            )
             cached_value: Any = grouphash_exists
         else:
             grouping_config_id = "new_config"
@@ -410,7 +412,7 @@ class GroupHashCachingTest(TestCase):
             cache_key = get_grouphash_object_cache_key(hash_value, self.project.id)
             # TODO: This can go back to being `options.get("grouping.ingest_grouphash_object_cache_expiry")`
             # once we've settled on a retention period
-            cache_expiry = _get_cache_expiry(cache_key, cache_type="object")
+            cache_expiry, expiry_option_version = _get_cache_expiry(cache_key, cache_type="object")
             cached_value = grouphash
 
         self.project.update_option(grouping_config_option, grouping_config_id)
@@ -421,19 +423,26 @@ class GroupHashCachingTest(TestCase):
             # testing grouphash object handling)
             cache_get_spy, cache_set_spy, database_fn_spy = spies
             cache_get_args = [cache_key]
+            cache_get_kwargs = {"version": expiry_option_version}
             cache_set_args = [cache_key, cached_value, cache_expiry]
+            cache_set_kwargs = {"version": expiry_option_version}
             database_fn_kwargs = {"project": self.project, "hash": hash_value}
 
-            assert cache_key not in cache
+            # TODO: this (and the check below) can be simplified to use in/not in once version is gone
+            assert not cache.has_key(cache_key, version=expiry_option_version)
 
             # ######### First call for grouphashes, with a hash we've never seen before ######### #
 
             get_or_create_grouphashes(event1, self.project, {}, [hash_value], grouping_config_id)
 
-            assert (cache_key in cache) == cache_use_expected
+            assert cache.has_key(cache_key, version=expiry_option_version) == cache_use_expected
 
-            cache_get_call_count = count_matching_calls(cache_get_spy, *cache_get_args)
-            cache_set_call_count = count_matching_calls(cache_set_spy, *cache_set_args)
+            cache_get_call_count = count_matching_calls(
+                cache_get_spy, *cache_get_args, **cache_get_kwargs
+            )
+            cache_set_call_count = count_matching_calls(
+                cache_set_spy, *cache_set_args, **cache_set_kwargs
+            )
             database_fn_call_count = count_matching_calls(database_fn_spy, **database_fn_kwargs)
 
             assert cache_get_call_count == (1 if cache_check_expected else 0)
@@ -445,8 +454,12 @@ class GroupHashCachingTest(TestCase):
 
             get_or_create_grouphashes(event2, self.project, {}, [hash_value], grouping_config_id)
 
-            cache_get_call_count = count_matching_calls(cache_get_spy, *cache_get_args)
-            cache_set_call_count = count_matching_calls(cache_set_spy, *cache_set_args)
+            cache_get_call_count = count_matching_calls(
+                cache_get_spy, *cache_get_args, **cache_get_kwargs
+            )
+            cache_set_call_count = count_matching_calls(
+                cache_set_spy, *cache_set_args, **cache_set_kwargs
+            )
             database_fn_call_count = count_matching_calls(database_fn_spy, **database_fn_kwargs)
 
             # With caching, call count increases by 1
