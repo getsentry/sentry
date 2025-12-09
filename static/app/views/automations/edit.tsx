@@ -31,6 +31,7 @@ import {AutomationFeedbackButton} from 'sentry/views/automations/components/auto
 import AutomationForm from 'sentry/views/automations/components/automationForm';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
 import {
+  assignSubfilterIds,
   getAutomationFormData,
   getNewAutomationData,
   validateAutomationBuilderState,
@@ -117,7 +118,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
             logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
             conditions: [],
           },
-      actionFilters: automation.actionFilters,
+      actionFilters: assignSubfilterIds(automation.actionFilters),
     };
   }, [automation]);
 
