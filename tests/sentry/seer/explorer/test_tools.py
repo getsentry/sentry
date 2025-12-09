@@ -1091,7 +1091,7 @@ class TestGetIssueAndEventDetails(
         event_dict = result["event"]
         assert isinstance(event_dict, dict)
         _SentryEventData.parse_obj(event_dict)
-        assert event_dict["id"] == events[0].event_id
+        assert event_dict["id"] == events[1].event_id
         assert result["event_id"] == event_dict["id"]
 
     def test_get_ie_details_nonexistent_organization(self):
