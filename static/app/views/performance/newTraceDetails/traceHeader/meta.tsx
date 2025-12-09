@@ -6,7 +6,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -86,6 +89,8 @@ export function Meta(props: MetaProps) {
   const hasSpans = spansCount > 0;
   const hasLogs = (props.logs?.length ?? 0) > 0;
 
+  const repEvent = props.representativeEvent?.event;
+
   return (
     <MetaWrapper>
       <MetaSection
@@ -118,7 +123,13 @@ export function Meta(props: MetaProps) {
         <MetaSection
           headingText={t('Root Duration')}
           rightAlignBody
-          bodyText={getRootDuration(props.representativeEvent?.event as BaseNode | null)}
+          bodyText={
+            repEvent
+              ? OurLogKnownFieldKey.PROJECT_ID in repEvent
+                ? '\u2014' // Logs don't have a duration
+                : getRootDuration(repEvent)
+              : '\u2014'
+          }
         />
       ) : hasLogs ? (
         <MetaSection
