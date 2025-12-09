@@ -437,7 +437,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         {props.tab.node === 'trace' ||
         props.tab.node === 'vitals' ||
         props.tab.node === 'profiles' ? null : (
-          <TabButtonIndicator backgroundColor={root!.makeBarColor(props.theme).color} />
+          <TabButtonIndicator backgroundColor={root!.makeBarColor(props.theme)} />
         )}
         <TabButton>{props.tab.label ?? node}</TabButton>
       </Tab>
@@ -454,10 +454,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         props.traceDispatch({type: 'activate tab', payload: props.index});
       }}
     >
-      <StyledIconCircleFilled
-        size="xs"
-        color={node.makeBarColor(props.theme).color as Color}
-      />
+      <StyledIconCircleFilled size="xs" color={node.makeBarColor(props.theme) as Color} />
       <TabButton>{node.drawerTabsTitle}</TabButton>
       <TabPinButton
         pinned={props.pinned}
