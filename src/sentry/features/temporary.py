@@ -78,6 +78,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:chonk-ui-feedback", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables Codecov UI
     manager.add("organizations:codecov-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable Prevent AI code review to run per commit
+    manager.add("organizations:code-review-run-per-commit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables Prevent Test Analytics
     manager.add("organizations:prevent-test-analytics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the improved command menu (Cmd+K)
