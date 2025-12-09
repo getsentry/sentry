@@ -17,7 +17,6 @@ class EmailCaptureSerializer(CamelSnakeSerializer):
     email = serializers.EmailField(required=True)
 
 
-# TODO(cells): This endpoint is moving to control
 @control_silo_endpoint
 class EmailCaptureEndpoint(Endpoint):
     publish_status = {
