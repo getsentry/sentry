@@ -87,7 +87,7 @@ export default function TeamKeyTransactionFieldWrapper({
   transactionName,
   ...props
 }: WrapperProps) {
-  const {projects} = useProjects();
+  const {projects} = useProjects({slugs: projectSlug ? [projectSlug] : []});
   const project = projects.find(proj => proj.slug === projectSlug);
 
   // All these fields need to be defined in order to toggle a team key

@@ -234,7 +234,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const navigate = useNavigate();
   const defaultIssueEvent = useDefaultIssueEvent();
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const {projects} = useProjects();
 
   const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
 
@@ -260,6 +259,9 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     error: groupError,
     refetch: refetchGroupCall,
   } = useGroup({groupId});
+
+  const groupProjectSlug = groupData?.project?.slug;
+  const {projects} = useProjects({slugs: groupProjectSlug ? [groupProjectSlug] : []});
 
   /**
    * TODO(streamline-ui): Remove this whole hook once the legacy UI is removed. The streamlined UI exposes the

@@ -10,7 +10,7 @@ function ProjectDetailContainer(
     'projects' | 'loadingProjects' | 'selection'
   >
 ) {
-  const {projects} = useProjects();
+  const {projects} = useProjects({slugs: [props.params.projectId]});
   const project = projects.find(p => p.slug === props.params.projectId);
 
   useRouteAnalyticsParams(

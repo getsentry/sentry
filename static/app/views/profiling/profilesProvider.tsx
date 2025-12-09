@@ -195,7 +195,7 @@ export function ContinuousProfileProvider({
   setProfile,
 }: ContinuousProfileProviderProps) {
   const api = useApi();
-  const {projects} = useProjects();
+  const {projects} = useProjects({slugs: projectSlug ? [projectSlug] : []});
 
   useLayoutEffect(() => {
     if (!profileMeta) {

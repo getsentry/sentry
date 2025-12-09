@@ -21,7 +21,8 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
   const api = useApi();
   const organization = useOrganization();
 
-  const project = useProjects().projects.find(p => {
+  const {projects} = useProjects({slugs: props.projectId ? [props.projectId] : []});
+  const project = projects.find(p => {
     return p.slug === props.projectId;
   });
 

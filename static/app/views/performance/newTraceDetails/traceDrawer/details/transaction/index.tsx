@@ -94,7 +94,7 @@ export function TransactionNodeDetails({
   replay,
   hideNodeActions,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Transaction>>) {
-  const {projects} = useProjects();
+  const {projects} = useProjects({slugs: [node.value.project_slug]});
   const issues = useMemo(() => {
     return [...node.errors, ...node.occurrences];
   }, [node.errors, node.occurrences]);

@@ -1,9 +1,16 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
+import ProjectsStore from 'sentry/stores/projectsStore';
 
 describe('Breadcrumb', () => {
+  beforeEach(() => {
+    ProjectsStore.loadInitialData([ProjectFixture({slug: 'bar'})]);
+  });
+
   it('renders the profiling link', () => {
     const {organization} = initializeOrg();
     render(

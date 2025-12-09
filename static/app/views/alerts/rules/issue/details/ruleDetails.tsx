@@ -74,7 +74,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const api = useApi();
-  const {projects, fetching: projectIsLoading} = useProjects();
+  const {projects, fetching: projectIsLoading} = useProjects({slugs: [params.projectId]});
   const project = projects.find(({slug}) => slug === params.projectId);
   const {projectId: projectSlug, ruleId} = params;
   const {
