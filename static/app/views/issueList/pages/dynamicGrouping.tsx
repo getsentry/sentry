@@ -1,10 +1,12 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {bulkUpdate} from 'sentry/actionCreators/group';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
@@ -31,6 +33,7 @@ import {
   IconClock,
   IconClose,
   IconCopy,
+  IconEllipsis,
   IconFire,
   IconFix,
   IconSeer,
@@ -40,13 +43,16 @@ import {
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
 
 const CLUSTERS_PER_PAGE = 20;
 
@@ -88,6 +94,7 @@ interface ClusterSummary {
   group_ids: number[];
   issue_titles: string[];
   project_ids: number[];
+  summary: string | null;
   tags: string[];
   title: string;
   code_area_tags?: string[];
@@ -104,9 +111,9 @@ function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
   lines.push(`## ${cluster.title}`);
   lines.push('');
 
-  if (cluster.description) {
+  if (cluster.summary) {
     lines.push('### Summary');
-    lines.push(cluster.description);
+    lines.push(cluster.summary);
     lines.push('');
   }
 
@@ -122,29 +129,6 @@ function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
 function formatClusterPromptForSeer(cluster: ClusterSummary): string {
   const message = formatClusterInfoForClipboard(cluster);
   return `I'd like to investigate this cluster of issues:\n\n${message}\n\nPlease help me understand the root cause and potential fixes for these related issues.`;
-}
-
-/**
- * Opens Seer Explorer by simulating the Cmd+/ or Ctrl+/ keyboard shortcut.
- * User can then paste with Cmd+V / Ctrl+V.
- */
-function openSeerExplorerWithClipboard(): void {
-  // Simulate keyboard shortcut to open Seer Explorer (Cmd+/ or Ctrl+/)
-  const isMac = navigator.platform.toUpperCase().includes('MAC');
-
-  // Create a KeyboardEvent with the proper keyCode (191 = '/')
-  // useHotkeys checks evt.keyCode, so we need to set it explicitly
-  const event = new KeyboardEvent('keydown', {
-    key: '/',
-    code: 'Slash',
-    keyCode: 191,
-    which: 191,
-    metaKey: isMac,
-    ctrlKey: !isMac,
-    bubbles: true,
-  } as KeyboardEventInit);
-
-  document.dispatchEvent(event);
 }
 
 interface TopIssuesResponse {
@@ -361,27 +345,94 @@ function ClusterCard({
   onTagClick?: (tag: string) => void;
   selectedTags?: Set<string>;
 }) {
+  const api = useApi();
   const organization = useOrganization();
-  const [showDescription, setShowDescription] = useState(false);
+  const {selection} = usePageFilters();
+  const [activeTab, setActiveTab] = useState<'summary' | 'issues'>('summary');
   const clusterStats = useClusterStats(cluster.group_ids);
   const {copy} = useCopyToClipboard();
 
-  const handleSendToSeer = () => {
-    copy(formatClusterPromptForSeer(cluster), {
-      successMessage: t('Copied to clipboard. Paste into Seer Explorer with Cmd+V'),
-    });
-    setTimeout(() => {
-      openSeerExplorerWithClipboard();
-    }, 100);
-  };
+  // Track the Seer Explorer run ID for this cluster so subsequent clicks reopen the same chat
+  const seerRunIdRef = useRef<number | null>(null);
+
+  const handleSendToSeer = useCallback(() => {
+    if (seerRunIdRef.current) {
+      // Reopen existing chat
+      openSeerExplorer({runId: seerRunIdRef.current});
+    } else {
+      // Start a new chat with the cluster prompt
+      openSeerExplorer({
+        startNewRun: true,
+        initialMessage: formatClusterPromptForSeer(cluster),
+        onRunCreated: runId => {
+          seerRunIdRef.current = runId;
+        },
+      });
+    }
+  }, [cluster]);
 
   const handleCopyMarkdown = () => {
     copy(formatClusterInfoForClipboard(cluster));
   };
 
+  const handleResolve = useCallback(() => {
+    openConfirmModal({
+      header: t('Resolve All Issues in Cluster'),
+      message: t(
+        'Are you sure you want to resolve all %s issues in this cluster?.',
+        cluster.group_ids.length
+      ),
+      confirmText: t('Resolve All'),
+      onConfirm: () => {
+        bulkUpdate(
+          api,
+          {
+            orgId: organization.slug,
+            itemIds: cluster.group_ids.map(String),
+            data: {status: GroupStatus.RESOLVED},
+            project: selection.projects,
+            environment: selection.environments,
+            ...selection.datetime,
+          },
+          {}
+        );
+      },
+    });
+  }, [api, cluster.group_ids, organization.slug, selection]);
+
+  const handleArchive = useCallback(() => {
+    openConfirmModal({
+      header: t('Archive All Issues in Cluster'),
+      message: t(
+        'Are you sure you want to archive all %s issues in this cluster?.',
+        cluster.group_ids.length
+      ),
+      confirmText: t('Archive All'),
+      onConfirm: () => {
+        bulkUpdate(
+          api,
+          {
+            orgId: organization.slug,
+            itemIds: cluster.group_ids.map(String),
+            data: {
+              status: GroupStatus.IGNORED,
+              statusDetails: {},
+              substatus: GroupSubstatus.ARCHIVED_UNTIL_ESCALATING,
+            },
+            project: selection.projects,
+            environment: selection.environments,
+            ...selection.datetime,
+          },
+          {}
+        );
+      },
+    });
+  }, [api, cluster.group_ids, organization.slug, selection]);
+
+  const handleDismiss = () => {};
+
   return (
     <CardContainer>
-      {/* Zone 1: Title + Description (Primary Focus) */}
       <CardHeader>
         <ClusterTitle>{renderWithInlineCode(cluster.title)}</ClusterTitle>
         <ClusterTags
@@ -389,99 +440,98 @@ function ClusterCard({
           onTagClick={onTagClick}
           selectedTags={selectedTags}
         />
-        {cluster.description && (
-          <Fragment>
-            {showDescription ? (
-              <DescriptionText>{cluster.description}</DescriptionText>
-            ) : (
-              <ReadMoreButton onClick={() => setShowDescription(true)}>
-                {t('View summary')}
-              </ReadMoreButton>
+        <ClusterStats>
+          {cluster.fixability_score !== null &&
+            cluster.fixability_score !== undefined && (
+              <StatItem>
+                <IconFix size="xs" color="gray300" />
+                <Text size="xs">
+                  <Text size="xs" bold as="span">
+                    {Math.round(cluster.fixability_score * 100)}%
+                  </Text>{' '}
+                  {t('relevance')}
+                </Text>
+              </StatItem>
             )}
-          </Fragment>
-        )}
+          <StatItem>
+            <IconFire size="xs" color="gray300" />
+            {clusterStats.isPending ? (
+              <Text size="xs" variant="muted">
+                –
+              </Text>
+            ) : (
+              <Text size="xs">
+                <Text size="xs" bold as="span">
+                  {clusterStats.totalEvents.toLocaleString()}
+                </Text>{' '}
+                {tn('event', 'events', clusterStats.totalEvents)}
+              </Text>
+            )}
+          </StatItem>
+          <StatItem>
+            <IconUser size="xs" color="gray300" />
+            {clusterStats.isPending ? (
+              <Text size="xs" variant="muted">
+                –
+              </Text>
+            ) : (
+              <Text size="xs">
+                <Text size="xs" bold as="span">
+                  {clusterStats.totalUsers.toLocaleString()}
+                </Text>{' '}
+                {tn('user', 'users', clusterStats.totalUsers)}
+              </Text>
+            )}
+          </StatItem>
+          {!clusterStats.isPending && clusterStats.lastSeen && (
+            <StatItem>
+              <IconClock size="xs" color="gray300" />
+              <TimeSince
+                tooltipPrefix={t('Last Seen')}
+                date={clusterStats.lastSeen}
+                suffix={t('ago')}
+                unitStyle="short"
+              />
+            </StatItem>
+          )}
+          {!clusterStats.isPending && clusterStats.firstSeen && (
+            <StatItem>
+              <IconCalendar size="xs" color="gray300" />
+              <TimeSince
+                tooltipPrefix={t('First Seen')}
+                date={clusterStats.firstSeen}
+                suffix={t('old')}
+                unitStyle="short"
+              />
+            </StatItem>
+          )}
+        </ClusterStats>
       </CardHeader>
 
-      {/* Zone 2: Stats (Secondary Context) */}
-      <ClusterStatsBar>
-        {cluster.fixability_score !== null && cluster.fixability_score !== undefined && (
-          <StatItem>
-            <IconFix size="xs" color="gray300" />
-            <Text size="xs">
-              <Text size="xs" bold as="span">
-                {Math.round(cluster.fixability_score * 100)}%
-              </Text>{' '}
-              {t('relevance')}
-            </Text>
-          </StatItem>
-        )}
-        <StatItem>
-          <IconFire size="xs" color="gray300" />
-          {clusterStats.isPending ? (
-            <Text size="xs" variant="muted">
-              –
-            </Text>
-          ) : (
-            <Text size="xs">
-              <Text size="xs" bold as="span">
-                {clusterStats.totalEvents.toLocaleString()}
-              </Text>{' '}
-              {tn('event', 'events', clusterStats.totalEvents)}
-            </Text>
-          )}
-        </StatItem>
-        <StatItem>
-          <IconUser size="xs" color="gray300" />
-          {clusterStats.isPending ? (
-            <Text size="xs" variant="muted">
-              –
-            </Text>
-          ) : (
-            <Text size="xs">
-              <Text size="xs" bold as="span">
-                {clusterStats.totalUsers.toLocaleString()}
-              </Text>{' '}
-              {tn('user', 'users', clusterStats.totalUsers)}
-            </Text>
-          )}
-        </StatItem>
-        {!clusterStats.isPending && clusterStats.lastSeen && (
-          <StatItem>
-            <IconClock size="xs" color="gray300" />
-            <TimeSince
-              tooltipPrefix={t('Last Seen')}
-              date={clusterStats.lastSeen}
-              suffix={t('ago')}
-              unitStyle="short"
-            />
-          </StatItem>
-        )}
-        {!clusterStats.isPending && clusterStats.firstSeen && (
-          <StatItem>
-            <IconCalendar size="xs" color="gray300" />
-            <TimeSince
-              tooltipPrefix={t('First Seen')}
-              date={clusterStats.firstSeen}
-              suffix={t('old')}
-              unitStyle="short"
-            />
-          </StatItem>
-        )}
-      </ClusterStatsBar>
-
-      {/* Zone 3: Nested Issues (Detail Content) */}
-      <IssuesSection>
-        <IssuesSectionHeader>
-          <Text size="sm" bold uppercase>
+      <TabSection>
+        <TabBar>
+          <Tab isActive={activeTab === 'summary'} onClick={() => setActiveTab('summary')}>
+            {t('Summary')}
+          </Tab>
+          <Tab isActive={activeTab === 'issues'} onClick={() => setActiveTab('issues')}>
             {t('Preview Issues')}
-          </Text>
-        </IssuesSectionHeader>
-        <IssuesList>
-          <ClusterIssues groupIds={cluster.group_ids} />
-        </IssuesList>
-      </IssuesSection>
+          </Tab>
+        </TabBar>
+        <TabContent>
+          {activeTab === 'summary' ? (
+            cluster.summary ? (
+              <DescriptionText>{cluster.summary}</DescriptionText>
+            ) : (
+              <Text size="sm" variant="muted">
+                {t('No summary available')}
+              </Text>
+            )
+          ) : (
+            <ClusterIssues groupIds={cluster.group_ids} />
+          )}
+        </TabContent>
+      </TabSection>
 
-      {/* Zone 4: Actions (Tertiary) */}
       <CardFooter>
         <ButtonBar merged gap="0">
           <SeerButton
@@ -520,6 +570,34 @@ function ClusterCard({
             {t('View All Issues') + ` (${cluster.group_ids.length})`}
           </Button>
         </Link>
+        <DropdownMenu
+          items={[
+            {
+              key: 'resolve',
+              label: t('Resolve All'),
+              onAction: handleResolve,
+            },
+            {
+              key: 'archive',
+              label: t('Archive All'),
+              onAction: handleArchive,
+            },
+            {
+              key: 'dismiss',
+              label: t('Dismiss'),
+              onAction: handleDismiss,
+            },
+          ]}
+          trigger={triggerProps => (
+            <Button
+              {...triggerProps}
+              size="sm"
+              icon={<IconEllipsis size="sm" />}
+              aria-label={t('More actions')}
+            />
+          )}
+          position="bottom-end"
+        />
       </CardFooter>
     </CardContainer>
   );
@@ -987,6 +1065,7 @@ const PageWrapper = styled('div')`
 
 const HeaderSection = styled('div')`
   padding: ${space(4)} ${space(4)} ${space(3)};
+  background: ${p => p.theme.backgroundSecondary};
 `;
 
 const ClickableHeading = styled(Heading)`
@@ -997,6 +1076,7 @@ const ClickableHeading = styled(Heading)`
 const CardsSection = styled('div')`
   flex: 1;
   padding: ${space(2)} ${space(4)} ${space(4)};
+  background: ${p => p.theme.backgroundSecondary};
 `;
 
 const CardsGrid = styled('div')`
@@ -1052,15 +1132,12 @@ const ClusterTitle = styled('h3')`
   word-break: break-word;
 `;
 
-// Horizontal stats bar below header
-const ClusterStatsBar = styled('div')`
+// Stats row within header
+const ClusterStats = styled('div')`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: ${space(2)};
-  padding: ${space(1.5)} ${space(3)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
@@ -1071,24 +1148,48 @@ const StatItem = styled('div')`
   gap: ${space(0.5)};
 `;
 
-// Zone 3: Issues list with clear containment
-const IssuesSection = styled('div')`
+// Tab section for Summary / Preview Issues
+const TabSection = styled('div')``;
+
+const TabBar = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  padding: ${space(1)} ${space(3)} 0;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+`;
+
+const Tab = styled('button')<{isActive: boolean}>`
+  background: none;
+  border: none;
+  padding: ${space(1)} ${space(1.5)};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: 500;
+  color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
+  cursor: pointer;
+  position: relative;
+  margin-bottom: -1px;
+
+  ${p =>
+    p.isActive &&
+    `
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: ${p.theme.purple300};
+    }
+  `}
+
+  &:hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const TabContent = styled('div')`
   padding: ${space(2)} ${space(3)};
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-`;
-
-const IssuesSectionHeader = styled('div')`
-  margin-bottom: ${space(1.5)};
-  color: ${p => p.theme.subText};
-  letter-spacing: 0.5px;
-`;
-
-const IssuesList = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
 `;
 
 // Zone 4: Footer with actions
@@ -1098,7 +1199,6 @@ const CardFooter = styled('div')`
   display: flex;
   justify-content: flex-end;
   gap: ${space(1)};
-  background: ${p => p.theme.backgroundSecondary};
 `;
 
 // Split button for Send to Seer action
@@ -1159,21 +1259,6 @@ const MetaSeparator = styled('div')`
   height: 10px;
   width: 1px;
   background-color: ${p => p.theme.innerBorder};
-`;
-
-const ReadMoreButton = styled('button')`
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  cursor: pointer;
-  text-align: left;
-
-  &:hover {
-    color: ${p => p.theme.textColor};
-    text-decoration: underline;
-  }
 `;
 
 const DescriptionText = styled('p')`

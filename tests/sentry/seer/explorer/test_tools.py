@@ -176,7 +176,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         assert params["start"] == start_iso
         assert params["end"] is not None
         assert params["end"] == end_iso
-        assert "stats_period" not in params
+        assert "statsPeriod" not in params
 
     def test_spans_timeseries_multiple_metrics(self):
         """Test timeseries query with multiple metrics"""
@@ -287,7 +287,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         assert params["start"] == start_iso
         assert params["end"] is not None
         assert params["end"] == end_iso
-        assert "stats_period" not in params
+        assert "statsPeriod" not in params
 
     def test_spans_table_specific_operation(self):
         """Test table query filtering by specific operation"""

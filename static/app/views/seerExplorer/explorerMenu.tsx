@@ -3,15 +3,10 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import TimeSince from 'sentry/components/timeSince';
-import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 
-type MenuMode =
-  | 'slash-commands-keyboard'
-  | 'slash-commands-manual'
-  | 'session-history'
-  | 'hidden';
+type MenuMode = 'slash-commands-keyboard' | 'session-history' | 'pr-widget' | 'hidden';
 
 interface ExplorerMenuProps {
   clearInput: () => void;
@@ -26,9 +21,14 @@ interface ExplorerMenuProps {
     onNew: () => void;
   };
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
+  inputAnchorRef?: React.RefObject<HTMLElement | null>;
+  menuAnchorRef?: React.RefObject<HTMLElement | null>;
+  prWidgetAnchorRef?: React.RefObject<HTMLElement | null>;
+  prWidgetFooter?: React.ReactNode;
+  prWidgetItems?: MenuItemProps[];
 }
 
-interface MenuItemProps {
+export interface MenuItemProps {
   description: string | React.ReactNode;
   handler: () => void;
   key: string;
@@ -44,8 +44,19 @@ export function useExplorerMenu({
   panelVisible,
   slashCommandHandlers,
   onChangeSession,
+  menuAnchorRef,
+  inputAnchorRef,
+  prWidgetAnchorRef,
+  prWidgetItems,
+  prWidgetFooter,
 }: ExplorerMenuProps) {
   const [menuMode, setMenuMode] = useState<MenuMode>('hidden');
+  const [menuPosition, setMenuPosition] = useState<{
+    bottom?: string | number;
+    left?: string | number;
+    right?: string | number;
+    top?: string | number;
+  }>({});
 
   const allSlashCommands = useSlashCommands(slashCommandHandlers);
 
@@ -67,14 +78,14 @@ export function useExplorerMenu({
     switch (menuMode) {
       case 'slash-commands-keyboard':
         return filteredSlashCommands;
-      case 'slash-commands-manual':
-        return allSlashCommands;
       case 'session-history':
         return sessionItems;
+      case 'pr-widget':
+        return prWidgetItems ?? [];
       default:
         return [];
     }
-  }, [menuMode, allSlashCommands, filteredSlashCommands, sessionItems]);
+  }, [menuMode, filteredSlashCommands, sessionItems, prWidgetItems]);
 
   const close = useCallback(() => {
     setMenuMode('hidden');
@@ -199,10 +210,66 @@ export function useExplorerMenu({
     return undefined;
   }, [handleKeyDown, isVisible]);
 
+  // Calculate menu position based on anchor element
+  useEffect(() => {
+    if (!isVisible) {
+      setMenuPosition({});
+      return;
+    }
+
+    const anchorRef =
+      menuMode === 'slash-commands-keyboard'
+        ? inputAnchorRef
+        : menuMode === 'pr-widget'
+          ? prWidgetAnchorRef
+          : menuAnchorRef;
+    const isSlashCommand = menuMode === 'slash-commands-keyboard';
+
+    if (!anchorRef?.current) {
+      setMenuPosition({
+        bottom: '100%',
+        left: '16px',
+      });
+      return;
+    }
+
+    const rect = anchorRef.current.getBoundingClientRect();
+    const panelRect = anchorRef.current
+      .closest('[data-seer-explorer-root]')
+      ?.getBoundingClientRect();
+
+    if (!panelRect) {
+      return;
+    }
+
+    const spacing = 8;
+    const relativeTop = rect.top - panelRect.top;
+    const relativeLeft = rect.left - panelRect.left;
+    const relativeRight = panelRect.right - rect.right;
+
+    if (isSlashCommand) {
+      setMenuPosition({
+        bottom: `${panelRect.height - relativeTop + spacing}px`,
+        left: `${relativeLeft}px`,
+      });
+    } else if (menuMode === 'pr-widget') {
+      // Position below anchor, aligned to right edge
+      setMenuPosition({
+        top: `${relativeTop + rect.height + spacing}px`,
+        right: `${relativeRight}px`,
+      });
+    } else {
+      setMenuPosition({
+        top: `${relativeTop + rect.height + spacing}px`,
+        left: `${relativeLeft}px`,
+      });
+    }
+  }, [isVisible, menuMode, menuAnchorRef, inputAnchorRef, prWidgetAnchorRef]);
+
   const menu = (
     <Activity mode={isVisible ? 'visible' : 'hidden'}>
-      <MenuPanel panelSize={panelSize}>
-        {menuItems.map((item, index) => (
+      <MenuPanel panelSize={panelSize} style={menuPosition} data-seer-menu-panel="">
+        {menuItems.map((item: MenuItemProps, index: number) => (
           <MenuItem
             key={item.key}
             ref={el => {
@@ -226,25 +293,37 @@ export function useExplorerMenu({
             </ItemName>
           </MenuItem>
         )}
+        {menuMode === 'pr-widget' && prWidgetFooter}
       </MenuPanel>
     </Activity>
   );
 
-  // Handler for the button entrypoint.
-  const onMenuButtonClick = useCallback(() => {
-    if (menuMode === 'hidden') {
-      setMenuMode('slash-commands-manual');
-    } else {
+  // Handler for opening session history from button
+  const openSessionHistory = useCallback(() => {
+    if (menuMode === 'session-history') {
       close();
+    } else {
+      setMenuMode('session-history');
+      refetchSessions();
     }
-  }, [menuMode, setMenuMode, close]);
+  }, [menuMode, close, refetchSessions]);
+
+  // Handler for opening PR widget from button
+  const openPRWidget = useCallback(() => {
+    if (menuMode === 'pr-widget') {
+      close();
+    } else {
+      setMenuMode('pr-widget');
+    }
+  }, [menuMode, close]);
 
   return {
     menu,
     menuMode,
     isMenuOpen: menuMode !== 'hidden',
     closeMenu: close,
-    onMenuButtonClick,
+    openSessionHistory,
+    openPRWidget,
   };
 }
 
@@ -321,20 +400,22 @@ function useSessions({
       return [];
     }
 
-    return data.data.map(session => ({
-      title: session.title,
-      key: session.run_id.toString(),
-      description: (
-        <TimeSince
-          tooltipPrefix="Last updated"
-          date={moment.utc(session.last_triggered_at).toDate()}
-          suffix="ago"
-        />
-      ),
-      handler: () => {
-        onChangeSession(session.run_id);
-      },
-    }));
+    return data.data.map(
+      (session: {last_triggered_at: moment.MomentInput; run_id: number; title: any}) => ({
+        title: session.title,
+        key: session.run_id.toString(),
+        description: (
+          <TimeSince
+            tooltipPrefix="Last updated"
+            date={moment.utc(session.last_triggered_at).toDate()}
+            suffix="ago"
+          />
+        ),
+        handler: () => {
+          onChangeSession(session.run_id);
+        },
+      })
+    );
   }, [data, isPending, isError, onChangeSession]);
 
   return {
@@ -350,8 +431,6 @@ const MenuPanel = styled('div')<{
   panelSize: 'max' | 'med';
 }>`
   position: absolute;
-  bottom: 100%;
-  left: ${space(2)};
   width: 300px;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};

@@ -1,7 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
+import AskUserQuestionBlock from 'sentry/views/seerExplorer/askUserQuestionBlock';
 import BlockComponent from 'sentry/views/seerExplorer/blockComponents';
 import EmptyState from 'sentry/views/seerExplorer/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/explorerMenu';
@@ -11,9 +13,12 @@ import {usePanelSizing} from 'sentry/views/seerExplorer/hooks/usePanelSizing';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import InputSection from 'sentry/views/seerExplorer/inputSection';
+import {useExternalOpen} from 'sentry/views/seerExplorer/openSeerExplorer';
 import PanelContainers, {
   BlocksContainer,
 } from 'sentry/views/seerExplorer/panelContainers';
+import {usePRWidgetData} from 'sentry/views/seerExplorer/prWidget';
+import TopBar from 'sentry/views/seerExplorer/topBar';
 import type {Block, ExplorerPanelProps} from 'sentry/views/seerExplorer/types';
 
 function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
@@ -32,8 +37,9 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const hoveredBlockIndex = useRef<number>(-1);
   const userScrolledUpRef = useRef<boolean>(false);
   const allowHoverFocusChange = useRef<boolean>(true);
+  const sessionHistoryButtonRef = useRef<HTMLButtonElement>(null);
+  const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Custom hooks
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
   const {
     sessionData,
@@ -43,12 +49,36 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     isPolling,
     interruptRun,
     interruptRequested,
-    setRunId,
+    switchToRun,
     respondToUserInput,
+    createPR,
   } = useSeerExplorer();
+
+  // Handle external open events (from openSeerExplorer() calls)
+  const {isWaitingForSessionData} = useExternalOpen({
+    isVisible,
+    sendMessage,
+    startNewSession,
+    switchToRun,
+    sessionRunId: sessionData?.run_id,
+    sessionBlocks: sessionData?.blocks,
+  });
+
+  // Extract repo_pr_states from session
+  const repoPRStates = useMemo(
+    () => sessionData?.repo_pr_states ?? {},
+    [sessionData?.repo_pr_states]
+  );
 
   // Get blocks from session data or empty array
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
+
+  // Get PR widget data for menu
+  const {menuItems: prWidgetItems, menuFooter: prWidgetFooter} = usePRWidgetData({
+    blocks,
+    repoPRStates,
+    onCreatePR: createPR,
+  });
 
   // Find the index of the last block that has todos (for special rendering)
   const latestTodoBlockIndex = useMemo(() => {
@@ -203,25 +233,63 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     setIsMinimized(false);
   }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
-  const {menu, isMenuOpen, closeMenu, onMenuButtonClick} = useExplorerMenu({
-    clearInput: () => setInputValue(''),
-    inputValue,
-    focusInput,
-    textAreaRef: textareaRef,
-    panelSize,
-    panelVisible: isVisible,
-    slashCommandHandlers: {
-      onMaxSize: handleMaxSize,
-      onMedSize: handleMedSize,
-      onNew: startNewSession,
-    },
-    onChangeSession: setRunId,
-  });
+  const openFeedbackForm = useFeedbackForm();
+
+  const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
+    useExplorerMenu({
+      clearInput: () => setInputValue(''),
+      inputValue,
+      focusInput,
+      textAreaRef: textareaRef,
+      panelSize,
+      panelVisible: isVisible,
+      slashCommandHandlers: {
+        onMaxSize: handleMaxSize,
+        onMedSize: handleMedSize,
+        onNew: startNewSession,
+      },
+      onChangeSession: switchToRun,
+      menuAnchorRef: sessionHistoryButtonRef,
+      inputAnchorRef: textareaRef,
+      prWidgetAnchorRef: prWidgetButtonRef,
+      prWidgetItems,
+      prWidgetFooter,
+    });
 
   const handlePanelBackgroundClick = useCallback(() => {
     setIsMinimized(false);
     closeMenu();
   }, [closeMenu]);
+
+  // Close menu when clicking outside of it
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return undefined;
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const menuElement = document.querySelector('[data-seer-menu-panel]');
+
+      // Don't close if clicking on the menu itself or the trigger buttons
+      if (
+        menuElement?.contains(target) ||
+        sessionHistoryButtonRef.current?.contains(target) ||
+        prWidgetButtonRef.current?.contains(target)
+      ) {
+        return;
+      }
+
+      // Close menu when clicking anywhere else
+      closeMenu();
+    };
+
+    // Use capture phase to catch clicks before they bubble
+    document.addEventListener('mousedown', handleClickOutside, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside, true);
+    };
+  }, [isMenuOpen, closeMenu]);
 
   const handleInputClick = useCallback(() => {
     // Click handler for the input textarea.
@@ -249,6 +317,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input;
+  const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
 
   const {
     isFileApprovalPending,
@@ -256,6 +325,21 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     fileApprovalTotalPatches,
     handleFileApprovalApprove,
     handleFileApprovalReject,
+    // Question state
+    isQuestionPending,
+    questionIndex,
+    totalQuestions,
+    currentQuestion,
+    selectedOption,
+    isOtherSelected,
+    customText,
+    canSubmitQuestion,
+    handleQuestionNext,
+    handleQuestionBack,
+    handleQuestionSelectOption,
+    handleQuestionMoveUp,
+    handleQuestionMoveDown,
+    handleQuestionCustomTextChange,
   } = usePendingUserInput({
     isAwaitingUserInput,
     pendingInput,
@@ -281,8 +365,8 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         e.preventDefault();
         setIsMinimized(true);
       } else if (isPrintableChar) {
-        // Don't auto-type if file approval is pending (textarea isn't visible)
-        if (focusedBlockIndex !== -1 && !isFileApprovalPending) {
+        // Don't auto-type if file approval or question is pending (textarea isn't visible)
+        if (focusedBlockIndex !== -1 && !isFileApprovalPending && !isQuestionPending) {
           // If a block is focused, auto-focus input when user starts typing.
           e.preventDefault();
           setFocusedBlockIndex(-1);
@@ -312,6 +396,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     interruptRequested,
     isMinimized,
     isFileApprovalPending,
+    isQuestionPending,
   ]);
 
   useBlockNavigation({
@@ -323,6 +408,8 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     setFocusedBlockIndex,
     isMinimized,
     isFileApprovalPending,
+    isPolling,
+    isQuestionPending,
     onDeleteFromIndex: deleteFromIndex,
     onKeyPress: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => {
       const handler = blockEnterHandlers.current.get(blockIndex);
@@ -341,6 +428,26 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     },
   });
 
+  const handleFeedbackClick = useCallback(() => {
+    if (openFeedbackForm) {
+      openFeedbackForm({
+        formTitle: 'Seer Explorer Feedback',
+        messagePlaceholder: 'How can we make Seer Explorer better for you?',
+        tags: {
+          ['feedback.source']: 'seer_explorer',
+        },
+      });
+    }
+  }, [openFeedbackForm]);
+
+  const handleSizeToggle = useCallback(() => {
+    if (panelSize === 'max') {
+      handleMedSize();
+    } else {
+      handleMaxSize();
+    }
+  }, [panelSize, handleMaxSize, handleMedSize]);
+
   const panelContent = (
     <PanelContainers
       ref={panelRef}
@@ -349,9 +456,26 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       panelSize={panelSize}
       onUnminimize={handleUnminimize}
     >
+      <TopBar
+        blocks={blocks}
+        isEmptyState={isEmptyState}
+        isPolling={isPolling}
+        isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
+        onCreatePR={createPR}
+        onFeedbackClick={handleFeedbackClick}
+        onNewChatClick={startNewSession}
+        onPRWidgetClick={openPRWidget}
+        onSessionHistoryClick={openSessionHistory}
+        onSizeToggleClick={handleSizeToggle}
+        panelSize={panelSize}
+        prWidgetButtonRef={prWidgetButtonRef}
+        repoPRStates={repoPRStates}
+        sessionHistoryButtonRef={sessionHistoryButtonRef}
+      />
+      {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
-        {blocks.length === 0 && !(isAwaitingUserInput && pendingInput) ? (
-          <EmptyState />
+        {isEmptyState ? (
+          <EmptyState isLoading={isWaitingForSessionData} />
         ) : (
           <Fragment>
             {blocks.map((block: Block, index: number) => (
@@ -363,6 +487,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                 block={block}
                 blockIndex={index}
                 isAwaitingFileApproval={isFileApprovalPending}
+                isAwaitingQuestion={isQuestionPending}
                 isLatestTodoBlock={index === latestTodoBlockIndex}
                 isLast={
                   index === blocks.length - 1 && !(isAwaitingUserInput && pendingInput)
@@ -403,12 +528,22 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                 pendingInput={pendingInput!}
               />
             )}
+            {isQuestionPending && currentQuestion && (
+              <AskUserQuestionBlock
+                currentQuestion={currentQuestion}
+                customText={customText}
+                isLast
+                isOtherSelected={isOtherSelected}
+                onCustomTextChange={handleQuestionCustomTextChange}
+                onSelectOption={handleQuestionSelectOption}
+                questionIndex={questionIndex}
+                selectedOption={selectedOption}
+              />
+            )}
           </Fragment>
         )}
       </BlocksContainer>
       <InputSection
-        menu={menu}
-        onMenuButtonClick={onMenuButtonClick}
         focusedBlockIndex={focusedBlockIndex}
         inputValue={inputValue}
         interruptRequested={interruptRequested}
@@ -427,6 +562,19 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                 totalPatches: fileApprovalTotalPatches,
                 onApprove: handleFileApprovalApprove,
                 onReject: handleFileApprovalReject,
+              }
+            : undefined
+        }
+        questionActions={
+          isQuestionPending && currentQuestion
+            ? {
+                currentIndex: questionIndex,
+                totalQuestions,
+                canSubmit: canSubmitQuestion,
+                onNext: handleQuestionNext,
+                onBack: handleQuestionBack,
+                onMoveUp: handleQuestionMoveUp,
+                onMoveDown: handleQuestionMoveDown,
               }
             : undefined
         }

@@ -10,8 +10,10 @@
 import type {CSSProperties} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import color from 'color';
+import modifyColor from 'color';
 import {spring, type Transition} from 'framer-motion';
+
+import {color} from 'sentry/utils/theme/scraps/color';
 
 type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
 
@@ -644,353 +646,357 @@ export interface SentryTheme extends Omit<typeof lightThemeDefinition, 'chart'> 
   };
 }
 
+const ccl = color.categorical.light;
+
 const CHART_PALETTE_LIGHT = [
-  ['#7553FF'],
-  ['#7553FF', '#3A1873'],
-  ['#7553FF', '#3A1873', '#F0369A'],
-  ['#7553FF', '#3A1873', '#F0369A', '#FF9838'],
-  ['#7553FF', '#3A1873', '#F0369A', '#FF9838', '#FFD00E'],
-  ['#7553FF', '#3A1873', '#F0369A', '#FF9838', '#FFD00E', '#67C800'],
-  ['#7553FF', '#5533B2', '#3A1873', '#F0369A', '#FF9838', '#FFD00E', '#67C800'],
+  [ccl.blurple],
+  [ccl.blurple, ccl.indigo],
+  [ccl.blurple, ccl.indigo, ccl.pink],
+  [ccl.blurple, ccl.indigo, ccl.pink, ccl.orange],
+  [ccl.blurple, ccl.indigo, ccl.pink, ccl.orange, ccl.yellow],
+  [ccl.blurple, ccl.indigo, ccl.pink, ccl.orange, ccl.yellow, ccl.green],
+  [ccl.blurple, ccl.purple, ccl.indigo, ccl.pink, ccl.orange, ccl.yellow, ccl.green],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#F0369A',
-    '#FF9838',
-    '#FFD00E',
-    '#67C800',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.pink,
+    ccl.orange,
+    ccl.yellow,
+    ccl.green,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FF9838',
-    '#FFD00E',
-    '#67C800',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.orange,
+    ccl.yellow,
+    ccl.green,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#67C800',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.green,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5533B2',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
   ],
   [
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5533B2',
-    '#3A1873',
-    '#7C2282',
-    '#B82D90',
-    '#F0369A',
-    '#FA6769',
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
   ],
 ] as const;
 
+const ccd = color.categorical.dark;
+
 const CHART_PALETTE_DARK = [
-  ['#7553FF'],
-  ['#7553FF', '#5D3EB2'],
-  ['#7553FF', '#5D3EB2', '#F0369A'],
-  ['#7553FF', '#5D3EB2', '#F0369A', '#FF9838'],
-  ['#7553FF', '#5D3EB2', '#F0369A', '#FF9838', '#FFD00E'],
-  ['#7553FF', '#5D3EB2', '#F0369A', '#FF9838', '#FFD00E', '#67C800'],
-  ['#7553FF', '#5D3EB2', '#50219C', '#F0369A', '#FF9838', '#FFD00E', '#67C800'],
+  [ccd.blurple],
+  [ccd.blurple, ccd.purple],
+  [ccd.blurple, ccd.purple, ccd.pink],
+  [ccd.blurple, ccd.purple, ccd.pink, ccd.orange],
+  [ccd.blurple, ccd.purple, ccd.pink, ccd.orange, ccd.yellow],
+  [ccd.blurple, ccd.purple, ccd.pink, ccd.orange, ccd.yellow, ccd.green],
+  [ccd.blurple, ccd.purple, ccd.indigo, ccd.pink, ccd.orange, ccd.yellow, ccd.green],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#F0369A',
-    '#FF9838',
-    '#FFD00E',
-    '#67C800',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.pink,
+    ccd.orange,
+    ccd.yellow,
+    ccd.green,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FF9838',
-    '#FFD00E',
-    '#67C800',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.orange,
+    ccd.yellow,
+    ccd.green,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#67C800',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.green,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5D3EB2',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
   ],
   [
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
-    '#FF9838',
-    '#FFD00E',
-    '#BACE05',
-    '#67C800',
-    '#7553FF',
-    '#5D3EB2',
-    '#50219C',
-    '#7C2282',
-    '#B0009C',
-    '#F0369A',
-    '#FA6769',
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
   ],
 ] as const;
 
@@ -1177,140 +1183,140 @@ const radius = {
 } as const;
 
 const lightColors = {
-  black: '#181423',
-  white: '#FFFFFF',
+  black: color.black,
+  white: color.white,
 
-  surface500: '#FFFFFF', // background.primary
-  surface400: '#F7F6FB', // background.secondary
-  surface300: '#F1EEF9', // background.tertiary
-  surface200: '#EAE7F6', // border.muted
-  surface100: '#DFDBEF', // border.primary
+  surface500: color.white, // background.primary
+  surface400: color.neutral.light.opaque100, // background.secondary
+  surface300: color.neutral.light.opaque200, // background.tertiary
+  surface200: color.neutral.light.opaque300, // border.muted
+  surface100: color.neutral.light.opaque400, // border.primary
 
-  gray800: '#181423', // content.primary
-  gray700: '#3B434E', // ⚠ link.muted.active only
-  gray600: '#48515B', // ⚠ link.muted.hover only
-  gray500: '#57606B', // content.secondary, link.muted.default
-  gray400: '#707C89', // graphics.muted
-  gray300: 'rgba(112, 124, 137, 0.12)',
-  gray200: 'rgba(112, 124, 137, 0.09)',
-  gray100: 'rgba(112, 124, 137, 0.05)',
+  gray800: color.neutral.light.opaque1400, // content.primary
+  gray700: color.neutral.light.opaque1300, // ⚠ link.muted.active only
+  gray600: color.neutral.light.opaque1200, // ⚠ link.muted.hover only
+  gray500: color.neutral.light.opaque1100, // content.secondary, link.muted.default
+  gray400: color.neutral.light.opaque1000, // graphics.muted
+  gray300: color.neutral.light.transparent300,
+  gray200: color.neutral.light.transparent200,
+  gray100: color.neutral.light.transparent100,
 
-  blue700: '#4E09BC', // ⚠ link.accent.active only
-  blue600: '#5D0CDC', // ⚠ link.accent.hover only
-  blue500: '#6C02FF', // content.accent, link.accent.default
-  blue400: '#8466FF', // graphics.muted, border.accent
-  blue300: 'rgba(132, 102, 255, 0.13)',
-  blue200: 'rgba(132, 102, 255, 0.09)',
-  blue100: 'rgba(132, 102, 255, 0.05)',
+  blue700: color.blue.light.opaque1400, // ⚠ link.accent.active only
+  blue600: color.blue.light.opaque1300, // ⚠ link.accent.hover only
+  blue500: color.blue.light.opaque1200, // content.accent, link.accent.default
+  blue400: color.blue.light.opaque1000, // graphics.muted, border.accent
+  blue300: color.blue.light.transparent300,
+  blue200: color.blue.light.transparent200,
+  blue100: color.blue.light.transparent100,
 
-  pink700: '#A11B6C', // ⚠ link.promotion.active only
-  pink600: '#B60979', // ⚠ link.promotion.hover only
-  pink500: '#D5008D', // content.promotion, link.promotion.default
-  pink400: '#FF4EB3', // graphics.promotion, border.promotion
-  pink300: 'rgba(255, 78, 179, 0.17)',
-  pink200: 'rgba(255, 78, 179, 0.12)',
-  pink100: 'rgba(255, 78, 179, 0.06)',
+  pink700: color.pink.light.opaque1300, // ⚠ link.promotion.active only
+  pink600: color.pink.light.opaque1200, // ⚠ link.promotion.hover only
+  pink500: color.pink.light.opaque1100, // content.promotion, link.promotion.default
+  pink400: color.pink.light.opaque1000, // graphics.promotion, border.promotion
+  pink300: color.pink.light.transparent300,
+  pink200: color.pink.light.transparent200,
+  pink100: color.pink.light.transparent100,
 
-  red700: '#9C0819', // ⚠ link.danger.active only
-  red600: '#B1001B', // ⚠ link.danger.hover only
-  red500: '#CB0020', // ⚠ content.danger, link.danger.default
-  red400: '#FF002B', // graphics.danger, border.danger
-  red300: 'rgba(255, 0, 43, 0.10)',
-  red200: 'rgba(255, 0, 43, 0.08)',
-  red100: 'rgba(255, 0, 43, 0.04)',
+  red700: color.red.light.opaque1300, // ⚠ link.danger.active only
+  red600: color.red.light.opaque1200, // ⚠ link.danger.hover only
+  red500: color.red.light.opaque1100, // ⚠ content.danger, link.danger.default
+  red400: color.red.light.opaque1000, // graphics.danger, border.danger
+  red300: color.red.light.transparent300,
+  red200: color.red.light.transparent200,
+  red100: color.red.light.transparent100,
 
-  yellow700: '#AD4A0D', // ⚠ link.warning.active only
-  yellow600: '#C55200', // ⚠ link.warning.hover only
-  yellow500: '#E66000', // content.warning, link.warning.default
-  yellow400: '#F3B01B', // graphics.warning, border.warning
-  yellow300: 'rgba(243, 176, 27, 0.24)',
-  yellow200: 'rgba(243, 176, 27, 0.17)',
-  yellow100: 'rgba(243, 176, 27, 0.07)',
+  yellow700: color.yellow.light.opaque1300, // ⚠ link.warning.active only
+  yellow600: color.yellow.light.opaque1200, // ⚠ link.warning.hover only
+  yellow500: color.yellow.light.opaque1100, // content.warning, link.warning.default
+  yellow400: color.yellow.light.opaque600, // graphics.warning, border.warning
+  yellow300: color.yellow.light.transparent300,
+  yellow200: color.yellow.light.transparent200,
+  yellow100: color.yellow.light.transparent100,
 
-  green700: '#01651F', // ⚠ link.success.active only
-  green600: '#017526', // ⚠ link.success.hover only
-  green500: '#06892F', // content.success, link.success.default
-  green400: '#06AC3D', // graphics.success, border.success
-  green300: 'rgba(6, 172, 61, 0.10)',
-  green200: 'rgba(6, 172, 61, 0.07)',
-  green100: 'rgba(6, 172, 61, 0.04)',
+  green700: color.green.light.opaque1300, // ⚠ link.success.active only
+  green600: color.green.light.opaque1200, // ⚠ link.success.hover only
+  green500: color.green.light.opaque1100, // content.success, link.success.default
+  green400: color.green.light.opaque800, // graphics.success, border.success
+  green300: color.green.light.transparent300,
+  green200: color.green.light.transparent200,
+  green100: color.green.light.transparent100,
 
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
-    blue400: '#7553FF',
-    pink400: '#FF70BC',
-    red400: '#E50045',
-    yellow400: '#FFD00E',
-    green400: '#00F261',
+    blue400: color.blue.light.opaque1000,
+    pink400: color.pink.light.opaque800,
+    red400: color.red.light.opaque1000,
+    yellow400: color.yellow.light.opaque600,
+    green400: color.green.light.opaque800,
   },
 };
 
 const darkColors: Colors = {
-  black: '#181423',
-  white: '#FFFFFF',
+  black: color.black,
+  white: color.white,
 
-  surface500: '#272433', // background.primary
-  surface400: '#231E2F', // background.secondary
-  surface300: '#191621', // background.teritary
-  surface200: '#0D071A', // border.muted
-  surface100: '#000000', // border.primary
+  surface500: color.neutral.dark.opaque500, // background.primary
+  surface400: color.neutral.dark.opaque400, // background.secondary
+  surface300: color.neutral.dark.opaque300, // background.teritary
+  surface200: color.neutral.dark.opaque200, // border.muted
+  surface100: color.neutral.dark.opaque100, // border.primary
 
-  gray800: '#F6F5FA', // content.primary
-  gray700: '#C6C0D6', // ⚠ link.muted.active only
-  gray600: '#B3ADC3', // ⚠ link.muted.hover only
-  gray500: '#A39EB3', // content.secondary, link.muted.default
-  gray400: '#6F6F78', // // graphics.muted
-  gray300: 'rgba(110, 110, 119, 0.38)',
-  gray200: 'rgba(110, 110, 119, 0.28)',
-  gray100: 'rgba(110, 110, 119, 0.20)',
+  gray800: color.neutral.dark.opaque1600, // content.primary
+  gray700: color.neutral.dark.opaque1300, // ⚠ link.muted.active only
+  gray600: color.neutral.dark.opaque1200, // ⚠ link.muted.hover only
+  gray500: color.neutral.dark.opaque1100, // content.secondary, link.muted.default
+  gray400: color.neutral.dark.opaque900, // // graphics.muted
+  gray300: color.neutral.dark.transparent800,
+  gray200: color.neutral.dark.transparent600,
+  gray100: color.neutral.dark.transparent400,
 
-  blue700: '#BBB6FC', // ⚠ link.accent.active only
-  blue600: '#A89EFC', // ⚠ link.accent.hover only
-  blue500: '#9B8DFF', // content.accent, link.accent.default
-  blue400: '#8970FF', // // graphics.accent, border.accent
-  blue300: 'rgba(137, 112, 255, 0.26)',
-  blue200: 'rgba(137, 112, 255, 0.20)',
-  blue100: 'rgba(137, 112, 255, 0.14)',
+  blue700: color.blue.dark.opaque1200, // ⚠ link.accent.active only
+  blue600: color.blue.dark.opaque1100, // ⚠ link.accent.hover only
+  blue500: color.blue.dark.opaque1000, // content.accent, link.accent.default
+  blue400: color.blue.dark.opaque900, // // graphics.accent, border.accent
+  blue300: color.blue.dark.transparent300,
+  blue200: color.blue.dark.transparent200,
+  blue100: color.blue.dark.transparent100,
 
-  pink700: '#FFC4DF', // ⚠ link.promotion.active only
-  pink600: '#FFA3CF', // ⚠ link.promotion.hover only
-  pink500: '#FF8BC6', // content.promotion, link.promotion.default
-  pink400: '#FF5CB6', // // graphics.promotion, border.promotion
-  pink300: 'rgba(255, 92, 182, 0.20)',
-  pink200: 'rgba(255, 92, 182, 0.15)',
-  pink100: 'rgba(255, 92, 182, 0.11)',
+  pink700: color.pink.dark.opaque1300, // ⚠ link.promotion.active only
+  pink600: color.pink.dark.opaque1200, // ⚠ link.promotion.hover only
+  pink500: color.pink.dark.opaque1100, // content.promotion, link.promotion.default
+  pink400: color.pink.dark.opaque1000, // // graphics.promotion, border.promotion
+  pink300: color.pink.dark.transparent300,
+  pink200: color.pink.dark.transparent200,
+  pink100: color.pink.dark.transparent100,
 
-  red700: '#FFB0A8', // ⚠ link.danger.active only
-  red600: '#FF8A82', // ⚠ link.danger.hover only
-  red500: '#FF6B65', // content.danger, link.danger.default
-  red400: '#FF333C', // // graphics.danger, border.danger
-  red300: 'rgba(255, 51, 60, 0.26)',
-  red200: 'rgba(255, 51, 60, 0.20)',
-  red100: 'rgba(255, 51, 60, 0.16)',
+  red700: color.red.dark.opaque1200, // ⚠ link.danger.active only
+  red600: color.red.dark.opaque1100, // ⚠ link.danger.hover only
+  red500: color.red.dark.opaque1000, // content.danger, link.danger.default
+  red400: color.red.dark.opaque900, // // graphics.danger, border.danger
+  red300: color.red.dark.transparent300,
+  red200: color.red.dark.transparent200,
+  red100: color.red.dark.transparent100,
 
-  yellow700: '#FCEBB7', // ⚠ link.warning.active only
-  yellow600: '#F8DC86', // ⚠ link.warning.hover only
-  yellow500: '#FDCF20', // content.warning, link.warning.default
-  yellow400: '#F7B31C', // graphics.warning, border.warning
-  yellow300: 'rgba(247, 179, 28, 0.17)',
-  yellow200: 'rgba(247, 179, 28, 0.13)',
-  yellow100: 'rgba(247, 179, 28, 0.09)',
+  yellow700: color.yellow.dark.opaque1500, // ⚠ link.warning.active only
+  yellow600: color.yellow.dark.opaque1400, // ⚠ link.warning.hover only
+  yellow500: color.yellow.dark.opaque1300, // content.warning, link.warning.default
+  yellow400: color.yellow.dark.opaque1200, // graphics.warning, border.warning
+  yellow300: color.yellow.dark.transparent300,
+  yellow200: color.yellow.dark.transparent200,
+  yellow100: color.yellow.dark.transparent100,
 
-  green700: '#4AE969', // ⚠ link.success.active only
-  green600: '#32D859', // ⚠ link.success.hover only
-  green500: '#0CC848', // content.success, link.success.default
-  green400: '#09B340', // graphics.success, border.success
-  green300: 'rgba(9, 179, 64, 0.33)',
-  green200: 'rgba(9, 179, 64, 0.26)',
-  green100: 'rgba(9, 179, 64, 0.20)',
+  green700: color.green.dark.opaque1400, // ⚠ link.success.active only
+  green600: color.green.dark.opaque1300, // ⚠ link.success.hover only
+  green500: color.green.dark.opaque1200, // content.success, link.success.default
+  green400: color.green.dark.opaque1100, // graphics.success, border.success
+  green300: color.green.dark.transparent600,
+  green200: color.green.dark.transparent500,
+  green100: color.green.dark.transparent400,
 
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
-    blue400: '#7553FF',
-    pink400: '#FF70BC',
-    red400: '#E50045',
-    yellow400: '#FFD00E',
-    green400: '#00F261',
+    blue400: color.blue.dark.opaque900,
+    pink400: color.pink.dark.opaque1000,
+    red400: color.red.dark.opaque900,
+    yellow400: color.yellow.dark.opaque1200,
+    green400: color.green.dark.opaque1100,
   },
 };
 
@@ -1549,11 +1555,11 @@ const generateAliases = (
   // @todo(jonasbadalic) should these reference chonk colors?
   searchTokenBackground: {
     valid: colors.blue100,
-    validActive: color(colors.blue100).opaquer(1.0).string(),
+    validActive: modifyColor(colors.blue100).opaquer(1.0).string(),
     invalid: colors.red100,
-    invalidActive: color(colors.red100).opaquer(0.8).string(),
+    invalidActive: modifyColor(colors.red100).opaquer(0.8).string(),
     warning: colors.yellow100,
-    warningActive: color(colors.yellow100).opaquer(0.8).string(),
+    warningActive: modifyColor(colors.yellow100).opaquer(0.8).string(),
   },
 
   /**
@@ -1562,11 +1568,11 @@ const generateAliases = (
    */
   searchTokenBorder: {
     valid: colors.blue200,
-    validActive: color(colors.blue200).opaquer(1).string(),
+    validActive: modifyColor(colors.blue200).opaquer(1).string(),
     invalid: colors.red200,
-    invalidActive: color(colors.red200).opaquer(1).string(),
+    invalidActive: modifyColor(colors.red200).opaquer(1).string(),
     warning: colors.yellow200,
-    warningActive: color(colors.yellow200).opaquer(1).string(),
+    warningActive: modifyColor(colors.yellow200).opaquer(1).string(),
   },
 });
 
@@ -1793,7 +1799,7 @@ const lightThemeDefinition = {
   level: generateLevelTheme(lightColors),
 
   chart: {
-    neutral: color(lightColors.gray400).lighten(0.8).toString(),
+    neutral: modifyColor(lightColors.gray400).lighten(0.8).toString(),
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
@@ -1853,7 +1859,7 @@ export const darkTheme: SentryTheme = {
   level: generateLevelTheme(darkColors),
 
   chart: {
-    neutral: color(darkColors.gray400).darken(0.35).toString(),
+    neutral: modifyColor(darkColors.gray400).darken(0.35).toString(),
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
