@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from sentry.replays.endpoints.organization_replay_details import (
     _normalize_eap_response,
+    _query_replay_urls_eap,
     query_replay_instance_eap,
 )
 from sentry.testutils.cases import ReplayBreadcrumbType, ReplayEAPTestCase, TestCase
@@ -46,6 +47,33 @@ class TestQueryReplayInstanceEAP(TestCase, ReplayEAPTestCase):
                 segment_id=0,
                 breadcrumb_type=ReplayBreadcrumbType.CLICK,
                 timestamp=now,
+            ),
+            self.create_eap_replay_breadcrumb(
+                project=self.project,
+                replay_id=replay_id1,
+                segment_id=0,
+                breadcrumb_type=ReplayBreadcrumbType.CLICK,
+                timestamp=now - datetime.timedelta(seconds=30),
+                category="navigation",
+                to="https://example.com/page1",
+            ),
+            self.create_eap_replay_breadcrumb(
+                project=self.project,
+                replay_id=replay_id1,
+                segment_id=0,
+                breadcrumb_type=ReplayBreadcrumbType.CLICK,
+                timestamp=now - datetime.timedelta(seconds=20),
+                category="navigation",
+                to="https://example.com/page2",
+            ),
+            self.create_eap_replay_breadcrumb(
+                project=self.project,
+                replay_id=replay_id1,
+                segment_id=0,
+                breadcrumb_type=ReplayBreadcrumbType.CLICK,
+                timestamp=now - datetime.timedelta(seconds=10),
+                category="navigation",
+                to="https://example.com/page3",
             ),
         ]
 
@@ -137,6 +165,30 @@ class TestQueryReplayInstanceEAP(TestCase, ReplayEAPTestCase):
         replay2_data = res2["data"][0]
         assert replay2_data["count_dead_clicks"] == 3, "1 DEAD_CLICK + 2 RAGE_CLICK = 3 dead"
         assert replay2_data["count_rage_clicks"] == 2, "2 RAGE_CLICK = 2 rage"
+
+        # Test URL query for replay1
+        urls = _query_replay_urls_eap(
+            replay_id=replay_id1,
+            project_ids=project_ids,
+            start=start,
+            end=end,
+            organization_id=organization_id,
+        )
+        assert len(urls) == 3, f"Expected 3 URLs, got {len(urls)}"
+        assert urls == [
+            "https://example.com/page1",
+            "https://example.com/page2",
+            "https://example.com/page3",
+        ], f"URLs should be sorted by timestamp ascending, got {urls}"
+
+        urls2 = _query_replay_urls_eap(
+            replay_id=replay_id2,
+            project_ids=project_ids,
+            start=start,
+            end=end,
+            organization_id=organization_id,
+        )
+        assert len(urls2) == 0, f"Expected 0 URLs for replay2, got {len(urls2)}"
 
     def test_normalize_eap_response(self) -> None:
         """Test that EAP response data is correctly normalized.
