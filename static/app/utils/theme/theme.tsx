@@ -1755,11 +1755,6 @@ const lightThemeDefinition = {
   ),
 
   colors: lightColors,
-
-  sidebar: {
-    background: lightAliases.background,
-    gradient: lightAliases.background,
-  },
 };
 
 /**
@@ -1808,11 +1803,6 @@ export const darkTheme: SentryTheme = {
   ),
 
   colors: darkColors,
-
-  sidebar: {
-    background: darkAliases.background,
-    gradient: darkAliases.background,
-  },
 };
 
 declare module '@emotion/react' {
