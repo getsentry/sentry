@@ -2,6 +2,7 @@ import React, {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -37,8 +38,13 @@ export function StoryExports(props: {story: StoryDescriptor}) {
 
 function StoryLayout() {
   const {story} = useStory();
+  const [tab, setTab] = useQueryState(
+    'tab',
+    parseAsString.withOptions({history: 'push'}).withDefault('usage')
+  );
+
   return (
-    <Tabs>
+    <Tabs value={tab} onChange={setTab}>
       {isMDXStory(story) ? <MDXStoryTitle story={story} /> : null}
       <StoryGrid>
         <StoryContainer>
@@ -123,6 +129,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
 
 function StoryTabList() {
   const {story} = useStory();
+
   if (!isMDXStory(story)) return null;
   if (story.exports.frontmatter?.layout === 'document') return null;
 
