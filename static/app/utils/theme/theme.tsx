@@ -1450,7 +1450,6 @@ const generateAliases = (
   linkColor: tokens.component.link.accent.default,
   linkHoverColor: tokens.component.link.accent.hover,
   linkUnderline: tokens.component.link.accent.default,
-  linkFocus: tokens.border.accent,
 
   /**
    * Form placeholder text color
