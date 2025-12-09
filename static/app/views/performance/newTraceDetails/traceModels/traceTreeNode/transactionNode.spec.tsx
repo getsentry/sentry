@@ -266,10 +266,10 @@ describe('TransactionNode', () => {
       });
       const node = new TransactionNode(null, transaction, createMockExtra());
 
-      const result = node.makeBarColor(ThemeFixture());
+      const color = node.makeBarColor(ThemeFixture());
 
-      expect(typeof result).toBe('string');
-      expect(result).toBeDefined();
+      expect(typeof color).toBe('string');
+      expect(color).toBeDefined();
     });
   });
 

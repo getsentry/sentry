@@ -165,10 +165,10 @@ describe('SpanNode', () => {
       });
       const node = new SpanNode(null, span, createMockExtra());
 
-      const result = node.makeBarColor(ThemeFixture());
+      const color = node.makeBarColor(ThemeFixture());
 
-      expect(typeof result).toBe('string');
-      expect(result).toBeDefined();
+      expect(typeof color).toBe('string');
+      expect(color).toBeDefined();
     });
   });
 

@@ -71,9 +71,9 @@ describe('RootNode', () => {
       const extra = createMockExtra();
       const rootNode = new RootNode(null, null, extra);
 
-      const result = rootNode.makeBarColor(theme);
+      const color = rootNode.makeBarColor(theme);
 
-      expect(result).toBe('#865189');
+      expect(color).toBe('#865189');
     });
   });
 
