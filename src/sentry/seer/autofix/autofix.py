@@ -607,6 +607,14 @@ def onboarding_seer_settings_update(
                 project.update_option(
                     "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
                 )
+        logger.info(
+            "RCA is disabled for org and projects, setting automation tuning to off",
+            extra={
+                "organization_id": organization_id,
+                "org_slug": organization.slug,
+                "num_projects": len(projects),
+            },
+        )
         return
 
     # Set the default stopping point for projects
