@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {
   getAutofixRunExists,
@@ -51,6 +52,7 @@ interface InsightCardObject {
   copyAnalyticsEventName?: string;
   copyText?: string | null;
   copyTitle?: string | null;
+  feedbackType?: 'root_cause' | 'solution' | 'changes';
   icon?: React.ReactNode;
   insightElement?: React.ReactNode;
   isLoading?: boolean;
@@ -157,6 +159,7 @@ export function AutofixSummary({
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const {data: autofixData} = useAutofixData({groupId: group.id});
 
   const seerLink = {
     pathname: location.pathname,
@@ -172,6 +175,7 @@ export function AutofixSummary({
       title: t('Root Cause'),
       insight: rootCauseDescription,
       icon: <IconFocus size="sm" />,
+      feedbackType: 'root_cause',
       onClick: () => {
         trackAnalytics('autofix.summary_root_cause_clicked', {
           organization,
@@ -199,6 +203,7 @@ export function AutofixSummary({
             insight: solutionDescription,
             icon: <IconFix size="sm" />,
             isLoading: solutionIsLoading,
+            feedbackType: 'solution' as const,
             onClick: () => {
               trackAnalytics('autofix.summary_solution_clicked', {
                 organization,
@@ -228,6 +233,7 @@ export function AutofixSummary({
             insight: codeChangesDescription,
             icon: <IconCode size="sm" />,
             isLoading: codeChangesIsLoading,
+            feedbackType: 'changes' as const,
             onClick: () => {
               trackAnalytics('autofix.summary_code_changes_clicked', {
                 organization,
@@ -263,20 +269,32 @@ export function AutofixSummary({
                       <CardTitleIcon>{card.icon}</CardTitleIcon>
                       <CardTitleText>{card.title}</CardTitleText>
                     </CardTitleSpacer>
-                    {card.copyText && card.copyTitle && (
-                      <CopyToClipboardButton
-                        aria-label={t('Copy to clipboard')}
-                        size="xs"
-                        text={card.copyText}
-                        borderless
-                        title={card.copyTitle}
-                        onClick={e => {
-                          e.stopPropagation();
-                        }}
-                        analyticsEventName={card.copyAnalyticsEventName}
-                        analyticsEventKey={card.copyAnalyticsEventKey}
-                      />
-                    )}
+                    <CardActions>
+                      {!card.isLoading && card.feedbackType && autofixData?.run_id && (
+                        <AutofixStepFeedback
+                          stepType={card.feedbackType}
+                          groupId={group.id}
+                          runId={autofixData.run_id}
+                          buttonSize="zero"
+                          compact
+                          onFeedbackClick={e => e.stopPropagation()}
+                        />
+                      )}
+                      {card.copyText && card.copyTitle && (
+                        <CopyToClipboardButton
+                          aria-label={t('Copy to clipboard')}
+                          size="xs"
+                          text={card.copyText}
+                          borderless
+                          title={card.copyTitle}
+                          onClick={e => {
+                            e.stopPropagation();
+                          }}
+                          analyticsEventName={card.copyAnalyticsEventName}
+                          analyticsEventKey={card.copyAnalyticsEventKey}
+                        />
+                      )}
+                    </CardActions>
                   </CardTitle>
                   <CardContent>
                     {card.isLoading ? (
@@ -424,4 +442,10 @@ const CardContent = styled('div')`
       text-decoration: underline;
     }
   }
+`;
+
+const CardActions = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
