@@ -18,8 +18,7 @@ import type {User} from './user';
 type CodeReviewTriggers =
   | 'on_command_phrase'
   | 'on_ready_for_review'
-  | 'on_new_commit'
-  | 'unknown';
+  | 'on_new_commit';
 
 /**
  * Organization summaries are sent when you request a list of all organizations

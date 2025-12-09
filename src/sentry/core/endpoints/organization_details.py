@@ -359,7 +359,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     autoEnableCodeReview = serializers.BooleanField(required=False)
     defaultCodeReviewTriggers = serializers.ListField(
         child=serializers.ChoiceField(
-            choices=["unknown", "on_command_phrase", "on_ready_for_review", "on_new_commit"]
+            choices=["on_command_phrase", "on_ready_for_review", "on_new_commit"]
         ),
         required=False,
         allow_empty=True,
