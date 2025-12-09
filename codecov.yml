@@ -1,4 +1,7 @@
 # Setting coverage targets per flag
+# The after_n_builds values are automatically recalculated when GitHub Actions workflows change.
+# See .github/workflows/update-codecov-config.yml
+# To manually recalculate, run: python scripts/update_codecov_after_n_builds.py
 coverage:
   status:
     project: false
