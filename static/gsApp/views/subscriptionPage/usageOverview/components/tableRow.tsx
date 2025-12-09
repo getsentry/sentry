@@ -181,6 +181,21 @@ function UsageOverviewTableRow({
 
   const isSelected = selectedProduct === product;
 
+  /**
+   * Only show the progress ring if:
+   * - the usage is not exceeded
+   * - the product is not PAYG only
+   * - the product is not a child product (ie. sub-categories of an add-on)
+   * - prepaid volume is not unlimited
+   * - the product is not an add-on or the product is an add-on with a prepaid volume
+   */
+  const showProgressRing =
+    !usageExceeded &&
+    !isPaygOnly &&
+    !isChildProduct &&
+    !isUnlimited &&
+    (!isAddOn || formattedPrepaid);
+
   return (
     <Fragment>
       <Row
@@ -232,7 +247,7 @@ function UsageOverviewTableRow({
                   <Container width="18px" height="18px">
                     <IconWarning size="md" color="danger" />
                   </Container>
-                ) : isPaygOnly || isChildProduct || isUnlimited ? null : (
+                ) : showProgressRing ? (
                   <Container width="18px" height="18px">
                     <ProgressRing
                       size={18}
@@ -244,7 +259,7 @@ function UsageOverviewTableRow({
                       }
                     />
                   </Container>
-                )}
+                ) : null}
                 <Text textWrap="balance">
                   {isUnlimited ? (
                     <Tag type="highlight">{t('Unlimited')}</Tag>
