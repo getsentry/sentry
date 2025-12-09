@@ -49,9 +49,7 @@ describe('AutofixSummary', () => {
       {organization}
     );
 
-    expect(
-      screen.getByRole('button', {name: 'This was helpful'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'This was helpful'})).toBeInTheDocument();
     expect(
       screen.getByRole('button', {name: 'This was not helpful'})
     ).toBeInTheDocument();
@@ -176,7 +174,7 @@ describe('AutofixSummary', () => {
         rootCauseCopyText="Root cause text"
         solutionDescription={null}
         solutionCopyText={null}
-        solutionIsLoading={true}
+        solutionIsLoading
         codeChangesDescription={null}
         codeChangesIsLoading={false}
       />,
@@ -184,9 +182,7 @@ describe('AutofixSummary', () => {
     );
 
     // Root cause should have feedback buttons
-    expect(
-      screen.getByRole('button', {name: 'This was helpful'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'This was helpful'})).toBeInTheDocument();
 
     // Solution should not have feedback buttons because it's loading
     const helpfulButtons = screen.getAllByRole('button', {name: 'This was helpful'});

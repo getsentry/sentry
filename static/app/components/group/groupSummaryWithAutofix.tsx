@@ -2,8 +2,8 @@ import React, {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/core/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Button} from 'sentry/components/core/button';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {
   getAutofixRunExists,
@@ -91,11 +91,7 @@ function CardFeedback({feedbackType, groupId, runId}: CardFeedbackProps) {
   );
 
   if (feedbackSubmitted) {
-    return (
-      <FeedbackText onClick={e => e.stopPropagation()}>
-        {t('Thanks!')}
-      </FeedbackText>
-    );
+    return <FeedbackText onClick={e => e.stopPropagation()}>{t('Thanks!')}</FeedbackText>;
   }
 
   return (
@@ -329,15 +325,13 @@ export function AutofixSummary({
                       <CardTitleText>{card.title}</CardTitleText>
                     </CardTitleSpacer>
                     <CardActions>
-                      {!card.isLoading &&
-                        card.feedbackType &&
-                        autofixData?.run_id && (
-                          <CardFeedback
-                            feedbackType={card.feedbackType}
-                            groupId={group.id}
-                            runId={autofixData.run_id}
-                          />
-                        )}
+                      {!card.isLoading && card.feedbackType && autofixData?.run_id && (
+                        <CardFeedback
+                          feedbackType={card.feedbackType}
+                          groupId={group.id}
+                          runId={autofixData.run_id}
+                        />
+                      )}
                       {card.copyText && card.copyTitle && (
                         <CopyToClipboardButton
                           aria-label={t('Copy to clipboard')}
