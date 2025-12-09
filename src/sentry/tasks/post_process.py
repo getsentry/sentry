@@ -1659,12 +1659,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             # Rate limit check must be last, after cache.add succeeds, to avoid wasting quota
             if is_seer_scanner_rate_limited(group.project, group.organization):
                 return
-            logger.info(
-                "Triage signals V0:group=%s project=%s: generating summary",
-                group.id,
-                group.project.slug,
-                extra={"group_id": group.id, "project_slug": group.project.slug},
-            )
+
             generate_issue_summary_only.delay(group.id)
         else:
             # Event count >= 10: run automation
@@ -1693,12 +1688,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             cache_key = get_issue_summary_cache_key(group.id)
             if cache.get(cache_key) is not None:
                 # Summary exists, run automation directly
-                logger.info(
-                    "Triage signals V0:group=%s project=%s: summary exists, running automation",
-                    group.id,
-                    group.project.slug,
-                    extra={"group_id": group.id, "project_slug": group.project.slug},
-                )
                 run_automation_only_task.delay(group.id)
             else:
                 # Rate limit check before generating summary
@@ -1706,12 +1695,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
                     return
 
                 # No summary yet, generate summary + run automation in one go
-                logger.info(
-                    "Triage signals V0:group=%s project=%s: no summary, generating summary + running automation",
-                    group.id,
-                    group.project.slug,
-                    extra={"group_id": group.id, "project_slug": group.project.slug},
-                )
                 generate_summary_and_run_automation.delay(group.id)
 
 
