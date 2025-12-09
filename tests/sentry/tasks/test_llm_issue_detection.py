@@ -241,13 +241,11 @@ class LLMIssueDetectionTest(TestCase):
         request_body = json.loads(seer_call_kwargs["body"].decode("utf-8"))
         assert request_body["project_id"] == self.project.id
         assert request_body["organization_id"] == self.project.organization_id
-        assert len(request_body["telemetry"]) == 2
-        assert request_body["telemetry"][0]["kind"] == "trace"
-        assert request_body["telemetry"][0]["trace_id"] == "trace_id_1"
-        assert request_body["telemetry"][0]["transaction_name"] == "POST /some/thing"
-        assert request_body["telemetry"][1]["kind"] == "trace"
-        assert request_body["telemetry"][1]["trace_id"] == "trace_id_2"
-        assert request_body["telemetry"][1]["transaction_name"] == "GET /another/"
+        assert len(request_body["traces"]) == 2
+        assert request_body["traces"][0]["trace_id"] == "trace_id_1"
+        assert request_body["traces"][0]["transaction_name"] == "POST /some/thing"
+        assert request_body["traces"][1]["trace_id"] == "trace_id_2"
+        assert request_body["traces"][1]["transaction_name"] == "GET /another/"
 
         assert mock_produce_occurrence.call_count == 2
 

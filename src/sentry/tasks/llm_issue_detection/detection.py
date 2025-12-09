@@ -17,6 +17,7 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.seer.models import SeerApiError
+from sentry.seer.sentry_data_models import TraceMetadata
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.llm_issue_detection.trace_data import (
@@ -56,6 +57,12 @@ class DetectedIssue(BaseModel):
 
 class IssueDetectionResponse(BaseModel):
     issues: list[DetectedIssue]
+
+
+class IssueDetectionRequest(BaseModel):
+    traces: list[TraceMetadata]
+    organization_id: int
+    project_id: int
 
 
 class LLMIssueDetectionError(SeerApiError):
@@ -233,11 +240,12 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     # Shuffle to randomize order
     random.shuffle(evidence_traces)
 
-    seer_request = {
-        "telemetry": [{**trace.dict(), "kind": "trace"} for trace in evidence_traces],
-        "organization_id": organization_id,
-        "project_id": project_id,
-    }
+    seer_request = IssueDetectionRequest(
+        traces=evidence_traces,
+        organization_id=organization_id,
+        project_id=project_id,
+    )
+
     response = make_signed_seer_api_request(
         connection_pool=seer_issue_detection_connection_pool,
         path=SEER_ANALYZE_ISSUE_ENDPOINT_PATH,

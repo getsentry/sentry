@@ -9,7 +9,7 @@ from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.explorer.utils import normalize_description
-from sentry.seer.sentry_data_models import EvidenceTraceData
+from sentry.seer.sentry_data_models import TraceMetadata
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
@@ -23,7 +23,7 @@ def get_project_top_transaction_traces_for_llm_detection(
     project_id: int,
     limit: int,
     start_time_delta_minutes: int,
-) -> list[EvidenceTraceData]:
+) -> list[TraceMetadata]:
     """
     Get top transactions by total time spent, return one semi-randomly chosen trace per transaction.
     """
@@ -67,7 +67,7 @@ def get_project_top_transaction_traces_for_llm_detection(
         sampling_mode="NORMAL",
     )
 
-    evidence_traces = []
+    trace_metadata = []
     seen_names = set()
 
     for row in transactions_result.get("data", []):
@@ -101,12 +101,12 @@ def get_project_top_transaction_traces_for_llm_detection(
         if not trace_id:
             continue
 
-        evidence_traces.append(
-            EvidenceTraceData(
+        trace_metadata.append(
+            TraceMetadata(
                 trace_id=trace_id,
                 transaction_name=normalized_name,
             )
         )
         seen_names.add(normalized_name)
 
-    return evidence_traces
+    return trace_metadata

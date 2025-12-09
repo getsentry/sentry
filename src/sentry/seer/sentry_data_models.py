@@ -30,7 +30,7 @@ class TraceData(BaseModel):
     spans: list[Span]
 
 
-class EvidenceTraceData(BaseModel):
+class TraceMetadata(BaseModel):
     trace_id: str
     transaction_name: str
 
