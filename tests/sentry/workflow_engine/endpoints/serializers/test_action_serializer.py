@@ -1,6 +1,7 @@
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.models import Action
@@ -100,6 +101,28 @@ class TestActionSerializer(TestCase):
                 "targetType": "specific",
                 "targetDisplay": "freddy frog",
                 "targetIdentifier": "123-id",
+            },
+            "status": "active",
+        }
+
+    def test_serialize_with_data(self) -> None:
+        action = self.create_action(
+            type=Action.Type.EMAIL,
+            data={"fallthrough_type": FallthroughChoiceType.ACTIVE_MEMBERS},
+            config={
+                "target_type": ActionTarget.ISSUE_OWNERS,
+            },
+        )
+
+        result = serialize(action)
+
+        assert result == {
+            "id": str(action.id),
+            "type": "email",
+            "data": {"fallthroughType": "ActiveMembers"},
+            "integrationId": None,
+            "config": {
+                "targetType": "issue_owners",
             },
             "status": "active",
         }
