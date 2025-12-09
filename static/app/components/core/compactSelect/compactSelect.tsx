@@ -178,7 +178,7 @@ export function CompactSelect<Value extends SelectKey>({
       </List>
 
       {/* Only displayed when List is empty */}
-      {/* <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage> */}
+      <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage>
     </Control>
   );
 }
