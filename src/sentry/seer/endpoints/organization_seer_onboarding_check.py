@@ -33,15 +33,19 @@ def check_github_integration(organization_id: int) -> bool:
         ],
     )
 
-    for organization_integration in organization_integrations:
-        integration = integration_service.get_integration(
-            organization_integration_id=organization_integration.id,
-            status=ObjectStatus.ACTIVE,
-        )
-        if integration:
-            installation = integration.get_installation(organization_id=organization_id)
-            if installation:
-                return True
+    integration_ids = [oi.integration_id for oi in organization_integrations]
+    if not integration_ids:
+        return False
+
+    active_integrations = integration_service.get_integrations(
+        integration_ids=integration_ids,
+        status=ObjectStatus.ACTIVE,
+    )
+
+    for integration in active_integrations:
+        installation = integration.get_installation(organization_id=organization_id)
+        if installation:
+            return True
 
     return False
 
@@ -62,7 +66,7 @@ def check_code_review_enabled(organization_id: int) -> bool:
 
 def check_autofix_enabled(organization_id: int) -> bool:
     """
-    Check if autofix/RCA automation is enabled for any active project in the organization,
+    Check if autofix/RCA is enabled for any active project in the organization,
     ie, if any project has sentry:autofix_automation_tuning not set to "off" or None.
     """
     projects = Project.objects.filter(
@@ -103,9 +107,6 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """Check if the organization has completed Seer onboarding/configuration."""
-        if not request.user.is_authenticated:
-            return Response(status=400)
-
         has_github_integration = check_github_integration(organization.id)
         is_code_review_enabled = check_code_review_enabled(organization.id)
         is_autofix_enabled = check_autofix_enabled(organization.id)
