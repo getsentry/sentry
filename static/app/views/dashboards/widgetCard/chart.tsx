@@ -791,7 +791,7 @@ const BigNumber = styled('div')`
   width: 100%;
   min-height: 0;
   font-size: 32px;
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   * {
     text-align: left !important;

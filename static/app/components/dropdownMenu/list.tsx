@@ -275,7 +275,7 @@ const MenuTitle = styled('div')`
   flex-shrink: 0;
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
   padding: ${space(0.75)} ${space(1.5)};
   box-shadow: 0 1px 0 0 ${p => p.theme.translucentInnerBorder};

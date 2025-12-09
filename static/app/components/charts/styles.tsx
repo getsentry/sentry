@@ -46,7 +46,7 @@ export const HeaderTitle = styled('div')`
   grid-auto-flow: column;
   gap: ${space(1)};
 
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   align-items: center;
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */

@@ -313,7 +313,7 @@ const getStylesConfig = ({
       marginLeft: '4px',
 
       '&:hover': {
-        color: theme.headingColor,
+        color: theme.tokens.content.primary,
         background: theme.backgroundTertiary,
       },
     }),

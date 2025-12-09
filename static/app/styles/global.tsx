@@ -250,7 +250,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
             h4,
             h5,
             h6 {
-              color: ${theme.headingColor};
+              color: ${theme.tokens.content.primary};
             }
           }
 
