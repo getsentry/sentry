@@ -107,6 +107,9 @@ class TaskWorker:
 
         self._processing_pool_name: str = processing_pool_name or "unknown"
 
+        self._tasks_in_worker_max = child_tasks_queue_maxsize + result_queue_maxsize
+        self._tasks_in_worker = 0
+
     def start(self) -> int:
         """
         Run the worker main loop
@@ -173,6 +176,18 @@ class TaskWorker:
         """
         Add a task to child tasks queue. Returns False if no new task was fetched.
         """
+        # These metrics let us measure how full a worker is
+        metrics.gauge(
+            "taskworker.worker.tasks_in_worker_max",
+            self._tasks_in_worker_max,
+            tags={"processing_pool": self._processing_pool_name},
+        )
+        metrics.gauge(
+            "taskworker.worker.tasks_in_worker",
+            self._tasks_in_worker,
+            tags={"processing_pool": self._processing_pool_name},
+        )
+
         if self._child_tasks.full():
             # I want to see how this differs between pools that operate well,
             # and those that are not as effective. I suspect that with a consistent
@@ -194,6 +209,7 @@ class TaskWorker:
             try:
                 start_time = time.monotonic()
                 self._child_tasks.put(inflight)
+                self._tasks_in_worker += 1
                 metrics.distribution(
                     "taskworker.worker.child_task.put.duration",
                     time.monotonic() - start_time,
@@ -273,6 +289,7 @@ class TaskWorker:
                 try:
                     start_time = time.monotonic()
                     self._child_tasks.put(next)
+                    self._tasks_in_worker += 1
                     metrics.distribution(
                         "taskworker.worker.child_task.put.duration",
                         time.monotonic() - start_time,
@@ -311,6 +328,7 @@ class TaskWorker:
         try:
             next_task = self.client.update_task(result, fetch_next)
             self._setstatus_backoff_seconds = 0
+            self._tasks_in_worker -= 1
             return next_task
         except grpc.RpcError as e:
             self._setstatus_backoff_seconds = min(self._setstatus_backoff_seconds + 1, 10)
