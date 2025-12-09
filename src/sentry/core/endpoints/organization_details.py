@@ -43,9 +43,11 @@ from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     ALLOW_BACKGROUND_AGENT_DELEGATION,
     ATTACHMENTS_ROLE_DEFAULT,
+    AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
@@ -250,6 +252,18 @@ ORG_OPTIONS = (
         AUTO_OPEN_PRS_DEFAULT,
     ),
     (
+        "autoEnableCodeReview",
+        "sentry:auto_enable_code_review",
+        bool,
+        AUTO_ENABLE_CODE_REVIEW,
+    ),
+    (
+        "defaultCodeReviewTriggers",
+        "sentry:default_code_review_triggers",
+        list,
+        DEFAULT_CODE_REVIEW_TRIGGERS,
+    ),
+    (
         "allowBackgroundAgentDelegation",
         "sentry:allow_background_agent_delegation",
         bool,
@@ -342,6 +356,15 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
     autoOpenPrs = serializers.BooleanField(required=False)
+    autoEnableCodeReview = serializers.BooleanField(required=False)
+    defaultCodeReviewTriggers = serializers.ListField(
+        child=serializers.ChoiceField(
+            choices=["unknown", "on_command_phrase", "on_ready_for_review", "on_new_commit"]
+        ),
+        required=False,
+        allow_empty=True,
+        help_text="The default code review triggers for new repositories.",
+    )
     allowBackgroundAgentDelegation = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
@@ -728,6 +751,8 @@ def create_console_platform_audit_log(
         "defaultAutofixAutomationTuning",
         "defaultSeerScannerAutomation",
         "autoOpenPrs",
+        "autoEnableCodeReview",
+        "defaultCodeReviewTriggers",
         "allowBackgroundAgentDelegation",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",

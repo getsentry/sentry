@@ -32,6 +32,7 @@ from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     ALLOW_BACKGROUND_AGENT_DELEGATION,
     ATTACHMENTS_ROLE_DEFAULT,
+    AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
@@ -557,8 +558,10 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     enablePrReviewTestGeneration: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
-    autoOpenPrs: bool
     allowBackgroundAgentDelegation: bool
+    autoEnableCodeReview: bool
+    autoOpenPrs: bool
+    defaultCodeReviewTriggers: list[str]
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -715,6 +718,13 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     AUTO_OPEN_PRS_DEFAULT,
                 )
             ),
+            "autoEnableCodeReview": bool(
+                obj.get_option(
+                    "sentry:auto_open_prs",
+                    AUTO_ENABLE_CODE_REVIEW,
+                )
+            ),
+            "defaultCodeReviewTriggers": obj.get_option("sentry:default_code_review_triggers"),
             "allowBackgroundAgentDelegation": bool(
                 obj.get_option(
                     "sentry:allow_background_agent_delegation",

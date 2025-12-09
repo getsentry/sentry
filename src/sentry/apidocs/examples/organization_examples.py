@@ -295,6 +295,8 @@ class OrganizationExamples:
                 "gitlabPRBot": False,
                 "aggregatedDataConsent": False,
                 "defaultAutofixAutomationTuning": AutofixAutomationTuningSettings.OFF,
+                "autoEnableCodeReview": True,
+                "defaultCodeReviewTriggers": ["on_command_phrase", "on_ready_for_review"],
                 "defaultSeerScannerAutomation": True,
                 "enableSeerCoding": True,
                 "enableSeerEnhancedAlerts": True,
