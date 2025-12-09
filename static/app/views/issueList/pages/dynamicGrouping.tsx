@@ -40,6 +40,8 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
@@ -304,6 +306,13 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
   );
   const clusterStats = useClusterStats(cluster.group_ids);
   const {copy} = useCopyToClipboard();
+  const {projects: allProjects} = useLegacyStore(ProjectsStore);
+
+  // Get projects for this cluster
+  const clusterProjects = useMemo(() => {
+    const projectIdStrings = cluster.project_ids.map(id => String(id));
+    return allProjects.filter(project => projectIdStrings.includes(project.id));
+  }, [allProjects, cluster.project_ids]);
 
   // Track the Seer Explorer run ID for this cluster so subsequent clicks reopen the same chat
   const seerRunIdRef = useRef<number | null>(null);
@@ -520,71 +529,89 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
       </TabSection>
 
       <CardFooter>
-        <ButtonBar merged gap="0">
-          <SeerButton
-            size="sm"
-            priority="primary"
-            icon={<IconSeer size="xs" />}
-            onClick={handleSendToSeer}
+        {clusterProjects.length > 0 && (
+          <ProjectAvatars>
+            {clusterProjects.slice(0, 3).map(project => (
+              <ProjectBadge
+                key={project.id}
+                project={project}
+                avatarSize={16}
+                hideName
+                disableLink
+              />
+            ))}
+            {clusterProjects.length > 3 && (
+              <MoreProjectsCount>+{clusterProjects.length - 3}</MoreProjectsCount>
+            )}
+          </ProjectAvatars>
+        )}
+        <FooterActions>
+          <ButtonBar merged gap="0">
+            <SeerButton
+              size="sm"
+              priority="primary"
+              icon={<IconSeer size="xs" />}
+              onClick={handleSendToSeer}
+            >
+              {t('Explore with Seer')}
+            </SeerButton>
+            <DropdownMenu
+              items={[
+                {
+                  key: 'copy-markdown',
+                  label: t('Copy as markdown for agents'),
+                  leadingItems: <IconCopy size="sm" />,
+                  onAction: handleCopyMarkdown,
+                },
+              ]}
+              trigger={(triggerProps, isOpen) => (
+                <SeerDropdownTrigger
+                  {...triggerProps}
+                  size="sm"
+                  priority="primary"
+                  icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+                  aria-label={t('More options')}
+                />
+              )}
+              position="bottom-end"
+            />
+          </ButtonBar>
+          <Link
+            to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
           >
-            {t('Explore with Seer')}
-          </SeerButton>
+            <Button size="sm">
+              {t('View All Issues') + ` (${cluster.group_ids.length})`}
+            </Button>
+          </Link>
           <DropdownMenu
             items={[
               {
-                key: 'copy-markdown',
-                label: t('Copy as markdown for agents'),
-                leadingItems: <IconCopy size="sm" />,
-                onAction: handleCopyMarkdown,
+                key: 'resolve',
+                label: t('Resolve All'),
+                onAction: handleResolve,
+              },
+              {
+                key: 'archive',
+                label: t('Archive All'),
+                onAction: handleArchive,
+              },
+              {
+                key: 'dismiss',
+                label: t('Dismiss'),
+                onAction: handleDismiss,
               },
             ]}
-            trigger={(triggerProps, isOpen) => (
-              <SeerDropdownTrigger
+            trigger={triggerProps => (
+              <Button
                 {...triggerProps}
                 size="sm"
-                priority="primary"
-                icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
-                aria-label={t('More options')}
+                icon={<IconEllipsis size="sm" />}
+                aria-label={t('More actions')}
               />
             )}
             position="bottom-end"
           />
-        </ButtonBar>
-        <Link
-          to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
-        >
-          <Button size="sm">
-            {t('View All Issues') + ` (${cluster.group_ids.length})`}
-          </Button>
-        </Link>
-        <DropdownMenu
-          items={[
-            {
-              key: 'resolve',
-              label: t('Resolve All'),
-              onAction: handleResolve,
-            },
-            {
-              key: 'archive',
-              label: t('Archive All'),
-              onAction: handleArchive,
-            },
-            {
-              key: 'dismiss',
-              label: t('Dismiss'),
-              onAction: handleDismiss,
-            },
-          ]}
-          trigger={triggerProps => (
-            <Button
-              {...triggerProps}
-              size="sm"
-              icon={<IconEllipsis size="sm" />}
-              aria-label={t('More actions')}
-            />
-          )}
-          position="bottom-end"
-        />
+        </FooterActions>
       </CardFooter>
     </CardContainer>
   );
@@ -1070,6 +1097,18 @@ const StatItem = styled('div')`
   gap: ${space(0.5)};
 `;
 
+const ProjectAvatars = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
+`;
+
+const MoreProjectsCount = styled('span')`
+  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.subText};
+  margin-left: ${space(0.25)};
+`;
+
 // Tab section for Summary / Preview Issues
 const TabSection = styled('div')``;
 
@@ -1119,7 +1158,14 @@ const CardFooter = styled('div')`
   padding: ${space(2)} ${space(3)};
   border-top: 1px solid ${p => p.theme.innerBorder};
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const FooterActions = styled('div')`
+  display: flex;
+  align-items: center;
   gap: ${space(1)};
 `;
 
