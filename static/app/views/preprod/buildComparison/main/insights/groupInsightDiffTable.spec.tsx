@@ -52,7 +52,7 @@ const mockGroupDiffItems: DiffItem[] = [
       },
       {
         path: '/META-INF/LICENSE2.txt',
-        type: 'added',
+        type: 'removed',
         size_diff: 0,
         head_size: 1000,
         base_size: 1000,

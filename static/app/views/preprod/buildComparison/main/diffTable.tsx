@@ -14,7 +14,7 @@ export type DiffTableSort = {
   kind: 'asc' | 'desc';
 };
 
-export type DiffChangeElements = {
+type DiffChangeElements = {
   icon: React.ReactNode;
   label: string;
   type: 'success' | 'error' | 'warning';
