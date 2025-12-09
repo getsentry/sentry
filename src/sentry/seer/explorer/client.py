@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any, Literal
 
 import orjson
@@ -117,6 +118,28 @@ class SeerExplorerClient:
             on_completion=NotifyOnComplete
         )
         run_id = client.start_run("Analyze this issue")
+
+        # WITH CODE EDITING AND PR CREATION
+        client = SeerExplorerClient(
+            organization,
+            user,
+            enable_coding=True,  # Enable code editing tools
+        )
+
+        run_id = client.start_run("Fix the null pointer exception in auth.py")
+        state = client.get_run(run_id, blocking=True)
+
+        # Check if agent made code changes and if they need to be pushed
+        has_changes, is_synced = state.has_code_changes()
+        if has_changes and not is_synced:
+            # Push changes to PR (creates new PR or updates existing)
+            state = client.push_changes(run_id)
+
+            # Get PR info for each repo
+            for repo_name in state.get_file_patches_by_repo().keys():
+                pr_state = state.get_pr_state(repo_name)
+                if pr_state and pr_state.pr_url:
+                    print(f"PR created: {pr_state.pr_url}")
     ```
 
         Args:
@@ -128,6 +151,7 @@ class SeerExplorerClient:
             on_completion_hook: Optional `ExplorerOnCompletionHook` class to call when the agent completes. The hook's execute() method receives the organization and run ID. This is called whether or not the agent was successful. Hook classes must be module-level (not nested classes).
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
             is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
+            enable_coding: Enable code editing tools. When disabled, the agent cannot make code changes. Default is False.
     """
 
     def __init__(
@@ -140,6 +164,7 @@ class SeerExplorerClient:
         on_completion_hook: type[ExplorerOnCompletionHook] | None = None,
         intelligence_level: Literal["low", "medium", "high"] = "medium",
         is_interactive: bool = False,
+        enable_coding: bool = False,
     ):
         self.organization = organization
         self.user = user
@@ -149,6 +174,7 @@ class SeerExplorerClient:
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
+        self.enable_coding = enable_coding
 
         # Validate that category_key and category_value are provided together
         if category_key == "" or category_value == "":
@@ -167,6 +193,7 @@ class SeerExplorerClient:
         on_page_context: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> int:
         """
         Start a new Seer Explorer session.
@@ -176,6 +203,7 @@ class SeerExplorerClient:
             on_page_context: Optional context from the user's screen
             artifact_key: Optional key to identify this artifact (required if artifact_schema is provided)
             artifact_schema: Optional Pydantic model to generate a structured artifact
+            metadata: Optional metadata to store with the run (e.g., stopping_point, group_id)
 
         Returns:
             int: The run ID that can be used to fetch results or continue the conversation
@@ -198,6 +226,7 @@ class SeerExplorerClient:
             "user_org_context": collect_user_org_context(self.user, self.organization),
             "intelligence_level": self.intelligence_level,
             "is_interactive": self.is_interactive,
+            "enable_coding": self.enable_coding,
         }
 
         # Add artifact key and schema if provided
@@ -218,6 +247,9 @@ class SeerExplorerClient:
         if self.category_key and self.category_value:
             payload["category_key"] = self.category_key
             payload["category_value"] = self.category_value
+
+        if metadata:
+            payload["metadata"] = metadata
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
@@ -273,6 +305,7 @@ class SeerExplorerClient:
             "insert_index": insert_index,
             "on_page_context": on_page_context,
             "is_interactive": self.is_interactive,
+            "enable_coding": self.enable_coding,
         }
 
         # Add artifact key and schema if provided
@@ -384,3 +417,68 @@ class SeerExplorerClient:
 
         runs = [ExplorerRun(**run) for run in result.get("data", [])]
         return runs
+
+    def push_changes(
+        self,
+        run_id: int,
+        repo_name: str | None = None,
+        poll_interval: float = 2.0,
+        poll_timeout: float = 120.0,
+    ) -> SeerRunState:
+        """
+        Push code changes to PR(s) and wait for completion.
+
+        Creates new PRs or updates existing ones with current file patches.
+        Polls until all PR operations complete.
+
+        Args:
+            run_id: The run ID
+            repo_name: Specific repo to push, or None for all repos with changes
+            poll_interval: Seconds between polls
+            poll_timeout: Maximum seconds to wait
+
+        Returns:
+            SeerRunState: Final state with PR info
+
+        Raises:
+            TimeoutError: If polling exceeds timeout
+            requests.HTTPError: If the Seer API request fails
+        """
+        # Trigger PR creation
+        path = "/v1/automation/explorer/update"
+        payload = {
+            "run_id": run_id,
+            "payload": {
+                "type": "create_pr",
+                "repo_name": repo_name,
+            },
+        }
+        body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(body),
+            },
+        )
+        response.raise_for_status()
+
+        # Poll until PR creation completes
+        start_time = time.time()
+
+        while True:
+            state = fetch_run_status(run_id, self.organization)
+
+            # Check if any PRs are still being created
+            any_creating = any(
+                pr.pr_creation_status == "creating" for pr in state.repo_pr_states.values()
+            )
+
+            if not any_creating:
+                return state
+
+            if time.time() - start_time > poll_timeout:
+                raise TimeoutError(f"PR creation timed out after {poll_timeout}s")
+
+            time.sleep(poll_interval)
