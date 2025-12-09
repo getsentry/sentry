@@ -320,7 +320,6 @@ export default function CustomerDetails() {
   const region = regionMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
 
   const badges: BadgeItem[] = [
-    {name: 'Grace Period', level: 'warning', visible: subscription.isGracePeriod},
     {name: 'Capacity Limit', level: 'warning', visible: subscription.usageExceeded},
     {
       name: 'Suspended',
@@ -439,15 +438,6 @@ export default function CustomerDetails() {
               ),
             },
             onAction: params => onUpdateMutation.mutate({...params}),
-          },
-          {
-            key: 'allowGrace',
-            name: 'Allow Grace Period',
-            help: 'Allow this account to enter a grace period upon next overage.',
-            disabled: subscription.canGracePeriod,
-            disabledReason: 'Account may already be in a grace period',
-            onAction: params =>
-              onUpdateMutation.mutate({...params, canGracePeriod: true}),
           },
           {
             key: 'clearPendingChanges',
