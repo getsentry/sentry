@@ -49,17 +49,6 @@ export function getItemsWithKeys<Value extends SelectKey>(
   });
 }
 
-export function getFlatOptions<Value extends SelectKey>(
-  items: Array<SelectOptionOrSectionWithKey<Value>>
-): Array<SelectOptionWithKey<Value>> {
-  return items.reduce<Array<SelectOptionWithKey<Value>>>((acc, cur) => {
-    if ('options' in cur) {
-      return acc.concat(getFlatOptions(cur.options));
-    }
-    return acc.concat(cur);
-  }, []);
-}
-
 /**
  * Recursively finds the selected option(s) from an options array. Useful for
  * non-flat arrays that contain sections (groups of options).
