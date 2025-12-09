@@ -1327,11 +1327,6 @@ const generateAliases = (
   colors: typeof lightColors
 ) => ({
   /**
-   * Heading text color
-   */
-  headingColor: tokens.content.primary,
-
-  /**
    * Primary text color
    */
   textColor: tokens.content.primary,
