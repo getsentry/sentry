@@ -14,6 +14,8 @@ from sentry.utils.query import RangeQuerySetWrapper
 if TYPE_CHECKING:
     from sentry.db.models.base import BaseModel
 
+ITERATOR_BATCH_SIZE = 10000
+
 
 class BulkDeleteQuery:
     def __init__(
@@ -91,10 +93,14 @@ class BulkDeleteQuery:
             results = cursor.rowcount > 0
 
     def iterator(
-        self, chunk_size: int = 100, batch_size: int = 10000
+        self, chunk_size: int = 100, batch_size: int | None = None
     ) -> Generator[tuple[int, ...]]:
         assert self.days is not None
         assert self.dtfield is not None
+
+        # Setting the default size here to help with testing.
+        if batch_size is None:
+            batch_size = ITERATOR_BATCH_SIZE
 
         cutoff = timezone.now() - timedelta(days=self.days)
         queryset = self.model.objects.filter(**{f"{self.dtfield}__lt": cutoff})
