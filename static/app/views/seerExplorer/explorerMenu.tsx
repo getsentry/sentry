@@ -256,7 +256,7 @@ export function useExplorerMenu({
       // Position below anchor, aligned to right edge
       setMenuPosition({
         top: `${relativeTop + rect.height + spacing}px`,
-        right: `${relativeRight}px`,
+        left: `${relativeRight}px`,
       });
     } else {
       setMenuPosition({
