@@ -68,6 +68,13 @@ class GroupCategory(IntEnum):
 
     AI_DETECTED = 16
 
+    """
+    Issues detected from analysis of uploaded artifacts. This covers
+    both issues detected in a single build (e.g. not 16kb page ready)
+    and those detected between builds (e.g. binary size regression).
+    """
+    PREPROD = 17
+
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
     GroupCategory.ERROR,
