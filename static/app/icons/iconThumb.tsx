@@ -1,24 +1,20 @@
-import {css, useTheme} from '@emotion/react';
-
 import type {SVGIconProps} from './svgIcon';
-import {SvgIcon} from './svgIcon';
+import {convertIconDirectionToAngle, SvgIcon} from './svgIcon';
 
 interface Props extends SVGIconProps {
   direction?: 'up' | 'down';
 }
 
 export function IconThumb({direction = 'up', ...props}: Props) {
-  const theme = useTheme();
-
   return (
     <SvgIcon
       {...props}
-      css={
+      style={
         direction === 'down'
-          ? css`
-              transition: transform 120ms ease-in-out;
-              transform: rotate(${theme.iconDirections[direction]}deg);
-            `
+          ? {
+              transition: 'transform 120ms ease-in-out',
+              transform: `rotate(${convertIconDirectionToAngle(direction)}deg)`,
+            }
           : undefined
       }
     >

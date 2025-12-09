@@ -1,29 +1,19 @@
-import {css, useTheme} from '@emotion/react';
-
 import type {SVGIconProps} from './svgIcon';
-import {SvgIcon} from './svgIcon';
+import {convertIconDirectionToAngle, SvgIcon} from './svgIcon';
 
 export interface ArrowProps extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
 }
 
 export function IconArrow({direction = 'up', ...props}: ArrowProps) {
-  const theme = useTheme();
-
   return (
     <SvgIcon
       {...props}
-      css={
+      style={
         direction
           ? direction === 'down'
-            ? // Down arrows have a zoom issue with Firefox inside of tables due to rotate.
-              // Since arrows are symmetric, scaling to only flip vertically works to fix the issue.
-              css`
-                transform: scale(1, -1);
-              `
-            : css`
-                transform: rotate(${theme.iconDirections[direction]}deg);
-              `
+            ? {transform: 'scale(1, -1)'}
+            : {transform: `rotate(${convertIconDirectionToAngle(direction)}deg)`}
           : undefined
       }
     >

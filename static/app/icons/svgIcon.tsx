@@ -60,3 +60,19 @@ export function useResolvedIconColor(
   }
   return normalizedColor;
 }
+
+type SVGIconDirection = 'up' | 'right' | 'down' | 'left';
+export function convertIconDirectionToAngle(direction: SVGIconDirection): number {
+  switch (direction) {
+    case 'up':
+      return 0;
+    case 'right':
+      return 90;
+    case 'down':
+      return 180;
+    case 'left':
+      return 270;
+    default:
+      return 0;
+  }
+}

@@ -1,7 +1,5 @@
-import {css, useTheme} from '@emotion/react';
-
 import type {SVGIconProps} from './svgIcon';
-import {SvgIcon} from './svgIcon';
+import {convertIconDirectionToAngle, SvgIcon} from './svgIcon';
 
 interface Props extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
@@ -20,16 +18,12 @@ function getChevronPath({isDouble}: Pick<Props, 'isDouble'>) {
 }
 
 export function IconChevron({isDouble, direction = 'up', ...props}: Props) {
-  const theme = useTheme();
-
   return (
     <SvgIcon
       {...props}
-      css={
+      style={
         direction
-          ? css`
-              transform: rotate(${theme.iconDirections[direction]}deg);
-            `
+          ? {transform: `rotate(${convertIconDirectionToAngle(direction)}deg)`}
           : undefined
       }
     >

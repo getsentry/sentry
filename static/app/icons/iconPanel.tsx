@@ -1,21 +1,17 @@
-import {useTheme} from '@emotion/react';
-
 import type {SVGIconProps} from './svgIcon';
-import {SvgIcon} from './svgIcon';
+import {convertIconDirectionToAngle, SvgIcon} from './svgIcon';
 
 interface Props extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
 }
 
 export function IconPanel({direction = 'up', ...props}: Props) {
-  const theme = useTheme();
-
   return (
     <SvgIcon
       {...props}
       style={{
         transform: direction
-          ? `rotate(${theme.iconDirections[direction]}deg)`
+          ? `rotate(${convertIconDirectionToAngle(direction)}deg)`
           : undefined,
       }}
     >
