@@ -95,8 +95,8 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
   const downloadMetricValue = formattedPrimaryMetricDownloadSize(sizeInfo);
 
   // Find matching base metrics for comparison
-  const basePrimarySizeMetric = sizeInfo.base_size_metrics?.find(
-    metric => metric?.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
+  const basePrimarySizeMetric = sizeInfo.base_size_metrics.find(
+    metric => metric.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
   );
 
   // Calculate deltas for install and download sizes
