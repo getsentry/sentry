@@ -25,6 +25,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("replays", "0006_add_bulk_delete_job"),
+        ("sentry", "1011_update_oc_integration_cascade_to_null"),
     ]
 
     operations = [
