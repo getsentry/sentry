@@ -68,7 +68,11 @@ def generate_issue_summary_only(group_id: int) -> None:
     )
 
     group = Group.objects.get(id=group_id)
-    logger.info("Task: generate_issue_summary_only, group_id=%s", group_id)
+    organization = group.project.organization
+    logger.info(
+        "Task: generate_issue_summary_only",
+        extra={"org_id": organization.id, "org_slug": organization.slug},
+    )
     get_issue_summary(
         group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
     )
@@ -92,7 +96,11 @@ def run_automation_only_task(group_id: int) -> None:
     from sentry.seer.autofix.issue_summary import run_automation
 
     group = Group.objects.get(id=group_id)
-    logger.info("Task: run_automation_only_task, group_id=%s", group_id)
+    organization = group.project.organization
+    logger.info(
+        "Task: run_automation_only_task",
+        extra={"org_id": organization.id, "org_slug": organization.slug},
+    )
 
     event = group.get_latest_event()
 
@@ -163,3 +171,13 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
         )
     if len(preferences_to_set) > 0:
         bulk_set_project_preferences(organization_id, preferences_to_set)
+
+    logger.info(
+        "Task: configure_seer_for_existing_org completed",
+        extra={
+            "org_id": organization.id,
+            "org_slug": organization.slug,
+            "projects_configured": len(project_ids),
+            "preferences_set_via_api": len(preferences_to_set),
+        },
+    )
