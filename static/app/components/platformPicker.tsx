@@ -331,7 +331,7 @@ const ClearButton = styled(Button)`
   justify-content: center;
   border-radius: 50%;
   background: ${p => p.theme.background};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`

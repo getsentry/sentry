@@ -880,7 +880,7 @@ const RemovedLines = styled('div')`
 
 const RemovedLine = styled('div')`
   background-color: ${DIFF_COLORS.removedRow};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding: ${space(0.25)} ${space(0.5)};
   white-space: pre-wrap;
 `;
@@ -913,7 +913,7 @@ const SectionTitle = styled('p')`
   margin: ${space(1)} 0;
   font-size: ${p => p.theme.fontSize.md};
   font-weight: bold;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-family: ${p => p.theme.text.family};
 `;
 
@@ -927,6 +927,6 @@ const OverlayTitle = styled('h3')`
   margin: 0 0 ${space(2)} 0;
   font-size: ${p => p.theme.fontSize.md};
   font-weight: bold;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-family: ${p => p.theme.text.family};
 `;

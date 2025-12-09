@@ -436,7 +436,7 @@ const StyledNavItem = styled(Link)<ItemProps>`
   padding: 4px ${space(1)};
   height: 34px;
   align-items: center;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.normal};
   line-height: 177.75%;
