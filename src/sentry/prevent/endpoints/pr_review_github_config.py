@@ -5,7 +5,7 @@ from jsonschema import validate
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -15,7 +15,11 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.prevent.models import PreventAIConfiguration
-from sentry.prevent.types.config import ORG_CONFIG_SCHEMA, PREVENT_AI_CONFIG_DEFAULT
+from sentry.prevent.types.config import (
+    ORG_CONFIG_SCHEMA,
+    PREVENT_AI_CONFIG_DEFAULT,
+    PREVENT_AI_CONFIG_DEFAULT_V1,
+)
 
 
 class PreventAIConfigPermission(OrganizationPermission):
@@ -59,7 +63,11 @@ class OrganizationPreventGitHubConfigEndpoint(OrganizationEndpoint):
             integration_id=github_org_integrations[0].integration_id,
         ).first()
 
-        response_data: dict[str, Any] = deepcopy(PREVENT_AI_CONFIG_DEFAULT)
+        default_config = PREVENT_AI_CONFIG_DEFAULT
+        if features.has("organizations:code-review-run-per-commit", organization):
+            default_config = PREVENT_AI_CONFIG_DEFAULT_V1
+
+        response_data: dict[str, Any] = deepcopy(default_config)
         if config:
             response_data["organization"] = config.data
 
