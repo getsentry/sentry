@@ -217,6 +217,8 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
 
     @sentry_sdk.trace
     def post(self, request: Request, organization: Organization, method_name: str) -> Response:
+        sentry_sdk.set_tag("rpc.method", method_name)
+
         if not self._is_allowed(organization):
             raise NotFound()
 
