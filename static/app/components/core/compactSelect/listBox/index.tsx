@@ -4,6 +4,7 @@ import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {
   ListLabel,
@@ -89,6 +90,11 @@ interface ListBoxProps
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
+  /**
+   * Number of options above which virtualization will be enabled.
+   * @default 100
+   */
+  virtualThreshold?: number;
 }
 
 const EMPTY_SET = new Set<never>();
@@ -120,9 +126,12 @@ export function ListBox({
   showSectionHeaders = true,
   showDetails = true,
   onAction,
+  virtualThreshold = 100,
   ...props
 }: ListBoxProps) {
   const listElementRef = useRef<HTMLUListElement>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
+
   const {listBoxProps, labelProps} = useListBox(
     {
       ...props,
@@ -163,50 +172,117 @@ export function ListBox({
     listState.selectionManager.setFocusedKey(null);
   };
 
+  const isVirtualized = listItems.length > virtualThreshold;
+
+  const virtualizer = useVirtualizer({
+    count: listItems.length,
+    getScrollElement: () => parentRef?.current,
+    estimateSize: index => {
+      const item = listItems[index];
+      if (item?.value?.details) {
+        return 50;
+      }
+      return 30;
+    },
+    enabled: true,
+  });
+
+  const virtualizedItems = virtualizer.getVirtualItems();
+
+  // useLayoutEffect(() => {
+  //   if (overlayIsOpen) {
+  //     virtualizer.scrollToIndex(100);
+  //   }
+  // }, [virtualizer, overlayIsOpen]);
+
   return (
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
-      <ListWrap
-        {...mergedProps}
-        onKeyDown={onKeyDown}
-        onMouseLeave={onMouseLeave}
-        ref={mergeRefs(listElementRef, ref)}
+      <div
+        ref={parentRef}
+        style={{
+          height: '100%',
+          overflowY: 'auto',
+        }}
       >
-        {overlayIsOpen &&
-          listItems.map(item => {
-            if (item.type === 'section') {
-              return (
-                <ListBoxSection
-                  key={item.key}
-                  item={item}
-                  listState={listState}
-                  hiddenOptions={hiddenOptions}
-                  onToggle={onSectionToggle}
-                  size={size}
-                  showSectionHeaders={showSectionHeaders}
-                  showDetails={showDetails}
-                />
-              );
-            }
+        <div
+          style={{
+            height: virtualizer.getTotalSize(),
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          <ListWrap
+            {...mergedProps}
+            style={{
+              ...mergedProps.style,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              transform: `translateY(${virtualizedItems[0]?.start ?? 0}px)`,
+            }}
+            onKeyDown={onKeyDown}
+            onMouseLeave={onMouseLeave}
+            ref={mergeRefs(listElementRef, ref)}
+          >
+            {overlayIsOpen &&
+              virtualizedItems.map(virtualRow => {
+                const item = listItems[virtualRow.index]!;
+                if (item.type === 'section') {
+                  return (
+                    <ListBoxSection
+                      ref={virtualizer.measureElement}
+                      data-index={virtualRow.index}
+                      key={item.key}
+                      item={item}
+                      listState={listState}
+                      hiddenOptions={hiddenOptions}
+                      onToggle={onSectionToggle}
+                      size={size}
+                      showSectionHeaders={showSectionHeaders}
+                      showDetails={showDetails}
+                    />
+                  );
+                }
 
-            return (
-              <ListBoxOption
-                key={item.key}
-                item={item}
-                listState={listState}
-                size={size}
-                showDetails={showDetails}
-              />
-            );
-          })}
+                return (
+                  <Fragment key={item.key}>
+                    <ListBoxOption
+                      key={item.key}
+                      ref={virtualizer.measureElement}
+                      data-index={virtualRow.index}
+                      item={item}
+                      listState={listState}
+                      size={size}
+                      showDetails={showDetails}
+                    />
+                    {/* <ListBoxOption */}
+                    {/*  ref={{current: undefined}} */}
+                    {/*  key={item.key} */}
+                    {/*  item={item} */}
+                    {/*  listState={listState} */}
+                    {/*  size={size} */}
+                    {/*  showDetails={showDetails} */}
+                    {/*  aria-hidden="true" */}
+                    {/*  role="presentation" */}
+                    {/*  style={{ */}
+                    {/*    visibility: 'hidden', */}
+                    {/*  }} */}
+                    {/* /> */}
+                  </Fragment>
+                );
+              })}
 
-        {!hasSearch && hiddenOptions.size > 0 && (
-          <SizeLimitMessage>
-            {sizeLimitMessage ?? t('Use search to find more options…')}
-          </SizeLimitMessage>
-        )}
-      </ListWrap>
+            {!hasSearch && hiddenOptions.size > 0 && (
+              <SizeLimitMessage>
+                {sizeLimitMessage ?? t('Use search to find more options…')}
+              </SizeLimitMessage>
+            )}
+          </ListWrap>
+        </div>
+      </div>
     </Fragment>
   );
 }

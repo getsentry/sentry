@@ -89,6 +89,12 @@ interface BaseListProps<Value extends SelectKey>
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
+
+  /**
+   * Number of options above which virtualization will be enabled.
+   * @default 100
+   */
+  virtualThreshold?: number;
 }
 
 /**

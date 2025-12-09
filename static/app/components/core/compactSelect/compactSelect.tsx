@@ -60,6 +60,7 @@ export function CompactSelect<Value extends SelectKey>({
   isOptionDisabled,
   sizeLimit,
   sizeLimitMessage,
+  virtualThreshold,
 
   // Control props
   grid,
@@ -143,6 +144,7 @@ export function CompactSelect<Value extends SelectKey>({
         size={size}
         sizeLimit={sizeLimit}
         sizeLimitMessage={sizeLimitMessage}
+        virtualThreshold={virtualThreshold}
         aria-labelledby={triggerId}
       >
         {(item: SelectOptionOrSectionWithKey<Value>) => {
@@ -167,7 +169,7 @@ export function CompactSelect<Value extends SelectKey>({
       </List>
 
       {/* Only displayed when List is empty */}
-      <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage>
+      {/* <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage> */}
     </Control>
   );
 }
