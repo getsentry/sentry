@@ -314,11 +314,20 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
       }
     }
 
+    // Collect 'product' files separately for tree building
+    const productFiles: string[] = [];
+
     // Group files by section and subcategory
     for (const file of files) {
       const loc = inferStoryLocation(file);
       const sectionData = hierarchy.get(loc.section);
       if (!sectionData) {
+        continue;
+      }
+
+      // Special handling for 'product' section - collect files for tree building
+      if (loc.section === 'product') {
+        productFiles.push(file);
         continue;
       }
 
@@ -335,8 +344,19 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
       }
     }
 
+    // Build tree structure for 'product'/'Shared' section
+    if (productFiles.length > 0) {
+      const productTree = buildProductTree(productFiles);
+      hierarchy.set('product', {stories: productTree});
+    }
+
     // Sort stories within each section/subcategory
-    for (const [, sectionData] of hierarchy) {
+    for (const [section, sectionData] of hierarchy) {
+      // Skip 'product' section - already sorted by buildProductTree
+      if (section === 'product') {
+        continue;
+      }
+
       sectionData.stories.sort((a, b) => a.label.localeCompare(b.label));
       if (sectionData.subcategories) {
         for (const [, nodes] of sectionData.subcategories) {
@@ -449,6 +469,75 @@ function formatName(name: string) {
         : word.charAt(0).toUpperCase() + word.slice(1)
     )
     .join(' ');
+}
+
+/**
+ * Builds a nested tree structure from flat product/shared file paths.
+ * Strips 'app/' prefix and creates intermediate folder nodes.
+ * Example: "app/components/forms/form.stories.tsx" → components/forms/Form
+ */
+function buildProductTree(files: string[]): StoryTreeNode[] {
+  const root = new StoryTreeNode('root', '', '');
+
+  for (const file of files) {
+    // Strip 'app/' prefix, keep rest of path
+    const normalizedPath = file.replace(/^app\//, '');
+    const parts = normalizedPath.split('/');
+
+    let currentNode = root;
+
+    // Build folder hierarchy (all parts except filename)
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i];
+
+      if (!currentNode.children[part]) {
+        // Create intermediate folder node
+        const folderPath = parts.slice(0, i + 1).join('/');
+        currentNode.children[part] = new StoryTreeNode(
+          part,
+          folderPath,
+          file // Keep original file path for routing
+        );
+      }
+
+      currentNode = currentNode.children[part];
+    }
+
+    // Add the actual story file as leaf node
+    const name = inferComponentName(file);
+    currentNode.children[name] = new StoryTreeNode(formatName(name), 'product', file);
+  }
+
+  // Sort recursively: folders first, then alphabetically
+  sortTreeRecursively(root);
+
+  // Return top-level children (components/, utils/, etc.)
+  return Object.values(root.children);
+}
+
+function sortTreeRecursively(node: StoryTreeNode) {
+  const entries = Object.entries(node.children).sort((a, b) => {
+    const aIsFolder = Object.keys(a[1].children).length > 0;
+    const bIsFolder = Object.keys(b[1].children).length > 0;
+
+    // Folders before files
+    if (aIsFolder && !bIsFolder) {
+      return -1;
+    }
+    if (!aIsFolder && bIsFolder) {
+      return 1;
+    }
+
+    // Alphabetically within same type
+    return a[0].localeCompare(b[0]);
+  });
+
+  node.children = Object.fromEntries(entries);
+
+  // Recursively sort children
+  for (const child of Object.values(node.children)) {
+    sortTreeRecursively(child);
+  }
 }
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
