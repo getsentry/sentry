@@ -25,7 +25,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.prevent.models import PreventAIConfiguration
-from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT
+from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT, PREVENT_AI_CONFIG_DEFAULT_V1
 from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
@@ -154,7 +154,13 @@ class PreventPrReviewResolvedConfigsEndpoint(Endpoint):
             integration_id=github_org_integrations[0].integration_id,
         ).first()
 
-        response_data: dict[str, Any] = deepcopy(PREVENT_AI_CONFIG_DEFAULT)
+        organization = Organization.objects.filter(id=sentry_org_id).first()
+
+        default_config = PREVENT_AI_CONFIG_DEFAULT
+        if features.has("organizations:code-review-run-per-commit", organization):
+            default_config = PREVENT_AI_CONFIG_DEFAULT_V1
+
+        response_data: dict[str, Any] = deepcopy(default_config)
         if config:
             response_data["organization"] = config.data
 

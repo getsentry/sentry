@@ -1218,7 +1218,6 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'projects/',
-          name: t('Seer'),
           component: make(() => import('getsentry/views/seerAutomation/projects')),
         },
         {
@@ -1230,6 +1229,11 @@ function buildRoutes(): RouteObject[] {
           path: 'onboarding/',
           name: t('Configure Seer for All Projects'),
           component: make(() => import('getsentry/views/seerAutomation/onboarding')),
+        },
+        {
+          path: 'onboarding-v2/',
+          name: t('Setup Wizard'),
+          component: make(() => import('getsentry/views/seerAutomation/onboardingV2')),
         },
       ],
     },
