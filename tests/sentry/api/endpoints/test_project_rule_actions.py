@@ -22,7 +22,6 @@ from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -155,7 +154,6 @@ class ProjectRuleActionsEndpointTest(APITestCase):
         assert response.status_code == 400
 
 
-@with_feature("organizations:workflow-engine-single-process-workflows")
 class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest):
     endpoint = "sentry-api-0-project-rule-actions"
     method = "POST"
