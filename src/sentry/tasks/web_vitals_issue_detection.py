@@ -224,7 +224,7 @@ def get_highest_opportunity_page_vitals_for_project(
     The number of samples is set by SAMPLES_COUNT_THRESHOLD.
     """
     try:
-        project = Project.objects.get(id=project_id).select_related("organization")
+        project = Project.objects.select_related("organization").get(id=project_id)
     except Project.DoesNotExist:
         logger.exception(
             "Project does not exist; cannot fetch transactions", extra={"project_id": project_id}
