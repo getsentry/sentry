@@ -1448,12 +1448,12 @@ export class VirtualizedViewManager {
   }
 
   drawSpanText(span_text: this['span_text'][0], node: BaseNode | undefined) {
-    if (!span_text) {
+    if (!span_text || !node) {
       return;
     }
 
     const [inside, text_transform] = this.computeSpanTextPlacement(
-      node!,
+      node,
       span_text.space,
       span_text.text
     );
@@ -1464,8 +1464,7 @@ export class VirtualizedViewManager {
 
     // We don't color the text white for missing instrumentation nodes
     // as the text will be invisible on the light background.
-    span_text.ref.style.color =
-      inside && node && node.makeBarColor(this.theme).type === 'dark' ? 'white' : '';
+    span_text.ref.style.color = node.makeBarTextColor(!!inside, this.theme);
     span_text.ref.style.transform = `translateX(${text_transform}px)`;
   }
 

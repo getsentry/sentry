@@ -262,8 +262,8 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     return true;
   }
 
-  makeBarColor(theme: Theme): {color: string; type: 'light' | 'dark'} {
-    return {color: pickBarColor(this.op, theme), type: 'dark'};
+  makeBarColor(theme: Theme): string {
+    return pickBarColor(this.op, theme);
   }
 
   analyticsName(): string {

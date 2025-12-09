@@ -268,9 +268,8 @@ describe('TransactionNode', () => {
 
       const result = node.makeBarColor(ThemeFixture());
 
-      expect(typeof result.color).toBe('string');
-      expect(result.color).toBeDefined();
-      expect(result.type).toBe('dark');
+      expect(typeof result).toBe('string');
+      expect(result).toBeDefined();
     });
   });
 

@@ -162,12 +162,12 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     return true;
   }
 
-  makeBarColor(theme: Theme): {color: string; type: 'light' | 'dark'} {
+  makeBarColor(theme: Theme): string {
     if (this.errors.size > 0) {
-      return {color: theme.red300, type: 'dark'};
+      return theme.red300;
     }
 
-    return {color: theme.blue300, type: 'dark'};
+    return theme.blue300;
   }
 
   resolveValueFromSearchKey(_key: string): any | null {

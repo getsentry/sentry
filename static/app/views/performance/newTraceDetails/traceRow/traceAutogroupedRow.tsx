@@ -65,7 +65,7 @@ export function TraceAutogroupedRow(
           entire_space={props.node.space}
           errors={props.node.errors}
           virtualized_index={props.virtualized_index}
-          color={props.node.makeBarColor(props.theme).color}
+          color={props.node.makeBarColor(props.theme)}
           node_spaces={props.node.autogroupedSegments}
           occurrences={props.node.occurrences}
         />
