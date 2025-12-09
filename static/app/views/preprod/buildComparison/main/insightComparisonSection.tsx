@@ -26,7 +26,7 @@ const FILE_DIFF_INSIGHT_TYPES = [
   'hermes_debug_info',
   'unnecessary_files',
   'webp_optimization',
-  'localized_strings_comments',
+  'localized_strings_minify',
   'small_files',
   'main_binary_exported_symbols',
   'audio_compression',
