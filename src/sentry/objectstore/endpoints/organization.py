@@ -34,10 +34,8 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.FOUNDATIONAL_STORAGE
     parser_classes = ()  # don't attempt to parse request data, so we can access the raw body in wsgi.input
-    permission_classes = ()  # Disable auth for local testing
 
     def _check_flag(self, request: Request, organization: Organization) -> Response | None:
-        return None
         if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
             return Response(
                 {
@@ -130,7 +128,6 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
 
 def get_target_url(path: str) -> str:
     base = options.get("objectstore.config")["base_url"].rstrip("/")
-    base = "http://localhost:8888"
     # `path` should be a relative path, only grab that part
     path = urlparse(path).path
     # Simply concatenate base and path, without resolving URLs
