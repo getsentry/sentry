@@ -18,7 +18,10 @@ import {
   type SearchBarDataProviderProps,
   type WidgetBuilderSearchBarProps,
 } from 'sentry/views/dashboards/datasetConfig/base';
-import {getTableSortOptions} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import {
+  getTableSortOptions,
+  getTimeseriesSortOptions,
+} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
@@ -155,6 +158,8 @@ export const TraceMetricsConfig: DatasetConfig<EventsTimeSeriesResponse, never> 
   useSearchBarDataProvider: useTraceMetricsSearchBarDataProvider,
   filterSeriesSortOptions,
   getTableFieldOptions: getPrimaryFieldOptions,
+  getTimeseriesSortOptions: (organization, widgetQuery, tags) =>
+    getTimeseriesSortOptions(organization, widgetQuery, tags, getPrimaryFieldOptions),
   // We've forced the sort options to use the table sort options UI because
   // we only want to allow sorting by selected aggregates.
   getTableSortOptions: (organization, widgetQuery) =>
