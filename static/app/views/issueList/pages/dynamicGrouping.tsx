@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, lazy, Suspense, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -36,6 +36,7 @@ import {
   IconEllipsis,
   IconFire,
   IconFix,
+  IconPlay,
   IconRefresh,
   IconSeer,
   IconStar,
@@ -52,11 +53,18 @@ import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
+
+import useReplaysForCluster from './useReplaysForCluster';
+
+// Lazy load ClusterReplays to avoid loading replay dependencies until needed
+const LazyClusterReplays = lazy(() => import('./clusterReplays'));
 
 const CLUSTERS_PER_PAGE = 20;
 
@@ -359,12 +367,21 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const [activeTab, setActiveTab] = useState<'summary' | 'root-cause' | 'issues'>(
-    'summary'
-  );
+  const location = useLocation<ReplayListLocationQuery>();
+  const [activeTab, setActiveTab] = useState<
+    'summary' | 'root-cause' | 'issues' | 'replays'
+  >('summary');
   const clusterStats = useClusterStats(cluster.group_ids);
   const {copy} = useCopyToClipboard();
   const {projects: allProjects} = useLegacyStore(ProjectsStore);
+
+  // Fetch replays for this cluster
+  const {replayCount, isFetching: isFetchingReplays} = useReplaysForCluster({
+    groupIds: cluster.group_ids,
+    location,
+    orgSlug: organization.slug,
+  });
+  const hasReplays = replayCount > 0;
 
   // Get projects for this cluster
   const clusterProjects = useMemo(() => {
@@ -593,6 +610,20 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
           <Tab isActive={activeTab === 'issues'} onClick={() => setActiveTab('issues')}>
             {t('Preview Issues')}
           </Tab>
+          {(hasReplays || isFetchingReplays) && (
+            <Tab
+              isActive={activeTab === 'replays'}
+              onClick={() => setActiveTab('replays')}
+            >
+              <Flex align="center" gap="xs">
+                <IconPlay size="xs" />
+                {t('Replays')}
+                {!isFetchingReplays && replayCount > 0 && (
+                  <ReplayCountBadge>{replayCount}</ReplayCountBadge>
+                )}
+              </Flex>
+            </Tab>
+          )}
         </TabBar>
         <TabContent>
           {activeTab === 'summary' && (
@@ -629,6 +660,17 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
               </Text>
             ))}
           {activeTab === 'issues' && <ClusterIssues groupIds={cluster.group_ids} />}
+          {activeTab === 'replays' && (
+            <Suspense
+              fallback={
+                <Flex align="center" justify="center" style={{minHeight: 200}}>
+                  <LoadingIndicator mini />
+                </Flex>
+              }
+            >
+              <LazyClusterReplays groupIds={cluster.group_ids} />
+            </Suspense>
+          )}
         </TabContent>
       </TabSection>
 
@@ -1330,6 +1372,20 @@ const Tab = styled('button')<{isActive: boolean}>`
 
 const TabContent = styled('div')`
   padding: ${space(2)} ${space(3)};
+`;
+
+const ReplayCountBadge = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 ${space(0.75)};
+  min-width: 18px;
+  height: 18px;
+  font-size: ${p => p.theme.fontSize.xs};
+  font-weight: 600;
+  background: ${p => p.theme.purple100};
+  color: ${p => p.theme.purple400};
+  border-radius: 10px;
 `;
 
 // Zone 4: Footer with actions
