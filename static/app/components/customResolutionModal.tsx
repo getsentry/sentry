@@ -9,6 +9,7 @@ import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSe
 import {ExternalLink} from 'sentry/components/core/link';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import configStore from 'sentry/stores/configStore';
 import type {Release} from 'sentry/types/release';
@@ -187,7 +188,9 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
               )}
               openInNewTab
             >
-              {t('View release details')}
+              <Flex align="center" gap="xs">
+                {t('View release')} <IconOpen size="xs" />
+              </Flex>
             </ExternalLink>
           ) : (
             // Placeholder to maintain layout when no version is selected
