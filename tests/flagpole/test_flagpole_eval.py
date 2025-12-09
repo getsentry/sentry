@@ -5,7 +5,7 @@ from unittest import mock
 import pytest
 import yaml
 
-from flagpole import Feature
+from flagpole import Feature, OwnerInfo
 from flagpole.conditions import EqualsCondition, Segment
 from flagpole.evaluation_context import EvaluationContext
 from flagpole.flagpole_eval import evaluate_flag, get_arguments, read_feature
@@ -161,6 +161,66 @@ class TestReadFeature:
                 read_feature("missing-feature", temp_file)
         finally:
             Path(temp_file).unlink()
+
+
+class TestOwnerInfo:
+    """Test OwnerInfo dataclass and Feature with OwnerInfo owner."""
+
+    def test_feature_with_owner_info(self):
+        """Test creating a Feature with OwnerInfo as owner."""
+        owner = OwnerInfo(team="test-team", email="owner@sentry.io")
+        feature = Feature(
+            name="test-feature",
+            owner=owner,
+            enabled=True,
+            segments=[Segment(name="test-segment", rollout=100, conditions=[])],
+        )
+
+        assert isinstance(feature.owner, OwnerInfo)
+        assert feature.owner.team == "test-team"
+        assert feature.owner.email == "owner@sentry.io"
+
+    def test_feature_with_owner_info_no_email(self):
+        """Test creating a Feature with OwnerInfo without email."""
+        owner = OwnerInfo(team="test-team")
+        feature = Feature(
+            name="test-feature",
+            owner=owner,
+            enabled=True,
+            segments=[Segment(name="test-segment", rollout=100, conditions=[])],
+        )
+
+        assert isinstance(feature.owner, OwnerInfo)
+        assert feature.owner.team == "test-team"
+        assert feature.owner.email is None
+
+    def test_feature_from_dict_with_owner_object(self):
+        """Test parsing a Feature from dict with owner as object."""
+        config_dict = {
+            "enabled": True,
+            "owner": {"team": "test-team", "email": "owner@sentry.io"},
+            "segments": [{"name": "test-segment", "rollout": 100, "conditions": []}],
+        }
+
+        feature = Feature.from_feature_dictionary("test-feature", config_dict)
+
+        assert isinstance(feature.owner, OwnerInfo)
+        assert feature.owner.team == "test-team"
+        assert feature.owner.email == "owner@sentry.io"
+
+    def test_feature_from_dict_with_owner_object_no_email(self):
+        """Test parsing a Feature from dict with owner object without email."""
+        config_dict = {
+            "enabled": True,
+            "owner": {"team": "test-team"},
+            "segments": [{"name": "test-segment", "rollout": 100, "conditions": []}],
+        }
+
+        feature = Feature.from_feature_dictionary("test-feature", config_dict)
+
+        assert isinstance(feature.owner, OwnerInfo)
+        assert feature.owner.team == "test-team"
+        assert feature.owner.email is None
 
 
 class TestEvaluateFlag:
