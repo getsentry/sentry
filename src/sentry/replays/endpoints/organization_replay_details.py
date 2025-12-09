@@ -32,11 +32,6 @@ def _query_replay_urls_eap(
     organization_id: int,
 ) -> list[str]:
     """Query URLs for a replay from EAP breadcrumb events."""
-    from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query
-
-    from sentry.replays.lib.eap import read as eap_read
-    from sentry.replays.lib.eap.snuba_transpiler import RequestMeta, Settings
-
     replay_id_no_dashes = replay_id.replace("-", "")
 
     select = [
