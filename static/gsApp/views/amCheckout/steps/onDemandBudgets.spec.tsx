@@ -10,7 +10,7 @@ import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibr
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as SubscriptionType} from 'getsentry/types';
-import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {AddOnCategory, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout';
 
 describe('OnDemandBudgets AM Checkout', () => {
@@ -161,6 +161,19 @@ describe('OnDemandBudgets AM Checkout', () => {
       method: 'PUT',
       body: {},
     });
+
+    // set all add-ons as unavailable so we don't include them in API call
+    subscription.addOns = {
+      ...subscription.addOns,
+      [AddOnCategory.SEER]: {
+        ...subscription.addOns?.[AddOnCategory.SEER]!,
+        isAvailable: false,
+      },
+      [AddOnCategory.LEGACY_SEER]: {
+        ...subscription.addOns?.[AddOnCategory.LEGACY_SEER]!,
+        isAvailable: false,
+      },
+    };
 
     createWrapper({subscription});
 

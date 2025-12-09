@@ -16,6 +16,7 @@ import {DataCategory} from 'sentry/types/core';
 import {
   getPlanCategoryName,
   getReservedBudgetDisplayName,
+  getSingularCategoryName,
   hasCategoryFeature,
   isByteCategory,
   listDisplayNames,
@@ -257,6 +258,50 @@ describe('getPlanCategoryName', () => {
     expect(getPlanCategoryName({plan, category: DataCategory.MONITOR_SEATS})).toBe(
       'Cron monitors'
     );
+  });
+
+  it('should title case category if specified', () => {
+    expect(
+      getPlanCategoryName({plan, category: DataCategory.MONITOR_SEATS, title: true})
+    ).toBe('Cron Monitors');
+    expect(getPlanCategoryName({plan, category: DataCategory.ERRORS, title: true})).toBe(
+      'Errors'
+    );
+  });
+
+  it('should display spans as accepted spans for DS', () => {
+    expect(
+      getPlanCategoryName({
+        plan,
+        category: DataCategory.SPANS,
+        hadCustomDynamicSampling: true,
+      })
+    ).toBe('Accepted spans');
+  });
+});
+
+describe('getSingularCategoryName', () => {
+  const plan = PlanDetailsLookupFixture('am3_team');
+
+  it('should capitalize category', () => {
+    expect(getSingularCategoryName({plan, category: DataCategory.TRANSACTIONS})).toBe(
+      'Transaction'
+    );
+    expect(getSingularCategoryName({plan, category: DataCategory.PROFILE_DURATION})).toBe(
+      'Continuous profile hour'
+    );
+    expect(getSingularCategoryName({plan, category: DataCategory.MONITOR_SEATS})).toBe(
+      'Cron monitor'
+    );
+  });
+
+  it('should title case category if specified', () => {
+    expect(
+      getSingularCategoryName({plan, category: DataCategory.MONITOR_SEATS, title: true})
+    ).toBe('Cron Monitor');
+    expect(
+      getSingularCategoryName({plan, category: DataCategory.ERRORS, title: true})
+    ).toBe('Error');
   });
 
   it('should display spans as accepted spans for DS', () => {

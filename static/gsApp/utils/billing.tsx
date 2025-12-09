@@ -898,6 +898,34 @@ export function checkIsAddOn(
 }
 
 /**
+ * Check if a data category is a child category of an add-on.
+ * If `checkReserved` is true, the category is only considered a child if it has a reserved volume of 0 or RESERVED_BUDGET_QUOTA.
+ * If `checkReserved` is false, the category is considered a child if it is included in `dataCategories` for any available add-on.
+ */
+export function checkIsAddOnChildCategory(
+  subscription: Subscription,
+  category: DataCategory,
+  checkReserved: boolean
+) {
+  const parentAddOn = Object.values(subscription.addOns ?? {})
+    .filter(addOn => addOn.isAvailable)
+    .find(addOn => addOn.dataCategories.includes(category));
+  if (!parentAddOn) {
+    return false;
+  }
+
+  if (checkReserved) {
+    const metricHistory = subscription.categories[category];
+    if (!metricHistory) {
+      return false;
+    }
+    return [RESERVED_BUDGET_QUOTA, 0].includes(metricHistory.reserved ?? 0);
+  }
+
+  return true;
+}
+
+/**
  * Get the billed DataCategory for an add-on or DataCategory.
  */
 export function getBilledCategory(
