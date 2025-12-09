@@ -720,7 +720,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ),
             "autoEnableCodeReview": bool(
                 obj.get_option(
-                    "sentry:auto_open_prs",
+                    "sentry:auto_enable_code_review",
                     AUTO_ENABLE_CODE_REVIEW,
                 )
             ),
