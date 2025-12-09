@@ -5,7 +5,7 @@ export interface TodoItem {
   status: 'pending' | 'in_progress' | 'completed';
 }
 
-interface ExplorerFilePatch {
+export interface ExplorerFilePatch {
   patch: FilePatch;
   repo_name: string;
 }
@@ -22,10 +22,17 @@ export interface RepoPRState {
   title?: string;
 }
 
+export interface Artifact {
+  data: Record<string, unknown> | null;
+  key: string;
+  reason: string;
+}
+
 export interface Block {
   id: string;
   message: Message;
   timestamp: string;
+  artifacts?: Artifact[];
   file_patches?: ExplorerFilePatch[];
   loading?: boolean;
   pr_commit_shas?: Record<string, string>;
@@ -41,7 +48,6 @@ export interface ToolLink {
 
 interface ToolResult {
   tool_call_id: string;
-  // other fields are unused for now.
 }
 
 export interface ToolCall {
