@@ -37,7 +37,7 @@ export interface RootCauseArtifact {
   reproduction_steps?: string[];
 }
 
-export interface SolutionStep {
+interface SolutionStep {
   description: string;
   title: string;
 }
@@ -59,12 +59,12 @@ export interface ImpactAssessmentArtifact {
   one_line_description: string;
 }
 
-export interface SuspectCommit {
+interface SuspectCommit {
   description: string;
   sha: string;
 }
 
-export interface SuggestedAssignee {
+interface SuggestedAssignee {
   email: string;
   name: string;
   why: string;
@@ -75,14 +75,11 @@ export interface TriageArtifact {
   suspect_commit?: SuspectCommit | null;
 }
 
-// Re-export Artifact from seerExplorer/types
-export type {Artifact} from 'sentry/views/seerExplorer/types';
-
 /**
  * State returned from the Explorer autofix endpoint.
  * This extends the SeerExplorer types with autofix-specific data.
  */
-export interface ExplorerAutofixState {
+interface ExplorerAutofixState {
   blocks: Block[];
   run_id: number;
   status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
@@ -98,7 +95,7 @@ export interface ExplorerAutofixState {
 /**
  * Response from the autofix endpoint.
  */
-export interface ExplorerAutofixResponse {
+interface ExplorerAutofixResponse {
   autofix: ExplorerAutofixState | null;
 }
 
