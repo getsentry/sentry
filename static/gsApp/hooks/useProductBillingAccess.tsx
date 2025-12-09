@@ -4,10 +4,6 @@ import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetada
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {getParentAddOn} from 'getsentry/utils/billing';
 
-interface ProductBillingAccess {
-  hasAccess: boolean;
-}
-
 /**
  * Hook to check if the org has billing access to the given product.
  * An org may have billing access to a product if the org has an active product trial for the product,
@@ -15,8 +11,9 @@ interface ProductBillingAccess {
  * explicitly bought/enabled the product.
  *
  * @param product - The data category associated with the product to check access for
+ * @returns True if the org has billing access to the given product, false otherwise.
  */
-export function useProductBillingAccess(product: DataCategory): ProductBillingAccess {
+export function useProductBillingAccess(product: DataCategory): boolean {
   const subscription = useSubscription();
   const parentProduct = getParentAddOn(subscription, product, true);
 
@@ -27,8 +24,8 @@ export function useProductBillingAccess(product: DataCategory): ProductBillingAc
   );
 
   if (!subscription) {
-    return {hasAccess: false};
+    return false;
   }
 
-  return {hasAccess: isEnabled};
+  return isEnabled;
 }

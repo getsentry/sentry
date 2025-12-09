@@ -345,9 +345,7 @@ type ReactHooks = {
     isError: boolean;
     isLoading: boolean;
   };
-  'react-hook:use-product-billing-access': (product: DataCategory) => {
-    hasAccess: boolean;
-  };
+  'react-hook:use-product-billing-access': (product: DataCategory) => boolean;
 };
 
 /**
