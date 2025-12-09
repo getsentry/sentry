@@ -8,6 +8,7 @@ from django.core.cache import cache
 from django.db.models import ProtectedError
 from django.utils import timezone
 
+from sentry.db.models.fields.bounded import I32_MAX
 from sentry.issues.grouptype import FeedbackGroup, ProfileFileIOGroupType, ReplayHydrationErrorType
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
@@ -123,6 +124,16 @@ class GroupTest(TestCase, SnubaTestCase):
             get_group_with_redirect(
                 duplicate_group.qualified_short_id, organization=group.project.organization
             )
+
+    def test_times_seen_accepts_values_beyond_i32_limit(self) -> None:
+        larger_than_i32 = I32_MAX + 5
+        group = self.create_group(times_seen=larger_than_i32)
+        assert group.times_seen == larger_than_i32
+
+        updated_value = larger_than_i32 + 1
+        group.update(times_seen=updated_value)
+        group.refresh_from_db()
+        assert group.times_seen == updated_value
 
     def test_invalid_shared_id(self) -> None:
         with pytest.raises(Group.DoesNotExist):
