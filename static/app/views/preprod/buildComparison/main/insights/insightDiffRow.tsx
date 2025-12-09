@@ -49,7 +49,6 @@ export function InsightDiffRow({
     return {new: newCount, unresolved: unresolvedCount, resolved: resolvedCount};
   }, [insight.status, allDiffItems]);
 
-  // TODO
   const totalSavingsChangePercentage =
     insight.total_savings_change === 0
       ? '0.00'

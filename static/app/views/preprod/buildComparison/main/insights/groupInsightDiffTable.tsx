@@ -40,7 +40,6 @@ interface GroupInsightItemDiffTableProps {
   groupDiffItems: DiffItem[];
 }
 
-// TODO: Test
 // This table is very similar to FileInsightItemDiffTable, but shows child items in a group. Should remain separate.
 export function GroupInsightItemDiffTable({
   groupDiffItems,

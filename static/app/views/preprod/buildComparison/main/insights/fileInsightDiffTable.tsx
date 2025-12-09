@@ -40,7 +40,7 @@ interface FileInsightItemDiffTableProps {
   fileDiffItems: DiffItem[];
 }
 
-// TODO: Test
+// This table is very similar  to FileInsightItemDiffTable, but shows only files. Should remain separate.
 export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTableProps) {
   const [sort, setSort] = useState<DiffTableSort>({
     field: 'size_diff',
@@ -89,7 +89,6 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
   const lastPageIndex = Math.max(totalPages - 1, 0);
   const safeCurrentPage = Math.min(currentPage, lastPageIndex);
   const startIndex = safeCurrentPage * ITEMS_PER_PAGE;
-  // TODO: Handle child count
   const currentDiffItems = sortedDiffItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   const showPagination = totalPages > 1;
 
