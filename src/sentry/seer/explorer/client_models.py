@@ -121,6 +121,7 @@ class SeerRunState(BaseModel):
     updated_at: str
     pending_user_input: PendingUserInput | None = None
     repo_pr_states: dict[str, RepoPRState] = {}
+    metadata: dict[str, Any] | None = None
 
     class Config:
         extra = "allow"
