@@ -164,6 +164,36 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert response.data["previousEventID"] == str(self.event_a.event_id)
         assert response.data["nextEventID"] is None
 
+    def test_negated_contains_ip_query(self) -> None:
+        fingerprint = ["group-contains"]
+        excluded_event = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "environment": "production",
+                "timestamp": before_now(minutes=5).isoformat(),
+                "fingerprint": fingerprint,
+                "user": {"ip_address": "212.63.124.24"},
+            },
+            project_id=self.project_1.id,
+        )
+        included_event = self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "environment": "production",
+                "timestamp": before_now(minutes=1).isoformat(),
+                "fingerprint": fingerprint,
+                "user": {"ip_address": "10.0.0.1"},
+            },
+            project_id=self.project_1.id,
+        )
+
+        url = f"/api/0/issues/{excluded_event.group.id}/events/latest/"
+        query = "!user.ip:\uf00dContains\uf00d[212.63.124.24,72.152.84.13]"
+        response = self.client.get(url, {"query": query}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(included_event.event_id)
+
 
 class GroupEventDetailsHelpfulEndpointTest(
     GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase, OccurrenceTestMixin
