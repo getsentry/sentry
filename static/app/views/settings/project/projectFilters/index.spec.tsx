@@ -116,12 +116,12 @@ describe('ProjectFilters', () => {
 
     expect(
       await screen.findByRole('checkbox', {
-        name: 'Safari Version 11 and lower',
+        name: 'Safari Version 15 and lower',
       })
     ).toBeChecked();
 
     expect(
-      screen.getByRole('checkbox', {name: 'Firefox Version 66 and lower'})
+      screen.getByRole('checkbox', {name: 'Firefox Version 110 and lower'})
     ).not.toBeChecked();
   });
 
@@ -133,7 +133,7 @@ describe('ProjectFilters', () => {
 
     await userEvent.click(
       await screen.findByRole('checkbox', {
-        name: 'Firefox Version 66 and lower',
+        name: 'Firefox Version 110 and lower',
       })
     );
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
@@ -146,7 +146,7 @@ describe('ProjectFilters', () => {
 
     // Toggle filter off
     await userEvent.click(
-      await screen.findByRole('checkbox', {name: 'Firefox Version 66 and lower'})
+      await screen.findByRole('checkbox', {name: 'Firefox Version 110 and lower'})
     );
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual(['ie', 'safari']);
   });
