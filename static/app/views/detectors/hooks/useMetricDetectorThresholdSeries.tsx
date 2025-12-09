@@ -255,7 +255,7 @@ export function useMetricDetectorThresholdSeries({
           markArea: createThresholdMarkArea(
             theme.green300,
             displayResolution,
-            resolution.type === DataConditionType.GREATER
+            resolution.type !== DataConditionType.GREATER
           ),
           data: [],
         };
