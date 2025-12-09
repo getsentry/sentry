@@ -104,24 +104,31 @@ class BulkDeleteQuery:
         if self.organization_id:
             queryset = queryset.filter(organization_id=self.organization_id)  # type: ignore[misc]
 
-        step = batch_size
         order_field = "id"
+        descending = False
         if self.order_by:
-            if self.order_by[0] == "-":
-                step = -batch_size
+            if self.order_by.startswith("-"):
+                descending = True
                 order_field = self.order_by[1:]
             else:
                 order_field = self.order_by
 
-        # values_list returns tuples of (id, order_field_value)
-        queryset_values: QuerySet[Any, tuple[Any, Any]] = queryset.values_list("id", order_field)
+        step = -batch_size if descending else batch_size
+        use_keyset = order_field not in ("id", "pk")
+        order_by_fields = [order_field, "id"] if use_keyset else ["id"]
 
+        def result_value_getter(item: tuple[Any, ...]) -> dict[str, Any]:
+            if use_keyset:
+                return {"id": item[0], order_field: item[1]}
+            return {"id": item[0]}
+
+        values_qs: QuerySet[Any, tuple[Any, ...]] = queryset.values_list("id", order_field)
         wrapper = RangeQuerySetWrapper(
-            queryset_values,
+            values_qs,
             step=step,
-            order_by=order_field,
-            override_unique_safety_check=True,
-            result_value_getter=lambda item: item[1],
+            order_by=order_by_fields,
+            use_compound_keyset_pagination=use_keyset,
+            result_value_getter=result_value_getter,
             query_timeout_retries=10,
         )
 

@@ -107,9 +107,10 @@ class RangeQuerySetWrapper[V]:
         step: int = 1000,
         limit: int | None = None,
         min_id: int | None = None,
-        order_by: str = "pk",
+        order_by: str | Sequence[str] = "pk",
+        use_compound_keyset_pagination: bool = False,
         callbacks: Sequence[Callable[[list[V]], None]] = (),
-        result_value_getter: Callable[[V], int] | None = None,
+        result_value_getter: Callable[[V], Any] | None = None,
         override_unique_safety_check: bool = False,
         query_timeout_retries: int | None = None,
         retry_delay_seconds: float = 0.5,
@@ -125,49 +126,103 @@ class RangeQuerySetWrapper[V]:
             raise InvalidQuerySetError
 
         self.limit = limit
-        if limit:
-            self.step = min(limit, abs(step))
-            self.desc = step < 0
-        else:
-            self.step = abs(step)
-            self.desc = step < 0
+        self.desc = step < 0
+        self.step = min(limit, abs(step)) if limit else abs(step)
         self.queryset = queryset
         self.min_value = min_id
-        self.order_by = order_by
+        self.use_compound_keyset_pagination = use_compound_keyset_pagination
         self.callbacks = callbacks
         self.result_value_getter = result_value_getter
         self.query_timeout_retries = query_timeout_retries
         self.retry_delay_seconds = retry_delay_seconds
 
-        order_by_col = queryset.model._meta.get_field(order_by if order_by != "pk" else "id")
-        if not override_unique_safety_check and (
-            not isinstance(order_by_col, Field) or not order_by_col.unique
-        ):
-            # TODO: Ideally we could fix this bug and support ordering by a non unique col
-            raise InvalidQuerySetError(
-                "Order by column must be unique, otherwise this wrapper can get "
-                "stuck in an infinite loop. If you're sure your data is unique, "
-                "you can disable this by passing "
-                "`override_unique_safety_check=True`"
+        # Normalize order_by to a list, converting "pk" to "id" for raw SQL compatibility
+        if isinstance(order_by, str):
+            fields = [order_by]
+        else:
+            fields = list(order_by)
+        self.order_by_fields = ["id" if f == "pk" else f for f in fields]
+
+        if use_compound_keyset_pagination and min_id is not None:
+            raise InvalidQuerySetError("min_id is not supported with compound keyset pagination")
+
+        # Validate that the last order_by field is unique to prevent infinite loops
+        if not override_unique_safety_check:
+            last_field = self.order_by_fields[-1]
+            order_by_col = queryset.model._meta.get_field(last_field)
+            if not isinstance(order_by_col, Field) or not order_by_col.unique:
+                raise InvalidQuerySetError(
+                    "The last order_by field must be unique to prevent infinite loops. "
+                    "If you're sure your data is unique, disable this check with "
+                    "`override_unique_safety_check=True`"
+                )
+
+    def _apply_keyset_filter(
+        self, queryset: QuerySet[Any, V], cursor_values: dict[str, Any]
+    ) -> QuerySet[Any, V]:
+        """Apply compound cursor filter using PostgreSQL ROW comparison."""
+        fields_sql = ", ".join(f'"{f}"' for f in self.order_by_fields)
+        placeholders = ", ".join(["%s"] * len(self.order_by_fields))
+        values = [cursor_values[f] for f in self.order_by_fields]
+
+        if self.desc:
+            condition = f"ROW({fields_sql}) < ROW({placeholders})"
+        else:
+            condition = f"ROW({fields_sql}) > ROW({placeholders})"
+
+        return queryset.extra(where=[condition], params=values)
+
+    def _get_cursor_values(self, result: V) -> dict[str, Any]:
+        if self.result_value_getter:
+            value = self.result_value_getter(result)
+            # Handle both single value (backward compat) and dict returns
+            if isinstance(value, dict):
+                return value
+            # Single value: wrap in dict with the first order_by field
+            return {self.order_by_fields[0]: value}
+        return {field: getattr(result, field) for field in self.order_by_fields}
+
+    def _execute_query(self, results_qs: QuerySet[Any, V]) -> list[V]:
+        if self.query_timeout_retries is not None:
+            retries = self.query_timeout_retries
+            retry_policy = ConditionalRetryPolicy(
+                test_function=lambda attempt, exc: attempt <= retries
+                and isinstance(exc, OperationalError),
+                delay_function=lambda i: self.retry_delay_seconds,
             )
+            return retry_policy(lambda: list(results_qs[0 : self.step]))
+        return list(results_qs[0 : self.step])
+
+    def _apply_cursor_filter(
+        self, queryset: QuerySet[Any, V], cursor_values: dict[str, Any]
+    ) -> QuerySet[Any, V]:
+        if self.use_compound_keyset_pagination:
+            return self._apply_keyset_filter(queryset, cursor_values)
+
+        # Single field: use >= / <=
+        field = self.order_by_fields[0]
+        value = cursor_values[field]
+        if self.desc:
+            return queryset.filter(**{f"{field}__lte": value})
+        return queryset.filter(**{f"{field}__gte": value})
 
     def __iter__(self) -> Iterator[V]:
-        if self.min_value is not None:
-            cur_value = self.min_value
+        if self.desc:
+            order_clause = [f"-{f}" for f in self.order_by_fields]
         else:
-            cur_value = None
+            order_clause = list(self.order_by_fields)
+        queryset = self.queryset.order_by(*order_clause)
+
+        cursor_values: dict[str, Any] | None = None
+
+        if not self.use_compound_keyset_pagination and self.min_value is not None:
+            cursor_values = {self.order_by_fields[0]: self.min_value}
 
         num = 0
         limit = self.limit
+        start = 0
+        last_object_pk: Any = None
 
-        queryset = self.queryset
-        if self.desc:
-            queryset = queryset.order_by("-%s" % self.order_by)
-        else:
-            queryset = queryset.order_by(self.order_by)
-
-        # we implement basic cursor pagination for columns that are not unique
-        last_object_pk: int | None = None
         has_results = True
         while has_results:
             if limit and num >= limit:
@@ -175,55 +230,43 @@ class RangeQuerySetWrapper[V]:
 
             start = num
 
-            if cur_value is None:
+            if cursor_values is None:
                 results_qs = queryset
-            elif self.desc:
-                results_qs = queryset.filter(**{"%s__lte" % self.order_by: cur_value})
             else:
-                results_qs = queryset.filter(**{"%s__gte" % self.order_by: cur_value})
+                results_qs = self._apply_cursor_filter(queryset, cursor_values)
 
-            if self.query_timeout_retries is not None:
-                retries = self.query_timeout_retries
-                retry_policy = ConditionalRetryPolicy(
-                    test_function=lambda attempt, exc: attempt <= retries
-                    and isinstance(exc, OperationalError),
-                    delay_function=lambda i: self.retry_delay_seconds,
-                )
-                results = retry_policy(lambda: list(results_qs[0 : self.step]))
-            else:
-                results = list(results_qs[0 : self.step])
+            results = self._execute_query(results_qs)
 
             for cb in self.callbacks:
                 cb(results)
 
             for result in results:
-                pk = (
-                    self.result_value_getter(result)
-                    if self.result_value_getter
-                    else getattr(result, "pk")
-                )
-                if last_object_pk is not None and pk == last_object_pk:
-                    continue
+                if not self.use_compound_keyset_pagination:
+                    pk = (
+                        self.result_value_getter(result)
+                        if self.result_value_getter
+                        else getattr(result, "pk")
+                    )
+                    if last_object_pk is not None and pk == last_object_pk:
+                        continue
+                    last_object_pk = pk
 
-                # Need to bind value before yielding, because the caller
-                # may mutate the value and we're left with a bad value.
-                # This is commonly the case if iterating over and
-                # deleting, because a Model.delete() mutates the `id`
-                # to `None` causing the loop to exit early.
+                # Update cursor for next batch
+                cursor_values = self._get_cursor_values(result)
+
                 num += 1
-                last_object_pk = pk
-                cur_value = (
-                    self.result_value_getter(result)
-                    if self.result_value_getter
-                    else getattr(result, self.order_by)
-                )
-
                 yield result
 
-            if cur_value is None:
+                if limit and num >= limit:
+                    break
+
+            if cursor_values is None:
                 break
 
-            has_results = num > start
+            if self.use_compound_keyset_pagination:
+                has_results = bool(results) and len(results) == self.step
+            else:
+                has_results = num > start
 
 
 class RangeQuerySetWrapperWithProgressBar[V](RangeQuerySetWrapper[V]):
