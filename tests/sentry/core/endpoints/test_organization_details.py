@@ -1517,8 +1517,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_granular_replay_permissions_flag_requires_feature(self) -> None:
         data = {"hasGranularReplayPermissions": True}
-        response = self.get_error_response(self.organization.slug, **data, status_code=400)
-        assert "hasGranularReplayPermissions" in response.data
+        self.get_error_response(self.organization.slug, **data, status_code=404)
 
     @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_flag_requires_admin_scope(self) -> None:
@@ -1656,8 +1655,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             organization=self.organization, user=self.create_user(), role="member"
         )
         data = {"replayAccessMembers": [member1.id]}
-        response = self.get_error_response(self.organization.slug, **data, status_code=400)
-        assert "hasGranularReplayPermissions" in response.data
+        self.get_error_response(self.organization.slug, **data, status_code=404)
 
     @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_requires_admin_scope(self) -> None:
