@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Sequence
 from typing import Any, override
 
@@ -14,6 +15,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.environment import Environment
 from sentry.uptime.models import (
+    UptimeRegionScheduleMode,
     UptimeSubscription,
     UptimeSubscriptionDataSourceHandler,
     get_audit_log_data,
@@ -35,7 +37,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     update_uptime_detector,
     update_uptime_subscription,
 )
-from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.types import CheckConfig, UptimeMonitorMode
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.db import atomic_transaction
 from sentry.utils.not_set import NOT_SET
@@ -137,6 +139,94 @@ def _validate_request_size(method, url, headers, body):
         )
 
 
+url = URLField(required=True, max_length=255)
+timeout_ms = serializers.IntegerField(
+    required=True,
+    min_value=1000,
+    max_value=60_000,
+    help_text="The number of milliseconds the request will wait for a response before timing-out.",
+)
+method = serializers.ChoiceField(
+    required=False,
+    choices=UptimeSubscription.SupportedHTTPMethods.choices,
+    help_text="The HTTP method used to make the check request.",
+)
+headers = serializers.JSONField(
+    required=False,
+    help_text="Additional headers to send with the check request.",
+)
+body = serializers.CharField(
+    required=False,
+    allow_null=True,
+    allow_blank=True,
+    help_text="The body to send with the check request.",
+)
+assertion = serializers.JSONField(
+    required=False,
+    help_text="The body to send with the check request.",
+)
+
+
+@extend_schema_serializer()
+class UptimeTestValidator(CamelSnakeSerializer):
+    url = url
+    method = method
+    headers = headers
+    body = body
+    assertion = assertion
+    timeout_ms = timeout_ms
+    region = serializers.CharField(
+        required=True,
+        allow_null=False,
+        allow_blank=False,
+        help_text="The region slug in which to run the assert.",
+    )
+
+    def validate(self, attrs):
+        headers = []
+        method = "GET"
+        body = None
+        url = ""
+
+        _validate_request_size(
+            attrs.get("method", method),
+            attrs.get("url", url),
+            attrs.get("headers", headers),
+            attrs.get("body", body),
+        )
+
+        return attrs
+
+    def validate_url(self, url):
+        return _validate_url(url)
+
+    def validate_headers(self, headers):
+        return _validate_headers(headers)
+
+    def create(self, validated_data):
+        config: CheckConfig = {
+            "subscription_id": uuid.uuid4().hex,
+            "url": validated_data["url"],
+            "interval_seconds": 3600,
+            "timeout_ms": validated_data["timeout_ms"],
+            "trace_sampling": False,
+            # We're only going to run in the one specified region.
+            "active_regions": [validated_data["region"]],
+            "region_schedule_mode": UptimeRegionScheduleMode.ROUND_ROBIN.value,
+        }
+
+        if "method" in validated_data:
+            config["request_method"] = validated_data["method"]
+        if "headers" in validated_data:
+            config["request_headers"] = validated_data["headers"]
+        if "body" in validated_data:
+            config["request_body"] = validated_data["body"]
+        if "assertion" in validated_data:
+            config["assertion"] = validated_data["assertion"]
+
+        return config
+
+
 @extend_schema_serializer()
 class UptimeMonitorValidator(CamelSnakeSerializer):
     name = serializers.CharField(
@@ -160,38 +250,22 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         allow_null=True,
         help_text="Name of the environment to create uptime issues in.",
     )
-    url = URLField(required=True, max_length=255)
+    url = url
     interval_seconds = serializers.ChoiceField(
         required=True,
         choices=UptimeSubscription.IntervalSeconds.choices,
         help_text="Time in seconds between uptime checks.",
     )
-    timeout_ms = serializers.IntegerField(
-        required=True,
-        min_value=1000,
-        max_value=60_000,
-        help_text="The number of milliseconds the request will wait for a response before timing-out.",
-    )
+    timeout_ms = timeout_ms
     mode = serializers.IntegerField(required=False)
-    method = serializers.ChoiceField(
-        required=False,
-        choices=UptimeSubscription.SupportedHTTPMethods.choices,
-        help_text="The HTTP method used to make the check request.",
-    )
-    headers = serializers.JSONField(
-        required=False,
-        help_text="Additional headers to send with the check request.",
-    )
+    method = method
+    headers = headers
     trace_sampling = serializers.BooleanField(
         required=False,
         default=False,
         help_text="When enabled allows check requets to be considered for dowstream performance tracing.",
     )
-    body = serializers.CharField(
-        required=False,
-        allow_null=True,
-        help_text="The body to send with the check request.",
-    )
+    body = body
     recovery_threshold = serializers.IntegerField(
         required=False,
         default=DEFAULT_RECOVERY_THRESHOLD,

@@ -3157,6 +3157,8 @@ UPTIME_REGIONS = [
         slug="default",
         name="Default Region",
         config_redis_cluster=SENTRY_UPTIME_DETECTOR_CLUSTER,
+        # Default to s4s for now.
+        api_endpoint="pop-st-1.uptime-checker.s4s.sentry.internal:80",
     ),
 ]
 UPTIME_CONFIG_PARTITIONS = 128
