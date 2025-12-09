@@ -853,6 +853,7 @@ class _SentryEventData(BaseModel):
 
     title: str
     entries: list[dict]
+    groupID: str | None
     tags: list[dict[str, str | None]] | None = None
 
 
@@ -867,18 +868,20 @@ class TestGetEventDetails(APITransactionTestCase, SnubaTestCase):
             events.append(event)
 
         # Query for the first event.
-        result = get_event_details(
-            organization_id=self.organization.id,
-            event_id=events[0].event_id,
-        )
+        for project_slug in [None, self.project.slug]:
+            result = get_event_details(
+                organization_id=self.organization.id,
+                event_id=events[0].event_id,
+                project_slug=project_slug,
+            )
 
-        assert result is not None
-        assert result["event_id"] == events[0].event_id
-        assert result["event_trace_id"] == events[0].trace_id  # None
-        assert result["project_id"] == self.project.id
-        assert result["project_slug"] == self.project.slug
-        assert isinstance(result["event"], dict)
-        _SentryEventData.parse_obj(result["event"])
+            assert result is not None
+            assert result["event_id"] == events[0].event_id
+            assert result["event_trace_id"] == events[0].trace_id  # None
+            assert result["project_id"] == self.project.id
+            assert result["project_slug"] == self.project.slug
+            assert isinstance(result["event"], dict)
+            _SentryEventData.parse_obj(result["event"])
 
     def test_get_event_details_not_found(self):
         data = load_data("python", timestamp=before_now(minutes=5))
@@ -1055,6 +1058,41 @@ class TestGetIssueAndEventDetails(
 
     def test_get_ie_details_basic_null_issue_id(self):
         self._test_get_ie_details_basic(issue_id_type="none")
+
+    @patch("sentry.models.group.get_recommended_event")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_ie_details_with_project_slug(self, mock_get_tags, mock_get_recommended_event):
+        """Test filtering on project_slug."""
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+
+        # Create events with shared stacktrace (should have same group)
+        events = []
+        for i in range(2):
+            data = load_data("python", timestamp=before_now(minutes=5 - i))
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            event = self.store_event(data=data, project_id=self.project.id)
+            events.append(event)
+
+        mock_get_recommended_event.return_value = events[1]
+
+        group = events[0].group
+        assert isinstance(group, Group)
+
+        result = get_issue_and_event_details(
+            issue_id=str(group.id),
+            organization_id=self.organization.id,
+            selected_event="recommended",
+            project_slug=self.project.slug,
+        )
+        assert result is not None
+        assert isinstance(result["issue"], dict)
+        _IssueMetadata.parse_obj(result["issue"])
+
+        event_dict = result["event"]
+        assert isinstance(event_dict, dict)
+        _SentryEventData.parse_obj(event_dict)
+        assert event_dict["id"] == events[0].event_id
+        assert result["event_id"] == event_dict["id"]
 
     def test_get_ie_details_nonexistent_organization(self):
         """Test returns None when organization doesn't exist."""
@@ -1387,18 +1425,20 @@ class TestGetSampleEvent(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         assert events[2].group_id == group.id
 
         # Call the function with no time range - should default to the group's first and last seen times.
-        result = get_sample_event(
-            organization_id=self.organization.id,
-            issue_id=str(group.id),
-        )
+        for project_slug in [None, self.project.slug]:
+            result = get_sample_event(
+                organization_id=self.organization.id,
+                issue_id=str(group.id),
+                project_slug=project_slug,
+            )
 
-        assert result is not None
-        assert result["event_id"] == events[1].event_id
-        assert result["event_trace_id"] == event1_trace_id
-        assert result["project_id"] == self.project.id
-        assert result["project_slug"] == self.project.slug
-        assert isinstance(result["event"], dict)
-        _SentryEventData.parse_obj(result["event"])
+            assert result is not None
+            assert result["event_id"] == events[1].event_id
+            assert result["event_trace_id"] == event1_trace_id
+            assert result["project_id"] == self.project.id
+            assert result["project_slug"] == self.project.slug
+            assert isinstance(result["event"], dict)
+            _SentryEventData.parse_obj(result["event"])
 
     def test_get_sample_event_with_custom_time_range(self):
         """Test get_sample_event with custom start and end times."""

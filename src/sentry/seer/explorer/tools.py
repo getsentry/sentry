@@ -609,12 +609,18 @@ def _get_event_details_response(event: Event | GroupEvent) -> dict[str, Any]:
     }
 
 
-def get_event_details(*, organization_id: int, event_id: str) -> dict[str, Any] | None:
+def get_event_details(
+    *,
+    organization_id: int,
+    event_id: str,
+    project_slug: str | None = None,
+) -> dict[str, Any] | None:
     """
     Tool to get details for a Sentry event.
 
     Args:
         organization_id: The ID of the organization to query.
+        project_slug: The slug of the project to query. (optional)
         event_id: The full UUID of the event to query.
 
     Returns:
@@ -627,28 +633,42 @@ def get_event_details(*, organization_id: int, event_id: str) -> dict[str, Any] 
     """
     uuid.UUID(event_id)  # Raises ValueError if not valid UUID
     organization = Organization.objects.get(id=organization_id)
-    org_project_ids = list(
-        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values_list(
-            "id", flat=True
-        )
+    project_ids = list(
+        Project.objects.filter(
+            organization=organization,
+            status=ObjectStatus.ACTIVE,
+            **({"slug": project_slug} if project_slug else {}),
+        ).values_list("id", flat=True)
     )
 
-    # We can't use get_event_by_id since we don't know the exact project yet.
-    events_result = eventstore.backend.get_events(
-        filter=eventstore.Filter(
-            event_ids=[event_id],
-            organization_id=organization_id,
-            project_ids=org_project_ids,
-        ),
-        limit=1,
-        tenant_ids={"organization_id": organization_id},
-    )
-    if not events_result:
+    if len(project_ids) == 0:
+        raise NotFound(
+            detail=f"get_event_details: Project not found in organization {organization_id}"
+        )
+    elif len(project_ids) == 1:
+        event = eventstore.backend.get_event_by_id(
+            project_id=project_ids[0],
+            event_id=event_id,
+            tenant_ids={"organization_id": organization_id},
+        )
+    else:
+        events_result = eventstore.backend.get_events(
+            filter=eventstore.Filter(
+                event_ids=[event_id],
+                organization_id=organization_id,
+                project_ids=project_ids,
+            ),
+            limit=1,
+            tenant_ids={"organization_id": organization_id},
+        )
+        event = events_result[0] if events_result else None
+
+    if not event:
         raise NotFound(
             detail=f"get_event_details: Event not found in organization {organization_id}"
         )
 
-    return _get_event_details_response(events_result[0])
+    return _get_event_details_response(event)
 
 
 # Tuples of (total period, interval) (both in sentry stats period format).
@@ -811,6 +831,7 @@ def get_issue_and_event_details(
     organization_id: int,
     issue_id: str | None,
     selected_event: str,
+    project_slug: str | None = None,
 ) -> dict[str, Any] | None:
     """
     Tool to get details for a Sentry issue and one of its associated events. null issue_id can be passed so the
@@ -822,6 +843,7 @@ def get_issue_and_event_details(
         selected_event:
           If issue_id is provided, this is the event to return and must exist in the issue - the options are "oldest", "latest", "recommended", or a UUID.
           If issue_id is not provided, this must be a UUID.
+        project_slug: The slug of the project to query (optional).
 
     Returns:
         A dict containing:
@@ -850,12 +872,14 @@ def get_issue_and_event_details(
         )
         return None
 
-    org_project_ids = list(
-        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values_list(
-            "id", flat=True
-        )
+    project_ids = list(
+        Project.objects.filter(
+            organization=organization,
+            status=ObjectStatus.ACTIVE,
+            **({"slug": project_slug} if project_slug else {}),
+        ).values_list("id", flat=True)
     )
-    if not org_project_ids:
+    if not project_ids:
         return None
 
     event: Event | GroupEvent | None = None
@@ -865,17 +889,25 @@ def get_issue_and_event_details(
     if issue_id is None:
         # If issue_id is not provided, first find the event. Then use this to fetch the group.
         uuid.UUID(selected_event)  # Raises ValueError if not valid UUID
-        # We can't use get_event_by_id since we don't know the exact project yet.
-        events_result = eventstore.backend.get_events(
-            filter=eventstore.Filter(
-                event_ids=[selected_event],
-                organization_id=organization_id,
-                project_ids=org_project_ids,
-            ),
-            limit=1,
-            tenant_ids={"organization_id": organization_id},
-        )
-        if not events_result:
+        if len(project_ids) == 1:
+            event = eventstore.backend.get_event_by_id(
+                project_id=project_ids[0],
+                event_id=selected_event,
+                tenant_ids={"organization_id": organization_id},
+            )
+        else:
+            events_result = eventstore.backend.get_events(
+                filter=eventstore.Filter(
+                    event_ids=[selected_event],
+                    organization_id=organization_id,
+                    project_ids=project_ids,
+                ),
+                limit=1,
+                tenant_ids={"organization_id": organization_id},
+            )
+            event = events_result[0] if events_result else None
+
+        if event is None:
             logger.warning(
                 "Could not find the requested event ID",
                 extra={
@@ -886,8 +918,6 @@ def get_issue_and_event_details(
             )
             return None
 
-        event = events_result[0]
-        assert event is not None
         if event.group is None:
             logger.warning(
                 "Event is not associated with a group",
@@ -901,7 +931,7 @@ def get_issue_and_event_details(
         # Fetch the group from issue_id.
         try:
             if issue_id.isdigit():
-                group = Group.objects.get(project_id__in=org_project_ids, id=int(issue_id))
+                group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
             else:
                 group = Group.objects.by_qualified_short_id(organization_id, issue_id)
 
@@ -1031,6 +1061,7 @@ def get_sample_event(
     issue_id: str,
     start: str | None = None,
     end: str | None = None,
+    project_slug: str | None = None,
 ) -> dict[str, Any] | None:
     """
     Tool to get a sample event for an issue and time range. Events with a trace with 1 or more spans are preferred.
@@ -1040,12 +1071,17 @@ def get_sample_event(
         issue_id: The ID of the issue to query.
         start: The start time of the event.
         end: The end time of the event.
+        project_slug: The slug of the project to query (optional).
     """
     organization = Organization.objects.get(id=organization_id)
 
     # Fetch the group from issue_id.
     if issue_id.isdigit():
-        group = Group.objects.get(project__organization=organization, id=int(issue_id))
+        group = (
+            Group.objects.get(project__slug=project_slug, id=int(issue_id))
+            if project_slug
+            else Group.objects.get(project__organization=organization, id=int(issue_id))
+        )
     else:
         group = Group.objects.by_qualified_short_id(organization_id, issue_id)
 
