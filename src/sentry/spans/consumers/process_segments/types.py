@@ -21,7 +21,7 @@ DEFAULT_SPAN_OP = "default"
 
 
 def get_span_op(span: SpanEvent) -> str:
-    return attribute_value(span, "sentry.op") or DEFAULT_SPAN_OP
+    return attribute_value(span, ATTRIBUTE_NAMES.SENTRY_OP) or DEFAULT_SPAN_OP
 
 
 class CompatibleSpan(SpanEvent, total=True):
