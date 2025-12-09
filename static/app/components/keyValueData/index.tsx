@@ -228,7 +228,7 @@ export const CardPanel = styled(Panel)`
 const Title = styled('div')`
   grid-column: span 2;
   padding: ${space(0.25)} ${space(0.75)};
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 

@@ -628,7 +628,7 @@ const TaskCardWrapper = styled('div')`
 const TaskCardDescription = styled('div')`
   line-height: 20px;
   strong {
-    color: ${p => p.theme.headingColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

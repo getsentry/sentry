@@ -131,7 +131,7 @@ const CardWithoutMargin = styled(Card)`
 `;
 
 const Title = styled('div')`
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   ${p => p.theme.overflowEllipsis};
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */

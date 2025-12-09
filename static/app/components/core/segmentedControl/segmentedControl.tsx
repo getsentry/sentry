@@ -445,7 +445,7 @@ function getTextColor({
           color: ${theme.white};
         `
       : css`
-          color: ${theme.headingColor};
+          color: ${theme.tokens.content.primary};
         `;
   }
 
