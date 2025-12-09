@@ -42,6 +42,7 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     allowSuperuserAccess: false,
     allowSharedIssues: false,
     attachmentsRole: 'member',
+    autoOpenPrs: false,
     availableRoles: [],
     avatar: {
       avatarType: 'default',
