@@ -1,7 +1,8 @@
-import React, {useMemo} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Button} from 'sentry/components/core/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {
@@ -17,7 +18,7 @@ import {
 } from 'sentry/components/events/autofix/utils';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import Placeholder from 'sentry/components/placeholder';
-import {IconCode, IconFix, IconFocus} from 'sentry/icons';
+import {IconCode, IconFix, IconFocus, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -30,6 +31,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 const pulseAnimation = {
   initial: {opacity: 1},
@@ -51,10 +53,69 @@ interface InsightCardObject {
   copyAnalyticsEventName?: string;
   copyText?: string | null;
   copyTitle?: string | null;
+  feedbackType?: 'root_cause' | 'solution' | 'changes';
   icon?: React.ReactNode;
   insightElement?: React.ReactNode;
   isLoading?: boolean;
   onClick?: () => void;
+}
+
+interface CardFeedbackProps {
+  feedbackType: 'root_cause' | 'solution' | 'changes';
+  groupId: string;
+  runId: string;
+}
+
+function CardFeedback({feedbackType, groupId, runId}: CardFeedbackProps) {
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const organization = useOrganization();
+  const user = useUser();
+
+  const handleFeedback = useCallback(
+    (positive: boolean, e: React.MouseEvent) => {
+      e.stopPropagation();
+
+      const analyticsData = {
+        step_type: feedbackType,
+        positive,
+        group_id: groupId,
+        autofix_run_id: runId,
+        user_id: user.id,
+        organization,
+      };
+
+      trackAnalytics('seer.autofix.feedback_submitted', analyticsData);
+      setFeedbackSubmitted(true);
+    },
+    [feedbackType, groupId, runId, organization, user]
+  );
+
+  if (feedbackSubmitted) {
+    return (
+      <FeedbackText onClick={e => e.stopPropagation()}>
+        {t('Thanks!')}
+      </FeedbackText>
+    );
+  }
+
+  return (
+    <FeedbackContainer onClick={e => e.stopPropagation()}>
+      <Button
+        size="zero"
+        borderless
+        icon={<IconThumb direction="up" size="xs" />}
+        onClick={e => handleFeedback(true, e)}
+        aria-label={t('This was helpful')}
+      />
+      <Button
+        size="zero"
+        borderless
+        icon={<IconThumb direction="down" size="xs" />}
+        onClick={e => handleFeedback(false, e)}
+        aria-label={t('This was not helpful')}
+      />
+    </FeedbackContainer>
+  );
 }
 
 export function GroupSummaryWithAutofix({
@@ -157,6 +218,7 @@ export function AutofixSummary({
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const {data: autofixData} = useAutofixData({groupId: group.id});
 
   const seerLink = {
     pathname: location.pathname,
@@ -172,6 +234,7 @@ export function AutofixSummary({
       title: t('Root Cause'),
       insight: rootCauseDescription,
       icon: <IconFocus size="sm" />,
+      feedbackType: 'root_cause',
       onClick: () => {
         trackAnalytics('autofix.summary_root_cause_clicked', {
           organization,
@@ -199,6 +262,7 @@ export function AutofixSummary({
             insight: solutionDescription,
             icon: <IconFix size="sm" />,
             isLoading: solutionIsLoading,
+            feedbackType: 'solution' as const,
             onClick: () => {
               trackAnalytics('autofix.summary_solution_clicked', {
                 organization,
@@ -228,6 +292,7 @@ export function AutofixSummary({
             insight: codeChangesDescription,
             icon: <IconCode size="sm" />,
             isLoading: codeChangesIsLoading,
+            feedbackType: 'changes' as const,
             onClick: () => {
               trackAnalytics('autofix.summary_code_changes_clicked', {
                 organization,
@@ -263,20 +328,31 @@ export function AutofixSummary({
                       <CardTitleIcon>{card.icon}</CardTitleIcon>
                       <CardTitleText>{card.title}</CardTitleText>
                     </CardTitleSpacer>
-                    {card.copyText && card.copyTitle && (
-                      <CopyToClipboardButton
-                        aria-label={t('Copy to clipboard')}
-                        size="xs"
-                        text={card.copyText}
-                        borderless
-                        title={card.copyTitle}
-                        onClick={e => {
-                          e.stopPropagation();
-                        }}
-                        analyticsEventName={card.copyAnalyticsEventName}
-                        analyticsEventKey={card.copyAnalyticsEventKey}
-                      />
-                    )}
+                    <CardActions>
+                      {!card.isLoading &&
+                        card.feedbackType &&
+                        autofixData?.run_id && (
+                          <CardFeedback
+                            feedbackType={card.feedbackType}
+                            groupId={group.id}
+                            runId={autofixData.run_id}
+                          />
+                        )}
+                      {card.copyText && card.copyTitle && (
+                        <CopyToClipboardButton
+                          aria-label={t('Copy to clipboard')}
+                          size="xs"
+                          text={card.copyText}
+                          borderless
+                          title={card.copyTitle}
+                          onClick={e => {
+                            e.stopPropagation();
+                          }}
+                          analyticsEventName={card.copyAnalyticsEventName}
+                          analyticsEventKey={card.copyAnalyticsEventKey}
+                        />
+                      )}
+                    </CardActions>
                   </CardTitle>
                   <CardContent>
                     {card.isLoading ? (
@@ -424,4 +500,22 @@ const CardContent = styled('div')`
       text-decoration: underline;
     }
   }
+`;
+
+const CardActions = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
+const FeedbackContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
+`;
+
+const FeedbackText = styled('span')`
+  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.subText};
+  padding: 0 ${space(0.5)};
 `;
