@@ -56,7 +56,7 @@ function DashboardCard({
         to={to}
         aria-label={title}
       >
-        <InteractionStateLayer as="div" color={theme.textColor} />
+        <InteractionStateLayer as="div" color={theme.tokens.content.primary} />
 
         <CardHeader>
           <CardContent>

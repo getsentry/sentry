@@ -44,11 +44,11 @@ function StripeWrapper({
           variables: {
             borderRadius: theme.borderRadius,
             colorBackground: theme.background,
-            colorText: theme.textColor,
+            colorText: theme.tokens.content.primary,
             colorDanger: theme.danger,
             colorSuccess: theme.success,
             colorWarning: theme.warning,
-            iconcolor: theme.tokens.content.primary,
+            iconColor: theme.tokens.content.primary,
           },
           rules: {
             '.Input': {

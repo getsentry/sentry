@@ -420,7 +420,8 @@ const ReservedVolumes = styled('div')`
 `;
 
 const ReservedItem = styled(Title)<{isIndividualProduct?: boolean}>`
-  color: ${p => (p.isIndividualProduct ? p.theme.textColor : p.theme.subText)};
+  color: ${p =>
+    p.isIndividualProduct ? p.theme.tokens.content.primary : p.theme.subText};
   font-weight: ${p => (p.isIndividualProduct ? 600 : 'normal')};
   text-wrap: balance;
 

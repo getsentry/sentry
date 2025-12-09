@@ -324,7 +324,7 @@ const Section = styled('div')<{layout: NavLayout}>`
 
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   font-weight: ${p.theme.fontWeight.bold};
-  color: ${p.theme.textColor};
+  color: ${p.theme.tokens.content.primary};
   padding: ${space(0.75)} ${space(1)};
   width: 100%;
   ${p.isMobile &&

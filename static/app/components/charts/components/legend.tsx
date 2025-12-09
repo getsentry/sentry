@@ -46,7 +46,7 @@ export default function Legend(
       pageTextStyle: {
         color: theme.tokens.content.primary,
       },
-      pageIconcolor: theme.tokens.content.primary,
+      pageIconColor: theme.tokens.content.primary,
       pageIconInactiveColor: theme.disabled,
       pageIconSize: 8.75,
       pageIcons: {

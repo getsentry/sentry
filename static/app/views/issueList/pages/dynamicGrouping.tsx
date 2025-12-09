@@ -1304,7 +1304,7 @@ const Tab = styled('button')<{isActive: boolean}>`
   padding: ${space(1)} ${space(1.5)};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: 500;
-  color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
+  color: ${p => (p.isActive ? p.theme.tokens.content.primary : p.theme.subText)};
   cursor: pointer;
   position: relative;
   margin-bottom: -1px;

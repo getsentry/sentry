@@ -293,7 +293,7 @@ const StepHeading = styled('h4')<{isActive: boolean}>`
   margin: 0;
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
+  color: ${p => (p.isActive ? p.theme.tokens.content.primary : p.theme.subText)};
 `;
 
 const StepDoneIcon = styled(IconCheckmark, {
@@ -312,7 +312,7 @@ const StepOptionalLabel = styled('div')`
 `;
 
 const ChildrenWrapper = styled('div')<{isActive: boolean}>`
-  color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
+  color: ${p => (p.isActive ? p.theme.tokens.content.primary : p.theme.subText)};
 
   p {
     margin-bottom: ${space(1)};
