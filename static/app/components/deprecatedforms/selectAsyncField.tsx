@@ -8,7 +8,7 @@ import {
 } from 'sentry/components/deprecatedforms/selectField';
 import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
 
-export interface SelectAsyncFieldProps
+interface SelectAsyncFieldProps
   extends SelectFieldProps,
     Omit<SelectAsyncControlProps, 'value' | 'onQuery' | 'onResults'> {
   onQuery?: SelectAsyncControlProps['onQuery'];
