@@ -76,8 +76,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:route-intent-preloading", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables Chonk UI Feedback button
     manager.add("organizations:chonk-ui-feedback", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enables Codecov UI
-    manager.add("organizations:codecov-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Prevent AI code review to run per commit
     manager.add("organizations:code-review-run-per-commit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables Prevent Test Analytics
@@ -335,8 +333,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:relay-otel-logs-endpoint", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables Prevent AI in the Sentry UI
     manager.add("organizations:prevent-ai", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enables Prevent AI Configuration Page in the Sentry UI
-    manager.add("organizations:prevent-ai-configure", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables Prevent team Replay Assertions (Flows) POC
     manager.add("organizations:prevent-flows-poc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable profiling
