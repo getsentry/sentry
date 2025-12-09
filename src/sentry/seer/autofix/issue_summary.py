@@ -322,36 +322,17 @@ def run_automation(
         return
 
     # Check event count for ALERT source with triage-signals-v0-org
-    if source == SeerAutomationSource.ALERT and features.has(
-        "organizations:triage-signals-v0-org", group.organization
-    ):
-        # Use times_seen_with_pending if available (set by post_process), otherwise fall back
-        times_seen = (
-            group.times_seen_with_pending
-            if hasattr(group, "_times_seen_pending")
-            else group.times_seen
-        )
-        if times_seen < 10:
-            logger.info(
-                "Triage signals V0: skipping alert automation, event count < 10",
-                extra={
-                    "group_id": group.id,
-                    "project_slug": group.project.slug,
-                    "event_count": times_seen,
-                },
+    if is_seer_seat_based_tier_enabled(group.organization):
+        if source == SeerAutomationSource.ALERT:
+            # Use times_seen_with_pending if available (set by post_process), otherwise fall back
+            times_seen = (
+                group.times_seen_with_pending
+                if hasattr(group, "_times_seen_pending")
+                else group.times_seen
             )
-            return
+            if times_seen < 10:
+                return
 
-    # Only log for orgs with seat-based Seer tier
-    try:
-        should_log = is_seer_seat_based_tier_enabled(group.organization)
-    except Exception:
-        logger.exception(
-            "Error checking if seat-based Seer tier is enabled", extra={"group_id": group.id}
-        )
-        should_log = False
-
-    if should_log:
         try:
             times_seen = group.times_seen_with_pending
         except (AssertionError, AttributeError):
@@ -403,7 +384,7 @@ def run_automation(
         return
 
     stopping_point = None
-    if features.has("organizations:triage-signals-v0-org", group.organization):
+    if is_seer_seat_based_tier_enabled(group.organization):
         fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
 
         # Fetch user preference and apply as upper bound
