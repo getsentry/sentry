@@ -7,6 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {
   IconAdd,
+  IconClose,
   IconContract,
   IconExpand,
   IconMegaphone,
@@ -16,6 +17,7 @@ import {
 import {t} from 'sentry/locale';
 import PRWidget from 'sentry/views/seerExplorer/prWidget';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
+import {toggleSeerExplorerPanel} from 'sentry/views/seerExplorer/utils';
 
 interface TopBarProps {
   blocks: Block[];
@@ -56,7 +58,7 @@ function TopBar({
   }, [blocks]);
 
   return (
-    <Flex
+    <TopBarContainer
       align="center"
       justify="between"
       width="100%"
@@ -135,18 +137,32 @@ function TopBar({
               : t('Expand to full screen (/max-size)')
           }
         />
+        <Button
+          icon={<IconClose />}
+          onClick={toggleSeerExplorerPanel}
+          priority="transparent"
+          size="sm"
+          aria-label={t('Close panel')}
+          title={t('Close panel')}
+        />
       </Flex>
-    </Flex>
+    </TopBarContainer>
   );
 }
 
 export default TopBar;
 
+const TopBarContainer = styled(Flex)`
+  position: relative;
+`;
+
 const CenterSection = styled(motion.div)`
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1;
   gap: ${p => p.theme.space.lg};
 `;
 
