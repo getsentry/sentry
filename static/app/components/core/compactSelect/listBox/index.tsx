@@ -242,10 +242,11 @@ export function ListBox({
 
 function useVirtualizedItems({
   listItems,
-  virtualThreshold = 100,
+  virtualThreshold,
 }: {listItems: any[]} & Pick<ListBoxProps, 'virtualThreshold'>) {
   const scrollElementRef = useRef<HTMLDivElement>(null);
-  const isVirtualized = listItems.length > virtualThreshold;
+  const isVirtualized =
+    virtualThreshold === undefined ? false : listItems.length > virtualThreshold;
 
   const virtualizer = useVirtualizer({
     count: listItems.length,
