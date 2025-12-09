@@ -60,10 +60,9 @@ function SetPayAsYouGo({
 
   const addOnCategories = useMemo(() => {
     return Object.values(activePlan.addOnCategories).filter(
-      addOnInfo =>
-        !addOnInfo.billingFlag || organization.features.includes(addOnInfo.billingFlag)
+      addOnInfo => subscription.addOns?.[addOnInfo.apiName]?.isAvailable ?? false
     );
-  }, [activePlan, organization.features]);
+  }, [activePlan, subscription.addOns]);
 
   const paygOnlyCategories = useMemo(() => {
     return activePlan.categories.filter(
