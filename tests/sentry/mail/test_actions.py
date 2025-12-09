@@ -216,7 +216,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    def test_full_integration_noone_fallthrough(self) -> None:
+    def test_legacy_full_integration_noone_fallthrough(self) -> None:
         one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
@@ -254,7 +254,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
 
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
-    def test_workflow_engine_full_integration_noone_fallthrough(self) -> None:
+    def test_full_integration_noone_fallthrough(self) -> None:
         from sentry.workflow_engine.typings.notification_action import (
             ActionTarget,
             FallthroughChoiceType,
@@ -290,12 +290,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         action_data = {"fallthrough_type": FallthroughChoiceType.NO_ONE.value}
         action = self.create_action(config=action_config, type="email", data=action_data)
         self.create_data_condition_group_action(condition_group=condition_group, action=action)
-        issue_alert_rule = Rule.objects.create(
-            label="test rule",
-            project=self.project,
-            owner_team_id=self.team.id,
-        )
-        self.create_alert_rule_workflow(workflow=error_workflow, rule_id=issue_alert_rule.id)
 
         with self.tasks():
             post_process_group(
