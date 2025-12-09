@@ -3,7 +3,9 @@
 import styled from '@emotion/styled';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import type {DiffType} from 'sentry/views/preprod/types/appSizeTypes';
+import {IconAdd, IconFix, IconSubtract} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
 
 export const ITEMS_PER_PAGE = 40;
 
@@ -11,6 +13,58 @@ export type DiffTableSort = {
   field: string;
   kind: 'asc' | 'desc';
 };
+
+export type DiffChangeElements = {
+  icon: React.ReactNode;
+  label: string;
+  type: 'success' | 'error' | 'warning';
+};
+
+export function getDiffChangeElements(diffItem: DiffItem): DiffChangeElements {
+  let change: {
+    icon: React.ReactNode;
+    label: string;
+    type: 'success' | 'error' | 'warning';
+  };
+  switch (diffItem.type) {
+    case 'added':
+      change = {
+        type: 'error',
+        label: t('Added'),
+        icon: <IconAdd />,
+      };
+      break;
+    case 'removed':
+      change = {
+        type: 'success',
+        label: t('Removed'),
+        icon: <IconSubtract />,
+      };
+      break;
+    case 'increased':
+      change = {
+        type: 'error',
+        label: t('Increased'),
+        icon: <IconAdd />,
+      };
+      break;
+    case 'decreased':
+      change = {
+        type: 'success',
+        label: t('Decreased'),
+        icon: <IconSubtract />,
+      };
+      break;
+    default:
+      change = {
+        type: 'warning',
+        label: t('Unchanged'),
+        icon: <IconFix />,
+      };
+      break;
+  }
+  return change;
+}
 
 export const DiffTableWithColumns = styled(SimpleTable)<{
   gridTemplateColumns: string;

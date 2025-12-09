@@ -150,7 +150,7 @@ export function getInsightConfig(insightType: string): InsightConfig {
     INSIGHT_CONFIGS.find(config => config.key === insightType) ?? {
       name: insightType,
       key: insightType,
-      description: t('No description available'),
+      description: '',
     }
   );
 }

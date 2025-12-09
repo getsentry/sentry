@@ -9,13 +9,14 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconAdd, IconChevron, IconFix, IconSubtract} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {
   DiffTableChangeAmountCell,
   DiffTableHeader,
   DiffTableWithColumns,
+  getDiffChangeElements,
   ITEMS_PER_PAGE,
   type DiffTableSort,
 } from 'sentry/views/preprod/buildComparison/main/diffTable';
@@ -197,43 +198,14 @@ export function GroupInsightItemDiffTable({
         )}
         {currentDiffItems.map(groupDiffItem => {
           rowIndex++;
-          let changeTypeLabel: string;
-          let changeTypeIcon: React.ReactNode;
-          let changeTypeTagType: 'success' | 'error' | 'warning';
-          switch (groupDiffItem.type) {
-            case 'added':
-              changeTypeTagType = 'error';
-              changeTypeLabel = t('Added');
-              changeTypeIcon = <IconAdd />;
-              break;
-            case 'removed':
-              changeTypeTagType = 'success';
-              changeTypeLabel = t('Removed');
-              changeTypeIcon = <IconSubtract />;
-              break;
-            case 'increased':
-              changeTypeTagType = 'error';
-              changeTypeLabel = t('Increased');
-              changeTypeIcon = <IconAdd />;
-              break;
-            case 'decreased':
-              changeTypeTagType = 'success';
-              changeTypeLabel = t('Decreased');
-              changeTypeIcon = <IconSubtract />;
-              break;
-            default:
-              changeTypeTagType = 'warning';
-              changeTypeLabel = t('Unchanged');
-              changeTypeIcon = <IconFix />;
-              break;
-          }
+          const groupDiffItemChange = getDiffChangeElements(groupDiffItem);
 
           return (
             <Fragment key={rowIndex}>
               <SimpleTable.Row key={rowIndex}>
                 <SimpleTable.RowCell>
-                  <Tag icon={changeTypeIcon} type={changeTypeTagType}>
-                    {changeTypeLabel}
+                  <Tag icon={groupDiffItemChange.icon} type={groupDiffItemChange.type}>
+                    {groupDiffItemChange.label}
                   </Tag>
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
@@ -269,11 +241,12 @@ export function GroupInsightItemDiffTable({
                 </DiffTableChangeAmountCell>
               </SimpleTable.Row>
               {groupDiffItem.diff_items?.map(diffItem => {
+                const diffItemChange = getDiffChangeElements(diffItem);
                 return (
                   <SimpleTable.Row key={++rowIndex}>
                     <SimpleTable.RowCell>
-                      <Tag icon={changeTypeIcon} type={changeTypeTagType}>
-                        {changeTypeLabel}
+                      <Tag icon={diffItemChange.icon} type={diffItemChange.type}>
+                        {diffItemChange.label}
                       </Tag>
                     </SimpleTable.RowCell>
                     <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>

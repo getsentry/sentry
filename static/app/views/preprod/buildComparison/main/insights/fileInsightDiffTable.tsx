@@ -9,13 +9,14 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconAdd, IconChevron, IconFix, IconSubtract} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {
   DiffTableChangeAmountCell,
   DiffTableHeader,
   DiffTableWithColumns,
+  getDiffChangeElements,
   ITEMS_PER_PAGE,
   type DiffTableSort,
 } from 'sentry/views/preprod/buildComparison/main/diffTable';
@@ -24,15 +25,15 @@ import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
 const tableHeaders = [
   {
     key: 'type',
-    label: 'Status',
+    label: t('Status'),
   },
   {
     key: 'path',
-    label: 'Affected Files',
+    label: t('Affected Files'),
   },
   {
     key: 'size_diff',
-    label: 'Potential Savings',
+    label: t('Potential Savings'),
   },
 ];
 
@@ -144,36 +145,7 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
         )}
         {currentDiffItems.map(fileDiffItem => {
           rowIndex++;
-          let changeTypeLabel: string;
-          let changeTypeIcon: React.ReactNode;
-          let changeTypeTagType: 'success' | 'error' | 'warning';
-          switch (fileDiffItem.type) {
-            case 'added':
-              changeTypeTagType = 'error';
-              changeTypeLabel = t('Added');
-              changeTypeIcon = <IconAdd />;
-              break;
-            case 'removed':
-              changeTypeTagType = 'success';
-              changeTypeLabel = t('Removed');
-              changeTypeIcon = <IconSubtract />;
-              break;
-            case 'increased':
-              changeTypeTagType = 'error';
-              changeTypeLabel = t('Increased');
-              changeTypeIcon = <IconAdd />;
-              break;
-            case 'decreased':
-              changeTypeTagType = 'success';
-              changeTypeLabel = t('Decreased');
-              changeTypeIcon = <IconSubtract />;
-              break;
-            default:
-              changeTypeTagType = 'warning';
-              changeTypeLabel = t('Unchanged');
-              changeTypeIcon = <IconFix />;
-              break;
-          }
+          const fileDiffItemChange = getDiffChangeElements(fileDiffItem);
 
           const actualDiff =
             fileDiffItem.size_diff === 0
@@ -185,8 +157,8 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
             <Fragment key={rowIndex}>
               <SimpleTable.Row key={rowIndex}>
                 <SimpleTable.RowCell>
-                  <Tag icon={changeTypeIcon} type={changeTypeTagType}>
-                    {changeTypeLabel}
+                  <Tag icon={fileDiffItemChange.icon} type={fileDiffItemChange.type}>
+                    {fileDiffItemChange.label}
                   </Tag>
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
@@ -200,7 +172,7 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
                             size="zero"
                             text={fileDiffItem.path}
                             style={{flexShrink: 0}}
-                            aria-label="Copy path to clipboard"
+                            aria-label={t('Copy path to clipboard')}
                           />
                         </Flex>
                       ) : null
