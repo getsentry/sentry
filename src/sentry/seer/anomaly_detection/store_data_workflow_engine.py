@@ -5,6 +5,7 @@ import sentry_sdk
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from parsimonious.exceptions import ParseError
+from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.api.bases.organization_events import get_query_columns
@@ -39,6 +40,23 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
+
+
+def _build_store_data_retry() -> Retry | None:
+    retries = settings.SEER_ANOMALY_DETECTION_STORE_DATA_RETRIES
+    if retries <= 0:
+        return None
+
+    return Retry(
+        total=retries,
+        connect=retries,
+        read=retries,
+        backoff_factor=settings.SEER_ANOMALY_DETECTION_STORE_DATA_RETRY_BACKOFF,
+        allowed_methods=frozenset({"POST"}),
+    )
+
+
+STORE_DATA_RETRY = _build_store_data_retry()
 
 
 def _fetch_related_models(
@@ -247,6 +265,8 @@ def send_historical_data_to_seer(
             connection_pool=seer_anomaly_detection_connection_pool,
             path=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
             body=json.dumps(body).encode("utf-8"),
+            timeout=settings.SEER_ANOMALY_DETECTION_STORE_DATA_TIMEOUT,
+            retries=STORE_DATA_RETRY,
         )
     # See SEER_ANOMALY_DETECTION_TIMEOUT in sentry.conf.server.py
     except (TimeoutError, MaxRetryError):
