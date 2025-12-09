@@ -299,7 +299,9 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const [activeTab, setActiveTab] = useState<'summary' | 'issues'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'root-cause' | 'issues'>(
+    'summary'
+  );
   const clusterStats = useClusterStats(cluster.group_ids);
   const {copy} = useCopyToClipboard();
 
@@ -382,24 +384,20 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
 
   const handleDismiss = () => {};
 
+  const allTags = useMemo(() => {
+    return [
+      ...new Set([
+        ...(cluster.error_type_tags ?? []),
+        ...(cluster.code_area_tags ?? []),
+        ...(cluster.service_tags ?? []),
+      ]),
+    ];
+  }, [cluster.error_type_tags, cluster.code_area_tags, cluster.service_tags]);
+
   return (
     <CardContainer>
       <CardHeader>
         {cluster.impact && <ClusterTitle>{cluster.impact}</ClusterTitle>}
-        <StructuredInfo>
-          {cluster.error_type && (
-            <InfoRow>
-              <InfoLabel>{t('Error')}</InfoLabel>
-              <InfoValue>{cluster.error_type}</InfoValue>
-            </InfoRow>
-          )}
-          {cluster.location && (
-            <InfoRow>
-              <InfoLabel>{t('Location')}</InfoLabel>
-              <InfoValue>{cluster.location}</InfoValue>
-            </InfoRow>
-          )}
-        </StructuredInfo>
         <ClusterStats>
           {cluster.fixability_score !== null &&
             cluster.fixability_score !== undefined && (
@@ -473,22 +471,51 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
           <Tab isActive={activeTab === 'summary'} onClick={() => setActiveTab('summary')}>
             {t('Summary')}
           </Tab>
+          <Tab
+            isActive={activeTab === 'root-cause'}
+            onClick={() => setActiveTab('root-cause')}
+          >
+            {t('Root Cause')}
+          </Tab>
           <Tab isActive={activeTab === 'issues'} onClick={() => setActiveTab('issues')}>
             {t('Preview Issues')}
           </Tab>
         </TabBar>
         <TabContent>
-          {activeTab === 'summary' ? (
-            cluster.summary ? (
+          {activeTab === 'summary' && (
+            <Flex direction="column" gap="md">
+              <StructuredInfo>
+                {cluster.error_type && (
+                  <InfoRow>
+                    <InfoLabel>{t('Error')}</InfoLabel>
+                    <InfoValue>{cluster.error_type}</InfoValue>
+                  </InfoRow>
+                )}
+                {cluster.location && (
+                  <InfoRow>
+                    <InfoLabel>{t('Location')}</InfoLabel>
+                    <InfoValue>{cluster.location}</InfoValue>
+                  </InfoRow>
+                )}
+              </StructuredInfo>
+              {allTags.length > 0 && (
+                <TagsContainer>
+                  {allTags.map(tag => (
+                    <TagPill key={tag}>{tag}</TagPill>
+                  ))}
+                </TagsContainer>
+              )}
+            </Flex>
+          )}
+          {activeTab === 'root-cause' &&
+            (cluster.summary ? (
               <DescriptionText>{renderWithInlineCode(cluster.summary)}</DescriptionText>
             ) : (
               <Text size="sm" variant="muted">
-                {t('No summary available')}
+                {t('No root cause analysis available')}
               </Text>
-            )
-          ) : (
-            <ClusterIssues groupIds={cluster.group_ids} />
-          )}
+            ))}
+          {activeTab === 'issues' && <ClusterIssues groupIds={cluster.group_ids} />}
         </TabContent>
       </TabSection>
 
@@ -1167,7 +1194,22 @@ const StructuredInfo = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
-  margin-top: ${space(0.5)};
+`;
+
+const TagsContainer = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(0.5)};
+`;
+
+const TagPill = styled('span')`
+  display: inline-block;
+  padding: ${space(0.25)} ${space(1)};
+  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.subText};
+  background: ${p => p.theme.backgroundSecondary};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const InfoRow = styled('div')`
