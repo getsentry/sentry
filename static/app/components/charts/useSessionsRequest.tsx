@@ -6,6 +6,8 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
 import useOrganization from 'sentry/utils/useOrganization';
 
+const SESSIONS_QUERY_STALE_TIME_MS = 30 * 1000; // cache for 30 seconds
+
 type Props = {
   field: SessionFieldWithOperation[];
   end?: string;
@@ -53,7 +55,7 @@ export function useSessionsRequest({
   const sessionQuery = useApiQuery<SessionApiResponse>(
     [`/organizations/${organization.slug}/sessions/`, {query: baseQueryParams}],
     {
-      staleTime: 0,
+      staleTime: SESSIONS_QUERY_STALE_TIME_MS,
     }
   );
 
