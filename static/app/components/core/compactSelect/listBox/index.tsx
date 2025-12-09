@@ -3,7 +3,7 @@ import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
-import type {CollectionChildren} from '@react-types/shared';
+import type {CollectionChildren, Node} from '@react-types/shared';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {
@@ -243,7 +243,7 @@ export function ListBox({
 function useVirtualizedItems({
   listItems,
   virtualThreshold,
-}: {listItems: any[]} & Pick<ListBoxProps, 'virtualThreshold'>) {
+}: {listItems: Array<Node<any>>} & Pick<ListBoxProps, 'virtualThreshold'>) {
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const isVirtualized =
     virtualThreshold === undefined ? false : listItems.length > virtualThreshold;
