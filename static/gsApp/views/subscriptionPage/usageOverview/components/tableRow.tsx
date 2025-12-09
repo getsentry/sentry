@@ -8,7 +8,7 @@ import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import ProgressRing from 'sentry/components/progressRing';
 import {IconLock, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import useMedia from 'sentry/utils/useMedia';
 
@@ -60,7 +60,7 @@ function UsageOverviewTableRow({
 }: UsageOverviewTableProps & (ChildProductRowProps | ParentProductRowProps)) {
   const theme = useTheme();
   const showPanelInline = useMedia(
-    `(max-width: ${theme.breakpoints[SIDE_PANEL_MIN_SCREEN_BREAKPOINT]})`
+    `(max-width: calc(${theme.breakpoints[SIDE_PANEL_MIN_SCREEN_BREAKPOINT]} - 1px))`
   );
   const [isHovered, setIsHovered] = useState(false);
   const showAdditionalSpendColumn =
@@ -288,8 +288,12 @@ function UsageOverviewTableRow({
                   ) : (
                     `${formattedUsage} / ${shouldFormatWithDisplayName ? formatCategoryQuantityWithDisplayName({dataCategory: billedCategory, quantity: prepaid, formattedQuantity: formattedPrepaid, subscription, options: {capitalize: false}}) : formattedPrepaid}`
                   )}
-                  {formattedFree && ` (${formattedFree} gifted)`}
                 </Text>
+                {formattedFree && (
+                  <Text size="xs">
+                    {tct(` ([formattedFree] gifted)`, {formattedFree})}
+                  </Text>
+                )}
               </Flex>
             </td>
             {showAdditionalSpendColumn && (
