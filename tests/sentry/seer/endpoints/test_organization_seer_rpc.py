@@ -1,7 +1,10 @@
 from django.urls import reverse
 
+from sentry.models.apitoken import ApiToken
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class TestOrganizationSeerRpcEndpoint(APITestCase):
@@ -137,3 +140,29 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         path = self._get_path("definitely_not_a_real_method")
         response = self.client.post(path, data={"args": {}}, format="json")
         assert response.status_code == 404
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_org_read_permission(self) -> None:
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+
+        for scope in ["org:read", "org:write", "org:admin"]:
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                token = ApiToken.objects.create(user=self.user, scope_list=[scope])
+
+            path = self._get_path("get_organization_slug")
+            response = self.client.post(
+                path, data={"args": {}}, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}"
+            )
+
+            assert response.status_code == 200
+            assert response.data == {"slug": self.organization.slug}
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_org_level_method_duplicate_org_id(self) -> None:
+        """Test that organization-level methods work and return correct data"""
+        path = self._get_path("get_organization_slug")
+        response = self.client.post(path, data={"args": {"org_id": 1}}, format="json")
+
+        assert response.status_code == 200
+        assert response.data == {"slug": self.organization.slug}

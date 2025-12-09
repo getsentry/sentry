@@ -1,7 +1,9 @@
+import {Alert} from '@sentry/scraps/alert/alert';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Stack} from '@sentry/scraps/layout/stack';
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -17,6 +19,7 @@ interface Props {
 
 export default function SeerSettingsPageWrapper({children}: Props) {
   const organization = useOrganization();
+  const canWrite = hasEveryAccess(['org:write'], {organization});
 
   return (
     <Feature
@@ -50,6 +53,15 @@ export default function SeerSettingsPageWrapper({children}: Props) {
 
       <Stack gap="lg">
         <SettingsPageTabs />
+
+        {canWrite ? null : (
+          <Alert data-test-id="org-permission-alert" type="warning">
+            {t(
+              'These settings can only be edited by users with the organization owner or manager role.'
+            )}
+          </Alert>
+        )}
+
         {children}
       </Stack>
     </Feature>

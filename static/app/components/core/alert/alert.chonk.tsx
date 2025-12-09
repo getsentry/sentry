@@ -2,7 +2,7 @@ import type {SerializedStyles} from '@emotion/react';
 import {css} from '@emotion/react';
 
 import type {AlertProps} from 'sentry/components/core/alert';
-import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -120,14 +120,14 @@ function generateAlertBackground(
           ${tokens.background} ${width}px,
           ${tokens.background} ${width + 1}px
         ),
-        linear-gradient(${theme.colors.background.primary});
+        linear-gradient(${theme.tokens.background.primary});
       padding-left: calc(${width}px + ${props.theme!.space.lg});
     `;
   }
   return css`
     background-image:
       linear-gradient(${tokens.background}),
-      linear-gradient(${theme.colors.background.primary});
+      linear-gradient(${theme.tokens.background.primary});
   `;
 }
 

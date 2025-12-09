@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import type {InputStylesProps} from 'sentry/components/core/input';
 import {inputStyles} from 'sentry/components/core/input';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 export interface TextAreaProps

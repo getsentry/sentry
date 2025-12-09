@@ -10,6 +10,7 @@ from django.conf import settings
 from pydantic import BaseModel
 
 from sentry import features, options
+from sentry.constants import VALID_PLATFORMS
 from sentry.issues.grouptype import LLMDetectedExperimentalGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -30,7 +31,7 @@ SEER_ANALYZE_ISSUE_ENDPOINT_PATH = "/v1/automation/issue-detection/analyze"
 SEER_TIMEOUT_S = 120
 SEER_RETRIES = 1
 
-NUM_TRANSACTIONS_TO_PROCESS = 10
+NUM_TRANSACTIONS_TO_PROCESS = 20
 LOWER_SPAN_LIMIT = 20
 UPPER_SPAN_LIMIT = 500
 
@@ -70,6 +71,30 @@ class LLMIssueDetectionError(SeerApiError):
         self.trace_id = trace_id
         self.response_data = response_data
         self.error_message = error_message
+
+
+def get_base_platform(platform: str | None) -> str | None:
+    """
+    Extract the base platform from a platform identifier.
+
+    Examples:
+        python-flask -> python
+        python-django -> python
+        javascript-react -> javascript
+        python -> python
+    """
+    if not platform:
+        return None
+
+    if platform in VALID_PLATFORMS:
+        return platform
+
+    base_platform = platform.split("-")[0]
+
+    if base_platform in VALID_PLATFORMS:
+        return base_platform
+
+    return None
 
 
 def create_issue_occurrence_from_detection(
@@ -119,10 +144,12 @@ def create_issue_occurrence_from_detection(
         level="warning",
     )
 
+    platform = get_base_platform(project.platform) or "other"
+
     event_data = {
         "event_id": event_id,
         "project_id": project_id,
-        "platform": project.platform or "other",
+        "platform": platform,
         "received": detection_time.isoformat(),
         "timestamp": detection_time.isoformat(),
         "transaction": transaction_name,
@@ -191,7 +218,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         return
 
     transactions = get_transactions_for_project(
-        project_id, limit=50, start_time_delta={"minutes": 30}
+        project_id, limit=100, start_time_delta={"minutes": 30}
     )
     if not transactions:
         return

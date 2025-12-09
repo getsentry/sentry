@@ -1,22 +1,34 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
+import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Text} from '@sentry/scraps/text';
 
+import Feature from 'sentry/components/acl/feature';
+import {Alert} from 'sentry/components/core/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import GroupList from 'sentry/components/issues/groupList';
+import LoadingError from 'sentry/components/loadingError';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Event, EventOccurrence} from 'sentry/types/event';
 import type {
   MetricCondition,
   SnubaQueryDataSource,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
+import useOrganization from 'sentry/utils/useOrganization';
+import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 import {getConditionDescription} from 'sentry/views/detectors/components/details/metric/detect';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface MetricDetectorEvidenceData {
@@ -55,9 +67,127 @@ function isMetricDetectorEvidenceData(
   return 'type' in dataSource && dataSource.type === 'snuba_query_subscription';
 }
 
+interface RelatedIssuesProps {
+  aggregate: string;
+  eventDateCreated: string | undefined;
+  query: string;
+  timeWindow: number;
+}
+
+function calculateStartOfInterval({
+  eventDateCreated,
+  timeWindow,
+}: {
+  eventDateCreated: string;
+  timeWindow: number;
+}) {
+  const eventTimestamp = new Date(eventDateCreated).getTime();
+  const startOfInterval = new Date(
+    eventTimestamp -
+      // Subtract the time window (which is in seconds)
+      timeWindow * 1000 -
+      // Subtract one extra minute to account for delay in processing
+      60 * 1000
+  );
+  // Start from the beginning of the minute
+  startOfInterval.setSeconds(0, 0);
+
+  return startOfInterval;
+}
+
+function ContributingIssues({
+  query,
+  eventDateCreated,
+  timeWindow,
+  aggregate,
+}: RelatedIssuesProps) {
+  // TODO: When we can link events to open periods, use the end date from the open period
+  const [endDate] = useState(() => new Date().toISOString());
+  const organization = useOrganization();
+
+  if (!eventDateCreated) {
+    return null;
+  }
+
+  const startDate = calculateStartOfInterval({
+    eventDateCreated,
+    timeWindow,
+  }).toISOString();
+  const queryParams = {
+    query: `issue.type:error ${query}`,
+    start: startDate,
+    end: endDate,
+    limit: 5,
+    sort: aggregate === 'count_unique(user)' ? 'user' : 'freq',
+  };
+
+  const discoverUrl = `/organizations/${organization.slug}/discover/results/?${qs.stringify(
+    {
+      query,
+      dataset: SavedQueryDatasets.ERRORS,
+      start: startDate,
+      end: endDate,
+    }
+  )}`;
+
+  function renderErrorMessage({detail}: {detail: string}, retry: () => void) {
+    if (detail === RELATED_ISSUES_BOOLEAN_QUERY_ERROR) {
+      return (
+        <Alert.Container>
+          <Alert
+            type="info"
+            trailingItems={
+              <Feature features="discover-basic">
+                <LinkButton priority="default" size="xs" to={discoverUrl}>
+                  {t('Open in Discover')}
+                </LinkButton>
+              </Feature>
+            }
+          >
+            {t('Contributing issues unavailable for this detector.')}
+          </Alert>
+        </Alert.Container>
+      );
+    }
+    return <LoadingError onRetry={retry} />;
+  }
+
+  return (
+    <InterimSection
+      title={t('Contributing Issues')}
+      type="contributing_issues"
+      actions={
+        <LinkButton
+          size="xs"
+          to={{
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: queryParams,
+          }}
+        >
+          {t('View All')}
+        </LinkButton>
+      }
+    >
+      <GroupListWrapper>
+        <GroupList
+          queryParams={queryParams}
+          canSelectGroups={false}
+          withChart={false}
+          withPagination={false}
+          source="metric-issue-contributing-issues"
+          numPlaceholderRows={3}
+          renderErrorMessage={renderErrorMessage}
+        />
+      </GroupListWrapper>
+    </InterimSection>
+  );
+}
+
 function TriggeredConditionDetails({
   evidenceData,
+  eventDateCreated,
 }: {
+  eventDateCreated: string | undefined;
   evidenceData: MetricDetectorEvidenceData;
 }) {
   const {conditions, dataSources, value} = evidenceData;
@@ -69,71 +199,86 @@ function TriggeredConditionDetails({
     return null;
   }
 
-  const datasetConfig = getDatasetConfig(
-    getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes)
-  );
+  const detectorDataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
+  const datasetConfig = getDatasetConfig(detectorDataset);
+  const isErrorsDataset = detectorDataset === DetectorDataset.ERRORS;
+  const issueSearchQuery = datasetConfig.toSnubaQueryString?.(snubaQuery) ?? '';
 
   return (
-    <InterimSection title="Triggered Condition" type="triggered_condition">
-      <KeyValueList
-        shouldSort={false}
-        data={[
-          {
-            key: 'dataset',
-            value: datasetConfig.name,
-            subject: t('Dataset'),
-          },
-          {
-            key: 'aggregate',
-            value: datasetConfig.fromApiAggregate(snubaQuery.aggregate),
-            subject: t('Aggregate'),
-          },
-          ...(snubaQuery.query
-            ? [
-                {
-                  key: 'query',
-                  value: (
-                    <pre>
-                      <Text size="md">
-                        <ProvidedFormattedQuery query={snubaQuery.query} />
-                      </Text>
-                    </pre>
-                  ),
-                  subject: t('Query'),
-                },
-              ]
-            : []),
-          {
-            key: 'interval',
-            value: getExactDuration(snubaQuery.timeWindow),
-            subject: t('Interval'),
-          },
-          {
-            key: 'condition',
-            value: (
-              <pre>
-                {getConditionDescription({
-                  aggregate: snubaQuery.aggregate,
-                  condition: triggeredCondition,
-                  // TODO: Record detector config in issue occurrence and use that here
-                  config: {
-                    detectionType: 'static',
+    <Fragment>
+      <InterimSection title="Triggered Condition" type="triggered_condition">
+        <KeyValueList
+          shouldSort={false}
+          data={[
+            {
+              key: 'dataset',
+              value: datasetConfig.name,
+              subject: t('Dataset'),
+            },
+            {
+              key: 'aggregate',
+              value: datasetConfig.fromApiAggregate(snubaQuery.aggregate),
+              subject: t('Aggregate'),
+            },
+            ...(snubaQuery.query
+              ? [
+                  {
+                    key: 'query',
+                    value: (
+                      <pre>
+                        <Text size="md">
+                          <ProvidedFormattedQuery query={snubaQuery.query} />
+                        </Text>
+                      </pre>
+                    ),
+                    subject: t('Query'),
                   },
-                })}
-              </pre>
-            ),
-            subject: t('Condition'),
-          },
-          {
-            key: 'value',
-            value,
-            subject: t('Evaluated Value'),
-          },
-        ]}
-      />
-    </InterimSection>
+                ]
+              : []),
+            {
+              key: 'interval',
+              value: getExactDuration(snubaQuery.timeWindow),
+              subject: t('Interval'),
+            },
+            {
+              key: 'condition',
+              value: (
+                <pre>
+                  {getConditionDescription({
+                    aggregate: snubaQuery.aggregate,
+                    condition: triggeredCondition,
+                    // TODO: Record detector config in issue occurrence and use that here
+                    config: {
+                      detectionType: 'static',
+                    },
+                  })}
+                </pre>
+              ),
+              subject: t('Condition'),
+            },
+            {
+              key: 'value',
+              value,
+              subject: t('Evaluated Value'),
+            },
+          ]}
+        />
+      </InterimSection>
+      {isErrorsDataset && (
+        <ContributingIssues
+          query={issueSearchQuery}
+          eventDateCreated={eventDateCreated}
+          timeWindow={snubaQuery.timeWindow}
+          aggregate={snubaQuery.aggregate}
+        />
+      )}
+    </Fragment>
   );
 }
+
+const GroupListWrapper = styled('div')`
+  margin-top: ${space(1)};
+`;
 
 export function MetricDetectorTriggeredSection({
   event,
@@ -153,7 +298,10 @@ export function MetricDetectorTriggeredSection({
         </InterimSection>
       )}
       <ErrorBoundary mini>
-        <TriggeredConditionDetails evidenceData={evidenceData} />
+        <TriggeredConditionDetails
+          evidenceData={evidenceData}
+          eventDateCreated={event.dateCreated}
+        />
       </ErrorBoundary>
     </Fragment>
   );

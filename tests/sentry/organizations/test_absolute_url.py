@@ -73,7 +73,6 @@ from sentry.organizations.absolute_url import customer_domain_path
         ("/prevent/", "/prevent/"),
         ("/prevent/tokens/", "/prevent/tokens/"),
         ("/prevent/tests/", "/prevent/tests/"),
-        ("/prevent/coverage/", "/prevent/coverage/"),
     ),
 )
 def test_customer_domain_path(input: str, expected: str) -> None:

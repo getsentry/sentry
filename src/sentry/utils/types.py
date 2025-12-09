@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from typing import Any as TAny
 from typing import TypeGuard
 
 from yaml.parser import ParserError
@@ -41,7 +42,7 @@ class Type(typing.Generic[T]):
                 return rv
         raise InvalidTypeError(f"{value!r} is not a valid {self!r}")
 
-    def convert(self, value):
+    def convert(self, value: TAny) -> T | None:
         return value
 
     def _default(self) -> T:
@@ -72,7 +73,7 @@ class BoolType(Type[bool]):
     expected_types = (bool,)
     compatible_types = (str, int)
 
-    def convert(self, value):
+    def convert(self, value: TAny) -> bool | None:
         if isinstance(value, int):
             return bool(value)
         value = value.lower()
@@ -91,7 +92,7 @@ class IntType(Type[int]):
     default = 0
     expected_types = (int,)
 
-    def convert(self, value):
+    def convert(self, value: TAny) -> int | None:
         try:
             return int(value)
         except ValueError:
@@ -106,7 +107,7 @@ class FloatType(Type[float]):
     expected_types = (float,)
     compatible_types = (str, int, float)
 
-    def convert(self, value):
+    def convert(self, value: TAny) -> float | None:
         try:
             return float(value)
         except ValueError:
@@ -128,11 +129,11 @@ class DictType(Type[dict]):
     name = "dictionary"
     expected_types = (dict,)
 
-    def _default(self) -> dict[str, typing.Any]:
+    def _default(self) -> dict[str, TAny]:
         # make sure we create a fresh dict each time
         return {}
 
-    def convert(self, value):
+    def convert(self, value: TAny) -> dict[str, TAny] | None:
         try:
             return safe_load(value)
         except (AttributeError, ParserError, ScannerError):
@@ -146,11 +147,11 @@ class SequenceType(Type[list]):
     expected_types = (list,)
     compatible_types = (str, tuple, list)
 
-    def _default(self) -> list[typing.Any]:
+    def _default(self) -> list[TAny]:
         # make sure we create a fresh list each time
         return []
 
-    def convert(self, value):
+    def convert(self, value: TAny) -> list[TAny] | None:
         if isinstance(value, str):
             try:
                 value = safe_load(value)
