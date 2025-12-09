@@ -377,7 +377,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         child=serializers.IntegerField(),
         required=False,
         allow_null=True,
-        help_text="List of organization member IDs that have access to replay data. Only modifiable by owners and managers.",
+        help_text="List of user IDs that have access to replay data. Only modifiable by owners and managers.",
     )
 
     def _has_sso_enabled(self):
@@ -628,53 +628,57 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             changed_data["hasGranularReplayPermissions"] = f"to {new_value}"
 
         if "replayAccessMembers" in data:
-            member_ids = data["replayAccessMembers"]
-            if member_ids is None:
-                member_ids = []
-            current_member_ids = set(
+            user_ids = data["replayAccessMembers"]
+            if user_ids is None:
+                user_ids = []
+
+            current_user_ids = set(
                 OrganizationMemberReplayAccess.objects.filter(
                     organizationmember__organization=org
-                ).values_list("organizationmember_id", flat=True)
+                ).values_list("organizationmember__user_id", flat=True)
             )
-            new_member_ids = set(member_ids)
+            new_user_ids = set(user_ids)
 
-            to_add = new_member_ids - current_member_ids
-            to_remove = current_member_ids - new_member_ids
+            to_add = new_user_ids - current_user_ids
+            to_remove = current_user_ids - new_user_ids
+
             if to_add:
-                valid_member_ids = set(
-                    OrganizationMember.objects.filter(organization=org, id__in=to_add).values_list(
-                        "id", flat=True
-                    )
+                user_to_member = dict(
+                    OrganizationMember.objects.filter(
+                        organization=org, user_id__in=to_add
+                    ).values_list("user_id", "id")
                 )
-                invalid_member_ids = to_add - valid_member_ids
-                if invalid_member_ids:
+                invalid_user_ids = to_add - set(user_to_member.keys())
+                if invalid_user_ids:
                     raise serializers.ValidationError(
                         {
-                            "replayAccessMembers": f"Invalid organization member IDs: {sorted(invalid_member_ids)}"
+                            "replayAccessMembers": f"Invalid user IDs (not members of this organization): {sorted(invalid_user_ids)}"
                         }
                     )
 
                 OrganizationMemberReplayAccess.objects.bulk_create(
                     [
-                        OrganizationMemberReplayAccess(organizationmember_id=member_id)
-                        for member_id in to_add
+                        OrganizationMemberReplayAccess(
+                            organizationmember_id=user_to_member[user_id]
+                        )
+                        for user_id in to_add
                     ],
                     ignore_conflicts=True,
                 )
 
             if to_remove:
                 OrganizationMemberReplayAccess.objects.filter(
-                    organizationmember__organization=org, organizationmember_id__in=to_remove
+                    organizationmember__organization=org, organizationmember__user_id__in=to_remove
                 ).delete()
 
             if to_add or to_remove:
                 changes = []
                 if to_add:
-                    changes.append(f"added {len(to_add)} member(s)")
+                    changes.append(f"added {len(to_add)} user(s)")
                 if to_remove:
-                    changes.append(f"removed {len(to_remove)} member(s)")
+                    changes.append(f"removed {len(to_remove)} user(s)")
                 changed_data["replayAccessMembers"] = (
-                    f"{' and '.join(changes)} (total: {len(new_member_ids)} member(s) with access)"
+                    f"{' and '.join(changes)} (total: {len(new_user_ids)} user(s) with access)"
                 )
 
         if "openMembership" in data:
@@ -903,7 +907,7 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
     )
     replayAccessMembers = serializers.ListField(
         child=serializers.IntegerField(),
-        help_text="A list of organization member IDs who have permission to access replay data. Requires the hasGranularReplayPermissions flag to be true to be enforced.",
+        help_text="A list of user IDs who have permission to access replay data. Requires the hasGranularReplayPermissions flag to be true to be enforced.",
         required=False,
         allow_null=True,
     )

@@ -212,7 +212,7 @@ class DetailedOrganizationSerializerTest(TestCase):
             serializer = DetailedOrganizationSerializer()
             result = serialize(organization, user, serializer, access=acc)
 
-            assert set(result["replayAccessMembers"]) == {member1.id, member2.id}
+            assert set(result["replayAccessMembers"]) == {member1.user_id, member2.user_id}
 
     def test_replay_access_members_empty_when_none_set(self) -> None:
         user = self.create_user()

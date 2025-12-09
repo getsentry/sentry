@@ -767,7 +767,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             context["replayAccessMembers"] = list(
                 OrganizationMemberReplayAccess.objects.filter(
                     organizationmember__organization=obj
-                ).values_list("organizationmember_id", flat=True)
+                ).values_list("organizationmember__user_id", flat=True)
             )
 
         if has_custom_dynamic_sampling(obj, actor=user):

@@ -1542,7 +1542,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
-        data = {"replayAccessMembers": [member1.id, member2.id]}
+        data = {"replayAccessMembers": [member1.user_id, member2.user_id]}
         with outbox_runner():
             self.get_success_response(self.organization.slug, **data)
 
@@ -1555,8 +1555,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         with assume_test_silo_mode_of(AuditLogEntry):
             log = AuditLogEntry.objects.get(organization_id=self.organization.id)
-        assert "added 2 member(s)" in log.data["replayAccessMembers"]
-        assert "total: 2 member(s)" in log.data["replayAccessMembers"]
+        assert "added 2 user(s)" in log.data["replayAccessMembers"]
+        assert "total: 2 user(s)" in log.data["replayAccessMembers"]
 
     @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_remove(self) -> None:
@@ -1571,7 +1571,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
-        data = {"replayAccessMembers": [member1.id]}
+        data = {"replayAccessMembers": [member1.user_id]}
         with outbox_runner():
             self.get_success_response(self.organization.slug, **data)
 
@@ -1584,8 +1584,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         with assume_test_silo_mode_of(AuditLogEntry):
             log = AuditLogEntry.objects.get(organization_id=self.organization.id)
-        assert "removed 1 member(s)" in log.data["replayAccessMembers"]
-        assert "total: 1 member(s)" in log.data["replayAccessMembers"]
+        assert "removed 1 user(s)" in log.data["replayAccessMembers"]
+        assert "total: 1 user(s)" in log.data["replayAccessMembers"]
 
     @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_add_and_remove(self) -> None:
@@ -1602,7 +1602,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
-        data = {"replayAccessMembers": [member2.id, member3.id]}
+        data = {"replayAccessMembers": [member2.user_id, member3.user_id]}
         with outbox_runner():
             self.get_success_response(self.organization.slug, **data)
 
@@ -1615,9 +1615,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         with assume_test_silo_mode_of(AuditLogEntry):
             log = AuditLogEntry.objects.get(organization_id=self.organization.id)
-        assert "added 2 member(s)" in log.data["replayAccessMembers"]
-        assert "removed 1 member(s)" in log.data["replayAccessMembers"]
-        assert "total: 2 member(s)" in log.data["replayAccessMembers"]
+        assert "added 2 user(s)" in log.data["replayAccessMembers"]
+        assert "removed 1 user(s)" in log.data["replayAccessMembers"]
+        assert "total: 2 user(s)" in log.data["replayAccessMembers"]
 
     @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_clear_all(self) -> None:
@@ -1639,14 +1639,14 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         with assume_test_silo_mode_of(AuditLogEntry):
             log = AuditLogEntry.objects.get(organization_id=self.organization.id)
-        assert "removed 1 member(s)" in log.data["replayAccessMembers"]
-        assert "total: 0 member(s)" in log.data["replayAccessMembers"]
+        assert "removed 1 user(s)" in log.data["replayAccessMembers"]
+        assert "total: 0 user(s)" in log.data["replayAccessMembers"]
 
     def test_replay_access_members_requires_feature(self) -> None:
         member1 = self.create_member(
             organization=self.organization, user=self.create_user(), role="member"
         )
-        data = {"replayAccessMembers": [member1.id]}
+        data = {"replayAccessMembers": [member1.user_id]}
         self.get_error_response(self.organization.slug, **data, status_code=404)
 
     @with_feature("organizations:granular-replay-permissions")
@@ -1660,11 +1660,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         other_member = self.create_member(
             organization=self.organization, user=self.create_user(), role="member"
         )
-        data = {"replayAccessMembers": [other_member.id]}
+        data = {"replayAccessMembers": [other_member.user_id]}
         self.get_error_response(self.organization.slug, **data, status_code=403)
 
     @with_feature("organizations:granular-replay-permissions")
-    def test_replay_access_members_invalid_member_ids(self) -> None:
+    def test_replay_access_members_invalid_user_ids(self) -> None:
         nonexistent_id = 999999999
         data = {"replayAccessMembers": [nonexistent_id]}
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
@@ -1677,10 +1677,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         other_org_member = self.create_member(
             organization=other_org, user=self.create_user(), role="member"
         )
-        data = {"replayAccessMembers": [other_org_member.id]}
+        data = {"replayAccessMembers": [other_org_member.user_id]}
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
         assert "replayAccessMembers" in response.data
-        assert str(other_org_member.id) in response.data["replayAccessMembers"]
+        assert str(other_org_member.user_id) in response.data["replayAccessMembers"]
 
     @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_mixed_valid_and_invalid(self) -> None:
@@ -1688,11 +1688,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             organization=self.organization, user=self.create_user(), role="member"
         )
         nonexistent_id = 999999999
-        data = {"replayAccessMembers": [valid_member.id, nonexistent_id]}
+        data = {"replayAccessMembers": [valid_member.user_id, nonexistent_id]}
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
         assert "replayAccessMembers" in response.data
         assert str(nonexistent_id) in response.data["replayAccessMembers"]
-        assert str(valid_member.id) not in response.data["replayAccessMembers"]
+        assert str(valid_member.user_id) not in response.data["replayAccessMembers"]
 
         access_count = OrganizationMemberReplayAccess.objects.filter(
             organizationmember__organization=self.organization
