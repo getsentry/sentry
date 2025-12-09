@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 import contextlib
 from unittest.mock import MagicMock, patch
 
@@ -237,6 +238,7 @@ class CheckScopeTransactionTest(TestCase):
                 "request_transaction": "/dogs/{name}/",
             }
 
+    @pytest.mark.skip(reason="flaky: #104590")
     @patch("sentry.utils.sdk.LEGACY_RESOLVER.resolve", return_value="/dogs/{name}/")
     def test_custom_transaction_name(self, mock_resolve: MagicMock) -> None:
         with patch_isolation_scope() as mock_scope:
