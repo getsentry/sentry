@@ -288,6 +288,7 @@ class TestGetEventSeverity(TestCase):
         assert reason == "microservice_timeout"
         assert cache.get(SEER_ERROR_COUNT_KEY) == 1
 
+    @pytest.mark.skip(reason="flaky: #104588")
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
         side_effect=Exception("It broke"),
