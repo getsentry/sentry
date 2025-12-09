@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import pytest
 import contextlib
 from unittest.mock import MagicMock, patch
 
+import pytest
 import sentry_sdk.scope
 from django.conf import settings
 from django.db import OperationalError
