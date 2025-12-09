@@ -208,7 +208,7 @@ function UsageOverviewTableRow({
 
   return (
     <Fragment>
-      <Row
+      <ProductRow
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         isSelected={isSelected}
@@ -302,9 +302,9 @@ function UsageOverviewTableRow({
           </Fragment>
         )}
         {(isSelected || isHovered) && <SelectedPill isSelected={isSelected} />}
-      </Row>
+      </ProductRow>
       {showPanelInline && isSelected && (
-        <tr>
+        <Row>
           <MobilePanelContainer>
             <ProductBreakdownPanel
               organization={organization}
@@ -314,7 +314,7 @@ function UsageOverviewTableRow({
               isInline
             />
           </MobilePanelContainer>
-        </tr>
+        </Row>
       )}
     </Fragment>
   );
@@ -322,12 +322,7 @@ function UsageOverviewTableRow({
 
 export default UsageOverviewTableRow;
 
-const Row = styled('tr')<{isSelected: boolean}>`
-  position: relative;
-  background: ${p => (p.isSelected ? p.theme.backgroundSecondary : p.theme.background)};
-  padding: ${p => p.theme.space.xl};
-  cursor: pointer;
-
+const Row = styled('tr')`
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.border};
   }
@@ -335,6 +330,13 @@ const Row = styled('tr')<{isSelected: boolean}>`
   &:last-child {
     border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   }
+`;
+
+const ProductRow = styled(Row)<{isSelected: boolean}>`
+  position: relative;
+  background: ${p => (p.isSelected ? p.theme.backgroundSecondary : p.theme.background)};
+  padding: ${p => p.theme.space.xl};
+  cursor: pointer;
 
   &:hover {
     background: ${p => p.theme.backgroundSecondary};

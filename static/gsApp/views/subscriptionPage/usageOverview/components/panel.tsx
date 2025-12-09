@@ -182,9 +182,7 @@ function ProductBreakdownPanel({
   return (
     <Container
       height={isEnabled ? undefined : '100%'}
-      background="primary"
       border={isInline ? undefined : 'primary'}
-      borderBottom={isInline ? 'primary' : undefined}
       radius={isInline ? undefined : 'md'}
       style={
         isInline
