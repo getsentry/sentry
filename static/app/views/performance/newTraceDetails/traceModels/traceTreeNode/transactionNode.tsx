@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import type {Client} from 'sentry/api';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
-import type {EventTransaction, Measurement} from 'sentry/types/event';
+import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {getStylingSliceName} from 'sentry/views/explore/tables/tracesTable/utils';
 import {TransactionNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction';
@@ -108,10 +108,6 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
 
   get transactionId(): string {
     return this.value.event_id;
-  }
-
-  get measurements(): Record<string, Measurement> | undefined {
-    return this.value.measurements;
   }
 
   // Returns a list of errors related to the txn with ids matching the given node's id

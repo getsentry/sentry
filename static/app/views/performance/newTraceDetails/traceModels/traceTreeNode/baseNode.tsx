@@ -333,7 +333,24 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       : undefined;
   }
 
+  private _isValidMeasurements(
+    measurements: Record<string, any>
+  ): measurements is Record<string, Measurement> {
+    return Object.values(measurements).every(
+      m => m && 'value' in m && typeof m.value === 'number'
+    );
+  }
+
   get measurements(): Record<string, Measurement> | undefined {
+    if (
+      this.value &&
+      'measurements' in this.value &&
+      this.value.measurements &&
+      this._isValidMeasurements(this.value.measurements)
+    ) {
+      return this.value.measurements;
+    }
+
     return undefined;
   }
 

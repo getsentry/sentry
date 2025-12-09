@@ -100,7 +100,11 @@ export function collectTraceMeasurements(
   for (const collectableMeasurement of COLLECTABLE_MEASUREMENTS) {
     const measurement = measurements[collectableMeasurement];
 
-    if (!measurement || typeof measurement.value !== 'number') {
+    if (
+      !measurement ||
+      typeof measurement.value !== 'number' ||
+      measurement.value === 0
+    ) {
       continue;
     }
 

@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
-import type {EventTransaction, Measurement} from 'sentry/types/event';
+import type {EventTransaction} from 'sentry/types/event';
 import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -42,10 +42,6 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
     this.expanded = !(
       this.value.op === 'http.client' && this.value.origin === 'auto.http.okhttp'
     );
-  }
-
-  get measurements(): Record<string, Measurement> | undefined {
-    return this.value.measurements;
   }
 
   get endTimestamp(): number {
