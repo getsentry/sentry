@@ -50,6 +50,7 @@ class SeerModelsEndpoint(Endpoint):
     }
     owner = ApiOwner.ML_AI
     permission_classes = ()
+    servers = [{"url": "https://{region}.sentry.io"}]
 
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
@@ -72,6 +73,9 @@ class SeerModelsEndpoint(Endpoint):
 
         Returns the list of AI models that are currently used in production in Seer.
         This endpoint does not require authentication and can be used to discover which models Seer uses.
+
+        Requests to this endpoint should use the region-specific domain
+        eg. `us.sentry.io` or `de.sentry.io`
         """
         cached_data = cache.get(SEER_MODELS_CACHE_KEY)
         if cached_data is not None:
