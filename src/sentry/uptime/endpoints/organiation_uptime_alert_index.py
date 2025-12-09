@@ -68,7 +68,7 @@ class OrganizationUptimeAlertIndexEndpoint(OrganizationEndpoint):
         except NoProjects:
             return self.respond([])
 
-        queryset = Detector.objects.filter(
+        queryset = Detector.objects.with_type_filters().filter(
             type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
             project__organization_id=organization.id,
             project_id__in=filter_params["project_id"],
