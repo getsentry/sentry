@@ -72,25 +72,3 @@ export function isCollapsedNode(node: BaseNode): node is CollapsedNode {
 export function isTraceError(value: TraceTree.NodeValue): value is TraceTree.TraceError {
   return !!(value && 'level' in value && 'message' in value);
 }
-
-export function isTraceErrorNode(node: BaseNode): node is BaseNode<TraceTree.TraceError> {
-  return isTraceError(node.value);
-}
-
-export function isTraceNode(node: BaseNode): boolean {
-  return !!(node.value && 'orphan_errors' in node.value && 'transactions' in node.value);
-}
-
-export function isTraceOccurence(
-  issue: TraceTree.TraceIssue
-): issue is TraceTree.TraceOccurrence {
-  return 'issue_id' in issue && issue.event_type !== 'error';
-}
-
-export function isEAPTraceOccurrence(
-  issue: TraceTree.TraceIssue
-): issue is TraceTree.EAPOccurrence {
-  return (
-    isTraceOccurence(issue) && 'event_type' in issue && issue.event_type === 'occurrence'
-  );
-}
