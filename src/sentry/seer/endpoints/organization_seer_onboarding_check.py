@@ -31,23 +31,10 @@ def check_github_integration(organization_id: int) -> bool:
             IntegrationProviderSlug.GITHUB.value,
             IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
         ],
-    )
-
-    integration_ids = [oi.integration_id for oi in organization_integrations]
-    if not integration_ids:
-        return False
-
-    active_integrations = integration_service.get_integrations(
-        integration_ids=integration_ids,
         status=ObjectStatus.ACTIVE,
     )
 
-    for integration in active_integrations:
-        installation = integration.get_installation(organization_id=organization_id)
-        if installation:
-            return True
-
-    return False
+    return len(organization_integrations) > 0
 
 
 def check_code_review_enabled(organization_id: int) -> bool:

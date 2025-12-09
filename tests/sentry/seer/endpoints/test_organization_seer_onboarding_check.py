@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.models.integration import Integration
 from sentry.models.repositoryseersettings import RepositorySeerSettings
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
     check_autofix_enabled,
     check_code_review_enabled,
     check_github_integration,
 )
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.silo import assume_test_silo_mode
 
 
 class TestCheckGithubIntegration(TestCase):
@@ -22,7 +19,6 @@ class TestCheckGithubIntegration(TestCase):
             provider="github",
             name="GitHub Test",
             external_id="123",
-            status=ObjectStatus.ACTIVE,
         )
 
         assert check_github_integration(self.organization.id)
@@ -33,7 +29,6 @@ class TestCheckGithubIntegration(TestCase):
             provider="github_enterprise",
             name="GitHub Enterprise Test",
             external_id="456",
-            status=ObjectStatus.ACTIVE,
         )
 
         assert check_github_integration(self.organization.id)
@@ -47,21 +42,8 @@ class TestCheckGithubIntegration(TestCase):
             provider="github",
             name="GitHub Test",
             external_id="123",
-            status=ObjectStatus.DISABLED,
+            oi_params={"status": ObjectStatus.DISABLED},
         )
-
-        assert not check_github_integration(self.organization.id)
-
-    def test_no_installation(self) -> None:
-        # Create an integration WITHOUT adding it to the organization
-        # (no OrganizationIntegration record)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            Integration.objects.create(
-                provider="github",
-                name="GitHub Test",
-                external_id="orphaned-123",
-                status=ObjectStatus.ACTIVE,
-            )
 
         assert not check_github_integration(self.organization.id)
 
@@ -75,7 +57,6 @@ class TestCheckGithubIntegration(TestCase):
             provider="github",
             name="GitHub Test",
             external_id="123",
-            status=ObjectStatus.ACTIVE,
         )
 
         assert check_github_integration(org1.id)
@@ -257,7 +238,6 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             provider="github",
             name="GitHub Test",
             external_id="123",
-            status=ObjectStatus.ACTIVE,
         )
 
         repo = self.create_repo(project=self.project)
@@ -284,7 +264,6 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             provider="github",
             name="GitHub Test",
             external_id="123",
-            status=ObjectStatus.ACTIVE,
         )
 
         response = self.get_response(self.organization.slug)
@@ -333,7 +312,6 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             provider="github",
             name="GitHub Test",
             external_id="123",
-            status=ObjectStatus.ACTIVE,
         )
 
         repo = self.create_repo(project=self.project)
@@ -358,7 +336,6 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             provider="github",
             name="GitHub Test",
             external_id="123",
-            status=ObjectStatus.ACTIVE,
         )
 
         self.project.update_option("sentry:autofix_automation_tuning", "high")
