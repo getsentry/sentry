@@ -24,7 +24,6 @@ from sentry.seer.explorer.client import SeerExplorerClient
 if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.models.organization import Organization
-    from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
 
 class AutofixStep(StrEnum):
@@ -114,6 +113,10 @@ def trigger_autofix_explorer(
     Returns:
         The run ID
     """
+    from sentry.seer.autofix.on_completion_hook import (
+        AutofixOnCompletionHook,  # nested to avoid circular import
+    )
+
     config = STEP_CONFIGS[step]
     client = SeerExplorerClient(
         organization=group.organization,
