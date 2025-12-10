@@ -48,14 +48,16 @@ export default function SeerProjectTableRow({project, organization}: Props) {
 
   // We used to support multiple sensitivity values for Auto-Fix. Now we only support 'off' and 'medium'.
   // If any other value is set, we treat it as 'medium'.
-  const hasAutoFixEnabled = detailedProject?.autofixAutomationTuning !== 'off';
+  const hasAutoFixEnabled =
+    detailedProject?.autofixAutomationTuning !== undefined &&
+    detailedProject?.autofixAutomationTuning !== 'off';
 
   // We used to have multiple stopping points for PR Creation. Now we only support 'open_pr' and 'code_changes'.
   // If any other value is set, we treat it as 'code_changes'.
   // `background_agent` is a special value that indicates that the PR creation is delegated to a background agent.
-  const hasCreatePREnabled = ![undefined, 'background_agent'].includes(
-    preference?.automated_run_stopping_point ?? 'off'
-  );
+  const hasCreatePREnabled =
+    preference?.automated_run_stopping_point !== undefined &&
+    preference?.automated_run_stopping_point !== 'background_agent';
   const hasDelegationEnabled =
     preference?.automated_run_stopping_point === 'background_agent';
 
@@ -144,14 +146,6 @@ export default function SeerProjectTableRow({project, organization}: Props) {
           <Placeholder height="20px" width="36px" />
         ) : (
           <Flex align="center" gap="sm">
-            {hasDelegationEnabled ? null : (
-              <QuestionTooltip
-                title={t(
-                  'Enable delegation to a background agent on the project settings page.'
-                )}
-                size="xs"
-              />
-            )}
             <Switch
               disabled={!canWrite || !hasDelegationEnabled}
               checked={hasDelegationEnabled}
@@ -175,6 +169,14 @@ export default function SeerProjectTableRow({project, organization}: Props) {
                 );
               }}
             />
+            {hasDelegationEnabled ? null : (
+              <QuestionTooltip
+                title={t(
+                  'Enable delegation to a background agent on the project settings page.'
+                )}
+                size="xs"
+              />
+            )}
           </Flex>
         )}
       </SimpleTable.RowCell>
