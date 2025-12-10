@@ -47,7 +47,7 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {
   TraceItemSearchQueryBuilder,
-  useSearchQueryBuilderProps,
+  useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
   useTraceItemAttributes,
@@ -164,16 +164,17 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
 
-  const {filterKeys, filterKeySections, getTagValues} = useSearchQueryBuilderProps({
-    itemType: TraceItemDataset.LOGS,
-    numberAttributes,
-    stringAttributes,
-    numberSecondaryAliases,
-    stringSecondaryAliases,
-    searchSource: 'dashboards',
-    initialQuery: widgetQuery?.conditions ?? '',
-    projects: pageFilters.projects,
-  });
+  const {filterKeys, filterKeySections, getTagValues} =
+    useTraceItemSearchQueryBuilderProps({
+      itemType: TraceItemDataset.LOGS,
+      numberAttributes,
+      stringAttributes,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      searchSource: 'dashboards',
+      initialQuery: widgetQuery?.conditions ?? '',
+      projects: pageFilters.projects,
+    });
   return {
     getFilterKeySections: () => filterKeySections,
     getFilterKeys: () => filterKeys,

@@ -62,7 +62,7 @@ function getTraceItemFieldDefinitionFunction(
   };
 }
 
-export function useSearchQueryBuilderProps({
+export function useTraceItemSearchQueryBuilderProps({
   itemType,
   numberAttributes,
   numberSecondaryAliases,
@@ -149,7 +149,7 @@ export function TraceItemSearchQueryBuilder({
   disabled,
   namespace,
 }: TraceItemSearchQueryBuilderProps) {
-  const searchQueryBuilderProps = useSearchQueryBuilderProps({
+  const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
     numberAttributes,
     stringAttributes,

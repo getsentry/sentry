@@ -7,7 +7,7 @@ import {type TagCollection} from 'sentry/types/group';
 import {FieldKind, type AggregationKey} from 'sentry/utils/fields';
 import {
   TraceItemSearchQueryBuilder,
-  useSearchQueryBuilderProps,
+  useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -90,7 +90,7 @@ export function useEAPSpanSearchQueryBuilderProps(props: EAPSpanSearchQueryBuild
     return stringTags;
   }, [stringTags]);
 
-  return useSearchQueryBuilderProps({
+  return useTraceItemSearchQueryBuilderProps({
     itemType: TraceItemDataset.SPANS,
     numberAttributes,
     stringAttributes,

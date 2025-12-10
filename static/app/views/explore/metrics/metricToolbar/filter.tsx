@@ -4,7 +4,7 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import type {TagCollection} from 'sentry/types/group';
 import {
   TraceItemSearchQueryBuilder,
-  useSearchQueryBuilderProps,
+  useTraceItemSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
@@ -74,7 +74,7 @@ export function Filter({traceMetric}: FilterProps) {
       };
     }, [query, setQuery, visibleNumberTags, visibleStringTags, traceMetric.name]);
 
-  const searchQueryBuilderProviderProps = useSearchQueryBuilderProps(
+  const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(
     tracesItemSearchQueryBuilderProps
   );
 

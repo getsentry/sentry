@@ -32,7 +32,7 @@ import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {
   TraceItemSearchQueryBuilder,
-  useSearchQueryBuilderProps,
+  useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -124,16 +124,17 @@ function useTraceMetricsSearchBarDataProvider(
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
 
-  const {filterKeys, filterKeySections, getTagValues} = useSearchQueryBuilderProps({
-    itemType: TraceItemDataset.TRACEMETRICS,
-    numberAttributes,
-    stringAttributes,
-    numberSecondaryAliases,
-    stringSecondaryAliases,
-    searchSource: 'dashboards',
-    initialQuery: widgetQuery?.conditions ?? '',
-    projects: pageFilters.projects,
-  });
+  const {filterKeys, filterKeySections, getTagValues} =
+    useTraceItemSearchQueryBuilderProps({
+      itemType: TraceItemDataset.TRACEMETRICS,
+      numberAttributes,
+      stringAttributes,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      searchSource: 'dashboards',
+      initialQuery: widgetQuery?.conditions ?? '',
+      projects: pageFilters.projects,
+    });
 
   return {
     getFilterKeySections: () => filterKeySections,

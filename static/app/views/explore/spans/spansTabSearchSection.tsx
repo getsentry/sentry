@@ -39,7 +39,7 @@ import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/sc
 import {ExploreSchemaHintsSection} from 'sentry/views/explore/components/styles';
 import {
   TraceItemSearchQueryBuilder,
-  useSearchQueryBuilderProps,
+  useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {MAX_CROSS_EVENT_QUERIES} from 'sentry/views/explore/constants';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -187,7 +187,7 @@ const SpansTabCrossEventSearchBar = memo(
       ]
     );
 
-    const searchQueryBuilderProps = useSearchQueryBuilderProps({
+    const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
       itemType: traceItemType,
       ...eapSpanSearchQueryBuilderProps,
     });
