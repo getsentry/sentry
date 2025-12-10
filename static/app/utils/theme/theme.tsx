@@ -1474,11 +1474,6 @@ const generateAliases = (
   chartOther: tokens.content.muted,
 
   /**
-   * Hover color of the drag handle used in the content slider diff view.
-   */
-  diffSliderDragHandleHover: colors.blue500,
-
-  /**
    * Default Progressbar color
    */
   progressBar: colors.chonk.blue400,
