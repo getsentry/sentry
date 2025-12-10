@@ -52,12 +52,12 @@ export default function SeerProjectTableRow({project, organization}: Props) {
     detailedProject?.autofixAutomationTuning !== undefined &&
     detailedProject?.autofixAutomationTuning !== 'off';
 
-  // We used to have multiple stopping points for PR Creation. Now we only support 'open_pr' and 'code_changes'.
-  // If any other value is set, we treat it as 'code_changes'.
+  // We used to have multiple stopping points for PR Creation.
+  // `code_changes` means seer will output code changes, and you can copy and paste them into a new branch.
+  // `open_pr` means seer will take those changes and push a PR for you.
   // `background_agent` is a special value that indicates that the PR creation is delegated to a background agent.
-  const hasCreatePREnabled =
-    preference?.automated_run_stopping_point !== undefined &&
-    preference?.automated_run_stopping_point !== 'background_agent';
+  // All other values are treated as `code_changes`. Which means both checkboxes will be unchecked.
+  const hasCreatePREnabled = preference?.automated_run_stopping_point === 'open_pr';
   const hasDelegationEnabled =
     preference?.automated_run_stopping_point === 'background_agent';
 
@@ -156,6 +156,8 @@ export default function SeerProjectTableRow({project, organization}: Props) {
               disabled={!canWrite || !hasDelegationEnabled}
               checked={hasDelegationEnabled}
               onChange={() => {
+                // This preference can only be turned off, not on, from here.
+                // You need to go to the project settings page to turn it on.
                 updateProjectSeerPreferences(
                   {
                     repositories: preference?.repositories || [],

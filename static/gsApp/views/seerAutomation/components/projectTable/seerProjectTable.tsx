@@ -38,7 +38,7 @@ export default function SeerProjectTable() {
   const queryKey: ApiQueryKey = ['seer-projects', {query: {query: searchTerm}}];
 
   const sortedProjects = useMemo(() => {
-    return projects.sort((a, b) => {
+    return projects.toSorted((a, b) => {
       if (sort.field === 'project') {
         return sort.kind === 'asc'
           ? a.name.localeCompare(b.name)

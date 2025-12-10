@@ -57,6 +57,7 @@ export function useUpdateProjectAutomation(project: Project) {
     },
     onError: (_error, _variables, context) => {
       if (context?.previousProject) {
+        ProjectsStore.onUpdateSuccess(context.previousProject);
         queryClient.setQueryData(queryKey, context.previousProject);
       }
     },
