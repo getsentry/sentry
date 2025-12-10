@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Switch} from 'sentry/components/core/switch';
 import {
@@ -108,7 +108,7 @@ export function ConfigureRootCauseAnalysisStep() {
   }, [availableRepositories]);
 
   const handleAddRepository = useCallback(
-    (option: {value: string}) => {
+    (option: SelectOption<string>) => {
       addRootCauseAnalysisRepository(option.value);
     },
     [addRootCauseAnalysisRepository]
