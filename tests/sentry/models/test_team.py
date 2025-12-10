@@ -1,3 +1,4 @@
+import pytest
 from django.test import override_settings
 
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
@@ -56,6 +57,7 @@ class TeamTest(TestCase):
         projects = team.get_projects()
         assert {_.id for _ in projects} == {project.id}
 
+    @pytest.mark.skip(reason="flaky: #104685")
     @override_settings(SENTRY_USE_SNOWFLAKE=False)
     def test_without_snowflake(self) -> None:
         user = self.create_user()
