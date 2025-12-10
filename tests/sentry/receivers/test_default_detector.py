@@ -1,7 +1,16 @@
 from unittest import mock
 
+from django.db.models.signals import post_save
+
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.models.project import Project
+from sentry.receivers.project_detectors import (
+    create_metric_detector_with_owner,
+    disable_default_detector_creation,
+)
+from sentry.signals import project_created
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -9,6 +18,7 @@ from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.processors.detector import _ensure_metric_detector
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
 class TestEnsureMetricDetector(TestCase):
@@ -97,8 +107,6 @@ class TestCreateMetricDetectorWithOwner(TestCase):
     @with_feature("organizations:anomaly-detection-alerts")
     def test_creates_enabled_detector_when_both_features_enabled(self):
         """Test that detector is created and enabled when both feature flags are enabled."""
-        from sentry.receivers.project_detectors import create_metric_detector_with_owner
-
         project = self.create_project()
         # Get the team that was auto-created with the project
         team = project.teams.first()
@@ -115,8 +123,6 @@ class TestCreateMetricDetectorWithOwner(TestCase):
     @with_feature("organizations:default-anomaly-detector")
     def test_creates_disabled_detector_when_plan_feature_missing(self):
         """Test that detector is created but disabled when anomaly-detection-alerts is off."""
-        from sentry.receivers.project_detectors import create_metric_detector_with_owner
-
         project = self.create_project()
 
         with mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"):
@@ -128,8 +134,6 @@ class TestCreateMetricDetectorWithOwner(TestCase):
     @with_feature({"organizations:default-anomaly-detector": False})
     def test_does_not_create_detector_when_feature_disabled(self):
         """Test that detector is not created when feature flag is disabled."""
-        from sentry.receivers.project_detectors import create_metric_detector_with_owner
-
         project = self.create_project()
 
         create_metric_detector_with_owner(project, user=self.user)
@@ -139,8 +143,6 @@ class TestCreateMetricDetectorWithOwner(TestCase):
     @with_feature("organizations:default-anomaly-detector")
     def test_creates_detector_without_team(self):
         """Test that detector is created even when project has no teams."""
-        from sentry.receivers.project_detectors import create_metric_detector_with_owner
-
         project = self.create_project()
         # Remove all teams
         project.teams.clear()
@@ -155,10 +157,6 @@ class TestCreateMetricDetectorWithOwner(TestCase):
 class TestDisableDefaultDetectorCreation(TestCase):
     def test_context_manager_disables_signal(self):
         """Test that disable_default_detector_creation prevents default detectors."""
-        from sentry.grouping.grouptype import ErrorGroupType
-        from sentry.receivers.project_detectors import disable_default_detector_creation
-        from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
-
         with disable_default_detector_creation():
             project = self.create_project(create_default_detectors=True)
 
@@ -168,12 +166,6 @@ class TestDisableDefaultDetectorCreation(TestCase):
 
     def test_context_manager_reconnects_on_exception(self):
         """Test that signals are reconnected even if exception occurs."""
-        from django.db.models.signals import post_save
-
-        from sentry.models.project import Project
-        from sentry.receivers.project_detectors import disable_default_detector_creation
-        from sentry.signals import project_created
-
         try:
             with disable_default_detector_creation():
                 raise ValueError("Test exception")
@@ -191,9 +183,6 @@ class TestDisableDefaultDetectorCreation(TestCase):
     @with_feature("organizations:default-anomaly-detector")
     def test_context_manager_disables_metric_detector_signal(self):
         """Test that disable_default_detector_creation also prevents metric detector creation."""
-        from sentry.incidents.grouptype import MetricIssue
-        from sentry.receivers.project_detectors import disable_default_detector_creation
-
         with (
             disable_default_detector_creation(),
             mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"),
