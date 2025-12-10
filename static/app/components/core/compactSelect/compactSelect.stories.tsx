@@ -456,8 +456,10 @@ export default Storybook.story('CompactSelect', story => {
           Additionally, since not all items are rendered to the DOM, we cannot
           automatically calculate the width of the underlying menu. To address this, we
           are trying to find out which option will be the longest to render & measure it
-          when the menu is first opened. You can instead also pass a hardcoded{' '}
-          <code>menuWidth</code> to <code>CompactSelect</code>.
+          when the menu is first opened. This process only looks at <code>textValue</code>{' '}
+          and <code>label</code> of the option, so it might fail in cases where different{' '}
+          <code>trailingItems</code> or <code>leadingItems</code> You can instead also
+          pass a hardcoded <code>menuWidth</code> to <code>CompactSelect</code>.
         </p>
 
         <CompactSelect

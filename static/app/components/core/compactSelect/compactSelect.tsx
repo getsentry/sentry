@@ -1,5 +1,6 @@
 import {useCallback, useId, useMemo, useState} from 'react';
 import {Item, Section} from '@react-stately/collections';
+import maxBy from 'lodash/maxBy';
 import type {DistributedOmit} from 'type-fest';
 
 import {t} from 'sentry/locale';
@@ -134,11 +135,19 @@ export function CompactSelect<Value extends SelectKey>({
 
   const itemsWithKey = useMemo(() => {
     if (needsMeasuring) {
-      // todo find longest option
-      if (options.length > 10) {
-        return getItemsWithKeys([options.at(5)!]);
-      }
-      return getItemsWithKeys(options.slice(0, 1));
+      const longestOption = maxBy(options, option => {
+        if ('options' in option) {
+          return 0;
+        }
+        if (option.textValue) {
+          return option.textValue.length;
+        }
+        if (typeof option.label === 'string') {
+          return option.label.length;
+        }
+        return 0;
+      });
+      return longestOption ? getItemsWithKeys([longestOption]) : [];
     }
     return getItemsWithKeys(options);
   }, [needsMeasuring, options]);
