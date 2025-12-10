@@ -126,3 +126,16 @@ class PipelineTestCase(TestCase):
         resp = intercepted_pipeline.next_step()
         assert isinstance(resp, HttpResponse)  # TODO(cathy): fix typing on
         assert ERR_MISMATCHED_USER.encode() in resp.content
+
+    def test_custom_state_ttl(self) -> None:
+        class SlowPipeline(DummyPipeline):
+            state_ttl = 2 * 60 * 60
+
+        pipeline = SlowPipeline(self.request, "dummy", self.org)
+        assert pipeline.state.ttl == SlowPipeline.state_ttl
+
+        pipeline.initialize()
+
+        resumed_pipeline = SlowPipeline.get_for_request(self.request)
+        assert resumed_pipeline is not None
+        assert resumed_pipeline.state.ttl == SlowPipeline.state_ttl
