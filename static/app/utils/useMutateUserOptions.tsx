@@ -9,15 +9,13 @@ import useApi from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 
 type UpdateUserOptionsVariables = Partial<User['options']>;
-interface UseMutateProjectProps {
+
+interface Props {
   onError?: (error: RequestError) => void;
   onSuccess?: () => void;
 }
 
-export default function useMutateUserOptions({
-  onSuccess,
-  onError,
-}: UseMutateProjectProps = {}) {
+export default function useMutateUserOptions({onSuccess, onError}: Props = {}) {
   const user = useUser();
   const api = useApi({persistInFlight: false});
   return useMutation<User, RequestError, UpdateUserOptionsVariables>({

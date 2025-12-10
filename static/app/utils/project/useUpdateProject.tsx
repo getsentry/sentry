@@ -1,12 +1,12 @@
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {
   fetchMutation,
   setApiQueryData,
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import {makeDetailedProjectQueryKey} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Variables extends Partial<Project> {}
@@ -21,8 +21,7 @@ type Context =
       previousProject?: never;
     };
 
-// TODO: Rename & Move this into a more generic place, it's not specific to events or autofix
-export function useUpdateProjectAutomation(project: Project) {
+export function useUpdateProject(project: Project) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
