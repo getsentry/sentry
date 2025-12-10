@@ -110,15 +110,6 @@ export function useBlockNavigation({
             scrollToElement(textareaElement);
           }
         }
-      } else if (e.key === 'Backspace' && focusedBlockIndex >= 0) {
-        e.preventDefault();
-        onDeleteFromIndex?.(focusedBlockIndex);
-        setFocusedBlockIndex(-1);
-        const textareaElement = textareaRef.current;
-        if (textareaElement) {
-          textareaElement.focus();
-          scrollToElement(textareaElement);
-        }
       } else if (e.key === 'Enter' && focusedBlockIndex >= 0) {
         e.preventDefault();
         onKeyPress?.(focusedBlockIndex, 'Enter');
