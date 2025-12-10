@@ -603,6 +603,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     if replay_permissions.get(item.id, False)
                     else []
                 )
+        else:
+            for item in item_list:
+                attrs[item]["replay_permissions_enabled"] = False
+                attrs[item]["replay_access_members"] = []
 
         return attrs
 
