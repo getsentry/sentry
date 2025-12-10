@@ -149,7 +149,7 @@ export function ConfigureRootCauseAnalysisStep() {
                 <FieldLabel>{t('Enable Root Cause Analysis')}</FieldLabel>
                 <FieldDescription>
                   {t(
-                    'For all projects below AND newly added projects, Seer will automatically analyze highly actionable issues, and create a root cause analysis, and propose a solution.'
+                    'For all projects below AND newly added projects, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution.'
                   )}
                 </FieldDescription>
               </Flex>

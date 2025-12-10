@@ -57,7 +57,7 @@ export function ConfigureCodeReviewStep() {
                 <FieldLabel>{t('AI Code Review')}</FieldLabel>
                 <FieldDescription>
                   {t(
-                    'For all repos below, AND for all newly connected repos, Seer will review your PRs and flag potential bugs. '
+                    'For all repos below, AND for all newly connected repos, Seer will review your PRs and flag potential bugs.'
                   )}
                 </FieldDescription>
               </Flex>
