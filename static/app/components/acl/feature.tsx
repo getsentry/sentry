@@ -104,28 +104,24 @@ type AllFeatures = {
   project: readonly string[];
 };
 
-const hasFeature = (feature: string, allFeatures: AllFeatures) => {
-  // Array of feature strings
-  const {
-    configFeatures,
-    organization: orgFeatures,
-    project: projectFeatures,
-  } = allFeatures;
-
+const PROJECT_PREFIX = 'projects:';
+const ORG_PREFIX = 'organizations:';
+const hasFeature = (
+  feature: string,
+  {configFeatures, organization: orgFeatures, project: projectFeatures}: AllFeatures
+) => {
   // Check config store first as this overrides features scoped to org or
   // project contexts.
   if (configFeatures.includes(feature)) {
     return true;
   }
 
-  const shouldMatchOnlyProject = feature.match(/^projects:(.+)/);
-  if (shouldMatchOnlyProject) {
-    return projectFeatures.includes(shouldMatchOnlyProject[1]!);
+  if (feature.startsWith(PROJECT_PREFIX)) {
+    return projectFeatures.includes(feature.slice(PROJECT_PREFIX.length));
   }
 
-  const shouldMatchOnlyOrg = feature.match(/^organizations:(.+)/);
-  if (shouldMatchOnlyOrg) {
-    return orgFeatures.includes(shouldMatchOnlyOrg[1]!);
+  if (feature.startsWith(ORG_PREFIX)) {
+    return orgFeatures.includes(feature.slice(ORG_PREFIX.length));
   }
 
   // default, check all feature arrays
