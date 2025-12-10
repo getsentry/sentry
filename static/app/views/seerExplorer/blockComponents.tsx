@@ -576,7 +576,6 @@ const ToolCallText = styled(Text)<{isHighlighted?: boolean}>`
     p.isHighlighted &&
     `
     color: ${p.theme.linkHoverColor};
-    text-decoration-color: ${p.theme.linkHoverColor};
   `}
 `;
 
