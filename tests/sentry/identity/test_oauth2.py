@@ -5,14 +5,16 @@ from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import responses
+from django.http import HttpResponse
 from django.test import Client, RequestFactory
 from requests.exceptions import SSLError
 
 import sentry.identity
-from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
+from sentry.identity.oauth2 import ERR_PROVIDER_ERROR, OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.integrations.utils.metrics import IntegrationPipelineErrorReason
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.silo import control_silo_test
@@ -156,6 +158,32 @@ class OAuth2CallbackViewTest(TestCase):
         assert "401" in result["error"]
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
+
+    def test_error_query_param_not_reflected(self, mock_record: MagicMock) -> None:
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        malicious_error = "1-1)) OR 114=(SELECT 114 FROM PG_SLEEP(15))--"
+        request = RequestFactory().get("/", {"error": malicious_error})
+
+        with patch.object(pipeline, "error", return_value=HttpResponse()) as error_mock:
+            response = self.view.dispatch(request, pipeline)
+
+        assert response == error_mock.return_value
+        (message,) = error_mock.call_args[0]
+        assert message == ERR_PROVIDER_ERROR
+        assert "PG_SLEEP" not in message
+        assert_failure_metric(
+            mock_record, IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE
+        )
+
+    def test_error_query_param_known_code(self, mock_record: MagicMock) -> None:
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        request = RequestFactory().get("/", {"error": "access_denied"})
+
+        with patch.object(pipeline, "error", return_value=HttpResponse()) as error_mock:
+            self.view.dispatch(request, pipeline)
+
+        (message,) = error_mock.call_args[0]
+        assert "access_denied" in message
 
 
 @control_silo_test

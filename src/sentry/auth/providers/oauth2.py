@@ -19,11 +19,20 @@ from sentry.auth.view import AuthView
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.models.authidentity import AuthIdentity
 from sentry.utils.http import absolute_uri
+from sentry.utils.oauth import KNOWN_OAUTH_ERROR_CODES, sanitize_oauth_error_code
 
 if TYPE_CHECKING:
     from sentry.auth.helper import AuthHelper
 
+logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
+ERR_PROVIDER_ERROR = "The identity provider returned an error while processing your request."
+
+
+def _format_provider_error_message(error_code: str | None) -> str:
+    if error_code and error_code in KNOWN_OAUTH_ERROR_CODES:
+        return f"{ERR_PROVIDER_ERROR}\nError code: {error_code}"
+    return ERR_PROVIDER_ERROR
 
 
 def _get_redirect_url() -> str:
@@ -129,7 +138,8 @@ class OAuth2Callback(AuthView):
         code = request.GET.get("code")
 
         if error:
-            return pipeline.error(error)
+            sanitized_error = sanitize_oauth_error_code(error)
+            return pipeline.error(_format_provider_error_message(sanitized_error))
 
         if state != pipeline.fetch_state("state"):
             return pipeline.error(ERR_INVALID_STATE)
@@ -143,8 +153,9 @@ class OAuth2Callback(AuthView):
             return pipeline.error(data["error_description"])
 
         if "error" in data:
-            logging.info("Error exchanging token: %s", data["error"])
-            return pipeline.error("Unable to retrieve your token")
+            sanitized_error = sanitize_oauth_error_code(data["error"])
+            logger.info("Error exchanging token", extra={"error": sanitized_error})
+            return pipeline.error(_format_provider_error_message(sanitized_error))
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a
