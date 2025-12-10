@@ -16,6 +16,7 @@ import type {
   DataConditionGroupLogicType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {DataConditionHandlerGroupType} from 'sentry/types/workflowEngine/dataConditions';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
@@ -128,12 +129,20 @@ interface ActionFilterBlockProps {
 
 function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
   const {state, actions} = useAutomationBuilderContext();
-  const {mutateAsync: sendTestNotification} = useSendTestNotification();
   const {errors, setErrors} = useAutomationBuilderErrorContext();
+  const {mutate: sendTestNotification, isPending} = useSendTestNotification({
+    onError: (error: RequestError) => {
+      // Store test notification error in error context
+      setErrors({
+        ...errors,
+        ...error?.responseJSON,
+      });
+    },
+  });
 
   const numActionFilters = state.actionFilters.length;
 
-  const handleSendTestNotification = useCallback(async () => {
+  const handleSendTestNotification = useCallback(() => {
     const actionFilterActions = actionFilter.actions || [];
 
     // Validate actions before sending test notification
@@ -142,19 +151,11 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
 
     // Only send test notification if there are no validation errors
     if (Object.keys(actionErrors).length === 0) {
-      try {
-        await sendTestNotification(
-          actionFilterActions.map(action => {
-            return stripActionFields(action);
-          })
-        );
-      } catch (error: any) {
-        // Store test notification error in error context
-        setErrors({
-          ...errors,
-          ...error?.responseJSON?.detail,
-        });
-      }
+      sendTestNotification(
+        actionFilterActions.map(action => {
+          return stripActionFields(action);
+        })
+      );
     }
   }, [actionFilter.actions, sendTestNotification, errors, setErrors]);
 
@@ -235,7 +236,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
         <Button
           icon={<IconMail />}
           onClick={handleSendTestNotification}
-          disabled={!actionFilter.actions?.length}
+          disabled={!actionFilter.actions?.length || isPending}
         >
           {t('Send Test Notification')}
         </Button>
