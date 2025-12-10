@@ -693,6 +693,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/project/tempest')),
     },
     {
+      path: 'preprod/',
+      name: t('Preprod'),
+      component: make(() => import('sentry/views/settings/project/preprod')),
+    },
+    {
       path: 'keys/',
       name: t('Client Keys'),
       children: [
