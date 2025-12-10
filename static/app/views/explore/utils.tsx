@@ -79,6 +79,7 @@ export function getExploreUrl({
   referrer?: string;
   selection?: PageFilters;
   sort?: string;
+  table?: string;
   title?: string;
   visualize?: BaseVisualize[];
 }) {
