@@ -142,11 +142,19 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
 
     // Only send test notification if there are no validation errors
     if (Object.keys(actionErrors).length === 0) {
-      await sendTestNotification(
-        actionFilterActions.map(action => {
-          return stripActionFields(action);
-        })
-      );
+      try {
+        await sendTestNotification(
+          actionFilterActions.map(action => {
+            return stripActionFields(action);
+          })
+        );
+      } catch (error: any) {
+        // Store test notification error in error context
+        setErrors({
+          ...errors,
+          ...error?.responseJSON?.detail,
+        });
+      }
     }
   }, [actionFilter.actions, sendTestNotification, errors, setErrors]);
 
