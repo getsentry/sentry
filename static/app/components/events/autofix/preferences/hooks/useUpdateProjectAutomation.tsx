@@ -65,7 +65,9 @@ export function useUpdateProjectAutomation(project: Project) {
       }
     },
     onSettled: () => {
-      // Invalidate to refetch and ensure consistency
+      // Invalidate to refetch and ensure consistency for the queryCache
+      // ProjectsStore should've been updated already. It could be out of sync if
+      // there are multiple mutations in parallel.
       queryClient.invalidateQueries({queryKey});
     },
   });
