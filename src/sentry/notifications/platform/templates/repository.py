@@ -12,12 +12,12 @@ from sentry.notifications.platform.types import (
 )
 
 
-@dataclass(frozen=True)
+@dataclass
 class UnableToDeleteRepository(NotificationData):
-    source = "unable-to-delete-repository"
     repository_name: str
     provider_name: str
     error_message: str
+    source: str = "unable-to-delete-repository"
 
 
 @template_registry.register(UnableToDeleteRepository.source)

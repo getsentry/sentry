@@ -20,9 +20,8 @@ from sentry.notifications.platform.types import (
 )
 
 
-@dataclass(frozen=True)
+@dataclass
 class ErrorAlertData(NotificationData):
-    source = "error-alert-service"
     error_type: str
     error_message: str
     project_name: str
@@ -32,6 +31,7 @@ class ErrorAlertData(NotificationData):
     chart_url: str
     issue_url: str
     assign_url: str
+    source: str = "error-alert-service"
 
 
 @template_registry.register(ErrorAlertData.source)
@@ -114,9 +114,8 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
         )
 
 
-@dataclass(frozen=True)
+@dataclass
 class DeploymentData(NotificationData):
-    source = "deployment-service"
     project_name: str
     version: str
     environment: str
@@ -125,6 +124,7 @@ class DeploymentData(NotificationData):
     commit_message: str
     deployment_url: str
     rollback_url: str
+    source: str = "deployment-service"
 
 
 @template_registry.register(DeploymentData.source)
@@ -184,9 +184,8 @@ class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
         )
 
 
-@dataclass(frozen=True)
+@dataclass
 class SlowLoadMetricAlertData(NotificationData):
-    source = "slow-load-metric-alert"
     alert_type: str
     severity: str
     project_name: str
@@ -197,6 +196,7 @@ class SlowLoadMetricAlertData(NotificationData):
     threshold: str
     start_time: str
     chart_url: str
+    source: str = "slow-load-metric-alert"
 
 
 @template_registry.register(SlowLoadMetricAlertData.source)
@@ -243,15 +243,15 @@ class SlowLoadMetricAlertNotificationTemplate(NotificationTemplate[SlowLoadMetri
         )
 
 
-@dataclass(frozen=True)
+@dataclass
 class PerformanceAlertData(NotificationData):
-    source = "performance-monitoring"
     metric_name: str
     threshold: str
     current_value: str
     project_name: str
     chart_url: str
     investigation_url: str
+    source: str = "performance-monitoring"
 
 
 @template_registry.register(PerformanceAlertData.source)
@@ -310,14 +310,14 @@ class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlert
         )
 
 
-@dataclass(frozen=True)
+@dataclass
 class TeamUpdateData(NotificationData):
-    source = "team-communication"
     team_name: str
     update_type: str
     message: str
     author: str
     timestamp: str
+    source: str = "team-communication"
 
 
 @template_registry.register(TeamUpdateData.source)
