@@ -5,6 +5,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {ExtrapolationMode} from 'sentry/views/insights/common/queries/types';
 import {
   useWrappedDiscoverQuery,
   useWrappedDiscoverQueryWithoutPageFilters,
@@ -24,6 +25,7 @@ interface UseDiscoverQueryOptions {
 interface UseDiscoverOptions<Fields> {
   cursor?: string;
   enabled?: boolean;
+  extrapolationMode?: ExtrapolationMode;
   fields?: Fields;
   keepPreviousData?: boolean;
   limit?: number;
@@ -78,6 +80,7 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     projectIds,
     orderby,
     samplingMode = DEFAULT_SAMPLING_MODE,
+    extrapolationMode,
     useQueryOptions,
   } = options;
 
@@ -106,6 +109,7 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     cursor,
     noPagination,
     samplingMode,
+    extrapolationMode,
     additionalQueryKey: useQueryOptions?.additonalQueryKey,
     refetchInterval: useQueryOptions?.refetchInterval,
     keepPreviousData: options.keepPreviousData,
