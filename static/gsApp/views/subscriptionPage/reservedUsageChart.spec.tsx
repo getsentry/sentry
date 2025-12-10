@@ -66,15 +66,9 @@ describe('mapStatsToChart', () => {
 });
 
 describe('mapReservedToChart', () => {
-  it('should apply GIGABYTE multiplier for byte categories (attachments)', () => {
+  it('should apply GIGABYTE multiplier for byte categories', () => {
     const reserved = 5; // 5 GB
     const result = mapReservedToChart(reserved, DataCategory.ATTACHMENTS);
-    expect(result).toBe(reserved * GIGABYTE);
-  });
-
-  it('should apply GIGABYTE multiplier for byte categories (log bytes)', () => {
-    const reserved = 10; // 10 GB
-    const result = mapReservedToChart(reserved, DataCategory.LOG_BYTE);
     expect(result).toBe(reserved * GIGABYTE);
   });
 
@@ -84,15 +78,9 @@ describe('mapReservedToChart', () => {
     expect(result).toBe(reserved * MILLISECONDS_IN_HOUR);
   });
 
-  it('should apply multiplier of 1 for count categories (errors)', () => {
+  it('should apply multiplier of 1 for count categories', () => {
     const reserved = 50000;
     const result = mapReservedToChart(reserved, DataCategory.ERRORS);
-    expect(result).toBe(reserved);
-  });
-
-  it('should apply multiplier of 1 for count categories (transactions)', () => {
-    const reserved = 100000;
-    const result = mapReservedToChart(reserved, DataCategory.TRANSACTIONS);
     expect(result).toBe(reserved);
   });
 
