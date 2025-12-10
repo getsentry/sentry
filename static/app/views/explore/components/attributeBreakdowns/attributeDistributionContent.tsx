@@ -116,7 +116,6 @@ export function AttributeDistribution() {
   // Reset pagination on any query change
   useEffect(() => {
     setPagination({cursor: undefined, page: 0});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, selection, query]);
 
   const parsedLinks = parseLinkHeader(
