@@ -188,9 +188,12 @@ const RepositoryRow = memo(
     onChange: (repositoryId: string, newValue: boolean) => void;
     repository: Repository;
   }) => {
-    const handleChange = useCallback(() => {
-      onChange?.(repository.id, !checked);
-    }, [onChange, repository.id, checked]);
+    const handleChange = useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        onChange?.(repository.id, e.target.checked);
+      },
+      [onChange, repository.id]
+    );
 
     return (
       <RepositoryItem>
