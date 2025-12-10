@@ -30,6 +30,7 @@ export function ConfigureRootCauseAnalysisStep() {
     selectedRootCauseAnalysisRepositories,
     repositoryProjectMapping,
     changeRepositoryProjectMapping,
+    changeRootCauseAnalysisRepository,
     addRepositoryProjectMappings,
   } = useSeerOnboardingContext();
 
@@ -142,6 +143,7 @@ export function ConfigureRootCauseAnalysisStep() {
                 isPending={isCodeMappingsLoading}
                 projects={projects}
                 onChange={handleRepositoryProjectMappingsChange}
+                onChangeRepository={changeRootCauseAnalysisRepository}
               />
             ) : (
               <Flex direction="column" gap="md" padding="md">

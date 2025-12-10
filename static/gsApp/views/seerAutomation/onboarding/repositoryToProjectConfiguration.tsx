@@ -1,16 +1,13 @@
-import {Fragment, memo, useMemo} from 'react';
+import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {Button} from '@sentry/scraps/button';
-
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Select} from 'sentry/components/core/select';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
-import {IconArrow, IconClose, IconRepository} from 'sentry/icons';
+import {IconArrow, IconRepository} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Repository} from 'sentry/types/integrations';
@@ -21,12 +18,14 @@ import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 interface RepositoryToProjectConfigurationProps {
   isPending: boolean;
   onChange: (repoId: string, inedx: number, newValue: string | undefined) => void;
+  onChangeRepository: (oldRepoId: string, newRepoId: string) => void;
   projects: Project[];
 }
 
 export function RepositoryToProjectConfiguration({
   isPending,
   onChange,
+  onChangeRepository,
   projects,
 }: RepositoryToProjectConfigurationProps) {
   const [memberProjects, nonMemberProjects] = useMemo(
@@ -37,12 +36,30 @@ export function RepositoryToProjectConfiguration({
     selectedRootCauseAnalysisRepositories,
     repositoryProjectMapping,
     removeRootCauseAnalysisRepository,
+    repositories,
   } = useSeerOnboardingContext();
+
+  // Create a set of selected repository IDs for efficient lookup
+  const selectedRepoIds = useMemo(
+    () => new Set(selectedRootCauseAnalysisRepositories.map(repo => repo.id)),
+    [selectedRootCauseAnalysisRepositories]
+  );
 
   return (
     <Fragment>
       {selectedRootCauseAnalysisRepositories.length > 0 &&
         selectedRootCauseAnalysisRepositories.map(repository => {
+          // Filter repository options to exclude already-selected ones
+          // (except the current repository being edited)
+          const availableRepositoryOptions =
+            repositories
+              ?.filter(repo => !selectedRepoIds.has(repo.id) || repo.id === repository.id)
+              .map(repo => ({
+                value: repo.id,
+                label: repo.name,
+                textValue: repo.name,
+              })) ?? [];
+
           return (
             <RepositoryRow
               isPending={isPending}
@@ -51,7 +68,9 @@ export function RepositoryToProjectConfiguration({
               nonMemberProjects={nonMemberProjects}
               selectedProjects={repositoryProjectMapping[repository.id] || []}
               repository={repository}
+              repositories={availableRepositoryOptions}
               onRemoveRepository={removeRootCauseAnalysisRepository}
+              onChangeRepository={onChangeRepository}
               onChange={onChange}
             />
           );
@@ -65,14 +84,18 @@ interface RepositoryRowProps {
   memberProjects: Project[];
   nonMemberProjects: Project[];
   onChange: (repoId: string, index: number, newValue: string | undefined) => void;
+  onChangeRepository: (oldRepoId: string, newRepoId: string) => void;
   onRemoveRepository: (repoId: string) => void;
+  repositories: Array<SelectValue<string>>;
   repository: Repository;
   selectedProjects: string[];
 }
 const RepositoryRow = memo(function RepositoryRow({
   isPending,
   repository,
+  repositories,
   onRemoveRepository,
+  onChangeRepository,
   selectedProjects,
   memberProjects,
   nonMemberProjects,
@@ -94,23 +117,33 @@ const RepositoryRow = memo(function RepositoryRow({
       : memberProjects.map(getProjectItem);
   }, [memberProjects, nonMemberProjects]);
 
+  const handleRepositoryChange = useCallback(
+    (option: SelectValue<string> | null) => {
+      if (option === null) {
+        onRemoveRepository?.(repository.id);
+        return;
+      }
+
+      if (option?.value && option.value !== repository.id) {
+        onChangeRepository(repository.id, option.value);
+      }
+    },
+    [repository.id, onChangeRepository, onRemoveRepository]
+  );
+
   return (
     <MappingItem key={repository.id}>
-      <RepositoryInputGroup>
-        <InputGroup.LeadingItems>
-          <IconRepository size="sm" />
-        </InputGroup.LeadingItems>
-        <InputGroup.Input type="text" value={repository.name} readOnly size="sm" />
-        <InputGroup.TrailingItems>
-          <Button
-            size="zero"
-            priority="transparent"
-            icon={<IconClose size="sm" />}
-            onClick={() => onRemoveRepository?.(repository.id)}
-            aria-label={t('Remove repository')}
-          />
-        </InputGroup.TrailingItems>
-      </RepositoryInputGroup>
+      <Select
+        size="sm"
+        searchable
+        clearable
+        value={repository.id}
+        onChange={handleRepositoryChange}
+        options={repositories}
+        noOptionsMessage={() => t('No repositories found')}
+        menuPortalTarget={document.body}
+        prefix={<IconRepository size="sm" />}
+      />
 
       <Arrow direction="right" size="lg" />
 
@@ -183,10 +216,6 @@ const MappingItem = styled(PanelItem)`
   grid-template-columns: 1fr auto 1fr;
   align-items: start;
   gap: ${p => p.theme.space.xl};
-`;
-
-const RepositoryInputGroup = styled(InputGroup)`
-  width: 100%;
 `;
 
 const ProjectDropdownRow = styled('div')`
