@@ -250,4 +250,64 @@ describe('CreateAlertFromViewButton', () => {
       })
     );
   });
+
+  it('shows monitor label and link when workflow engine is enabled', () => {
+    const workflowOrg = OrganizationFixture({
+      ...organization,
+      features: ['workflow-engine-ui'],
+    });
+
+    render(<CreateAlertButton organization={workflowOrg} projectSlug="proj-slug" />, {
+      organization: workflowOrg,
+    });
+
+    const button = screen.getByRole('button', {name: 'Create Monitor'});
+    expect(button).toHaveTextContent('Create Monitor');
+    expect(button).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/monitors/new/?project=proj-slug'
+    );
+  });
+
+  it('deep links to monitor creation from discover when workflow engine is enabled', async () => {
+    const workflowOrg = OrganizationFixture({
+      ...organization,
+      features: ['workflow-engine-ui'],
+    });
+    const projects = [
+      ProjectFixture({
+        id: '2',
+        slug: 'project-slug',
+      }),
+    ];
+    ProjectsStore.loadInitialData(projects);
+
+    const eventView = EventView.fromSavedQuery({
+      ...DEFAULT_EVENT_VIEW,
+      query: 'event.type:error',
+      projects: [2],
+    });
+    const {router} = render(
+      <CreateAlertFromViewButton
+        organization={workflowOrg}
+        eventView={eventView}
+        projects={projects}
+        onClick={onClickMock}
+      />,
+      {
+        organization: workflowOrg,
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/monitors/new/settings/'
+    );
+    expect(router.location.query).toEqual(
+      expect.objectContaining({
+        project: '2',
+        detectorType: 'metric_issue',
+      })
+    );
+  });
 });

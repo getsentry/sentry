@@ -150,10 +150,14 @@ export function ToolbarSaveAs() {
     },
   });
 
+  const newAlertLabel = organization.features.includes('workflow-engine-ui')
+    ? t('A Monitor for')
+    : t('An Alert for');
+
   items.push({
     key: 'create-alert',
-    label: t('An Alert for'),
-    textValue: t('An Alert for'),
+    label: newAlertLabel,
+    textValue: newAlertLabel,
     children: alertsUrls ?? [],
     disabled: !alertsUrls || alertsUrls.length === 0,
     isSubmenu: true,
