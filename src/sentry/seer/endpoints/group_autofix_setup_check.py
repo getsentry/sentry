@@ -25,7 +25,7 @@ from sentry.seer.autofix.utils import (
     is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
-from sentry.seer.models import SeerApiError
+from sentry.seer.models import SeerApiError, SeerApiResponseValidationError
 from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -147,7 +147,7 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 has_repos = bool(project_preferences.code_mapping_repos)
                 if not has_repos:
                     integration_check = "no_repos_linked_in_seer_settings"
-            except SeerApiError:
+            except (SeerApiError, SeerApiResponseValidationError):
                 # If API fails allow the user to continue with the flow.
                 integration_check = None
 
