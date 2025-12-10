@@ -1,14 +1,10 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert/alert';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import Panel from 'sentry/components/panels/panel';
-import {IconChevron} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
@@ -31,17 +27,27 @@ import {CHARTS_PER_PAGE} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
 
 export type AttributeDistribution = Array<{
-  name: string;
+  attributeName: string;
   values: Array<{label: string; value: number}>;
 }>;
+
+type PaginationState = {
+  cursor: string | undefined;
+  page: number;
+};
 
 export function AttributeDistribution() {
   const [searchQuery, setSearchQuery] = useQueryParamState({
     fieldName: 'attributeBreakdownsSearch',
   });
 
-  const [cursor, setCursor] = useState<string | undefined>(undefined);
-  const [page, setPage] = useState(0);
+  // Little unconventional, but the /trace-items/stats/ endpoint but recommends fetching
+  // more data than we need to display the current page. We maintain a cursor to fetch the next page,
+  // and a page index to display the current page, from the accumulated data.
+  const [pagination, setPagination] = useState<PaginationState>({
+    cursor: undefined,
+    page: 0,
+  });
 
   const query = useQueryParamsQuery();
   const dataset = useSpansDataset();
@@ -85,50 +91,48 @@ export function AttributeDistribution() {
 
   // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
   // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
-  const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 100);
+  const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 200);
+
+  // Reset the pagination state when the search query
+  useEffect(() => {
+    setPagination({cursor: undefined, page: 0});
+  }, [searchQuery]);
 
   const {
     data: attributeBreakdownsData,
     getResponseHeader: getAttributeBreakdownsResponseHeader,
     isLoading: isAttributeBreakdownsLoading,
     error: attributeBreakdownsError,
-  } = useAttributeBreakdowns({cursor, substringMatch: debouncedSearchQuery});
+  } = useAttributeBreakdowns({
+    cursor: pagination.cursor,
+    substringMatch: debouncedSearchQuery,
+  });
 
   const parsedLinks = parseLinkHeader(
     getAttributeBreakdownsResponseHeader?.('Link') ?? null
   );
 
-  const filteredAttributeDistribution: AttributeDistribution = useMemo(() => {
-    const attributeDistribution =
-      attributeBreakdownsData?.data[0]?.attribute_distributions.data;
-    if (!attributeDistribution) return [];
+  const uniqueAttributeDistribution: AttributeDistribution = useMemo(() => {
+    if (!attributeBreakdownsData) return [];
 
     const seen = new Set<string>();
-    const searchFor = debouncedSearchQuery.trim().toLocaleLowerCase();
-
-    const filtered = Object.entries(attributeDistribution).reduce<AttributeDistribution>(
-      (acc, [name, values]) => {
-        const prettyName = prettifyAttributeName(name);
-        const normalizedName = prettyName.toLocaleLowerCase().trim();
-        if (normalizedName.includes(searchFor) && !seen.has(normalizedName)) {
-          seen.add(normalizedName);
-          acc.push({
-            name: prettyName,
-            values,
-          });
-        }
-        return acc;
-      },
-      []
-    );
+    const filtered = Object.entries(
+      attributeBreakdownsData
+    ).reduce<AttributeDistribution>((acc, [name, values]) => {
+      const prettyName = prettifyAttributeName(name);
+      const normalizedName = prettyName.toLocaleLowerCase().trim();
+      if (!seen.has(normalizedName)) {
+        seen.add(normalizedName);
+        acc.push({
+          attributeName: prettyName,
+          values,
+        });
+      }
+      return acc;
+    }, []);
 
     return filtered;
-  }, [attributeBreakdownsData, debouncedSearchQuery]);
-
-  useEffect(() => {
-    setCursor(undefined);
-    setPage(0);
-  }, [searchQuery]);
+  }, [attributeBreakdownsData]);
 
   const error = attributeBreakdownsError ?? cohortCountError;
 
@@ -151,49 +155,43 @@ export function AttributeDistribution() {
           <AttributeBreakdownsComponent.LoadingCharts />
         ) : error ? (
           <AttributeBreakdownsComponent.ErrorState error={error} />
-        ) : filteredAttributeDistribution.length > 0 ? (
+        ) : uniqueAttributeDistribution.length > 0 ? (
           <Fragment>
             <AttributeBreakdownsComponent.ChartsGrid>
-              {filteredAttributeDistribution
-                .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
-                .map(attribute => (
+              {uniqueAttributeDistribution
+                .slice(
+                  pagination.page * CHARTS_PER_PAGE,
+                  (pagination.page + 1) * CHARTS_PER_PAGE
+                )
+                .map(distribution => (
                   <Chart
-                    key={attribute.name}
-                    attributeDistribution={attribute}
+                    key={distribution.attributeName}
+                    attributeDistribution={distribution}
                     cohortCount={cohortCount}
                     theme={theme}
                   />
                 ))}
             </AttributeBreakdownsComponent.ChartsGrid>
-            <PaginationContainer>
-              <ButtonBar merged gap="0">
-                <Button
-                  icon={<IconChevron direction="left" />}
-                  aria-label={t('Previous')}
-                  size="sm"
-                  disabled={page === 0}
-                  onClick={() => {
-                    setPage(page - 1);
-                  }}
-                />
-                <Button
-                  icon={<IconChevron direction="right" />}
-                  aria-label={t('Next')}
-                  size="sm"
-                  disabled={
-                    page ===
-                    Math.ceil(filteredAttributeDistribution.length / CHARTS_PER_PAGE) - 1
-                  }
-                  onClick={() => {
-                    if (parsedLinks.next?.results) {
-                      setCursor(parsedLinks.next?.cursor);
-                    }
-
-                    setPage(page + 1);
-                  }}
-                />
-              </ButtonBar>
-            </PaginationContainer>
+            <AttributeBreakdownsComponent.Pagination
+              isPrevDisabled={pagination.page === 0}
+              isNextDisabled={
+                pagination.page ===
+                Math.ceil(uniqueAttributeDistribution.length / CHARTS_PER_PAGE) - 1
+              }
+              onPrevClick={() => {
+                setPagination({...pagination, page: pagination.page - 1});
+              }}
+              onNextClick={() => {
+                if (parsedLinks.next?.results) {
+                  setPagination({
+                    cursor: parsedLinks.next?.cursor,
+                    page: pagination.page + 1,
+                  });
+                } else {
+                  setPagination({...pagination, page: pagination.page + 1});
+                }
+              }}
+            />
           </Fragment>
         ) : (
           <AttributeBreakdownsComponent.EmptySearchState />
@@ -223,7 +221,3 @@ function ChartSelectionAlert() {
     </Alert>
   );
 }
-
-const PaginationContainer = styled(Flex)`
-  justify-content: end;
-`;

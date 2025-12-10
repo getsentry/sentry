@@ -5,6 +5,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import usePrevious from 'sentry/utils/usePrevious';
 import {CHARTS_PER_PAGE} from 'sentry/views/explore/components/attributeBreakdowns/constants';
 
 type AttributeDistributionData = Record<string, Array<{label: string; value: number}>>;
@@ -17,6 +18,9 @@ type AttributeBreakdowns = {
   }>;
 };
 
+// The /trace-items/stats/ endpoint returns a paginated response, but recommends fetching
+//  more data than we need to display the current page. Hence we accumulate the
+// data across paginated requests.
 function useAttributeBreakdowns({
   cursor,
   substringMatch,
@@ -31,6 +35,12 @@ function useAttributeBreakdowns({
 
   // Ref to accumulate data across paginated requests
   const accumulatedDataRef = useRef<AttributeDistributionData>({});
+
+  // Clear accumulated data when substringMatch changes
+  const previousSubstringMatch = usePrevious(substringMatch);
+  if (previousSubstringMatch !== substringMatch) {
+    accumulatedDataRef.current = {};
+  }
 
   const queryParams = useMemo(() => {
     const params = {
@@ -67,19 +77,11 @@ function useAttributeBreakdowns({
     };
   }
 
-  const accumulatedData = useMemo((): AttributeBreakdowns | undefined => {
+  const accumulatedData = useMemo((): AttributeDistributionData | undefined => {
     if (Object.keys(accumulatedDataRef.current).length === 0) {
-      return result.data;
+      return result.data?.data[0]?.attribute_distributions?.data;
     }
-    return {
-      data: [
-        {
-          attribute_distributions: {
-            data: accumulatedDataRef.current,
-          },
-        },
-      ],
-    };
+    return accumulatedDataRef.current;
   }, [result.data]);
 
   return {
