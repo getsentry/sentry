@@ -123,7 +123,7 @@ describe('replaceFreeTextTokens', () => {
           currentQuery: 'test test',
         },
         expected: {
-          query: `span.description:${WildcardOperators.CONTAINS}"test test"`,
+          query: `span.description:"*test*test*"`,
           focusOverride: {itemKey: 'freeText:1'},
         },
       },
@@ -159,7 +159,7 @@ describe('replaceFreeTextTokens', () => {
           currentQuery: `span.description:${WildcardOperators.CONTAINS}test other value`,
         },
         expected: {
-          query: `span.description:${WildcardOperators.CONTAINS}test span.description:${WildcardOperators.CONTAINS}"other value"`,
+          query: `span.description:${WildcardOperators.CONTAINS}test span.description:"*other*value*"`,
           focusOverride: {itemKey: 'freeText:2'},
         },
       },
@@ -172,7 +172,7 @@ describe('replaceFreeTextTokens', () => {
           currentQuery: `span.description:test other value`,
         },
         expected: {
-          query: `span.description:test span.description:${WildcardOperators.CONTAINS}"other value"`,
+          query: `span.description:test span.description:"*other*value*"`,
           focusOverride: {itemKey: 'freeText:2'},
         },
       },
@@ -186,6 +186,31 @@ describe('replaceFreeTextTokens', () => {
         expected: {
           query: `span.description:test span.description:te*st`,
           focusOverride: {itemKey: 'freeText:2'},
+        },
+      },
+      {
+        description: 'when the value contains a space and asterisks, it sets to is',
+        input: {
+          getFieldDefinition: () => null,
+          rawSearchReplacement: ['span.description'],
+          currentQuery: `te*st test`,
+        },
+        expected: {
+          query: `span.description:"te*st test"`,
+          focusOverride: {itemKey: 'freeText:1'},
+        },
+      },
+      {
+        description:
+          'when the value contains multiple spaces, it removes them and will replace them with a single space, and apply fuzzy matching',
+        input: {
+          getFieldDefinition: () => null,
+          rawSearchReplacement: ['span.description'],
+          currentQuery: `test  test`,
+        },
+        expected: {
+          query: `span.description:"*test*test*"`,
+          focusOverride: {itemKey: 'freeText:1'},
         },
       },
     ];

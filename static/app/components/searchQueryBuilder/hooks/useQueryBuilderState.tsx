@@ -724,13 +724,26 @@ export function replaceFreeTextTokens(
     }
 
     const value = escapeTagValue(token.text.trim());
-    replacedQuery.push(
-      // We don't want to break user flows, so if they include an asterisk in their free
-      // text value, leave it as an `is` filter.
-      value.includes('*')
-        ? `${primarySearchKey}:${value}`
-        : `${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`
-    );
+
+    // We don't want to break user flows, so if they include an asterisk in their free
+    // text value, leave it as an `is` filter.
+    if (value.includes('*')) {
+      replacedQuery.push(`${primarySearchKey}:${value}`);
+    } else if (
+      !token.quoted &&
+      value.startsWith('"') &&
+      value.endsWith('"') &&
+      value.includes(' ')
+    ) {
+      const formattedValue = value
+        .slice(1, -1)
+        .trim()
+        .replace(/\s+/g, ' ')
+        .replaceAll(' ', '*');
+      replacedQuery.push(`${primarySearchKey}:"*${formattedValue}*"`);
+    } else {
+      replacedQuery.push(`${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`);
+    }
   }
 
   const finalQuery = replacedQuery.join(' ').trim();

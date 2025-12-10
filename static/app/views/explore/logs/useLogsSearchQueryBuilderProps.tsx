@@ -3,6 +3,7 @@ import {useCallback} from 'react';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {TagCollection} from 'sentry/types/group';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import {
   useSearchQueryBuilderProps,
@@ -32,6 +33,11 @@ export function useLogsSearchQueryBuilderProps({
   const fields = useQueryParamsFields();
   const setQueryParams = useSetQueryParams();
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
+  const organization = useOrganization();
+  const hasRawSearchReplacement = organization.features.includes(
+    'search-query-builder-raw-search-replacement'
+  );
+
   const onSearch = useCallback(
     (newQuery: string) => {
       const newSearch = new MutableSearch(newQuery);
@@ -62,6 +68,7 @@ export function useLogsSearchQueryBuilderProps({
     stringSecondaryAliases,
     caseInsensitive,
     onCaseInsensitiveClick: setCaseInsensitive,
+    replaceRawSearchKeys: hasRawSearchReplacement ? ['message'] : undefined,
   };
 
   const searchQueryBuilderProviderProps = useSearchQueryBuilderProps(
