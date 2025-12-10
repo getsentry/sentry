@@ -1,6 +1,8 @@
 from django.core import mail
 
+from sentry.models import OrganizationOption
 from sentry.models.repository import Repository
+from sentry.models.repository_settings import RepositorySettings
 from sentry.plugins.providers.dummy import DummyRepositoryProvider
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -64,3 +66,137 @@ class RepositoryDeleteEmailTest(TestCase):
         assert msg.context["repo"] == self.repo
         assert msg.context["error_message"] == "Test error message"
         assert msg.context["provider_name"] == "Example"
+
+
+class RepositoryCodeReviewSettingsTest(TestCase):
+    """Tests for the post_save signal that creates RepositorySettings on repository creation."""
+
+    def test_no_settings_created_when_auto_enable_disabled(self):
+        """When auto_enable_code_review is False, no RepositorySettings should be created."""
+        org = self.create_organization()
+
+        # Ensure auto_enable is not set (defaults to False)
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name="test-repo",
+            provider="integrations:github",
+        )
+
+        # No settings should be created
+        assert not RepositorySettings.objects.filter(repository=repo).exists()
+
+    def test_settings_created_when_auto_enable_enabled(self):
+        """When auto_enable_code_review is True, RepositorySettings should be created."""
+        org = self.create_organization()
+
+        # Enable auto code review for the organization
+        OrganizationOption.objects.set_value(
+            organization=org,
+            key="sentry:auto_enable_code_review",
+            value=True,
+        )
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name="test-repo",
+            provider="integrations:github",
+        )
+
+        # Settings should be created with code review enabled
+        settings = RepositorySettings.objects.get(repository=repo)
+        assert settings.enabled_code_review is True
+        assert settings.code_review_triggers == []
+
+    def test_settings_created_with_triggers(self):
+        """When triggers are configured, they should be copied to RepositorySettings."""
+        org = self.create_organization()
+
+        # Enable auto code review with triggers
+        OrganizationOption.objects.set_value(
+            organization=org,
+            key="sentry:auto_enable_code_review",
+            value=True,
+        )
+        OrganizationOption.objects.set_value(
+            organization=org,
+            key="sentry:default_code_review_triggers",
+            value=["on_new_commit", "on_ready_for_review"],
+        )
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name="test-repo",
+            provider="integrations:github",
+        )
+
+        settings = RepositorySettings.objects.get(repository=repo)
+        assert settings.enabled_code_review is True
+        assert settings.code_review_triggers == ["on_new_commit", "on_ready_for_review"]
+
+    def test_no_settings_for_unsupported_provider(self):
+        """Repositories with unsupported providers should not get settings."""
+        org = self.create_organization()
+
+        # Enable auto code review
+        OrganizationOption.objects.set_value(
+            organization=org,
+            key="sentry:auto_enable_code_review",
+            value=True,
+        )
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name="test-repo",
+            provider="unsupported_provider",
+        )
+
+        # No settings should be created for unsupported provider
+        assert not RepositorySettings.objects.filter(repository=repo).exists()
+
+    def test_invalid_triggers_type_defaults_to_empty_list(self):
+        """When triggers is not a list, it should default to empty list."""
+        org = self.create_organization()
+
+        OrganizationOption.objects.set_value(
+            organization=org,
+            key="sentry:auto_enable_code_review",
+            value=True,
+        )
+        # Set invalid triggers type (string instead of list)
+        OrganizationOption.objects.set_value(
+            organization=org,
+            key="sentry:default_code_review_triggers",
+            value="invalid_string",
+        )
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name="test-repo",
+            provider="integrations:github",
+        )
+
+        settings = RepositorySettings.objects.get(repository=repo)
+        assert settings.code_review_triggers == []
+
+    def test_settings_not_duplicated_on_update(self):
+        """Updating a repository should not create duplicate settings."""
+        org = self.create_organization()
+
+        OrganizationOption.objects.set_value(
+            organization=org,
+            key="sentry:auto_enable_code_review",
+            value=True,
+        )
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name="test-repo",
+            provider="integrations:github",
+        )
+
+        # Update the repository
+        repo.name = "updated-repo"
+        repo.save()
+
+        # Should still have exactly one settings record
+        assert RepositorySettings.objects.filter(repository=repo).count() == 1

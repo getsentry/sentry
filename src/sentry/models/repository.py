@@ -4,7 +4,7 @@ from typing import Any
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
-from django.db.models.signals import pre_delete
+from django.db.models.signals import post_save, pre_delete
 from django.utils import timezone
 
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
@@ -24,6 +24,8 @@ from sentry.db.pending_deletion import (
     rename_on_pending_deletion,
     reset_pending_deletion_field_names,
 )
+from sentry.models import OrganizationOption
+from sentry.models.repository_settings import RepositorySettings
 from sentry.organizations.services.organization.service import organization_service
 from sentry.signals import pending_delete
 from sentry.users.services.user import RpcUser
@@ -186,3 +188,40 @@ pre_delete.connect(
     sender=Repository,
     weak=False,
 )
+
+
+def handle_auto_enable_code_review(instance: Repository) -> None:
+    """
+    When a new repository is created, auto enable code review if applicable.
+    """
+
+    SUPPORTED_PROVIDERS = {"integrations:github"}
+
+    if instance.provider not in SUPPORTED_PROVIDERS:
+        return
+
+    if OrganizationOption.objects.get_value(
+        organization=instance.organization_id,
+        key="sentry:auto_enable_code_review",
+        default=False,
+    ):
+        triggers = OrganizationOption.objects.get_value(
+            organization=instance.organization_id,
+            key="sentry:default_code_review_triggers",
+            default=[],
+        )
+        if not isinstance(triggers, list):
+            triggers = []
+
+        RepositorySettings.objects.get_or_create(
+            repository_id=instance.id,
+            defaults={"enabled_code_review": True, "code_review_triggers": triggers},
+        )
+
+
+def on_repository_created(sender, instance, created, **kwargs):
+    if created:
+        handle_auto_enable_code_review(instance)
+
+
+post_save.connect(on_repository_created, sender=Repository, weak=False)
