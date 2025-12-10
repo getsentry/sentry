@@ -532,16 +532,6 @@ for org in organizations:
 # RIGHT: Use prefetch_related
 organizations.prefetch_related('projects')
 
-# WRONG: N+1 queries in serializers
-class MySerializer(Serializer):
-    def serialize(self, obj, attrs, user):
-        # Query runs once per object!
-        related = RelatedModel.objects.filter(obj=obj)  # NO!
-        return {"related": related}
-
-# RIGHT: Bulk queries in get_attrs
-# See "Serializers: Avoiding N+1 Queries with get_attrs" section above
-
 # WRONG: Use hasattr() for unions
 x: str | None = "hello"
 if hasattr(x, "replace"):
