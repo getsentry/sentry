@@ -83,7 +83,7 @@ function ReleaseHeader({
       count:
         numberOfMobileBuilds === 0 ? (
           <BadgeWrapper>
-            <FeatureBadge type="new" />
+            <FeatureBadge type="beta" />
           </BadgeWrapper>
         ) : (
           <React.Fragment>

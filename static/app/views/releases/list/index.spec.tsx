@@ -517,7 +517,7 @@ describe('ReleasesList', () => {
     expect(screen.queryByTestId('hidden-projects')).not.toBeInTheDocument();
   });
 
-  it('renders mobile builds when the mobile dataset is selected', async () => {
+  it('renders mobile builds when the mobile-builds tab is selected', async () => {
     const mobileProject = ProjectFixture({
       id: '12',
       slug: 'mobile-project',
@@ -538,7 +538,7 @@ describe('ReleasesList', () => {
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/releases/`,
-          query: {dataset: 'mobile-builds', statsPeriod: '7d'},
+          query: {tab: 'mobile-builds', statsPeriod: '7d'},
         },
       },
     });
@@ -555,7 +555,7 @@ describe('ReleasesList', () => {
     );
   });
 
-  it('allows searching within the mobile builds dataset', async () => {
+  it('allows searching within the mobile-builds tab', async () => {
     const mobileProject = ProjectFixture({
       id: '13',
       slug: 'mobile-project-2',
@@ -597,7 +597,7 @@ describe('ReleasesList', () => {
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/releases/`,
-          query: {dataset: 'mobile-builds', query: 'sha:abcdef1'},
+          query: {tab: 'mobile-builds', query: 'sha:abcdef1'},
         },
       },
     });
@@ -614,7 +614,7 @@ describe('ReleasesList', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             per_page: 25,
-            statsPeriod: '7d',
+            statsPeriod: '14d',
             query: 'sha:abcdef1',
           }),
         })
@@ -635,7 +635,7 @@ describe('ReleasesList', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             per_page: 25,
-            statsPeriod: '7d',
+            statsPeriod: '14d',
             query: 'branch:main',
           }),
         })
@@ -643,7 +643,7 @@ describe('ReleasesList', () => {
     );
   });
 
-  it('resets search when switching back to releases tab from mobile builds', async () => {
+  it('resets tab when switching back to releases tab from mobile builds', async () => {
     const mobileProject = ProjectFixture({
       id: '14',
       slug: 'mobile-project-3',
@@ -669,7 +669,7 @@ describe('ReleasesList', () => {
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/releases/`,
-          query: {dataset: 'mobile-builds', query: 'sha:abcdef1', statsPeriod: '7d'},
+          query: {tab: 'mobile-builds', query: 'sha:abcdef1', statsPeriod: '7d'},
         },
       },
     });
@@ -680,8 +680,7 @@ describe('ReleasesList', () => {
       })
     );
 
-    expect(router.location.query.query).toBeUndefined();
-    expect(router.location.query.dataset).toBeUndefined();
+    expect(router.location.query.tab).toBeUndefined();
   });
 
   it('autocompletes semver search tag', async () => {
