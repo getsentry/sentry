@@ -18,6 +18,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import type EventView from 'sentry/utils/discover/eventView';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -89,8 +90,7 @@ export function CreateAlertFromViewButton({
         aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
         dataset: alertTemplate.dataset,
         organization,
-        name: alertTemplate.query,
-        query: queryParams.query as string | undefined,
+        query: decodeScalar(queryParams.query),
         referrer,
         eventTypes: alertTemplate.eventTypes,
       })
@@ -236,10 +236,6 @@ export default function CreateAlertButton({
         },
       }}
       onClick={projectSlug ? onEnter : handleClickWithoutProject}
-      aria-label={
-        (buttonProps as Record<string, string | undefined>)['aria-label'] ??
-        defaultButtonLabel
-      }
       {...buttonProps}
     >
       {buttonProps.children ?? defaultButtonLabel}
