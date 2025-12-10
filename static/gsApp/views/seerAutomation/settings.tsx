@@ -1,6 +1,5 @@
 import {ExternalLink} from '@sentry/scraps/link/link';
 
-import {hasEveryAccess} from 'sentry/components/acl/access';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {t, tct} from 'sentry/locale';
@@ -8,10 +7,11 @@ import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import SeerSettingsPageWrapper from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
+import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 export default function SeerAutomationSettings() {
   const organization = useOrganization();
-  const canWrite = hasEveryAccess(['org:write'], {organization});
+  const canWrite = useCanWriteSettings();
 
   return (
     <SeerSettingsPageWrapper>
