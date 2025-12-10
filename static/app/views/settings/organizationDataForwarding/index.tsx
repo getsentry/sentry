@@ -14,12 +14,16 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {DataForwarderOnboarding} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderOnboarding';
 import {DataForwarderRow} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderRow';
 import {useDataForwarders} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
+import {DataForwarderProviderSlug} from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 export default function OrganizationDataForwarding() {
   const organization = useOrganization();
-  const {data: dataForwarders} = useDataForwarders({
+  const {data: dataForwarders = []} = useDataForwarders({
     params: {orgSlug: organization.slug},
   });
+  // XXX: We only allow one forwarder per provider, so this is fine.
+  const canCreateForwarder =
+    dataForwarders.length < Object.values(DataForwarderProviderSlug).length;
 
   return (
     <Fragment>
@@ -50,7 +54,7 @@ export default function OrganizationDataForwarding() {
             </Text>
           </Flex>
         </Flex>
-        {dataForwarders && dataForwarders.length > 0 ? (
+        {dataForwarders.length > 0 ? (
           <Fragment>
             <Stack gap="xl">
               {dataForwarders.map(df => (
@@ -66,6 +70,12 @@ export default function OrganizationDataForwarding() {
                 onClick={() => {
                   trackAnalytics('data_forwarding.add_forwarder_clicked', {organization});
                 }}
+                disabled={!canCreateForwarder}
+                title={
+                  canCreateForwarder
+                    ? undefined
+                    : t('Maximum data forwarders configured.')
+                }
               >
                 {t('Setup a new Forwarder')}
               </LinkButton>
