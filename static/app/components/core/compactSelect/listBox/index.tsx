@@ -240,9 +240,9 @@ export function ListBox<T extends ObjectLike>({
 }
 
 const sizeEstimations = {
-  sm: {regular: 31, large: 48},
-  md: {regular: 35, large: 52},
-  xs: {regular: 24, large: 41},
+  sm: {regular: 32, large: 49},
+  md: {regular: 36, large: 53},
+  xs: {regular: 25, large: 42},
 } as const satisfies Record<FormSize, {large: number; regular: number}>;
 
 function useVirtualizedItems<T extends ObjectLike>({
