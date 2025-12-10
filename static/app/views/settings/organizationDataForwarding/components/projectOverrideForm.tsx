@@ -83,6 +83,7 @@ export function ProjectOverrideForm({
             <Button
               size="sm"
               icon={<IconRefresh color="danger" transform="scale(-1, 1)" />}
+              disabled={disabled}
               onClick={() => {
                 updateDataForwarder({
                   project_id: `${project.id}`,

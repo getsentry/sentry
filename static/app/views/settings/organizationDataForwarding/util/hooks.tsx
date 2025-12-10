@@ -32,7 +32,7 @@ export function useDataForwarders({
     staleTime: 30000,
     enabled:
       params.orgSlug === organization.slug
-        ? organization.features.includes('organizations:data-forwarding-revamp-access')
+        ? organization.features.includes('data-forwarding-revamp-access')
         : undefined,
     ...options,
   });
