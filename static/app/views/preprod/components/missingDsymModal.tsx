@@ -64,7 +64,7 @@ const BinaryList = styled(Stack)`
 
 const BinaryItem = styled('div')`
   padding: ${space(1)} ${space(1.5)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
 
   code {

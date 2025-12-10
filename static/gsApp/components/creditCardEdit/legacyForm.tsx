@@ -128,7 +128,9 @@ function CreditCardFormInner({
 
   const stripeElementStyles = {
     base: {
-      backgroundColor: theme.isChonk ? theme.tokens.background.primary : theme.background,
+      backgroundColor: theme.isChonk
+        ? theme.tokens.background.primary
+        : theme.tokens.background.primary,
       color: theme.isChonk ? theme.tokens.content.primary : theme.textColor,
       fontFamily: theme.text.family,
       fontWeight: 400,

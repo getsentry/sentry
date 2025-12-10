@@ -696,7 +696,7 @@ const Container = styled(motion.div, {
   position: relative;
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px dashed ${p => p.theme.border};
   overflow: hidden;
   box-shadow: ${p => (p.isFocused ? p.theme.dropShadowHeavy : p.theme.dropShadowLight)};

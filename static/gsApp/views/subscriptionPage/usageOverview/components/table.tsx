@@ -146,7 +146,7 @@ export default UsageOverviewTable;
 const Table = styled('table')`
   display: grid;
   grid-template-columns: repeat(3, auto);
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-top: 1px solid ${p => p.theme.border};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   gap: 0 ${p => p.theme.space['3xl']};

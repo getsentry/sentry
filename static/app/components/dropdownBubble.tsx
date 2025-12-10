@@ -72,7 +72,7 @@ const DropdownBubble = styled(
   ),
   {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
 )`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.textColor};
   border: 1px solid ${p => p.theme.border};
   position: absolute;

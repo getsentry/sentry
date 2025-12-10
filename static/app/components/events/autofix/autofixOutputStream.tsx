@@ -371,7 +371,7 @@ const Container = styled(motion.div)<{required: boolean}>`
   position: relative;
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px dashed ${p => p.theme.border};
 
   &:before {

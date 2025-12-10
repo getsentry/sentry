@@ -567,7 +567,7 @@ const TaskGroupWrapper = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)};
 
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 
   hr {
     border-color: ${p => p.theme.translucentBorder};

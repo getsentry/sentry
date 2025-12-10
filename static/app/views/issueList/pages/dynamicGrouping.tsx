@@ -1187,7 +1187,7 @@ const CardsColumn = styled('div')`
 
 // Card with subtle hover effect
 const CardContainer = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;
@@ -1364,7 +1364,7 @@ const SeerDropdownTrigger = styled(Button)`
 const IssuePreviewLink = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   transition:

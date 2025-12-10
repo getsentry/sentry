@@ -155,7 +155,7 @@ const _SlideOverPanel = styled(motion.div, {
   z-index: ${p => p.theme.zIndex.modal - 1};
 
   box-shadow: ${p => (p.theme.isChonk ? undefined : p.theme.dropShadowHeavy)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.textColor};
 
   text-align: left;

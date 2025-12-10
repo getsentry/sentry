@@ -598,7 +598,7 @@ const ActionButtonBar = styled(ButtonBar)`
   right: ${p => p.theme.space.md};
   white-space: nowrap;
   font-size: ${p => p.theme.fontSize.sm};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const TodoListContent = styled(MarkedText)`

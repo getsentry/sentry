@@ -200,7 +200,7 @@ export const GridRow = styled('tr')<{isClickable?: boolean}>`
   grid-column: 1/-1;
 
   &:not(thead > &) {
-    background-color: ${p => p.theme.background};
+    background-color: ${p => p.theme.tokens.background.primary};
 
     &:not(:last-child) {
       border-bottom: 1px solid ${p => p.theme.innerBorder};

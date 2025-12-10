@@ -74,7 +74,7 @@ export const getChonkStylesConfig = ({
       alignItems: 'center',
       ...(state.isFocused && theme.focusRing(boxShadow)),
       ...(state.isDisabled && {
-        background: theme.background,
+        background: theme.tokens.background.primary,
         color: theme.disabled,
         cursor: 'not-allowed',
         opacity: '60%',
@@ -134,7 +134,7 @@ export const getChonkStylesConfig = ({
       ...(state.isMulti && {
         maxHeight: 'inherit',
         overflowY: 'auto',
-        scrollbarColor: `${theme.purple200} ${theme.background}`,
+        scrollbarColor: `${theme.purple200} ${theme.tokens.background.primary}`,
       }),
     }),
     input: provided => ({
@@ -158,7 +158,7 @@ export const getChonkStylesConfig = ({
     multiValue: provided => ({
       ...provided,
       color: isDisabled ? theme.disabled : theme.textColor,
-      backgroundColor: theme.background,
+      backgroundColor: theme.tokens.background.primary,
       borderRadius: '4px',
       border: `1px solid ${theme.border}`,
       boxShadow: `0px 1px 0px 0px ${theme.tokens.border.primary}`,

@@ -200,7 +200,7 @@ const getStylesConfig = ({
     control: (_, state: any) => ({
       display: 'flex',
       color: theme.gray400,
-      background: theme.background,
+      background: theme.tokens.background.primary,
       border: `1px solid ${theme.border}`,
       boxShadow: theme.dropShadowMedium,
       borderRadius: theme.borderRadius,
@@ -264,7 +264,7 @@ const getStylesConfig = ({
         marginLeft: `-${space(1)}`,
         maxHeight: 'inherit',
         overflowY: 'auto',
-        scrollbarColor: `${theme.purple200} ${theme.background}`,
+        scrollbarColor: `${theme.purple200} ${theme.tokens.background.primary}`,
       }),
     }),
     input: provided => ({
@@ -290,7 +290,7 @@ const getStylesConfig = ({
     multiValue: provided => ({
       ...provided,
       color: theme.textColor,
-      backgroundColor: theme.background,
+      backgroundColor: theme.tokens.background.primary,
       borderRadius: '2px',
       border: `1px solid ${theme.border}`,
       display: 'flex',

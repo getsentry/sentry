@@ -4,7 +4,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 
 const HeaderLayout = styled('div')`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   padding: ${space(1)} ${space(3)} ${space(1)} ${space(3)};
   border-bottom: 1px solid ${p => p.theme.border};
   min-height: 150px;

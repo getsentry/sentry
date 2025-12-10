@@ -237,12 +237,12 @@ const styles = (theme: Theme, isDark: boolean) => css`
     ? css`
         .box,
         .box.box-modal {
-          background: ${theme.background};
+          background: ${theme.tokens.background.primary};
           border-color: ${theme.border};
 
           .box-content,
           .box-header {
-            background: ${theme.background};
+            background: ${theme.tokens.background.primary};
 
             h1,
             h2,
@@ -307,7 +307,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
                 &.collapsed {
                   .title {
                     border-color: ${theme.border};
-                    background: ${theme.background};
+                    background: ${theme.tokens.background.primary};
                   }
                 }
               }
@@ -319,7 +319,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
             border-top-color: ${theme.border};
 
             &.is-expandable .title:hover {
-              background-color: ${theme.background};
+              background-color: ${theme.tokens.background.primary};
             }
             .btn-toggle {
               color: ${theme.textColor};
@@ -332,7 +332,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
               background-color: ${theme.backgroundSecondary};
             }
             .context {
-              background: ${theme.background};
+              background: ${theme.tokens.background.primary};
 
               table.key-value {
                 border-color: ${theme.border};
@@ -347,7 +347,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
           color: ${theme.subText};
         }
         .event-details-container {
-          background-color: ${theme.background};
+          background-color: ${theme.tokens.background.primary};
           .secondary {
             border-left-color: ${theme.border};
           }
@@ -359,7 +359,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
         /* Global Selection header date picker */
         .rdrCalendarWrapper {
-          background: ${theme.background};
+          background: ${theme.tokens.background.primary};
           color: ${theme.textColor};
         }
         .rdrDayDisabled {
@@ -371,19 +371,19 @@ const styles = (theme: Theme, isDark: boolean) => css`
         }
         .dropdown-menu {
           color: ${theme.textColor};
-          background-color: ${theme.background} !important;
+          background-color: ${theme.tokens.background.primary} !important;
           border: 1px solid ${theme.border};
           &:before {
             border-bottom-color: ${theme.border};
           }
           &:after {
-            border-bottom-color: ${theme.background};
+            border-bottom-color: ${theme.tokens.background.primary};
           }
           &.inverted:before {
             border-top-color: ${theme.border};
           }
           &.inverted:after {
-            border-top-color: ${theme.background};
+            border-top-color: ${theme.tokens.background.primary};
           }
         }
       `

@@ -305,7 +305,7 @@ const GroupFeatureList = styled(({features, className}: GroupListProps) => (
   padding: 0;
   margin: 0;
   list-style: none;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const FeatureDescription = styled('li')`

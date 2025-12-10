@@ -1932,7 +1932,7 @@ function serializeProps(props: Record<string, unknown>) {
 }
 
 const StyledSticky = styled(Sticky)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   z-index: ${p => p.theme.zIndex.initial};
   top: 52px;
 `;
