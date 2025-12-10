@@ -284,7 +284,6 @@ export function SpanDescription({
       highlightedAttributes={getHighlightedSpanAttributes({
         attributes,
         spanId: span.event_id,
-        op: span.op,
       })}
     />
   );

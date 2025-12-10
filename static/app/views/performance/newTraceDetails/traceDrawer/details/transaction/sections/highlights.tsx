@@ -91,7 +91,6 @@ export function TransactionHighlights(props: HighlightProps) {
       highlightedAttributes={getHighlightedSpanAttributes({
         attributes: props.event.contexts.trace?.data,
         spanId: props.node.value.span_id,
-        op: props.node.value['transaction.op'],
       })}
     />
   );

@@ -201,7 +201,6 @@ export function SpanDescription({
       highlightedAttributes={getHighlightedSpanAttributes({
         attributes: span.data,
         spanId: span.span_id,
-        op: span.op,
       })}
     />
   );
