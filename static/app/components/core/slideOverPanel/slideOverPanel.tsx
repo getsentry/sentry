@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useEffectEvent, useState, useTransition} from 'react';
+import {useCallback, useEffect, useState, useTransition} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -33,10 +33,6 @@ type SlideOverPanelProps = {
   ariaLabel?: string;
   className?: string;
   'data-test-id'?: string;
-  /**
-   * Callback that fires every time the panel opens.
-   */
-  onOpen?: () => void;
   panelWidth?: string;
   position?: 'right' | 'bottom' | 'left';
   ref?: React.Ref<HTMLDivElement>;
@@ -51,7 +47,6 @@ export function SlideOverPanel({
   ariaLabel,
   children,
   className,
-  onOpen,
   position,
   transitionProps = {},
   panelWidth,
@@ -84,19 +79,6 @@ export function SlideOverPanel({
     startTransition(() => {
       setIsContentVisible(true);
     });
-  }, []);
-
-  // We do not want to re-run `onOpen` if it changes, we just want to run
-  // `onOpen` when the panel mounts, whatever `onOpen` happens to be at that
-  // moment. Wrap in effect event.
-  const handleOpen = useEffectEvent(() => {
-    onOpen?.();
-  });
-
-  // TODO: The `onOpen` props is not currently in use. It might be safe to
-  // remove this prop.
-  useEffect(() => {
-    handleOpen();
   }, []);
 
   // Create a fallback render function, in case the parent component passes
