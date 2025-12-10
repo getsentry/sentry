@@ -118,7 +118,7 @@ export default function AutomationHistoryList({
                   <TruncatedText>{row.detector.name}</TruncatedText>
                 </StyledLink>
               ) : (
-                t('Unknown detector')
+                '—'
               )}
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
