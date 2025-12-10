@@ -11,6 +11,7 @@ from sentry.seer.autofix.artifact_schemas import (
     SolutionArtifact,
     TriageArtifact,
 )
+from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.prompts import (
     CODE_CHANGES_PROMPT,
     IMPACT_ASSESSMENT_PROMPT,
@@ -113,10 +114,7 @@ def trigger_autofix_explorer(
     Returns:
         The run ID
     """
-    from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
-
     config = STEP_CONFIGS[step]
-
     client = SeerExplorerClient(
         organization=group.organization,
         user=None,  # No user personalization for autofix
