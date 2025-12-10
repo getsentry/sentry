@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sentry.constants import ObjectStatus
-from sentry.models.repositoryseersettings import RepositorySeerSettings
+from sentry.models.repositorysettings import RepositorySettings
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
     check_autofix_enabled,
     check_code_review_enabled,
@@ -69,7 +69,7 @@ class TestCheckCodeReviewEnabled(TestCase):
     def test_with_code_review_enabled(self) -> None:
         repo = self.create_repo(project=self.project)
 
-        RepositorySeerSettings.objects.create(
+        RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
         )
@@ -79,7 +79,7 @@ class TestCheckCodeReviewEnabled(TestCase):
     def test_code_review_disabled(self) -> None:
         repo = self.create_repo(project=self.project)
 
-        RepositorySeerSettings.objects.create(
+        RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=False,
         )
@@ -90,12 +90,12 @@ class TestCheckCodeReviewEnabled(TestCase):
         repo1 = self.create_repo(project=self.project)
         repo2 = self.create_repo(project=self.project)
 
-        RepositorySeerSettings.objects.create(
+        RepositorySettings.objects.create(
             repository=repo1,
             enabled_code_review=True,
         )
 
-        RepositorySeerSettings.objects.create(
+        RepositorySettings.objects.create(
             repository=repo2,
             enabled_code_review=False,
         )
@@ -110,7 +110,7 @@ class TestCheckCodeReviewEnabled(TestCase):
         repo.status = ObjectStatus.DISABLED
         repo.save()
 
-        RepositorySeerSettings.objects.create(
+        RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
         )
@@ -131,12 +131,12 @@ class TestCheckCodeReviewEnabled(TestCase):
         repo1 = self.create_repo(project=project1)
         repo2 = self.create_repo(project=project2)
 
-        RepositorySeerSettings.objects.create(
+        RepositorySettings.objects.create(
             repository=repo1,
             enabled_code_review=True,
         )
 
-        RepositorySeerSettings.objects.create(
+        RepositorySettings.objects.create(
             repository=repo2,
             enabled_code_review=False,
         )
@@ -241,7 +241,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
         )
 
         repo = self.create_repo(project=self.project)
-        RepositorySeerSettings.objects.create(
+        RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
         )
@@ -278,7 +278,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
     def test_code_review_enabled_only(self) -> None:
         repo = self.create_repo(project=self.project)
-        RepositorySeerSettings.objects.create(
+        RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
         )
@@ -315,7 +315,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
         )
 
         repo = self.create_repo(project=self.project)
-        RepositorySeerSettings.objects.create(
+        RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
         )
@@ -352,7 +352,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
     def test_code_review_and_autofix_enabled(self) -> None:
         repo = self.create_repo(project=self.project)
-        RepositorySeerSettings.objects.create(
+        RepositorySettings.objects.create(
             repository=repo,
             enabled_code_review=True,
         )

@@ -14,7 +14,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
-from sentry.models.repositoryseersettings import RepositorySeerSettings
+from sentry.models.repositorysettings import RepositorySettings
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -37,7 +37,7 @@ def check_github_integration(organization_id: int) -> bool:
 
 def check_code_review_enabled(organization_id: int) -> bool:
     """Check if code review is enabled for any active repository in the organization."""
-    return RepositorySeerSettings.objects.filter(
+    return RepositorySettings.objects.filter(
         repository__organization_id=organization_id,
         repository__status=ObjectStatus.ACTIVE,
         enabled_code_review=True,
