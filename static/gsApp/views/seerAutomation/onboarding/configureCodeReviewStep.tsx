@@ -13,7 +13,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {
   Field,
   FieldDescription,
@@ -26,23 +25,17 @@ import {RepositorySelector} from './repositorySelector';
 
 export function ConfigureCodeReviewStep() {
   const organization = useOrganization();
-  const {selectedCodeReviewRepositories} = useSeerOnboardingContext();
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
 
   const [enableCodeReview, setEnableCodeReview] = useState(
     organization.autoEnableCodeReview
   );
-  const hasSelectedRepositories = selectedCodeReviewRepositories.length > 0;
-  const canAdvance = !enableCodeReview || hasSelectedRepositories;
 
   const handleNextStep = useCallback(() => {
-    if (canAdvance) {
-      // TODO: Save to backend
+    // TODO: Save to backend
 
-      // ensure if enableCodeReview is false, we don't save hasSelectedRepositories
-      setCurrentStep(currentStep + 1);
-    }
-  }, [canAdvance, setCurrentStep, currentStep]);
+    setCurrentStep(currentStep + 1);
+  }, [setCurrentStep, currentStep]);
 
   return (
     <Fragment>
@@ -87,14 +80,8 @@ Now, select which of your repositories you would like to run Seer’s AI Code Re
           <Button
             size="md"
             onClick={handleNextStep}
-            priority={canAdvance ? 'primary' : 'default'}
-            disabled={!canAdvance}
+            priority="primary"
             aria-label={t('Next Step')}
-            title={
-              canAdvance
-                ? undefined
-                : t('Select repositories before continuing to the next step')
-            }
           >
             {t('Next Step')}
           </Button>
