@@ -260,7 +260,7 @@ export function ExplorerSeerDrawer({
           <ExplorerStatusCard
             status={runState.status}
             loadingBlock={loadingBlock}
-            onClick={handleOpenChat}
+            onOpenChat={handleOpenChat}
           />
 
           {/* Next step buttons when completed */}

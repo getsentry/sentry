@@ -1,10 +1,10 @@
-import styled from '@emotion/styled';
-import {motion, type MotionNodeAnimationOptions} from 'framer-motion';
+import {Container} from '@sentry/scraps/layout/container';
+import {Flex} from '@sentry/scraps/layout/flex';
 
+import {Button} from 'sentry/components/core/button';
 import {Text} from 'sentry/components/core/text';
-import {IconSeer} from 'sentry/icons';
+import {IconChat, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import testableTransition from 'sentry/utils/testableTransition';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
@@ -18,31 +18,10 @@ interface ExplorerStatusCardProps {
    */
   loadingBlock?: Block;
   /**
-   * Optional click handler (e.g. to open the chat).
+   * Optional callback to open the chat.
    */
-  onClick?: () => void;
+  onOpenChat?: () => void;
 }
-
-const cardAnimationProps: MotionNodeAnimationOptions = {
-  exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
-  initial: {opacity: 0, height: 0, scale: 0.8},
-  animate: {opacity: 1, height: 'auto', scale: 1},
-  transition: testableTransition({
-    duration: 0.1,
-    height: {
-      type: 'spring',
-      bounce: 0.2,
-    },
-    scale: {
-      type: 'spring',
-      bounce: 0.2,
-    },
-    y: {
-      type: 'tween',
-      ease: 'easeOut',
-    },
-  }),
-};
 
 /**
  * Status card shown when the autofix run is processing.
@@ -52,7 +31,7 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
 export function ExplorerStatusCard({
   status,
   loadingBlock,
-  onClick,
+  onOpenChat,
 }: ExplorerStatusCardProps) {
   if (status !== 'processing') {
     return null;
@@ -68,36 +47,22 @@ export function ExplorerStatusCard({
       : loadingBlock?.message?.content || t('Analyzing...');
 
   return (
-    <AnimatedCard {...cardAnimationProps}>
-      <Container onClick={onClick} clickable={!!onClick}>
-        <IconSeer variant="loading" size="lg" />
-        <Text size="md" ellipsis>
-          {displayText}
-        </Text>
-      </Container>
-    </AnimatedCard>
+    <Container padding="xl" border="primary" radius="md" background="primary">
+      <Flex direction="column" gap="xl">
+        <Flex align="center" gap="lg">
+          <IconSeer variant="loading" size="lg" />
+          <Text size="md" ellipsis>
+            {displayText}
+          </Text>
+        </Flex>
+        {onOpenChat && (
+          <Flex gap="md">
+            <Button size="md" onClick={onOpenChat} priority="primary" icon={<IconChat />}>
+              {t('Open Chat')}
+            </Button>
+          </Flex>
+        )}
+      </Flex>
+    </Container>
   );
 }
-
-const AnimatedCard = styled(motion.div)`
-  transform-origin: top center;
-`;
-
-const Container = styled('div')<{clickable?: boolean}>`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.lg};
-  padding: ${p => p.theme.space.xl};
-  background: ${p => p.theme.backgroundElevated};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  margin-bottom: ${p => p.theme.space.xl};
-  ${p =>
-    p.clickable &&
-    `
-    cursor: pointer;
-    &:hover {
-      background: ${p.theme.hover};
-    }
-  `}
-`;
