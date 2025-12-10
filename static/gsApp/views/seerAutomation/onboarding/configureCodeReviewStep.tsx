@@ -12,6 +12,7 @@ import {
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
 
 import {
   Field,
@@ -28,14 +29,27 @@ export function ConfigureCodeReviewStep() {
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
 
   const [enableCodeReview, setEnableCodeReview] = useState(
-    organization.autoEnableCodeReview
+    organization.autoEnableCodeReview ?? true
   );
+
+  const {mutate: updateOrganization} = useUpdateOrganization();
 
   const handleNextStep = useCallback(() => {
     // TODO: Save to backend
+    if (enableCodeReview !== organization.autoEnableCodeReview) {
+      updateOrganization({
+        autoEnableCodeReview: enableCodeReview,
+      });
+    }
 
     setCurrentStep(currentStep + 1);
-  }, [setCurrentStep, currentStep]);
+  }, [
+    setCurrentStep,
+    currentStep,
+    enableCodeReview,
+    organization.autoEnableCodeReview,
+    updateOrganization,
+  ]);
 
   return (
     <Fragment>
