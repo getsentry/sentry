@@ -33,17 +33,16 @@ export function ConfigureCodeReviewStep() {
     organization.autoEnableCodeReview
   );
   const hasSelectedRepositories = selectedCodeReviewRepositories.length > 0;
+  const canAdvance = !enableCodeReview || hasSelectedRepositories;
 
   const handleNextStep = useCallback(() => {
-    if (hasSelectedRepositories) {
+    if (canAdvance) {
       // TODO: Save to backend
 
       // ensure if enableCodeReview is false, we don't save hasSelectedRepositories
       setCurrentStep(currentStep + 1);
     }
-  }, [hasSelectedRepositories, setCurrentStep, currentStep]);
-
-  const canAdvance = !enableCodeReview || hasSelectedRepositories;
+  }, [canAdvance, setCurrentStep, currentStep]);
 
   return (
     <Fragment>
