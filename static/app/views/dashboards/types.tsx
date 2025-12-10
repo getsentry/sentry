@@ -26,6 +26,7 @@ export enum DisplayType {
   BIG_NUMBER = 'big_number',
   DETAILS = 'details',
   TOP_N = 'top_n',
+  WHEEL = 'wheel',
 }
 
 export enum WidgetType {
