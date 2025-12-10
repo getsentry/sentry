@@ -28,17 +28,18 @@ The `SlideOverPanel` component is a panel that can appear on the right, left, or
 ## Basic Usage
 
 ```jsx
-<Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
+<Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>;
 
-<SlideOverPanel open={isPanelOpen} position="right">
-  <Container border="primary" height="100%" padding="md">
-    <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
-  </Container>
-</SlideOverPanel>
+{
+  isPanelOpen && (
+    <SlideOverPanel position="right">
+      <Container border="primary" height="100%" padding="md">
+        <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
+      </Container>
+    </SlideOverPanel>
+  );
+}
 ```
-
-> [!NOTE]
-> It's also possible to conditionally render the panel (e.g., `{isPanelOpen && <SlideOverPanel ...`). We do not recommend this approach. If you do this, the panel will not defer rendering its contents (see below).
 
 ## Skeleton UI
 
@@ -59,15 +60,37 @@ To enable a loading skeleton, pass a render prop as the children to `SlideOverPa
 ```jsx
 <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
 
-<SlideOverPanel open={isPanelOpen} ePosition="right">
-  {({isOpening}) => isOpening ? <Placeholder /> :
-  <Container border="primary" height="100%" padding="md">
-    <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
-  </Container>
-}
-</SlideOverPanel>
+{isPanelOpen && (
+  <SlideOverPanel position="right">
+    {(options: {isOpening: boolean}) => {
+      return options.isOpening ? (
+        <SkeletonPanelContents onClick={closePanel} />
+      ) : (
+        <PanelContents onClick={closePanel} />
+      );
+    }}
+  </SlideOverPanel>
+)}
 ```
 
 ## Animating Panel Close
 
 Generally, we recommend not animating the panel on close, and simply removing it from the UI. In cases where you need to animate closing it (e.g., if it's coordinated with another animation), please wrap the panel in `<AnimatePresence>`.
+
+```jsx
+<Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
+
+<AnimatePresence>
+  {isPanelOpen && (
+    <SlideOverPanel position="right">
+      {(options: {isOpening: boolean}) => {
+        return options.isOpening ? (
+          <SkeletonPanelContents onClick={closePanel} />
+        ) : (
+          <PanelContents onClick={closePanel} />
+        );
+      }}
+    </SlideOverPanel>
+  )}
+</AnimatePresence>
+```
