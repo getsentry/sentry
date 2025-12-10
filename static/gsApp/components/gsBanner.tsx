@@ -74,7 +74,6 @@ import withPromotions from 'getsentry/utils/withPromotions';
 
 enum ModalType {
   USAGE_EXCEEDED = 'usage-exceeded',
-  GRACE_PERIOD = 'grace-period',
   PAST_DUE = 'past-due',
   MEMBER_LIMIT = 'member-limit',
 }
@@ -190,17 +189,6 @@ function NoticeModal({
   let primaryButtonMessage: React.ReactNode;
 
   switch (whichModal) {
-    case ModalType.GRACE_PERIOD:
-      title = t('Grace period started');
-      body = tct(
-        `Your organization has depleted its error capacity for the current usage period.
-          We've put your account into a one time grace period, which will continue to accept errors at a limited rate.
-          This grace period ends on [gracePeriodEnd].`,
-        {gracePeriodEnd: moment(subscription.gracePeriodEnd).format('ll')}
-      );
-      link = normalizeUrl(`/settings/${organization.slug}/billing/overview/`);
-      primaryButtonMessage = t('Continue');
-      break;
     case ModalType.USAGE_EXCEEDED:
       title = t('Usage exceeded');
       body = t(
@@ -240,7 +228,7 @@ function NoticeModal({
     default:
   }
 
-  if (subscription.usageExceeded || subscription.isGracePeriod) {
+  if (subscription.usageExceeded) {
     if (subscription.isFree) {
       subText = subscription.canTrial
         ? t(
@@ -496,13 +484,11 @@ class GSBanner extends Component<Props, State> {
   tryTriggerNoticeModal() {
     const {organization, subscription} = this.props;
 
-    const whichModal = subscription.isGracePeriod
-      ? ModalType.GRACE_PERIOD
-      : subscription.usageExceeded
-        ? ModalType.USAGE_EXCEEDED
-        : subscription.isPastDue && subscription.canSelfServe
-          ? ModalType.PAST_DUE
-          : null;
+    const whichModal = subscription.usageExceeded
+      ? ModalType.USAGE_EXCEEDED
+      : subscription.isPastDue && subscription.canSelfServe
+        ? ModalType.PAST_DUE
+        : null;
 
     if (whichModal === null) {
       return;
@@ -523,7 +509,6 @@ class GSBanner extends Component<Props, State> {
     }
 
     const modalAnalytics = {
-      [ModalType.GRACE_PERIOD]: 'grace_period_modal.seen',
       [ModalType.USAGE_EXCEEDED]: 'usage_exceeded_modal.seen',
       [ModalType.PAST_DUE]: 'past_due_modal.seen',
     } as const;
