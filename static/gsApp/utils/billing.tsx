@@ -734,6 +734,45 @@ export function getPotentialProductTrial(
   return potentialTrials[0] ?? null;
 }
 
+/**
+ * Gets the appropriate Seer data category for product trials.
+ * Uses SEER_USER for seat-based billing, falls back to SEER_AUTOFIX for legacy.
+ *
+ * Priority order:
+ * 1. SEER_USER (seat-based billing)
+ * 2. SEER_AUTOFIX (legacy billing)
+ */
+export function getSeerTrialCategory(
+  productTrials: ProductTrial[] | null
+): DataCategory | null {
+  if (!productTrials) {
+    return null;
+  }
+
+  // Check for SEER_USER trial first (seat-based billing takes precedence)
+  // For unstarted trials, endDate is the "start by" deadline
+  // For started trials, endDate is the expiration date
+  // In both cases, endDate must not have passed
+  const seerUserTrial = productTrials.find(
+    pt =>
+      pt.category === DataCategory.SEER_USER && getDaysSinceDate(pt.endDate ?? '') <= 0
+  );
+  if (seerUserTrial) {
+    return DataCategory.SEER_USER;
+  }
+
+  // Fall back to SEER_AUTOFIX (legacy)
+  const seerAutofixTrial = productTrials.find(
+    pt =>
+      pt.category === DataCategory.SEER_AUTOFIX && getDaysSinceDate(pt.endDate ?? '') <= 0
+  );
+  if (seerAutofixTrial) {
+    return DataCategory.SEER_AUTOFIX;
+  }
+
+  return null;
+}
+
 export function trialPromptIsDismissed(prompt: PromptData, subscription: Subscription) {
   const {snoozedTime, dismissedTime} = prompt || {};
   const time = snoozedTime || dismissedTime;
