@@ -21,6 +21,17 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
     categorySizes[categoryKey] = totalSize;
   });
 
+  const categorizedTotal = Object.values(categorySizes).reduce(
+    (sum, size) => sum + size,
+    0
+  );
+
+  // Binary overhead not in category_breakdown (padding, alignment)
+  const unmappedSize = treemapData.root.size - categorizedTotal;
+  if (unmappedSize > 0) {
+    categorySizes[TreemapType.UNMAPPED] = unmappedSize;
+  }
+
   const totalSize = treemapData.root.size;
 
   const pieData = Object.entries(categorySizes)
