@@ -578,7 +578,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         has_feature = features.batch_has_for_organizations(
             "organizations:granular-replay-permissions", item_list
         )
-        if any(has_feature.values()):
+        if has_feature and any(has_feature.values()):
             replay_permissions = {
                 opt.organization_id: opt.value
                 for opt in OrganizationOption.objects.filter(
