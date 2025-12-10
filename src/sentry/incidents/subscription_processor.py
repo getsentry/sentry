@@ -158,20 +158,6 @@ class SubscriptionProcessor:
             )
             results = process_data_packet(metric_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 
-        if features.has(
-            "organizations:workflow-engine-metric-alert-dual-processing-logs",
-            self.subscription.project.organization,
-        ):
-            logger.info(
-                "incidents.workflow_engine.results",
-                extra={
-                    "results": results,
-                    "num_results": len(results),
-                    "value": aggregation_value,
-                    "detector_id": detector.id,
-                    "subscription_update": subscription_update,
-                },
-            )
         return results
 
     def has_downgraded(self, dataset: str, organization: Organization) -> bool:

@@ -25,10 +25,6 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
-from sentry.workflow_engine.processors.contexts.workflow_event_context import (
-    WorkflowEventContext,
-    WorkflowEventContextData,
-)
 from sentry.workflow_engine.processors.data_condition_group import get_data_conditions_for_group
 from sentry.workflow_engine.processors.workflow import (
     delete_workflow,
@@ -414,28 +410,6 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             {self.workflow}, self.event_data, self.event_start_time
         )
         assert triggered_workflows == {self.workflow}
-
-    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
-    @patch("sentry.workflow_engine.processors.workflow.logger")
-    def test_logs_triggered_workflows(self, mock_logger: MagicMock) -> None:
-        ctx_token = WorkflowEventContext.set(
-            WorkflowEventContextData(
-                detector=self.detector,
-            )
-        )
-        evaluate_workflow_triggers({self.workflow}, self.event_data, self.event_start_time)
-        mock_logger.info.assert_called_once_with(
-            "workflow_engine.process_workflows.workflow_triggered",
-            extra={
-                "workflow_id": self.workflow.id,
-                "detector_id": self.detector.id,
-                "organization_id": self.workflow.organization.id,
-                "project_id": self.event_data.group.project.id,
-                "group_type": self.event_data.group.type,
-            },
-        )
-
-        WorkflowEventContext.reset(ctx_token)
 
     def test_workflow_trigger__no_conditions(self) -> None:
         assert self.workflow.when_condition_group

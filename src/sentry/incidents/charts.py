@@ -175,18 +175,6 @@ def fetch_metric_issue_open_periods(
                     **time_period,
                 },
             )
-        if features.has(
-            "organizations:workflow-engine-metric-alert-dual-processing-logs",
-            organization,
-        ):
-            logger.info(
-                "fetching metric issue open periods",
-                extra={
-                    "organization_id": organization.id,
-                    "open_period_id": open_period_identifier,
-                    "response_data": resp.data,
-                },
-            )
         return resp.data
     except Exception as exc:
         logger.error(
@@ -353,17 +341,6 @@ def build_metric_alert_chart(
             chart_data.update(chart_data_detector)
         else:
             chart_data.update(chart_data_alert_rule)
-        if features.has(
-            "organizations:workflow-engine-metric-alert-dual-processing-logs",
-            organization,
-        ):
-            logger.info(
-                "passed chart data",
-                extra={
-                    "chart_data": chart_data,
-                    "style": style,
-                },
-            )
         return charts.generate_chart(style, chart_data, size=size)
     except RuntimeError as exc:
         logger.error(
