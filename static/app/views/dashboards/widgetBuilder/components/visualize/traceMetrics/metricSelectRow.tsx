@@ -31,7 +31,7 @@ export function MetricSelectRow({
         <MetricSelector
           traceMetric={traceMetric}
           onChange={option => {
-            if (field.kind === 'function' || !field) {
+            if (field.kind === 'function') {
               const newYAxes = cloneDeep(state.yAxis) ?? [];
               const newTraceMetrics = cloneDeep(state.traceMetrics) ?? [];
               newTraceMetrics[index] = {name: option.name, type: option.type};

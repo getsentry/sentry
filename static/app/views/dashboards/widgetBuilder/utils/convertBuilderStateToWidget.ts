@@ -23,8 +23,8 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     defined(state.legendAlias) && state.legendAlias.length > 0 ? state.legendAlias : [];
 
   const fieldAliases = state.fields?.map(field => field.alias ?? '');
-  let aggregates = [];
-  if ((state.yAxis?.length ?? 0) > 0) {
+  let aggregates: string[];
+  if (state.yAxis?.length) {
     if (state.dataset === WidgetType.TRACEMETRICS) {
       // HACK: Inject the trace metric name and type into the aggregate function
       // prior to making the request because the current types for y-axes do not support

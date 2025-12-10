@@ -85,7 +85,7 @@ export function AggregateSelector({
         state.displayType === DisplayType.TABLE ? renderDropdownMenuFooter : undefined
       }
       onChange={option => {
-        if (field.kind === 'function' || !field) {
+        if (field.kind === 'function') {
           const newYAxes = cloneDeep(state.yAxis) ?? [];
           newYAxes[index] = {
             function: [
