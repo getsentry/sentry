@@ -51,7 +51,7 @@ export default function DetectorNew() {
         pathname: `${makeMonitorBasePathname(organization.slug)}new/settings/`,
         query: {
           detectorType,
-          project: projectId,
+          project: projectId ?? undefined,
         },
       });
     },
