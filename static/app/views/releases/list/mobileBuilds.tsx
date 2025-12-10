@@ -1,4 +1,5 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useMemo} from 'react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -10,12 +11,8 @@ import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 
 type Props = {
@@ -25,50 +22,12 @@ type Props = {
 
 export default function MobileBuilds({organization, projectSlug}: Props) {
   const location = useLocation();
-  const navigate = useNavigate();
-  const {cursor, query: urlSearchQuery} = useLocationQuery({
-    fields: {
-      cursor: decodeScalar,
-      query: decodeScalar,
-    },
-  });
-  const [pendingSearchQuery, setPendingSearchQuery] = useState<string | undefined>(
-    undefined
+
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'query',
+    parseAsString.withDefault('')
   );
-  const searchInputValue = pendingSearchQuery ?? urlSearchQuery ?? '';
-  const debouncedSearchInput = useDebouncedValue(searchInputValue);
-  const previousUrlSearchQuery = useRef(urlSearchQuery);
-
-  useEffect(() => {
-    if (previousUrlSearchQuery.current === urlSearchQuery) {
-      return;
-    }
-
-    previousUrlSearchQuery.current = urlSearchQuery;
-    setPendingSearchQuery(undefined);
-  }, [urlSearchQuery]);
-
-  useEffect(() => {
-    if (pendingSearchQuery === undefined) {
-      return;
-    }
-
-    if (debouncedSearchInput === (urlSearchQuery ?? '')) {
-      return;
-    }
-
-    navigate(
-      {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          query: debouncedSearchInput.trim() || undefined,
-          cursor: undefined,
-        },
-      },
-      {replace: true}
-    );
-  }, [debouncedSearchInput, location, navigate, pendingSearchQuery, urlSearchQuery]);
+  const [cursor, setCursor] = useQueryState('cursor', parseAsString);
 
   const buildsQueryParams = useMemo(() => {
     const query: Record<string, any> = {
@@ -80,13 +39,12 @@ export default function MobileBuilds({organization, projectSlug}: Props) {
       query.cursor = cursor;
     }
 
-    const effectiveQuery = pendingSearchQuery ?? urlSearchQuery;
-    if (effectiveQuery?.trim()) {
-      query.query = effectiveQuery.trim();
+    if (searchQuery.trim()) {
+      query.query = searchQuery.trim();
     }
 
     return query;
-  }, [cursor, location.query, pendingSearchQuery, urlSearchQuery]);
+  }, [cursor, location.query, searchQuery]);
 
   const {
     data: buildsData,
@@ -114,7 +72,7 @@ export default function MobileBuilds({organization, projectSlug}: Props) {
 
   const builds = buildsData?.builds ?? [];
   const pageLinks = getResponseHeader?.('Link') ?? undefined;
-  const hasSearchQuery = !!(pendingSearchQuery ?? urlSearchQuery)?.trim();
+  const hasSearchQuery = !!searchQuery?.trim();
   const shouldShowSearchBar = builds.length > 0 || hasSearchQuery;
 
   return (
@@ -122,8 +80,11 @@ export default function MobileBuilds({organization, projectSlug}: Props) {
       {shouldShowSearchBar && (
         <SearchBar
           placeholder={t('Search by build, SHA, branch name, or pull request')}
-          onChange={setPendingSearchQuery}
-          query={searchInputValue}
+          onChange={q => {
+            setSearchQuery(q.trim() || null);
+            setCursor(null); // Clear pagination on search
+          }}
+          query={searchQuery}
         />
       )}
 

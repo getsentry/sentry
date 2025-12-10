@@ -425,7 +425,7 @@ export default function ReleasesList() {
             )}
           </Stack>
         </Layout.Header>
-        <Layout.Body data-tab={selectedTab}>
+        <Layout.Body>
           <Layout.Main width="full">
             <Stack gap="xl">
               {selectedTab === 'mobile-builds' && (
