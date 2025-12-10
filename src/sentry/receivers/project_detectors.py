@@ -19,22 +19,29 @@ logger = logging.getLogger(__name__)
 @contextmanager
 def disable_default_detector_creation():
     """
-    Context manager that temporarily disconnects the create_project_detectors
-    signal handler, preventing default detectors from being created when a
-    project is saved.
+    Context manager that temporarily disconnects the signal handlers that create
+    default detectors, preventing them from being created when a project is saved.
     """
-    # Disconnect the signal
+    # Disconnect both signals
     post_save.disconnect(
         create_project_detectors, sender=Project, dispatch_uid="create_project_detectors"
+    )
+    project_created.disconnect(
+        create_metric_detector_with_owner, dispatch_uid="create_metric_detector_with_owner"
     )
     try:
         yield
     finally:
-        # Always reconnect the signal, even if an exception occurred
+        # Always reconnect the signals, even if an exception occurred
         post_save.connect(
             create_project_detectors,
             sender=Project,
             dispatch_uid="create_project_detectors",
+            weak=False,
+        )
+        project_created.connect(
+            create_metric_detector_with_owner,
+            dispatch_uid="create_metric_detector_with_owner",
             weak=False,
         )
 

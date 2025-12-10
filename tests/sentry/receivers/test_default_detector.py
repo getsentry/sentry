@@ -153,11 +153,12 @@ class TestDisableDefaultDetectorCreation(TestCase):
         assert not Detector.objects.filter(project=project, type=IssueStreamGroupType.slug).exists()
 
     def test_context_manager_reconnects_on_exception(self):
-        """Test that signal is reconnected even if exception occurs."""
+        """Test that signals are reconnected even if exception occurs."""
         from django.db.models.signals import post_save
 
         from sentry.models.project import Project
         from sentry.receivers.project_detectors import disable_default_detector_creation
+        from sentry.signals import project_created
 
         try:
             with disable_default_detector_creation():
@@ -165,6 +166,26 @@ class TestDisableDefaultDetectorCreation(TestCase):
         except ValueError:
             pass
 
-        # Signal should be reconnected - check that the dispatch_uid is registered
+        # post_save signal should be reconnected
         receiver_uids = [r[0][0] for r in post_save.receivers if r[0][1] == id(Project)]
         assert "create_project_detectors" in receiver_uids
+
+        # project_created signal should be reconnected
+        project_created_uids = [r[0][0] for r in project_created.receivers]
+        assert "create_metric_detector_with_owner" in project_created_uids
+
+    def test_context_manager_disables_metric_detector_signal(self):
+        """Test that disable_default_detector_creation also prevents metric detector creation."""
+        from sentry.incidents.grouptype import MetricIssue
+        from sentry.receivers.project_detectors import disable_default_detector_creation
+
+        with (
+            self.feature({"organizations:default-anomaly-detector": True}),
+            disable_default_detector_creation(),
+            mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"),
+        ):
+            # fire_project_created=True ensures the project_created signal is sent
+            project = self.create_project(fire_project_created=True)
+
+        # Metric detector should not be created because the signal handler was disconnected
+        assert not Detector.objects.filter(project=project, type=MetricIssue.slug).exists()
