@@ -65,7 +65,8 @@ class PrebuiltDashboardId(IntEnum):
     FRONTEND_SESSION_HEALTH = 1
     BACKEND_QUERIES = 2
     BACKEND_QUERIES_SUMMARY = 3
-    WEB_VITALS = 4
+    WEB_VITALS = 6
+    WEB_VITALS_SUMMARY = 7
 
 
 class PrebuiltDashboard(TypedDict):
