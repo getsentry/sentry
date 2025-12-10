@@ -469,6 +469,28 @@ def _assemble_preprod_artifact_size_analysis(
         metrics_committed_successfully = True
         size_metrics_updated = metrics_in_transaction
 
+        # Write to EAP for all successfully created/updated metrics
+        from sentry.preprod.lib.eap.write import write_preprod_size_metric_to_eap
+
+        for size_metric in size_metrics_updated:
+            try:
+                write_preprod_size_metric_to_eap(
+                    size_metric=size_metric,
+                    organization_id=org_id,
+                    project_id=project.id,
+                )
+            except Exception:
+                # Don't fail the entire task if EAP write fails - just log and continue
+                logger.exception(
+                    "preprod.size_analysis.eap_write_failed",
+                    extra={
+                        "size_metric_id": size_metric.id,
+                        "preprod_artifact_id": preprod_artifact.id,
+                        "project_id": project.id,
+                        "organization_id": org_id,
+                    },
+                )
+
         if size_analysis_results.analysis_duration is not None:
             with transaction.atomic(router.db_for_write(PreprodArtifact)):
                 preprod_artifact.refresh_from_db()
@@ -491,6 +513,29 @@ def _assemble_preprod_artifact_size_analysis(
                 "organization_id": org_id,
             },
         )
+
+        # Check size thresholds and alert if exceeded
+        # This runs after metrics are successfully committed to ensure we only alert on valid data
+        from sentry.preprod.alerts import alert_if_size_exceeded
+
+        for size_metric in size_metrics_updated:
+            try:
+                alert_if_size_exceeded(
+                    size_metric=size_metric,
+                    project=project,
+                    # threshold_bytes can be configured per-project via project options
+                    # Default is 100MB if not configured
+                )
+            except Exception:
+                # Don't fail the entire task if alerting fails - just log and continue
+                logger.exception(
+                    "preprod.size_analysis.alert_failed",
+                    extra={
+                        "size_metric_id": size_metric.id,
+                        "preprod_artifact_id": preprod_artifact.id,
+                        "project_id": project.id,
+                    },
+                )
 
     except Exception as e:
         logger.exception(
