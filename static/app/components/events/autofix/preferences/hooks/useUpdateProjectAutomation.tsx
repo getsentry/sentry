@@ -9,47 +9,66 @@ import {
 import {makeDetailedProjectQueryKey} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface UpdateProjectAutomationData {
-  autofixAutomationTuning: 'off' | 'super_low' | 'low' | 'medium' | 'high' | 'always';
-  seerScannerAutomation: boolean;
-}
+interface Variables extends Partial<Project> {}
 
+type Context =
+  | {
+      previousProject: Project;
+      error?: never;
+    }
+  | {
+      error: Error;
+      previousProject?: never;
+    };
+
+// TODO: Rename & Move this into a more generic place, it's not specific to events or autofix
 export function useUpdateProjectAutomation(project: Project) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  return useMutation<Project, Error, UpdateProjectAutomationData>({
-    mutationFn: (data: UpdateProjectAutomationData) => {
+  const queryKey = makeDetailedProjectQueryKey({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+
+  return useMutation<Project, Error, Variables, Context>({
+    onMutate: (data: Variables) => {
+      const previousProject =
+        queryClient.getQueryData<Project>(queryKey) ||
+        ProjectsStore.getById(project.id) ||
+        project;
+      if (!previousProject) {
+        return {error: new Error('Previous project not found')};
+      }
+      const updatedProject = {
+        ...previousProject,
+        ...data,
+      };
+
+      // Update caches optimistically
+      ProjectsStore.onUpdateSuccess(updatedProject);
+      setApiQueryData<Project>(queryClient, queryKey, updatedProject);
+
+      return {previousProject};
+    },
+    mutationFn: (data: Variables) => {
       return fetchMutation<Project>({
         method: 'PUT',
         url: `/projects/${organization.slug}/${project.slug}/`,
-        data: {
-          autofixAutomationTuning: data.autofixAutomationTuning,
-          seerScannerAutomation: data.seerScannerAutomation,
-        },
+        data: {...data},
       });
     },
-    onSuccess: (updatedProject: Project) => {
-      // Update the project store so the UI reflects the changes immediately
-      ProjectsStore.onUpdateSuccess(updatedProject);
-
-      // Update the query cache optimistically
-      setApiQueryData<Project>(
-        queryClient,
-        makeDetailedProjectQueryKey({
-          orgSlug: organization.slug,
-          projectSlug: project.slug,
-        }),
-        existingData => (updatedProject ? updatedProject : existingData)
-      );
-
-      // Invalidate to refetch and ensure consistency
-      queryClient.invalidateQueries({
-        queryKey: makeDetailedProjectQueryKey({
-          orgSlug: organization.slug,
-          projectSlug: project.slug,
-        }),
-      });
+    onError: (_error, _variables, context) => {
+      if (context?.previousProject) {
+        ProjectsStore.onUpdateSuccess(context.previousProject);
+        queryClient.setQueryData(queryKey, context.previousProject);
+      }
+    },
+    onSettled: () => {
+      // Invalidate to refetch and ensure consistency for the queryCache
+      // ProjectsStore should've been updated already. It could be out of sync if
+      // there are multiple mutations in parallel.
+      queryClient.invalidateQueries({queryKey});
     },
   });
 }

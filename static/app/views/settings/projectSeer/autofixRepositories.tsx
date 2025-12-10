@@ -58,7 +58,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   }, [organization.features, organization.autoOpenPrs]);
 
   const [automatedRunStoppingPoint, setAutomatedRunStoppingPoint] = useState<
-    'root_cause' | 'solution' | 'code_changes' | 'open_pr'
+    'root_cause' | 'solution' | 'code_changes' | 'open_pr' | 'background_agent'
   >(getDefaultStoppingPoint());
 
   useEffect(() => {
