@@ -251,6 +251,43 @@ const DEFAULT_STATS_INFO = {
 };
 const GIGABYTE = 10 ** 9;
 const KILOBYTE = 10 ** 3;
+const MILLISECONDS_IN_HOUR = 3_600_000;
+
+/**
+ * Default formatting configuration for count-based categories.
+ * Most categories use this configuration.
+ */
+const DEFAULT_COUNT_FORMATTING = {
+  unitType: 'count' as const,
+  reservedMultiplier: 1,
+  bigNumUnit: 0 as const,
+  priceFormatting: {minIntegerDigits: 5, maxIntegerDigits: 7},
+  projectedAbbreviated: true,
+};
+
+/**
+ * Formatting configuration for byte-based categories (attachments, logs).
+ * Reserved values are in GB, raw values are in bytes.
+ */
+const BYTES_FORMATTING = {
+  unitType: 'bytes' as const,
+  reservedMultiplier: GIGABYTE,
+  bigNumUnit: 1 as const,
+  priceFormatting: {minIntegerDigits: 2, maxIntegerDigits: 2},
+  projectedAbbreviated: true,
+};
+
+/**
+ * Formatting configuration for duration-based categories (continuous profiling).
+ * Reserved values are in hours, raw values are in milliseconds.
+ */
+const DURATION_HOURS_FORMATTING = {
+  unitType: 'durationHours' as const,
+  reservedMultiplier: MILLISECONDS_IN_HOUR,
+  bigNumUnit: 0 as const,
+  priceFormatting: {minIntegerDigits: 5, maxIntegerDigits: 7},
+  projectedAbbreviated: true,
+};
 
 // https://github.com/getsentry/relay/blob/master/relay-base-schema/src/data_category.rs
 export const DATA_CATEGORY_INFO = {
@@ -268,6 +305,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
     },
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.TRANSACTION]: {
     name: DataCategoryExact.TRANSACTION,
@@ -283,6 +321,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
     },
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.ATTACHMENT]: {
     name: DataCategoryExact.ATTACHMENT,
@@ -299,6 +338,7 @@ export const DATA_CATEGORY_INFO = {
       showExternalStats: true,
       yAxisMinInterval: 0.5 * GIGABYTE,
     },
+    formatting: {...BYTES_FORMATTING, projectedAbbreviated: false},
   },
   [DataCategoryExact.PROFILE]: {
     name: DataCategoryExact.PROFILE,
@@ -314,6 +354,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
     },
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.PROFILE_INDEXED]: {
     name: DataCategoryExact.PROFILE_INDEXED,
@@ -325,6 +366,7 @@ export const DATA_CATEGORY_INFO = {
     uid: 11,
     isBilledCategory: false,
     statsInfo: DEFAULT_STATS_INFO,
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.REPLAY]: {
     name: DataCategoryExact.REPLAY,
@@ -340,6 +382,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
     },
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.USER_REPORT_V2]: {
     name: DataCategoryExact.USER_REPORT_V2,
@@ -355,6 +398,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
     },
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.TRANSACTION_PROCESSED]: {
     name: DataCategoryExact.TRANSACTION_PROCESSED,
@@ -369,6 +413,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showInternalStats: false,
     },
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.TRANSACTION_INDEXED]: {
     name: DataCategoryExact.TRANSACTION_INDEXED,
@@ -380,6 +425,7 @@ export const DATA_CATEGORY_INFO = {
     uid: 9,
     isBilledCategory: false,
     statsInfo: DEFAULT_STATS_INFO,
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.MONITOR]: {
     name: DataCategoryExact.MONITOR,
@@ -394,6 +440,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
     },
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.SPAN]: {
     name: DataCategoryExact.SPAN,
@@ -409,6 +456,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
     },
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
@@ -424,6 +472,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showInternalStats: false,
     },
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.SPAN_INDEXED]: {
     name: DataCategoryExact.SPAN_INDEXED,
@@ -436,6 +485,7 @@ export const DATA_CATEGORY_INFO = {
     isBilledCategory: false,
     docsUrl: 'https://docs.sentry.io/product/performance/',
     statsInfo: DEFAULT_STATS_INFO,
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.PROFILE_DURATION]: {
     name: DataCategoryExact.PROFILE_DURATION,
@@ -452,6 +502,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
     },
+    formatting: DURATION_HOURS_FORMATTING,
   },
   [DataCategoryExact.PROFILE_CHUNK]: {
     name: DataCategoryExact.PROFILE_CHUNK,
@@ -463,6 +514,7 @@ export const DATA_CATEGORY_INFO = {
     uid: 18,
     isBilledCategory: false,
     statsInfo: DEFAULT_STATS_INFO,
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.PROFILE_DURATION_UI]: {
     name: DataCategoryExact.PROFILE_DURATION_UI,
@@ -479,6 +531,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
     },
+    formatting: DURATION_HOURS_FORMATTING,
   },
   [DataCategoryExact.PROFILE_CHUNK_UI]: {
     name: DataCategoryExact.PROFILE_CHUNK_UI,
@@ -490,6 +543,7 @@ export const DATA_CATEGORY_INFO = {
     uid: 26,
     isBilledCategory: false,
     statsInfo: DEFAULT_STATS_INFO,
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
 
   [DataCategoryExact.UPTIME]: {
@@ -506,6 +560,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showInternalStats: false,
     },
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.LOG_ITEM]: {
     name: DataCategoryExact.LOG_ITEM,
@@ -520,6 +575,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
     },
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.LOG_BYTE]: {
     name: DataCategoryExact.LOG_BYTE,
@@ -536,6 +592,7 @@ export const DATA_CATEGORY_INFO = {
       showExternalStats: true,
       yAxisMinInterval: 1 * KILOBYTE,
     },
+    formatting: BYTES_FORMATTING,
   },
   [DataCategoryExact.SEER_AUTOFIX]: {
     name: DataCategoryExact.SEER_AUTOFIX,
@@ -550,6 +607,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
     },
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.SEER_SCANNER]: {
     name: DataCategoryExact.SEER_SCANNER,
@@ -564,6 +622,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
     },
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.PREVENT_USER]: {
     name: DataCategoryExact.PREVENT_USER,
@@ -578,6 +637,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: false, // TODO(prevent): add external stats when ready
     },
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.PREVENT_REVIEW]: {
     name: DataCategoryExact.PREVENT_REVIEW,
@@ -592,6 +652,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: false, // TODO(prevent): add external stats when ready
     },
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.TRACE_METRIC]: {
     name: DataCategoryExact.TRACE_METRIC,
@@ -606,6 +667,7 @@ export const DATA_CATEGORY_INFO = {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
     },
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.SEER_USER]: {
     name: DataCategoryExact.SEER_USER,
@@ -622,6 +684,7 @@ export const DATA_CATEGORY_INFO = {
     },
     getProductLink: (organization: Organization) =>
       `/settings/${organization.slug}/seer/`,
+    formatting: DEFAULT_COUNT_FORMATTING,
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
