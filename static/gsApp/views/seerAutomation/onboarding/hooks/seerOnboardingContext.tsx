@@ -121,18 +121,18 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         return;
       }
 
-      setRootCauseAnalysisRepositories(prev => {
-        // Check if the new repository is already selected
-        const isDuplicate = prev.some(
-          repo => repo.id === newRepoId && repo.id !== oldRepoId
-        );
-        if (isDuplicate) {
-          return prev;
-        }
+      // Check if the new repository is already selected
+      const isDuplicate = selectedRootCauseAnalysisRepositories.some(
+        repo => repo.id === newRepoId && repo.id !== oldRepoId
+      );
+      if (isDuplicate) {
+        return;
+      }
 
-        // Replace the old repository with the new one
-        return prev.map(repo => (repo.id === oldRepoId ? newRepo : repo));
-      });
+      // Replace the old repository with the new one
+      setRootCauseAnalysisRepositories(prev =>
+        prev.map(repo => (repo.id === oldRepoId ? newRepo : repo))
+      );
 
       // Clear project mappings for the old repository
       setRepositoryProjectMapping(prev => {
@@ -141,7 +141,7 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         return newMappings;
       });
     },
-    [repositoriesMap]
+    [repositoriesMap, selectedRootCauseAnalysisRepositories]
   );
 
   const addRepositoryProjectMappings = useCallback(
