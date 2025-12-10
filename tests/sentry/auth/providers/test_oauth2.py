@@ -1,11 +1,13 @@
 from collections.abc import Mapping
 from functools import cached_property
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
+from django.test import RequestFactory
 
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.auth.providers.oauth2 import OAuth2Provider
+from sentry.auth.providers.oauth2 import ERR_INVALID_STATE, OAuth2Callback, OAuth2Provider
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import TestCase
@@ -48,3 +50,26 @@ class OAuth2ProviderTest(TestCase):
         provider = DummyOAuth2Provider()
         with pytest.raises(IdentityNotValid):
             provider.refresh_identity(auth_identity)
+
+
+@control_silo_test
+class OAuth2CallbackAuthViewTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.request_factory = RequestFactory()
+        self.callback = OAuth2Callback()
+        self.pipeline = MagicMock()
+        provider = MagicMock()
+        provider.key = "dummy"
+        self.pipeline.provider = provider
+
+    def test_error_query_param_returns_generic_message(self) -> None:
+        request = self.request_factory.get(
+            "/", {"error": "10'XOR(1*if(now()=sysdate(),sleep(15),0))XOR'Z"}
+        )
+        self.pipeline.error.return_value = object()
+
+        response = self.callback.dispatch(request, self.pipeline)
+
+        assert response is self.pipeline.error.return_value
+        self.pipeline.error.assert_called_once_with(ERR_INVALID_STATE)
