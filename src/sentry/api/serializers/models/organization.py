@@ -30,11 +30,14 @@ from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
+    ALLOW_BACKGROUND_AGENT_DELEGATION,
     ATTACHMENTS_ROLE_DEFAULT,
+    AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
@@ -556,7 +559,10 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     enablePrReviewTestGeneration: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
+    allowBackgroundAgentDelegation: bool
+    autoEnableCodeReview: bool
     autoOpenPrs: bool
+    defaultCodeReviewTriggers: list[str]
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -711,6 +717,21 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 obj.get_option(
                     "sentry:auto_open_prs",
                     AUTO_OPEN_PRS_DEFAULT,
+                )
+            ),
+            "autoEnableCodeReview": bool(
+                obj.get_option(
+                    "sentry:auto_enable_code_review",
+                    AUTO_ENABLE_CODE_REVIEW,
+                )
+            ),
+            "defaultCodeReviewTriggers": obj.get_option(
+                "sentry:default_code_review_triggers", DEFAULT_CODE_REVIEW_TRIGGERS
+            ),
+            "allowBackgroundAgentDelegation": bool(
+                obj.get_option(
+                    "sentry:allow_background_agent_delegation",
+                    ALLOW_BACKGROUND_AGENT_DELEGATION,
                 )
             ),
             "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
