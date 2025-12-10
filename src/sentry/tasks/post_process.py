@@ -1685,7 +1685,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
                 return  # Another process already dispatched automation
 
             # Check if project has connected repositories - requirement for new pricing
-            # Import here to avoid circular import: utils.py imports from code_mapping.py
             # which triggers Django model loading before apps are ready
             from sentry.seer.autofix.utils import has_project_connected_repos
 
