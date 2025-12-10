@@ -381,7 +381,9 @@ function BlockComponent({
                                 {toolString}
                               </ToolCallText>
                               <ToolCallLinkIcon size="xs" isHighlighted={isHighlighted} />
-                              <EnterKeyHint isVisible={isHighlighted}>⏎</EnterKeyHint>
+                              <EnterKeyHint isVisible={isHighlighted}>
+                                Enter ⏎
+                              </EnterKeyHint>
                             </ToolCallLink>
                           ) : (
                             <ToolCallText
@@ -408,7 +410,7 @@ function BlockComponent({
         {showActions && !isPolling && (
           <ActionButtonBar gap="xs">
             <Button size="xs" priority="default" onClick={handleDeleteClick}>
-              Reset ⌫
+              Reset
             </Button>
           </ActionButtonBar>
         )}
@@ -600,6 +602,7 @@ const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
   flex-shrink: 0;
   margin-left: ${p => p.theme.space.xs};
   visibility: ${p => (p.isVisible ? 'visible' : 'hidden')};
+  font-family: ${p => p.theme.text.familyMono};
 `;
 
 const ToolCallLinkIcon = styled(IconLink)<{isHighlighted?: boolean}>`

@@ -468,7 +468,6 @@ const MenuItem = styled('div')<{isSelected: boolean}>`
 `;
 
 const ItemName = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.sm};
   overflow: hidden;
   text-overflow: ellipsis;
