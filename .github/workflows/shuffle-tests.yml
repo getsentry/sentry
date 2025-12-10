@@ -11,6 +11,7 @@ on:
       seed:
         description: The seed for the random number generator
         required: false
+        default: ''
 
   # Run once a day
   schedule:
