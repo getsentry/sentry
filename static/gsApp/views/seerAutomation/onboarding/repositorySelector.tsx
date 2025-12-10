@@ -176,32 +176,22 @@ export function RepositorySelector({disabled = false}: {disabled?: boolean}) {
   );
 }
 
-const RepositoryRow = memo(
-  ({
-    repository,
-    disabled,
-    checked,
-    onChange,
-  }: {
-    checked: boolean;
-    disabled: boolean;
-    onChange: (repositoryId: string, newValue: boolean) => void;
-    repository: Repository;
-  }) => {
-    const handleChange = useCallback(
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        onChange?.(repository.id, e.target.checked);
-      },
-      [onChange, repository.id]
-    );
+interface RepositoryRowProps {
+  checked: boolean;
+  disabled: boolean;
+  onChange: (repositoryId: string, newValue: boolean) => void;
+  repository: Repository;
+}
 
+const RepositoryRow = memo(
+  ({repository, disabled, checked, onChange}: RepositoryRowProps) => {
     return (
       <RepositoryItem>
         <Label htmlFor={repository.id}>{repository.name}</Label>
         <Checkbox
           id={repository.id}
           checked={checked}
-          onChange={handleChange}
+          onChange={e => onChange?.(repository.id, e.target.checked)}
           disabled={disabled}
         />
       </RepositoryItem>
