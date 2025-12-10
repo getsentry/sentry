@@ -154,6 +154,34 @@ projects = self.get_projects(
   - Convert one exception type to another with additional information
   - Recover from expected error conditions
 
+### Code Comments
+
+Comments should not repeat what the code is saying. Instead, reserve comments for explaining **why** something is being done, or to provide context that is not obvious from the code itself.
+
+```py
+# Bad - narrates what the code does
+retries += 1
+
+# Good - explains why
+# Some APIs occasionally return 500s on valid requests. We retry up to 3 times
+# before surfacing an error.
+retries += 1
+```
+
+**When to Comment:**
+
+- To explain why a particular approach or workaround was chosen
+- To clarify intent when the code could be misread or misunderstood
+- To provide context from external systems, specs, or requirements
+- To document assumptions, edge cases, or limitations
+
+**When Not to Comment:**
+
+- Don't narrate what the code is doing — the code already says that
+- Don't duplicate function or variable names in plain English
+- Don't leave stale comments that contradict the code
+- Don't reference removed or obsolete code paths (e.g. "No longer uses X format")
+
 ## Frontend
 
 ### Commands
