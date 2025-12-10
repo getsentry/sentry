@@ -1,10 +1,6 @@
 import type {AvatarProject} from 'sentry/types/project';
 
-export const DATA_FORWARDING_FEATURES = [
-  'organizations:data-forwarding',
-  'organizations:data-forwarding-revamp-access',
-  'organizations:data-forwarding-example',
-];
+export const DATA_FORWARDING_FEATURES = ['organizations:data-forwarding'];
 
 export enum DataForwarderProviderSlug {
   SEGMENT = 'segment',
