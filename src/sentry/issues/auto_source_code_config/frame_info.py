@@ -18,9 +18,8 @@ from .utils.platform import PlatformConfig
 
 NOT_FOUND = -1
 
-# Regex patterns for unsupported frame paths
+# Regex pattern for unsupported frame paths
 UNSUPPORTED_FRAME_PATH_PATTERN = re.compile(r"^[\[<]|https?://", re.IGNORECASE)
-UNSUPPORTED_NORMALIZED_PATH_PATTERN = re.compile(r"^[^/]*$")
 
 
 def create_frame_info(frame: Mapping[str, Any], platform: str | None = None) -> FrameInfo:
@@ -76,11 +75,7 @@ class PathBasedFrameInfo(FrameInfo):
         # the straight path prefix and drive letter
         self.normalized_path, removed_prefix = remove_prefixes(frame_file_path)
 
-        if (
-            not frame_file_path
-            or UNSUPPORTED_FRAME_PATH_PATTERN.search(frame_file_path)
-            or UNSUPPORTED_NORMALIZED_PATH_PATTERN.search(self.normalized_path)
-        ):
+        if not frame_file_path or UNSUPPORTED_FRAME_PATH_PATTERN.search(frame_file_path):
             raise UnsupportedFrameInfo("This path is not supported.")
 
         if not get_extension(frame_file_path):
