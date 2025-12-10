@@ -38,6 +38,7 @@ from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils import metrics
+from sentry.utils.env import in_test_environment
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
 
@@ -311,10 +312,23 @@ class OutboxBase(Model):
                     try:
                         coalesced.send_signal()
                     except Exception as e:
-                        raise OutboxFlushError(
-                            f"Could not flush shard category={coalesced.category} ({OutboxCategory(coalesced.category).name})",
-                            coalesced,
-                        ) from e
+                        category_number = coalesced.category
+                        category_name = OutboxCategory(category_number).name
+                        error_message = (
+                            f"Could not flush shard category={category_number} ({category_name})"
+                        )
+
+                        if in_test_environment():
+                            orig_error = f"{type(e).__name__}: {e}"
+                            error_message += (
+                                "\n\nNOTE: This error is the last in a chain. If you are seeing "
+                                + "this while running tests, your real problem is likely the error "
+                                + "causing this flush error:"
+                                + f"\n\n\t{orig_error}\n\n"
+                                + "Scroll up to that error for details."
+                            )
+
+                        raise OutboxFlushError(error_message, coalesced) from e
 
                 return True
         return False
