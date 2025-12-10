@@ -26,7 +26,7 @@ def kickoff_vsts_subscription_check() -> None:
         status=ObjectStatus.ACTIVE,
     ).select_related("integration")
 
-    six_hours_ago = time() - timedelta(hours=6).seconds
+    six_hours_ago = time() - timedelta(hours=6).total_seconds()
     for org_integration in organization_integrations:
         subscription = org_integration.integration.metadata.get("subscription")
         if subscription:
