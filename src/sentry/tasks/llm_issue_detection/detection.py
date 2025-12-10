@@ -49,6 +49,7 @@ class DetectedIssue(BaseModel):
     impact: str
     evidence: str
     missing_telemetry: str | None = None
+    offender_span_ids: list[str]
     title: str
     # context fields, not LLM generated
     trace_id: str
@@ -129,6 +130,7 @@ def create_issue_occurrence_from_detection(
         "impact": detected_issue.impact,
         "evidence": detected_issue.evidence,
         "missing_telemetry": detected_issue.missing_telemetry,
+        "offender_span_ids": detected_issue.offender_span_ids,
     }
 
     evidence_display = [

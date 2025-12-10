@@ -84,6 +84,7 @@ class LLMIssueDetectionTest(TestCase):
             impact="High - may cause request failures",
             evidence="Connection pool at 95% capacity",
             missing_telemetry="Database connection metrics",
+            offender_span_ids=["span_1", "span_2"],
             trace_id="abc123xyz",
             transaction_name="test_transaction",
         )
@@ -149,6 +150,7 @@ class LLMIssueDetectionTest(TestCase):
             evidence="Response time > 2s",
             trace_id="xyz789",
             transaction_name="api_endpoint",
+            offender_span_ids=["span_1", "span_2"],
         )
 
         create_issue_occurrence_from_detection(
@@ -211,6 +213,7 @@ class LLMIssueDetectionTest(TestCase):
                     "impact": "High - causes performance degradation",
                     "evidence": "15 queries executed sequentially",
                     "missing_telemetry": "Database query attribution",
+                    "offender_span_ids": ["span_1", "span_2"],
                     "trace_id": "trace_id_1",
                     "transaction_name": "POST /some/thing",
                 },
@@ -220,6 +223,7 @@ class LLMIssueDetectionTest(TestCase):
                     "impact": "Medium - may cause OOM",
                     "evidence": "Objects not released after use",
                     "missing_telemetry": None,
+                    "offender_span_ids": ["span_3"],
                     "trace_id": "trace_id_2",
                     "transaction_name": "GET /another/",
                 },
