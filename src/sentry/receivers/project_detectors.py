@@ -60,10 +60,10 @@ def create_metric_detector_with_owner(project: Project, user=None, user_id=None,
     This listens to project_created signal which provides user information.
     """
 
-    owner_team = project.teams.first()
-
     if not features.has("organizations:default-anomaly-detector", project.organization, actor=user):
         return
+
+    owner_team = project.teams.first()
 
     if owner_team is None:
         logger.info(
