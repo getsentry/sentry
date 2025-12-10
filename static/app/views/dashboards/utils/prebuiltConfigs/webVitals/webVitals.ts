@@ -13,7 +13,7 @@ export const BASE_FILTERS = {
 export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'Queries',
+  title: 'Web Vitals',
   filters: {
     globalFilter: [
       {
@@ -133,7 +133,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
     {
-      id: 'queries-table',
+      id: 'pages-table',
       title: t('Pages'),
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.SPANS,
@@ -181,4 +181,14 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
   ],
+};
+
+export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
+  dateCreated: '',
+  projects: [],
+  title: 'Web Vitals Page Summary',
+  filters: {
+    globalFilter: [],
+  },
+  widgets: [],
 };
