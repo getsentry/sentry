@@ -164,11 +164,13 @@ export default function SeerProjectTableRow({project, organization}: Props) {
                   {
                     onError: () => {
                       addErrorMessage(
-                        t('Failed to update Cursor Agent for %s', project.name)
+                        t('Failed to update background agent for %s', project.name)
                       );
                     },
                     onSuccess: () => {
-                      addSuccessMessage(t('Updated Cursor Agent for %s', project.name));
+                      addSuccessMessage(
+                        t('Updated background agent for %s', project.name)
+                      );
                     },
                   }
                 );
