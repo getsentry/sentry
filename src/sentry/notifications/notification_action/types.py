@@ -8,7 +8,7 @@ from typing import Any, NotRequired, Protocol, TypedDict
 from django.core.exceptions import ValidationError
 
 from sentry import features
-from sentry.api.serializers.rest_framework.base import snake_to_camel_case
+from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
 from sentry.incidents.grouptype import MetricIssueEvidenceData
@@ -244,7 +244,7 @@ class BaseIssueAlertHandler(ABC):
             # mail action needs to have skipDigests set to True
             data["actions"][0]["skipDigests"] = True
 
-        camelcased_data = {snake_to_camel_case(key): value for key, value in dict(data).items()}
+        camelcased_data = convert_dict_key_case(dict(data), snake_to_camel_case)
 
         rule = Rule(
             id=action.id,
