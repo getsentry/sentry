@@ -746,16 +746,74 @@ def _get_event_with_valid_trace(
     )
 
 
+def get_issue_and_event_response(
+    event: Event | GroupEvent, group: Group | None, organization: Organization
+) -> dict[str, Any]:
+    serialized_event = serialize(event, user=None, serializer=EventSerializer())
+
+    result = {
+        "event": serialized_event,
+        "event_id": event.event_id,
+        "event_trace_id": event.trace_id,
+        "project_id": event.project_id,
+        "project_slug": event.project.slug,
+    }
+
+    if group is not None:
+        # Get the issue metadata, tags overview, and event count timeseries.
+        serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
+        # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
+        serialized_group["issueTypeDescription"] = group.issue_type.description
+
+        try:
+            tags_overview = get_all_tags_overview(group)
+        except Exception:
+            logger.exception(
+                "Failed to get tags overview for issue",
+                extra={"organization_id": organization.id, "issue_id": group.id},
+            )
+            tags_overview = None
+
+        ts_result = _get_issue_event_timeseries(
+            organization=organization,
+            project_id=group.project_id,
+            issue_short_id=group.qualified_short_id,
+            first_seen_delta=datetime.now(UTC) - group.first_seen,
+            issue_category=group.issue_category,
+        )
+        if ts_result:
+            timeseries, timeseries_stats_period, timeseries_interval = ts_result
+        else:
+            timeseries, timeseries_stats_period, timeseries_interval = None, None, None
+
+        result = {
+            **result,
+            "issue": serialized_group,
+            "event_timeseries": timeseries,
+            "timeseries_stats_period": timeseries_stats_period,
+            "timeseries_interval": timeseries_interval,
+            "tags_overview": tags_overview,
+        }
+
+    return result
+
+
 def get_issue_and_event_details_v2(
     *,
     organization_id: int,
-    event_id: str | None,
-    issue_id: str | None,
+    issue_id: str | None = None,
     start: str | None = None,
     end: str | None = None,
+    event_id: str | None = None,
     project_slug: str | None = None,
     include_issue: bool = True,
 ) -> dict[str, Any] | None:
+
+    if bool(issue_id) == bool(event_id):
+        raise BadRequest("Either issue_id or event_id must be provided, but not both.")
+    if bool(start) != bool(end):
+        raise BadRequest("start and end must be provided together.")
+
     organization = Organization.objects.get(id=organization_id)
 
     project_ids = list(
@@ -773,9 +831,7 @@ def get_issue_and_event_details_v2(
 
     if event_id is None:
         # Fetch the group then get a sample event from the time range.
-        if issue_id is None:
-            raise BadRequest("issue_id is required if event_id is not provided.")
-
+        assert issue_id is not None
         if issue_id.isdigit():
             group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
         else:
@@ -834,53 +890,10 @@ def get_issue_and_event_details_v2(
         )
         return None
 
-    serialized_event = serialize(event, user=None, serializer=EventSerializer())
-
-    result = {
-        "event": serialized_event,
-        "event_id": event.event_id,
-        "event_trace_id": event.trace_id,
-        "project_id": event.project_id,
-        "project_slug": event.project.slug,
-    }
-
     if include_issue:
-        # Get the issue metadata, tags overview, and event count timeseries.
-        serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
-        # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
-        serialized_group["issueTypeDescription"] = group.issue_type.description
+        return get_issue_and_event_response(event, group, organization)
 
-        try:
-            tags_overview = get_all_tags_overview(group)
-        except Exception:
-            logger.exception(
-                "Failed to get tags overview for issue",
-                extra={"organization_id": organization_id, "issue_id": issue_id},
-            )
-            tags_overview = None
-
-        ts_result = _get_issue_event_timeseries(
-            organization=organization,
-            project_id=group.project_id,
-            issue_short_id=group.qualified_short_id,
-            first_seen_delta=datetime.now(UTC) - group.first_seen,
-            issue_category=group.issue_category,
-        )
-        if ts_result:
-            timeseries, timeseries_stats_period, timeseries_interval = ts_result
-        else:
-            timeseries, timeseries_stats_period, timeseries_interval = None, None, None
-
-        result = {
-            **result,
-            "issue": serialized_group,
-            "event_timeseries": timeseries,
-            "timeseries_stats_period": timeseries_stats_period,
-            "timeseries_interval": timeseries_interval,
-            "tags_overview": tags_overview,
-        }
-
-    return result
+    return get_issue_and_event_response(event, None, organization)
 
 
 def get_issue_and_event_details(
