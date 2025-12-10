@@ -1,5 +1,6 @@
-import pytest
 from contextvars import Token
+
+import pytest
 
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models.detector import Detector
