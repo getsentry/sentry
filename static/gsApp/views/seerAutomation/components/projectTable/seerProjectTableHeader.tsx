@@ -25,7 +25,7 @@ const COLUMNS = [
   {title: t('Project'), key: 'project', sortKey: 'project'},
   {title: t('Auto Fix'), key: 'fixes'},
   {title: t('PR Creation'), key: 'pr_creation'},
-  {title: t('Cursor Agent'), key: 'is_delegated'},
+  {title: t('Background Agent'), key: 'is_delegated'},
   {title: t('Repos'), key: 'repos'},
 ];
 
