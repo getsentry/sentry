@@ -9,7 +9,7 @@ on:
         required: true
         default: 'true'
       seed:
-        description: The seed for the random number generator
+        description: The seed for the test ordering
         required: false
         default: ''
 
