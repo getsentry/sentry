@@ -135,7 +135,8 @@ export function CompactSelect<Value extends SelectKey>({
 
   const controlDisabled = disabled ?? options?.length === 0;
 
-  const itemsWithKey = useMemo(() => {
+  const allItemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
+  const longestOptionItemsWithKey = useMemo(() => {
     if (needsMeasuring) {
       const longestOption = maxBy(options, option => {
         if ('options' in option) {
@@ -151,8 +152,9 @@ export function CompactSelect<Value extends SelectKey>({
       });
       return longestOption ? getItemsWithKeys([longestOption]) : [];
     }
-    return getItemsWithKeys(options);
+    return [];
   }, [needsMeasuring, options]);
+  const itemsWithKey = needsMeasuring ? longestOptionItemsWithKey : allItemsWithKey;
 
   return (
     <Control
@@ -164,7 +166,7 @@ export function CompactSelect<Value extends SelectKey>({
       disabled={controlDisabled}
       grid={grid}
       size={size}
-      items={itemsWithKey}
+      items={allItemsWithKey}
       value={value}
       clearable={clearable}
       onClear={({overlayState}) => {
