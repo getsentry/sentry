@@ -1,5 +1,3 @@
-// write some cases for spaceWidgetsEquallyOnRow
-
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import type {Widget} from 'sentry/views/dashboards/types';
