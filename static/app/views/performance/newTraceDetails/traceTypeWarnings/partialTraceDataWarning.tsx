@@ -45,17 +45,12 @@ export function PartialTraceDataWarning({
     const search = new MutableSearch('');
     search.addFilterValue('is_transaction', 'true');
 
-    const projectId = rep.event?.project_id;
-    if (projectId) {
-      search.addFilterValue('project.id', `${projectId}`);
-    }
-
     if (op) {
       search.addFilterValue('span.op', op);
     }
 
     return search.formatString();
-  }, [op, rep.event?.project_id]);
+  }, [op]);
 
   if (!timestamp) {
     return null;
@@ -68,6 +63,9 @@ export function PartialTraceDataWarning({
     return null;
   }
 
+  const projects =
+    typeof rep.event?.project_id === 'number' ? [rep.event?.project_id] : [];
+
   const exploreUrl = getExploreUrl({
     organization,
     mode: Mode.SAMPLES,
@@ -75,6 +73,7 @@ export function PartialTraceDataWarning({
     table: 'trace',
     selection: {
       ...selection,
+      projects,
       datetime: {
         start: null,
         end: null,
