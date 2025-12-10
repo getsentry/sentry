@@ -184,7 +184,7 @@ def _ensure_metric_detector(
                 query="",
                 aggregate="count()",
                 time_window=timedelta(minutes=15),
-                resolution=timedelta(minutes=1),
+                resolution=timedelta(minutes=15),
                 environment=None,
                 event_types=[SnubaQueryEventType.EventType.ERROR],
             )
