@@ -286,9 +286,9 @@ class OrganizationEventsTraceEndpointTest(
         {
             "performance.traces.pagination.max-iterations": 30,
             "performance.traces.pagination.max-timeout": 15,
+            "performance.traces.pagination.query-limit": 5,
         }
     )
-    @mock.patch("sentry.snuba.spans_rpc.TRACE_QUERY_LIMIT_OVERRIDE", 5)
     def test_pagination(self) -> None:
         """Test is identical to test_simple, but with the limit override, we'll need to make multiple requests to get
         all of the trace"""

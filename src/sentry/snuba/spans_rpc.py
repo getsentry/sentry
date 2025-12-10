@@ -35,7 +35,6 @@ from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
-TRACE_QUERY_LIMIT_OVERRIDE: None | int = None
 
 
 class Spans(rpc_dataset_common.RPCBase):
@@ -220,7 +219,7 @@ class Spans(rpc_dataset_common.RPCBase):
             meta=meta,
             trace_id=trace_id,
             # when this is None we just get the default limit
-            limit=TRACE_QUERY_LIMIT_OVERRIDE,  # type: ignore[arg-type]
+            limit=options.get("performance.traces.pagination.query-limit"),
             items=[
                 GetTraceRequest.TraceItem(
                     item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
