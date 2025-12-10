@@ -11,7 +11,6 @@ from sentry.seer.autofix.artifact_schemas import (
     SolutionArtifact,
     TriageArtifact,
 )
-from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.prompts import (
     CODE_CHANGES_PROMPT,
     IMPACT_ASSESSMENT_PROMPT,
@@ -25,6 +24,7 @@ from sentry.seer.explorer.client import SeerExplorerClient
 if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.models.organization import Organization
+    from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
 
 class AutofixStep(StrEnum):
