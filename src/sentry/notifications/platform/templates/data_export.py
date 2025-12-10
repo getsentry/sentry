@@ -23,11 +23,11 @@ def format_date(date: datetime) -> str:
     return date.strftime("%I:%M %p on %B %d, %Y (%Z)")
 
 
-@dataclass(frozen=True)
+@dataclass
 class DataExportSuccess(NotificationData):
-    source = "data-export-success"
     export_url: str
     expiration_date: datetime
+    source: str = "data-export-success"
 
 
 @template_registry.register(DataExportSuccess.source)
@@ -55,12 +55,12 @@ class DataExportSuccessTemplate(NotificationTemplate[DataExportSuccess]):
         )
 
 
-@dataclass(frozen=True)
+@dataclass
 class DataExportFailure(NotificationData):
-    source = "data-export-failure"
     error_message: str
     error_payload: dict[str, Any]
     creation_date: datetime
+    source: str = "data-export-failure"
 
 
 @template_registry.register(DataExportFailure.source)

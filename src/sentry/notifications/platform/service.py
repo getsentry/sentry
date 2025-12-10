@@ -42,10 +42,6 @@ class NotificationService[T: NotificationData]:
     @staticmethod
     def has_access(organization: Organization | RpcOrganization, source: str) -> bool:
         if not features.has("organizations:notification-platform", organization):
-            logger.info(
-                "notification.platform.has_access.feature_flag_disabled",
-                extra={"organization_id": organization.id, "source": source},
-            )
             return False
 
         option_key = f"notifications.platform-rate.{source}"
@@ -63,16 +59,6 @@ class NotificationService[T: NotificationData]:
             return False
 
         modulo_result = sample_modulo(option_key, organization.id)
-        logger.info(
-            "notification.platform.has_access.sample_modulo",
-            extra={
-                "organization_id": organization.id,
-                "source": source,
-                "option_key": option_key,
-                "modulo_result": modulo_result,
-                "sample_rate": options.get(option_key),
-            },
-        )
         return modulo_result
 
     def notify_target(self, *, target: NotificationTarget) -> None:
