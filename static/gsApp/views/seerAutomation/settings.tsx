@@ -28,9 +28,12 @@ export default function SeerAutomationSettings() {
             organization.allowBackgroundAgentDelegation ?? false,
 
           // Second section
-          enableSeerCoding: organization.enableSeerCoding ?? true,
-          // run on opened PRs -> boolean
-          // run when mentioned -> boolean
+          autoEnableCodeReview: organization.autoEnableCodeReview ?? true,
+          defaultCodeReviewTriggers: organization.defaultCodeReviewTriggers ?? [
+            'on_command_phrase',
+            'on_ready_for_review',
+            'on_new_commit',
+          ],
 
           // Third section
           enableSeerEnhancedAlerts: organization.enableSeerEnhancedAlerts ?? true,
