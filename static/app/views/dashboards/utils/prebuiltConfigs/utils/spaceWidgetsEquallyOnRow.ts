@@ -12,6 +12,10 @@ export function spaceWidgetsEquallyOnRow(
     );
   }
 
+  if (widgets.length === 0) {
+    return [];
+  }
+
   const widgetWidth = Math.floor(NUM_DESKTOP_COLS / widgets.length);
 
   return widgets.map((widget, idx) => ({

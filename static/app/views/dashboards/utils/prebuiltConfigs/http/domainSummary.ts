@@ -5,6 +5,7 @@ import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/type
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   AVERAGE_DURATION_TEXT,
+  BASE_FILTERS,
   DASHBOARD_TITLE,
   RESPONSE_CODES_TEXT,
   THROUGHPUT_TEXT,
@@ -12,10 +13,6 @@ import {
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {SpanFields} from 'sentry/views/insights/types';
-
-export const BASE_FILTERS = {
-  [SpanFields.SPAN_OP]: 'http.client',
-};
 
 const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 
@@ -90,7 +87,7 @@ const BIG_NUMBER_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       ],
     },
     {
-      id: 'txx-count-big-number',
+      id: '5xx-count-big-number',
       title: t('5XX'),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
