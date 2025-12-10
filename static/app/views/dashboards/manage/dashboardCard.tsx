@@ -56,7 +56,7 @@ function DashboardCard({
         to={to}
         aria-label={title}
       >
-        <InteractionStateLayer as="div" color={theme.textColor} />
+        <InteractionStateLayer as="div" color={theme.tokens.content.primary} />
 
         <CardHeader>
           <CardContent>
@@ -146,11 +146,11 @@ const CardLink = styled(Link)`
   display: flex;
   flex-direction: column;
 
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   &:focus,
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
 
     ${Title} {
       text-decoration: underline;
@@ -192,7 +192,7 @@ const DateSelected = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   display: grid;
   grid-column-gap: ${space(1)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   ${p => p.theme.overflowEllipsis};
 `;
 

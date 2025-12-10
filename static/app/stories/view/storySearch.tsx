@@ -295,12 +295,12 @@ const StyledOverlay = styled(Overlay)`
 
   /* Make section headers darker in this component */
   p[id][aria-hidden='true'] {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
 const SectionTitle = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: 600;
   text-transform: uppercase;
 `;

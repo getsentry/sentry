@@ -35,7 +35,7 @@ const PriceHeader = styled('div')`
 
 const Price = styled('div')`
   display: flex;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Currency = styled('div')`

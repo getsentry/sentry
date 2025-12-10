@@ -358,7 +358,7 @@ const Currency = styled('div')`
 `;
 
 const PayAsYouGoInput = styled(Input)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   max-width: 120px;
   height: 36px;
   text-align: right;

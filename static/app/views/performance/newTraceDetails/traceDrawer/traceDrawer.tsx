@@ -510,7 +510,7 @@ const CloseButton = styled(Button)`
   height: 100%;
   border-bottom: 2px solid transparent;
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
@@ -551,7 +551,7 @@ const PanelWrapper = styled('div')<{
   right: 0;
   position: relative;
   background: ${p => p.theme.background};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   text-align: left;
   z-index: 10;
 `;
@@ -683,7 +683,7 @@ const TabButton = styled('button')`
   margin: 0;
   padding: 0 ${space(0.25)};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   background: transparent;
 `;
 

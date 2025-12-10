@@ -286,7 +286,7 @@ const Monospace = styled('span')`
 `;
 
 const Path = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   text-transform: none;
   font-weight: ${p => p.theme.fontWeight.normal};
 
@@ -305,6 +305,6 @@ const StyledIconOpen = styled(IconOpen)`
   top: 1px;
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;

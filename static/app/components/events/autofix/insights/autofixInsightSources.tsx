@@ -262,7 +262,7 @@ const OverlayButtonGroup = styled('div')`
 
 const OverlayTitle = styled('div')`
   font-weight: bold;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-family: ${p => p.theme.text.family};
 `;
 

@@ -255,7 +255,7 @@ const InputRow = styled('div')`
 const InputTextarea = styled(TextArea)`
   width: 100%;
   margin: ${p => p.theme.space.sm};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   resize: none;
   overflow-y: auto;
 `;

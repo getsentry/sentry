@@ -287,7 +287,7 @@ const LegendDot = styled('div')<{isActive: boolean}>`
 
 const LegendLabel = styled('span')`
   font-size: 12px;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: 400;
 `;
 
@@ -298,7 +298,7 @@ const MoreContainer = styled('div')`
 
 const MoreLabel = styled('span')`
   font-size: 12px;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: 500;
   white-space: nowrap;
 `;

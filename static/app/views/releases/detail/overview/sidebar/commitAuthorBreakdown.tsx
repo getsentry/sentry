@@ -115,7 +115,7 @@ const AuthorLine = styled('div')`
 `;
 
 const AuthorName = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   ${p => p.theme.overflowEllipsis};
 `;
 

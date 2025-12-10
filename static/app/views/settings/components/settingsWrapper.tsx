@@ -30,7 +30,7 @@ const StyledSettingsWrapper = styled('div')`
   flex: 1;
   font-size: ${p => p.theme.fontSize.md};
   line-height: ${p => p.theme.text.lineHeightBody};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   .messages-container {
     margin: 0;

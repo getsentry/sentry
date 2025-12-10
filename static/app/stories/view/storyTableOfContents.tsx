@@ -307,7 +307,7 @@ const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
 
   &:hover {
     background: ${p => p.theme.tokens.background.tertiary};
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 
   ${p =>

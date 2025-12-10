@@ -179,7 +179,7 @@ function DetailsLine(props: {children: React.ReactNode}) {
 }
 
 const InnerDetailsLink = styled(Link)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   &:focus-visible {
     outline: none;

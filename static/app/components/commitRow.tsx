@@ -266,11 +266,11 @@ const BoldEmail = styled('strong')`
 `;
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.textColor};
-  border-bottom: 1px dotted ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
+  border-bottom: 1px dotted ${p => p.theme.tokens.content.primary};
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
@@ -310,7 +310,7 @@ const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
   }
 
   a:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
@@ -330,12 +330,12 @@ const MetaWrapper = styled('div')`
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
   text-decoration-color: ${p => p.theme.translucentGray200};
 
   :hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
@@ -351,7 +351,7 @@ const AuthorWrapper = styled('span')`
   }
 
   &:has(svg):hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     & svg {
       opacity: 1;
     }

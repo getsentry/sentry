@@ -54,13 +54,13 @@ const GroupingValue = styled('code')<{
   font-size: ${p => p.theme.fontSize.sm};
   padding: 0 ${space(0.25)};
   background: ${p => (p.contributes ? 'rgba(112, 163, 214, 0.1)' : 'transparent')};
-  color: ${p => (p.contributes ? p.theme.textColor : p.theme.subText)};
+  color: ${p => (p.contributes ? p.theme.tokens.content.primary : p.theme.subText)};
 
   ${({valueType, theme, contributes}) =>
     (valueType === 'function' || valueType === 'symbol') &&
     css`
       font-weight: ${contributes ? theme.fontWeight.bold : 'normal'};
-      color: ${contributes ? theme.textColor : theme.subText};
+      color: ${contributes ? theme.tokens.content.primary : theme.subText};
     `}
 `;
 

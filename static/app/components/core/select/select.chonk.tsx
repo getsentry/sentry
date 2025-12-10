@@ -55,7 +55,7 @@ export const getChonkStylesConfig = ({
     padding: '0 4px 0 4px',
     alignItems: 'center',
     cursor: state.isDisabled ? 'not-allowed' : 'pointer',
-    color: state.isDisabled ? theme.disabled : theme.textColor,
+    color: state.isDisabled ? theme.disabled : theme.tokens.content.primary,
     ':hover': {
       color: 'currentcolor',
     },
@@ -65,7 +65,7 @@ export const getChonkStylesConfig = ({
   return {
     control: (_, state) => ({
       display: 'flex',
-      color: state.isDisabled ? theme.disabled : theme.textColor,
+      color: state.isDisabled ? theme.disabled : theme.tokens.content.primary,
       ...debossedBackground(theme),
       border: `1px solid ${theme.border}`,
       boxShadow,
@@ -109,7 +109,7 @@ export const getChonkStylesConfig = ({
 
     option: provided => ({
       ...provided,
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       background: 'transparent',
       padding: 0,
       ':active': {
@@ -139,12 +139,12 @@ export const getChonkStylesConfig = ({
     }),
     input: provided => ({
       ...provided,
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       margin: 0,
     }),
     singleValue: (provided, state) => ({
       ...provided,
-      color: state.isDisabled ? theme.disabled : theme.textColor,
+      color: state.isDisabled ? theme.disabled : theme.tokens.content.primary,
       display: 'flex',
       alignItems: 'center',
       marginLeft: 0,
@@ -157,7 +157,7 @@ export const getChonkStylesConfig = ({
     }),
     multiValue: provided => ({
       ...provided,
-      color: isDisabled ? theme.disabled : theme.textColor,
+      color: isDisabled ? theme.disabled : theme.tokens.content.primary,
       backgroundColor: theme.background,
       borderRadius: '4px',
       border: `1px solid ${theme.border}`,
@@ -170,7 +170,7 @@ export const getChonkStylesConfig = ({
     }),
     multiValueLabel: provided => ({
       ...provided,
-      color: isDisabled ? theme.disabled : theme.textColor,
+      color: isDisabled ? theme.disabled : theme.tokens.content.primary,
       padding: multiValueSizeMapping[size].spacing,
       paddingLeft: multiValueSizeMapping[size].spacing,
       height: multiValueSizeMapping[size].height,

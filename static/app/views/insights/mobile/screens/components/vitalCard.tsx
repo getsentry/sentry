@@ -64,7 +64,7 @@ const MeterBarBody = styled('div')`
 
 const MeterHeader = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: inline-block;
   text-align: center;
   width: 100%;
@@ -75,7 +75,7 @@ const MeterValueText = styled('div')`
   justify-content: center;
   align-items: center;
   font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   flex: 1;
   text-align: center;
 `;

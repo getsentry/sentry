@@ -81,7 +81,7 @@ export function FilterKey({item, state, token, onActiveChange}: FilterKeyProps) 
 
 const KeyButton = styled(UnstyledButton)`
   padding: 0 ${space(0.25)} 0 ${space(0.5)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   width: 100%;

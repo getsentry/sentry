@@ -162,7 +162,7 @@ const TitleWrapper = styled('div')`
 
 const MessageWrapper = styled('span')`
   ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const PaginationWrapper = styled('div')`

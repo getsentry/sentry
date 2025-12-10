@@ -180,7 +180,7 @@ const YouAreHereItem = styled('div')`
 const EventItemRoot = styled(Link)`
   display: grid;
   grid-template-columns: max-content auto;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   gap: ${space(1)};
   width: 100%;
   padding: ${space(1)} ${space(1)} ${space(0.5)} ${space(1)};
@@ -189,7 +189,7 @@ const EventItemRoot = styled(Link)`
 
   &:hover {
     background-color: ${p => p.theme.surface200};
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

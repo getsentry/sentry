@@ -24,7 +24,7 @@ const ToggleButton = styled(Button)`
   color: ${p => p.theme.subText};
   :hover,
   :focus {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
   font-weight: ${p => p.theme.fontWeight.bold};
 `;

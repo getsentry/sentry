@@ -464,7 +464,7 @@ const DropdownListItem = styled(ListItem)`
 `;
 
 const DropdownItemTitleWrapper = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
   margin: 0;

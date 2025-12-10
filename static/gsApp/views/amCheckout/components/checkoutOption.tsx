@@ -43,7 +43,7 @@ export default CheckoutOption;
 
 const Option = styled('div')<{isSelected: boolean}>`
   width: 100%;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   cursor: pointer;
   position: relative;
 

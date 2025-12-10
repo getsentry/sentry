@@ -391,7 +391,7 @@ export const ProfilingDetailsListItem = styled('li')<{
     font-weight: ${p => p.theme.fontWeight.normal};
     margin: 0;
 
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
 
     display: inline-block;
 
@@ -407,7 +407,7 @@ export const ProfilingDetailsListItem = styled('li')<{
     }
 
     &:hover {
-      color: ${p => p.theme.textColor};
+      color: ${p => p.theme.tokens.content.primary};
     }
   }
 

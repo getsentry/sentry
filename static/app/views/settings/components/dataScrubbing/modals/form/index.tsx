@@ -502,7 +502,7 @@ const Toggle = styled(Button)`
   color: ${p => p.theme.subText};
   &:hover,
   &:focus {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
   > *:first-child {
     display: grid;

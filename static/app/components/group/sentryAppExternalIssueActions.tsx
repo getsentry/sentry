@@ -168,7 +168,7 @@ function SentryAppExternalIssueActions({
 }
 
 const StyledSentryAppComponentIcon = styled(SentryAppComponentIcon)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   width: ${space(3)};
   height: ${space(3)};
   cursor: pointer;
@@ -195,7 +195,7 @@ const IssueLinkContainer = styled('div')`
 `;
 
 const StyledIcon = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   cursor: pointer;
 `;
 

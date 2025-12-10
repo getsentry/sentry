@@ -324,7 +324,7 @@ const Chapter = styled('summary')`
   align-items: center;
   font-size: ${p => p.theme.fontSize.lg};
   padding: 0 ${space(0.75)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
@@ -382,7 +382,7 @@ const ChapterTitle = styled('div')`
 const ReplayTimestamp = styled('span')`
   display: flex;
   gap: ${space(0.5)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
   justify-content: flex-end;

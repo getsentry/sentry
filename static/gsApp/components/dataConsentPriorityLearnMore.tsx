@@ -85,7 +85,7 @@ export default withSubscription(DataConsentPriorityLearnMore);
 const LearnMoreWrapper = styled('div')`
   position: relative;
   max-width: 230px;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
   padding: ${space(1.5)};
   border-top: 1px solid ${p => p.theme.innerBorder};

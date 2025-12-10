@@ -391,7 +391,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
 
     const dividingLine = {
       data: [],
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       seriesName: 'dividing line',
       markLine: {},
     };
@@ -399,7 +399,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       data: [{xAxis: seriesMid}],
       label: {show: false},
       lineStyle: {
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
         type: 'solid',
         width: 2,
       },
@@ -412,7 +412,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
 
     const beforeLine = {
       data: [],
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       seriesName: 'before line',
       markLine: {},
     };
@@ -426,13 +426,13 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       label: {
         fontSize: 11,
         show: true,
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
         silent: true,
         formatter: 'Past',
         position: 'insideStartTop',
       },
       lineStyle: {
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
         type: 'dashed',
         width: 1,
       },
@@ -444,7 +444,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
 
     const afterLine = {
       data: [],
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       seriesName: 'after line',
       markLine: {},
     };
@@ -461,13 +461,13 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       label: {
         fontSize: 11,
         show: true,
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
         silent: true,
         formatter: 'Present',
         position: 'insideEndBottom',
       },
       lineStyle: {
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
         type: 'dashed',
         width: 1,
       },

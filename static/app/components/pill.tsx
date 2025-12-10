@@ -131,7 +131,7 @@ const PillValue = styled(PillName)`
     margin: 0 0 0 ${space(1)};
     color: ${p => p.theme.subText};
     &:hover {
-      color: ${p => p.theme.textColor};
+      color: ${p => p.theme.tokens.content.primary};
     }
   }
 `;

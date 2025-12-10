@@ -450,7 +450,7 @@ function getTextColor({
   }
 
   return css`
-    color: ${theme.textColor};
+    color: ${theme.tokens.content.primary};
   `;
 }
 

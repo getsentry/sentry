@@ -470,7 +470,7 @@ const TreeValue = styled('div')<{hasErrors?: boolean}>`
   font-size: ${p => p.theme.fontSize.sm};
   word-break: break-word;
   grid-column: span 1;
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.primary)};
 `;
 
 const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`

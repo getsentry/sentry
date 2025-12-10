@@ -37,7 +37,8 @@ const StepHeading = styled(
     background-color: ${p =>
       isChonkTheme(p.theme) ? p.theme.colors.chonk.yellow400 : p.theme.yellow300};
     border-radius: 50%;
-    color: ${p => (isChonkTheme(p.theme) ? p.theme.colors.black : p.theme.textColor)};
+    color: ${p =>
+      isChonkTheme(p.theme) ? p.theme.colors.black : p.theme.tokens.content.primary};
     font-size: 1rem;
   }
 `;

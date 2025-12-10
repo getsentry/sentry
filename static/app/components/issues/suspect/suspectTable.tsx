@@ -52,7 +52,7 @@ const GradientBox = styled('div')`
     ${p => p.theme.backgroundSecondary}FF 100%
   );
   border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding: ${space(1)};
   height: max-content;
   display: flex;

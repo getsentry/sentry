@@ -437,7 +437,7 @@ const Details = styled('div')`
 const DetailLabel = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(0.5)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Footer = styled('div')`

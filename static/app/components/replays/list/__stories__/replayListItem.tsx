@@ -123,13 +123,13 @@ const SubText = styled('div')`
 `;
 
 const DisplayName = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   line-height: normal;
   ${p => p.theme.overflowEllipsis};
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;

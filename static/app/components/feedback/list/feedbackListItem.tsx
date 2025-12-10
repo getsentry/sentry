@@ -179,9 +179,9 @@ const LinkedFeedbackCard = styled(Link)`
   border: 1px solid transparent;
   border-radius: ${space(0.75)};
 
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
   &[data-selected='true'] {
     background: ${p => p.theme.purple100};

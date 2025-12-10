@@ -1622,7 +1622,7 @@ const AlertInfo = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`

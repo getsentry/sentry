@@ -390,7 +390,7 @@ const BudgetModeOption = styled(PanelItem)<{isSelected?: boolean}>`
     p.isSelected &&
     css`
       background: ${p.theme.backgroundSecondary};
-      color: ${p.theme.textColor};
+      color: ${p.theme.tokens.content.primary};
     `}
 `;
 
@@ -426,7 +426,7 @@ const BudgetDetails = styled('div')`
   display: inline-grid;
   gap: ${space(0.75)};
   font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Title = styled('div')`
@@ -455,7 +455,7 @@ const Currency = styled('div')`
 
 const OnDemandInput = styled(Input)`
   padding-left: ${space(4)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   max-width: 140px;
   height: 36px;
 `;

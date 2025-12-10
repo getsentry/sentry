@@ -209,7 +209,7 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
   position: relative;
   display: flex;
   line-height: 2.2;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   margin-bottom: ${space(0.5)};
   padding: 0 ${space(1)};
   background: ${p => p.theme.backgroundSecondary};
@@ -217,7 +217,7 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
   overflow: hidden;
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     text-decoration: underline;
     ${TagBarBackground} {
       background: ${p => (p.theme.isChonk ? p.theme.blue300 : p.theme.purple200)};

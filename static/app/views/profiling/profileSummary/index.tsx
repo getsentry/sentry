@@ -787,7 +787,7 @@ const ProfileDigestHeader = styled('div')`
 `;
 
 const ProfileDigestLabel = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;

@@ -343,10 +343,10 @@ const MiniHeader = styled('p')<{expanded?: boolean}>`
   margin: 0;
   flex: 1;
   word-break: break-word;
-  color: ${p => (p.expanded ? p.theme.textColor : p.theme.subText)};
+  color: ${p => (p.expanded ? p.theme.tokens.content.primary : p.theme.subText)};
 
   code {
-    color: ${p => (p.expanded ? p.theme.textColor : p.theme.subText)};
+    color: ${p => (p.expanded ? p.theme.tokens.content.primary : p.theme.subText)};
   }
 `;
 

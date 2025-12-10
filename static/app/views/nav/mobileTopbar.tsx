@@ -157,6 +157,6 @@ const NavigationOverlay = styled('nav')`
   flex-direction: column;
   background: ${p => p.theme.surface200};
   z-index: ${p => p.theme.zIndex.modal};
-  --color: ${p => p.theme.textColor};
+  --color: ${p => p.theme.tokens.content.primary};
   --color-hover: ${p => p.theme.activeText};
 `;

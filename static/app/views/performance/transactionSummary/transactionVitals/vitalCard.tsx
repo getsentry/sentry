@@ -444,7 +444,7 @@ class VitalCard extends Component<Props, State> {
         show: false,
       },
       lineStyle: {
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
         type: 'solid',
       },
       tooltip: {

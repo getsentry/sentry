@@ -337,6 +337,6 @@ const FeatureItem = styled('div')`
   display: grid;
   grid-template-columns: ${p => p.theme.space.xl} 1fr;
   align-items: start;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   gap: ${p => p.theme.space.md};
 `;

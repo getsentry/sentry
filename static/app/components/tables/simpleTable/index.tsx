@@ -173,7 +173,7 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
   ${p =>
     p.isSorted &&
     css`
-      color: ${p.theme.textColor};
+      color: ${p.theme.tokens.content.primary};
     `}
 `;
 

@@ -138,7 +138,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
       background: transparent;
     }
 
-    color: ${theme.textColor};
+    color: ${theme.tokens.content.primary};
     background: ${theme.tokens.background.primary};
   }
 
@@ -147,12 +147,12 @@ const styles = (theme: Theme, isDark: boolean) => css`
     /*this updates styles set by base.less to match our theme*/
     body.theme-dark {
       background: ${theme.tokens.background.primary};
-      color: ${theme.textColor};
+      color: ${theme.tokens.content.primary};
     }
     body.theme-system {
       @media (prefers-color-scheme: dark) {
         background: ${theme.tokens.background.primary};
-        color: ${theme.textColor};
+        color: ${theme.tokens.content.primary};
       }
     }
     /*this updates styles set by shared-components.less to match our theme*/
@@ -186,7 +186,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
   pre,
   code {
-    color: ${theme.textColor};
+    color: ${theme.tokens.content.primary};
   }
 
   pre {
@@ -258,7 +258,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
             border-bottom-color: ${theme.border};
 
             a {
-              color: ${theme.textColor};
+              color: ${theme.tokens.content.primary};
 
               &:hover {
                 color: ${theme.linkHoverColor};
@@ -280,13 +280,13 @@ const styles = (theme: Theme, isDark: boolean) => css`
           & > li {
             &.active {
               a {
-                color: ${theme.textColor} !important;
+                color: ${theme.tokens.content.primary} !important;
                 border-bottom-color: ${theme.active} !important;
               }
             }
 
             a:hover {
-              color: ${theme.textColor} !important;
+              color: ${theme.tokens.content.primary} !important;
             }
           }
           &.border-bottom {
@@ -322,7 +322,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
               background-color: ${theme.background};
             }
             .btn-toggle {
-              color: ${theme.textColor};
+              color: ${theme.tokens.content.primary};
               background: transparent;
             }
             .title {
@@ -360,17 +360,17 @@ const styles = (theme: Theme, isDark: boolean) => css`
         /* Global Selection header date picker */
         .rdrCalendarWrapper {
           background: ${theme.background};
-          color: ${theme.textColor};
+          color: ${theme.tokens.content.primary};
         }
         .rdrDayDisabled {
           background-color: ${theme.backgroundSecondary};
           color: ${theme.disabled};
         }
         .rdrMonthAndYearPickers select {
-          color: ${theme.textColor};
+          color: ${theme.tokens.content.primary};
         }
         .dropdown-menu {
-          color: ${theme.textColor};
+          color: ${theme.tokens.content.primary};
           background-color: ${theme.background} !important;
           border: 1px solid ${theme.border};
           &:before {

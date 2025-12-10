@@ -256,7 +256,7 @@ function cleanBreadcrumbData<B extends Record<string, any> | undefined | null>(
 }
 
 const Link = styled('a')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
   text-decoration-style: dotted;
   word-break: break-all;
@@ -275,5 +275,5 @@ const BreadcrumbText = styled(Timeline.Text)`
   white-space: pre-wrap;
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
