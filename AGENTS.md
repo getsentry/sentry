@@ -397,6 +397,44 @@ class MultiProducer:
         return KafkaProducer(build_kafka_configuration(default_config=config))
 ```
 
+### Serializers: Avoiding N+1 Queries
+
+**Rule**: NEVER query the database in `serialize()` for bulk requests, always use `get_attrs()`.
+
+The `serialize()` function in `base.py` calls `get_attrs()` once with all objects, then `serialize()` once per object:
+
+```python
+# ❌ WRONG: Query runs once per object (N+1)
+class MySerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs):
+        data = RelatedModel.objects.filter(obj=obj).first()  # NO!
+        return {"id": obj.id, "data": data}
+
+# ✅ CORRECT: Bulk query in get_attrs
+class MySerializer(Serializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        # Query once for all items
+        data_by_id = {
+            d.object_id: d.value
+            for d in RelatedModel.objects.filter(object__in=item_list)
+        }
+        return {item: {"data": data_by_id.get(item.id)} for item in item_list}
+
+    def serialize(self, obj, attrs, user, **kwargs):
+        return {"id": obj.id, "data": attrs.get("data")}
+
+# Extending serializers
+class DetailedSerializer(MySerializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        attrs = super().get_attrs(item_list, user)  # Call parent first
+
+        # Add more bulk queries
+        extra_by_id = {e.id: e for e in Extra.objects.filter(item__in=item_list)}
+        for item in item_list:
+            attrs[item]["extra"] = extra_by_id.get(item.id)
+        return attrs
+```
+
 ## Architecture Rules
 
 ### Silo Mode
@@ -487,12 +525,22 @@ response = requests.get(url)  # NO!
 from sentry.tasks import fetch_external_data
 fetch_external_data.delay(url)
 
-# WRONG: N+1 queries
+# WRONG: N+1 queries in loops
 for org in organizations:
     org.projects.all()  # NO!
 
 # RIGHT: Use prefetch_related
 organizations.prefetch_related('projects')
+
+# WRONG: N+1 queries in serializers
+class MySerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        # Query runs once per object!
+        related = RelatedModel.objects.filter(obj=obj)  # NO!
+        return {"related": related}
+
+# RIGHT: Bulk queries in get_attrs
+# See "Serializers: Avoiding N+1 Queries with get_attrs" section above
 
 # WRONG: Use hasattr() for unions
 x: str | None = "hello"
