@@ -190,7 +190,7 @@ const issuesCountRenderer = (
             <Divider />
             <StyledContent>
               {t('Since issue began')}
-              <WrappedCount value={lifetimeCount} />
+              <WrappedCount value={lifetimeCount} showCappedIndicator />
             </StyledContent>
           </div>
         }
