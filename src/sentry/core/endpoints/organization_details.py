@@ -618,72 +618,57 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         if trusted_relay_info is not None:
             self.save_trusted_relays(trusted_relay_info, changed_data, org)
 
-        if "hasGranularReplayPermissions" in data or "replayAccessMembers" in data:
-            if not features.has("organizations:granular-replay-permissions", org):
-                raise serializers.ValidationError(
-                    {
-                        "hasGranularReplayPermissions": "This feature is not enabled for your organization."
-                    }
+        if "hasGranularReplayPermissions" in data:
+            option_key = "sentry:granular-replay-permissions"
+            new_value = data["hasGranularReplayPermissions"]
+
+            option_inst, created = OrganizationOption.objects.update_or_create(
+                organization=org, key=option_key, defaults={"value": new_value}
+            )
+
+            if new_value or created:
+                changed_data["hasGranularReplayPermissions"] = f"to {new_value}"
+
+        if "replayAccessMembers" in data:
+            member_ids = data["replayAccessMembers"]
+
+            if member_ids is None:
+                member_ids = []
+
+            current_member_ids = set(
+                OrganizationMemberReplayAccess.objects.filter(organization=org).values_list(
+                    "organizationmember_id", flat=True
+                )
+            )
+            new_member_ids = set(member_ids)
+
+            to_add = new_member_ids - current_member_ids
+            to_remove = current_member_ids - new_member_ids
+
+            if to_add:
+                OrganizationMemberReplayAccess.objects.bulk_create(
+                    [
+                        OrganizationMemberReplayAccess(
+                            organization=org, organizationmember_id=member_id
+                        )
+                        for member_id in to_add
+                    ]
                 )
 
-            if not self.context["request"].access.has_scope("org:admin"):
-                raise serializers.ValidationError(
-                    {
-                        "hasGranularReplayPermissions": "You do not have permission to modify granular replay permissions."
-                    }
-                )
+            if to_remove:
+                OrganizationMemberReplayAccess.objects.filter(
+                    organization=org, organizationmember_id__in=to_remove
+                ).delete()
 
-            if "hasGranularReplayPermissions" in data:
-                option_key = "sentry:granular-replay-permissions"
-                new_value = data["hasGranularReplayPermissions"]
-
-                option_inst, created = OrganizationOption.objects.update_or_create(
-                    organization=org, key=option_key, defaults={"value": new_value}
-                )
-
-                if new_value or created:
-                    changed_data["hasGranularReplayPermissions"] = f"to {new_value}"
-
-            if "replayAccessMembers" in data:
-                member_ids = data["replayAccessMembers"]
-
-                if member_ids is None:
-                    member_ids = []
-
-                current_member_ids = set(
-                    OrganizationMemberReplayAccess.objects.filter(organization=org).values_list(
-                        "organizationmember_id", flat=True
-                    )
-                )
-                new_member_ids = set(member_ids)
-
-                to_add = new_member_ids - current_member_ids
-                to_remove = current_member_ids - new_member_ids
-
+            if to_add or to_remove:
+                changes = []
                 if to_add:
-                    OrganizationMemberReplayAccess.objects.bulk_create(
-                        [
-                            OrganizationMemberReplayAccess(
-                                organization=org, organizationmember_id=member_id
-                            )
-                            for member_id in to_add
-                        ]
-                    )
-
+                    changes.append(f"added {len(to_add)} member(s)")
                 if to_remove:
-                    OrganizationMemberReplayAccess.objects.filter(
-                        organization=org, organizationmember_id__in=to_remove
-                    ).delete()
-
-                if to_add or to_remove:
-                    changes = []
-                    if to_add:
-                        changes.append(f"added {len(to_add)} member(s)")
-                    if to_remove:
-                        changes.append(f"removed {len(to_remove)} member(s)")
-                    changed_data["replayAccessMembers"] = (
-                        f"{' and '.join(changes)} (total: {len(new_member_ids)} member(s) with access)"
-                    )
+                    changes.append(f"removed {len(to_remove)} member(s)")
+                changed_data["replayAccessMembers"] = (
+                    f"{' and '.join(changes)} (total: {len(new_member_ids)} member(s) with access)"
+                )
 
         if "openMembership" in data:
             org.flags.allow_joinleave = data["openMembership"]
