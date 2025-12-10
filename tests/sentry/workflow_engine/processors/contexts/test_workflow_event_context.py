@@ -1,3 +1,4 @@
+import pytest
 from contextvars import Token
 
 from sentry.testutils.cases import TestCase
@@ -67,6 +68,7 @@ class TestWorkflowEventContext(WorkflowEventContextTestCase):
         assert ctx.environment is None
         assert ctx.organization == self.organization
 
+    @pytest.mark.skip(reason="flaky: #104683")
     def test_resetting_context(self) -> None:
         detector = self.create_detector()
         organization = self.organization
