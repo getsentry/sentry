@@ -1,6 +1,9 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
 
 import {
   GuidedSteps,
@@ -8,23 +11,39 @@ import {
 } from 'sentry/components/guidedSteps/guidedSteps';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
-import {MaxWidthPanel, PanelDescription, StepContent} from './common';
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+  MaxWidthPanel,
+  PanelDescription,
+  StepContent,
+} from './common';
 import {RepositorySelector} from './repositorySelector';
 
 export function ConfigureCodeReviewStep() {
+  const organization = useOrganization();
   const {selectedCodeReviewRepositories} = useSeerOnboardingContext();
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
 
+  const [enableCodeReview, setEnableCodeReview] = useState(
+    organization.autoEnableCodeReview
+  );
   const hasSelectedRepositories = selectedCodeReviewRepositories.length > 0;
 
   const handleNextStep = useCallback(() => {
     if (hasSelectedRepositories) {
       // TODO: Save to backend
+
+      // ensure if enableCodeReview is false, we don't save hasSelectedRepositories
       setCurrentStep(currentStep + 1);
     }
   }, [hasSelectedRepositories, setCurrentStep, currentStep]);
+
+  const canAdvance = !enableCodeReview || hasSelectedRepositories;
 
   return (
     <Fragment>
@@ -41,7 +60,27 @@ Now, select which of your repositories you would like to run Seer’s AI Code Re
               </p>
             </PanelDescription>
 
-            <RepositorySelector />
+            <Field>
+              <Flex direction="column" flex="1" gap="xs">
+                <FieldLabel>{t('AI Code Review')}</FieldLabel>
+                <FieldDescription>
+                  {t(
+                    'For all repos below, AND for all newly connected repos, Seer will review your PRs and flag potential bugs. '
+                  )}
+                </FieldDescription>
+              </Flex>
+              <Switch
+                size="lg"
+                checked={enableCodeReview}
+                onChange={() => setEnableCodeReview(!enableCodeReview)}
+              />
+            </Field>
+            {enableCodeReview ? null : (
+              <Alert type="info">
+                {t('AI Code Review needs to be enabled in order to select repositories.')}
+              </Alert>
+            )}
+            <RepositorySelector disabled={!enableCodeReview} />
           </PanelBody>
         </MaxWidthPanel>
 
@@ -49,13 +88,15 @@ Now, select which of your repositories you would like to run Seer’s AI Code Re
           <Button
             size="md"
             onClick={handleNextStep}
-            priority={hasSelectedRepositories ? 'primary' : 'default'}
-            disabled={!hasSelectedRepositories}
+            priority={canAdvance ? 'primary' : 'default'}
+            disabled={!canAdvance}
             aria-label={t('Next Step')}
             title={
-              hasSelectedRepositories
+              canAdvance
                 ? undefined
-                : t('Select repositories before continuing to the next step')
+                : t(
+                    'Enable AI Code Review and select repositories before continuing to the next step'
+                  )
             }
           >
             {t('Next Step')}
