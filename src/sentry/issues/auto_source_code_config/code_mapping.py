@@ -427,13 +427,20 @@ def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
         stack_path = stack_path[1:]
 
     if stack_path == source_path:
+        # e.g. stack_path: foo/foo.py -> source_path: foo/foo.py
         return (stack_root, "")
-    elif source_path.endswith(stack_path):  # "Packaged" logic
-        source_prefix = source_path.rpartition(stack_path)[0]
-        return (
-            f"{stack_root}{frame_filename.stack_root}/".replace("//", "/"),
-            f"{source_prefix}{frame_filename.stack_root}/".replace("//", "/"),
-        )
+    elif source_path.endswith(stack_path):
+        if stack_path.find("/") == -1:
+            # Single-file path (e.g. stack_path: foo.py -> source_path: src/foo.py)
+            return ("", source_path.replace(stack_path, ""))
+        else:
+            # "Packaged" logic
+            # e.g. stack_path: some_package/src/foo.py -> source_path: src/foo.py
+            source_prefix = source_path.rpartition(stack_path)[0]
+            return (
+                f"{stack_root}{frame_filename.stack_root}/".replace("//", "/"),
+                f"{source_prefix}{frame_filename.stack_root}/".replace("//", "/"),
+            )
     elif stack_path.endswith(source_path):
         stack_prefix = stack_path.rpartition(source_path)[0]
         return (f"{stack_root}{stack_prefix}", "")

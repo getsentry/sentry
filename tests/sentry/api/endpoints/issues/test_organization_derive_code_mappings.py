@@ -181,10 +181,19 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         assert response.status_code == 404, response.content
 
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
-    def test_get_unsupported_frame_info(self, mock_get_trees_for_org: Any) -> None:
+    def test_get_single_file_path(self, mock_get_trees_for_org: Any) -> None:
         config_data = {
             "stacktraceFilename": "top_level_file.py",
         }
+        expected_matches = [
+            {
+                "filename": "top_level_file.py",
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": "",
+                "source_path": "",
+            }
+        ]
 
         mock_get_trees_for_org.return_value = {
             "getsentry/codemap": RepoTree(
@@ -196,7 +205,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             )
         }
         response = self.client.get(self.url, data=config_data, format="json")
-        assert response.status_code == 400, response.content
+        assert response.status_code == 200, response.content
+        assert response.data == expected_matches
 
     def test_non_project_member_permissions(self) -> None:
         config_data = {
