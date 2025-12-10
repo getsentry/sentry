@@ -121,27 +121,36 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         return;
       }
 
-      // Check if the new repository is already selected
-      const isDuplicate = selectedRootCauseAnalysisRepositories.some(
-        repo => repo.id === newRepoId && repo.id !== oldRepoId
-      );
-      if (isDuplicate) {
-        return;
-      }
+      let shouldUpdateMappings = false;
 
-      // Replace the old repository with the new one
-      setRootCauseAnalysisRepositories(prev =>
-        prev.map(repo => (repo.id === oldRepoId ? newRepo : repo))
-      );
+      // The updater function below executes synchronously, so shouldUpdateMappings
+      // will be set before we check it. Only the re-render is async.
+      setRootCauseAnalysisRepositories(prev => {
+        // Check if the new repository is already selected using current state
+        const isDuplicate = prev.some(
+          repo => repo.id === newRepoId && repo.id !== oldRepoId
+        );
+        if (isDuplicate) {
+          return prev;
+        }
 
-      // Clear project mappings for the old repository
-      setRepositoryProjectMapping(prev => {
-        const newMappings = {...prev};
-        delete newMappings[oldRepoId];
-        return newMappings;
+        // Mark that we should update mappings (executes synchronously)
+        shouldUpdateMappings = true;
+
+        // Replace the old repository with the new one
+        return prev.map(repo => (repo.id === oldRepoId ? newRepo : repo));
       });
+
+      // Only clear project mappings if the repository was actually changed
+      if (shouldUpdateMappings) {
+        setRepositoryProjectMapping(prev => {
+          const newMappings = {...prev};
+          delete newMappings[oldRepoId];
+          return newMappings;
+        });
+      }
     },
-    [repositoriesMap, selectedRootCauseAnalysisRepositories]
+    [repositoriesMap]
   );
 
   const addRepositoryProjectMappings = useCallback(
