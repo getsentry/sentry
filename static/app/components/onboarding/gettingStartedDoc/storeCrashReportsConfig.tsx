@@ -10,7 +10,7 @@ import projectSecurityAndPrivacyGroups from 'sentry/data/forms/projectSecurityAn
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 
 interface StoreCrashReportsConfigProps {
   organization: Organization;
