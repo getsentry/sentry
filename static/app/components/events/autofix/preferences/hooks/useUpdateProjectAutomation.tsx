@@ -33,7 +33,10 @@ export function useUpdateProjectAutomation(project: Project) {
 
   return useMutation<Project, Error, Variables, Context>({
     onMutate: (data: Variables) => {
-      const previousProject = queryClient.getQueryData<Project>(queryKey);
+      const previousProject =
+        queryClient.getQueryData<Project>(queryKey) ||
+        ProjectsStore.getById(project.id) ||
+        project;
       if (!previousProject) {
         return {error: new Error('Previous project not found')};
       }
