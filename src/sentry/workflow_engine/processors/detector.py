@@ -25,7 +25,11 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
-from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
+from sentry.seer.anomaly_detection.types import (
+    AnomalyDetectionSeasonality,
+    AnomalyDetectionSensitivity,
+    AnomalyDetectionThresholdType,
+)
 from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
@@ -150,8 +154,8 @@ def _ensure_metric_detector(
 
             DataCondition.objects.create(
                 comparison={
-                    "sensitivity": "low",
-                    "seasonality": "auto",
+                    "sensitivity": AnomalyDetectionSensitivity.LOW,
+                    "seasonality": AnomalyDetectionSeasonality.AUTO,
                     "threshold_type": AnomalyDetectionThresholdType.ABOVE,
                 },
                 condition_result=DetectorPriorityLevel.HIGH,
