@@ -1,6 +1,9 @@
 import type {LocationDescriptor} from 'history';
 
-import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  LOGS_GROUP_BY_KEY,
+  LOGS_QUERY_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import type {Block, ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
 
@@ -446,9 +449,29 @@ export function buildToolLinkUrl(
         queryParams.dataset = 'errors';
         queryParams.queryDataset = 'error-events';
 
-        const {y_axes} = toolLink.params;
+        const {y_axes, group_by} = toolLink.params;
         if (y_axes) {
           queryParams.yAxis = y_axes;
+        }
+
+        // In Discover, group_by values become selected columns (field param)
+        // along with the y_axes aggregates
+        const fields: string[] = [];
+        if (group_by) {
+          const groupByArray = Array.isArray(group_by) ? group_by : [group_by];
+          fields.push(...groupByArray);
+        }
+        if (y_axes) {
+          const yAxesArray = Array.isArray(y_axes) ? y_axes : [y_axes];
+          fields.push(...yAxesArray);
+        }
+        if (fields.length > 0) {
+          queryParams.field = fields;
+        }
+
+        // Discover sort strips parentheses from aggregates: -count() -> -count
+        if (queryParams.sort) {
+          queryParams.sort = queryParams.sort.replace(/\(\)/g, '');
         }
 
         return {
@@ -466,6 +489,15 @@ export function buildToolLinkUrl(
           delete queryParams.sort;
         }
 
+        const {group_by, mode} = toolLink.params;
+        if (group_by) {
+          const groupByArray = Array.isArray(group_by) ? group_by : [group_by];
+          queryParams[LOGS_GROUP_BY_KEY] = groupByArray;
+        }
+        if (mode) {
+          queryParams.mode = mode === 'aggregates' ? 'aggregate' : 'samples';
+        }
+
         return {
           pathname: `/organizations/${orgSlug}/explore/logs/`,
           query: queryParams,
@@ -474,7 +506,7 @@ export function buildToolLinkUrl(
 
       // Default to spans (traces) search
       const {y_axes, group_by, mode} = toolLink.params;
-      const aggregateFields: any[] = [];
+      const aggregateFields: string[] = [];
 
       if (y_axes) {
         const axes = Array.isArray(y_axes) ? y_axes : [y_axes];
@@ -484,9 +516,12 @@ export function buildToolLinkUrl(
         aggregateFields.push(JSON.stringify({yAxes: axes}));
       }
       if (group_by) {
-        const groupByValue = Array.isArray(group_by) ? group_by[0] : group_by;
-        queryParams.groupBy = groupByValue;
-        aggregateFields.push(JSON.stringify({groupBy: groupByValue}));
+        const groupByArray = Array.isArray(group_by) ? group_by : [group_by];
+        // Each groupBy value becomes a separate query param and aggregateField entry
+        queryParams.groupBy = groupByArray;
+        for (const groupByValue of groupByArray) {
+          aggregateFields.push(JSON.stringify({groupBy: groupByValue}));
+        }
       }
       if (mode) {
         queryParams.mode = mode === 'aggregates' ? 'aggregate' : 'samples';
