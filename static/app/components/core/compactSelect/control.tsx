@@ -143,6 +143,7 @@ export interface ControlProps
   menuHeaderTrailingItems?:
     | React.ReactNode
     | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+  menuHeight?: number | string;
   /**
    * Title to display in the menu's header. Keep the title as short as possible.
    */
@@ -215,6 +216,7 @@ export function Control({
   menuTitle,
   maxMenuHeight = '32rem',
   menuWidth,
+  menuHeight,
   menuHeaderTrailingItems,
   menuBody,
   menuFooter,
@@ -487,6 +489,7 @@ export function Control({
             <StyledOverlay
               ref={menuRef}
               width={menuWidth ?? menuFullWidth}
+              height={menuHeight}
               minWidth={overlayProps.style!.minWidth}
               maxWidth={
                 overlayProps.style?.maxWidth
@@ -640,9 +643,10 @@ const SearchInput = styled(Input)`
 const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {
-  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+  shouldForwardProp: prop => isPropValid(prop),
 })<{
   maxHeightProp: string | number;
+  height?: string | number;
   maxHeight?: string | number;
   maxWidth?: string | number;
   minWidth?: string | number;
@@ -655,6 +659,7 @@ const StyledOverlay = styled(Overlay, {
   overflow: hidden;
 
   ${p => p.width && `width: ${withUnits(p.width)};`}
+  ${p => p.height && `height: ${withUnits(p.height)};`}
   ${p => p.minWidth && `min-width: ${withUnits(p.minWidth)};`}
   max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : `100%`)};
   max-height: ${p =>

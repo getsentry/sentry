@@ -1,4 +1,4 @@
-import {useId, useMemo, useState} from 'react';
+import {useCallback, useId, useMemo, useState} from 'react';
 import {Item, Section} from '@react-stately/collections';
 import type {DistributedOmit} from 'type-fest';
 
@@ -116,13 +116,24 @@ export function CompactSelect<Value extends SelectKey>({
   }, [multiple, clearable, value, onChange, closeOnSelect, grid]);
 
   const [measuredMenuWidth, setMeasuredMenuWidth] = useState<number>();
+  const needsMeasuring =
+    shouldVirtualize(options, virtualThreshold) &&
+    !menuWidth &&
+    measuredMenuWidth === undefined;
+
+  const menuRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (element && needsMeasuring) {
+        setMeasuredMenuWidth(element.offsetWidth);
+      }
+    },
+    [needsMeasuring]
+  );
+
+  const controlDisabled = disabled ?? options?.length === 0;
 
   const itemsWithKey = useMemo(() => {
-    if (
-      shouldVirtualize(options, virtualThreshold) &&
-      !menuWidth &&
-      measuredMenuWidth === undefined
-    ) {
+    if (needsMeasuring) {
       // todo find longest option
       if (options.length > 10) {
         return getItemsWithKeys([options.at(5)!]);
@@ -130,14 +141,14 @@ export function CompactSelect<Value extends SelectKey>({
       return getItemsWithKeys(options.slice(0, 1));
     }
     return getItemsWithKeys(options);
-  }, [options, virtualThreshold, menuWidth, measuredMenuWidth]);
-
-  const controlDisabled = disabled ?? options?.length === 0;
+  }, [needsMeasuring, options]);
 
   return (
     <Control
       {...controlProps}
       menuWidth={menuWidth ?? measuredMenuWidth}
+      // decrease height to 1px during measuring so that scrollbars are shown & measured
+      menuHeight={needsMeasuring ? '1px' : undefined}
       triggerProps={{...triggerProps, id: triggerId}}
       disabled={controlDisabled}
       grid={grid}
@@ -157,15 +168,7 @@ export function CompactSelect<Value extends SelectKey>({
           }
         }
       }}
-      menuRef={
-        measuredMenuWidth === undefined
-          ? (element: HTMLElement | null) => {
-              if (element) {
-                setMeasuredMenuWidth(element.offsetWidth + 25);
-              }
-            }
-          : undefined
-      }
+      menuRef={menuRef}
     >
       <List
         {...listProps}
