@@ -1,4 +1,5 @@
 import {createContext, useCallback, useContext, useMemo, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import type {
@@ -12,6 +13,7 @@ import {useIntegrationProvider} from './useIntegrationProvider';
 
 interface SeerOnboardingContextProps {
   addRepositoryProjectMappings: (additionalMappings: Record<string, string[]>) => void;
+  addRootCauseAnalysisRepository: (repoId: string) => void;
   changeRepositoryProjectMapping: (
     repoId: string,
     index: number,
@@ -47,6 +49,7 @@ const SeerOnboardingContext = createContext<SeerOnboardingContextProps>({
   changeRootCauseAnalysisRepository: () => {},
   setCodeReviewRepositories: () => {},
   removeRootCauseAnalysisRepository: () => {},
+  addRootCauseAnalysisRepository: () => {},
   addRepositoryProjectMappings: () => {},
 });
 
@@ -153,6 +156,29 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
     [repositoriesMap]
   );
 
+  const addRootCauseAnalysisRepository = useCallback(
+    (repoId: string) => {
+      const repo = repositoriesMap[repoId];
+      if (!repo) {
+        Sentry.logger.warn(
+          'SeerOnboarding: Repository not found when adding new repository',
+          {repoId}
+        );
+        return;
+      }
+
+      // Add repository to the list
+      setRootCauseAnalysisRepositories(prev => [...prev, repo]);
+
+      // Initialize empty project mapping
+      setRepositoryProjectMapping(prev => ({
+        ...prev,
+        [repoId]: [],
+      }));
+    },
+    [repositoriesMap]
+  );
+
   const addRepositoryProjectMappings = useCallback(
     (additionalMappings: Record<string, string[]>) => {
       setRepositoryProjectMapping(prev => {
@@ -161,8 +187,8 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
           ...Object.fromEntries(
             Object.entries(additionalMappings)
               .map(([repoId, projects]) => {
-                // Don't overwrite existing mappings
-                if (prev[repoId]) {
+                // Don't overwrite existing mappings that have projects
+                if (prev[repoId] && prev[repoId].length > 0) {
                   return null;
                 }
                 return [repoId, projects];
@@ -226,6 +252,7 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         selectedRootCauseAnalysisRepositories,
         removeRootCauseAnalysisRepository,
         changeRootCauseAnalysisRepository,
+        addRootCauseAnalysisRepository,
         repositoryProjectMapping,
         addRepositoryProjectMappings,
         changeRepositoryProjectMapping,
