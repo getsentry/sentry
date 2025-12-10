@@ -11,8 +11,10 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {parseAsSort} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -23,21 +25,59 @@ export default function SeerProjectTable() {
   const organization = useOrganization();
   const {projects, fetching, fetchError} = useProjects();
 
-  const [search] = useQueryState('project', parseAsString);
+  const [searchTerm, setSearchTerm] = useQueryState(
+    'query',
+    parseAsString.withDefault('')
+  );
 
-  const queryKey: ApiQueryKey = ['seer-projects', {query: {query: search}}];
+  const [sort, setSort] = useQueryState(
+    'sort',
+    parseAsSort.withDefault({field: 'project', kind: 'asc'})
+  );
+
+  const queryKey: ApiQueryKey = ['seer-projects', {query: {query: searchTerm}}];
+
+  const sortedProjects = useMemo(() => {
+    return projects.sort((a, b) => {
+      if (sort.field === 'project') {
+        return sort.kind === 'asc'
+          ? a.name.localeCompare(b.name)
+          : b.name.localeCompare(a.name);
+      }
+
+      // TODO: if we can bulk-fetch all the preferences, then it'll be easier to sort by fixes, pr creation, and repos
+      // if (sort.field === 'fixes') {
+      //   return a.slug.localeCompare(b.slug);
+      // }
+      // if (sort.field === 'pr_creation') {
+      //   return a.platform.localeCompare(b.platform);
+      // }
+      // if (sort.field === 'repos') {
+      //   return a.status.localeCompare(b.status);
+      // }
+      return 0;
+    });
+  }, [projects, sort]);
 
   const filteredProjects = useMemo(() => {
-    const searchTerm = search?.toLowerCase() ?? '';
-    if (searchTerm) {
-      return projects.filter(project => project.name.toLowerCase().includes(searchTerm));
+    const lowerCase = searchTerm?.toLowerCase() ?? '';
+    if (lowerCase) {
+      return sortedProjects.filter(project =>
+        project.name.toLowerCase().includes(lowerCase)
+      );
     }
-    return projects;
-  }, [projects, search]);
+    return sortedProjects;
+  }, [sortedProjects, searchTerm]);
 
   if (fetching) {
     return (
-      <ProjectTable projects={filteredProjects}>
+      <ProjectTable
+        projects={filteredProjects}
+        onSortClick={setSort}
+        sort={sort}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+      >
         <SimpleTable.Empty>
           <LoadingIndicator />
         </SimpleTable.Empty>
@@ -47,7 +87,13 @@ export default function SeerProjectTable() {
 
   if (fetchError) {
     return (
-      <ProjectTable projects={filteredProjects}>
+      <ProjectTable
+        projects={filteredProjects}
+        onSortClick={setSort}
+        sort={sort}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+      >
         <SimpleTable.Empty>
           <LoadingError />
         </SimpleTable.Empty>
@@ -62,7 +108,13 @@ export default function SeerProjectTable() {
         knownIds={filteredProjects.map(project => project.id)}
         queryKey={queryKey}
       >
-        <ProjectTable projects={filteredProjects}>
+        <ProjectTable
+          projects={filteredProjects}
+          onSortClick={setSort}
+          sort={sort}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+        >
           {filteredProjects.map(project => (
             <SeerProjectTableRow
               key={project.id}
@@ -78,16 +130,19 @@ export default function SeerProjectTable() {
 
 function ProjectTable({
   children,
+  onSortClick,
   projects,
+  searchTerm,
+  setSearchTerm,
+  sort,
 }: {
   children: React.ReactNode;
+  onSortClick: (sort: Sort) => void;
   projects: Project[];
+  searchTerm: string;
+  setSearchTerm: ReturnType<typeof useQueryState<string>>[1];
+  sort: Sort;
 }) {
-  const [searchTerm, setSearchTerm] = useQueryState(
-    'project',
-    parseAsString.withDefault('')
-  );
-
   return (
     <Stack gap="lg">
       <FiltersContainer>
@@ -107,7 +162,7 @@ function ProjectTable({
       </FiltersContainer>
 
       <SimpleTableWithColumns>
-        <ProjectTableHeader projects={projects} onSortClick={() => {}} sort={undefined} />
+        <ProjectTableHeader projects={projects} onSortClick={onSortClick} sort={sort} />
         {children}
       </SimpleTableWithColumns>
     </Stack>
@@ -120,5 +175,5 @@ const FiltersContainer = styled('div')`
 `;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: max-content 1fr repeat(3, max-content);
+  grid-template-columns: max-content 1fr repeat(4, max-content);
 `;

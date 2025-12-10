@@ -6,14 +6,20 @@ import {Flex} from '@sentry/scraps/layout/flex';
 import {Link} from '@sentry/scraps/link/link';
 import {Switch} from '@sentry/scraps/switch/switch';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {useUpdateProjectAutomation} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectAutomation';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+
+import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
   organization: Organization;
@@ -21,6 +27,7 @@ interface Props {
 }
 
 export default function SeerProjectTableRow({project, organization}: Props) {
+  const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
   const {data: detailedProject, isPending: isLoadingDetailedProject} = useDetailedProject(
@@ -36,9 +43,21 @@ export default function SeerProjectTableRow({project, organization}: Props) {
     codeMappingRepos,
   } = useProjectSeerPreferences(project);
 
+  const {mutate: mutateProject} = useUpdateProjectAutomation(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
-  const repoCount = preference?.repositories?.length || codeMappingRepos?.length || 0;
+  // We used to support multiple sensitivity values for Auto-Fix. Now we only support 'off' and 'medium'.
+  // If any other value is set, we treat it as 'medium'.
+  const hasAutoFixEnabled = detailedProject?.autofixAutomationTuning !== 'off';
+
+  // We used to have multiple stopping points for PR Creation. Now we only support 'open_pr' and 'code_changes'.
+  // If any other value is set, we treat it as 'code_changes'.
+  // `background_agent` is a special value that indicates that the PR creation is delegated to a background agent.
+  const hasCreatePREnabled = ![undefined, 'background_agent'].includes(
+    preference?.automated_run_stopping_point ?? 'off'
+  );
+  const hasDelegationEnabled =
+    preference?.automated_run_stopping_point === 'background_agent';
 
   return (
     <SimpleTable.Row key={project.id}>
@@ -62,51 +81,109 @@ export default function SeerProjectTableRow({project, organization}: Props) {
           </Flex>
         </Link>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
         {isLoadingDetailedProject ? (
           <Placeholder height="20px" width="36px" />
         ) : (
           <Switch
-            checked={detailedProject?.seerScannerAutomation ?? false}
-            onChange={() => {
-              updateProjectSeerPreferences({
-                repositories: preference?.repositories || [],
-                automated_run_stopping_point: 'root_cause',
-                automation_handoff: {
-                  handoff_point: 'root_cause',
-                  target: 'cursor_background_agent',
-                  integration_id: parseInt(cursorIntegration.id, 10),
-                  auto_create_pr: false,
-                },
-              });
+            disabled={!canWrite}
+            checked={hasAutoFixEnabled}
+            onChange={e => {
+              const autofixAutomationTuning = e.target.checked ? 'medium' : 'off';
+              mutateProject(
+                {autofixAutomationTuning, seerScannerAutomation: true},
+                {
+                  onError: () => {
+                    addErrorMessage(t('Problem updating Auto-Fix for %s', project.name));
+                  },
+                  onSuccess: () => {
+                    addSuccessMessage(t('Auto-Fix updated for %s', project.name));
+                  },
+                }
+              );
             }}
           />
         )}
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell>
-        {isLoadingDetailedProject ? (
+      <SimpleTable.RowCell justify="end">
+        {hasDelegationEnabled ? (
+          'n/a'
+        ) : isLoadingPreferences ? (
           <Placeholder height="20px" width="36px" />
         ) : (
           <Switch
-            checked={(project.autofixAutomationTuning ?? 'off') !== 'off'}
-            onChange={() => {
-              // set to medium
-              updateProjectSeerPreferences({
-                repositories: preference?.repositories || [],
-                automated_run_stopping_point: 'root_cause',
-                automation_handoff: {
-                  handoff_point: 'root_cause',
-                  target: 'cursor_background_agent',
-                  integration_id: parseInt(cursorIntegration.id, 10),
-                  auto_create_pr: false,
+            disabled={!canWrite}
+            checked={hasCreatePREnabled}
+            onChange={e => {
+              const automatedRunStoppingPoint = e.target.checked
+                ? 'open_pr'
+                : 'code_changes';
+              updateProjectSeerPreferences(
+                {
+                  repositories: preference?.repositories || [],
+                  automated_run_stopping_point: automatedRunStoppingPoint,
+                  automation_handoff: preference?.automation_handoff,
                 },
-              });
+                {
+                  onError: () => {
+                    addErrorMessage(
+                      t('Problem updating PR Creation for %s', project.name)
+                    );
+                  },
+                  onSuccess: () => {
+                    addSuccessMessage(t('PR Creation updated for %s', project.name));
+                  },
+                }
+              );
             }}
           />
         )}
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell>
-        {isLoadingPreferences ? <Placeholder height="12px" width="50px" /> : repoCount}
+      <SimpleTable.RowCell justify="end">
+        {isLoadingPreferences ? (
+          <Placeholder height="20px" width="36px" />
+        ) : (
+          <Flex align="center" gap="sm">
+            {hasDelegationEnabled ? null : (
+              <QuestionTooltip
+                title={t(
+                  'Enable delegation to a background agent on the project settings page.'
+                )}
+                size="xs"
+              />
+            )}
+            <Switch
+              disabled={!canWrite || !hasDelegationEnabled}
+              checked={hasDelegationEnabled}
+              onChange={() => {
+                updateProjectSeerPreferences(
+                  {
+                    repositories: preference?.repositories || [],
+                    automated_run_stopping_point: 'background_agent',
+                    automation_handoff: preference?.automation_handoff,
+                  },
+                  {
+                    onError: () => {
+                      addErrorMessage(
+                        t('Failed to update Cursor Agent for %s', project.name)
+                      );
+                    },
+                    onSuccess: () => {
+                      addSuccessMessage(t('Updated Cursor Agent for %s', project.name));
+                    },
+                  }
+                );
+              }}
+            />
+          </Flex>
+        )}
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
+        {isLoadingPreferences ? (
+          <Placeholder height="20px" width="36px" />
+        ) : (
+          preference?.repositories?.length || codeMappingRepos?.length || 0
+        )}
       </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
