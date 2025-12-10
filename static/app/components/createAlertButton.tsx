@@ -18,6 +18,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import type EventView from 'sentry/utils/discover/eventView';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -27,6 +28,8 @@ import {
   AlertWizardRuleTemplates,
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
+import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
+import {getMetricMonitorUrl} from 'sentry/views/insights/common/utils/getMetricMonitorUrl';
 
 type CreateAlertFromViewButtonProps = Omit<LinkButtonProps, 'aria-label' | 'to'> & {
   /**
@@ -78,32 +81,49 @@ export function CreateAlertFromViewButton({
       AlertWizardRuleTemplates[alertType]
     : DEFAULT_WIZARD_TEMPLATE;
 
-  const to = {
-    pathname: makeAlertsPathname({
-      path: '/new/metric/',
-      organization,
-    }),
-    query: {
-      ...queryParams,
-      createFromDiscover: true,
-      disableMetricDataset,
-      referrer,
-      ...alertTemplate,
-      project: project?.slug,
-      aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
-    },
-  };
+  const isWorkflowEngineEnabled = organization.features.includes('workflow-engine-ui');
+
+  const to = isWorkflowEngineEnabled
+    ? getMetricMonitorUrl({
+        project,
+        environment: queryParams.environment,
+        aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
+        dataset: alertTemplate.dataset,
+        organization,
+        query: decodeScalar(queryParams.query),
+        referrer,
+        eventTypes: alertTemplate.eventTypes,
+      })
+    : {
+        pathname: makeAlertsPathname({
+          path: '/new/metric/',
+          organization,
+        }),
+        query: {
+          ...queryParams,
+          createFromDiscover: true,
+          disableMetricDataset,
+          referrer,
+          ...alertTemplate,
+          project: project?.slug,
+          aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
+        },
+      };
 
   const handleClick = () => {
     onClick?.();
   };
+
+  const createButtonLabel = isWorkflowEngineEnabled
+    ? t('Create Monitor')
+    : t('Create Alert');
 
   return (
     <CreateAlertButton
       organization={organization}
       onClick={handleClick}
       to={to}
-      aria-label={t('Create Alert')}
+      aria-label={createButtonLabel}
       {...buttonProps}
     />
   );
@@ -141,6 +161,10 @@ export default function CreateAlertButton({
   const router = useRouter();
   const api = useApi();
   const {projects} = useProjects();
+  const isWorkflowEngineEnabled = organization.features.includes('workflow-engine-ui');
+  const defaultButtonLabel = isWorkflowEngineEnabled
+    ? t('Create Monitor')
+    : t('Create Alert');
   const createAlertUrl = (providedProj: string): string => {
     const params = new URLSearchParams();
     if (referrer) {
@@ -149,14 +173,19 @@ export default function CreateAlertButton({
     if (providedProj !== ':projectId') {
       params.append('project', providedProj);
     }
-    if (alertOption) {
+    if (alertOption && !isWorkflowEngineEnabled) {
       params.append('alert_option', alertOption);
+    }
+    const queryString = params.toString();
+    if (isWorkflowEngineEnabled) {
+      const basePath = makeMonitorCreatePathname(organization.slug);
+      return queryString ? `${basePath}?${queryString}` : basePath;
     }
     return (
       makeAlertsPathname({
         path: '/wizard/',
         organization,
-      }) + `?${params.toString()}`
+      }) + (queryString ? `?${queryString}` : '')
     );
   };
 
@@ -204,7 +233,7 @@ export default function CreateAlertButton({
       onClick={projectSlug ? onEnter : handleClickWithoutProject}
       {...buttonProps}
     >
-      {buttonProps.children ?? t('Create Alert')}
+      {buttonProps.children ?? defaultButtonLabel}
     </LinkButton>
   );
 
