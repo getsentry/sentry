@@ -112,12 +112,7 @@ class TestCreateMetricDetectorWithOwner(TestCase):
         assert detector.owner_team_id == team.id
         assert detector.enabled is True
 
-    @with_feature(
-        {
-            "organizations:default-anomaly-detector": True,
-            "organizations:anomaly-detection-alerts": False,
-        }
-    )
+    @with_feature("organizations:default-anomaly-detector")
     def test_creates_disabled_detector_when_plan_feature_missing(self):
         """Test that detector is created but disabled when anomaly-detection-alerts is off."""
         from sentry.receivers.project_detectors import create_metric_detector_with_owner
