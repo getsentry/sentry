@@ -6,6 +6,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -58,6 +59,7 @@ export default function OrganizationDataForwarding() {
             </Text>
           </Flex>
         </Flex>
+
         <Feature
           features={DATA_FORWARDING_FEATURES}
           hookName="feature-disabled:data-forwarding"
@@ -83,25 +85,27 @@ export default function OrganizationDataForwarding() {
                     ))}
                   </Stack>
                   <Flex justify="end">
-                    <LinkButton
-                      priority="primary"
-                      to={`/settings/${organization.slug}/data-forwarding/setup/`}
-                      icon={<IconAdd />}
-                      size="sm"
-                      onClick={() => {
-                        trackAnalytics('data_forwarding.add_forwarder_clicked', {
-                          organization,
-                        });
-                      }}
-                      disabled={!canCreateForwarder || !hasFeature}
-                      title={
-                        canCreateForwarder || !hasFeature
-                          ? undefined
-                          : t('Maximum data forwarders configured.')
-                      }
-                    >
-                      {t('Setup a new Forwarder')}
-                    </LinkButton>
+                    <Access access={['org:write']}>
+                      <LinkButton
+                        priority="primary"
+                        to={`/settings/${organization.slug}/data-forwarding/setup/`}
+                        icon={<IconAdd />}
+                        size="sm"
+                        onClick={() => {
+                          trackAnalytics('data_forwarding.add_forwarder_clicked', {
+                            organization,
+                          });
+                        }}
+                        disabled={!canCreateForwarder || !hasFeature}
+                        title={
+                          canCreateForwarder || !hasFeature
+                            ? undefined
+                            : t('Maximum data forwarders configured.')
+                        }
+                      >
+                        {t('Setup a new Forwarder')}
+                      </LinkButton>
+                    </Access>
                   </Flex>
                 </Fragment>
               ) : (

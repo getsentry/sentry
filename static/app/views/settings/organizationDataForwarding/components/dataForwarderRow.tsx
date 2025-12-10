@@ -5,6 +5,7 @@ import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import Access from 'sentry/components/acl/access';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -55,13 +56,15 @@ export function DataForwarderRow({
             {t('Edit')}
           </LinkButton>
           <DataForwarderDeleteConfirm dataForwarder={dataForwarder}>
-            <Button
-              title={t('Delete Data Forwarder')}
-              aria-label={t('Delete Data Forwarder')}
-              icon={<IconDelete />}
-              // Deletions are always permitted, even if you lose the feature.
-              disabled={false}
-            />
+            <Access access={['org:write']}>
+              <Button
+                title={t('Delete Data Forwarder')}
+                aria-label={t('Delete Data Forwarder')}
+                icon={<IconDelete />}
+                // Deletions are always permitted, even if you lose the feature.
+                disabled={false}
+              />
+            </Access>
           </DataForwarderDeleteConfirm>
         </ButtonBar>
       </Grid>
