@@ -8,21 +8,14 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
-import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {
   DetectorTypeForm,
   useDetectorTypeQueryState,
 } from 'sentry/views/detectors/components/detectorTypeForm';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
-
-interface NewDetectorFormData {
-  detectorType: DetectorType;
-  project: string;
-}
 
 function NewDetectorBreadcrumbs() {
   const organization = useOrganization();
@@ -45,31 +38,26 @@ export default function DetectorNew() {
   const navigate = useNavigate();
   const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
-  const {projects} = useProjects();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
   const [detectorType] = useDetectorTypeQueryState();
-  const [projectIdFromLocation] = useQueryState('project', parseAsString);
-  const defaultProject = projects.find(p => p.isMember) ?? projects[0];
+  const [projectId] = useQueryState('project', parseAsString);
 
   const newMonitorName = t('New Monitor');
 
   const formProps = {
-    onSubmit: (formData: any) => {
-      // Form doesn't allow type to be defined, cast to the expected shape
-      const data = formData as NewDetectorFormData;
+    onSubmit: () => {
       navigate({
         pathname: `${makeMonitorBasePathname(organization.slug)}new/settings/`,
         query: {
           detectorType,
-          project: data.project,
+          project: projectId ?? undefined,
         },
       });
     },
     initialData: {
       detectorType,
-      project: projectIdFromLocation ?? defaultProject?.id ?? '',
-    } satisfies NewDetectorFormData,
+    },
   };
 
   return (

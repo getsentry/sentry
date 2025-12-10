@@ -1,3 +1,4 @@
+import orderBy from 'lodash/orderBy';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -37,7 +38,10 @@ export default function DetectorNewSettings() {
     );
   }
 
-  const project = projectId ? projects.find(p => p.id === projectId) : undefined;
+  const project = projectId
+    ? projects.find(p => p.id === projectId)
+    : orderBy(projects, ['isMember', 'isBookmarked'], ['desc', 'desc'])[0];
+
   if (!project) {
     return <LoadingError message={t('Project not found')} />;
   }
