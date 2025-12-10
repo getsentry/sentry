@@ -84,13 +84,12 @@ class OrganizationRepositorySettingsTest(APITestCase):
             self.url,
             data={
                 "repositoryIds": [99999],
-                "enabledCodeReview": True,
+                "enabledCodeReview": False,
                 "codeReviewTriggers": [],
             },
             format="json",
         )
 
-        # Returns 400 with generic message to prevent enumeration attacks
         assert response.status_code == 400, response.content
         assert "not found" in response.data["detail"]
 
@@ -102,13 +101,12 @@ class OrganizationRepositorySettingsTest(APITestCase):
             self.url,
             data={
                 "repositoryIds": [other_repo.id],
-                "enabledCodeReview": True,
+                "enabledCodeReview": False,
                 "codeReviewTriggers": [],
             },
             format="json",
         )
 
-        # Returns 400 with generic message to prevent enumeration attacks
         assert response.status_code == 400, response.content
         assert "not found" in response.data["detail"]
 
@@ -140,6 +138,37 @@ class OrganizationRepositorySettingsTest(APITestCase):
         assert "enabledCodeReview" in response.data
         assert "codeReviewTriggers" in response.data
 
+    def test_enabled_code_review_requires_triggers(self) -> None:
+        repo = Repository.objects.create(name="repo", organization_id=self.org.id)
+
+        response = self.client.put(
+            self.url,
+            data={
+                "repositoryIds": [repo.id],
+                "enabledCodeReview": True,
+                "codeReviewTriggers": [],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400, response.content
+        assert "codeReviewTriggers" in response.data
+
+    def test_disabled_code_review_allows_empty_triggers(self) -> None:
+        repo = Repository.objects.create(name="repo", organization_id=self.org.id)
+
+        response = self.client.put(
+            self.url,
+            data={
+                "repositoryIds": [repo.id],
+                "enabledCodeReview": False,
+                "codeReviewTriggers": [],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+
     def test_partial_repository_ids_not_found(self) -> None:
         repo = Repository.objects.create(name="repo", organization_id=self.org.id)
 
@@ -147,12 +176,11 @@ class OrganizationRepositorySettingsTest(APITestCase):
             self.url,
             data={
                 "repositoryIds": [repo.id, 99999],
-                "enabledCodeReview": True,
+                "enabledCodeReview": False,
                 "codeReviewTriggers": [],
             },
             format="json",
         )
 
-        # Returns 400 with generic message to prevent enumeration attacks
         assert response.status_code == 400, response.content
         assert "not found" in response.data["detail"]

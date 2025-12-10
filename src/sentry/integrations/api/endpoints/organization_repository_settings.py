@@ -30,6 +30,15 @@ class RepositorySettingsSerializer(serializers.Serializer):
         help_text="List of triggers for code review",
     )
 
+    def validate(self, data):
+        if data.get("enabledCodeReview") and not data.get("codeReviewTriggers"):
+            raise serializers.ValidationError(
+                {
+                    "codeReviewTriggers": "At least one trigger is required when code review is enabled."
+                }
+            )
+        return data
+
 
 @region_silo_endpoint
 class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
