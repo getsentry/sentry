@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState, useTransition} from 'react';
+import {useEffect, useState, useTransition} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -81,16 +81,6 @@ export function SlideOverPanel({
     });
   }, []);
 
-  // Create a fallback render function, in case the parent component passes
-  // `React.ReactNode` as `children`. This way, even if they don't pass a render
-  // prop they still get the benefit of fast panel opening.
-  const fallbackRenderFunction = useCallback<ChildRenderFunction>(
-    ({isOpening}: ChildRenderProps) => {
-      return isOpening ? null : (children as React.ReactNode); // This function should only ever run for `React.ReactNode`, its whole purpose is to create a render function for `React.ReactNode`
-    },
-    [children]
-  );
-
   const renderFunctionProps: ChildRenderProps = {
     isOpening: isTransitioning || !isContentVisible,
   };
@@ -119,11 +109,13 @@ export function SlideOverPanel({
     >
       {/* Render the child content. If it's a render prop, pass the `isOpening`
       prop. We expect the render prop to render a skeleton UI if `isOpening` is
-      true. Otherwise, pass `isOpening` to the fallback render prop, which shows
-      nothing while opening. */}
+      true. If `children` is not a render prop, render nothing while
+      transitioning. */}
       {typeof children === 'function'
         ? children(renderFunctionProps)
-        : fallbackRenderFunction(renderFunctionProps)}
+        : renderFunctionProps.isOpening
+          ? null
+          : children}
     </_SlideOverPanel>
   );
 }
