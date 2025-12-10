@@ -7,8 +7,11 @@ import {Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getRepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {getTitle} from 'sentry/views/performance/newTraceDetails/traceHeader/title';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -24,13 +27,18 @@ export function PartialTraceDataWarning({
   timestamp,
   tree,
 }: PartialTraceDataWarningProps) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+
   const rep = getRepresentativeTraceEvent(tree, logs);
   const traceTitle = getTitle(rep);
 
   const queryString = useMemo(() => {
     const search = new MutableSearch('');
     search.addFilterValue('is_transaction', 'true');
-    search.addFilterValue('span.op', traceTitle?.title ?? '');
+    if (traceTitle?.title) {
+      search.addFilterValue('span.op', traceTitle.title);
+    }
     return search.formatString();
   }, [traceTitle?.title]);
 
@@ -45,7 +53,19 @@ export function PartialTraceDataWarning({
     return null;
   }
 
-  const exploreUrl = `/explore/traces/?mode=${Mode.SAMPLES}&table=trace&statsPeriod=24h&query=${queryString}`;
+  const exploreUrl = getExploreUrl({
+    organization,
+    mode: Mode.SAMPLES,
+    query: queryString,
+    table: 'trace',
+    selection: {
+      ...selection,
+      datetime: {
+        ...selection.datetime,
+        period: '24h',
+      },
+    },
+  });
 
   return (
     <Alert
