@@ -19,8 +19,13 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
+from sentry.seer.autofix.utils import (
+    get_autofix_repos_from_project_code_mappings,
+    get_project_seer_preferences,
+    is_seer_seat_based_tier_enabled,
+)
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -134,6 +139,17 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
             integration_check = get_autofix_integration_setup_problems(
                 organization=org, project=group.project
             )
+
+        # Check for missing repos when seat-based tier is enabled
+        if integration_check is None and is_seer_seat_based_tier_enabled(org):
+            try:
+                project_preferences = get_project_seer_preferences(group.project.id)
+                has_repos = bool(project_preferences.code_mapping_repos)
+                if not has_repos:
+                    integration_check = "no_repos_linked_in_seer_settings"
+            except SeerApiError:
+                # If API fails allow the user to continue with the flow.
+                integration_check = None
 
         write_integration_check = None
         if request.query_params.get("check_write_access", False):

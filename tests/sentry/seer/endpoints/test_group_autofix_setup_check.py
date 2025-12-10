@@ -245,6 +245,82 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             },
         }
 
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_seer_seat_based_tier_enabled",
+        return_value=True,
+    )
+    @patch("sentry.seer.endpoints.group_autofix_setup_check.get_project_seer_preferences")
+    def test_no_repos_linked_in_seer_settings(
+        self, mock_get_preferences: MagicMock, mock_is_seat_based: MagicMock
+    ) -> None:
+        """
+        Test that when seat-based tier is enabled and no repos are linked,
+        the integration check returns 'no_repos_linked_in_seer_settings'.
+        """
+        from sentry.seer.models import PreferenceResponse
+
+        mock_get_preferences.return_value = PreferenceResponse(
+            preference=None, code_mapping_repos=[]
+        )
+
+        group = self.create_group()
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["integration"] == {
+            "ok": False,
+            "reason": "no_repos_linked_in_seer_settings",
+        }
+
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_seer_seat_based_tier_enabled",
+        return_value=False,
+    )
+    def test_no_repos_but_seat_based_tier_disabled(self, mock_is_seat_based: MagicMock) -> None:
+        """
+        Test that when seat-based tier is disabled, missing repos don't affect integration status.
+        """
+        group = self.create_group()
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        # Should still be ok since seat-based tier is disabled
+        assert response.data["integration"] == {
+            "ok": True,
+            "reason": None,
+        }
+
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_seer_seat_based_tier_enabled",
+        return_value=True,
+    )
+    @patch("sentry.seer.endpoints.group_autofix_setup_check.get_project_seer_preferences")
+    def test_seer_api_error_allows_user_to_continue(
+        self, mock_get_preferences: MagicMock, mock_is_seat_based: MagicMock
+    ) -> None:
+        """
+        Test that when get_project_seer_preferences raises SeerApiError,
+        the user is allowed to continue with the flow.
+        """
+        from sentry.seer.models import SeerApiError
+
+        mock_get_preferences.side_effect = SeerApiError("API error", 500)
+
+        group = self.create_group()
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["integration"] == {
+            "ok": True,
+            "reason": None,
+        }
+
 
 class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
     def test_missing_integration(self) -> None:
