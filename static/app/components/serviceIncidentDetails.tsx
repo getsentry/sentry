@@ -213,7 +213,7 @@ const UpdateHeading = styled('div')<{status: StatusPageIncidentUpdate['status']}
 `;
 
 const StatusTitle = styled('div')`
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 

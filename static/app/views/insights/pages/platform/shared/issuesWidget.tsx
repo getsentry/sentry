@@ -206,7 +206,7 @@ const GroupPlaceholder = styled('div')`
 `;
 
 const SuperHeaderLabel = styled(IssueStreamHeaderLabel)`
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: 1rem;
   line-height: 1.2;
   padding-left: ${space(1)};

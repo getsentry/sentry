@@ -305,9 +305,9 @@ const HighlightsSubtitle = styled(Tooltip)`
 
 const StyledVersion = styled(Version)`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
