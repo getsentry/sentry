@@ -5,15 +5,15 @@ from sentry.models.repositorysettings import RepositorySettings
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
     check_autofix_enabled,
     check_code_review_enabled,
-    check_github_integration,
+    check_scm_integration,
 )
 from sentry.testutils.cases import APITestCase, TestCase
 
 
-class TestCheckGithubIntegration(TestCase):
-    """Unit tests for check_github_integration()"""
+class TestCheckScmIntegration(TestCase):
+    """Unit tests for check_scm_integration()"""
 
-    def test_github_integration(self) -> None:
+    def test_scm_integration(self) -> None:
         self.create_integration(
             organization=self.organization,
             provider="github",
@@ -21,9 +21,9 @@ class TestCheckGithubIntegration(TestCase):
             external_id="123",
         )
 
-        assert check_github_integration(self.organization.id)
+        assert check_scm_integration(self.organization.id)
 
-    def test_github_enterprise_integration(self) -> None:
+    def test_scm_integration_github_enterprise(self) -> None:
         self.create_integration(
             organization=self.organization,
             provider="github_enterprise",
@@ -31,10 +31,10 @@ class TestCheckGithubIntegration(TestCase):
             external_id="456",
         )
 
-        assert check_github_integration(self.organization.id)
+        assert check_scm_integration(self.organization.id)
 
     def test_no_integration(self) -> None:
-        assert not check_github_integration(self.organization.id)
+        assert not check_scm_integration(self.organization.id)
 
     def test_inactive_integration(self) -> None:
         self.create_integration(
@@ -45,7 +45,7 @@ class TestCheckGithubIntegration(TestCase):
             oi_params={"status": ObjectStatus.DISABLED},
         )
 
-        assert not check_github_integration(self.organization.id)
+        assert not check_scm_integration(self.organization.id)
 
     def test_multiple_organizations(self) -> None:
         org1 = self.organization
@@ -59,8 +59,8 @@ class TestCheckGithubIntegration(TestCase):
             external_id="123",
         )
 
-        assert check_github_integration(org1.id)
-        assert not check_github_integration(org2.id)
+        assert check_scm_integration(org1.id)
+        assert not check_scm_integration(org2.id)
 
 
 class TestCheckCodeReviewEnabled(TestCase):
@@ -226,7 +226,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "hasGithubIntegration": False,
+            "hasScmIntegration": False,
             "isCodeReviewEnabled": False,
             "isAutofixEnabled": False,
             "isSeerConfigured": False,
@@ -252,7 +252,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "hasGithubIntegration": True,
+            "hasScmIntegration": True,
             "isCodeReviewEnabled": True,
             "isAutofixEnabled": True,
             "isSeerConfigured": True,
@@ -270,7 +270,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "hasGithubIntegration": True,
+            "hasScmIntegration": True,
             "isCodeReviewEnabled": False,
             "isAutofixEnabled": False,
             "isSeerConfigured": False,
@@ -287,7 +287,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "hasGithubIntegration": False,
+            "hasScmIntegration": False,
             "isCodeReviewEnabled": True,
             "isAutofixEnabled": False,
             "isSeerConfigured": False,
@@ -300,7 +300,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "hasGithubIntegration": False,
+            "hasScmIntegration": False,
             "isCodeReviewEnabled": False,
             "isAutofixEnabled": True,
             "isSeerConfigured": False,
@@ -324,7 +324,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "hasGithubIntegration": True,
+            "hasScmIntegration": True,
             "isCodeReviewEnabled": True,
             "isAutofixEnabled": False,
             "isSeerConfigured": True,
@@ -344,7 +344,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "hasGithubIntegration": True,
+            "hasScmIntegration": True,
             "isCodeReviewEnabled": False,
             "isAutofixEnabled": True,
             "isSeerConfigured": True,
@@ -363,7 +363,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "hasGithubIntegration": False,
+            "hasScmIntegration": False,
             "isCodeReviewEnabled": True,
             "isAutofixEnabled": True,
             "isSeerConfigured": False,

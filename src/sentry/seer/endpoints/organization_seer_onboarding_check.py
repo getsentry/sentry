@@ -21,8 +21,8 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 logger = logging.getLogger(__name__)
 
 
-def check_github_integration(organization_id: int) -> bool:
-    """Check if the organization has an active GitHub or GitHub Enterprise integration."""
+def check_scm_integration(organization_id: int) -> bool:
+    """Check if the organization has an active and supported SCM, e.g. GitHub or GitHub Enterprise integration."""
     organization_integrations = integration_service.get_organization_integrations(
         organization_id=organization_id,
         providers=[
@@ -82,16 +82,14 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """Check if the organization has completed Seer onboarding/configuration."""
-        has_github_integration = check_github_integration(organization.id)
+        has_scm_integration = check_scm_integration(organization.id)
         is_code_review_enabled = check_code_review_enabled(organization.id)
         is_autofix_enabled = check_autofix_enabled(organization.id)
-        is_seer_configured = has_github_integration and (
-            is_code_review_enabled or is_autofix_enabled
-        )
+        is_seer_configured = has_scm_integration and (is_code_review_enabled or is_autofix_enabled)
 
         return Response(
             {
-                "hasGithubIntegration": has_github_integration,
+                "hasScmIntegration": has_scm_integration,
                 "isCodeReviewEnabled": is_code_review_enabled,
                 "isAutofixEnabled": is_autofix_enabled,
                 "isSeerConfigured": is_seer_configured,
