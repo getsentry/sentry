@@ -4,6 +4,7 @@ import type {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {ReplayAccess} from 'sentry/components/replays/ReplayAccess';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
 import {
   ReplayActivityColumn,
@@ -29,6 +30,14 @@ import useReplaysFromTransaction from './useReplaysFromTransaction';
 import useReplaysWithTxData from './useReplaysWithTxData';
 
 function TransactionReplays() {
+  return (
+    <ReplayAccess>
+      <TransactionReplaysContent />
+    </ReplayAccess>
+  );
+}
+
+function TransactionReplaysContent() {
   const {
     eventView: replayIdsEventView,
     organization,
