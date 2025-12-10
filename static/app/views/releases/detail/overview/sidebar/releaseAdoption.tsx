@@ -199,7 +199,7 @@ function ReleaseAdoption({
         return label && Object.values(releaseMarkLinesLabels).includes(label)
           ? ''
           : `<span>${formatAbbreviatedNumber(absoluteCount)} <span style="color: ${
-              theme.textColor
+              theme.tokens.content.primary
             };margin-left: ${space(0.5)}">${value}%</span></span>`;
       },
       filter: (_, seriesParam: any) => {
@@ -352,7 +352,7 @@ const TooltipWrapper = styled('span')`
 `;
 
 const AdoptionEnvironment = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   margin-left: ${space(0.5)};
   font-size: ${p => p.theme.fontSize.sm};
 `;

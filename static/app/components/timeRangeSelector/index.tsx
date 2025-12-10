@@ -531,7 +531,7 @@ const FooterMessage = styled('p')`
   border-radius: ${p => p.theme.borderRadius};
   border: solid 1px ${p => p.theme.alert.warning.border};
   background: ${p => p.theme.alert.warning.backgroundLight};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

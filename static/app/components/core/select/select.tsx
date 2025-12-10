@@ -246,7 +246,7 @@ const getStylesConfig = ({
     option: provided => ({
       ...provided,
       cursor: 'pointer',
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       background: 'transparent',
       padding: 0,
       ':active': {
@@ -289,7 +289,7 @@ const getStylesConfig = ({
     }),
     multiValue: provided => ({
       ...provided,
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       backgroundColor: theme.background,
       borderRadius: '2px',
       border: `1px solid ${theme.border}`,
@@ -298,7 +298,7 @@ const getStylesConfig = ({
     }),
     multiValueLabel: provided => ({
       ...provided,
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       padding: '0',
       paddingLeft: space(0.75),
       lineHeight: '1.8',

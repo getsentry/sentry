@@ -135,7 +135,7 @@ const CloseButton = styled(Button)`
   width: 30px;
   border-radius: 50%;
   background: ${p => p.theme.background};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 export default DemoSignUpModal;

@@ -169,7 +169,7 @@ const Panel = styled('div')`
 `;
 
 const ConditionGroupHeader = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const ConditionGroupWrapper = styled('div')<{showDivider?: boolean}>`

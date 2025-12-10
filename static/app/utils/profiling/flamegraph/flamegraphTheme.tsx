@@ -361,8 +361,8 @@ export const makeLightChonkFlamegraphTheme = (theme: Theme): FlamegraphTheme => 
       SAMPLE_TICK_COLOR: hexToColorChannels(theme.colors.red400, 0.5),
 
       // Cursors and labels
-      LABEL_FONT_COLOR: theme.textColor,
-      BAR_LABEL_FONT_COLOR: theme.textColor,
+      LABEL_FONT_COLOR: theme.tokens.content.primary,
+      BAR_LABEL_FONT_COLOR: theme.tokens.content.primary,
       CHART_CURSOR_INDICATOR: theme.subText,
       CHART_LABEL_COLOR: theme.subText,
       CURSOR_CROSSHAIR: theme.border,
@@ -452,8 +452,8 @@ export const makeDarkChonkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
       SAMPLE_TICK_COLOR: hexToColorChannels(theme.colors.red400, 0.5),
 
       // Cursors and labels
-      LABEL_FONT_COLOR: theme.textColor,
-      BAR_LABEL_FONT_COLOR: theme.textColor,
+      LABEL_FONT_COLOR: theme.tokens.content.primary,
+      BAR_LABEL_FONT_COLOR: theme.tokens.content.primary,
       CHART_CURSOR_INDICATOR: theme.subText,
       CHART_LABEL_COLOR: theme.subText,
       CURSOR_CROSSHAIR: theme.border,

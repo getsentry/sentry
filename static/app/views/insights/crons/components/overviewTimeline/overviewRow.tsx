@@ -244,7 +244,7 @@ export function OverviewRow({
 const DetailsLink = styled(Link)`
   display: block;
   padding: ${space(3)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   &:focus-visible {
     outline: none;

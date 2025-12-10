@@ -145,7 +145,7 @@ export const Header = styled('div')`
 `;
 
 export const Title = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.md};
 `;
@@ -215,7 +215,7 @@ const StreamlineGridEditable = styled('div')`
 
     td:not(:nth-child(2)) {
       a {
-        color: ${p => p.theme.textColor};
+        color: ${p => p.theme.tokens.content.primary};
         text-decoration: underline;
         text-decoration-color: ${p => p.theme.border};
       }

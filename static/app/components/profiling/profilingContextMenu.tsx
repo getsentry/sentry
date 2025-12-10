@@ -39,7 +39,7 @@ const MenuContentContainer = styled('div')`
   background: ${p => (p.tabIndex === 0 ? p.theme.hover : undefined)};
 
   &:focus {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     background: ${p => p.theme.hover};
     outline: none;
   }
@@ -120,7 +120,7 @@ const MenuButton = styled('button')`
   opacity: ${p => (p.disabled ? 0.7 : undefined)};
 
   &:focus {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     background: ${p => p.theme.hover};
     outline: none;
   }
@@ -196,7 +196,7 @@ const MenuItem = styled(({ref, ...props}: MenuItemProps) => {
   );
 })`
   cursor: pointer;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   background: transparent;
   padding: 0 ${space(0.5)};
 

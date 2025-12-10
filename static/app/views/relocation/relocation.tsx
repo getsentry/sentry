@@ -368,7 +368,7 @@ const Header = styled('header')`
 const LogoSvg = styled(LogoSentry)`
   width: 130px;
   height: 30px;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const OnboardingStep = styled((props: React.ComponentProps<typeof motion.div>) => (

@@ -46,7 +46,7 @@ const Key = styled('dt')<{type: Props['type']}>`
   ${commonStyles};
   display: flex;
   align-items: center;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Value = styled('dd')<{type: Props['type']}>`

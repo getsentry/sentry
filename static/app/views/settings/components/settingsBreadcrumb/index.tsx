@@ -82,7 +82,7 @@ const CrumbLink = styled(RouterLink)`
 
   color: ${p => p.theme.subText};
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

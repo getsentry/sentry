@@ -155,7 +155,7 @@ export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
 }
 
 const StyledAlert = styled(Alert)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const StyledUnorderedList = styled('ul')`

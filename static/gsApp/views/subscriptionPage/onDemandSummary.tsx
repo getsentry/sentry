@@ -308,14 +308,14 @@ const Currency = styled('span')`
     padding: 10px 10px 9px;
     position: absolute;
     content: '$';
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     font-size: ${p => p.theme.fontSize.lg};
   }
 `;
 
 const OnDemandInput = styled(Input)`
   padding-left: ${space(4)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   max-width: 140px;
   height: 36px;
 `;

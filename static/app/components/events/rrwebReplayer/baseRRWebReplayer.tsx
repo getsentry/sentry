@@ -164,7 +164,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     border: 1px solid ${p => p.theme.border};
     border-top: none;
     position: relative;
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 
   .rr-timeline {
@@ -176,7 +176,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
 
   .rr-timeline__time {
     text-align: center;
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 
   .rr-progress {
@@ -232,7 +232,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
   }
 
   .rr-controller__btns button {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     width: 28px;
     height: 28px;
     display: flex;
@@ -246,7 +246,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     transition: background 200ms ease;
 
     > svg {
-      fill: ${p => p.theme.textColor};
+      fill: ${p => p.theme.tokens.content.primary};
     }
   }
 

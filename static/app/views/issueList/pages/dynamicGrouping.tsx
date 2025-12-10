@@ -1216,7 +1216,7 @@ const ClusterTitle = styled('h3')`
   margin: 0;
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   line-height: 1.3;
   word-break: break-word;
 `;
@@ -1304,7 +1304,7 @@ const Tab = styled('button')<{isActive: boolean}>`
   padding: ${space(1)} ${space(1.5)};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: 500;
-  color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
+  color: ${p => (p.isActive ? p.theme.tokens.content.primary : p.theme.subText)};
   cursor: pointer;
   position: relative;
   margin-bottom: -1px;
@@ -1324,7 +1324,7 @@ const Tab = styled('button')<{isActive: boolean}>`
   `}
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
@@ -1381,7 +1381,7 @@ const IssuePreviewLink = styled(Link)`
 const IssueTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   line-height: 1.4;
   ${p => p.theme.overflowEllipsis};
 
@@ -1452,7 +1452,7 @@ const InfoLabel = styled('span')`
 `;
 
 const InfoValue = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   word-break: break-word;
 `;
 
@@ -1480,7 +1480,7 @@ const ShowMoreButton = styled('button')`
   &:hover {
     background: ${p => p.theme.backgroundTertiary};
     border-color: ${p => p.theme.purple300};
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

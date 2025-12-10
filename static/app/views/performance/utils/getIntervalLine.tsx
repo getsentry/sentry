@@ -36,12 +36,12 @@ export function getIntervalLine(
 
   const periodLine: LineChartSeries = {
     data: [],
-    color: theme.textColor,
+    color: theme.tokens.content.primary,
     markLine: {
       data: [],
       label: {},
       lineStyle: {
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
         type: 'dashed',
         width: label ? 1 : 2,
       },
@@ -56,7 +56,7 @@ export function getIntervalLine(
   const periodLineLabel = {
     fontSize: 11,
     show: label,
-    color: theme.textColor,
+    color: theme.tokens.content.primary,
     silent: label,
   };
 
@@ -130,7 +130,7 @@ export function getIntervalLine(
     ],
     label: {show: false},
     lineStyle: {
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       type: 'solid',
       width: 2,
     },

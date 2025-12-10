@@ -244,7 +244,7 @@ const TabWrap = withChonk(
     overflowing: boolean;
     selected: boolean;
   }>`
-    color: ${p => (p.selected ? p.theme.activeText : p.theme.textColor)};
+    color: ${p => (p.selected ? p.theme.activeText : p.theme.tokens.content.primary)};
     white-space: nowrap;
     cursor: pointer;
 

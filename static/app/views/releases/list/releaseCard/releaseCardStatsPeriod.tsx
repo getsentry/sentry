@@ -59,11 +59,11 @@ const Wrapper = styled('div')`
 `;
 
 const Period = styled(Link)<{selected: boolean}>`
-  color: ${p => (p.selected ? p.theme.textColor : p.theme.subText)};
+  color: ${p => (p.selected ? p.theme.tokens.content.primary : p.theme.subText)};
 
   &:hover,
   &:focus {
-    color: ${p => (p.selected ? p.theme.textColor : p.theme.subText)};
+    color: ${p => (p.selected ? p.theme.tokens.content.primary : p.theme.subText)};
   }
 `;
 

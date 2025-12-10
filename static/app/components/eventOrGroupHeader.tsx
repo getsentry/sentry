@@ -177,10 +177,10 @@ const IconWrapper = styled('span')`
 
 const TitleWithLink = styled(Link)`
   ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

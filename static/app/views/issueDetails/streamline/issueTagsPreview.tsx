@@ -405,12 +405,12 @@ const TagPreviewGrid = styled(Link)`
   padding: 0 ${p => p.theme.space.sm};
   margin: 0 -${p => p.theme.space.sm};
   border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
 
   &:hover {
     background: ${p => p.theme.backgroundTertiary};
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

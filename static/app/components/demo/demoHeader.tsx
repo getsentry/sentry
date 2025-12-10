@@ -116,7 +116,7 @@ const StyledLogoSentry = styled(LogoSentry)`
   margin-right: auto;
   width: 130px;
   height: 30px;
-  fill: ${p => p.theme.textColor};
+  fill: ${p => p.theme.tokens.content.primary};
 `;
 
 const FreeTrialTextShort = styled('span')`

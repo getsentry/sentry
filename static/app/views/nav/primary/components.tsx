@@ -320,14 +320,14 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   gap: ${space(1.5)};
   align-items: center;
   padding: ${space(1.5)} ${space(3)};
-  color: ${p.theme.textColor};
+  color: ${p.theme.tokens.content.primary};
   font-size: ${p.theme.fontSize.md};
   font-weight: ${p.theme.fontWeight.normal};
   line-height: 1;
   width: 100%;
 
   &:hover {
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
 
   & > * {

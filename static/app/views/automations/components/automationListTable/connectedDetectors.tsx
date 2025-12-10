@@ -92,7 +92,7 @@ const WiderHovercard = styled(Hovercard)`
 `;
 
 const ConnectedDetectors = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: row;
   gap: ${space(0.5)};

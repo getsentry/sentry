@@ -809,7 +809,7 @@ const MessageContent = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   padding-top: ${space(0.5)};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   word-break: break-word;
   overflow-wrap: break-word;
   white-space: pre-wrap;
@@ -868,7 +868,7 @@ const ReworkText = styled('span')`
   color: ${p => p.theme.subText};
 
   ${ReworkHeaderSection}:hover & {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

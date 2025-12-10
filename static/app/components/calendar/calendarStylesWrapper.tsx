@@ -30,7 +30,7 @@ const CalendarStylesWrapper = styled('div')`
   }
 
   .rdrDayNumber span {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 
   .rdrDay:not(.rdrDayPassive) .rdrStartEdge ~ .rdrDayNumber span,
@@ -180,7 +180,7 @@ const CalendarStylesWrapper = styled('div')`
   .rdrMonthPicker select,
   .rdrYearPicker select {
     background: none;
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     font-weight: ${p => p.theme.fontWeight.normal};
     font-size: ${p => p.theme.fontSize.lg};
     padding: ${space(0.25)} ${space(1)};
@@ -236,12 +236,12 @@ const CalendarStylesWrapper = styled('div')`
   }
 
   .rdrPprevButton i {
-    border-right-color: ${p => p.theme.textColor};
+    border-right-color: ${p => p.theme.tokens.content.primary};
     margin: 0;
   }
 
   .rdrNextButton i {
-    border-left-color: ${p => p.theme.textColor};
+    border-left-color: ${p => p.theme.tokens.content.primary};
     margin: 0;
   }
 

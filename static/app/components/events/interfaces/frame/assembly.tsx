@@ -44,7 +44,7 @@ const AssemblyWrapper = styled('div')`
   font-size: 80%;
   display: flex;
   flex-wrap: wrap;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   text-align: center;
   position: relative;
   padding: ${space(0.25)} ${space(3)};

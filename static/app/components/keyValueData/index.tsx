@@ -288,7 +288,7 @@ export const Subject = styled('div')`
 export const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
   word-break: break-word;
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.primary)};
   grid-column: ${p => (p.hasEmptySubject ? '1 / -1' : 'span 1')};
   display: grid;
   grid-template-columns: 1fr auto;

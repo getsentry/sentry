@@ -513,7 +513,7 @@ const BlockContentWrapper = styled('div')<{hasOnlyTools?: boolean}>`
 
 const BlockContent = styled(MarkedText)`
   width: 100%;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   white-space: pre-wrap;
   word-wrap: break-word;
   padding-bottom: 0;

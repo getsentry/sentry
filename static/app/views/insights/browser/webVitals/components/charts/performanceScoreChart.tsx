@@ -130,7 +130,7 @@ const PerformanceScoreLabelContainer = styled('div')`
 const PerformanceScoreLabel = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 

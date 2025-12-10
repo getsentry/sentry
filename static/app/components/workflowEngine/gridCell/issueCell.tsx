@@ -66,7 +66,7 @@ const IssueWrapper = styled(Link)`
 
   ${p => css`
     &:hover [data-group-title] {
-      color: ${p.theme.textColor};
+      color: ${p.theme.tokens.content.primary};
       text-decoration: underline;
     }
   `}
