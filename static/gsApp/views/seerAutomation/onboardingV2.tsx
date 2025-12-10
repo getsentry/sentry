@@ -1,19 +1,28 @@
 import {Fragment} from 'react';
+import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
+
+import {Alert} from '@sentry/scraps/alert';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {NoAccess} from 'sentry/components/noAccess';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+
+import {useProductBillingAccess} from 'getsentry/hooks/useProductBillingAccess';
+import {hasBillingAccess} from 'getsentry/utils/billing';
 
 import {SeerOnboardingProvider} from './onboarding/hooks/seerOnboardingContext';
 import {StepsManager} from './onboarding/stepsManager';
 
 export default function SeerOnboardingV2() {
   const organization = useOrganization();
+  const hasSeerProduct = useProductBillingAccess(DataCategory.SEER_USER);
+  const isAllowedBilling = hasBillingAccess(organization);
 
   if (!organization.features.includes('seer-new-onboarding')) {
     return <NoAccess />;
@@ -29,13 +38,30 @@ export default function SeerOnboardingV2() {
         )}
       />
 
-      <NoProjectMessage organization={organization}>
-        <SeerOnboardingProvider>
-          <StyledGuidedSteps>
-            <StepsManager />
-          </StyledGuidedSteps>
-        </SeerOnboardingProvider>
-      </NoProjectMessage>
+      {hasSeerProduct ? (
+        <NoProjectMessage organization={organization}>
+          <SeerOnboardingProvider>
+            <StyledGuidedSteps>
+              <StepsManager />
+            </StyledGuidedSteps>
+          </SeerOnboardingProvider>
+        </NoProjectMessage>
+      ) : isAllowedBilling ? (
+        <Alert type="info">
+          {tct(
+            'Seer is not enabled for your organization. [link:Go to your billing settings] to enable Seer.',
+            {
+              link: <Link to="/settings/billing/" />,
+            }
+          )}
+        </Alert>
+      ) : (
+        <Alert type="info">
+          {t(
+            'Your organization does not have access to Seer. Please contact your administrator to enable Seer.'
+          )}
+        </Alert>
+      )}
     </Fragment>
   );
 }
