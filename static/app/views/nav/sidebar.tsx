@@ -124,19 +124,6 @@ const SidebarHeader = styled('header')<{isSuperuser: boolean}>`
   align-items: center;
   justify-content: center;
   margin-bottom: ${space(0.5)};
-
-  ${p =>
-    p.isSuperuser &&
-    !p.theme.isChonk &&
-    css`
-      &:before {
-        content: '';
-        position: absolute;
-        inset: 0 ${space(1)} -${space(0.5)} ${space(1)};
-        border-radius: ${p.theme.borderRadius};
-        background: ${p.theme.sidebar.superuser};
-      }
-    `}
 `;
 
 const SuperuserBadgeContainer = styled('div')`

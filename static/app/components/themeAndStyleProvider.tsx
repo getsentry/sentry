@@ -68,7 +68,7 @@ export function ThemeAndStyleProvider({children}: Props) {
       {createPortal(
         <Fragment>
           <meta name="color-scheme" content={config.theme} />
-          <meta name="theme-color" content={theme.sidebar.background} />
+          <meta name="theme-color" content={theme.tokens.background.primary} />
         </Fragment>,
         document.head
       )}
