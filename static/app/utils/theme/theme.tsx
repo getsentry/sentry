@@ -1098,26 +1098,6 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
           hover: colorScheme.blue600,
           active: colorScheme.blue700,
         },
-        promotion: {
-          default: colorScheme.pink500,
-          hover: colorScheme.pink600,
-          active: colorScheme.pink700,
-        },
-        danger: {
-          default: colorScheme.red500,
-          hover: colorScheme.red600,
-          active: colorScheme.red700,
-        },
-        warning: {
-          default: colorScheme.yellow500,
-          hover: colorScheme.yellow600,
-          active: colorScheme.yellow700,
-        },
-        success: {
-          default: colorScheme.green500,
-          hover: colorScheme.green600,
-          active: colorScheme.green700,
-        },
       },
     },
   };
