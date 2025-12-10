@@ -187,7 +187,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   );
 }
 
-type EventsTimeSeriesResponse = {
+export type EventsTimeSeriesResponse = {
   timeSeries: TimeSeries[];
   meta?: {
     dataset: DiscoverDatasets;

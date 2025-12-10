@@ -37,6 +37,7 @@ export enum WidgetType {
   TRANSACTIONS = 'transaction-like',
   SPANS = 'spans',
   LOGS = 'logs',
+  TRACEMETRICS = 'tracemetrics',
 }
 
 // These only pertain to on-demand warnings at this point in time

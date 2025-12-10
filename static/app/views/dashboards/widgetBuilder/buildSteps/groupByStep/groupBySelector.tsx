@@ -152,7 +152,8 @@ export function GroupBySelector({
 
   // EAP types render their attribute type rather than field/tag/measurement
   const isEAPType =
-    widgetType && [WidgetType.SPANS, WidgetType.LOGS].includes(widgetType);
+    widgetType &&
+    [WidgetType.SPANS, WidgetType.LOGS, WidgetType.TRACEMETRICS].includes(widgetType);
   const renderTagOverride = isEAPType
     ? (_kind: FieldValueKind, _label: string, meta: FieldValue['meta']) => {
         if (!('dataType' in meta)) {

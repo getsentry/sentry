@@ -147,6 +147,7 @@ export function TraceItemSearchQueryBuilder({
   projects,
   supportedAggregates = [],
   disabled,
+  namespace,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useSearchQueryBuilderProps({
     itemType,
@@ -163,6 +164,7 @@ export function TraceItemSearchQueryBuilder({
     portalTarget,
     projects,
     supportedAggregates,
+    namespace,
   });
 
   return (

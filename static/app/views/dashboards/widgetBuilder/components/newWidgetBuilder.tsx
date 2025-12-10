@@ -18,6 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {
   DisplayType,
   WidgetType,
@@ -68,6 +69,7 @@ type WidgetBuilderV2Props = {
 function TraceItemAttributeProviderFromDataset({children}: {children: React.ReactNode}) {
   const {state} = useWidgetBuilderContext();
   const organization = useOrganization();
+  const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
 
   let enabled = false;
   let traceItemType = TraceItemDataset.SPANS;
@@ -80,6 +82,11 @@ function TraceItemAttributeProviderFromDataset({children}: {children: React.Reac
   if (state.dataset === WidgetType.LOGS) {
     enabled = isLogsEnabled(organization);
     traceItemType = TraceItemDataset.LOGS;
+  }
+
+  if (state.dataset === WidgetType.TRACEMETRICS) {
+    enabled = hasTraceMetricsDashboards;
+    traceItemType = TraceItemDataset.TRACEMETRICS;
   }
 
   return (

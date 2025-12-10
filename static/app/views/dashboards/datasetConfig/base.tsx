@@ -33,6 +33,7 @@ import {IssuesConfig} from './issues';
 import {LogsConfig} from './logs';
 import {ReleasesConfig} from './releases';
 import {SpansConfig} from './spans';
+import {TraceMetricsConfig} from './traceMetrics';
 import {TransactionsConfig} from './transactions';
 
 export type WidgetBuilderSearchBarProps = {
@@ -43,6 +44,7 @@ export type WidgetBuilderSearchBarProps = {
   widgetQuery: WidgetQuery;
   dataset?: DiscoverDatasets;
   disabled?: boolean;
+  index?: number;
   portalTarget?: HTMLElement | null;
 };
 
@@ -275,7 +277,9 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
           ? typeof LogsConfig
           : T extends WidgetType.SPANS
             ? typeof SpansConfig
-            : typeof ErrorsAndTransactionsConfig;
+            : T extends WidgetType.TRACEMETRICS
+              ? typeof TraceMetricsConfig
+              : typeof ErrorsAndTransactionsConfig;
 
 export function getDatasetConfig(
   widgetType?: WidgetType
@@ -286,7 +290,8 @@ export function getDatasetConfig(
   | typeof ErrorsConfig
   | typeof TransactionsConfig
   | typeof LogsConfig
-  | typeof SpansConfig {
+  | typeof SpansConfig
+  | typeof TraceMetricsConfig {
   switch (widgetType) {
     case WidgetType.ISSUE:
       return IssuesConfig;
@@ -300,6 +305,8 @@ export function getDatasetConfig(
       return LogsConfig;
     case WidgetType.SPANS:
       return SpansConfig;
+    case WidgetType.TRACEMETRICS:
+      return TraceMetricsConfig;
     case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;
