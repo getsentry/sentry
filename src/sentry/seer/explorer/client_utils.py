@@ -25,6 +25,7 @@ from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.users.models.user import User as SentryUser
+from sentry.users.models.user_option import UserOption
 from sentry.users.services.user.model import RpcUser
 
 logger = logging.getLogger(__name__)
@@ -76,6 +77,7 @@ def collect_user_org_context(
             "user_id": None,
             "user_name": None,
             "user_email": None,
+            "user_timezone": None,
             "user_teams": [],
             "user_projects": [],
             "all_org_projects": all_org_projects,
@@ -99,11 +101,15 @@ def collect_user_org_context(
     if isinstance(user, SentryUser):
         user_name = user.name
 
+    # Get user's timezone setting (IANA timezone name, e.g., "America/Los_Angeles")
+    user_timezone = UserOption.objects.get_value(user, "timezone")
+
     return {
         "org_slug": organization.slug,
         "user_id": user.id,
         "user_name": user_name,
         "user_email": user.email,
+        "user_timezone": user_timezone,
         "user_teams": user_teams,
         "user_projects": user_projects,
         "all_org_projects": all_org_projects,
