@@ -1,4 +1,5 @@
 import {createContext, useCallback, useContext, useMemo, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import type {
@@ -159,6 +160,10 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
     (repoId: string) => {
       const repo = repositoriesMap[repoId];
       if (!repo) {
+        Sentry.logger.warn(
+          'SeerOnboarding: Repository not found when adding new repository',
+          {repoId}
+        );
         return;
       }
 
