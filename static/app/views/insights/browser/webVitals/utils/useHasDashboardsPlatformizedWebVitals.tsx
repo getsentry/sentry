@@ -1,7 +1,13 @@
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export default function useHasDashboardsPlatformizedWebVitals() {
   const organization = useOrganization();
+  const location = useLocation();
 
-  return organization.features.includes('performance-session-health-dashboard-migration');
+  if (location.query.usePlatformizedView === '1') {
+    return true;
+  }
+
+  return organization.features.includes('performance-web-vitals-dashboard-migration');
 }
