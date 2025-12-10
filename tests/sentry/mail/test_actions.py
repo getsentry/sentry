@@ -17,6 +17,7 @@ from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from sentry.workflow_engine.typings.notification_action import (
     ActionTarget,
     ActionTargetType,
@@ -163,17 +164,13 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
             "target_display": None,
             "target_identifier": None,
         }
-        # XXX: some tests fail without this
-        self.issue_alert_rule = Rule.objects.create(
-            label="test rule",
+        self.issue_stream_detector = self.create_detector(
             project=self.project,
-            owner_team_id=self.team.id,
-        )
-        self.create_alert_rule_workflow(
-            workflow=self.error_workflow, rule_id=self.issue_alert_rule.id
+            type=IssueStreamGroupType.slug,
         )
 
     @with_feature("organizations:workflow-engine-single-process-workflows")
+    @with_feature("organizations:workflow-engine-ui-links")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration(self) -> None:
         action_config = {
@@ -200,6 +197,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
+    @with_feature("organizations:workflow-engine-ui-links")
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration_all_members_fallthrough(self) -> None:
@@ -225,6 +223,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
+    @with_feature("organizations:workflow-engine-ui-links")
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration_noone_fallthrough(self) -> None:
@@ -247,6 +246,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
 
         assert len(mail.outbox) == 0
 
+    @with_feature("organizations:workflow-engine-ui-links")
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration_fallthrough_not_provided(self) -> None:
@@ -270,6 +270,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
+    @with_feature("organizations:workflow-engine-ui-links")
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_hack_mail_workflow(self) -> None:
