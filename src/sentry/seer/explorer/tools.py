@@ -961,7 +961,7 @@ def get_issue_and_event_details(
                 },
             )
 
-            candidate_event = _get_event_with_valid_trace(group, organization)
+            candidate_event = _get_event_with_valid_trace(group, organization, start_dt, end_dt)
             if candidate_event:
                 event = candidate_event
 
