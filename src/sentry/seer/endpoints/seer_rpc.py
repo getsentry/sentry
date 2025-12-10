@@ -286,6 +286,10 @@ def _can_use_prevent_ai_features(org: Organization) -> bool:
     if not features.has("organizations:gen-ai-features", org):
         return False
 
+    # Organizations on the new seat-based plan don't need to check the toggle
+    if features.has("organizations:seat-based-seer-enabled", org):
+        return True
+
     hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
     pr_review_test_generation_enabled = bool(
         org.get_option(

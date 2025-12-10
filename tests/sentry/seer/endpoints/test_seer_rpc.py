@@ -351,6 +351,62 @@ class TestSeerRpcMethods(APITestCase):
             result = _can_use_prevent_ai_features(self.organization)
             assert result is False
 
+    def test_can_use_prevent_ai_features_seat_based_plan_ignores_pr_review(self) -> None:
+        """Test that _can_use_prevent_ai_features ignores PR review toggle for seat-based plan orgs"""
+        from sentry.testutils.helpers.features import with_feature
+
+        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", False
+        )
+
+        with with_feature(
+            ["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"]
+        ):
+            result = _can_use_prevent_ai_features(self.organization)
+            assert result is True
+
+    def test_can_use_prevent_ai_features_seat_based_plan_ignores_hide_ai_features(self) -> None:
+        """Test that _can_use_prevent_ai_features ignores hide_ai_features toggle for seat-based plan orgs"""
+        from sentry.testutils.helpers.features import with_feature
+
+        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", True)
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", True
+        )
+
+        with with_feature(
+            ["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"]
+        ):
+            result = _can_use_prevent_ai_features(self.organization)
+            assert result is True
+
+    def test_can_use_prevent_ai_features_usage_based_plan_checks_pr_review(self) -> None:
+        """Test that _can_use_prevent_ai_features checks PR review toggle for usage-based plan orgs"""
+        from sentry.testutils.helpers.features import with_feature
+
+        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", False
+        )
+
+        with with_feature(["organizations:gen-ai-features", "organizations:seer-added"]):
+            result = _can_use_prevent_ai_features(self.organization)
+            assert result is False
+
+    def test_can_use_prevent_ai_features_usage_based_plan_checks_hide_ai_features(self) -> None:
+        """Test that _can_use_prevent_ai_features checks hide_ai_features toggle for usage-based plan orgs"""
+        from sentry.testutils.helpers.features import with_feature
+
+        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", True)
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", True
+        )
+
+        with with_feature(["organizations:gen-ai-features", "organizations:seer-added"]):
+            result = _can_use_prevent_ai_features(self.organization)
+            assert result is False
+
     def test_get_attributes_for_span(self) -> None:
         project = self.create_project(organization=self.organization)
 
