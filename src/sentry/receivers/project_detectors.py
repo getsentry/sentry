@@ -72,8 +72,11 @@ def create_metric_detector_with_owner(project: Project, user=None, user_id=None,
         )
 
     try:
+        enabled = features.has(
+            "organizations:anomaly-detection-alerts", project.organization, actor=user
+        )
         detector = _ensure_metric_detector(
-            project, owner_team_id=owner_team.id if owner_team else None, enabled=True
+            project, owner_team_id=owner_team.id if owner_team else None, enabled=enabled
         )
         logger.info(
             "create_metric_detector_with_owner.created",

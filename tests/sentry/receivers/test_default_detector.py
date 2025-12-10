@@ -91,8 +91,8 @@ class TestEnsureMetricDetector(TestCase):
 
 
 class TestCreateMetricDetectorWithOwner(TestCase):
-    def test_creates_detector_when_feature_enabled(self):
-        """Test that detector is created when feature flag is enabled."""
+    def test_creates_enabled_detector_when_both_features_enabled(self):
+        """Test that detector is created and enabled when both feature flags are enabled."""
         from sentry.receivers.project_detectors import create_metric_detector_with_owner
 
         project = self.create_project()
@@ -100,7 +100,12 @@ class TestCreateMetricDetectorWithOwner(TestCase):
         team = project.teams.first()
 
         with (
-            self.feature({"organizations:default-anomaly-detector": True}),
+            self.feature(
+                {
+                    "organizations:default-anomaly-detector": True,
+                    "organizations:anomaly-detection-alerts": True,
+                }
+            ),
             mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"),
         ):
             create_metric_detector_with_owner(project, user=self.user)
@@ -108,6 +113,27 @@ class TestCreateMetricDetectorWithOwner(TestCase):
         detector = Detector.objects.get(project=project, type=MetricIssue.slug)
         assert detector.name == "High Error Count (Default)"
         assert detector.owner_team_id == team.id
+        assert detector.enabled is True
+
+    def test_creates_disabled_detector_when_plan_feature_missing(self):
+        """Test that detector is created but disabled when anomaly-detection-alerts is off."""
+        from sentry.receivers.project_detectors import create_metric_detector_with_owner
+
+        project = self.create_project()
+
+        with (
+            self.feature(
+                {
+                    "organizations:default-anomaly-detector": True,
+                    "organizations:anomaly-detection-alerts": False,
+                }
+            ),
+            mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"),
+        ):
+            create_metric_detector_with_owner(project, user=self.user)
+
+        detector = Detector.objects.get(project=project, type=MetricIssue.slug)
+        assert detector.enabled is False
 
     def test_does_not_create_detector_when_feature_disabled(self):
         """Test that detector is not created when feature flag is disabled."""
