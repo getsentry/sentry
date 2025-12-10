@@ -17,6 +17,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues import grouptype
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -197,7 +198,7 @@ def _ensure_metric_detector(
             data_source = DataSource.objects.create(
                 organization_id=project.organization_id,
                 source_id=str(query_subscription.id),
-                type="snuba_query_subscription",
+                type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
             )
 
             DataSourceDetector.objects.create(
