@@ -135,8 +135,56 @@ export enum DataCategoryExact {
   TRACE_METRIC = 'trace_metric',
 }
 
+/**
+ * Unit type for data category formatting.
+ * - 'bytes': Categories measured in bytes (e.g., attachments, logs)
+ * - 'durationHours': Categories measured in hours (e.g., continuous profiling)
+ * - 'count': Categories measured as simple counts (e.g., errors, transactions)
+ */
+type DataCategoryUnitType = 'bytes' | 'durationHours' | 'count';
+
+/**
+ * Formatting configuration for data categories.
+ * This centralizes category-specific formatting logic that was previously
+ * scattered across helper functions like isByteCategory() and isContinuousProfiling().
+ */
+interface DataCategoryFormattingInfo {
+  /**
+   * BigNum unit type for formatting large numbers.
+   * 0 = numbers (standard numeric formatting)
+   * 1 = kiloBytes (byte-based formatting with KB/MB/GB suffixes)
+   */
+  bigNumUnit: 0 | 1;
+  /**
+   * Formatting options for price display.
+   * minIntegerDigits: minimum integer digits (bytes use 2, counts use 5)
+   * maxIntegerDigits: maximum integer digits (bytes use 2, counts use 7)
+   */
+  priceFormatting: {
+    maxIntegerDigits: number;
+    minIntegerDigits: number;
+  };
+  /**
+   * Whether to use abbreviated formatting for projected values.
+   * Most categories use true, but ATTACHMENTS uses false for full precision.
+   */
+  projectedAbbreviated: boolean;
+  /**
+   * Multiplier to convert reserved/prepaid units to raw values.
+   * - bytes: GIGABYTE (10^9) - reserved is in GB, raw is in bytes
+   * - durationHours: MILLISECONDS_IN_HOUR (3,600,000) - reserved is in hours, raw is in ms
+   * - count: 1 - no conversion needed
+   */
+  reservedMultiplier: number;
+  /**
+   * The unit type for this category, determining how values are formatted and displayed.
+   */
+  unitType: DataCategoryUnitType;
+}
+
 export interface DataCategoryInfo {
   displayName: string;
+  formatting: DataCategoryFormattingInfo;
   isBilledCategory: boolean;
   name: DataCategoryExact;
   plural: DataCategory;
