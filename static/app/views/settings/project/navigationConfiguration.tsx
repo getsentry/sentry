@@ -134,6 +134,13 @@ export default function getConfiguration({
           title: t('PlayStation'),
           show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
         },
+        {
+          path: `${pathPrefix}/preprod/`,
+          title: t('Preprod'),
+          show: () => !!organization?.features?.includes('preprod-issues'),
+          badge: () => 'beta',
+          description: t('Size analysis and build distribution configuration.'),
+        },
       ],
     },
     {
