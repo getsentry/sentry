@@ -180,7 +180,7 @@ def _ensure_metric_detector(
             snuba_query = create_snuba_query(
                 query_type=SnubaQuery.Type.ERROR,
                 dataset=Dataset.Events,
-                query="",  # filter????
+                query="",
                 aggregate="count()",
                 time_window=timedelta(minutes=15),
                 resolution=timedelta(minutes=1),
