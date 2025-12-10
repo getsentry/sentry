@@ -1,5 +1,3 @@
-"""Code changes prompt for Explorer-based Autofix."""
-
 CODE_CHANGES_PROMPT = """Implement the fix for issue {short_id}: "{title}" (culprit: {culprit})
 
 Based on the root cause and solution plan, implement the actual code changes.

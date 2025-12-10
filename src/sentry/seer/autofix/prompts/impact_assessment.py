@@ -1,5 +1,3 @@
-"""Impact assessment prompt for Explorer-based Autofix."""
-
 IMPACT_ASSESSMENT_PROMPT = """Assess the impact of issue {short_id}: "{title}" (culprit: {culprit})
 
 Analyze how this issue affects the system, users, and business.

@@ -1,5 +1,3 @@
-"""Root cause analysis prompt for Explorer-based Autofix."""
-
 ROOT_CAUSE_PROMPT = """Analyze issue {short_id}: "{title}" (culprit: {culprit})
 
 Your task is to find the ROOT CAUSE of this issue. Do not propose fixes - only identify why the error is happening.

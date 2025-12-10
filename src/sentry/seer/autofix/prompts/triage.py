@@ -1,5 +1,3 @@
-"""Triage prompt for Explorer-based Autofix."""
-
 TRIAGE_PROMPT = """Triage issue {short_id}: "{title}" (culprit: {culprit})
 
 Help triage this issue by identifying potential suspects and assignees.

@@ -1,5 +1,3 @@
-"""Solution planning prompt for Explorer-based Autofix."""
-
 SOLUTION_PROMPT = """Plan a solution for issue {short_id}: "{title}" (culprit: {culprit})
 
 Based on the root cause analysis, design a solution to fix this issue.
