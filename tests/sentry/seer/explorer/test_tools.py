@@ -1462,12 +1462,12 @@ class TestGetIssueAndEventDetails(
         }
         event2 = self.store_event(data=data, project_id=self.project.id)
 
-        # Mock get_recommended_event to None so fallback is chosen.
-        mock_get_recommended_event.return_value = None
-
         group = event1.group
         assert isinstance(group, Group)
         assert event2.group_id == group.id
+
+        # Mock get_recommended_event - should be skipped since it's out of range.
+        mock_get_recommended_event.return_value = event1
 
         result = get_issue_and_event_details(
             issue_id=str(group.qualified_short_id),
@@ -1489,6 +1489,35 @@ class TestGetIssueAndEventDetails(
 
         # Check correct event is returned
         assert uuid.UUID(event_dict["id"]).hex == event2.event_id
+
+    @patch("sentry.models.group.get_oldest_or_latest_event")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_ie_details_out_of_date_range(
+        self,
+        mock_get_tags,
+        mock_get_oldest_or_latest_event,
+    ):
+        """Test returns None if selected event is out of range."""
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+
+        event = self.store_event(
+            data=load_data("python", timestamp=before_now(minutes=10)), project_id=self.project.id
+        )
+
+        group = event.group
+        assert isinstance(group, Group)
+
+        mock_get_oldest_or_latest_event.return_value = event
+
+        for selected_event in ["oldest", "latest", event.event_id]:
+            result = get_issue_and_event_details(
+                issue_id=str(group.qualified_short_id),
+                organization_id=self.organization.id,
+                selected_event=selected_event,
+                start=before_now(minutes=5).isoformat(),
+                end=before_now(minutes=0).isoformat(),
+            )
+            assert result is None, selected_event
 
 
 class TestGetRepositoryDefinition(APITransactionTestCase):
