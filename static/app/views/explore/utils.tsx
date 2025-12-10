@@ -65,6 +65,7 @@ export function getExploreUrl({
   sort,
   field,
   id,
+  table,
   title,
   referrer,
 }: {
@@ -101,6 +102,7 @@ export function getExploreUrl({
     field,
     utc,
     id,
+    table,
     title,
     referrer,
   };
