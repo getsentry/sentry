@@ -80,7 +80,7 @@ def create_metric_detector_with_owner(project: Project, user=None, user_id=None,
         )
         logger.info(
             "create_metric_detector_with_owner.created",
-            extra={"project_id": project.id, "detector_id": detector.id},
+            extra={"project_id": project.id, "detector_id": detector.id, "enabled": enabled},
         )
     except UnableToAcquireLockApiError as e:
         sentry_sdk.capture_exception(e)
