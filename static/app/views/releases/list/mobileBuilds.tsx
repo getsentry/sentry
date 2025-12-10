@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -7,7 +8,6 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -32,7 +32,9 @@ export default function MobileBuilds({organization, projectSlug}: Props) {
       query: decodeScalar,
     },
   });
-  const [pendingSearchQuery, setPendingSearchQuery] = useState<string | null>(null);
+  const [pendingSearchQuery, setPendingSearchQuery] = useState<string | undefined>(
+    undefined
+  );
   const searchInputValue = pendingSearchQuery ?? urlSearchQuery ?? '';
   const debouncedSearchInput = useDebouncedValue(searchInputValue);
   const previousUrlSearchQuery = useRef(urlSearchQuery);
@@ -43,11 +45,11 @@ export default function MobileBuilds({organization, projectSlug}: Props) {
     }
 
     previousUrlSearchQuery.current = urlSearchQuery;
-    setPendingSearchQuery(null);
+    setPendingSearchQuery(undefined);
   }, [urlSearchQuery]);
 
   useEffect(() => {
-    if (pendingSearchQuery === null) {
+    if (pendingSearchQuery === undefined) {
       return;
     }
 
@@ -111,20 +113,22 @@ export default function MobileBuilds({organization, projectSlug}: Props) {
   }
 
   const builds = buildsData?.builds ?? [];
-  const pageLinks = getResponseHeader?.('Link') ?? null;
+  const pageLinks = getResponseHeader?.('Link') ?? undefined;
   const hasSearchQuery = !!(pendingSearchQuery ?? urlSearchQuery)?.trim();
   const shouldShowSearchBar = builds.length > 0 || hasSearchQuery;
 
   return (
-    <BuildsContent>
-      {shouldShowSearchBar ? (
+    <Stack gap="xl">
+      {shouldShowSearchBar && (
         <SearchBar
           placeholder={t('Search by build, SHA, branch name, or pull request')}
           onChange={setPendingSearchQuery}
           query={searchInputValue}
         />
-      ) : null}
+      )}
+
       {buildsError && <LoadingError onRetry={refetch} />}
+
       <PreprodBuildsTable
         builds={builds}
         isLoading={isLoadingBuilds}
@@ -134,12 +138,6 @@ export default function MobileBuilds({organization, projectSlug}: Props) {
         projectSlug={projectSlug}
         hasSearchQuery={hasSearchQuery}
       />
-    </BuildsContent>
+    </Stack>
   );
 }
-
-const BuildsContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
