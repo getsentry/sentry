@@ -124,7 +124,7 @@ export function CompactSelect<Value extends SelectKey>({
   const menuRef = useCallback(
     (element: HTMLDivElement | null) => {
       if (element && needsMeasuring) {
-        setMeasuredMenuWidth(element.offsetWidth);
+        setMeasuredMenuWidth(element.offsetWidth + 1);
       }
       // we only measure once, even if the width isn't saved
       // this ensures the menu isn't measured when more options come in that put us over the threshold
