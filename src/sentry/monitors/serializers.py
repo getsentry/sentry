@@ -111,15 +111,16 @@ class MonitorEnvironmentSerializer(Serializer):
 
         return {
             monitor_env: {
-                "environment": environments[monitor_env.environment_id],
+                "environment": environments.get(monitor_env.environment_id),
                 "active_incident": serialized_incidents.get(monitor_env.id),
             }
             for monitor_env in item_list
         }
 
     def serialize(self, obj, attrs, user, **kwargs) -> MonitorEnvironmentSerializerResponse:
+        environment = attrs["environment"]
         return {
-            "name": attrs["environment"].name,
+            "name": environment.name if environment else "[removed]",
             "status": obj.get_status_display(),
             "isMuted": obj.is_muted,
             "dateCreated": obj.monitor.date_added,
@@ -339,7 +340,8 @@ class MonitorCheckInSerializer(Serializer):
         for checkin in item_list:
             env_name = None
             if checkin.monitor_environment:
-                env_name = envs[checkin.monitor_environment.environment_id].name
+                env = envs.get(checkin.monitor_environment.environment_id)
+                env_name = env.name if env else "[removed]"
 
             attrs[checkin]["environment_name"] = env_name
 
