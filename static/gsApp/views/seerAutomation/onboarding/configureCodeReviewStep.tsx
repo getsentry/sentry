@@ -43,12 +43,12 @@ export function ConfigureCodeReviewStep() {
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
-              <p>{t(`You successfully connected to GitHub!`)}</p>
+              <p>{t(`You've successfully connected to GitHub!`)}</p>
 
               <p>
-                {t(`
-Now, select which of your repositories you would like to run Seer’s AI Code Review on.
-`)}
+                {t(
+                  `Now, select which repositories you would like to run Seer’s AI Code Review on.`
+                )}
               </p>
             </PanelDescription>
 
