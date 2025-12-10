@@ -14,6 +14,7 @@ import modifyColor from 'color';
 import {spring, type Transition} from 'framer-motion';
 
 import {color} from 'sentry/utils/theme/scraps/color';
+import {breakpoints, radius, size, space} from 'sentry/utils/theme/scraps/size';
 
 type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
 
@@ -424,19 +425,6 @@ type ButtonColors = Record<
   }
 >;
 
-type Breakpoint = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-type Breakpoints = Record<Breakpoint, string>;
-
-const breakpoints = {
-  '2xs': '0px',
-  xs: '500px',
-  sm: '800px',
-  md: '992px',
-  lg: '1200px',
-  xl: '1440px',
-  '2xl': '2560px',
-} as const satisfies Breakpoints;
-
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
 // @TODO: this needs to directly reference the icon direction
@@ -494,42 +482,6 @@ const iconSizes: Record<Size, string> = {
   '2xl': '72px',
 } as const;
 
-const space = {
-  '0': '0px',
-  /**
-   * Equivalent to deprecated `space(0.25)`
-   */
-  '2xs': '2px',
-  /**
-   * Equivalent to deprecated `space(0.5)`
-   */
-  xs: '4px',
-  /**
-   * Equivalent to deprecated `space(0.75)`
-   */
-  sm: '6px',
-  /**
-   * Equivalent to deprecated `space(1)`
-   */
-  md: '8px',
-  /**
-   * Equivalent to deprecated `space(1.5)`
-   */
-  lg: '12px',
-  /**
-   * Equivalent to deprecated `space(2)`
-   */
-  xl: '16px',
-  /**
-   * Equivalent to deprecated `space(3)` (was `20px`)
-   */
-  '2xl': '24px',
-  /**
-   * Equivalent to deprecated `space(4)` (was `30px`)
-   */
-  '3xl': '32px',
-} as const;
-
 /**
  * Values shared between light and dark theme
  */
@@ -537,6 +489,7 @@ const commonTheme = {
   breakpoints,
 
   space,
+  size,
   motion: generateMotion(),
 
   // Icons
@@ -1145,42 +1098,10 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
           hover: colorScheme.blue600,
           active: colorScheme.blue700,
         },
-        promotion: {
-          default: colorScheme.pink500,
-          hover: colorScheme.pink600,
-          active: colorScheme.pink700,
-        },
-        danger: {
-          default: colorScheme.red500,
-          hover: colorScheme.red600,
-          active: colorScheme.red700,
-        },
-        warning: {
-          default: colorScheme.yellow500,
-          hover: colorScheme.yellow600,
-          active: colorScheme.yellow700,
-        },
-        success: {
-          default: colorScheme.green500,
-          hover: colorScheme.green600,
-          active: colorScheme.green700,
-        },
       },
     },
   };
 }
-
-const radius = {
-  '0': '0px',
-  '2xs': '2px',
-  xs: '3px',
-  sm: '4px',
-  md: '6px',
-  lg: '8px',
-  xl: '12px',
-  '2xl': '16px',
-  full: 'calc(infinity*1px)',
-} as const;
 
 const lightColors = {
   black: color.black,
@@ -1386,11 +1307,6 @@ const generateAliases = (
   colors: typeof lightColors
 ) => ({
   /**
-   * Heading text color
-   */
-  headingColor: tokens.content.primary,
-
-  /**
    * Primary text color
    */
   textColor: tokens.content.primary,
@@ -1517,11 +1433,6 @@ const generateAliases = (
   formPlaceholder: colors.gray300,
 
   /**
-   *
-   */
-  rowBackground: tokens.background.primary,
-
-  /**
    * Color of lines that flow across the background of the chart to indicate axes levels
    * (This should only be used for yAxis)
    */
@@ -1536,11 +1447,6 @@ const generateAliases = (
    * Color for the 'others' series in topEvent charts
    */
   chartOther: tokens.content.muted,
-
-  /**
-   * Hover color of the drag handle used in the content slider diff view.
-   */
-  diffSliderDragHandleHover: colors.blue500,
 
   /**
    * Default Progressbar color
@@ -1814,15 +1720,6 @@ const lightThemeDefinition = {
   ),
 
   colors: lightColors,
-
-  sidebar: {
-    background: lightAliases.background,
-    scrollbarThumbColor: '#A0A0A0',
-    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
-    gradient: lightAliases.background,
-    border: lightAliases.border,
-    superuser: '#880808',
-  },
 };
 
 /**
@@ -1871,15 +1768,6 @@ export const darkTheme: SentryTheme = {
   ),
 
   colors: darkColors,
-
-  sidebar: {
-    background: darkAliases.background,
-    scrollbarThumbColor: '#A0A0A0',
-    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
-    gradient: darkAliases.background,
-    border: darkAliases.border,
-    superuser: '#880808',
-  },
 };
 
 declare module '@emotion/react' {

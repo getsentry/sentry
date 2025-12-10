@@ -203,7 +203,7 @@ const IconWrapper = styled('span')`
     display: flex;
     &:hover {
       cursor: pointer;
-      color: ${p => p.theme.textColor};
+      color: ${p => p.theme.tokens.content.primary};
     }
   }
 `;

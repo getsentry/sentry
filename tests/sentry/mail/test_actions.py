@@ -1,6 +1,7 @@
 from django.core import mail
 
 from sentry.eventstream.types import EventStreamEventType
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.mail.actions import NotifyEmailAction
 from sentry.mail.forms.notify_email import NotifyEmailForm
@@ -14,7 +15,10 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = requires_snuba
 
@@ -122,7 +126,7 @@ class NotifyEmailFormTest(TestCase):
         assert form.is_valid()
 
 
-class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
+class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
     rule_cls = NotifyEmailAction
 
     def test_simple(self) -> None:
@@ -211,6 +215,94 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         sent = mail.outbox[0]
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
+
+    def test_legacy_full_integration_noone_fallthrough(self) -> None:
+        one_min_ago = before_now(minutes=1).isoformat()
+        event = self.store_event(
+            data={
+                "message": "hello",
+                "exception": {"type": "Foo", "value": "uh oh"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "IssueOwners",
+            "fallthroughType": "NoOne",
+        }
+        condition_data = {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+        Rule.objects.filter(project=event.project).delete()
+        Rule.objects.create(
+            project=event.project, data={"conditions": [condition_data], "actions": [action_data]}
+        )
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        assert len(mail.outbox) == 0
+
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
+    def test_full_integration_noone_fallthrough(self) -> None:
+        from sentry.workflow_engine.typings.notification_action import (
+            ActionTarget,
+            FallthroughChoiceType,
+        )
+
+        one_min_ago = before_now(minutes=1).isoformat()
+        event = self.store_event(
+            data={
+                "message": "hello",
+                "exception": {"type": "Foo", "value": "uh oh"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        error_workflow, error_detector, detector_workflow_error, condition_group = (
+            self.create_detector_and_workflow(
+                name_prefix="error",
+                workflow_triggers=self.create_data_condition_group(),
+                detector_type=ErrorGroupType.slug,
+            )
+        )
+        self.create_workflow_data_condition_group(
+            workflow=error_workflow, condition_group=condition_group
+        )
+
+        action_config = {
+            "target_type": ActionTarget.ISSUE_OWNERS.value,
+            "target_display": None,
+            "target_identifier": None,
+        }
+        action_data = {"fallthrough_type": FallthroughChoiceType.NO_ONE.value}
+        action = self.create_action(config=action_config, type="email", data=action_data)
+        self.create_data_condition_group_action(condition_group=condition_group, action=action)
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        assert len(mail.outbox) == 0
 
     def test_full_integration_fallthrough_not_provided(self) -> None:
         one_min_ago = before_now(minutes=1).isoformat()
