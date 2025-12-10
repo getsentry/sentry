@@ -21,7 +21,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 logger = logging.getLogger(__name__)
 
 
-def check_scm_integration(organization_id: int) -> bool:
+def has_supported_scm_integration(organization_id: int) -> bool:
     """Check if the organization has an active and supported SCM, e.g. GitHub or GitHub Enterprise integration."""
     organization_integrations = integration_service.get_organization_integrations(
         organization_id=organization_id,
@@ -35,7 +35,7 @@ def check_scm_integration(organization_id: int) -> bool:
     return len(organization_integrations) > 0
 
 
-def check_code_review_enabled(organization_id: int) -> bool:
+def is_code_review_enabled(organization_id: int) -> bool:
     """Check if code review is enabled for any active repository in the organization."""
     return RepositorySettings.objects.filter(
         repository__organization_id=organization_id,
@@ -44,7 +44,7 @@ def check_code_review_enabled(organization_id: int) -> bool:
     ).exists()
 
 
-def check_autofix_enabled(organization_id: int) -> bool:
+def is_autofix_enabled(organization_id: int) -> bool:
     """
     Check if autofix/RCA is enabled for any active project in the organization,
     ie, if any project has sentry:autofix_automation_tuning not set to "off" or None.
@@ -82,16 +82,16 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """Check if the organization has completed Seer onboarding/configuration."""
-        has_scm_integration = check_scm_integration(organization.id)
-        is_code_review_enabled = check_code_review_enabled(organization.id)
-        is_autofix_enabled = check_autofix_enabled(organization.id)
-        is_seer_configured = has_scm_integration and (is_code_review_enabled or is_autofix_enabled)
+        has_scm_integration = has_supported_scm_integration(organization.id)
+        code_review_enabled = is_code_review_enabled(organization.id)
+        autofix_enabled = is_autofix_enabled(organization.id)
+        is_seer_configured = has_scm_integration and (code_review_enabled or autofix_enabled)
 
         return Response(
             {
-                "hasScmIntegration": has_scm_integration,
-                "isCodeReviewEnabled": is_code_review_enabled,
-                "isAutofixEnabled": is_autofix_enabled,
+                "hasSupportedScmIntegration": has_scm_integration,
+                "isCodeReviewEnabled": code_review_enabled,
+                "isAutofixEnabled": autofix_enabled,
                 "isSeerConfigured": is_seer_configured,
             }
         )

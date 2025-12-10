@@ -3,15 +3,15 @@ from __future__ import annotations
 from sentry.constants import ObjectStatus
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
-    check_autofix_enabled,
-    check_code_review_enabled,
-    check_scm_integration,
+    has_supported_scm_integration,
+    is_autofix_enabled,
+    is_code_review_enabled,
 )
 from sentry.testutils.cases import APITestCase, TestCase
 
 
-class TestCheckScmIntegration(TestCase):
-    """Unit tests for check_scm_integration()"""
+class TestHasSupportedScmIntegration(TestCase):
+    """Unit tests for has_supported_scm_integration()"""
 
     def test_scm_integration(self) -> None:
         self.create_integration(
@@ -21,7 +21,7 @@ class TestCheckScmIntegration(TestCase):
             external_id="123",
         )
 
-        assert check_scm_integration(self.organization.id)
+        assert has_supported_scm_integration(self.organization.id)
 
     def test_scm_integration_github_enterprise(self) -> None:
         self.create_integration(
@@ -31,10 +31,10 @@ class TestCheckScmIntegration(TestCase):
             external_id="456",
         )
 
-        assert check_scm_integration(self.organization.id)
+        assert has_supported_scm_integration(self.organization.id)
 
     def test_no_integration(self) -> None:
-        assert not check_scm_integration(self.organization.id)
+        assert not has_supported_scm_integration(self.organization.id)
 
     def test_inactive_integration(self) -> None:
         self.create_integration(
@@ -45,7 +45,7 @@ class TestCheckScmIntegration(TestCase):
             oi_params={"status": ObjectStatus.DISABLED},
         )
 
-        assert not check_scm_integration(self.organization.id)
+        assert not has_supported_scm_integration(self.organization.id)
 
     def test_multiple_organizations(self) -> None:
         org1 = self.organization
@@ -59,14 +59,14 @@ class TestCheckScmIntegration(TestCase):
             external_id="123",
         )
 
-        assert check_scm_integration(org1.id)
-        assert not check_scm_integration(org2.id)
+        assert has_supported_scm_integration(org1.id)
+        assert not has_supported_scm_integration(org2.id)
 
 
-class TestCheckCodeReviewEnabled(TestCase):
-    """Unit tests for check_code_review_enabled()"""
+class TestIsCodeReviewEnabled(TestCase):
+    """Unit tests for is_code_review_enabled()"""
 
-    def test_with_code_review_enabled(self) -> None:
+    def test_code_review_enabled(self) -> None:
         repo = self.create_repo(project=self.project)
 
         RepositorySettings.objects.create(
@@ -74,7 +74,7 @@ class TestCheckCodeReviewEnabled(TestCase):
             enabled_code_review=True,
         )
 
-        assert check_code_review_enabled(self.organization.id)
+        assert is_code_review_enabled(self.organization.id)
 
     def test_code_review_disabled(self) -> None:
         repo = self.create_repo(project=self.project)
@@ -84,7 +84,7 @@ class TestCheckCodeReviewEnabled(TestCase):
             enabled_code_review=False,
         )
 
-        assert not check_code_review_enabled(self.organization.id)
+        assert not is_code_review_enabled(self.organization.id)
 
     def test_multiple_repositories(self) -> None:
         repo1 = self.create_repo(project=self.project)
@@ -100,10 +100,10 @@ class TestCheckCodeReviewEnabled(TestCase):
             enabled_code_review=False,
         )
 
-        assert check_code_review_enabled(self.organization.id)
+        assert is_code_review_enabled(self.organization.id)
 
     def test_no_repositories(self) -> None:
-        assert not check_code_review_enabled(self.organization.id)
+        assert not is_code_review_enabled(self.organization.id)
 
     def test_inactive_repository(self) -> None:
         repo = self.create_repo(project=self.project)
@@ -115,11 +115,11 @@ class TestCheckCodeReviewEnabled(TestCase):
             enabled_code_review=True,
         )
 
-        assert not check_code_review_enabled(self.organization.id)
+        assert not is_code_review_enabled(self.organization.id)
 
     def test_no_settings(self) -> None:
         self.create_repo(project=self.project)
-        assert not check_code_review_enabled(self.organization.id)
+        assert not is_code_review_enabled(self.organization.id)
 
     def test_multiple_organizations(self) -> None:
         org1 = self.organization
@@ -141,39 +141,39 @@ class TestCheckCodeReviewEnabled(TestCase):
             enabled_code_review=False,
         )
 
-        assert check_code_review_enabled(org1.id)
-        assert not check_code_review_enabled(org2.id)
+        assert is_code_review_enabled(org1.id)
+        assert not is_code_review_enabled(org2.id)
 
 
-class TestCheckAutofixEnabled(TestCase):
-    """Unit tests for check_autofix_enabled()"""
+class TestIsAutofixEnabled(TestCase):
+    """Unit tests for is_autofix_enabled()"""
 
     def test_no_option_set(self) -> None:
-        assert not check_autofix_enabled(self.organization.id)
+        assert not is_autofix_enabled(self.organization.id)
 
     def test_with_autofix_low(self) -> None:
         self.project.update_option("sentry:autofix_automation_tuning", "low")
-        assert check_autofix_enabled(self.organization.id)
+        assert is_autofix_enabled(self.organization.id)
 
     def test_with_autofix_medium(self) -> None:
         self.project.update_option("sentry:autofix_automation_tuning", "medium")
-        assert check_autofix_enabled(self.organization.id)
+        assert is_autofix_enabled(self.organization.id)
 
     def test_with_autofix_high(self) -> None:
         self.project.update_option("sentry:autofix_automation_tuning", "high")
-        assert check_autofix_enabled(self.organization.id)
+        assert is_autofix_enabled(self.organization.id)
 
     def test_with_autofix_off(self) -> None:
         self.project.update_option("sentry:autofix_automation_tuning", "off")
-        assert not check_autofix_enabled(self.organization.id)
+        assert not is_autofix_enabled(self.organization.id)
 
     def test_with_autofix_none(self) -> None:
         self.project.update_option("sentry:autofix_automation_tuning", None)
-        assert not check_autofix_enabled(self.organization.id)
+        assert not is_autofix_enabled(self.organization.id)
 
     def test_no_projects(self) -> None:
         org_without_projects = self.create_organization()
-        assert not check_autofix_enabled(org_without_projects.id)
+        assert not is_autofix_enabled(org_without_projects.id)
 
     def test_inactive_project(self) -> None:
         inactive_project = self.create_project(
@@ -181,7 +181,7 @@ class TestCheckAutofixEnabled(TestCase):
         )
         inactive_project.update_option("sentry:autofix_automation_tuning", "high")
 
-        assert not check_autofix_enabled(self.organization.id)
+        assert not is_autofix_enabled(self.organization.id)
 
     def test_multiple_projects(self) -> None:
         project1 = self.create_project(organization=self.organization)
@@ -192,7 +192,7 @@ class TestCheckAutofixEnabled(TestCase):
         project2.update_option("sentry:autofix_automation_tuning", "off")
         project3.update_option("sentry:autofix_automation_tuning", "off")
 
-        assert check_autofix_enabled(self.organization.id)
+        assert is_autofix_enabled(self.organization.id)
 
     def test_multiple_organizations(self) -> None:
         org1 = self.organization
@@ -204,8 +204,8 @@ class TestCheckAutofixEnabled(TestCase):
         project1.update_option("sentry:autofix_automation_tuning", "high")
         project2.update_option("sentry:autofix_automation_tuning", "off")
 
-        assert check_autofix_enabled(org1.id)
-        assert not check_autofix_enabled(org2.id)
+        assert is_autofix_enabled(org1.id)
+        assert not is_autofix_enabled(org2.id)
 
 
 class OrganizationSeerOnboardingCheckTest(APITestCase):
@@ -226,7 +226,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "hasScmIntegration": False,
+            "hasSupportedScmIntegration": False,
             "isCodeReviewEnabled": False,
             "isAutofixEnabled": False,
             "isSeerConfigured": False,
@@ -252,7 +252,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "hasScmIntegration": True,
+            "hasSupportedScmIntegration": True,
             "isCodeReviewEnabled": True,
             "isAutofixEnabled": True,
             "isSeerConfigured": True,
@@ -270,7 +270,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "hasScmIntegration": True,
+            "hasSupportedScmIntegration": True,
             "isCodeReviewEnabled": False,
             "isAutofixEnabled": False,
             "isSeerConfigured": False,
@@ -287,7 +287,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "hasScmIntegration": False,
+            "hasSupportedScmIntegration": False,
             "isCodeReviewEnabled": True,
             "isAutofixEnabled": False,
             "isSeerConfigured": False,
@@ -300,7 +300,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "hasScmIntegration": False,
+            "hasSupportedScmIntegration": False,
             "isCodeReviewEnabled": False,
             "isAutofixEnabled": True,
             "isSeerConfigured": False,
@@ -324,7 +324,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "hasScmIntegration": True,
+            "hasSupportedScmIntegration": True,
             "isCodeReviewEnabled": True,
             "isAutofixEnabled": False,
             "isSeerConfigured": True,
@@ -344,7 +344,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "hasScmIntegration": True,
+            "hasSupportedScmIntegration": True,
             "isCodeReviewEnabled": False,
             "isAutofixEnabled": True,
             "isSeerConfigured": True,
@@ -363,7 +363,7 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "hasScmIntegration": False,
+            "hasSupportedScmIntegration": False,
             "isCodeReviewEnabled": True,
             "isAutofixEnabled": True,
             "isSeerConfigured": False,
