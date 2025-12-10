@@ -347,7 +347,7 @@ const FinalizeWrapper = styled('div')`
 
 const PackageName = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
