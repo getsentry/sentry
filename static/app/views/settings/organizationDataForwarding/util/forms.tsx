@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -53,21 +54,21 @@ function getEnablementForm({
   dataForwarder?: DataForwarder;
 }): JsonFormObject {
   const hasCompleteSetup = dataForwarder;
-
+  const enablementField: FieldObject = {
+    name: 'is_enabled',
+    label: t('Enable data forwarding'),
+    type: 'boolean',
+    defaultValue: dataForwarder?.isEnabled ?? true,
+    help: hasCompleteSetup
+      ? t('Will override all projects to shut-off data forwarding altogether.')
+      : t('Will be enabled after the initial setup is complete.'),
+  };
+  if (!hasCompleteSetup) {
+    enablementField.disabled = true;
+  }
   return {
     title: t('Enablement'),
-    fields: [
-      {
-        name: 'is_enabled',
-        label: t('Enable data forwarding'),
-        type: 'boolean',
-        defaultValue: dataForwarder?.isEnabled ?? true,
-        help: hasCompleteSetup
-          ? t('Will override all projects to shut-off data forwarding altogether.')
-          : t('Will be enabled after the initial setup is complete.'),
-        disabled: !hasCompleteSetup,
-      },
-    ],
+    fields: [enablementField],
   };
 }
 
@@ -103,9 +104,11 @@ function getProjectConfigurationForm({projects}: {projects: Project[]}): JsonFor
 export function getProjectOverrideForm({
   project,
   dataForwarder,
+  omitTag = false,
 }: {
   dataForwarder: DataForwarder;
   project: AvatarProject;
+  omitTag?: boolean;
 }): JsonFormObject {
   const [providerForm] = getProviderForm({provider: dataForwarder.provider});
   const providerFields = providerForm?.fields.map(
@@ -128,12 +131,16 @@ export function getProjectOverrideForm({
           <ProjectAvatar project={project} size={16} />
           <Text>{project.slug}</Text>
         </Flex>
-        {projectConfig?.isEnabled ? (
-          <CalmTag type={hasOverrides ? 'warning' : 'success'}>
-            {hasOverrides ? t('Forwarding with Overrides') : t('Forwarding')}
-          </CalmTag>
-        ) : (
-          <CalmTag type="error">{t('Disabled')}</CalmTag>
+        {!omitTag && (
+          <Fragment>
+            {projectConfig?.isEnabled ? (
+              <CalmTag type={hasOverrides ? 'warning' : 'success'}>
+                {hasOverrides ? t('Forwarding with Overrides') : t('Forwarding')}
+              </CalmTag>
+            ) : (
+              <CalmTag type="error">{t('Disabled')}</CalmTag>
+            )}
+          </Fragment>
         )}
       </Flex>
     ),

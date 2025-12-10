@@ -16,7 +16,13 @@ import {
   type DataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
-export function DataForwarderRow({dataForwarder}: {dataForwarder: DataForwarder}) {
+export function DataForwarderRow({
+  dataForwarder,
+  disabled,
+}: {
+  dataForwarder: DataForwarder;
+  disabled: boolean;
+}) {
   const organization = useOrganization();
   return (
     <Container padding="xl" border="muted" radius="md" key={dataForwarder.id}>
@@ -44,6 +50,7 @@ export function DataForwarderRow({dataForwarder}: {dataForwarder: DataForwarder}
             onClick={() => {
               trackAnalytics('data_forwarding.edit_clicked', {organization});
             }}
+            disabled={disabled}
           >
             {t('Edit')}
           </LinkButton>
@@ -52,6 +59,8 @@ export function DataForwarderRow({dataForwarder}: {dataForwarder: DataForwarder}
               title={t('Delete Data Forwarder')}
               aria-label={t('Delete Data Forwarder')}
               icon={<IconDelete />}
+              // Deletions are always permitted, even if you lose the feature.
+              disabled={false}
             />
           </DataForwarderDeleteConfirm>
         </ButtonBar>

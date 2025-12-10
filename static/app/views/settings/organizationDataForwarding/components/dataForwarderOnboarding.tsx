@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export function DataForwarderOnboarding() {
+export function DataForwarderOnboarding({disabled}: {disabled: boolean}) {
   const organization = useOrganization();
 
   return (
@@ -33,6 +33,7 @@ export function DataForwarderOnboarding() {
             onClick={() => {
               trackAnalytics('data_forwarding.onboarding_cta_clicked', {organization});
             }}
+            disabled={disabled}
           >
             {t('Setup Your First Forwarder')}
           </LinkButton>
