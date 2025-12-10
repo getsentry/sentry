@@ -193,11 +193,6 @@ export default function CreateAlertButton({
     event.preventDefault();
     onEnter?.();
 
-    if (isWorkflowEngineEnabled) {
-      navigateTo(makeMonitorCreatePathname(organization.slug), router);
-      return;
-    }
-
     navigateTo(createAlertUrl(':projectId'), router);
   }
 
