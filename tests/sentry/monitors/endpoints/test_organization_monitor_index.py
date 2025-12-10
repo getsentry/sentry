@@ -11,6 +11,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry import audit_log
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType, is_monitor_muted
 from sentry.monitors.utils import get_detector_for_monitor
@@ -663,6 +664,58 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         }
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
         assert response.data["config"]["schedule"][0] == "Schedule is invalid"
+
+    def test_team_admin_create(self) -> None:
+        team_admin_user = self.create_user()
+        team = self.create_team(organization=self.organization)
+        self.create_member(
+            team_roles=[(team, "admin")],
+            user=team_admin_user,
+            role="member",
+            organization=self.organization,
+        )
+        # Associate the team with the project
+        ProjectTeam.objects.create(project=self.project, team=team)
+
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[team]
+        )
+
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin_user)
+
+        data = {
+            "project": self.project.slug,
+            "name": "Team Admin Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        resp = self.get_success_response(self.organization.slug, **data)
+        assert resp.status_code == 201
+
+        # verify that a team admin cannot create a monitor for a project their team doesn't own
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        data_invalid = {
+            "project": other_project.slug,
+            "name": "Invalid Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        resp = self.get_error_response(self.organization.slug, status_code=400, **data_invalid)
+        assert resp.data["project"][0] == "Invalid project"
+
+        # verify that a regular team member cannot create a monitor
+        self.login_as(member_user)
+        data_member = {
+            "project": self.project.slug,
+            "name": "Member Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        resp = self.get_response(self.organization.slug, **data_member)
+        assert resp.status_code == 403
 
 
 class BulkEditOrganizationMonitorTest(MonitorTestCase):
