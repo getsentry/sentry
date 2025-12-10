@@ -15,7 +15,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
-import {VerySlowComponent} from 'sentry/stories/playground/slideOverPanel';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -420,7 +419,6 @@ function WidgetBuilderSlideout({
                   />
                 </Fragment>
               )}
-              <VerySlowComponent />
             </SlideoutBodyWrapper>
           </Fragment>
         );
