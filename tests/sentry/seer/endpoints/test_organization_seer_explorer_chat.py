@@ -176,9 +176,11 @@ class CollectUserOrgContextTest(APITestCase):
 
     def test_collect_context_with_timezone(self):
         """Test context collection includes user's timezone setting"""
-        from sentry.users.models.user_option import UserOption
+        from sentry.users.services.user_option import user_option_service
 
-        UserOption.objects.set_value(self.user, "timezone", "America/Los_Angeles")
+        user_option_service.set_option(
+            user_id=self.user.id, key="timezone", value="America/Los_Angeles"
+        )
 
         context = collect_user_org_context(self.user, self.organization)
 

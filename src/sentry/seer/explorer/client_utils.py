@@ -25,8 +25,9 @@ from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.users.models.user import User as SentryUser
-from sentry.users.models.user_option import UserOption
 from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user_option import user_option_service
+from sentry.users.services.user_option.service import get_option_from_list
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +103,8 @@ def collect_user_org_context(
         user_name = user.name
 
     # Get user's timezone setting (IANA timezone name, e.g., "America/Los_Angeles")
-    user_timezone = UserOption.objects.get_value(user, "timezone")
+    user_options = user_option_service.get_many(filter={"user_ids": [user.id], "key": "timezone"})
+    user_timezone = get_option_from_list(user_options, key="timezone")
 
     return {
         "org_slug": organization.slug,
