@@ -44,31 +44,39 @@ interface SeerDrawerProps {
   project: Project;
 }
 
-const AiSetupDataConsent = HookOrDefault({
-  hookName: 'component:ai-setup-data-consent',
-  defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
+const AiSetupSeerIssueDetails = HookOrDefault({
+  hookName: 'component:ai-setup-seer-issue-details',
+  defaultComponent: () => null,
 });
 
+// const AiSetupDataConsent = HookOrDefault({
+//   hookName: 'component:ai-setup-data-consent',
+//   defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
+// });
+
 function WelcomeScreen({
-  group,
   project,
+  group,
   event,
 }: {
   event: Event;
   group: Group;
   project: Project;
 }) {
-  const organization = useOrganization();
-  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
+  // const organization = useOrganization();
+  // const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
 
   return (
-    <Stack gap="2xl">
+    <Stack gap="2xl" position="relative">
+      {/*
       {skipConsentFlow && (
         <StyledCard>
           <GroupSummary group={group} event={event} project={project} />
         </StyledCard>
       )}
       <AiSetupDataConsent groupId={group.id} />
+      */}
+      <AiSetupSeerIssueDetails event={event} group={group} project={project} />
     </Stack>
   );
 }
@@ -244,7 +252,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       {(!showWelcomeScreen || aiConfig.isAutofixSetupLoading) && (
         <SeerDrawerNavigator>
           <Flex align="center" gap="md">
-            <Header>{t('Seer')}</Header>
+            <Header>{t('Seer Root Cause Analysis')}</Header>
             <QuestionTooltip
               isHoverable
               title={
@@ -453,7 +461,8 @@ const SeerDrawerNavigator = styled('div')`
 `;
 
 const SeerDrawerBody = styled(DrawerBody)`
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
   scroll-behavior: smooth;
   /* Move the scrollbar to the left edge */
