@@ -137,11 +137,9 @@ describe('ExplorerPanel', () => {
         sessionData:
           mockSessionData as useSeerExplorerModule.SeerExplorerResponse['session'],
         sendMessage: jest.fn(),
-        deleteFromIndex: jest.fn(),
         startNewSession: jest.fn(),
         isPolling: false,
         isPending: false,
-        deletedFromIndex: null,
         interruptRun: jest.fn(),
         interruptRequested: false,
         runId: null,

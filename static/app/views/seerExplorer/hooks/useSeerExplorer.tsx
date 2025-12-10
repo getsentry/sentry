@@ -115,7 +115,6 @@ export const useSeerExplorer = () => {
     null
   );
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
-  const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
   const [interruptRequested, setInterruptRequested] = useState<boolean>(false);
   const [optimistic, setOptimistic] = useState<{
     assistantBlockId: string;
@@ -157,8 +156,7 @@ export const useSeerExplorer = () => {
       setWaitingForResponse(true);
 
       // Calculate insert index first
-      const effectiveMessageLength =
-        deletedFromIndex ?? (apiData?.session?.blocks.length || 0);
+      const effectiveMessageLength = apiData?.session?.blocks.length || 0;
       const calculatedInsertIndex = insertIndex ?? effectiveMessageLength;
 
       // Record current real blocks signature to know when to clear optimistic UI
@@ -229,21 +227,8 @@ export const useSeerExplorer = () => {
         );
       }
     },
-    [
-      queryClient,
-      api,
-      orgSlug,
-      runId,
-      apiData,
-      deletedFromIndex,
-      captureAsciiSnapshot,
-      setRunId,
-    ]
+    [queryClient, api, orgSlug, runId, apiData, captureAsciiSnapshot, setRunId]
   );
-
-  const deleteFromIndex = useCallback((index: number) => {
-    setDeletedFromIndex(index);
-  }, []);
 
   const interruptRun = useCallback(async () => {
     if (!orgSlug || !runId || interruptRequested) {
@@ -340,15 +325,11 @@ export const useSeerExplorer = () => {
     [api, orgSlug, runId, queryClient]
   );
 
-  // Always filter messages based on optimistic state and deletedFromIndex before any other processing
+  // Always filter messages based on optimistic state before any other processing
   const sessionData = apiData?.session ?? null;
 
   const filteredSessionData = useMemo(() => {
-    const realBlocks = sessionData?.blocks || [];
-
-    // Respect rewound/deleted index first for the real blocks view
-    const baseBlocks =
-      deletedFromIndex === null ? realBlocks : realBlocks.slice(0, deletedFromIndex);
+    const baseBlocks = sessionData?.blocks || [];
 
     if (optimistic) {
       const insert = Math.min(Math.max(optimistic.insertIndex, 0), baseBlocks.length);
@@ -387,15 +368,8 @@ export const useSeerExplorer = () => {
       } as NonNullable<typeof sessionData>;
     }
 
-    if (sessionData && deletedFromIndex !== null) {
-      return {
-        ...sessionData,
-        blocks: baseBlocks,
-      } as NonNullable<typeof sessionData>;
-    }
-
     return sessionData;
-  }, [sessionData, deletedFromIndex, optimistic, runId]);
+  }, [sessionData, optimistic, runId]);
 
   // Clear optimistic blocks once the real blocks change in poll results
   useEffect(() => {
@@ -516,8 +490,6 @@ export const useSeerExplorer = () => {
     switchToRun,
     /** Resets the run id, blocks, and other state. The new session isn't actually created until the user sends a message. */
     startNewSession,
-    deleteFromIndex,
-    deletedFromIndex,
     interruptRun,
     interruptRequested,
     respondToUserInput,

@@ -44,7 +44,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const {
     sessionData,
     sendMessage,
-    deleteFromIndex,
     startNewSession,
     isPolling,
     interruptRun,
@@ -410,7 +409,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     isFileApprovalPending,
     isPolling,
     isQuestionPending,
-    onDeleteFromIndex: deleteFromIndex,
     onKeyPress: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => {
       const handler = blockEnterHandlers.current.get(blockIndex);
       const handled = handler?.(key) ?? false;
@@ -514,7 +512,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                     hoveredBlockIndex.current = -1;
                   }
                 }}
-                onDelete={() => deleteFromIndex(index)}
                 onNavigate={() => setIsMinimized(true)}
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);

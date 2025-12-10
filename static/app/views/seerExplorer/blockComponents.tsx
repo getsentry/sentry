@@ -24,9 +24,7 @@ interface BlockProps {
   isFocused?: boolean;
   isLast?: boolean;
   isLatestTodoBlock?: boolean;
-  isPolling?: boolean;
   onClick?: () => void;
-  onDelete?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   onNavigate?: () => void;
@@ -128,9 +126,7 @@ function BlockComponent({
   isLast,
   isLatestTodoBlock,
   isFocused,
-  isPolling,
   onClick,
-  onDelete,
   onMouseEnter,
   onMouseLeave,
   onNavigate,
@@ -274,11 +270,6 @@ function BlockComponent({
     onRegisterEnterHandler,
   ]);
 
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onDelete?.();
-  };
-
   const handleNavigateClick = (e: React.MouseEvent, linkIndex: number) => {
     e.stopPropagation();
     if (sortedToolLinks.length === 0) {
@@ -398,11 +389,6 @@ function BlockComponent({
                 transition={{duration: 0.1}}
               >
                 <ActionButtonBar gap="sm">
-                  {!isPolling && (
-                    <Button size="xs" priority="default" onClick={handleDeleteClick}>
-                      Rethink from here ⌫
-                    </Button>
-                  )}
                   {hasValidLinks && (
                     <ButtonBar merged gap="0">
                       {sortedToolLinks.map((_, idx) => (

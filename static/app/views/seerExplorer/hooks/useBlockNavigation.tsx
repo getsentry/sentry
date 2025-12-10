@@ -13,7 +13,6 @@ interface UseBlockNavigationProps {
   isMinimized?: boolean;
   isPolling?: boolean;
   isQuestionPending?: boolean;
-  onDeleteFromIndex?: (index: number) => void;
   onKeyPress?: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean;
   onNavigate?: () => void;
 }
@@ -29,7 +28,6 @@ export function useBlockNavigation({
   isMinimized = false,
   isPolling = false,
   isQuestionPending = false,
-  onDeleteFromIndex,
   onKeyPress,
   onNavigate,
 }: UseBlockNavigationProps) {
@@ -129,7 +127,6 @@ export function useBlockNavigation({
     isMinimized,
     isPolling,
     isQuestionPending,
-    onDeleteFromIndex,
     onKeyPress,
     onNavigate,
   ]);
