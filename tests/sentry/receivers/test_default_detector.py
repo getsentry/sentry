@@ -93,12 +93,8 @@ class TestEnsureMetricDetector(TestCase):
 
 
 class TestCreateMetricDetectorWithOwner(TestCase):
-    @with_feature(
-        {
-            "organizations:default-anomaly-detector": True,
-            "organizations:anomaly-detection-alerts": True,
-        }
-    )
+    @with_feature("organizations:default-anomaly-detector")
+    @with_feature("organizations:anomaly-detection-alerts")
     def test_creates_enabled_detector_when_both_features_enabled(self):
         """Test that detector is created and enabled when both feature flags are enabled."""
         from sentry.receivers.project_detectors import create_metric_detector_with_owner
