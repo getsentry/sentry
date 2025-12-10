@@ -206,7 +206,7 @@ const DragHandle = styled('div')`
   &:hover,
   &:active {
     &::after {
-      background: ${p => p.theme.diffSliderDragHandleHover};
+      background: ${p => p.theme.colors.blue500};
     }
   }
 
@@ -219,7 +219,7 @@ const DragHandle = styled('div')`
   }
 
   &[data-resizing]::after {
-    background: ${p => p.theme.diffSliderDragHandleHover};
+    background: ${p => p.theme.colors.blue500};
   }
 `;
 
