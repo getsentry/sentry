@@ -54,11 +54,14 @@ describe('PartialTraceDataWarning', () => {
         screen.getByRole('link', {name: 'Search similar traces in the past 24 hours'})
       ).toBeInTheDocument();
 
+      const queryString = encodeURIComponent(
+        'is_transaction:true project.id:1 span.op:http.server'
+      );
       expect(
         screen.getByRole('link', {name: 'Search similar traces in the past 24 hours'})
       ).toHaveAttribute(
         'href',
-        `/organizations/${organization.slug}/explore/traces/?mode=samples&query=${encodeURIComponent('is_transaction:true span.op:http.server')}&statsPeriod=24h`
+        `/organizations/${organization.slug}/explore/traces/?mode=samples&query=${queryString}&statsPeriod=24h&table=trace`
       );
     });
   });
