@@ -17,6 +17,7 @@ interface SeerOnboardingContextProps {
     index: number,
     newValue: string | undefined
   ) => void;
+  changeRootCauseAnalysisRepository: (oldRepoId: string, newRepoId: string) => void;
   installationData: OrganizationIntegration[] | undefined;
   isInstallationPending: boolean;
   isProviderPending: boolean;
@@ -43,6 +44,7 @@ const SeerOnboardingContext = createContext<SeerOnboardingContextProps>({
   selectedRootCauseAnalysisRepositories: [],
   repositoryProjectMapping: {},
   changeRepositoryProjectMapping: () => {},
+  changeRootCauseAnalysisRepository: () => {},
   setCodeReviewRepositories: () => {},
   removeRootCauseAnalysisRepository: () => {},
   addRepositoryProjectMappings: () => {},
@@ -110,6 +112,45 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
       setRootCauseAnalysisRepositories(prev => prev.filter(repo => repo.id !== repoId));
     },
     [setRootCauseAnalysisRepositories]
+  );
+
+  const changeRootCauseAnalysisRepository = useCallback(
+    (oldRepoId: string, newRepoId: string) => {
+      const newRepo = repositoriesMap[newRepoId];
+      if (!newRepo) {
+        return;
+      }
+
+      let shouldUpdateMappings = false;
+
+      // The updater function below executes synchronously, so shouldUpdateMappings
+      // will be set before we check it. Only the re-render is async.
+      setRootCauseAnalysisRepositories(prev => {
+        // Check if the new repository is already selected using current state
+        const isDuplicate = prev.some(
+          repo => repo.id === newRepoId && repo.id !== oldRepoId
+        );
+        if (isDuplicate) {
+          return prev;
+        }
+
+        // Mark that we should update mappings (executes synchronously)
+        shouldUpdateMappings = true;
+
+        // Replace the old repository with the new one
+        return prev.map(repo => (repo.id === oldRepoId ? newRepo : repo));
+      });
+
+      // Only clear project mappings if the repository was actually changed
+      if (shouldUpdateMappings) {
+        setRepositoryProjectMapping(prev => {
+          const newMappings = {...prev};
+          delete newMappings[oldRepoId];
+          return newMappings;
+        });
+      }
+    },
+    [repositoriesMap]
   );
 
   const addRepositoryProjectMappings = useCallback(
@@ -184,6 +225,7 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         setCodeReviewRepositories,
         selectedRootCauseAnalysisRepositories,
         removeRootCauseAnalysisRepository,
+        changeRootCauseAnalysisRepository,
         repositoryProjectMapping,
         addRepositoryProjectMappings,
         changeRepositoryProjectMapping,
