@@ -20,7 +20,14 @@ import useProjects from 'sentry/utils/useProjects';
 
 import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {useCodeMappings} from './hooks/useCodeMappings';
-import {MaxWidthPanel, PanelDescription, StepContent} from './common';
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+  MaxWidthPanel,
+  PanelDescription,
+  StepContent,
+} from './common';
 import {RepositoryToProjectConfiguration} from './repositoryToProjectConfiguration';
 
 export function ConfigureRootCauseAnalysisStep() {
@@ -220,22 +227,6 @@ export function ConfigureRootCauseAnalysisStep() {
     </Fragment>
   );
 }
-
-const Field = styled(PanelItem)`
-  align-items: start;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.xl};
-`;
-
-const FieldLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const FieldDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  line-height: 1.4;
-`;
 
 const AddRepoRow = styled(PanelItem)`
   align-items: center;
