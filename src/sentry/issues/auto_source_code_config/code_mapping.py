@@ -40,7 +40,6 @@ class CodeMapping(NamedTuple):
 
 SLASH = "/"
 BACKSLASH = "\\"  # This is the Python representation of a single backslash
-NOT_FOUND = -1
 
 
 def derive_code_mappings(
@@ -431,7 +430,7 @@ def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
         # e.g. stack_path: foo/foo.py -> source_path: foo/foo.py
         return (stack_root, "")
     elif source_path.endswith(stack_path):
-        if stack_path.find("/") == NOT_FOUND:
+        if stack_path.find("/") > -1:
             # Single-file path (e.g. stack_path: foo.py -> source_path: src/foo.py)
             return ("", source_path.replace(stack_path, ""))
         else:
