@@ -534,7 +534,6 @@ export default Storybook.story('CompactSelect', story => {
             onSearch={newSearch => {
               debouncedSetSearch(newSearch);
             }}
-            virtualThreshold={10}
             onChange={newValue => {
               setCountry(newValue.value.toString());
             }}
