@@ -91,9 +91,7 @@ describe('BlockComponent', () => {
         <BlockComponent block={block} blockIndex={0} isFocused onClick={mockOnClick} />
       );
 
-      expect(
-        screen.getByText(textWithMarkupMatcher('Rethink from here ⌫'))
-      ).toBeInTheDocument();
+      expect(screen.getByText(textWithMarkupMatcher('Reset ⌫'))).toBeInTheDocument();
     });
 
     it('does not show delete hint when isFocused=false', () => {
@@ -108,7 +106,7 @@ describe('BlockComponent', () => {
       );
 
       expect(
-        screen.queryByText(textWithMarkupMatcher('Rethink from here ⌫'))
+        screen.queryByText(textWithMarkupMatcher('Reset ⌫'))
       ).not.toBeInTheDocument();
     });
   });
