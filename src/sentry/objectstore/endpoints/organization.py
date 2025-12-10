@@ -83,15 +83,9 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
 
         headers = dict(request.headers)
 
-        if (
-            request.method in ("PUT", "POST")
-            and not (headers.get("Transfer-Encoding") or "").lower() == "chunked"
-        ):
-            return Response({"error": "Only Transfer-Encoding: chunked is supported"}, status=400)
-
         headers.pop("Host", None)
         headers.pop("Content-Length", None)
-        headers.pop("Transfer-Encoding", None)
+        transfer_encoding = headers.pop("Transfer-Encoding", "")
 
         stream: Generator[bytes] | ChunkedEncodingDecoder | None = None
         wsgi_input = request.META.get("wsgi.input")
@@ -102,16 +96,22 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         # For now, support bodies only on PUT and POST requests.
         elif request.method in ("PUT", "POST"):
             if uwsgi:
+                if transfer_encoding.lower() == "chunked":
 
-                def stream_generator():
-                    while True:
-                        chunk = uwsgi.chunked_read()
-                        if not chunk:
-                            break
-                        yield chunk
+                    def stream_generator():
+                        while True:
+                            chunk = uwsgi.chunked_read()
+                            if not chunk:
+                                break
+                            yield chunk
 
-                stream = stream_generator()
-            else:  # assumes wsgiref, used in dev/test mode
+                    stream = stream_generator()
+                else:
+                    stream = wsgi_input
+
+            else:
+                # This code path assumes wsgiref, used in dev/test mode.
+                # Note that we don't handle non-chunked transfer encoding here as our client (which we use for tests) always uses chunked encoding.
                 stream = ChunkedEncodingDecoder(wsgi_input._read)  # type: ignore[union-attr]
 
         response = requests.request(
