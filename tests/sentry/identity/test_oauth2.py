@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import responses
+from django.contrib.auth.models import AnonymousUser
 from django.test import Client, RequestFactory
 from requests.exceptions import SSLError
 
@@ -209,3 +210,21 @@ class OAuth2LoginViewTest(TestCase):
         assert query["response_type"][0] == "code"
         assert query["scope"][0] == "all-the-things"
         assert "state" in query
+
+    def test_state_param_without_code_or_error_does_not_skip_binding(self) -> None:
+        request = RequestFactory().get("/", {"state": "external"})
+        request.session = Client().session
+        request.subdomain = None
+        request.user = AnonymousUser()
+
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+        pipeline.initialize()
+
+        response = self.view.dispatch(request, pipeline)
+
+        assert response.status_code == 302
+
+        persisted_state = pipeline.fetch_state("state")
+        assert persisted_state is not None
+        assert persisted_state != "external"
+        assert pipeline.step_index == 0
