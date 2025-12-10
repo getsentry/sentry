@@ -212,14 +212,6 @@ function DetectorListTable({
         {isSuccess && detectors.length === 0 && (
           <SimpleTable.Empty>{t('No monitors found')}</SimpleTable.Empty>
         )}
-        {detectors.map(detector => (
-          <DetectorListRow
-            key={detector.id}
-            detector={detector}
-            selected={selected.has(detector.id)}
-            onSelect={handleSelect}
-          />
-        ))}
         {hasVisualization && (
           <PositionedGridLineOverlay
             stickyCursor
@@ -232,6 +224,14 @@ function DetectorListTable({
             cursorOverlayAnchorOffset={10}
           />
         )}
+        {detectors.map(detector => (
+          <DetectorListRow
+            key={detector.id}
+            detector={detector}
+            selected={selected.has(detector.id)}
+            onSelect={handleSelect}
+          />
+        ))}
       </DetectorListSimpleTable>
     </TableContainer>
   );
