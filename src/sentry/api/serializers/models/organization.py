@@ -89,10 +89,7 @@ from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.api.serializers.models.project import OrganizationProjectResponse
-    from sentry.users.api.serializers.user import (
-        UserSerializerResponse,
-        UserSerializerResponseSelf,
-    )
+    from sentry.users.api.serializers.user import UserSerializerResponse, UserSerializerResponseSelf
 
 # This cut-off date ensures that only new organizations created after this date go
 # through the logic that checks for the 'onboarding:complete' key in OrganizationOption.
