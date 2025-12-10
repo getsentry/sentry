@@ -172,7 +172,8 @@ class BaseIssueAlertHandler(ABC):
         blob.update(cls.get_target_identifier(action, mapping, organization_id))
         blob.update(cls.get_target_display(action, mapping))
         blob.update(cls.get_additional_fields(action, mapping))
-        return blob
+        camelcased_blob = convert_dict_key_case(blob, snake_to_camel_case)
+        return camelcased_blob
 
     @classmethod
     def create_rule_instance_from_action(
@@ -244,14 +245,12 @@ class BaseIssueAlertHandler(ABC):
             # mail action needs to have skipDigests set to True
             data["actions"][0]["skipDigests"] = True
 
-        camelcased_data = convert_dict_key_case(dict(data), snake_to_camel_case)
-
         rule = Rule(
             id=action.id,
             project=detector.project,
             environment_id=environment_id,
             label=label,
-            data=camelcased_data,
+            data=dict(data),
             status=ObjectStatus.ACTIVE,
             source=RuleSource.ISSUE,
         )
