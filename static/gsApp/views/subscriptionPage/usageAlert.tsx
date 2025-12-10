@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import {IconFire, IconStats} from 'sentry/icons';
+import {IconFire, IconStats, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
@@ -149,6 +150,36 @@ function UsageAlert({subscription, usage}: Props) {
     );
   }
 
+  function renderGracePeriodInfo() {
+    return (
+      <Container
+        background="primary"
+        border="primary"
+        radius="md"
+        data-test-id="grace-period-alert"
+      >
+        <SubscriptionBody withPadding>
+          <UsageInfo>
+            <IconWarning size="md" color="yellow300" />
+            <div>
+              <h3>{t('Grace Period')}</h3>
+              <Description>
+                {tct(
+                  `Your organization has depleted its error capacity for the current usage period.
+                  We've put your account into a one time grace period, which will continue to accept errors at a limited rate.
+                  This grace period ends on [gracePeriodEnd].`,
+                  {gracePeriodEnd: moment(subscription.gracePeriodEnd).format('ll')}
+                )}{' '}
+                {getActionSentence()}
+              </Description>
+            </div>
+          </UsageInfo>
+          {renderPrimaryCTA('grace-period')}
+        </SubscriptionBody>
+      </Container>
+    );
+  }
+
   function renderExceededInfo() {
     const exceededList = sortCategoriesWithKeys(subscription.categories)
       .filter(
@@ -256,18 +287,20 @@ function UsageAlert({subscription, usage}: Props) {
     // TODO: Remove when mmx plans have error BillingMetricHistory
     subscription.usageExceeded;
   const projectedOverages = getProjectedOverages();
-  const hasOverage = hasExceeded || !!projectedOverages.length;
+  const hasOverage =
+    subscription.isGracePeriod || hasExceeded || !!projectedOverages.length;
 
   // if no overage, we can still have a CTA
   if (!hasOverage) {
     return renderDefaultEventCTA();
   }
 
-  const showProjected = !hasExceeded;
+  const showProjected = !hasExceeded && !subscription.isGracePeriod;
 
   return (
     <Flex direction="column" gap="xl" data-test-id="usage-alert">
       {hasExceeded && renderExceededInfo()}
+      {subscription.isGracePeriod && renderGracePeriodInfo()}
       {showProjected && renderProjectedInfo(projectedOverages)}
     </Flex>
   );
