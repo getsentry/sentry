@@ -1,12 +1,11 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert/alert';
-import {Button} from '@sentry/scraps/button/button';
 import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
 import {Flex} from '@sentry/scraps/layout/flex';
 
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -14,18 +13,46 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {parseQueryKey} from 'sentry/utils/queryClient';
 
+import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+
 interface Props {
+  onSortClick: (key: Sort) => void;
   projects: Project[];
-  onSortClick?: (key: string) => void;
-  sort?: Sort;
+  sort: Sort;
 }
 
+const COLUMNS = [
+  {title: t('Project'), key: 'project', sortKey: 'project'},
+  {title: t('Auto Fix'), key: 'fixes'},
+  {title: t('PR Creation'), key: 'pr_creation'},
+  {title: t('Cursor Agent'), key: 'is_delegated'},
+  {title: t('Repos'), key: 'repos'},
+];
+
 export default function ProjectTableHeader({projects, onSortClick, sort}: Props) {
+  const canWrite = useCanWriteSettings();
   const listItemCheckboxState = useListItemCheckboxContext();
-  const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
-    listItemCheckboxState;
+  const {
+    countSelected,
+    isAllSelected,
+    isAnySelected,
+    queryKey,
+    selectAll,
+    selectedIds: _selectedIds,
+  } = listItemCheckboxState;
   const queryOptions = parseQueryKey(queryKey).options;
   const queryString = queryOptions?.query?.query;
+
+  const handleBulkAutoFix = (_value: 'on' | 'off') => {
+    // const autofixAutomationTuning = value ? 'medium' : 'off';
+    // Set project.autofixAutomationTuning for all _selectedIds
+    // See: useUpdateProjectAutomation()
+  };
+  const handleBulkPRCreate = (_value: 'on' | 'off') => {
+    // const automatedRunStoppingPoint = value ? 'open_pr' : 'code_changes';
+    // Set preferences.automated_run_stopping_point for all _selectedIds
+    // See: useUpdateProjectSeerPreferences()
+  };
 
   return (
     <Fragment>
@@ -36,28 +63,73 @@ export default function ProjectTableHeader({projects, onSortClick, sort}: Props)
             projects={projects}
           />
         </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Fixes')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('PR Creation')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Repos')}</SimpleTable.HeaderCell>
+        {COLUMNS.map(({title, key, sortKey}) => (
+          <SimpleTable.HeaderCell
+            key={key}
+            handleSortClick={
+              sortKey
+                ? () =>
+                    onSortClick({
+                      field: sortKey,
+                      kind:
+                        sortKey === sort.field
+                          ? sort.kind === 'asc'
+                            ? 'desc'
+                            : 'asc'
+                          : 'desc',
+                    })
+                : undefined
+            }
+            sort={sort?.field === sortKey ? sort.kind : undefined}
+          >
+            {title}
+          </SimpleTable.HeaderCell>
+        ))}
       </TableHeader>
 
       {isAnySelected ? (
         <TableHeader>
           <TableCellFirst>
-            {/* <ReplaySelectColumn.Header
-              columnIndex={0}
-              listItemCheckboxState={listItemCheckboxState}
-              replays={replays}
-            /> */}
             <SelectAllCheckbox
               listItemCheckboxState={listItemCheckboxState}
               projects={projects}
             />
           </TableCellFirst>
           <TableCellsRemainingContent align="center" gap="md">
-            <Button size="xs">Issue Fix?</Button>
-            <Button size="xs">PR Creation</Button>
+            <DropdownMenu
+              isDisabled={!canWrite}
+              size="xs"
+              items={[
+                {
+                  key: 'on',
+                  label: t('On'),
+                  onAction: () => handleBulkAutoFix('on'),
+                },
+                {
+                  key: 'off',
+                  label: t('Off'),
+                  onAction: () => handleBulkAutoFix('off'),
+                },
+              ]}
+              triggerLabel={t('Auto Fix')}
+            />
+            <DropdownMenu
+              isDisabled={!canWrite}
+              size="xs"
+              items={[
+                {
+                  key: 'on',
+                  label: t('On'),
+                  onAction: () => handleBulkPRCreate('on'),
+                },
+                {
+                  key: 'off',
+                  label: t('Off'),
+                  onAction: () => handleBulkPRCreate('off'),
+                },
+              ]}
+              triggerLabel={t('PR Creation')}
+            />
           </TableCellsRemainingContent>
         </TableHeader>
       ) : null}
