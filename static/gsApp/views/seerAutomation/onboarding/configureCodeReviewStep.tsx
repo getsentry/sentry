@@ -93,9 +93,7 @@ Now, select which of your repositories you would like to run Seer’s AI Code Re
             title={
               canAdvance
                 ? undefined
-                : t(
-                    'Enable AI Code Review and select repositories before continuing to the next step'
-                  )
+                : t('Select repositories before continuing to the next step')
             }
           >
             {t('Next Step')}
