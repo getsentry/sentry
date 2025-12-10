@@ -18,6 +18,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildComparisonMetricCards} from 'sentry/views/preprod/buildComparison/main/buildComparisonMetricCards';
+import {InsightComparisonSection} from 'sentry/views/preprod/buildComparison/main/insightComparisonSection';
 import {SizeCompareItemDiffTable} from 'sentry/views/preprod/buildComparison/main/sizeCompareItemDiffTable';
 import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectedBuilds';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
@@ -238,6 +239,17 @@ export function SizeCompareMainContent() {
         comparisonResults={comparisonDataQuery.data}
         comparisonResponse={sizeComparisonQuery.data}
       />
+
+      {/* Insights Section */}
+      {comparisonDataQuery.data?.insight_diff_items &&
+        comparisonDataQuery.data.insight_diff_items.length > 0 && (
+          <InsightComparisonSection
+            totalInstallSizeBytes={
+              comparisonDataQuery.data?.size_metric_diff_item.head_install_size
+            }
+            insightDiffItems={comparisonDataQuery.data.insight_diff_items}
+          />
+        )}
 
       {/* Items Changed Section */}
       <Container background="primary" radius="lg" padding="0" border="primary">
