@@ -199,6 +199,7 @@ export function SpanDescription({
       bodyContent={actions}
       hideNodeActions={hideNodeActions}
       highlightedAttributes={getHighlightedSpanAttributes({
+        op: span.op,
         attributes: span.data,
         spanId: span.span_id,
       })}
