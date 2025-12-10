@@ -466,12 +466,10 @@ export default function AssigneeSelectorDropdown({
       }
     }
 
-    const suggestedUsers = suggestedAssignees?.filter(
-      assignee => assignee.type === 'user'
-    ) ?? [];
-    const suggestedTeams = suggestedAssignees?.filter(
-      assignee => assignee.type === 'team'
-    ) ?? [];
+    const suggestedUsers =
+      suggestedAssignees?.filter(assignee => assignee.type === 'user') ?? [];
+    const suggestedTeams =
+      suggestedAssignees?.filter(assignee => assignee.type === 'team') ?? [];
 
     // Remove suggested assignees from the member list and team list to avoid duplicates
     memList = memList.filter(
