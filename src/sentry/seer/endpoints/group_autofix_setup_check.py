@@ -140,16 +140,21 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 organization=org, project=group.project
             )
 
-        # Check for missing repos when seat-based tier is enabled
-        if integration_check is None and is_seer_seat_based_tier_enabled(org):
+        # Check for repos linked in Seer settings when seat-based tier is enabled
+        seer_repos_linked = True
+        if is_seer_seat_based_tier_enabled(org):
             try:
                 project_preferences = get_project_seer_preferences(group.project.id)
-                has_repos = bool(project_preferences.code_mapping_repos)
-                if not has_repos:
-                    integration_check = "no_repos_linked_in_seer_settings"
+                seer_repos_linked = bool(project_preferences.code_mapping_repos)
             except (SeerApiError, SeerApiResponseValidationError):
-                # If API fails allow the user to continue with the flow.
-                integration_check = None
+                # If API fails, don't block the user - keep default True
+                logger.exception(
+                    "Error getting project Seer preferences for seat-based tier check in UI",
+                    extra={
+                        "org_slug": org.slug,
+                        "project_id": group.project.id,
+                    },
+                )
 
         write_integration_check = None
         if request.query_params.get("check_write_access", False):
@@ -178,6 +183,7 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                     "reason": integration_check,
                 },
                 "githubWriteIntegration": write_integration_check,
+                "seerReposLinked": seer_repos_linked,
                 "setupAcknowledgement": {
                     "orgHasAcknowledged": org_acknowledgement,
                     "userHasAcknowledged": user_acknowledgement,
