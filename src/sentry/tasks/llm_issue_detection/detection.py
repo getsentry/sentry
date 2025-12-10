@@ -16,7 +16,6 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
-from sentry.seer.models import SeerApiError
 from sentry.seer.sentry_data_models import TraceMetadata
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
@@ -67,17 +66,19 @@ class IssueDetectionRequest(BaseModel):
     project_id: int
 
 
-class LLMIssueDetectionError(SeerApiError):
+class LLMIssueDetectionError(Exception):
     def __init__(
         self,
         message: str,
-        status: int,
+        status: int | None,
         project_id: int | None = None,
         organization_id: int | None = None,
         response_data: str | None = None,
         error_message: str | None = None,
     ):
-        super().__init__(message, status)
+        super().__init__(message)
+        self.message = message
+        self.status = status
         self.project_id = project_id
         self.organization_id = organization_id
         self.response_data = response_data
@@ -259,11 +260,23 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             project_id=project_id,
         )
 
-        response = make_signed_seer_api_request(
-            connection_pool=seer_issue_detection_connection_pool,
-            path=SEER_ANALYZE_ISSUE_ENDPOINT_PATH,
-            body=json.dumps(seer_request.dict()).encode("utf-8"),
-        )
+        try:
+            response = make_signed_seer_api_request(
+                connection_pool=seer_issue_detection_connection_pool,
+                path=SEER_ANALYZE_ISSUE_ENDPOINT_PATH,
+                body=json.dumps(seer_request.dict()).encode("utf-8"),
+            )
+        except Exception as network_error:
+            e = LLMIssueDetectionError(
+                message="Seer network error",
+                status=None,
+                project_id=project_id,
+                organization_id=organization_id,
+                response_data=None,
+                error_message=str(network_error),
+            )
+            sentry_sdk.capture_exception(e)
+            continue
 
         if response.status < 200 or response.status >= 300:
             e = LLMIssueDetectionError(
@@ -279,14 +292,14 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         try:
             raw_response_data = response.json()
             response_data = IssueDetectionResponse.parse_obj(raw_response_data)
-        except (ValueError, TypeError, ValidationError) as e:
+        except (ValueError, TypeError, ValidationError) as parse_error:
             e = LLMIssueDetectionError(
                 message="Seer response parsing error",
                 status=response.status,
                 project_id=project_id,
                 organization_id=organization_id,
                 response_data=response.data.decode("utf-8"),
-                error_message=str(e),
+                error_message=str(parse_error),
             )
             sentry_sdk.capture_exception(e)
             continue
@@ -310,6 +323,14 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                     detected_issue=detected_issue,
                     project_id=project_id,
                 )
-            except Exception as e:
+            except Exception as issue_creation_exception:
+                e = LLMIssueDetectionError(
+                    message="Error creating issue occurrence",
+                    status=None,
+                    project_id=project_id,
+                    organization_id=organization_id,
+                    response_data=detected_issue.title,
+                    error_message=str(issue_creation_exception),
+                )
                 sentry_sdk.capture_exception(e)
                 continue
