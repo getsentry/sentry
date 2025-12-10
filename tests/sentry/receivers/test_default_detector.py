@@ -4,6 +4,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.processors.detector import _ensure_metric_detector
@@ -92,6 +93,12 @@ class TestEnsureMetricDetector(TestCase):
 
 
 class TestCreateMetricDetectorWithOwner(TestCase):
+    @with_feature(
+        {
+            "organizations:default-anomaly-detector": True,
+            "organizations:anomaly-detection-alerts": True,
+        }
+    )
     def test_creates_enabled_detector_when_both_features_enabled(self):
         """Test that detector is created and enabled when both feature flags are enabled."""
         from sentry.receivers.project_detectors import create_metric_detector_with_owner
@@ -101,15 +108,7 @@ class TestCreateMetricDetectorWithOwner(TestCase):
         team = project.teams.first()
         assert team is not None
 
-        with (
-            self.feature(
-                {
-                    "organizations:default-anomaly-detector": True,
-                    "organizations:anomaly-detection-alerts": True,
-                }
-            ),
-            mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"),
-        ):
+        with mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"):
             create_metric_detector_with_owner(project, user=self.user)
 
         detector = Detector.objects.get(project=project, type=MetricIssue.slug)
@@ -117,37 +116,36 @@ class TestCreateMetricDetectorWithOwner(TestCase):
         assert detector.owner_team_id == team.id
         assert detector.enabled is True
 
+    @with_feature(
+        {
+            "organizations:default-anomaly-detector": True,
+            "organizations:anomaly-detection-alerts": False,
+        }
+    )
     def test_creates_disabled_detector_when_plan_feature_missing(self):
         """Test that detector is created but disabled when anomaly-detection-alerts is off."""
         from sentry.receivers.project_detectors import create_metric_detector_with_owner
 
         project = self.create_project()
 
-        with (
-            self.feature(
-                {
-                    "organizations:default-anomaly-detector": True,
-                    "organizations:anomaly-detection-alerts": False,
-                }
-            ),
-            mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"),
-        ):
+        with mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"):
             create_metric_detector_with_owner(project, user=self.user)
 
         detector = Detector.objects.get(project=project, type=MetricIssue.slug)
         assert detector.enabled is False
 
+    @with_feature({"organizations:default-anomaly-detector": False})
     def test_does_not_create_detector_when_feature_disabled(self):
         """Test that detector is not created when feature flag is disabled."""
         from sentry.receivers.project_detectors import create_metric_detector_with_owner
 
         project = self.create_project()
 
-        with self.feature({"organizations:default-anomaly-detector": False}):
-            create_metric_detector_with_owner(project, user=self.user)
+        create_metric_detector_with_owner(project, user=self.user)
 
         assert not Detector.objects.filter(project=project, type=MetricIssue.slug).exists()
 
+    @with_feature("organizations:default-anomaly-detector")
     def test_creates_detector_without_team(self):
         """Test that detector is created even when project has no teams."""
         from sentry.receivers.project_detectors import create_metric_detector_with_owner
@@ -156,10 +154,7 @@ class TestCreateMetricDetectorWithOwner(TestCase):
         # Remove all teams
         project.teams.clear()
 
-        with (
-            self.feature({"organizations:default-anomaly-detector": True}),
-            mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"),
-        ):
+        with mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"):
             create_metric_detector_with_owner(project, user=self.user)
 
         detector = Detector.objects.get(project=project, type=MetricIssue.slug)
@@ -202,13 +197,13 @@ class TestDisableDefaultDetectorCreation(TestCase):
         project_created_uids = [r[0][0] for r in project_created.receivers]
         assert "create_metric_detector_with_owner" in project_created_uids
 
+    @with_feature("organizations:default-anomaly-detector")
     def test_context_manager_disables_metric_detector_signal(self):
         """Test that disable_default_detector_creation also prevents metric detector creation."""
         from sentry.incidents.grouptype import MetricIssue
         from sentry.receivers.project_detectors import disable_default_detector_creation
 
         with (
-            self.feature({"organizations:default-anomaly-detector": True}),
             disable_default_detector_creation(),
             mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"),
         ):
