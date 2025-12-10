@@ -181,6 +181,9 @@ def evaluate_workflow_triggers(
                         "workflow_id": workflow.id,
                     },
                 )
+        else:
+            if evaluation.triggered:
+                triggered_workflows.add(workflow)
 
     metrics_incr(
         "process_workflows.triggered_workflows",
