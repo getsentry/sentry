@@ -25,8 +25,9 @@ import {
 import UsageCharts from 'getsentry/views/subscriptionPage/usageOverview/components/charts';
 import {
   ProductTrialCta,
+  SetupCta,
   UpgradeCta,
-} from 'getsentry/views/subscriptionPage/usageOverview/components/upgradeOrTrialCta';
+} from 'getsentry/views/subscriptionPage/usageOverview/components/cta';
 import {USAGE_OVERVIEW_PANEL_HEADER_HEIGHT} from 'getsentry/views/subscriptionPage/usageOverview/constants';
 import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
@@ -35,7 +36,9 @@ function PanelHeader({
   selectedProduct,
   subscription,
   isInline,
+  actionRequired,
 }: Pick<BreakdownPanelProps, 'selectedProduct' | 'subscription' | 'isInline'> & {
+  actionRequired: boolean;
   panelIsOnlyCta: boolean;
 }) {
   const {onDemandBudgets: paygBudgets} = subscription;
@@ -78,7 +81,7 @@ function PanelHeader({
     </Tag>
   ) : null;
 
-  if (isInline && !status) {
+  if (isInline && !status && !actionRequired) {
     return null;
   }
 
@@ -94,6 +97,11 @@ function PanelHeader({
       <Flex gap="md" align="center" height={USAGE_OVERVIEW_PANEL_HEADER_HEIGHT}>
         {!isInline && <Heading as="h3">{displayName}</Heading>}
         {status}
+        {actionRequired && (
+          <Tag type="warning" icon={<IconWarning />}>
+            {t('Action required')}
+          </Tag>
+        )}
       </Flex>
       {productLink && (
         <LinkButton
@@ -178,10 +186,11 @@ function ProductBreakdownPanel({
   }
 
   const shouldShowUpgradeCta = !potentialProductTrial && !isEnabled;
+  const actionRequired = organization.features.includes('needs-seer-setup'); // TODO(isabella): replace with the real check
 
   return (
     <Container
-      height={isEnabled ? undefined : '100%'}
+      height={isEnabled && !actionRequired ? undefined : '100%'}
       border={isInline ? undefined : 'primary'}
       radius={isInline ? undefined : 'md'}
       style={
@@ -197,39 +206,46 @@ function ProductBreakdownPanel({
         subscription={subscription}
         isInline={isInline}
         panelIsOnlyCta={!isEnabled}
+        actionRequired={actionRequired}
       />
-      {potentialProductTrial && (
-        <ProductTrialCta
-          organization={organization}
-          subscription={subscription}
-          selectedProduct={selectedProduct}
-          showBottomBorder={isEnabled}
-          potentialProductTrial={potentialProductTrial}
-        />
-      )}
-      {isEnabled && (
+      {actionRequired ? (
+        <SetupCta organization={organization} selectedProduct={selectedProduct} />
+      ) : (
         <Fragment>
-          {breakdownInfo}
-          <UsageCharts
-            selectedProduct={selectedProduct}
-            usageData={usageData}
-            subscription={subscription}
+          {potentialProductTrial && (
+            <ProductTrialCta
+              organization={organization}
+              subscription={subscription}
+              selectedProduct={selectedProduct}
+              showBottomBorder={isEnabled}
+              potentialProductTrial={potentialProductTrial}
+            />
+          )}
+          {isEnabled && (
+            <Fragment>
+              {breakdownInfo}
+              <UsageCharts
+                selectedProduct={selectedProduct}
+                usageData={usageData}
+                subscription={subscription}
+                organization={organization}
+              />
+            </Fragment>
+          )}
+          {shouldShowUpgradeCta && (
+            <UpgradeCta
+              organization={organization}
+              subscription={subscription}
+              selectedProduct={selectedProduct}
+            />
+          )}
+          <BilledSeats
             organization={organization}
+            selectedProduct={selectedProduct}
+            subscription={subscription}
           />
         </Fragment>
       )}
-      {shouldShowUpgradeCta && (
-        <UpgradeCta
-          organization={organization}
-          subscription={subscription}
-          selectedProduct={selectedProduct}
-        />
-      )}
-      <BilledSeats
-        organization={organization}
-        selectedProduct={selectedProduct}
-        subscription={subscription}
-      />
     </Container>
   );
 }

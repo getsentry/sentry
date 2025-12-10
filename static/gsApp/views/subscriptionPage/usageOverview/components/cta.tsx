@@ -1,10 +1,14 @@
 import {Fragment, useState} from 'react';
 
+import seerConfigMainImg from 'sentry-images/spot/seer-config-main.svg';
+import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';
+
 import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Image} from '@sentry/scraps/image';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconLightning, IconLock, IconOpen, IconUpload} from 'sentry/icons';
+import {IconLightning, IconLock, IconOpen, IconSeer, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -19,20 +23,25 @@ import {
 } from 'getsentry/types';
 import {checkIsAddOn, getBilledCategory} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {USAGE_OVERVIEW_PANEL_HEADER_HEIGHT} from 'getsentry/views/subscriptionPage/usageOverview/constants';
 
 function Cta({
+  image,
+  imageAlt,
   icon,
   title,
   subtitle,
   buttons,
   hasContentBelow,
+  heightOverride,
 }: {
   hasContentBelow: boolean;
   subtitle: React.ReactNode;
   title: React.ReactNode;
   buttons?: React.ReactNode;
+  heightOverride?: string;
   icon?: React.ReactNode;
-}) {
+} & ({image: string; imageAlt: string} | {image?: never; imageAlt?: never})) {
   return (
     <Flex
       background="secondary"
@@ -43,12 +52,13 @@ function Cta({
       radius={hasContentBelow ? undefined : '0 0 md md'}
       align="center"
       justify="center"
-      height={hasContentBelow ? undefined : '100%'}
+      height={heightOverride ?? (hasContentBelow ? undefined : '100%')}
     >
       <Flex direction="column" gap="lg" align="center">
-        {icon && (
-          <Flex align="center" gap="sm">
-            {icon}
+        {icon && <Flex align="center">{icon}</Flex>}
+        {image && (
+          <Flex align="center">
+            <Image src={image} alt={imageAlt} />
           </Flex>
         )}
         <Text bold align="center" size="lg" textWrap="balance">
@@ -101,10 +111,15 @@ function SeerCta({action, footerText}: {action: React.ReactNode; footerText?: st
         gap="xl"
         align="center"
         justify="center"
-        maxWidth="80%"
         justifySelf="center"
         height="100%"
       >
+        <Container>
+          <Image
+            src={seerConfigMainImg}
+            alt={t('Find and fix issues anywhere with Seer AI debugger')}
+          />
+        </Container>
         <Flex direction="column" gap="md">
           <Text align="center" size="xl" bold>
             {t('Find and fix issues anywhere with Seer AI debugger')}
@@ -307,4 +322,39 @@ function UpgradeCta({
   );
 }
 
-export {ProductTrialCta, UpgradeCta};
+function SetupCta({
+  selectedProduct,
+  organization,
+}: {
+  organization: Organization;
+  selectedProduct: DataCategory | AddOnCategory;
+}) {
+  // TODO(isabella): refactor this whole file to be more reusable
+  if (selectedProduct !== AddOnCategory.SEER) {
+    return null;
+  }
+
+  return (
+    <Cta
+      hasContentBelow={false}
+      image={seerConfigSeerImg}
+      imageAlt={t('Get started with Seer')}
+      title={t('Get started with Seer')}
+      subtitle={t(
+        'Finish connecting to Github, configure your repositories and projects, and start getting the most out of Seer.'
+      )}
+      heightOverride={`calc(100% - ${USAGE_OVERVIEW_PANEL_HEADER_HEIGHT})`}
+      buttons={
+        <LinkButton
+          icon={<IconSeer />}
+          href={`/settings/${organization.slug}/seer/`}
+          priority="primary"
+        >
+          {t('Set Up Seer')}
+        </LinkButton>
+      }
+    />
+  );
+}
+
+export {ProductTrialCta, UpgradeCta, SetupCta};
