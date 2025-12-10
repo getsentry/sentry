@@ -5,7 +5,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 from pydantic import BaseModel
-from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.api import client
@@ -19,13 +18,11 @@ from sentry.seer.explorer.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
     execute_table_query,
     execute_timeseries_query,
-    get_event_details,
     get_issue_and_event_details,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
     get_replay_metadata,
     get_repository_definition,
-    get_sample_event,
     get_trace_waterfall,
     rpc_get_profile_flamegraph,
 )
@@ -857,45 +854,6 @@ class _SentryEventData(BaseModel):
     tags: list[dict[str, str | None]] | None = None
 
 
-class TestGetEventDetails(APITransactionTestCase, SnubaTestCase):
-    def test_get_event_details_basic(self):
-        # Create events
-        events = []
-        for i in range(2):
-            data = load_data("python", timestamp=before_now(minutes=5 - i))
-            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
-            event = self.store_event(data=data, project_id=self.project.id)
-            events.append(event)
-
-        # Query for the first event.
-        for project_slug in [None, self.project.slug]:
-            result = get_event_details(
-                organization_id=self.organization.id,
-                event_id=events[0].event_id,
-                project_slug=project_slug,
-            )
-
-            assert result is not None
-            assert result["event_id"] == events[0].event_id
-            assert result["event_trace_id"] == events[0].trace_id  # None
-            assert result["project_id"] == self.project.id
-            assert result["project_slug"] == self.project.slug
-            assert isinstance(result["event"], dict)
-            _SentryEventData.parse_obj(result["event"])
-
-    def test_get_event_details_not_found(self):
-        data = load_data("python", timestamp=before_now(minutes=5))
-        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
-        self.store_event(data=data, project_id=self.project.id)
-
-        # Query for a nonexistent event.
-        with pytest.raises(NotFound):
-            get_event_details(
-                organization_id=self.organization.id,
-                event_id=uuid.uuid4().hex,
-            )
-
-
 class TestGetIssueAndEventDetails(
     APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin, SpanTestCase
 ):
@@ -925,7 +883,7 @@ class TestGetIssueAndEventDetails(
         self,
         mock_get_tags,
         mock_get_recommended_event,
-        issue_id_type: Literal["int_id", "short_id", "none"],
+        issue_id_type: Literal["int_id", "short_id"],
     ):
         """Test the queries and response format for a group of error events, and multiple event types."""
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
@@ -965,37 +923,19 @@ class TestGetIssueAndEventDetails(
         assert events[1].group_id == group.id
         assert events[2].group_id == group.id
 
-        issue_id_param = (
-            group.qualified_short_id
-            if issue_id_type == "short_id"
-            else str(group.id) if issue_id_type == "int_id" else None
-        )
+        issue_id_param = group.qualified_short_id if issue_id_type == "short_id" else str(group.id)
 
-        if issue_id_param is None:
-            valid_selected_events = [
-                uuid.UUID(events[1].event_id).hex,  # no dashes
-                str(uuid.UUID(events[1].event_id)),  # with dashes
-            ]
-            invalid_selected_events = [
-                "oldest",
-                "latest",
-                "recommended",
-                events[1].event_id[:8],
-                "potato",
-            ]
-
-        else:
-            valid_selected_events = [
-                "oldest",
-                "latest",
-                "recommended",
-                uuid.UUID(events[1].event_id).hex,  # no dashes
-                str(uuid.UUID(events[1].event_id)),  # with dashes
-            ]
-            invalid_selected_events = [
-                events[1].event_id[:8],
-                "potato",
-            ]
+        valid_selected_events = [
+            "oldest",
+            "latest",
+            "recommended",
+            uuid.UUID(events[1].event_id).hex,  # no dashes
+            str(uuid.UUID(events[1].event_id)),  # with dashes
+        ]
+        invalid_selected_events = [
+            events[1].event_id[:8],
+            "potato",
+        ]
 
         for selected_event in valid_selected_events:
             result = get_issue_and_event_details(
@@ -1005,13 +945,15 @@ class TestGetIssueAndEventDetails(
             )
 
             assert result is not None
-            assert result["project_id"] == self.project.id
-            assert result["project_slug"] == self.project.slug
             assert result["tags_overview"] == mock_get_tags.return_value
+            self._validate_event_timeseries(result["event_timeseries"], expected_total=3)
 
             # Validate fields of the main issue payload.
             assert isinstance(result["issue"], dict)
             _IssueMetadata.parse_obj(result["issue"])
+
+            assert result["project_id"] == self.project.id
+            assert result["project_slug"] == self.project.slug
 
             # Validate fields of the selected event.
             event_dict = result["event"]
@@ -1040,8 +982,6 @@ class TestGetIssueAndEventDetails(
             else:
                 assert result["event_trace_id"] is None
 
-            self._validate_event_timeseries(result["event_timeseries"], expected_total=3)
-
         for selected_event in invalid_selected_events:
             with pytest.raises(ValueError, match="badly formed hexadecimal UUID string"):
                 get_issue_and_event_details(
@@ -1056,8 +996,97 @@ class TestGetIssueAndEventDetails(
     def test_get_ie_details_basic_short_id(self):
         self._test_get_ie_details_basic(issue_id_type="short_id")
 
-    def test_get_ie_details_basic_null_issue_id(self):
-        self._test_get_ie_details_basic(issue_id_type="none")
+    @patch("sentry.models.group.get_recommended_event")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_ie_details_basic_null_issue_id(
+        self,
+        mock_get_tags,
+        mock_get_recommended_event,
+    ):
+        """Test the response format when issue_id is None."""
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+
+        # Mock a span for the recommended event's trace.
+        event1_trace_id = uuid.uuid4().hex
+        span = self.create_span(
+            {
+                "description": "SELECT * FROM users WHERE id = ?",
+                "trace_id": event1_trace_id,
+            },
+            start_ts=before_now(minutes=5),
+            duration=100,
+        )
+        self.store_spans([span], is_eap=True)
+
+        # Create events with shared stacktrace (should have same group)
+        events = []
+        for i in range(3):
+            data = load_data("python", timestamp=before_now(minutes=5 - i))
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            if i == 1:
+                data["contexts"] = data.get("contexts", {})
+                data["contexts"]["trace"] = {
+                    "trace_id": event1_trace_id,
+                    "span_id": span["span_id"],
+                }
+
+            event = self.store_event(data=data, project_id=self.project.id)
+            events.append(event)
+
+        # Mock the recommended event.
+        mock_get_recommended_event.return_value = events[1]
+
+        group = events[0].group
+        assert isinstance(group, Group)
+        assert events[1].group_id == group.id
+        assert events[2].group_id == group.id
+
+        valid_selected_events = [
+            uuid.UUID(events[1].event_id).hex,  # no dashes
+            str(uuid.UUID(events[1].event_id)),  # with dashes
+        ]
+        invalid_selected_events = [
+            "oldest",
+            "latest",
+            "recommended",
+            events[1].event_id[:8],
+            "potato",
+        ]
+
+        for selected_event in valid_selected_events:
+            result = get_issue_and_event_details(
+                issue_id=None,
+                organization_id=self.organization.id,
+                selected_event=selected_event,
+            )
+
+            assert result is not None
+            assert result["project_id"] == self.project.id
+            assert result["project_slug"] == self.project.slug
+
+            # Validate fields of the selected event.
+            event_dict = result["event"]
+            assert isinstance(event_dict, dict)
+            _SentryEventData.parse_obj(event_dict)
+            assert result["event_id"] == event_dict["id"]
+
+            # Check correct event is returned based on selected_event_type.
+            assert uuid.UUID(event_dict["id"]).hex == uuid.UUID(selected_event).hex, selected_event
+
+            # Check event_trace_id matches mocked trace context.
+            if event_dict["id"] == events[1].event_id:
+                assert events[1].trace_id == event1_trace_id
+                assert result["event_trace_id"] == event1_trace_id
+            else:
+                assert result["event_trace_id"] is None
+
+        for selected_event in invalid_selected_events:
+            with pytest.raises(ValueError, match="badly formed hexadecimal UUID string"):
+                get_issue_and_event_details(
+                    issue_id=None,
+                    organization_id=self.organization.id,
+                    selected_event=selected_event,
+                )
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
@@ -1382,12 +1411,19 @@ class TestGetIssueAndEventDetails(
                 event_dict["id"] == events[1].event_id
             ), f"failed to return an event with spans for recommended event {i if rec_event else 'none'}"
 
+    @patch("sentry.models.group.get_recommended_event")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_ie_details_recommended_event_fallback_date_range(
+        self,
+        mock_get_tags,
+        mock_get_recommended_event,
+    ):
+        """Test date range is respected when selecting a fallback event."""
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
 
-class TestGetSampleEvent(APITransactionTestCase, SnubaTestCase, SpanTestCase):
-    def test_get_sample_event_basic(self):
-        # Mock a span for event1's trace. event1 should always be returned for this test.
+        # Mock a span for the recommended event's trace.
         event1_trace_id = uuid.uuid4().hex
-        span = self.create_span(
+        span1 = self.create_span(
             {
                 "description": "SELECT * FROM users WHERE id = ?",
                 "trace_id": event1_trace_id,
@@ -1395,78 +1431,20 @@ class TestGetSampleEvent(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             start_ts=before_now(minutes=5),
             duration=100,
         )
-        self.store_spans([span], is_eap=True)
 
-        # Create events with shared stacktrace (should have same group).
-        # Event 0 has a trace but no spans, event 1 has spans, event 2 has a trace but no spans.
-        events = []
-        for i in range(3):
-            data = load_data("python", timestamp=before_now(minutes=5 - i))
-            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
-            if i == 0:
-                data["contexts"] = data.get("contexts", {})
-                data["contexts"]["trace"] = {
-                    "trace_id": uuid.uuid4().hex,
-                    "span_id": "1" + uuid.uuid4().hex[:15],
-                }
-            if i == 1:
-                data["contexts"] = data.get("contexts", {})
-                data["contexts"]["trace"] = {
-                    "trace_id": event1_trace_id,
-                    "span_id": span["span_id"],
-                }
-
-            event = self.store_event(data=data, project_id=self.project.id)
-            events.append(event)
-
-        group = events[0].group
-        assert isinstance(group, Group)
-        assert events[1].group_id == group.id
-        assert events[2].group_id == group.id
-
-        # Call the function with no time range - should default to the group's first and last seen times.
-        for project_slug in [None, self.project.slug]:
-            result = get_sample_event(
-                organization_id=self.organization.id,
-                issue_id=str(group.id),
-                project_slug=project_slug,
-            )
-
-            assert result is not None
-            assert result["event_id"] == events[1].event_id
-            assert result["event_trace_id"] == event1_trace_id
-            assert result["project_id"] == self.project.id
-            assert result["project_slug"] == self.project.slug
-            assert isinstance(result["event"], dict)
-            _SentryEventData.parse_obj(result["event"])
-
-    def test_get_sample_event_with_custom_time_range(self):
-        """Test get_sample_event with custom start and end times."""
-        start_time = before_now(minutes=10)
-
-        # Mock spans for both events.
-        event1_trace_id = uuid.uuid4().hex
-        span1 = self.create_span(
-            {
-                "description": "SELECT * FROM users WHERE id = ?",
-                "trace_id": event1_trace_id,
-            },
-            start_ts=start_time,
-            duration=100,
-        )
         event2_trace_id = uuid.uuid4().hex
         span2 = self.create_span(
             {
                 "description": "SELECT * FROM users WHERE id = ?",
                 "trace_id": event2_trace_id,
             },
-            start_ts=start_time,
+            start_ts=before_now(minutes=5),
             duration=100,
         )
         self.store_spans([span1, span2], is_eap=True)
 
-        # Create events with shared stacktrace, with event1 out of range.
-        data = load_data("python", timestamp=start_time - timedelta(minutes=3))
+        # Create events with shared stacktrace (should have same group)
+        data = load_data("python", timestamp=before_now(minutes=10))
         data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
         data["contexts"] = data.get("contexts", {})
         data["contexts"]["trace"] = {
@@ -1475,7 +1453,7 @@ class TestGetSampleEvent(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         }
         event1 = self.store_event(data=data, project_id=self.project.id)
 
-        data = load_data("python", timestamp=start_time + timedelta(minutes=1))
+        data = load_data("python", timestamp=before_now(minutes=3))
         data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
         data["contexts"] = data.get("contexts", {})
         data["contexts"]["trace"] = {
@@ -1484,46 +1462,33 @@ class TestGetSampleEvent(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         }
         event2 = self.store_event(data=data, project_id=self.project.id)
 
+        # Mock get_recommended_event to None so fallback is chosen.
+        mock_get_recommended_event.return_value = None
+
         group = event1.group
         assert isinstance(group, Group)
         assert event2.group_id == group.id
 
-        # Call with custom time range. Event2 should be returned.
-        result = get_sample_event(
+        result = get_issue_and_event_details(
+            issue_id=str(group.qualified_short_id),
             organization_id=self.organization.id,
-            issue_id=str(group.id),
-            start=start_time.isoformat(),
+            selected_event="recommended",
+            start=before_now(minutes=5).isoformat(),
             end=before_now(minutes=0).isoformat(),
         )
+
         assert result is not None
-        assert result["event_id"] == event2.event_id
-        assert result["event_trace_id"] == event2_trace_id
         assert result["project_id"] == self.project.id
         assert result["project_slug"] == self.project.slug
-        assert isinstance(result["event"], dict)
-        _SentryEventData.parse_obj(result["event"])
 
-    def test_get_sample_event_no_event_with_valid_trace(self):
-        """Test get_sample_event returns None when event with spans is not found."""
-        # Create an event with a trace but no spans.
-        data = load_data("python", timestamp=before_now(minutes=5))
-        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
-        data["contexts"] = data.get("contexts", {})
-        data["contexts"]["trace"] = {
-            "trace_id": uuid.uuid4().hex,
-            "span_id": "1" + uuid.uuid4().hex[:15],
-        }
-        event = self.store_event(data=data, project_id=self.project.id)
+        # Validate fields of the selected event.
+        event_dict = result["event"]
+        assert isinstance(event_dict, dict)
+        _SentryEventData.parse_obj(event_dict)
+        assert result["event_id"] == event_dict["id"]
 
-        group = event.group
-        assert isinstance(group, Group)
-
-        result = get_sample_event(
-            organization_id=self.organization.id,
-            issue_id=str(group.id),
-        )
-
-        assert result is None
+        # Check correct event is returned
+        assert uuid.UUID(event_dict["id"]).hex == event2.event_id
 
 
 class TestGetRepositoryDefinition(APITransactionTestCase):
