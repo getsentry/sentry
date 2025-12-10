@@ -28,7 +28,7 @@ interface TitleProps {
   rootEventResults: TraceRootEventQueryResults;
 }
 
-export function getTitle(representativeEvent: RepresentativeTraceEvent): {
+function getTitle(representativeEvent: RepresentativeTraceEvent): {
   subtitle: string | undefined;
   title: string;
 } | null {
