@@ -7,15 +7,15 @@
 {% block title %}{% trans "Setup Error" %} | {{ block.super }}{% endblock %}
 
 {% block main %}
-<div class="align-center">
-  <div style="font-size:28px;margin-bottom:10px">
-    <span class="icon-exclamation"></span>
+  <div class="align-center">
+    <div style="font-size:28px;margin-bottom:10px">
+      <span class="icon-exclamation"></span>
+    </div>
+
+    <p>Whoops! Looks like something went wrong! Give that another try.</p>
+
+    <pre>{{ error|force_escape }}</pre>
   </div>
-
-  <p>Whoops! Looks like something went wrong! Give that another try.</p>
-
-  <pre>{{ error }}</pre>
-</div>
 {% endblock %}
 
 {% block scripts_bottom %}
