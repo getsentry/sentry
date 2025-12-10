@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 
 import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -36,9 +36,15 @@ function useAttributeBreakdowns({
   // Ref to accumulate data across paginated requests
   const accumulatedDataRef = useRef<AttributeDistributionData>({});
 
-  // Clear accumulated data when substringMatch changes
+  // Clear accumulated data when anything other than cursor changes
   const previousSubstringMatch = usePrevious(substringMatch);
-  if (previousSubstringMatch !== substringMatch) {
+  const previousQueryString = usePrevious(queryString);
+  const previousPageFilters = usePrevious(pageFilters);
+  if (
+    previousSubstringMatch !== substringMatch ||
+    previousQueryString !== queryString ||
+    previousPageFilters !== pageFilters
+  ) {
     accumulatedDataRef.current = {};
   }
 
@@ -69,15 +75,17 @@ function useAttributeBreakdowns({
     }
   );
 
-  if (result.data?.data[0]?.attribute_distributions?.data) {
-    const newData = result.data.data[0].attribute_distributions.data;
-    accumulatedDataRef.current = {
-      ...accumulatedDataRef.current,
-      ...newData,
-    };
-  }
+  useEffect(() => {
+    const newData = result.data?.data[0]?.attribute_distributions?.data;
+    if (newData) {
+      accumulatedDataRef.current = {
+        ...accumulatedDataRef.current,
+        ...newData,
+      };
+    }
+  }, [result.data]);
 
-  const accumulatedData = useMemo((): AttributeDistributionData | undefined => {
+  const data = useMemo((): AttributeDistributionData | undefined => {
     if (Object.keys(accumulatedDataRef.current).length === 0) {
       return result.data?.data[0]?.attribute_distributions?.data;
     }
@@ -86,7 +94,7 @@ function useAttributeBreakdowns({
 
   return {
     ...result,
-    data: accumulatedData,
+    data,
   };
 }
 

@@ -72,6 +72,7 @@ export function AttributeDistribution() {
     data: cohortCountResponse,
     isLoading: isCohortCountLoading,
     error: cohortCountError,
+    refetch: refetchCohortCount,
   } = useApiQuery<{data: Array<{'count()': number}>}>(
     [
       `/organizations/${organization.slug}/events/`,
@@ -93,11 +94,6 @@ export function AttributeDistribution() {
   // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
   const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 200);
 
-  // Reset the pagination state when the search query
-  useEffect(() => {
-    setPagination({cursor: undefined, page: 0});
-  }, [searchQuery]);
-
   const {
     data: attributeBreakdownsData,
     getResponseHeader: getAttributeBreakdownsResponseHeader,
@@ -107,6 +103,21 @@ export function AttributeDistribution() {
     cursor: pagination.cursor,
     substringMatch: debouncedSearchQuery,
   });
+
+  // Refetch the cohort count when the attributeBreakdownsData changes
+  // This ensures that the population percentages are calculated correctly,
+  // for none absolute date ranges.
+  useEffect(() => {
+    if (!isAttributeBreakdownsLoading && attributeBreakdownsData) {
+      refetchCohortCount();
+    }
+  }, [attributeBreakdownsData, isAttributeBreakdownsLoading, refetchCohortCount]);
+
+  // Reset pagination on any query change
+  useEffect(() => {
+    setPagination({cursor: undefined, page: 0});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, selection, query]);
 
   const parsedLinks = parseLinkHeader(
     getAttributeBreakdownsResponseHeader?.('Link') ?? null
