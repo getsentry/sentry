@@ -157,7 +157,7 @@ function DebounceSearch({
 }
 
 const Card = styled('div')<{highlight?: boolean}>`
-  color: ${p => (p.highlight ? p.theme.active : p.theme.textColor)};
+  color: ${p => (p.highlight ? p.theme.active : p.theme.tokens.content.primary)};
   background: ${p => (p.highlight ? p.theme.gray100 : p.theme.background)};
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${space(2)};

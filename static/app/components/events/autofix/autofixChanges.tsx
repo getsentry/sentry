@@ -414,7 +414,7 @@ export function AutofixChanges({
 const PreviewContent = styled('div')`
   display: flex;
   flex-direction: column;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   margin-top: ${space(2)};
 `;
 

@@ -13,9 +13,11 @@ import {usePanelSizing} from 'sentry/views/seerExplorer/hooks/usePanelSizing';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import InputSection from 'sentry/views/seerExplorer/inputSection';
+import {useExternalOpen} from 'sentry/views/seerExplorer/openSeerExplorer';
 import PanelContainers, {
   BlocksContainer,
 } from 'sentry/views/seerExplorer/panelContainers';
+import {usePRWidgetData} from 'sentry/views/seerExplorer/prWidget';
 import TopBar from 'sentry/views/seerExplorer/topBar';
 import type {Block, ExplorerPanelProps} from 'sentry/views/seerExplorer/types';
 
@@ -36,8 +38,8 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const userScrolledUpRef = useRef<boolean>(false);
   const allowHoverFocusChange = useRef<boolean>(true);
   const sessionHistoryButtonRef = useRef<HTMLButtonElement>(null);
+  const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Custom hooks
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
   const {
     sessionData,
@@ -47,12 +49,36 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     isPolling,
     interruptRun,
     interruptRequested,
-    setRunId,
+    switchToRun,
     respondToUserInput,
+    createPR,
   } = useSeerExplorer();
+
+  // Handle external open events (from openSeerExplorer() calls)
+  const {isWaitingForSessionData} = useExternalOpen({
+    isVisible,
+    sendMessage,
+    startNewSession,
+    switchToRun,
+    sessionRunId: sessionData?.run_id,
+    sessionBlocks: sessionData?.blocks,
+  });
+
+  // Extract repo_pr_states from session
+  const repoPRStates = useMemo(
+    () => sessionData?.repo_pr_states ?? {},
+    [sessionData?.repo_pr_states]
+  );
 
   // Get blocks from session data or empty array
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
+
+  // Get PR widget data for menu
+  const {menuItems: prWidgetItems, menuFooter: prWidgetFooter} = usePRWidgetData({
+    blocks,
+    repoPRStates,
+    onCreatePR: createPR,
+  });
 
   // Find the index of the last block that has todos (for special rendering)
   const latestTodoBlockIndex = useMemo(() => {
@@ -209,22 +235,26 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   const openFeedbackForm = useFeedbackForm();
 
-  const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory} = useExplorerMenu({
-    clearInput: () => setInputValue(''),
-    inputValue,
-    focusInput,
-    textAreaRef: textareaRef,
-    panelSize,
-    panelVisible: isVisible,
-    slashCommandHandlers: {
-      onMaxSize: handleMaxSize,
-      onMedSize: handleMedSize,
-      onNew: startNewSession,
-    },
-    onChangeSession: setRunId,
-    menuAnchorRef: sessionHistoryButtonRef,
-    inputAnchorRef: textareaRef,
-  });
+  const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
+    useExplorerMenu({
+      clearInput: () => setInputValue(''),
+      inputValue,
+      focusInput,
+      textAreaRef: textareaRef,
+      panelSize,
+      panelVisible: isVisible,
+      slashCommandHandlers: {
+        onMaxSize: handleMaxSize,
+        onMedSize: handleMedSize,
+        onNew: startNewSession,
+      },
+      onChangeSession: switchToRun,
+      menuAnchorRef: sessionHistoryButtonRef,
+      inputAnchorRef: textareaRef,
+      prWidgetAnchorRef: prWidgetButtonRef,
+      prWidgetItems,
+      prWidgetFooter,
+    });
 
   const handlePanelBackgroundClick = useCallback(() => {
     setIsMinimized(false);
@@ -241,10 +271,11 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       const target = event.target as Node;
       const menuElement = document.querySelector('[data-seer-menu-panel]');
 
-      // Don't close if clicking on the menu itself or the button
+      // Don't close if clicking on the menu itself or the trigger buttons
       if (
         menuElement?.contains(target) ||
-        sessionHistoryButtonRef.current?.contains(target)
+        sessionHistoryButtonRef.current?.contains(target) ||
+        prWidgetButtonRef.current?.contains(target)
       ) {
         return;
       }
@@ -426,20 +457,25 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       onUnminimize={handleUnminimize}
     >
       <TopBar
+        blocks={blocks}
         isEmptyState={isEmptyState}
         isPolling={isPolling}
         isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
+        onCreatePR={createPR}
         onFeedbackClick={handleFeedbackClick}
         onNewChatClick={startNewSession}
+        onPRWidgetClick={openPRWidget}
         onSessionHistoryClick={openSessionHistory}
         onSizeToggleClick={handleSizeToggle}
         panelSize={panelSize}
+        prWidgetButtonRef={prWidgetButtonRef}
+        repoPRStates={repoPRStates}
         sessionHistoryButtonRef={sessionHistoryButtonRef}
       />
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
         {isEmptyState ? (
-          <EmptyState />
+          <EmptyState isLoading={isWaitingForSessionData} />
         ) : (
           <Fragment>
             {blocks.map((block: Block, index: number) => (

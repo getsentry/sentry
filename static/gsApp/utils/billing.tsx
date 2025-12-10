@@ -734,6 +734,45 @@ export function getPotentialProductTrial(
   return potentialTrials[0] ?? null;
 }
 
+/**
+ * Gets the appropriate Seer data category for product trials.
+ * Uses SEER_USER for seat-based billing, falls back to SEER_AUTOFIX for legacy.
+ *
+ * Priority order:
+ * 1. SEER_USER (seat-based billing)
+ * 2. SEER_AUTOFIX (legacy billing)
+ */
+export function getSeerTrialCategory(
+  productTrials: ProductTrial[] | null
+): DataCategory | null {
+  if (!productTrials) {
+    return null;
+  }
+
+  // Check for SEER_USER trial first (seat-based billing takes precedence)
+  // For unstarted trials, endDate is the "start by" deadline
+  // For started trials, endDate is the expiration date
+  // In both cases, endDate must not have passed
+  const seerUserTrial = productTrials.find(
+    pt =>
+      pt.category === DataCategory.SEER_USER && getDaysSinceDate(pt.endDate ?? '') <= 0
+  );
+  if (seerUserTrial) {
+    return DataCategory.SEER_USER;
+  }
+
+  // Fall back to SEER_AUTOFIX (legacy)
+  const seerAutofixTrial = productTrials.find(
+    pt =>
+      pt.category === DataCategory.SEER_AUTOFIX && getDaysSinceDate(pt.endDate ?? '') <= 0
+  );
+  if (seerAutofixTrial) {
+    return DataCategory.SEER_AUTOFIX;
+  }
+
+  return null;
+}
+
 export function trialPromptIsDismissed(prompt: PromptData, subscription: Subscription) {
   const {snoozedTime, dismissedTime} = prompt || {};
   const time = snoozedTime || dismissedTime;
@@ -895,6 +934,60 @@ export function checkIsAddOn(
   selectedProduct: DataCategory | AddOnCategory | string
 ): boolean {
   return Object.values(AddOnCategory).includes(selectedProduct as AddOnCategory);
+}
+
+/**
+ * Check if a data category is a child category of an add-on.
+ * If `checkReserved` is true, we check if the data category is a child of an add-on
+ * for this particular subscription.
+ */
+export function checkIsAddOnChildCategory(
+  subscription: Subscription,
+  category: DataCategory,
+  checkReserved: boolean
+) {
+  const parentAddOn = getParentAddOn(subscription, category, checkReserved);
+  return !!parentAddOn;
+}
+
+/**
+ * Get the parent add-on for a data category, if any.
+ *
+ * When `checkReserved` is true and a potential parent is found, we check if the data category
+ * has any sibling categories also tallied for billing. If so, we need to check if the data category
+ * should be treated as part of the add-on (reserved budget or zero prepaid) or as a separate
+ * product (any other prepaid volume).
+ *
+ * If the data category has no sibling categories, `checkReserved` is ignored and we return the parent add-on.
+ */
+export function getParentAddOn(
+  subscription: Subscription | null,
+  category: DataCategory,
+  checkReserved: boolean
+): AddOnCategory | null {
+  if (!subscription) {
+    return null;
+  }
+  const parentAddOn = Object.values(subscription.addOns ?? {})
+    .filter(addOn => addOn.isAvailable)
+    .find(addOn => addOn.dataCategories.includes(category));
+
+  if (!parentAddOn) {
+    return null;
+  }
+
+  const hasMultipleTalliedCategories = parentAddOn.dataCategories.length > 1;
+  if (hasMultipleTalliedCategories && checkReserved) {
+    const metricHistory = subscription.categories[category];
+    if (!metricHistory) {
+      return null;
+    }
+    if (![RESERVED_BUDGET_QUOTA, 0].includes(metricHistory.reserved ?? 0)) {
+      return null;
+    }
+  }
+
+  return parentAddOn.apiName;
 }
 
 /**

@@ -14,8 +14,10 @@ import {
 
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 jest.mock('sentry/utils/analytics');
 const trackAnalyticsMock = jest.mocked(trackAnalytics);
@@ -45,11 +47,18 @@ describe('MetricsTabContent', () => {
       start: '2025-04-10T14%3A37%3A55',
       end: '2025-04-10T20%3A04%3A51',
       metric: ['bar||distribution'],
+      title: 'Test Title',
     },
   });
 
   function ProviderWrapper({children}: {children: React.ReactNode}) {
-    return <MultiMetricsQueryParamsProvider>{children}</MultiMetricsQueryParamsProvider>;
+    return (
+      <MultiMetricsQueryParamsProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.TRACEMETRICS} enabled>
+          {children}
+        </TraceItemAttributeProvider>
+      </MultiMetricsQueryParamsProvider>
+    );
   }
 
   const initialRouterConfig = {
@@ -109,6 +118,12 @@ describe('MetricsTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
       method: 'GET',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
       body: [],
     });
 
@@ -196,24 +211,50 @@ describe('MetricsTabContent', () => {
     expect(toolbars).toHaveLength(1);
 
     await waitFor(() => {
-      expect(trackAnalyticsMock).toHaveBeenCalledWith(
+      expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
+        1,
         'metrics.explorer.metadata',
         expect.objectContaining({
           organization,
           metric_queries_count: 1,
+          metric_panels_with_filters_count: 0,
+          metric_panels_with_group_bys_count: 0,
+          datetime_selection: '--14d',
+          environment_count: 0,
+          has_exceeded_performance_usage_limit: false,
+          interval: '1h',
+          project_count: 1,
+          title: 'Test Title',
         })
       );
     });
 
     await waitFor(() => {
-      expect(trackAnalyticsMock).toHaveBeenCalledWith(
+      expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
+        2,
         'metrics.explorer.panel.metadata',
         expect.objectContaining({
-          organization,
-          panel_index: 0, // First panel should have index 0
+          panel_index: 0,
+          query_status: 'success',
+          sample_counts: [0],
+          table_result_length: 6,
+          table_result_mode: 'aggregates',
+          table_result_sort: ['-timestamp'],
+          user_queries: '',
+          user_queries_count: 0,
+          aggregate_function: 'per_second',
+          confidences: ['null'],
+          dataScanned: 'full',
+          dataset: 'metrics',
+          empty_buckets_percentage: [],
+          group_bys: [],
+          interval: '1h',
+          metric_name: 'bar',
+          metric_type: 'distribution',
         })
       );
     });
+
     expect(trackAnalyticsMock).toHaveBeenCalledTimes(2);
     trackAnalyticsMock.mockClear();
 
@@ -228,33 +269,257 @@ describe('MetricsTabContent', () => {
       1,
       'metrics.explorer.panel.metadata',
       expect.objectContaining({
-        organization,
-        panel_index: 1, // Only the new panel should fire
+        panel_index: 1,
+        query_status: 'success',
+        sample_counts: [0],
+        table_result_length: 6,
+        table_result_mode: 'aggregates',
+        table_result_sort: ['-timestamp'],
+        user_queries: '',
+        user_queries_count: 0,
+        aggregate_function: 'per_second',
+        confidences: ['null'],
+        dataScanned: 'full',
+        dataset: 'metrics',
+        empty_buckets_percentage: [],
+        group_bys: [],
+        interval: '1h',
+        metric_name: 'bar',
+        metric_type: 'distribution',
       })
     );
 
     expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
       2,
       'metrics.explorer.metadata',
-      expect.objectContaining({metric_queries_count: 2})
+      expect.objectContaining({
+        metric_queries_count: 2,
+        metric_panels_with_filters_count: 0,
+        metric_panels_with_group_bys_count: 0,
+        project_count: 1,
+        environment_count: 0,
+        has_exceeded_performance_usage_limit: false,
+        interval: '1h',
+        title: 'Test Title',
+      })
     );
 
     expect(trackAnalyticsMock).toHaveBeenCalledTimes(2);
-
     trackAnalyticsMock.mockClear();
-    // Picking a new metric on the first panel should only fire one event for the panel update
     await userEvent.click(within(toolbars[0]!).getByRole('button', {name: 'bar'}));
     await userEvent.click(within(toolbars[0]!).getByRole('option', {name: 'foo'}));
     expect(within(toolbars[0]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(trackAnalyticsMock).toHaveBeenCalledTimes(1);
+      expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
+        1,
+        'metrics.explorer.panel.metadata',
+        expect.objectContaining({
+          panel_index: 0,
+          aggregate_function: 'per_second',
+          group_bys: [],
+          metric_name: 'foo',
+          metric_type: 'distribution',
+        })
+      );
+    });
+
+    expect(trackAnalyticsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should fire analytics when group by is changed', async () => {
+    const metricQueryWithGroupBy = JSON.stringify({
+      metric: {name: 'bar', type: 'distribution'},
+      query: '',
+      aggregateFields: [
+        {groupBy: 'environment'},
+        {yAxes: ['per_second(bar)'], displayType: 'line'},
+      ],
+      aggregateSortBys: [],
+      mode: 'aggregate',
+    });
+
+    const initialRouterConfigWithGroupBy = {
+      location: {
+        pathname: '/organizations/:orgId/explore/metrics/',
+        query: {
+          start: '2025-04-10T14%3A37%3A55',
+          end: '2025-04-10T20%3A04%3A51',
+          metric: [metricQueryWithGroupBy],
+          title: 'Test Title',
+        },
+      },
+      route: '/organizations/:orgId/explore/metrics/',
+    };
+
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig: initialRouterConfigWithGroupBy,
+        organization,
+      }
+    );
+
+    const toolbars = screen.getAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(1);
+
+    await waitFor(() => {
+      expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
+        1,
+        'metrics.explorer.panel.metadata',
+        expect.objectContaining({
+          panel_index: 0,
+          aggregate_function: 'per_second',
+          group_bys: ['environment'],
+          metric_name: 'bar',
+          metric_type: 'distribution',
+        })
+      );
     });
 
     expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
-      1,
-      'metrics.explorer.panel.metadata',
-      expect.objectContaining({panel_index: 0})
+      2,
+      'metrics.explorer.metadata',
+      expect.objectContaining({
+        metric_panels_with_filters_count: 0,
+        metric_panels_with_group_bys_count: 1,
+        metric_queries_count: 1,
+      })
     );
+
+    expect(trackAnalyticsMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('should fire analytics when filter is changed', async () => {
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig,
+        organization,
+      }
+    );
+
+    const toolbars = screen.getAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(1);
+
+    await waitFor(() => {
+      expect(within(toolbars[0]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
+    });
+
+    trackAnalyticsMock.mockClear();
+
+    const searchInput = within(toolbars[0]!).getByRole('combobox');
+    await userEvent.click(searchInput);
+    await userEvent.type(searchInput, 'has:environment{enter}');
+
+    await waitFor(() => {
+      expect(trackAnalyticsMock).toHaveBeenCalledWith(
+        'metrics.explorer.panel.metadata',
+        expect.objectContaining({
+          panel_index: 0,
+          user_queries: 'has:environment',
+          user_queries_count: 1,
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(trackAnalyticsMock).toHaveBeenCalledWith(
+        'metrics.explorer.metadata',
+        expect.objectContaining({
+          metric_panels_with_filters_count: 1,
+          metric_panels_with_group_bys_count: 0,
+          metric_queries_count: 1,
+        })
+      );
+    });
+  });
+
+  it('should fire analytics with no metrics available', async () => {
+    MockApiClient.clearMockResponses();
+    setupPageFilters();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: []},
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'tracemetrics',
+          referrer: 'api.explore.metric-options',
+        }),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'GET',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/subscriptions/${organization.slug}/`,
+      method: 'GET',
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/stats_v2/`,
+      method: 'GET',
+      body: {},
+    });
+
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig,
+        organization,
+      }
+    );
+
+    const toolbars = screen.getAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(1);
+
+    await waitFor(() => {
+      expect(
+        within(toolbars[0]!).getByRole('button', {name: 'None'})
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('metric-panel')).toBeInTheDocument();
+
+    // Only the explorer metadata event should be fired, not the panel event
+    await waitFor(() => {
+      expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
+        1,
+        'metrics.explorer.metadata',
+        expect.objectContaining({
+          organization,
+          metric_queries_count: 0,
+          metric_panels_with_filters_count: 0,
+          metric_panels_with_group_bys_count: 0,
+          datetime_selection: '--14d',
+          environment_count: 0,
+          has_exceeded_performance_usage_limit: false,
+          interval: '1h',
+          project_count: 1,
+          title: 'Test Title',
+        })
+      );
+    });
+
+    expect(trackAnalyticsMock).toHaveBeenCalledTimes(1);
   });
 });

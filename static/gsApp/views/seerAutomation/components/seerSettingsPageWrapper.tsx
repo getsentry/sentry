@@ -1,3 +1,4 @@
+import {Alert} from '@sentry/scraps/alert/alert';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Stack} from '@sentry/scraps/layout/stack';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -10,6 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import SettingsPageTabs from 'getsentry/views/seerAutomation/components/settingsPageTabs';
+import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
   children: React.ReactNode;
@@ -17,6 +19,7 @@ interface Props {
 
 export default function SeerSettingsPageWrapper({children}: Props) {
   const organization = useOrganization();
+  const canWrite = useCanWriteSettings();
 
   return (
     <Feature
@@ -50,6 +53,15 @@ export default function SeerSettingsPageWrapper({children}: Props) {
 
       <Stack gap="lg">
         <SettingsPageTabs />
+
+        {canWrite ? null : (
+          <Alert data-test-id="org-permission-alert" type="warning">
+            {t(
+              'These settings can only be edited by users with the organization owner or manager role.'
+            )}
+          </Alert>
+        )}
+
         {children}
       </Stack>
     </Feature>

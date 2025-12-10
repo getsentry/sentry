@@ -1,12 +1,13 @@
 import upperFirst from 'lodash/upperFirst';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import {t} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
+import {BILLED_DATA_CATEGORY_INFO, UNLIMITED_RESERVED} from 'getsentry/constants';
 import type {
   BilledDataCategoryInfo,
   BillingMetricHistory,
@@ -17,6 +18,7 @@ import type {
   ReservedBudgetCategory,
   Subscription,
 } from 'getsentry/types';
+import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
 
 /**
  * Returns the data category info defined in DATA_CATEGORY_INFO for the given category,
@@ -68,13 +70,11 @@ export function getPlanCategoryName({
 }: CategoryNameProps) {
   const displayNames = plan?.categoryDisplayNames?.[category];
   const categoryName =
-    category === DataCategory.LOG_BYTE
-      ? 'logs'
-      : category === DataCategory.SPANS && hadCustomDynamicSampling
-        ? 'accepted spans'
-        : displayNames
-          ? displayNames.plural
-          : category;
+    category === DataCategory.SPANS && hadCustomDynamicSampling
+      ? t('accepted spans')
+      : displayNames
+        ? displayNames.plural
+        : category;
   return title
     ? toTitleCase(categoryName, {allowInnerUpperCase: true})
     : capitalize
@@ -95,7 +95,7 @@ export function getSingularCategoryName({
   const displayNames = plan?.categoryDisplayNames?.[category];
   const categoryName =
     category === DataCategory.SPANS && hadCustomDynamicSampling
-      ? 'accepted span'
+      ? t('accepted span')
       : displayNames
         ? displayNames.singular
         : category.substring(0, category.length - 1);
@@ -290,4 +290,78 @@ export function getChunkCategoryFromDuration(category: DataCategory) {
     return DataCategory.PROFILE_CHUNKS_UI;
   }
   return '';
+}
+
+function formatWithHours(
+  quantityInMilliseconds: number,
+  formattedHours: string,
+  options: Pick<CategoryNameProps, 'title'>
+) {
+  const quantityInHours =
+    quantityInMilliseconds === UNLIMITED_RESERVED
+      ? quantityInMilliseconds
+      : quantityInMilliseconds / MILLISECONDS_IN_HOUR;
+  if (quantityInHours === 1) {
+    return `${formattedHours} ${options.title ? t('Hour') : t('hour')}`;
+  }
+  return `${formattedHours} ${options.title ? t('Hours') : t('hours')}`;
+}
+
+/**
+ * Format category usage or reserved quantity with the appropriate display name.
+ */
+export function formatCategoryQuantityWithDisplayName({
+  dataCategory,
+  quantity,
+  formattedQuantity,
+  subscription,
+  planOverride,
+  options = {},
+}: {
+  dataCategory: DataCategory;
+  formattedQuantity: string;
+  options: Omit<CategoryNameProps, 'category'>;
+  quantity: number;
+  subscription: Subscription;
+  planOverride?: Plan;
+}) {
+  if (isContinuousProfiling(dataCategory)) {
+    return formatWithHours(quantity, formattedQuantity, options);
+  }
+  const plan = planOverride ?? subscription.planDetails;
+  if (quantity === 1) {
+    const displayName = getSingularCategoryName({
+      plan,
+      category: dataCategory,
+      capitalize: options.capitalize,
+      title: options.title,
+      hadCustomDynamicSampling: options.hadCustomDynamicSampling,
+    });
+    return `${formattedQuantity} ${displayName}`;
+  }
+
+  const displayName = getPlanCategoryName({
+    plan,
+    category: dataCategory,
+    capitalize: options.capitalize,
+    title: options.title,
+    hadCustomDynamicSampling: options.hadCustomDynamicSampling,
+  });
+  return `${formattedQuantity} ${displayName}`;
+}
+
+/**
+ * Calculate the accumulated variable spend for active contributors, in cents.
+ */
+export function calculateSeerUserSpend(metricHistory: BillingMetricHistory) {
+  const {category, usage, reserved, prepaid} = metricHistory;
+  if (category !== DataCategory.SEER_USER) {
+    return 0;
+  }
+  if (reserved !== 0) {
+    // if they have reserved or unlimited seats, we assume there is no variable spend
+    return 0;
+  }
+  // TODO(seer): serialize pricing info
+  return Math.max(0, usage - prepaid) * 40_00;
 }

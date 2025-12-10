@@ -707,7 +707,7 @@ function BaseChart({
 }
 
 // Tooltip styles shared for regular and portalled tooltips
-export const getTooltipStyles = (p: {theme: Theme}) => css`
+const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-footer {
@@ -724,11 +724,11 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     justify-content: center;
   }
   .tooltip-release.tooltip-series {
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-release-timerange {
     font-size: ${p.theme.fontSize.xs};
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-series {
     border-bottom: none;
@@ -743,10 +743,10 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
   }
   .tooltip-label strong {
     font-weight: ${p.theme.fontWeight.normal};
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-label-value {
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-label-indent {
     margin-left: 18px;

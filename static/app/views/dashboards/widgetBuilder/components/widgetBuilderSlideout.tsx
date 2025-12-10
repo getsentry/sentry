@@ -209,8 +209,7 @@ function WidgetBuilderSlideout({
 
   return (
     <SlideOverPanel
-      collapsed={false}
-      slidePosition="left"
+      position="left"
       data-test-id="widget-slideout"
       transitionProps={animationTransitionSettings}
     >
