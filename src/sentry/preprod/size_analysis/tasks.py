@@ -6,6 +6,7 @@ from io import BytesIO
 from django.db import router, transaction
 from django.utils import timezone
 
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.files.file import File
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -21,6 +22,8 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import attachments_tasks
 from sentry.utils import metrics
 from sentry.utils.json import dumps_htmlsafe
+
+from .issues import SizeRegressionOccurrenceBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -476,6 +479,39 @@ def _run_size_analysis_comparison(
         comparison.file_id = file.id
         comparison.state = PreprodArtifactSizeComparison.State.SUCCESS
         comparison.save()
+
+    ################################################################
+
+    head_project = head_size_metric.preprod_artifact.project
+    threshold = head_project.get_option("sentry:preprod_size_issues_delta_install_threshhold_kb")
+    diff_item = comparison_results.size_metric_diff_item
+    actual = diff_item.head_install_size - diff_item.base_install_size
+
+    logger.warning(
+        "!!!!!!!!!!!!!!!!? issue threshold: %d actual: %d base: %d head: %d",
+        threshold,
+        actual,
+        diff_item.base_install_size,
+        diff_item.head_install_size,
+    )
+    if actual >= threshold * 1024:
+        logger.warning("!!!! trigger issue")
+        builder = SizeRegressionOccurrenceBuilder()
+        builder.project_id = head_project.id
+        builder.issue_title = f"Install size regression"
+        builder.issue_subtitle = f"Size increased {actual // 1024}kb"
+        builder.head_install_size_bytes = diff_item.head_install_size
+        builder.base_install_size_bytes = diff_item.base_install_size
+        builder.base_artifact_id = base_size_metric.preprod_artifact.id
+        builder.head_artifact_id = head_size_metric.preprod_artifact.id
+        occurrence, event_data = builder.build()
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=occurrence,
+            event_data=event_data,
+        )
+    logger.warning("!!!! done")
+    ################################################################
 
     logger.info(
         "preprod.size_analysis.compare.success",

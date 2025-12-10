@@ -182,3 +182,6 @@ register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuning
 
 # Should seer scanner run automatically on new issues
 register(key="sentry:seer_scanner_automation", default=True)
+
+register(key="sentry:preprod_size_issues_delta_install_threshhold_kb", default=500)
+register(key="sentry:preprod_size_issues_is_16kb_ready", default=True)
