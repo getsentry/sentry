@@ -470,9 +470,17 @@ def _assemble_preprod_artifact_size_analysis(
         size_metrics_updated = metrics_in_transaction
 
         # Write to EAP for all successfully created/updated metrics
+        # Use select_related to avoid N+1 queries when accessing related objects
         from sentry.preprod.lib.eap.write import write_preprod_size_metric_to_eap
 
-        for size_metric in size_metrics_updated:
+        size_metrics_with_related = PreprodArtifactSizeMetrics.objects.filter(
+            id__in=[m.id for m in size_metrics_updated]
+        ).select_related(
+            "preprod_artifact__build_configuration",
+            "preprod_artifact__commit_comparison",
+        )
+
+        for size_metric in size_metrics_with_related:
             try:
                 write_preprod_size_metric_to_eap(
                     size_metric=size_metric,
