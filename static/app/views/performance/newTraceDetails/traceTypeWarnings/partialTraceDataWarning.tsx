@@ -13,7 +13,6 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getRepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import {getTitle} from 'sentry/views/performance/newTraceDetails/traceHeader/title';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 interface PartialTraceDataWarningProps {
@@ -31,16 +30,32 @@ export function PartialTraceDataWarning({
   const {selection} = usePageFilters();
 
   const rep = getRepresentativeTraceEvent(tree, logs);
-  const traceTitle = getTitle(rep);
+
+  let op = '';
+  if (rep?.event) {
+    op =
+      'transaction.op' in rep.event
+        ? `${rep.event?.['transaction.op']}`
+        : 'op' in rep.event
+          ? `${rep.event.op}`
+          : '';
+  }
 
   const queryString = useMemo(() => {
     const search = new MutableSearch('');
     search.addFilterValue('is_transaction', 'true');
-    if (traceTitle?.title) {
-      search.addFilterValue('span.op', traceTitle.title);
+
+    const projectId = rep.event?.project_id;
+    if (projectId) {
+      search.addFilterValue('project.id', `${projectId}`);
     }
+
+    if (op) {
+      search.addFilterValue('span.op', op);
+    }
+
     return search.formatString();
-  }, [traceTitle?.title]);
+  }, [op, rep.event?.project_id]);
 
   if (!timestamp) {
     return null;
@@ -61,7 +76,9 @@ export function PartialTraceDataWarning({
     selection: {
       ...selection,
       datetime: {
-        ...selection.datetime,
+        start: null,
+        end: null,
+        utc: null,
         period: '24h',
       },
     },
