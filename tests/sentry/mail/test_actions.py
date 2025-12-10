@@ -163,7 +163,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
             "target_display": None,
             "target_identifier": None,
         }
-        # XXX: tests fail without this
+        # XXX: some tests fail without this
         self.issue_alert_rule = Rule.objects.create(
             label="test rule",
             project=self.project,
@@ -250,10 +250,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration_fallthrough_not_provided(self) -> None:
-        action_data = {}
-        action = self.create_action(
-            config=self.issue_owners_action_config, type="email", data=action_data
-        )
+        action = self.create_action(config=self.issue_owners_action_config, type="email", data={})
         self.create_data_condition_group_action(condition_group=self.condition_group, action=action)
 
         with self.tasks():

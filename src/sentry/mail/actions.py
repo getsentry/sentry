@@ -47,12 +47,11 @@ class NotifyEmailAction(EventAction):
             "group_id": group.id,
             "notification_uuid": notification_uuid,
         }
+        # XXX: temporarily support both types, after ACI GA we should only need to support snake case
         target_type_value = self.data.get("target_type") or self.data.get("targetType")
         target_type = ActionTargetType(target_type_value)
         target_identifier = self.data.get("target_identifier") or self.data.get("targetIdentifier")
         skip_digests = self.data.get("skip_digests", False) or self.data.get("skipDigests", False)
-
-        # XXX: temporarily support both types, but after GA we should only need to support fallthrough_type
         fallthrough_choice = self.data.get("fallthrough_type") or self.data.get("fallthroughType")
 
         fallthrough_type = (
