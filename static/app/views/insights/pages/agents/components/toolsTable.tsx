@@ -10,7 +10,6 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -25,6 +24,7 @@ import {
   useTableSort,
 } from 'sentry/views/insights/pages/agents/components/headSortCell';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
+import {useExploreSelection} from 'sentry/views/insights/pages/agents/hooks/useExploreSelection';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
@@ -171,9 +171,9 @@ const BodyCell = memo(function BodyCell({
   query: string;
 }) {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
+  const exploreSelection = useExploreSelection();
   const exploreUrl = getExploreUrl({
-    selection,
+    selection: exploreSelection,
     organization,
     mode: Mode.SAMPLES,
     visualize: [
@@ -206,7 +206,7 @@ const BodyCell = memo(function BodyCell({
           target={getExploreUrl({
             query: `${query} span.status:internal_error gen_ai.tool.name:"${dataRow.tool}"`,
             organization,
-            selection,
+            selection: exploreSelection,
             referrer: Referrer.TOOLS_TABLE,
           })}
         />
