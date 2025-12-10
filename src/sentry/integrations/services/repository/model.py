@@ -13,7 +13,7 @@ class RpcRepository(RpcModel):
     organization_id: int
     name: str
     external_id: str | None
-    config: dict[str, Any]
+    config: dict[str, Any]  # TODO(Gabe): Verify whether we want this to be in the repr
     integration_id: int | None
     provider: str | None
     status: int
@@ -23,7 +23,7 @@ class RpcRepository(RpcModel):
 class RpcCreateRepository(RpcModel):
     name: str
     external_id: str | None
-    config: dict[str, Any]
+    config: dict[str, Any]  # TODO(Gabe): Verify whether we want this to be in the repr
     integration_id: int
     provider: str
     status: int
