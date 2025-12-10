@@ -105,11 +105,8 @@ def _can_use_prevent_ai_features(org: Organization) -> bool:
     if features.has("organizations:seat-based-seer-enabled", org):
         # Seat-based plan orgs don't need to check the PR review toggle
         return True
-    elif features.has("organizations:seer-added", org):
-        # Usage-based plan orgs need to check the PR review toggle
-        return pr_review_test_generation_enabled
-    else:
-        return pr_review_test_generation_enabled
+    # Usage-based plan orgs and others need to check the PR review toggle
+    return pr_review_test_generation_enabled
 
 
 @region_silo_endpoint
