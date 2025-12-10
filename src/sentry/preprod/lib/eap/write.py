@@ -156,7 +156,11 @@ def write_preprod_size_metric_to_eap(
             attributes["git_pr_number"] = commit_comparison.pr_number
 
     # Generate a unique trace_id for this preprod artifact
-    # Using preprod_artifact_id as the base for consistent trace grouping
+    # Design: Use preprod_artifact_id to group related components of the SAME build
+    # (e.g., main app + Watch extension + dynamic features) under one trace.
+    # We don't use git_head_sha because multiple unrelated apps could be uploaded
+    # to the same commit (monorepo scenario), and grouping them would be confusing.
+    # Users can still query by git_head_sha as an attribute if needed.
     trace_id = f"preprod-{size_metric.preprod_artifact_id:032x}"
 
     # Generate a unique item_id for this specific size metric
