@@ -53,7 +53,7 @@ class TestEnsureMetricDetector(TestCase):
         assert subscription.project == project
         snuba_query = subscription.snuba_query
         assert snuba_query.aggregate == "count()"
-        assert snuba_query.time_window == 900  # 15 minutes in seconds
+        assert snuba_query.time_window == 60 * 15  # 15 minutes in seconds
 
     def test_creates_detector_without_team(self):
         """Test that detector can be created without an owner team."""
