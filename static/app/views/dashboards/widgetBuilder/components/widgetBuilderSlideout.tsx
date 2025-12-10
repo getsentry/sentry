@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -133,34 +133,34 @@ function WidgetBuilderSlideout({
   );
   const showGroupBySelector = isChartWidget && !(state.dataset === WidgetType.ISSUE);
 
-  const customPreviewRef = useRef<HTMLDivElement>(null);
-  const templatesPreviewRef = useRef<HTMLDivElement>(null);
-
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const showSortByStep =
     (isChartWidget && state.fields && state.fields.length > 0) ||
     state.displayType === DisplayType.TABLE;
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsPreviewDraggable(!entry!.isIntersecting);
-      },
-      {threshold: 0}
-    );
+  const observer = useMemo(
+    () =>
+      new IntersectionObserver(
+        ([entry]) => {
+          const isIntersecting = entry!.isIntersecting;
+          setIsPreviewDraggable(!isIntersecting);
+        },
+        {threshold: 0}
+      ),
+    [setIsPreviewDraggable]
+  );
 
-    // need two different refs to account for preview when customizing templates
-    if (customPreviewRef.current) {
-      observer.observe(customPreviewRef.current);
-    }
-
-    if (templatesPreviewRef.current) {
-      observer.observe(templatesPreviewRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [setIsPreviewDraggable, openWidgetTemplates]);
+  const observeForDraggablePreview = useCallback(
+    (elem: HTMLDivElement | null) => {
+      if (elem) {
+        observer.observe(elem);
+      } else if (!elem) {
+        observer.disconnect();
+      }
+    },
+    [observer]
+  );
 
   const widgetLibraryWidgets = getTopNConvertedDefaultWidgets(organization);
 
@@ -310,7 +310,7 @@ function WidgetBuilderSlideout({
               )}
               {openWidgetTemplates ? (
                 <Fragment>
-                  <div ref={templatesPreviewRef}>
+                  <div ref={observeForDraggablePreview}>
                     {isSmallScreen && (
                       <Section>
                         <WidgetPreviewContainer
@@ -354,7 +354,7 @@ function WidgetBuilderSlideout({
                     <Section>
                       <WidgetBuilderTypeSelector error={error} setError={setError} />
                     </Section>
-                    <div ref={customPreviewRef}>
+                    <div ref={observeForDraggablePreview}>
                       {isSmallScreen && (
                         <Section>
                           <WidgetPreviewContainer
