@@ -114,8 +114,15 @@ def _ensure_metric_detector(
     project: Project, owner_team_id: int | None = None, enabled: bool = True
 ) -> Detector:
     """
-    Creates an default anomaly detection metric monitor for high error count.
+    Ensure that a default anomaly detection metric monitor exists for a project.
+    If the Detector doesn't already exist, we try to acquire a lock to avoid double-creating.
     """
+    # If it already exists, return immediately. Prefer the oldest if duplicates exist.
+    existing = (
+        Detector.objects.filter(type=MetricIssue.slug, project=project).order_by("id").first()
+    )
+    if existing:
+        return existing
 
     lock = locks.get(
         f"workflow-engine-project-{MetricIssue.slug}-detector:{project.id}",
@@ -127,6 +134,14 @@ def _ensure_metric_detector(
             lock.blocking_acquire(initial_delay=0.1, timeout=3),
             transaction.atomic(router.db_for_write(Detector)),
         ):
+            # Double-check after acquiring lock in case another process created it
+            existing = (
+                Detector.objects.filter(type=MetricIssue.slug, project=project)
+                .order_by("id")
+                .first()
+            )
+            if existing:
+                return existing
 
             condition_group = DataConditionGroup.objects.create(
                 logic_type=DataConditionGroup.Type.ANY,

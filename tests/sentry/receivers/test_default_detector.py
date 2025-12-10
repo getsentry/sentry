@@ -76,6 +76,19 @@ class TestEnsureMetricDetector(TestCase):
         assert detector is not None
         assert Detector.objects.filter(id=detector.id).exists()
 
+    def test_returns_existing_detector_without_creating_duplicates(self):
+        """Test that calling _ensure_metric_detector twice returns the same detector."""
+        project = self.create_project()
+
+        with mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"):
+            detector1 = _ensure_metric_detector(project)
+            detector2 = _ensure_metric_detector(project)
+
+        assert detector1.id == detector2.id
+        assert Detector.objects.filter(project=project, type=MetricIssue.slug).count() == 1
+        assert DataSource.objects.filter(organization_id=project.organization_id).count() == 1
+        assert QuerySubscription.objects.filter(project=project).count() == 1
+
 
 class TestCreateMetricDetectorWithOwner(TestCase):
     def test_creates_detector_when_feature_enabled(self):
