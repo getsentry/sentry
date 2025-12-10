@@ -9,7 +9,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {
   ReplayAccess,
   ReplayAccessFallbackAlert,
-} from 'sentry/components/replays/ReplayAccess';
+} from 'sentry/components/replays/replayAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

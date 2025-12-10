@@ -13,7 +13,7 @@ import {
 import {
   ReplayAccess,
   ReplayAccessFallbackAlert,
-} from 'sentry/components/replays/ReplayAccess';
+} from 'sentry/components/replays/replayAccess';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
 import {

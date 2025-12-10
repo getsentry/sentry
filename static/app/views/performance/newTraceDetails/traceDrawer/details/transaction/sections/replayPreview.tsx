@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPreview';
-import {ReplayAccess} from 'sentry/components/replays/ReplayAccess';
+import {ReplayAccess} from 'sentry/components/replays/replayAccess';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';

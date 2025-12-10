@@ -4,7 +4,7 @@ import type {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {ReplayAccess} from 'sentry/components/replays/ReplayAccess';
+import {ReplayAccess} from 'sentry/components/replays/replayAccess';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
 import {
   ReplayActivityColumn,

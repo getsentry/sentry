@@ -11,7 +11,7 @@ import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferenc
 import {
   ReplayAccess,
   ReplayAccessFallbackAlert,
-} from 'sentry/components/replays/ReplayAccess';
+} from 'sentry/components/replays/replayAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
