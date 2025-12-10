@@ -1,6 +1,7 @@
 import {Fragment, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
+import seerAutofixImg from 'sentry-images/autofix.png';
 import seerConfigCheckImg from 'sentry-images/spot/seer-config-check.svg';
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 import seerConfigMainImg from 'sentry-images/spot/seer-config-main.svg';
@@ -109,28 +110,37 @@ function AiSetupSeerStartTrial({trial}: AiSetupSeerStartTrialProps) {
             </Stack>
           </Stack>
         </MeetSeerPanel>
-        <SeerFeaturesPanel width="50%">
-          <Stack direction="row" gap="md" padding="md">
-            <FeatureImage src={seerConfigConnectImg} minWidth="30px" width="10%" />
-            <Stack gap="sm" padding="sm">
-              <Heading as="h3">{t('Root Cause Analysis & Code Fixes')}</Heading>
-              <Text>
-                {t(
-                  'Seer analyzes the root cause of an issue and propose fixes ready to merge as draft PRs.'
-                )}
-              </Text>
+        <Stack width="70%" align="center">
+          <ImageContainer width="250px" height="120px">
+            <Image alignSelf="flex-start" src={seerAutofixImg} />
+          </ImageContainer>
+          <SeerFeaturesPanel width="100%">
+            <Stack direction="row" gap="md" padding="md">
+              <ImageContainer aspectRatio="16 / 9" minWidth="30px" width="10%">
+                <Image src={seerConfigConnectImg} />
+              </ImageContainer>
+              <Stack gap="sm" padding="sm">
+                <Heading as="h3">{t('Root Cause Analysis & Code Fixes')}</Heading>
+                <Text>
+                  {t(
+                    'Seer analyzes the root cause of an issue and propose fixes ready to merge as draft PRs.'
+                  )}
+                </Text>
+              </Stack>
             </Stack>
-          </Stack>
-        </SeerFeaturesPanel>
-        <SeerFeaturesPanel width="50%">
-          <Stack direction="row" gap="md" padding="md">
-            <FeatureImage src={seerConfigCheckImg} minWidth="30px" width="10%" />
-            <Stack gap="sm" padding="sm">
-              <Heading as="h3">{t('AI Code Review')}</Heading>
-              <Text>{t('Seer catches bugs in your PRs before you ship them.')}</Text>
+          </SeerFeaturesPanel>
+          <SeerFeaturesPanel width="100%">
+            <Stack direction="row" gap="md" padding="md">
+              <ImageContainer aspectRatio="16 / 9" minWidth="30px" width="10%">
+                <Image src={seerConfigCheckImg} />
+              </ImageContainer>
+              <Stack gap="sm" padding="sm">
+                <Heading as="h3">{t('AI Code Review')}</Heading>
+                <Text>{t('Seer catches bugs in your PRs before you ship them.')}</Text>
+              </Stack>
             </Stack>
-          </Stack>
-        </SeerFeaturesPanel>
+          </SeerFeaturesPanel>
+        </Stack>
       </Stack>
     </Fragment>
   );
@@ -154,7 +164,9 @@ function AiSetupSeerConfiguration({
     <Fragment>
       <SeerFeaturesPanel width="100%">
         <Stack direction="row" gap="2xl" padding="2xl">
-          <FeatureImage src={seerConfigSeerImg} maxWidth="200px" width="40%" />
+          <ImageContainer aspectRatio="16 / 9" maxWidth="150px" width="40%">
+            <Image src={seerConfigSeerImg} />
+          </ImageContainer>
           <Stack gap="sm" padding="sm">
             <Heading as="h2" size="2xl">
               {t('Debug Faster with Seer')}
@@ -173,6 +185,9 @@ function AiSetupSeerConfiguration({
         </Stack>
       </SeerFeaturesPanel>
       <Stack>
+        <AngledImageContainer>
+          <Image src={seerAutofixImg} />
+        </AngledImageContainer>
         <SeerPreviewPanel alignSelf="flex-start">
           <Stack gap="md" padding="md">
             <Heading as="h3">{t('What happened')}</Heading>
@@ -237,21 +252,6 @@ function AiSetupSeerConfiguration({
   );
 }
 
-interface FeatureImageProps {
-  src: string;
-  width: CSSProperties['width'];
-  maxWidth?: CSSProperties['maxWidth'];
-  minWidth?: CSSProperties['maxWidth'];
-}
-
-function FeatureImage({src, maxWidth, minWidth, width}: FeatureImageProps) {
-  return (
-    <StyledFeatureImageContainer maxWidth={maxWidth} minWidth={minWidth} width={width}>
-      <StyledFeatureImage src={src} />
-    </StyledFeatureImageContainer>
-  );
-}
-
 const MeetSeerPanel = styled(Panel)`
   margin-top: 32%;
 `;
@@ -269,15 +269,27 @@ const SeerPreviewPanel = styled(Panel)<{alignSelf: CSSProperties['alignSelf']}>`
   max-width: 70%;
 `;
 
-const StyledFeatureImageContainer = styled('div')<{
-  width: CSSProperties['width'];
+const ImageContainer = styled('div')<{
+  aspectRatio?: CSSProperties['aspectRatio'];
+  height?: CSSProperties['height'];
   maxWidth?: CSSProperties['maxWidth'];
   minWidth?: CSSProperties['maxWidth'];
+  width?: CSSProperties['width'];
 }>`
-  aspect-ratio: 16 / 9;
-  width: ${p => p.width};
-  min-width: ${p => p.minWidth ?? p.width};
-  max-width: ${p => p.maxWidth ?? p.width};
+  display: flex;
+  ${p => p.aspectRatio && `aspect-ratio: ${p.aspectRatio}`};
+  ${p => p.height && `height: ${p.height}`};
+  ${p => p.width && `width: ${p.width}`};
+  ${p => p.minWidth && `min-width: ${p.minWidth}`};
+  ${p => p.maxWidth && `max-width: ${p.maxWidth}`};
+`;
+
+const AngledImageContainer = styled('div')`
+  position: absolute;
+  right: -70px;
+  width: 250px;
+  height: 120px;
+  transform: rotate(45deg); /* Rotates the image 45 degrees clockwise */
 `;
 
 const HeroImage = styled('img')`
@@ -288,11 +300,10 @@ const HeroImage = styled('img')`
   transform: translateX(-47%) translateY(-35%);
 `;
 
-const StyledFeatureImage = styled('img')`
-  align-self: center;
+const Image = styled('img')<{alignSelf?: CSSProperties['alignSelf']}>`
+  align-self: ${p => p.alignSelf ?? 'center'};
   justify-self: center;
   width: 100%;
-  height: 100%;
 `;
 
 const SeerPreviewText = styled('div')`
