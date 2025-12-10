@@ -186,6 +186,14 @@ def has_project_connected_repos(organization_id: int, project_id: int) -> bool:
 
     project_preferences = get_project_seer_preferences(project_id)
     has_repos = bool(project_preferences.code_mapping_repos)
+    logger.info(
+        "Checking if project has repositories connected in Seer",
+        extra={
+            "org_id": organization_id,
+            "project_id": project_id,
+            "has_repos": has_repos,
+        },
+    )
 
     cache.set(cache_key, has_repos, timeout=60 * 60)  # Cache for 1 hour
     return has_repos
