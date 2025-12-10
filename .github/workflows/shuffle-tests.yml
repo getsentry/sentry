@@ -46,8 +46,6 @@ jobs:
       # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
       # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.
       MATRIX_INSTANCE_TOTAL: 11
-      # Only set SENTRY_SHUFFLE_TESTS_SEED if a seed was provided as input
-      SENTRY_SHUFFLE_TESTS_SEED: ${{ inputs.seed && inputs.seed || '' }}
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -57,10 +55,14 @@ jobs:
         id: setup
         with:
           mode: backend-ci
+        env:
+          SENTRY_SHUFFLE_TESTS_SEED: ${{ inputs.seed }}
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           make test-python-ci
+        env:
+          SENTRY_SHUFFLE_TESTS_SEED: ${{ inputs.seed }}
 
       - name: Inspect failure
         if: failure()
