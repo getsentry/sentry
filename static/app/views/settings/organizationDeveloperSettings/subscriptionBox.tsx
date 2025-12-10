@@ -114,7 +114,7 @@ const SubscriptionDescription = styled('div')`
 const SubscriptionTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.lg};
   line-height: 1;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
   margin-bottom: ${space(0.75)};
 `;

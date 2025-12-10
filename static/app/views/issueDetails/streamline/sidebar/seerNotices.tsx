@@ -671,7 +671,7 @@ const CollapsedSummaryCard = styled('div')`
   cursor: pointer;
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 500;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   transition: box-shadow 0.2s;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   &:hover {

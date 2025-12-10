@@ -226,7 +226,7 @@ const ContributionIcon = styled(({isContributing, ...p}: any) =>
 `;
 
 const GroupingTree = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const TextWithQuestionTooltip = styled('div')`
