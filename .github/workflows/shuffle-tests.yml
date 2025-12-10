@@ -23,7 +23,6 @@ concurrency:
 
 env:
   SENTRY_SHUFFLE_TESTS: true
-  SENTRY_SHUFFLE_TESTS_SEED: ${{ inputs.seed }}
 jobs:
   per-test-coverage:
     if: ${{ inputs.per-test-coverage == 'true' || github.event_name == 'schedule' }}
@@ -48,6 +47,9 @@ jobs:
       # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
       # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.
       MATRIX_INSTANCE_TOTAL: 11
+      SENTRY_SHUFFLE_TESTS: true
+      # Conditionally sets SENTRY_SHUFFLE_TESTS_SEED if inputs.seed is non-empty
+      SENTRY_SHUFFLE_TESTS_SEED: ${{ inputs.seed && inputs.seed || '' }}
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
