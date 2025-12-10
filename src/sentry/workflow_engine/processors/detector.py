@@ -53,7 +53,7 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 logger = logging.getLogger(__name__)
 
-VALID_DEFAULT_DETECTOR_TYPES = [ErrorGroupType.slug, IssueStreamGroupType.slug, MetricIssue.slug]
+VALID_DEFAULT_DETECTOR_TYPES = [ErrorGroupType.slug, IssueStreamGroupType.slug]
 
 
 class UnableToAcquireLockApiError(SentryAPIException):
