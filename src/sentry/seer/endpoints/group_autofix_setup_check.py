@@ -151,7 +151,7 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         if not user_acknowledgement:  # If the user has acknowledged, the org must have too.
             org_acknowledgement = get_seer_org_acknowledgement(org)
 
-        has_autofix_quota: bool = quotas.backend.has_available_reserved_budget(
+        has_autofix_quota: bool = quotas.backend.check_seer_quota(
             org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
         )
 

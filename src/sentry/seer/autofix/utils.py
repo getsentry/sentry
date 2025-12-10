@@ -435,7 +435,7 @@ def is_issue_eligible_for_seer_automation(group: Group) -> bool:
     if not seer_enabled:
         return False
 
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
+    has_budget: bool = quotas.backend.check_seer_quota(
         org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
     )
     if not has_budget:

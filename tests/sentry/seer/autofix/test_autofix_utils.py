@@ -256,7 +256,7 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
             with patch(
                 "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner"
             ) as mock_ack:
-                with patch("sentry.quotas.backend.has_available_reserved_budget") as mock_budget:
+                with patch("sentry.quotas.backend.check_seer_quota") as mock_budget:
                     mock_ack.return_value = True
                     mock_budget.return_value = True
                     self.project.update_option("sentry:seer_scanner_automation", True)
@@ -298,7 +298,7 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
             mock_get_acknowledgement.assert_called_once_with(self.organization)
 
     @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.quotas.backend.check_seer_quota")
     def test_returns_false_when_no_budget_available(
         self, mock_has_budget, mock_get_acknowledgement
     ):
@@ -316,7 +316,7 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
             )
 
     @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.quotas.backend.check_seer_quota")
     def test_returns_true_when_all_conditions_met(self, mock_has_budget, mock_get_acknowledgement):
         """Test returns True when all eligibility conditions are met."""
         with self.feature("organizations:gen-ai-features"):
@@ -333,7 +333,7 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
             )
 
     @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.quotas.backend.check_seer_quota")
     def test_returns_true_when_issue_type_always_triggers(
         self, mock_has_budget, mock_get_acknowledgement
     ):
