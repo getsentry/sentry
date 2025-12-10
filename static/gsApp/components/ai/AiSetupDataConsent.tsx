@@ -17,7 +17,6 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategory} from 'sentry/types/core';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -27,7 +26,7 @@ import type {EventType} from 'getsentry/components/addEventsCTA';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
-import {getPotentialProductTrial} from 'getsentry/utils/billing';
+import {getPotentialProductTrial, getSeerTrialCategory} from 'getsentry/utils/billing';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
 type AiSetupDataConsentProps = {
@@ -55,10 +54,11 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     : orgSetup.setupAcknowledgement.orgHasAcknowledged;
   const refetch = isGroupMode ? groupSetup.refetch : orgSetup.refetch;
 
-  const trial = getPotentialProductTrial(
-    subscription?.productTrials ?? null,
-    DataCategory.SEER_AUTOFIX
-  );
+  // Get the appropriate Seer category (SEER_USER for seat-based, SEER_AUTOFIX for legacy)
+  const seerCategory = getSeerTrialCategory(subscription?.productTrials ?? null);
+  const trial = seerCategory
+    ? getPotentialProductTrial(subscription?.productTrials ?? null, seerCategory)
+    : null;
 
   const shouldShowBilling =
     organization.features.includes('seer-billing') && !hasAutofixQuota;
@@ -153,7 +153,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     source="ai-setup-consent"
                     requestData={{
                       productTrial: {
-                        category: DataCategory.SEER_AUTOFIX,
+                        category: trial?.category,
                         reasonCode: trial?.reasonCode,
                       },
                     }}
