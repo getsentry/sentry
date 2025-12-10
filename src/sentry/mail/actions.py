@@ -51,7 +51,7 @@ class NotifyEmailAction(EventAction):
         target_type_value = self.data.get("target_type") or self.data.get("targetType")
         target_type = ActionTargetType(target_type_value)
         target_identifier = self.data.get("target_identifier") or self.data.get("targetIdentifier")
-        skip_digests = self.data.get("skip_digests", False) or self.data.get("skipDigests", False)
+        skip_digests = self.data.get("skipDigests", False)
         fallthrough_choice = self.data.get("fallthrough_type") or self.data.get("fallthroughType")
 
         fallthrough_type = (
