@@ -2,6 +2,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
+  getGenAiOperationTypeFromSpanOp,
   getIsAiAgentSpan,
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
@@ -67,18 +68,19 @@ export function ensureAttributeObject(
 export function getGenAiOpType(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): string | undefined {
-  const attributeObject = ensureAttributeObject(node);
-
-  if (attributeObject) {
-    return attributeObject[SpanFields.GEN_AI_OPERATION_TYPE] as string | undefined;
-  }
-  if (isEAPSpanNode(node)) {
-    return node.value.additional_attributes?.[SpanFields.GEN_AI_OPERATION_TYPE] as
-      | string
-      | undefined;
+  if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
+    return undefined;
   }
 
-  return undefined;
+  const op = isTransactionNode(node) ? node.value?.['transaction.op'] : node.value?.op;
+  const attributeObject =
+    ensureAttributeObject(node) ??
+    (isEAPSpanNode(node) ? node.value.additional_attributes : undefined);
+
+  return (
+    attributeObject?.[SpanFields.GEN_AI_OPERATION_TYPE] ??
+    getGenAiOperationTypeFromSpanOp(op)
+  );
 }
 
 export function getTraceNodeAttribute(

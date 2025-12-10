@@ -29,3 +29,21 @@ export const getToolSpansFilter = () => {
 export const getAIGenerationsFilter = () => {
   return `gen_ai.operation.type:ai_client`;
 };
+
+// Used only when we don't have the gen_ai.operation.type attribute available
+export const getGenAiOperationTypeFromSpanOp = (spanOp?: string): string | undefined => {
+  if (!spanOp?.startsWith('gen_ai.')) {
+    return undefined;
+  }
+
+  if (spanOp.includes('agent')) {
+    return 'agent';
+  }
+  if (spanOp.includes('tool')) {
+    return 'tool';
+  }
+  if (spanOp.includes('handoff')) {
+    return 'handoff';
+  }
+  return 'ai_client';
+};
