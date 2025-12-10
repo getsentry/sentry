@@ -412,10 +412,36 @@ class DrainMailboxTest(TestCase):
         )
         drain_mailbox(records[0].id)
 
-        # We don't retry codecov requests no matter what
+        # HTTP errors are still treated as fatal for Codecov forwarding
         hook = WebhookPayload.objects.filter().first()
         assert hook is None
         assert len(responses.calls) == 3
+
+    @responses.activate
+    @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
+    @override_options(
+        {
+            "codecov.api-bridge-signing-secret": "test",
+        }
+    )
+    @override_regions(region_config)
+    def test_drain_codecov_read_timeout_retries(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://api.codecov.io/webhooks/sentry",
+            body=ReadTimeout(),
+        )
+
+        records = create_payloads_with_destination_type(
+            3, "github:codecov:123", DestinationType.CODECOV
+        )
+        drain_mailbox(records[0].id)
+
+        hook = WebhookPayload.objects.filter(id=records[0].id).first()
+        assert hook is not None
+        assert hook.attempts == 1
+        assert hook.schedule_for > timezone.now()
+        assert len(responses.calls) == 1
 
     @responses.activate
     @override_regions(region_config)
