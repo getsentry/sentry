@@ -318,9 +318,9 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: '/stories/:storyType?/:storySlug?/',
-      component: make(() => import('sentry/stories/view/index')),
+      path: '/stories/*',
       withOrgPath: true,
+      component: make(() => import('sentry/stories/view/index')),
     },
     {
       path: '/debug/notifications/:notificationSource?/',
@@ -691,6 +691,11 @@ function buildRoutes(): RouteObject[] {
       path: 'playstation/',
       name: t('PlayStation'),
       component: make(() => import('sentry/views/settings/project/tempest')),
+    },
+    {
+      path: 'preprod/',
+      name: t('Preprod'),
+      component: make(() => import('sentry/views/settings/project/preprod')),
     },
     {
       path: 'keys/',
@@ -1229,6 +1234,11 @@ function buildRoutes(): RouteObject[] {
           path: 'onboarding/',
           name: t('Configure Seer for All Projects'),
           component: make(() => import('getsentry/views/seerAutomation/onboarding')),
+        },
+        {
+          path: 'onboarding-v2/',
+          name: t('Setup Wizard'),
+          component: make(() => import('getsentry/views/seerAutomation/onboardingV2')),
         },
       ],
     },

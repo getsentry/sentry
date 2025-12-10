@@ -519,7 +519,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/onboarding*                                                    @getsentry/telemetry-experience
 /static/app/views/projectInstall/                                                @getsentry/telemetry-experience
-/static/app/views/insights/agents/                                               @getsentry/telemetry-experience
+/static/app/views/insights/pages/agents/                                         @getsentry/telemetry-experience
+/static/app/views/insights/pages/mcp/                                            @getsentry/telemetry-experience
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
