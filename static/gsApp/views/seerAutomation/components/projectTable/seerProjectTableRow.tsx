@@ -109,7 +109,13 @@ export default function SeerProjectTableRow({project, organization}: Props) {
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
         {hasDelegationEnabled ? (
-          'n/a'
+          <Flex align="center" gap="sm">
+            {'n/a'}
+            <QuestionTooltip
+              title={t('This setting does not apply to background agents.')}
+              size="xs"
+            />
+          </Flex>
         ) : isLoadingPreferences ? (
           <Placeholder height="20px" width="36px" />
         ) : (
