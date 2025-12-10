@@ -223,7 +223,7 @@ export function CompactSelect<Value extends SelectKey>({
 
 function shouldVirtualize<Value extends SelectKey>(
   items: Array<SelectOptionOrSection<Value>>,
-  virtualThreshold = 100
+  virtualThreshold = 150
 ) {
   const hasSections = items.some(item => 'options' in item);
   if (hasSections) {
