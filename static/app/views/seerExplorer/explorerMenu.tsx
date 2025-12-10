@@ -245,7 +245,6 @@ export function useExplorerMenu({
     const spacing = 8;
     const relativeTop = rect.top - panelRect.top;
     const relativeLeft = rect.left - panelRect.left;
-    const relativeRight = panelRect.right - rect.right;
 
     if (isSlashCommand) {
       setMenuPosition({
@@ -253,10 +252,10 @@ export function useExplorerMenu({
         left: `${relativeLeft}px`,
       });
     } else if (menuMode === 'pr-widget') {
-      // Position below anchor, aligned to right edge
+      // Position below anchor, centered
       setMenuPosition({
         top: `${relativeTop + rect.height + spacing}px`,
-        right: `${relativeRight}px`,
+        left: `${relativeLeft - rect.width - spacing}px`,
       });
     } else {
       setMenuPosition({

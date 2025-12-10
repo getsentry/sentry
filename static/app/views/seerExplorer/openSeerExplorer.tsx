@@ -1,5 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 
+import {toggleSeerExplorerPanel} from 'sentry/views/seerExplorer/utils';
+
 /**
  * Utilities for programmatically opening the Seer Explorer panel from anywhere in the app.
  *
@@ -175,17 +177,7 @@ export function useExternalOpen({
         processPendingOptions(storedOptions);
       } else {
         // Panel is closed - open it, then the visibility effect will process options
-        const isMac = navigator.platform.toUpperCase().includes('MAC');
-        const keyboardEvent = new KeyboardEvent('keydown', {
-          key: '/',
-          code: 'Slash',
-          keyCode: 191,
-          which: 191,
-          metaKey: isMac,
-          ctrlKey: !isMac,
-          bubbles: true,
-        } as KeyboardEventInit);
-        document.dispatchEvent(keyboardEvent);
+        toggleSeerExplorerPanel();
       }
     };
 
