@@ -37,6 +37,7 @@ class TestEnsureMetricDetector(TestCase):
         conditions = DataCondition.objects.filter(condition_group=condition_group)
         assert conditions.count() == 1
         condition = conditions.first()
+        assert condition is not None
         assert condition.type == Condition.ANOMALY_DETECTION
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
@@ -98,6 +99,7 @@ class TestCreateMetricDetectorWithOwner(TestCase):
         project = self.create_project()
         # Get the team that was auto-created with the project
         team = project.teams.first()
+        assert team is not None
 
         with (
             self.feature(
