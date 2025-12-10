@@ -70,7 +70,7 @@ def write_preprod_size_metric_to_eap(
     # Note: We don't include size_metric.state because this function is only called
     # after the metric is successfully committed as COMPLETED, so it would always be
     # the same value and is redundant in append-only EAP storage.
-    attributes: Mapping[str, Value] = {
+    attributes: dict[str, Value] = {
         "preprod_artifact_id": size_metric.preprod_artifact_id,
         "size_metric_id": size_metric.id,
         "metrics_artifact_type": size_metric.metrics_artifact_type,
@@ -161,9 +161,13 @@ def write_preprod_size_metric_to_eap(
     # We don't use git_head_sha because multiple unrelated apps could be uploaded
     # to the same commit (monorepo scenario), and grouping them would be confusing.
     # Users can still query by git_head_sha as an attribute if needed.
-    trace_id = f"preprod-{size_metric.preprod_artifact_id:032x}"
+    #
+    # Format: 32-character hex string (OpenTelemetry trace ID format)
+    # We use the artifact_id as the base, padded to 32 hex characters
+    trace_id = f"{size_metric.preprod_artifact_id:032x}"
 
     # Generate a unique item_id for this specific size metric
+    # Convert to 16 bytes in little-endian format (consistent with span item_id format)
     item_id = uuid.uuid4().bytes
 
     # Create the EAP trace item
