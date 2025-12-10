@@ -525,7 +525,7 @@ response = requests.get(url)  # NO!
 from sentry.tasks import fetch_external_data
 fetch_external_data.delay(url)
 
-# WRONG: N+1 queries in loops
+# WRONG: N+1 queries
 for org in organizations:
     org.projects.all()  # NO!
 
