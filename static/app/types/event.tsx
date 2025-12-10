@@ -634,7 +634,7 @@ interface ResponseContext {
 
 // event.contexts.flags can be overriden by the user so the type is not strict
 export type FeatureFlag = {flag?: string; result?: boolean};
-type Flags = {values?: FeatureFlag[]};
+type Flags = {values?: Array<FeatureFlag | null>};
 
 export type EventContexts = {
   'Current Culture'?: CultureContext;

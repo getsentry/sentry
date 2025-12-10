@@ -157,10 +157,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     const rawFlags = event.contexts?.flags?.values ?? [];
     return rawFlags.filter(
       (f): f is Required<FeatureFlag> =>
-        f &&
-        typeof f === 'object' &&
-        typeof f.flag === 'string' &&
-        typeof f.result === 'boolean'
+        typeof f?.flag === 'string' && typeof f.result === 'boolean'
     );
   }, [event]);
 
@@ -169,7 +166,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   const hydratedFlags = useMemo(() => {
     // Transform the flags array into something readable by the key-value component.
     // Reverse the flags to show newest at the top by default.
-    return eventFlags.toReversed().map((f: any) => {
+    return eventFlags.toReversed().map(f => {
       return {
         item: {
           key: f.flag,
@@ -182,7 +179,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
               )}
               <FlagActionDropdown
                 flag={f.flag}
-                result={f.result}
+                result={f.result.toString()}
                 generateAction={generateAction}
               />
             </ValueWrapper>

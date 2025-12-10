@@ -314,6 +314,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 ## Flags
 /src/sentry/flags/                                              @getsentry/replay-backend
 /tests/sentry/flags/                                            @getsentry/replay-backend
+/static/app/components/featureFlags/                            @getsentry/replay-frontend
 /static/app/components/events/featureFlags/                     @getsentry/replay-frontend
 /static/app/views/issueDetails/groupDistributionsDrawer.tsx     @getsentry/replay-frontend
 /static/app/views/issueDetails/groupFeatureFlags/               @getsentry/replay-frontend
