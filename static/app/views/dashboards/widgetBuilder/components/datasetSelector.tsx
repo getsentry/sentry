@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Link} from 'sentry/components/core/link';
 import type {
   RadioGroupProps,
@@ -15,6 +14,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -33,6 +33,7 @@ function WidgetBuilderDatasetSelector() {
   const {cacheBuilderState, restoreOrSetBuilderState} = useCacheBuilderState();
   const {setSegmentSpanBuilderState} = useSegmentSpanWidgetState();
   const disabledChoices: RadioGroupProps<WidgetType>['disabledChoices'] = [];
+  const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
 
   const datasetChoices: Array<RadioOption<WidgetType>> = [];
   datasetChoices.push([WidgetType.ERRORS, t('Errors')]);
@@ -70,12 +71,10 @@ function WidgetBuilderDatasetSelector() {
     datasetChoices.push([WidgetType.SPANS, t('Spans')]);
   }
   if (isLogsEnabled(organization)) {
-    datasetChoices.push([
-      WidgetType.LOGS,
-      <FeatureBadgeAlignmentWrapper aria-label={t('Logs')} key="dataset-choice-logs">
-        {t('Logs')}
-      </FeatureBadgeAlignmentWrapper>,
-    ]);
+    datasetChoices.push([WidgetType.LOGS, t('Logs')]);
+  }
+  if (hasTraceMetricsDashboards) {
+    datasetChoices.push([WidgetType.TRACEMETRICS, t('Metrics')]);
   }
   datasetChoices.push([WidgetType.ISSUE, t('Issues')]);
   datasetChoices.push([WidgetType.RELEASE, t('Releases')]);
@@ -125,13 +124,6 @@ function WidgetBuilderDatasetSelector() {
 }
 
 export default WidgetBuilderDatasetSelector;
-
-const FeatureBadgeAlignmentWrapper = styled('div')`
-  ${FeatureBadge} {
-    position: relative;
-    top: -1px;
-  }
-`;
 
 const DatasetChoices = styled(RadioGroup<WidgetType>)`
   display: flex;

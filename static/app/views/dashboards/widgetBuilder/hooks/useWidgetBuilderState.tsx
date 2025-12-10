@@ -33,8 +33,10 @@ import {
   DEFAULT_RESULTS_LIMIT,
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
+import {generateMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/generateMetricAggregate';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {SpanFields} from 'sentry/views/insights/types';
 
 // For issues dataset, events and users are sorted descending and do not use '-'
@@ -63,6 +65,7 @@ export type WidgetBuilderStateQueryParams = {
   sort?: string[];
   thresholds?: string;
   title?: string;
+  traceMetrics?: string;
   yAxis?: string[];
 };
 
@@ -81,6 +84,7 @@ export const BuilderStateAction = {
   SET_SELECTED_AGGREGATE: 'SET_SELECTED_AGGREGATE',
   SET_STATE: 'SET_STATE',
   SET_THRESHOLDS: 'SET_THRESHOLDS',
+  SET_TRACE_METRIC: 'SET_TRACE_METRIC',
 } as const;
 
 type WidgetAction =
@@ -100,8 +104,11 @@ type WidgetAction =
   | {
       payload: ThresholdsConfig | null | undefined;
       type: typeof BuilderStateAction.SET_THRESHOLDS;
+    }
+  | {
+      payload: TraceMetric[] | undefined;
+      type: typeof BuilderStateAction.SET_TRACE_METRIC;
     };
-
 type WidgetBuilderStateActionOptions = {
   updateUrl?: boolean;
 };
@@ -119,6 +126,7 @@ export interface WidgetBuilderState {
   sort?: Sort[];
   thresholds?: ThresholdsConfig | null;
   title?: string;
+  traceMetrics?: TraceMetric[];
   yAxis?: Column[];
 }
 
@@ -187,6 +195,12 @@ function useWidgetBuilderState(): {
     deserializer: deserializeLinkedDashboards,
     serializer: serializeLinkedDashboards,
   });
+  const [traceMetrics, setTraceMetrics] = useQueryParamState<TraceMetric[] | undefined>({
+    fieldName: 'traceMetrics',
+    decoder: decodeScalar,
+    deserializer: deserializeTraceMetrics,
+    serializer: serializeTraceMetrics,
+  });
 
   const state = useMemo(
     () => ({
@@ -202,6 +216,7 @@ function useWidgetBuilderState(): {
       legendAlias,
       thresholds,
       linkedDashboards,
+      traceMetrics,
       // The selected aggregate is the last aggregate for big number widgets
       // if it hasn't been explicitly set
       selectedAggregate:
@@ -223,6 +238,7 @@ function useWidgetBuilderState(): {
       selectedAggregate,
       thresholds,
       linkedDashboards,
+      traceMetrics,
     ]
   );
 
@@ -510,14 +526,21 @@ function useWidgetBuilderState(): {
               field => field.kind !== FieldValueKind.EQUATION
             );
             // Adding a grouping, so default the sort to the first aggregate if possible
+            const sortField =
+              dataset === WidgetType.TRACEMETRICS
+                ? (generateMetricAggregate(
+                    traceMetrics?.[0] ?? {name: '', type: ''},
+                    firstYAxisNotEquation as QueryFieldValue
+                  ) ?? '')
+                : (generateFieldAsString(firstYAxisNotEquation as QueryFieldValue) ??
+                  generateFieldAsString(
+                    firstActionPayloadNotEquation as QueryFieldValue
+                  ));
             setSort(
               [
                 {
                   kind: 'desc',
-                  field: generateFieldAsString(
-                    (firstYAxisNotEquation as QueryFieldValue) ??
-                      (firstActionPayloadNotEquation as QueryFieldValue)
-                  ),
+                  field: sortField,
                 },
               ],
               options
@@ -593,9 +616,18 @@ function useWidgetBuilderState(): {
           if (action.payload.yAxis) {
             setYAxis(deserializeFields(action.payload.yAxis), options);
           }
+          if (action.payload.traceMetrics) {
+            setTraceMetrics(
+              deserializeTraceMetrics(action.payload.traceMetrics),
+              options
+            );
+          }
           break;
         case BuilderStateAction.SET_THRESHOLDS:
           setThresholds(action.payload, options);
+          break;
+        case BuilderStateAction.SET_TRACE_METRIC:
+          setTraceMetrics(action.payload, options);
           break;
         default:
           break;
@@ -623,6 +655,8 @@ function useWidgetBuilderState(): {
       sort,
       dataset,
       limit,
+      setTraceMetrics,
+      traceMetrics,
     ]
   );
 
@@ -772,6 +806,17 @@ function deserializeThresholds(value: string): ThresholdsConfig | undefined {
 
 export function serializeThresholds(thresholds: ThresholdsConfig | null): string {
   return JSON.stringify(thresholds);
+}
+
+export function serializeTraceMetrics(traceMetrics: TraceMetric[] | undefined): string {
+  return JSON.stringify(traceMetrics);
+}
+
+function deserializeTraceMetrics(traceMetrics: string): TraceMetric[] | undefined {
+  if (traceMetrics === '') {
+    return undefined;
+  }
+  return JSON.parse(traceMetrics);
 }
 
 export default useWidgetBuilderState;

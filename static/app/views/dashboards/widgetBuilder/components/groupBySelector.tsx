@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {type QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -38,7 +38,11 @@ function WidgetBuilderGroupBySelector({
       return {};
     }
 
-    if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
+    if (
+      state.dataset === WidgetType.SPANS ||
+      state.dataset === WidgetType.LOGS ||
+      state.dataset === WidgetType.TRACEMETRICS
+    ) {
       return datasetConfig.getGroupByFieldOptions(organization, {
         ...numericSpanTags,
         ...stringSpanTags,

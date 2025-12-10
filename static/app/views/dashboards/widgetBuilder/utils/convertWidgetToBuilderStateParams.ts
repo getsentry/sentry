@@ -1,4 +1,4 @@
-import {explodeField} from 'sentry/utils/discover/fields';
+import {explodeField, parseFunction} from 'sentry/utils/discover/fields';
 import {
   DisplayType,
   WidgetType,
@@ -9,8 +9,10 @@ import {isChartDisplayType} from 'sentry/views/dashboards/utils';
 import {
   serializeFields,
   serializeThresholds,
+  serializeTraceMetrics,
   type WidgetBuilderStateQueryParams,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 function stringifyFields(
   query: WidgetQuery,
@@ -46,6 +48,19 @@ export function convertWidgetToBuilderStateParams(
     legendAlias = [];
   }
 
+  let traceMetrics: TraceMetric[] = [];
+  if (widget.widgetType === WidgetType.TRACEMETRICS) {
+    traceMetrics = firstWidgetQuery
+      ? firstWidgetQuery.aggregates.map(aggregate => {
+          const func = parseFunction(aggregate);
+          return {
+            name: func?.arguments?.[1] ?? '',
+            type: func?.arguments?.[2] ?? '',
+          };
+        })
+      : [];
+  }
+
   return {
     title: widget.title,
     description: widget.description ?? '',
@@ -59,5 +74,7 @@ export function convertWidgetToBuilderStateParams(
     legendAlias,
     selectedAggregate: firstWidgetQuery?.selectedAggregate,
     thresholds: widget.thresholds ? serializeThresholds(widget.thresholds) : undefined,
+    traceMetrics:
+      traceMetrics.length > 0 ? serializeTraceMetrics(traceMetrics) : undefined,
   };
 }
