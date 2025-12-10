@@ -1,5 +1,4 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import BlockComponent from './blockComponents';
 import type {Block} from './types';
@@ -85,16 +84,18 @@ describe('BlockComponent', () => {
   });
 
   describe('Focus State', () => {
-    it('shows delete hint when isFocused=true', () => {
+    it('shows reset button when isFocused=true', () => {
       const block = createUserInputBlock();
       render(
         <BlockComponent block={block} blockIndex={0} isFocused onClick={mockOnClick} />
       );
 
-      expect(screen.getByText(textWithMarkupMatcher('Reset ⌫'))).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Restart conversation from here'})
+      ).toBeInTheDocument();
     });
 
-    it('does not show delete hint when isFocused=false', () => {
+    it('does not show reset button when isFocused=false', () => {
       const block = createUserInputBlock();
       render(
         <BlockComponent
@@ -106,7 +107,7 @@ describe('BlockComponent', () => {
       );
 
       expect(
-        screen.queryByText(textWithMarkupMatcher('Reset ⌫'))
+        screen.queryByRole('button', {name: 'Restart conversation from here'})
       ).not.toBeInTheDocument();
     });
   });

@@ -5,6 +5,7 @@ import {motion} from 'framer-motion';
 import {Button} from 'sentry/components/core/button';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
+import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
 import {IconChevron, IconLink} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -409,8 +410,13 @@ function BlockComponent({
         )}
         {showActions && !isPolling && (
           <ActionButtonBar gap="xs">
-            <Button size="xs" priority="default" onClick={handleDeleteClick}>
-              Reset
+            <Button
+              size="xs"
+              priority="transparent"
+              onClick={handleDeleteClick}
+              title="Restart conversation from here"
+            >
+              <FlippedReturnIcon />
             </Button>
           </ActionButtonBar>
         )}
