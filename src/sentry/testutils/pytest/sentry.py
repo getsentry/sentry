@@ -415,7 +415,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     items[:] = keep
 
     if os.environ.get("SENTRY_SHUFFLE_TESTS"):
-        seed = int(os.environ.get("SENTRY_SHUFFLE_TESTS_SEED", time.time()))
+        seed_env = os.environ.get("SENTRY_SHUFFLE_TESTS_SEED")
+        seed = int(seed_env) if seed_env else int(time.time())
         config.get_terminal_writer().line(f"SENTRY_SHUFFLE_TESTS_SEED: {seed}")
         _shuffle(items, random.Random(seed))
 
