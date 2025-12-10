@@ -575,7 +575,27 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
-        return super().get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
+
+        replay_permissions = {
+            opt.organization_id: opt.value
+            for opt in OrganizationOption.objects.filter(
+                organization__in=item_list, key="sentry:granular-replay-permissions"
+            )
+        }
+
+        replay_access_by_org: dict[int, list[int]] = {}
+        for org_id, user_id in OrganizationMemberReplayAccess.objects.filter(
+            organizationmember__organization__in=item_list
+        ).values_list("organizationmember__organization_id", "organizationmember__user_id"):
+            if user_id is not None:
+                replay_access_by_org.setdefault(org_id, []).append(user_id)
+
+        for item in item_list:
+            attrs[item]["replay_permissions_enabled"] = replay_permissions.get(item.id, False)
+            attrs[item]["replay_access_members"] = replay_access_by_org.get(item.id, [])
+
+        return attrs
 
     def serialize(  # type: ignore[override]
         self,
@@ -756,21 +776,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         }
 
         if features.has("organizations:granular-replay-permissions", obj):
-            permissions_enabled = (
-                OrganizationOption.objects.filter(
-                    organization=obj, key="sentry:granular-replay-permissions"
-                )
-                .values_list("value", flat=True)
-                .first()
-            )
-            context["hasGranularReplayPermissions"] = bool(permissions_enabled)
-            context["replayAccessMembers"] = [
-                user_id
-                for user_id in OrganizationMemberReplayAccess.objects.filter(
-                    organizationmember__organization=obj
-                ).values_list("organizationmember__user_id", flat=True)
-                if user_id is not None
-            ]
+            context["hasGranularReplayPermissions"] = bool(attrs.get("replay_permissions_enabled"))
+            context["replayAccessMembers"] = attrs.get("replay_access_members", [])
 
         if has_custom_dynamic_sampling(obj, actor=user):
             context["targetSampleRate"] = float(
