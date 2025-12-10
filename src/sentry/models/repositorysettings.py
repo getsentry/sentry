@@ -22,7 +22,7 @@ class CodeReviewTrigger(StrEnum):
 @region_silo_model
 class RepositorySettings(Model):
     """
-    Stores code review settings for a repository.
+    Stores (organization) repository specific settings.
     """
 
     __relocation_scope__ = RelocationScope.Global
