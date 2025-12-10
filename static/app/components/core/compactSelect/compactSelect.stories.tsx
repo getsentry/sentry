@@ -458,8 +458,9 @@ export default Storybook.story('CompactSelect', story => {
           are trying to find out which option will be the longest to render & measure it
           when the menu is first opened. This process only looks at <code>textValue</code>{' '}
           and <code>label</code> of the option, so it might fail in cases where different{' '}
-          <code>trailingItems</code> or <code>leadingItems</code> You can instead also
-          pass a hardcoded <code>menuWidth</code> to <code>CompactSelect</code>.
+          <code>trailingItems</code> or <code>leadingItems</code> are used, or when long{' '}
+          <code>details</code> are rendered. You can instead also pass a hardcoded{' '}
+          <code>menuWidth</code> to <code>CompactSelect</code>.
         </p>
 
         <CompactSelect
@@ -533,6 +534,7 @@ export default Storybook.story('CompactSelect', story => {
             onSearch={newSearch => {
               debouncedSetSearch(newSearch);
             }}
+            virtualThreshold={10}
             onChange={newValue => {
               setCountry(newValue.value.toString());
             }}

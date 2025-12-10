@@ -117,16 +117,18 @@ export function CompactSelect<Value extends SelectKey>({
   }, [multiple, clearable, value, onChange, closeOnSelect, grid]);
 
   const [measuredMenuWidth, setMeasuredMenuWidth] = useState<number>();
+  const [hasMeasured, setHasMeasured] = useState(false);
   const needsMeasuring =
-    shouldVirtualize(options, virtualThreshold) &&
-    !menuWidth &&
-    measuredMenuWidth === undefined;
+    !menuWidth && !hasMeasured && shouldVirtualize(options, virtualThreshold);
 
   const menuRef = useCallback(
     (element: HTMLDivElement | null) => {
       if (element && needsMeasuring) {
         setMeasuredMenuWidth(element.offsetWidth);
       }
+      // we only measure once, even if the width isn't saved
+      // this ensures the menu isn't measured when more options come in that put us over the threshold
+      setHasMeasured(true);
     },
     [needsMeasuring]
   );
