@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar/projectAvatar';
 import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
 import {Flex} from '@sentry/scraps/layout/flex';
 import {Link} from '@sentry/scraps/link/link';
@@ -10,6 +9,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectAutomation} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectAutomation';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -77,10 +77,7 @@ export default function SeerProjectTableRow({project, organization}: Props) {
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Link to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}>
-          <Flex gap="md" align="center">
-            <ProjectAvatar project={project} />
-            {project.name}
-          </Flex>
+          <ProjectBadge project={project} avatarSize={16} />
         </Link>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
