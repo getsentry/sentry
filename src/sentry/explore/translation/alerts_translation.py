@@ -122,10 +122,9 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
                     parsed_argument = parsed_argument_mri.name
                 else:
                     parsed_argument = argument
-                snapshot_query += f"has:{parsed_argument}"
-
-                if index < len(arguments) - 1:
+                if len(snapshot_query) > 0:
                     snapshot_query += " "
+                snapshot_query += f"has:{parsed_argument}"
 
     eap_query_parts, dropped_fields = translate_mep_to_eap(
         QueryParts(
