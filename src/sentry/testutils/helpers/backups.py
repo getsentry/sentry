@@ -99,6 +99,7 @@ from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
+from sentry.models.repositorysettings import CodeReviewTrigger, RepositorySettings
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
@@ -638,6 +639,15 @@ class ExhaustiveFixtures(Fixtures):
         )
         repo.external_id = "https://git.example.com:1234"
         repo.save()
+
+        RepositorySettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[
+                CodeReviewTrigger.ON_NEW_COMMIT,
+                CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            ],
+        )
 
         # Group*
         group = self.create_group(project=project)
