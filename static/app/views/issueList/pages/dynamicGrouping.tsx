@@ -13,6 +13,7 @@ import {InlineCode} from 'sentry/components/core/code/inlineCode';
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {Link} from 'sentry/components/core/link';
 import {TextArea} from 'sentry/components/core/textarea';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -634,20 +635,40 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
 
       <CardFooter>
         {clusterProjects.length > 0 && (
-          <ProjectAvatars>
-            {clusterProjects.slice(0, 3).map(project => (
-              <ProjectBadge
-                key={project.id}
-                project={project}
-                avatarSize={16}
-                hideName
-                disableLink
-              />
-            ))}
-            {clusterProjects.length > 3 && (
-              <MoreProjectsCount>+{clusterProjects.length - 3}</MoreProjectsCount>
-            )}
-          </ProjectAvatars>
+          <Tooltip
+            isHoverable
+            overlayStyle={{maxWidth: 300}}
+            title={
+              <Flex direction="column" gap="xs">
+                {clusterProjects.map(project => (
+                  <Flex key={project.id} align="center" gap="xs">
+                    <ProjectBadge
+                      project={project}
+                      avatarSize={12}
+                      hideName
+                      disableLink
+                    />
+                    <Text size="xs">{project.slug}</Text>
+                  </Flex>
+                ))}
+              </Flex>
+            }
+          >
+            <ProjectAvatars>
+              {clusterProjects.slice(0, 3).map(project => (
+                <ProjectBadge
+                  key={project.id}
+                  project={project}
+                  avatarSize={16}
+                  hideName
+                  disableLink
+                />
+              ))}
+              {clusterProjects.length > 3 && (
+                <MoreProjectsCount>+{clusterProjects.length - 3}</MoreProjectsCount>
+              )}
+            </ProjectAvatars>
+          </Tooltip>
         )}
         <FooterActions>
           <ButtonBar merged gap="0">
