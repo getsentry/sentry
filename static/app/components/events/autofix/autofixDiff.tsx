@@ -694,7 +694,7 @@ const FileDiffWrapper = styled('div')<{integratedStyle?: boolean}>`
   vertical-align: middle;
   border: 1px solid ${p => p.theme.border};
   border-color: ${p => (p.integratedStyle ? 'transparent' : p.theme.border)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   background-color: ${p => p.theme.background};
 `;
@@ -837,7 +837,7 @@ const EditOverlay = styled('div')`
   right: ${space(2)};
   background: ${p => p.theme.backgroundElevated};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   z-index: ${p => p.theme.zIndex.tooltip};
   display: flex;
@@ -874,7 +874,7 @@ const OverlayButtonGroup = styled('div')`
 const RemovedLines = styled('div')`
   margin-bottom: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 `;
 

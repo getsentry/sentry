@@ -509,8 +509,8 @@ const Wrapper = styled(Input.withComponent('div'))<{isDropdownOpen: boolean}>`
   font-size: ${p => p.theme.fontSize.md};
   cursor: text;
 
-  border-bottom-left-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.borderRadius)};
-  border-bottom-right-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.borderRadius)};
+  border-bottom-left-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.radius.md)};
+  border-bottom-right-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.radius.md)};
 `;
 
 const PositionedSearchIconContainer = styled('div')`

@@ -500,13 +500,13 @@ const NavButtons = styled('div')`
 
     &:first-child {
       ${StyledNavButton} {
-        border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+        border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
       }
     }
 
     &:last-child {
       ${StyledNavButton} {
-        border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+        border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
       }
     }
   }
