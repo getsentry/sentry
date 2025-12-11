@@ -65,6 +65,12 @@ export function ensureAttributeObject(
   return undefined;
 }
 
+/**
+ * Returns the `gen_ai.operation.type` for a given trace node.
+ * If the attribute is not present it will deduce it from the `span.op`
+ *
+ * **Note:** To keep the complexity manageable, this logic does not work for the edge case of transactions without `span.op` on the old data model.
+ */
 export function getGenAiOpType(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): string | undefined {
