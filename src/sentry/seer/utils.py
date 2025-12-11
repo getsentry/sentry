@@ -6,15 +6,7 @@ from sentry.models.organization import Organization
 
 
 def can_use_prevent_ai_features(org: Organization) -> bool:
-    """
-    Check if an organization has opted in to Prevent AI features.
-
-    This checks:
-    1. The org has the gen-ai-features flag enabled
-    2. The org has not hidden AI features
-    3. For seat-based plans, only the above two checks are needed
-    4. For usage-based plans, PR review/test generation must also be enabled
-    """
+    """Check if organization has opted in to Prevent AI features."""
     if not features.has("organizations:gen-ai-features", org):
         return False
 
