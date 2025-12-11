@@ -6,7 +6,7 @@ import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('Select', (story, APIReference) => {
-  APIReference(documentation.props.Select);
+  APIReference(documentation.props?.Select);
 
   story('Sizes', () => {
     return (

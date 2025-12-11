@@ -377,7 +377,7 @@ const SectionHeader = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, auto);
   justify-content: space-between;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.xl};
 `;
 
@@ -402,7 +402,7 @@ const Description = styled(SpaceBetweenGrid)<{isNewCheckout: boolean}>`
 `;
 
 const Events = styled('div')<{isLegacy: boolean}>`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   margin: 0;
   font-weight: ${p => (p.isLegacy ? 'normal' : '600')};
 `;

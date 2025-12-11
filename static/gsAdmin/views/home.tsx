@@ -177,7 +177,7 @@ const HeaderTitle = styled('h3')`
   margin: 0;
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: normal;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const OverviewWrap = styled('div')`

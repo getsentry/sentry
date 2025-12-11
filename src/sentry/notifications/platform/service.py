@@ -49,12 +49,17 @@ class NotificationService[T: NotificationData]:
             options.get(option_key)
         except options.UnknownOption:
             logger.warning(
-                "Notification platform key '%s' has not been registered in options/default.py",
-                option_key,
+                "notification.platform.has_access.unknown_option",
+                extra={
+                    "organization_id": organization.id,
+                    "source": source,
+                    "option_key": option_key,
+                },
             )
             return False
 
-        return sample_modulo(option_key, organization.id)
+        modulo_result = sample_modulo(option_key, organization.id)
+        return modulo_result
 
     def notify_target(self, *, target: NotificationTarget) -> None:
         """

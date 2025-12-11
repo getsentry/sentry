@@ -224,7 +224,7 @@ describe('LogsPage', () => {
             partial: 1,
             project: [],
             query: 'timestamp_precise:<=1508208040000000000',
-            referrer: 'explore.ourlogs.main-chart',
+            referrer: 'api.explore.ourlogs-timeseries',
             sampling: 'NORMAL',
             sort: '-count_message',
             statsPeriod: '24h',

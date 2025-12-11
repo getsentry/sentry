@@ -128,19 +128,19 @@ function CreditCardFormInner({
 
   const stripeElementStyles = {
     base: {
-      backgroundColor: theme.isChonk ? theme.tokens.background.primary : theme.background,
-      color: theme.isChonk ? theme.tokens.content.primary : theme.textColor,
+      backgroundColor: theme.tokens.background.primary,
+      color: theme.tokens.content.primary,
       fontFamily: theme.text.family,
       fontWeight: 400,
       fontSize: theme.fontSize.lg,
       '::placeholder': {
-        color: theme.isChonk ? theme.tokens.content.muted : theme.gray300,
+        color: theme.tokens.content.muted,
       },
-      iconColor: theme.isChonk ? theme.tokens.content.primary : theme.gray300,
+      iconColor: theme.tokens.content.primary,
     },
     invalid: {
-      color: theme.isChonk ? theme.tokens.content.danger : theme.red300,
-      iconColor: theme.isChonk ? theme.tokens.content.danger : theme.red300,
+      color: theme.tokens.content.danger,
+      iconColor: theme.tokens.content.danger,
     },
   };
 

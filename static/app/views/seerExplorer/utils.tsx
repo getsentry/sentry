@@ -1,5 +1,10 @@
 import type {LocationDescriptor} from 'history';
 
+import {
+  LOGS_GROUP_BY_KEY,
+  LOGS_QUERY_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import type {Block, ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
 
 /**
@@ -51,6 +56,12 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       return isLoading
         ? `Searching for errors${projectInfo}: '${question}'...`
         : `Searched for errors${projectInfo}: '${question}'`;
+    }
+
+    if (dataset === 'logs') {
+      return isLoading
+        ? `Querying logs${projectInfo}: '${question}'...`
+        : `Queried logs${projectInfo}: '${question}'`;
     }
 
     // Default to spans
@@ -205,6 +216,9 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     if (toolLinkParams?.empty_results) {
       return `Edit to ${path} in ${repoName} was rejected`;
     }
+    if (toolLinkParams?.pending_approval) {
+      return `Edit to ${path} in ${repoName} is pending your approval`;
+    }
     return isLoading
       ? `Editing ${path} in ${repoName}...`
       : `Edited ${path} in ${repoName}`;
@@ -220,9 +234,13 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     const action = isDelete ? 'Delete' : 'Write';
     const actionPast = isDelete ? 'Deleted' : 'Wrote';
     const actionPresent = isDelete ? 'Deleting' : 'Writing';
+    const actionPending = isDelete ? 'Delete' : 'Write';
 
     if (toolLinkParams?.empty_results) {
       return `${action} to ${path} in ${repoName} was rejected`;
+    }
+    if (toolLinkParams?.pending_approval) {
+      return `${actionPending} to ${path} in ${repoName} is pending your approval`;
     }
 
     return isLoading
@@ -235,6 +253,29 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     return isLoading
       ? `Scouring Sentry docs: '${question}'...`
       : `Scoured Sentry docs: '${question}'`;
+  },
+
+  todo_write: (args, isLoading, toolLinkParams) => {
+    if (isLoading) {
+      const count = args.todos?.length || 0;
+      return count === 1 ? 'Updating todo list...' : `Updating ${count} todos...`;
+    }
+    // Use the summary from metadata if available
+    return toolLinkParams?.summary || 'Updated todo list';
+  },
+
+  ask_user_question: (args, isLoading, toolLinkParams) => {
+    const count = Array.isArray(args.questions) ? args.questions.length : 1;
+    const questionWord = count === 1 ? 'question' : 'questions';
+
+    // Show pending state when awaiting user response
+    if (toolLinkParams?.pending_question) {
+      return `Asking ${count} ${questionWord}...`;
+    }
+
+    return isLoading
+      ? `Asking ${count} ${questionWord}...`
+      : `Asked ${count} ${questionWord}`;
   },
 };
 
@@ -356,6 +397,24 @@ export function postProcessLLMMarkdown(text: string | null | undefined): string 
 }
 
 /**
+ * Simulates the keyboard shortcut to toggle the Seer Explorer panel.
+ * This dispatches a keyboard event that matches the Cmd+/ (Mac) or Ctrl+/ (non-Mac) shortcut.
+ */
+export function toggleSeerExplorerPanel(): void {
+  const isMac = navigator.platform.toUpperCase().includes('MAC');
+  const keyboardEvent = new KeyboardEvent('keydown', {
+    key: '/',
+    code: 'Slash',
+    keyCode: 191,
+    which: 191,
+    metaKey: isMac,
+    ctrlKey: !isMac,
+    bubbles: true,
+  } as KeyboardEventInit);
+  document.dispatchEvent(keyboardEvent);
+}
+
+/**
  * Build a URL/LocationDescriptor for a tool link based on its kind and params
  */
 export function buildToolLinkUrl(
@@ -365,84 +424,29 @@ export function buildToolLinkUrl(
 ): LocationDescriptor | null {
   switch (toolLink.kind) {
     case 'telemetry_live_search': {
-      const {dataset, query, stats_period, project_slugs, sort} = toolLink.params;
-
-      if (dataset === 'issues') {
-        // Build URL for issues search
-        const queryParams: Record<string, any> = {
-          query: query || '',
-        };
-
-        // If project_slugs is provided, look up the project IDs
-        if (project_slugs && project_slugs.length > 0 && projects) {
-          const projectIds = project_slugs
-            .map((slug: string) => projects.find(p => p.slug === slug)?.id)
-            .filter((id: string | undefined) => id !== undefined);
-          if (projectIds.length > 0) {
-            queryParams.project = projectIds;
-          }
-        }
-
-        if (stats_period) {
-          queryParams.statsPeriod = stats_period;
-        }
-
-        if (sort) {
-          queryParams.sort = sort;
-        }
-
-        return {
-          pathname: `/organizations/${orgSlug}/issues/`,
-          query: queryParams,
-        };
-      }
-
-      if (dataset === 'errors') {
-        const queryParams: Record<string, any> = {
-          dataset: 'errors',
-          queryDataset: 'error-events',
-          query: query || '',
-          project: null,
-        };
-
-        if (stats_period) {
-          queryParams.statsPeriod = stats_period;
-        }
-
-        // If project_slugs is provided, look up the project IDs
-        if (project_slugs && project_slugs.length > 0 && projects) {
-          const projectIds = project_slugs
-            .map((slug: string) => projects.find(p => p.slug === slug)?.id)
-            .filter((id: string | undefined) => id !== undefined);
-          if (projectIds.length > 0) {
-            queryParams.project = projectIds;
-          }
-        }
-
-        const {y_axes} = toolLink.params;
-        if (y_axes) {
-          queryParams.yAxis = y_axes;
-        }
-
-        if (sort) {
-          queryParams.sort = sort;
-        }
-
-        return {
-          pathname: `/organizations/${orgSlug}/explore/discover/homepage/`,
-          query: queryParams,
-        };
-      }
-
-      // Default to spans (traces) search
-      const {y_axes, group_by, mode} = toolLink.params;
+      const {dataset, project_slugs, query, sort, stats_period, start, end} =
+        toolLink.params;
 
       const queryParams: Record<string, any> = {
         query: query || '',
         project: null,
       };
+      if (stats_period) {
+        queryParams.statsPeriod = stats_period;
+      }
+      if (sort) {
+        queryParams.sort = sort;
+      }
 
-      // If project_slugs is provided, look up the project IDs
+      // page filter expects no timezone (treated as UTC) or +HH:MM offset.
+      if (start) {
+        queryParams.start = start.replace(/Z$/, '');
+      }
+      if (end) {
+        queryParams.end = end.replace(/Z$/, '');
+      }
+
+      // If project_slugs is provided, look up the IDs and include them in qparams
       if (project_slugs && project_slugs.length > 0 && projects) {
         const projectIds = project_slugs
           .map((slug: string) => projects.find(p => p.slug === slug)?.id)
@@ -452,10 +456,76 @@ export function buildToolLinkUrl(
         }
       }
 
-      const aggregateFields: any[] = [];
-      if (stats_period) {
-        queryParams.statsPeriod = stats_period;
+      if (dataset === 'issues') {
+        return {
+          pathname: `/organizations/${orgSlug}/issues/`,
+          query: queryParams,
+        };
       }
+
+      if (dataset === 'errors') {
+        queryParams.dataset = 'errors';
+        queryParams.queryDataset = 'error-events';
+
+        const {y_axes, group_by} = toolLink.params;
+        if (y_axes) {
+          queryParams.yAxis = y_axes;
+        }
+
+        // In Discover, group_by values become selected columns (field param)
+        // along with the y_axes aggregates
+        const fields: string[] = [];
+        if (group_by) {
+          const groupByArray = Array.isArray(group_by) ? group_by : [group_by];
+          fields.push(...groupByArray);
+        }
+        if (y_axes) {
+          const yAxesArray = Array.isArray(y_axes) ? y_axes : [y_axes];
+          fields.push(...yAxesArray);
+        }
+        if (fields.length > 0) {
+          queryParams.field = fields;
+        }
+
+        // Discover sort strips parentheses from aggregates: -count() -> -count
+        if (queryParams.sort) {
+          queryParams.sort = queryParams.sort.replace(/\(\)/g, '');
+        }
+
+        return {
+          pathname: `/organizations/${orgSlug}/explore/discover/homepage/`,
+          query: queryParams,
+        };
+      }
+
+      if (dataset === 'logs') {
+        queryParams[LOGS_QUERY_KEY] = query || '';
+        delete queryParams.query;
+
+        if (sort) {
+          queryParams[LOGS_SORT_BYS_KEY] = sort;
+          delete queryParams.sort;
+        }
+
+        const {group_by, mode} = toolLink.params;
+        if (group_by) {
+          const groupByArray = Array.isArray(group_by) ? group_by : [group_by];
+          queryParams[LOGS_GROUP_BY_KEY] = groupByArray;
+        }
+        if (mode) {
+          queryParams.mode = mode === 'aggregates' ? 'aggregate' : 'samples';
+        }
+
+        return {
+          pathname: `/organizations/${orgSlug}/explore/logs/`,
+          query: queryParams,
+        };
+      }
+
+      // Default to spans (traces) search
+      const {y_axes, group_by, mode} = toolLink.params;
+      const aggregateFields: string[] = [];
+
       if (y_axes) {
         const axes = Array.isArray(y_axes) ? y_axes : [y_axes];
         const stringifiedAxes = axes.map(axis => JSON.stringify(axis));
@@ -464,12 +534,12 @@ export function buildToolLinkUrl(
         aggregateFields.push(JSON.stringify({yAxes: axes}));
       }
       if (group_by) {
-        const groupByValue = Array.isArray(group_by) ? group_by[0] : group_by;
-        queryParams.groupBy = groupByValue;
-        aggregateFields.push(JSON.stringify({groupBy: groupByValue}));
-      }
-      if (sort) {
-        queryParams.sort = sort;
+        const groupByArray = Array.isArray(group_by) ? group_by : [group_by];
+        // Each groupBy value becomes a separate query param and aggregateField entry
+        queryParams.groupBy = groupByArray;
+        for (const groupByValue of groupByArray) {
+          aggregateFields.push(JSON.stringify({groupBy: groupByValue}));
+        }
       }
       if (mode) {
         queryParams.mode = mode === 'aggregates' ? 'aggregate' : 'samples';

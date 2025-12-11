@@ -9,7 +9,10 @@ interface UseBlockNavigationProps {
   isOpen: boolean;
   setFocusedBlockIndex: (index: number) => void;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  isFileApprovalPending?: boolean;
   isMinimized?: boolean;
+  isPolling?: boolean;
+  isQuestionPending?: boolean;
   onDeleteFromIndex?: (index: number) => void;
   onKeyPress?: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean;
   onNavigate?: () => void;
@@ -22,7 +25,10 @@ export function useBlockNavigation({
   blockRefs,
   textareaRef,
   setFocusedBlockIndex,
+  isFileApprovalPending = false,
   isMinimized = false,
+  isPolling = false,
+  isQuestionPending = false,
   onDeleteFromIndex,
   onKeyPress,
   onNavigate,
@@ -36,6 +42,15 @@ export function useBlockNavigation({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
+
+      // Don't handle Enter when file approval or question is pending (it's used for approve/submit)
+      // or when the run is loading/polling
+      if (
+        (isFileApprovalPending || isQuestionPending || isPolling) &&
+        e.key === 'Enter'
+      ) {
+        return;
+      }
 
       if (e.key === 'ArrowUp') {
         e.preventDefault();
@@ -95,15 +110,6 @@ export function useBlockNavigation({
             scrollToElement(textareaElement);
           }
         }
-      } else if (e.key === 'Backspace' && focusedBlockIndex >= 0) {
-        e.preventDefault();
-        onDeleteFromIndex?.(focusedBlockIndex);
-        setFocusedBlockIndex(-1);
-        const textareaElement = textareaRef.current;
-        if (textareaElement) {
-          textareaElement.focus();
-          scrollToElement(textareaElement);
-        }
       } else if (e.key === 'Enter' && focusedBlockIndex >= 0) {
         e.preventDefault();
         onKeyPress?.(focusedBlockIndex, 'Enter');
@@ -119,7 +125,10 @@ export function useBlockNavigation({
     blockRefs,
     textareaRef,
     setFocusedBlockIndex,
+    isFileApprovalPending,
     isMinimized,
+    isPolling,
+    isQuestionPending,
     onDeleteFromIndex,
     onKeyPress,
     onNavigate,

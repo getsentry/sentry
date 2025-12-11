@@ -15,6 +15,8 @@ import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
+import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
+
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
@@ -276,6 +278,11 @@ export function Control({
     },
   });
 
+  const overflowBoundaryId = useBoundaryContext();
+  const overflowBoundary = overflowBoundaryId
+    ? document.getElementById(overflowBoundaryId)
+    : null;
+
   // Manage overlay position
   const {
     isOpen: overlayIsOpen,
@@ -298,7 +305,11 @@ export function Control({
     preventOverflowOptions: {
       ...preventOverflowOptions,
       boundary:
-        preventOverflowOptions?.boundary ?? document.querySelector('main') ?? undefined,
+        preventOverflowOptions?.boundary ??
+        overflowBoundary ??
+        document.querySelector('main') ??
+        document.getElementById('main') ??
+        undefined,
     },
     flipOptions,
     strategy,
@@ -589,7 +600,7 @@ const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
   z-index: 2;
 
   font-size: ${p => (p.size === 'xs' ? p.theme.fontSize.xs : p.theme.fontSize.sm)};
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const MenuHeaderTrailingItems = styled('div')`

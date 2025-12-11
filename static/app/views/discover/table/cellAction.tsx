@@ -488,7 +488,7 @@ const ActionMenuTrigger = styled(Button)`
 const ActionMenuTriggerV2 = styled('div')<{hasLinks?: boolean}>`
   a,
   span {
-    color: ${p => (p.hasLinks ? p.theme.linkColor : p.theme.textColor)};
+    color: ${p => (p.hasLinks ? p.theme.linkColor : p.theme.tokens.content.primary)};
   }
   :hover {
     cursor: pointer;

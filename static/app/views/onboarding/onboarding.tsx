@@ -298,7 +298,7 @@ const Container = styled('div')<{hasFooter: boolean}>`
   display: flex;
   flex-direction: column;
   position: relative;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: 120px ${space(3)};
   width: 100%;
   margin: 0 auto;
@@ -307,7 +307,7 @@ const Container = styled('div')<{hasFooter: boolean}>`
 `;
 
 const Header = styled('header')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding-left: ${space(4)};
   padding-right: ${space(4)};
   position: sticky;
@@ -324,7 +324,7 @@ const Header = styled('header')`
 const LogoSvg = styled(LogoSentry)`
   width: 130px;
   height: 30px;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const OnboardingStep = styled(motion.div)`

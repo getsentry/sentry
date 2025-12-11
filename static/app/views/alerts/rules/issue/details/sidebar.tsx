@@ -217,7 +217,7 @@ const Badge = styled('span')`
   display: inline-block;
   background-color: ${p => p.theme.purple300};
   padding: 0 ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.white};
   text-transform: uppercase;
   text-align: center;
@@ -230,8 +230,8 @@ const ConditionsBadge = styled('span')`
   display: block;
   background-color: ${p => p.theme.surface200};
   padding: 0 ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.textColor};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
   margin-bottom: ${space(1)};
   width: fit-content;

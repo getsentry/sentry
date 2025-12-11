@@ -28,7 +28,7 @@ class FetchIssueSummaryTest(TestCase):
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.quotas.backend.check_seer_quota")
     def test_fetch_issue_summary_with_hide_ai_features_enabled(
         self, mock_has_budget, mock_rate_limited, mock_seer_ack
     ):
@@ -50,7 +50,7 @@ class FetchIssueSummaryTest(TestCase):
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.quotas.backend.check_seer_quota")
     def test_fetch_issue_summary_with_hide_ai_features_disabled(
         self, mock_has_budget, mock_rate_limited, mock_seer_ack, mock_get_issue_summary
     ):
@@ -104,7 +104,7 @@ class FetchIssueSummaryTest(TestCase):
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.quotas.backend.check_seer_quota")
     def test_fetch_issue_summary_without_enable_seer_enhanced_alerts(
         self, mock_has_budget: MagicMock, mock_seer_ack: MagicMock
     ) -> None:
@@ -148,7 +148,7 @@ class FetchIssueSummaryTest(TestCase):
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.quotas.backend.check_seer_quota")
     def test_fetch_issue_summary_no_budget(
         self, mock_has_budget: MagicMock, mock_rate_limited: MagicMock, mock_seer_ack: MagicMock
     ) -> None:
@@ -166,7 +166,7 @@ class FetchIssueSummaryTest(TestCase):
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.quotas.backend.check_seer_quota")
     def test_fetch_issue_summary_timeout_error(
         self, mock_has_budget, mock_rate_limited, mock_seer_ack, mock_get_issue_summary
     ):
@@ -189,7 +189,7 @@ class FetchIssueSummaryTest(TestCase):
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.quotas.backend.check_seer_quota")
     def test_fetch_issue_summary_api_error(
         self, mock_has_budget, mock_rate_limited, mock_seer_ack, mock_get_issue_summary
     ):

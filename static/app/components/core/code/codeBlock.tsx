@@ -8,7 +8,8 @@ import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {loadPrismLanguage} from 'sentry/utils/prism';
-import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme} from 'sentry/utils/theme/theme';
 
 interface CodeBlockProps {
   children: string;
@@ -209,11 +210,7 @@ export function CodeBlock({
 
   // Override theme provider when in dark mode to provider dark theme to
   // components
-  return (
-    <ThemeProvider theme={dark ? (DO_NOT_USE_darkChonkTheme as any) : theme}>
-      {snippet}
-    </ThemeProvider>
-  );
+  return <ThemeProvider theme={dark ? darkTheme : theme}>{snippet}</ThemeProvider>;
 }
 
 const FlexSpacer = styled('div')`
@@ -224,7 +221,7 @@ const Wrapper = styled('div')<{isRounded: boolean}>`
   position: relative;
   height: 100%;
   background: var(--prism-block-background);
-  border-radius: ${p => (p.isRounded ? p.theme.borderRadius : '0px')};
+  border-radius: ${p => (p.isRounded ? p.theme.radius.md : '0px')};
 
   pre {
     margin: 0;
@@ -241,7 +238,7 @@ const Header = styled('div')<{isFloating: boolean}>`
   align-items: center;
 
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => p.theme.fontSize.sm};
   color: var(--prism-base);
   font-weight: ${p => p.theme.fontWeight.bold};
   z-index: 2;
