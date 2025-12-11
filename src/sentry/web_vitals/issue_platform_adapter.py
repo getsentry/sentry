@@ -2,6 +2,8 @@ import hashlib
 from datetime import UTC, datetime
 from uuid import uuid4
 
+import sentry_sdk
+
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import hash_fingerprint
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -16,7 +18,12 @@ def create_fingerprint(vital_grouping: WebVitalIssueDetectionGroupingType, trans
     return fingerprint
 
 
+@sentry_sdk.tracing.trace
 def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: str) -> bool:
+    project = data["project"]
+    sentry_sdk.set_tag("project_id", project.id)
+    sentry_sdk.set_tag("organization_id", project.organization_id)
+
     # Do not create a new web vital issue if an open issue already exists
     if check_unresolved_web_vitals_issue_exists(data):
         return False
