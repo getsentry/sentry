@@ -20,7 +20,7 @@ export function useMcpSpanSearchProps() {
     'search-query-builder-raw-search-replacement'
   );
 
-  const eapSpanSearchQueryBuilderProps: UseEAPSpanSearchQueryBuilderProps = useMemo(
+  const searchQueryBuilderProps: UseEAPSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
@@ -38,11 +38,11 @@ export function useMcpSpanSearchProps() {
     [hasRawSearchReplacement, searchQuery, setSearchQuery, unsetCursor]
   );
 
-  const {searchQueryBuilderProviderProps, traceItemSearchQueryBuilderProps} =
-    useEAPSpanSearchQueryBuilderProps(eapSpanSearchQueryBuilderProps);
+  const {searchQueryBuilderProviderProps, eapSpanSearchQueryBuilderProps} =
+    useEAPSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
   return {
-    queryBuilder: traceItemSearchQueryBuilderProps,
+    queryBuilder: eapSpanSearchQueryBuilderProps,
     provider: searchQueryBuilderProviderProps,
   };
 }

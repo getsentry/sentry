@@ -371,7 +371,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
 
-  const eapSpanSearchQueryBuilderProps: UseEAPSpanSearchQueryBuilderProps = useMemo(
+  const searchQueryBuilderProps: UseEAPSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: query,
       onSearch: (newQuery: string) => {
@@ -425,8 +425,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
     ]
   );
 
-  const {searchQueryBuilderProviderProps, traceItemSearchQueryBuilderProps} =
-    useEAPSpanSearchQueryBuilderProps(eapSpanSearchQueryBuilderProps);
+  const {searchQueryBuilderProviderProps, eapSpanSearchQueryBuilderProps} =
+    useEAPSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
   return (
     <Layout.Main width="full">
@@ -451,7 +451,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
               <DatePageFilter {...datePageFilterProps} />
             </StyledPageFilterBar>
             <SpansSearchBar
-              eapSpanSearchQueryBuilderProps={traceItemSearchQueryBuilderProps}
+              eapSpanSearchQueryBuilderProps={eapSpanSearchQueryBuilderProps}
             />
             {hasCrossEventQueryingFlag ? <CrossEventQueryingDropdown /> : null}
             {hasCrossEvents ? <SpansTabCrossEventSearchBars /> : null}
