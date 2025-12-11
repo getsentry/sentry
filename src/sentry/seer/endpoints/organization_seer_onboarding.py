@@ -98,27 +98,19 @@ class OrganizationSeerOnboardingEndpoint(OrganizationEndpoint):
         is_auto_open_prs_enabled = autofix_config["auto_open_prs"]
         project_repo_mapping = autofix_config["project_repo_mapping"]
 
+        # This will raise if any of the projects belong to another organization.
+        self.get_projects(request, organization, project_ids=set(project_repo_mapping.keys()))
+
         project_repo_dict: dict[int, list[SeerRepoDefinition]] = {}
         for project_id, repos_data in project_repo_mapping.items():
             project_repo_dict[project_id] = [
                 SeerRepoDefinition(**repo_data) for repo_data in repos_data
             ]
 
-        try:
-            onboarding_seer_settings_update(
-                organization_id=organization.id,
-                is_rca_enabled=is_rca_enabled,
-                is_auto_open_prs_enabled=is_auto_open_prs_enabled,
-                project_repo_dict=project_repo_dict,
-            )
-        except Exception:
-            logger.exception(
-                "Failed to update Seer settings during onboarding",
-                extra={"organization_id": organization.id},
-            )
-            return Response(
-                {"detail": "Failed to update Seer settings. Please try again."},
-                status=500,
-            )
-
+        onboarding_seer_settings_update(
+            organization_id=organization.id,
+            is_rca_enabled=is_rca_enabled,
+            is_auto_open_prs_enabled=is_auto_open_prs_enabled,
+            project_repo_dict=project_repo_dict,
+        )
         return Response(status=204)

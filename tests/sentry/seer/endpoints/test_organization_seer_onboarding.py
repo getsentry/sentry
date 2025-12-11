@@ -14,6 +14,8 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
     def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
+        self.project1 = self.create_project(organization=self.org)
+        self.project2 = self.create_project(organization=self.org)
         self.login_as(user=self.user)
         self.path = reverse("sentry-api-0-organization-seer-onboarding", args=[self.org.slug])
 
@@ -26,7 +28,7 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
                     "enable_root_cause_analysis": True,
                     "auto_open_prs": True,
                     "project_repo_mapping": {
-                        "1": [
+                        str(self.project1.id): [
                             {
                                 "provider": "github",
                                 "owner": "sentry",
@@ -53,7 +55,7 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
                                 "external_id": "0987654321",
                             },
                         ],
-                        "2": [
+                        str(self.project2.id): [
                             {
                                 "provider": "github",
                                 "owner": "sentry",
@@ -73,7 +75,7 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             is_rca_enabled=True,
             is_auto_open_prs_enabled=True,
             project_repo_dict={
-                1: [
+                self.project1.id: [
                     SeerRepoDefinition(
                         provider="github",
                         owner="sentry",
@@ -107,7 +109,7 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
                         provider_raw=None,
                     ),
                 ],
-                2: [
+                self.project2.id: [
                     SeerRepoDefinition(
                         provider="github",
                         owner="sentry",
@@ -123,6 +125,48 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
                     )
                 ],
             },
+        )
+
+    @patch("sentry.seer.endpoints.organization_seer_onboarding.onboarding_seer_settings_update")
+    def test_post_empty_project_repo_mapping_success(self, mock_onboarding_update) -> None:
+        response = self.client.post(
+            self.path,
+            {
+                "autofix": {
+                    "enable_root_cause_analysis": True,
+                    "auto_open_prs": True,
+                    "project_repo_mapping": {},
+                },
+            },
+        )
+
+        assert response.status_code == 204
+        mock_onboarding_update.assert_called_once_with(
+            organization_id=self.org.id,
+            is_rca_enabled=True,
+            is_auto_open_prs_enabled=True,
+            project_repo_dict={},
+        )
+
+    @patch("sentry.seer.endpoints.organization_seer_onboarding.onboarding_seer_settings_update")
+    def test_post_empty_success(self, mock_onboarding_update) -> None:
+        response = self.client.post(
+            self.path,
+            {
+                "autofix": {
+                    "enable_root_cause_analysis": False,
+                    "auto_open_prs": False,
+                    "project_repo_mapping": {},
+                },
+            },
+        )
+
+        assert response.status_code == 204
+        mock_onboarding_update.assert_called_once_with(
+            organization_id=self.org.id,
+            is_rca_enabled=False,
+            is_auto_open_prs_enabled=False,
+            project_repo_dict={},
         )
 
     @patch("sentry.seer.endpoints.organization_seer_onboarding.onboarding_seer_settings_update")
@@ -186,7 +230,7 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
                     "enable_root_cause_analysis": True,
                     "auto_open_prs": True,
                     "project_repo_mapping": {
-                        "1": {
+                        str(self.project1.id): {
                             "provider": "github",
                             "owner": "sentry",
                             "name": "sentry",
@@ -201,30 +245,11 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
         mock_onboarding_update.assert_not_called()
         assert response.json() == {
             "autofix": {
-                "project_repo_mapping": ["Expected a list of repositories for project 1"],
+                "project_repo_mapping": [
+                    f"Expected a list of repositories for project {self.project1.id}"
+                ],
             }
         }
-
-    @patch("sentry.seer.endpoints.organization_seer_onboarding.onboarding_seer_settings_update")
-    def test_post_empty_project_repo_mapping(self, mock_onboarding_update) -> None:
-        response = self.client.post(
-            self.path,
-            {
-                "autofix": {
-                    "enable_root_cause_analysis": True,
-                    "auto_open_prs": True,
-                    "project_repo_mapping": {},
-                },
-            },
-        )
-
-        assert response.status_code == 204
-        mock_onboarding_update.assert_called_once_with(
-            organization_id=self.org.id,
-            is_rca_enabled=True,
-            is_auto_open_prs_enabled=True,
-            project_repo_dict={},
-        )
 
     @patch("sentry.seer.endpoints.organization_seer_onboarding.onboarding_seer_settings_update")
     def test_post_handles_exceptions(self, mock_onboarding_update) -> None:
@@ -236,7 +261,7 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
                     "enable_root_cause_analysis": True,
                     "auto_open_prs": True,
                     "project_repo_mapping": {
-                        "1": [
+                        str(self.project1.id): [
                             {
                                 "provider": "github",
                                 "owner": "sentry",
@@ -251,4 +276,39 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
 
         assert response.status_code == 500
         mock_onboarding_update.assert_called_once()
-        assert response.json() == {"detail": "Failed to update Seer settings. Please try again."}
+
+    @patch("sentry.seer.endpoints.organization_seer_onboarding.onboarding_seer_settings_update")
+    def test_project_from_other_organization_forbidden(self, mock_onboarding_update) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        response = self.client.post(
+            self.path,
+            {
+                "autofix": {
+                    "enable_root_cause_analysis": True,
+                    "auto_open_prs": True,
+                    "project_repo_mapping": {
+                        str(self.project1.id): [
+                            {
+                                "provider": "github",
+                                "owner": "sentry",
+                                "name": "sentry",
+                                "external_id": "1234567890",
+                            },
+                        ],
+                        str(other_project.id): [
+                            {
+                                "provider": "github",
+                                "owner": "sentry",
+                                "name": "sentry",
+                                "external_id": "1234567890",
+                            },
+                        ],
+                    },
+                },
+            },
+        )
+
+        assert response.status_code == 403
+        mock_onboarding_update.assert_not_called()
+        assert response.json() == {"detail": "You do not have permission to perform this action."}
