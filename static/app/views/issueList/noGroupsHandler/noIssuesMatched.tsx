@@ -28,7 +28,7 @@ function NoIssuesMatched() {
         <Tips>
           <li>{t('Double check your project, environment, and date filters')}</li>
           <li>
-            {tct('Make sure your search has the [link].', {
+            {tct('Make sure your search has the [link]', {
               link: (
                 <ExternalLink href="https://docs.sentry.io/concepts/search/">
                   {t('right syntax')}
