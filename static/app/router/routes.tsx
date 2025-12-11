@@ -1218,6 +1218,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('getsentry/views/seerAutomation/index')),
       children: [
         {
+          path: 'trial/',
+          component: make(() => import('getsentry/views/seerAutomation/trial')),
+        },
+        {
           index: true,
           component: make(() => import('getsentry/views/seerAutomation/seerAutomation')),
         },
