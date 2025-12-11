@@ -129,14 +129,14 @@ interface ActionFilterBlockProps {
 
 function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
   const {state, actions} = useAutomationBuilderContext();
-  const {errors, setErrors} = useAutomationBuilderErrorContext();
+  const {setErrors} = useAutomationBuilderErrorContext();
   const {mutate: sendTestNotification, isPending} = useSendTestNotification({
     onError: (error: RequestError) => {
       // Store test notification error in error context
-      setErrors({
-        ...errors,
+      setErrors(prev => ({
+        ...prev,
         ...error?.responseJSON,
-      });
+      }));
     },
   });
 
@@ -147,7 +147,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
 
     // Validate actions before sending test notification
     const actionErrors = validateActions({actions: actionFilterActions});
-    setErrors({...errors, ...actionErrors});
+    setErrors(prev => ({...prev, ...actionErrors}));
 
     // Only send test notification if there are no validation errors
     if (Object.keys(actionErrors).length === 0) {
@@ -157,7 +157,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
         })
       );
     }
-  }, [actionFilter.actions, sendTestNotification, errors, setErrors]);
+  }, [actionFilter.actions, sendTestNotification, setErrors]);
 
   return (
     <IfThenWrapper>
