@@ -557,15 +557,10 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert subtitle == "1 app analyzed"
 
         # Verify that size changes are calculated and displayed
-        assert "4.2 MB" in summary  # Current download size
-        assert "8.6 MB" in summary  # Current install size
+        # (4.2MB - 4.0MB = 209.7KB, 8.6MB - 8.3MB = 314.6KB)
+        assert "4.2 MB (+209.7 KB)" in summary  # Current download size
+        assert "8.6 MB (+314.6 KB)" in summary  # Current install size
 
-        # Verify that changes are shown (4.2MB - 4.0MB = 209.7KB, 8.6MB - 8.3MB = 314.6KB)
-        assert "+209.7 KB" in summary  # Download change
-        assert "+314.6 KB" in summary  # Install change
-
-        # Verify the table structure includes the Change columns
-        assert "Change" in summary
         assert "com.example.android" in summary
         assert "1.0.3 (42)" in summary
 

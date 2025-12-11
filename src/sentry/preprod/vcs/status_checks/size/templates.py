@@ -147,6 +147,9 @@ def _format_artifact_summary(
 
         name_text = f"[{app_name}<br>`{app_id}`]({artifact_url})"
 
+        download_text = f"{download_size_display} ({download_change})"
+        install_text = f"{install_size_display} ({install_change})"
+
         # Configuration
         configuration_text = (
             f"{artifact.build_configuration.name or '--'}" if artifact.build_configuration else "--"
@@ -156,13 +159,13 @@ def _format_artifact_summary(
         na_text = str(_("N/A"))
 
         table_rows.append(
-            f"| {name_text} | {configuration_text} | {version_string} | {download_size_display} | {download_change} | {install_size_display} | {install_change} | {na_text} |"
+            f"| {name_text} | {configuration_text} | {version_string} | {download_text} | {install_text} | {na_text} |"
         )
 
     install_label = str(_("Uncompressed")) if artifact.is_android() else str(_("Install"))
     return _(
-        "| Name | Configuration | Version | Download | Change | {install_label} | Change | Approval |\n"
-        "|------|---------------|---------|----------|--------|-----------------|--------|----------|\n"
+        "| Name | Configuration | Version | Download | {install_label} | Approval |\n"
+        "|------|--------------|---------|----------|-----------------|----------|\n"
         "{table_rows}"
     ).format(table_rows="\n".join(table_rows), install_label=install_label)
 
