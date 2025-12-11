@@ -7,11 +7,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableR
 from sentry_protos.snuba.v1.request_common_pb2 import ResponseMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
-from sentry.preprod.eap.read import (
-    PreprodSizeFilters,
-    _build_filters,
-    query_preprod_size_metrics,
-)
+from sentry.preprod.eap.read import PreprodSizeFilters, _build_filters, query_preprod_size_metrics
 from sentry.testutils.cases import TestCase
 
 
@@ -40,9 +36,7 @@ class TestBuildFilters(TestCase):
         assert app_id_filter.comparison_filter.key.type == AttributeKey.Type.TYPE_STRING
         assert app_id_filter.comparison_filter.value.val_str == "com.example.app"
 
-        git_ref_filter = next(
-            f for f in result if f.comparison_filter.key.name == "git_head_ref"
-        )
+        git_ref_filter = next(f for f in result if f.comparison_filter.key.name == "git_head_ref")
         assert git_ref_filter.comparison_filter.key.type == AttributeKey.Type.TYPE_STRING
         assert git_ref_filter.comparison_filter.value.val_str == "main"
 
@@ -55,9 +49,7 @@ class TestBuildFilters(TestCase):
 
         assert len(result) == 2
 
-        artifact_filter = next(
-            f for f in result if f.comparison_filter.key.name == "artifact_type"
-        )
+        artifact_filter = next(f for f in result if f.comparison_filter.key.name == "artifact_type")
         assert artifact_filter.comparison_filter.key.type == AttributeKey.Type.TYPE_INT
         assert artifact_filter.comparison_filter.value.val_int == 0
 
