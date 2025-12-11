@@ -2,6 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
+import {AsyncCompactSelect} from 'sentry/components/core/asyncCompactSelect';
 import {Button} from 'sentry/components/core/button';
 import {
   CompactSelect,
@@ -52,6 +53,12 @@ export interface ChoiceMapperProps extends DefaultProps {
   addDropdown: DistributedOmit<SingleSelectProps<string>, 'options' | 'clearable'> & {
     items: Array<SelectOption<string>>;
     noResultsMessage?: string;
+    /**
+     * Optional URL for async search. When provided, the dropdown will fetch
+     * results from this endpoint instead of using the prepopulated items.
+     */
+    searchField?: string;
+    url?: string;
   };
   /**
    * A list of column labels (headers) for the multichoice table. This should
@@ -150,7 +157,11 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
     };
 
     const addRow = (data: SelectOption<string>) => {
-      saveChanges({...value, [data.value]: emptyValue});
+      // Include the label in the value for async-loaded items
+      const newValue = addDropdown.url
+        ? {...emptyValue, __label: data.label}
+        : emptyValue;
+      saveChanges({...value, [data.value]: newValue});
     };
 
     const removeRow = (itemKey: string) => {
@@ -177,9 +188,42 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
         return map;
       }, {}) ?? {};
 
-    const dropdown = (
+    // Use async search if url is provided, otherwise use prepopulated dropdown
+    const dropdown = addDropdown.url ? (
+      <AsyncCompactSelect
+        url={addDropdown.url}
+        value={undefined}
+        onQuery={(query: string) => ({
+          field: addDropdown.searchField,
+          query,
+        })}
+        onResults={(data: any) =>
+          data
+            .filter((item: SelectOption<string>) => !value.hasOwnProperty(item.value))
+            .map((item: SelectOption<string>) => ({
+              value: item.value,
+              label: item.label,
+            }))
+        }
+        defaultOptions={selectableValues}
+        onChange={addRow}
+        size="xs"
+        menuWidth={250}
+        disabled={false}
+        emptyMessage={addDropdown.noResultsMessage ?? t('No results found')}
+        triggerProps={{
+          ...addDropdown.triggerProps,
+          children: (
+            <Flex gap="xs">
+              <IconAdd /> {addButtonText}
+            </Flex>
+          ),
+        }}
+      />
+    ) : (
       <CompactSelect
         {...addDropdown}
+        value={undefined}
         emptyMessage={
           selectableValues.length === 0
             ? addDropdown.emptyMessage
@@ -223,7 +267,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
         </Header>
         {Object.keys(value).map(itemKey => (
           <Row key={itemKey}>
-            <LabelColumn>{valueMap[itemKey]}</LabelColumn>
+            <LabelColumn>{value[itemKey].__label ?? valueMap[itemKey]}</LabelColumn>
             {mappedKeys.map((fieldKey, i) => (
               <Column key={fieldKey}>
                 <Control>
