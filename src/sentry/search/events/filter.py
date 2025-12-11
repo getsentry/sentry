@@ -644,19 +644,48 @@ def convert_search_filter_to_snuba_query(
             operator = "="
             if search_filter.operator == "NOT IN":
                 operator = "!="
-            condition = [
-                convert_search_filter_to_snuba_query(
+            condition = []
+            for wc in wildcards:
+                cond = convert_search_filter_to_snuba_query(
                     SearchFilter(search_filter.key, operator, SearchValue(wc))
                 )
-                for wc in wildcards
-            ]
+                # Flatten nested conditions that may have is_null checks
+                # When we have inequality operators on non-tag fields, convert_search_filter_to_snuba_query
+                # returns [is_null_condition, actual_condition]. We need to unwrap this for OR conditions.
+                if isinstance(cond, list) and len(cond) == 2 and isinstance(cond[0], list):
+                    # This is likely [is_null_condition, actual_condition]
+                    # Check if first element looks like an is_null condition
+                    if (
+                        len(cond[0]) == 3
+                        and isinstance(cond[0][0], list)
+                        and len(cond[0][0]) >= 1
+                        and cond[0][0][0] == "isNull"
+                    ):
+                        # Extend with both parts instead of appending nested list
+                        condition.extend(cond)
+                    else:
+                        condition.append(cond)
+                else:
+                    condition.append(cond)
             if len(non_wildcards) > 0:
                 non_wcs = convert_search_filter_to_snuba_query(
                     SearchFilter(
                         search_filter.key, search_filter.operator, SearchValue(non_wildcards)
                     )
                 )
-                condition.append(non_wcs)
+                # Apply same flattening logic for non-wildcards
+                if isinstance(non_wcs, list) and len(non_wcs) == 2 and isinstance(non_wcs[0], list):
+                    if (
+                        len(non_wcs[0]) == 3
+                        and isinstance(non_wcs[0][0], list)
+                        and len(non_wcs[0][0]) >= 1
+                        and non_wcs[0][0][0] == "isNull"
+                    ):
+                        condition.extend(non_wcs)
+                    else:
+                        condition.append(non_wcs)
+                else:
+                    condition.append(non_wcs)
         elif search_filter.value.is_wildcard():
             # mypy complains if you just use the literal; int isn't an Any, somehow?
             match_val: Any = 1
