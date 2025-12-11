@@ -90,7 +90,7 @@ function TabPanel({
 const TabPanelWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
   orientation: Orientation;
 }>`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 
   ${p =>
     p.orientation === 'horizontal'

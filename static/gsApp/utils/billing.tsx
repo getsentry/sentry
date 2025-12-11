@@ -6,6 +6,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {IconSize} from 'sentry/utils/theme';
 
 import {
@@ -158,11 +159,17 @@ export function formatReservedWithUnits(
   if (!isByteCategory(dataCategory)) {
     return formatReservedNumberToString(reservedQuantity, options);
   }
+
   // convert reservedQuantity to BYTES to check for unlimited
-  const usageGb = reservedQuantity ? reservedQuantity * GIGABYTE : reservedQuantity;
+  // unless it's already unlimited
+  const usageGb =
+    reservedQuantity && !isUnlimitedReserved(reservedQuantity)
+      ? reservedQuantity * GIGABYTE
+      : reservedQuantity;
   if (isUnlimitedReserved(usageGb)) {
     return options.isGifted ? '0 GB' : UNLIMITED;
   }
+
   if (!options.useUnitScaling) {
     const byteOptions =
       dataCategory === DataCategory.LOG_BYTE
@@ -603,6 +610,23 @@ export function supportsPayg(subscription: Subscription) {
 }
 
 /**
+ * Whether the category can use PAYG on the subscription given existing budgets.
+ * Does not check if there is PAYG left.
+ */
+export function hasPaygBudgetForCategory(
+  subscription: Subscription,
+  category: DataCategory
+) {
+  if (!subscription.onDemandBudgets) {
+    return false;
+  }
+  if (subscription.onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+    return (subscription.onDemandBudgets.budgets?.[category] ?? 0) > 0;
+  }
+  return subscription.onDemandBudgets.sharedMaxBudget > 0;
+}
+
+/**
  * Returns true if the current user has billing perms.
  */
 export function hasBillingAccess(organization: Organization) {
@@ -622,7 +646,9 @@ export function hasAccessToSubscriptionOverview(
  */
 export function getSoftCapType(metricHistory: BillingMetricHistory): string | null {
   if (metricHistory.softCapType) {
-    return titleCase(metricHistory.softCapType.replace(/_/g, ' '));
+    return toTitleCase(metricHistory.softCapType.replace(/_/g, ' ').toLowerCase(), {
+      allowInnerUpperCase: true,
+    }).replace(' ', metricHistory.softCapType === 'ON_DEMAND' ? '-' : ' ');
   }
   if (metricHistory.trueForward) {
     return 'True Forward';
@@ -706,6 +732,45 @@ export function getPotentialProductTrial(
     .sort((a, b) => (b.lengthDays ?? 0) - (a.lengthDays ?? 0));
 
   return potentialTrials[0] ?? null;
+}
+
+/**
+ * Gets the appropriate Seer data category for product trials.
+ * Uses SEER_USER for seat-based billing, falls back to SEER_AUTOFIX for legacy.
+ *
+ * Priority order:
+ * 1. SEER_USER (seat-based billing)
+ * 2. SEER_AUTOFIX (legacy billing)
+ */
+export function getSeerTrialCategory(
+  productTrials: ProductTrial[] | null
+): DataCategory | null {
+  if (!productTrials) {
+    return null;
+  }
+
+  // Check for SEER_USER trial first (seat-based billing takes precedence)
+  // For unstarted trials, endDate is the "start by" deadline
+  // For started trials, endDate is the expiration date
+  // In both cases, endDate must not have passed
+  const seerUserTrial = productTrials.find(
+    pt =>
+      pt.category === DataCategory.SEER_USER && getDaysSinceDate(pt.endDate ?? '') <= 0
+  );
+  if (seerUserTrial) {
+    return DataCategory.SEER_USER;
+  }
+
+  // Fall back to SEER_AUTOFIX (legacy)
+  const seerAutofixTrial = productTrials.find(
+    pt =>
+      pt.category === DataCategory.SEER_AUTOFIX && getDaysSinceDate(pt.endDate ?? '') <= 0
+  );
+  if (seerAutofixTrial) {
+    return DataCategory.SEER_AUTOFIX;
+  }
+
+  return null;
 }
 
 export function trialPromptIsDismissed(prompt: PromptData, subscription: Subscription) {
@@ -860,4 +925,136 @@ export function formatOnDemandDescription(
 ): string {
   const budgetTerm = displayBudgetName(plan, {title: false}).toLowerCase();
   return description.replace(new RegExp(`\\s*${budgetTerm}\\s*`, 'gi'), ' ').trim();
+}
+
+/**
+ * Given a DataCategory or AddOnCategory, returns true if it is an add-on, false otherwise.
+ */
+export function checkIsAddOn(
+  selectedProduct: DataCategory | AddOnCategory | string
+): boolean {
+  return Object.values(AddOnCategory).includes(selectedProduct as AddOnCategory);
+}
+
+/**
+ * Check if a data category is a child category of an add-on.
+ * If `checkReserved` is true, we check if the data category is a child of an add-on
+ * for this particular subscription.
+ */
+export function checkIsAddOnChildCategory(
+  subscription: Subscription,
+  category: DataCategory,
+  checkReserved: boolean
+) {
+  const parentAddOn = getParentAddOn(subscription, category, checkReserved);
+  return !!parentAddOn;
+}
+
+/**
+ * Get the parent add-on for a data category, if any.
+ *
+ * When `checkReserved` is true and a potential parent is found, we check if the data category
+ * has any sibling categories also tallied for billing. If so, we need to check if the data category
+ * should be treated as part of the add-on (reserved budget or zero prepaid) or as a separate
+ * product (any other prepaid volume).
+ *
+ * If the data category has no sibling categories, `checkReserved` is ignored and we return the parent add-on.
+ */
+export function getParentAddOn(
+  subscription: Subscription | null,
+  category: DataCategory,
+  checkReserved: boolean
+): AddOnCategory | null {
+  if (!subscription) {
+    return null;
+  }
+  const parentAddOn = Object.values(subscription.addOns ?? {})
+    .filter(addOn => addOn.isAvailable)
+    .find(addOn => addOn.dataCategories.includes(category));
+
+  if (!parentAddOn) {
+    return null;
+  }
+
+  const hasMultipleTalliedCategories = parentAddOn.dataCategories.length > 1;
+  if (hasMultipleTalliedCategories && checkReserved) {
+    const metricHistory = subscription.categories[category];
+    if (!metricHistory) {
+      return null;
+    }
+    if (![RESERVED_BUDGET_QUOTA, 0].includes(metricHistory.reserved ?? 0)) {
+      return null;
+    }
+  }
+
+  return parentAddOn.apiName;
+}
+
+/**
+ * Get the billed DataCategory for an add-on or DataCategory.
+ */
+export function getBilledCategory(
+  subscription: Subscription,
+  selectedProduct: DataCategory | AddOnCategory
+): DataCategory | null {
+  if (checkIsAddOn(selectedProduct)) {
+    const category = selectedProduct as AddOnCategory;
+    const addOnInfo = subscription.addOns?.[category];
+    if (!addOnInfo) {
+      return null;
+    }
+
+    const {dataCategories, apiName} = addOnInfo;
+    const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
+    const reservedBudget = subscription.reservedBudgets?.find(
+      budget => budget.apiName === reservedBudgetCategory
+    );
+    return reservedBudget
+      ? (dataCategories.find(dataCategory =>
+          subscription.planDetails.planCategories[dataCategory]?.find(
+            bucket => bucket.events === RESERVED_BUDGET_QUOTA
+          )
+        ) ?? dataCategories[0]!)
+      : dataCategories[0]!;
+  }
+
+  return selectedProduct as DataCategory;
+}
+
+export function productIsEnabled(
+  subscription: Subscription,
+  selectedProduct: DataCategory | AddOnCategory
+): boolean {
+  const billedCategory = getBilledCategory(subscription, selectedProduct);
+  if (!billedCategory) {
+    return false;
+  }
+
+  const activeProductTrial = getActiveProductTrial(
+    subscription.productTrials ?? null,
+    billedCategory
+  );
+  if (activeProductTrial) {
+    return true;
+  }
+
+  if (checkIsAddOn(selectedProduct)) {
+    const addOnInfo = subscription.addOns?.[selectedProduct as AddOnCategory];
+    if (!addOnInfo) {
+      return false;
+    }
+    return addOnInfo.enabled;
+  }
+
+  const metricHistory = subscription.categories[billedCategory];
+  if (!metricHistory) {
+    return false;
+  }
+  const isPaygOnly = metricHistory.reserved === 0;
+  return (
+    !isPaygOnly ||
+    metricHistory.onDemandBudget > 0 ||
+    (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED &&
+      subscription.onDemandBudgets.sharedMaxBudget > 0)
+  );
 }

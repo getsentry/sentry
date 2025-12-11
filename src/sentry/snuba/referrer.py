@@ -109,8 +109,9 @@ class Referrer(StrEnum):
     API_GROUP_HASHES = "api.group-hashes"
 
     # ** Explore **
-    API_EXPLORE_SPANS_STATS = "api.explore.spans-stats"
     API_EXPLORE_SPANS_TIMESERIES = "api.explore.spans-timeseries"
+    API_EXPLORE_OURLOGS_TIMESERIES = "api.explore.ourlogs-timeseries"
+    API_EXPLORE_TRACEMETRICS_TIMESERIES = "api.explore.tracemetrics-timeseries"
     API_EXPLORE_SPANS_AGGREGATES_TABLE = "api.explore.spans-aggregates-table"
     API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
     API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
@@ -295,6 +296,9 @@ class Referrer(StrEnum):
     )
     API_INSIGHTS_TRANSACTION_EVENTS = "api.insights.transaction-events"
     API_INSIGHTS_LANDING_TABLE = "api.insights.landing-table"
+    API_INSIGHTS_LANDING_TABLE_METRICS_ENHANCED_PRIMARY = (
+        "api.insights.landing-table.metrics-enhanced.primary"
+    )
     API_INSIGHTS_STATUS_BREAKDOWN = "api.insights.status-breakdown"
     API_INSIGHTS_DURATIONPERCENTILECHART = "api.insights.durationpercentilechart"
 
@@ -416,6 +420,9 @@ class Referrer(StrEnum):
     API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_METRICS_TOTALS = "api.metrics.totals"
     API_METRICS_TOTALS_INITIAL_QUERY = "api.metrics.totals.initial_query"
+    API_METRICS_TOTALS_SECOND_QUERY = "api.metrics.totals.second_query"
+    API_METRICS_SERIES_SECOND_QUERY = "api.metrics.series.second_query"
+
     API_ORGANIZATION_TRACE_ITEM_DETAILS = "api.organization-trace-item-details"
     API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
     API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
@@ -446,6 +453,7 @@ class Referrer(StrEnum):
     API_ORGANIZATION_EVENTS_METRICS_COMPATIBILITY_SUM_METRICS_METRICS_ENHANCED_PRIMARY = (
         "api.organization-events-metrics-compatibility.sum_metrics.metrics-enhanced.primary"
     )
+    API_ORGANIZATION_EVENTS_METRICS_ENHANCED = "api.organization-events.metrics-enhanced"
     API_ORGANIZATION_EVENTS_METRICS_ENHANCED_PRIMARY = (
         "api.organization-events.metrics-enhanced.primary"
     )
@@ -786,6 +794,8 @@ class Referrer(StrEnum):
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_QUERY = "search.snuba.group_attributes_search.query"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"
     SEER_RPC = "seer.rpc"
+    SEER_EXPLORER_INDEX = "seer.explorer_index"
+    SEER_EXPLORER_TOOLS = "seer.explorer_tools"
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
     )

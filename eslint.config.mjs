@@ -33,6 +33,8 @@ import globals from 'globals';
 import invariant from 'invariant';
 import typescript from 'typescript-eslint';
 
+import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index.mjs';
+
 invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
 invariant(react.configs.flat['jsx-runtime'], 'For typescript');
@@ -127,17 +129,17 @@ const restrictedImportPaths = [
   {
     name: 'sentry/views/insights/common/components/insightsTimeSeriesWidget',
     message:
-      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
   },
   {
     name: 'sentry/views/insights/common/components/insightsLineChartWidget',
     message:
-      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
   },
   {
     name: 'sentry/views/insights/common/components/insightsAreaChartWidget',
     message:
-      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
   },
 ];
 
@@ -415,6 +417,13 @@ export default typescript.config([
       'import/no-named-as-default-member': 'off', // Disabled in favor of typescript-eslint
       'import/no-named-as-default': 'off', // TODO(ryan953): Fix violations and enable this rule
       'import/no-unresolved': 'off', // Disabled in favor of typescript-eslint
+    },
+  },
+  {
+    name: 'plugin/@sentry/scraps',
+    plugins: {'@sentry/scraps': sentryScrapsPlugin},
+    rules: {
+      '@sentry/scraps/no-token-import': 'error',
     },
   },
   {
@@ -768,6 +777,20 @@ export default typescript.config([
     },
   },
   {
+    name: 'eslint',
+    files: ['static/eslint/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+
+    rules: {
+      'no-console': 'off',
+      'import/no-nodejs-modules': 'off',
+    },
+  },
+  {
     name: 'files/scripts',
     files: ['scripts/**/*.{js,ts}', 'tests/js/test-balancer/index.js'],
     languageOptions: {
@@ -1064,6 +1087,11 @@ export default typescript.config([
         {
           type: 'scripts',
           pattern: 'scripts',
+        },
+        // --- eslint ---
+        {
+          type: 'eslint',
+          pattern: 'static/eslint',
         },
       ],
     },

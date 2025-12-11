@@ -35,7 +35,7 @@ describe('FilterSelector', () => {
       />
     );
 
-    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ':'});
+    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
     await userEvent.click(button);
 
     expect(screen.getByText('chrome')).toBeInTheDocument();
@@ -53,7 +53,7 @@ describe('FilterSelector', () => {
       />
     );
 
-    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ':'});
+    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
     await userEvent.click(button);
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Select firefox'}));
@@ -84,7 +84,7 @@ describe('FilterSelector', () => {
       />
     );
 
-    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ':'});
+    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
     await userEvent.click(button);
 
     expect(screen.getByRole('checkbox', {name: 'Select firefox'})).toBeChecked();
@@ -101,7 +101,7 @@ describe('FilterSelector', () => {
       />
     );
 
-    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ':'});
+    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
     await userEvent.click(button);
     await userEvent.click(screen.getByRole('button', {name: 'Remove Filter'}));
 

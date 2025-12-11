@@ -1,9 +1,9 @@
 import isPropValid from '@emotion/is-prop-valid';
-import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 
 import {space} from 'sentry/styles/space';
-import type {FormSize} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import type {FormSize, Theme} from 'sentry/utils/theme';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 
 /**
  * Menu item priority. Determines the text and background color.
@@ -17,19 +17,19 @@ function getTextColor({
 }: {
   disabled: boolean;
   priority: Priority;
-  theme: DO_NOT_USE_ChonkTheme;
+  theme: Theme;
 }) {
   if (disabled) {
     return theme.subText;
   }
   switch (priority) {
     case 'primary':
-      return theme.colors.content.accent;
+      return theme.tokens.content.accent;
     case 'danger':
       return theme.errorText;
     case 'default':
     default:
-      return theme.textColor;
+      return theme.tokens.content.primary;
   }
 }
 
@@ -65,7 +65,7 @@ export const ChonkInnerWrap = chonkStyled('div', {
     padding: 0 ${space(1)} 0 ${space(1.5)};
     padding-top: ${p => getVerticalPadding(p.size)};
     padding-bottom: ${p => getVerticalPadding(p.size)};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     box-sizing: border-box;
 
     font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};

@@ -14,6 +14,7 @@ import type {
   SelectOptionOrSectionWithKey,
 } from 'sentry/components/core/compactSelect/types';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
@@ -29,9 +30,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
-import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import usePrevious from 'sentry/utils/usePrevious';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
@@ -80,30 +79,20 @@ function ListBoxSectionButton({
 
 function FeedbackFooter() {
   const {searchSource} = useSearchQueryBuilder();
-  const openForm = useFeedbackForm();
-
-  if (!openForm) {
-    return null;
-  }
 
   return (
     <SectionedOverlayFooter>
-      <Button
+      <FeedbackButton
         size="xs"
-        icon={<IconMegaphone />}
-        onClick={() =>
-          openForm({
-            messagePlaceholder: t('How can we make search better for you?'),
-            tags: {
-              search_source: searchSource,
-              ['feedback.source']: 'search_query_builder',
-              ['feedback.owner']: 'issues',
-            },
-          })
-        }
-      >
-        {t('Give Feedback')}
-      </Button>
+        feedbackOptions={{
+          messagePlaceholder: t('How can we make search better for you?'),
+          tags: {
+            search_source: searchSource,
+            ['feedback.source']: 'search_query_builder',
+            ['feedback.owner']: 'issues',
+          },
+        }}
+      />
     </SectionedOverlayFooter>
   );
 }
@@ -472,8 +461,7 @@ const SectionedOverlay = styled(Overlay, {
   overflow: hidden;
   height: 400px;
   width: ${p => (p.fullWidth ? '100%' : `${p.width}px`)};
-  ${p =>
-    p.fullWidth && `border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
+  ${p => p.fullWidth && `border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md}`};
 `;
 
 const SectionedOverlayFooter = styled('div')`
@@ -524,9 +512,9 @@ const RecentFilterPill = styled('li')`
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
   padding: 0 ${p => p.theme.space.lg} 0 ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   cursor: pointer;
 
   /* Fade out on right side to represent that this is a filter key only */

@@ -5,12 +5,12 @@ import Creatable from 'react-select/creatable';
 import type {CSSObject, Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import {
   ChonkClearIndicator,
   ChonkDropdownIndicator,
   getChonkStylesConfig,
+  selectSpacing,
   type StylesConfig,
 } from '@sentry/scraps/select/select.chonk';
 
@@ -200,10 +200,10 @@ const getStylesConfig = ({
     control: (_, state: any) => ({
       display: 'flex',
       color: theme.gray400,
-      background: theme.background,
+      background: theme.tokens.background.primary,
       border: `1px solid ${theme.border}`,
       boxShadow: theme.dropShadowMedium,
-      borderRadius: theme.borderRadius,
+      borderRadius: theme.radius.md,
       transition: 'border 0.1s, box-shadow 0.1s',
       alignItems: 'center',
       ...(state.isFocused && {
@@ -219,7 +219,9 @@ const getStylesConfig = ({
       ...(!state.isSearchable && {
         cursor: 'pointer',
       }),
-      ...omit(theme.form[size ?? 'md'], 'height'),
+      minHeight: theme.form[size ?? 'md'].minHeight,
+      fontSize: theme.form[size ?? 'md'].fontSize,
+      lineHeight: theme.form[size ?? 'md'].lineHeight,
       ...(state.isMulti && {
         maxHeight: '20.8em', // 10 lines (1.8em * 10) + padding
         overflow: 'hidden',
@@ -230,7 +232,7 @@ const getStylesConfig = ({
       ...provided,
       zIndex: theme.zIndex.dropdown,
       background: theme.backgroundElevated,
-      borderRadius: theme.borderRadius,
+      borderRadius: theme.radius.md,
       boxShadow: `${theme.dropShadowHeavy}, 0 0 0 1px ${theme.translucentBorder}`,
       width: 'auto',
       minWidth: '100%',
@@ -246,7 +248,7 @@ const getStylesConfig = ({
     option: provided => ({
       ...provided,
       cursor: 'pointer',
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       background: 'transparent',
       padding: 0,
       ':active': {
@@ -256,7 +258,7 @@ const getStylesConfig = ({
     valueContainer: (provided, state) => ({
       ...provided,
       alignItems: 'center',
-      paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft,
+      paddingLeft: theme.form[size ?? 'md'].paddingLeft,
       paddingRight: space(0.5),
       // offset horizontal margin/padding from multiValue (space(0.25)) &
       // multiValueLabel (space(0.75))
@@ -264,7 +266,7 @@ const getStylesConfig = ({
         marginLeft: `-${space(1)}`,
         maxHeight: 'inherit',
         overflowY: 'auto',
-        scrollbarColor: `${theme.purple200} ${theme.background}`,
+        scrollbarColor: `${theme.purple200} ${theme.tokens.background.primary}`,
       }),
     }),
     input: provided => ({
@@ -279,9 +281,7 @@ const getStylesConfig = ({
       alignItems: 'center',
       marginLeft: 0,
       marginRight: 0,
-      width: `calc(100% - ${theme.formPadding[size ?? 'md'].paddingLeft}px - ${space(
-        0.5
-      )})`,
+      width: `calc(100% - ${theme.form[size ?? 'md'].paddingLeft}px - ${space(0.5)})`,
     }),
     placeholder: provided => ({
       ...provided,
@@ -289,8 +289,8 @@ const getStylesConfig = ({
     }),
     multiValue: provided => ({
       ...provided,
-      color: theme.textColor,
-      backgroundColor: theme.background,
+      backgroundColor: theme.tokens.background.primary,
+      color: theme.tokens.content.primary,
       borderRadius: '2px',
       border: `1px solid ${theme.border}`,
       display: 'flex',
@@ -298,7 +298,7 @@ const getStylesConfig = ({
     }),
     multiValueLabel: provided => ({
       ...provided,
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       padding: '0',
       paddingLeft: space(0.75),
       lineHeight: '1.8',
@@ -313,7 +313,7 @@ const getStylesConfig = ({
       marginLeft: '4px',
 
       '&:hover': {
-        color: theme.headingColor,
+        color: theme.tokens.content.primary,
         background: theme.backgroundTertiary,
       },
     }),
@@ -372,7 +372,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   const defaultStyles = useMemo(() => {
     return theme.isChonk
       ? getChonkStylesConfig({
-          theme: theme as any,
+          theme,
           size,
           maxMenuWidth,
           isInsideModal,
@@ -387,7 +387,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       content: `"${label}"`,
       color: theme.isChonk ? theme.gray500 : theme.gray300,
       fontWeight: 600,
-      marginRight: theme.formSpacing[size ?? 'md'],
+      marginRight: selectSpacing[size ?? 'md'],
     },
   });
 

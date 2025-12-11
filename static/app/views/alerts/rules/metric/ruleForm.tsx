@@ -3,6 +3,9 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {ExternalLink} from '@sentry/scraps/link/link';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip/tooltip';
+
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {
   addErrorMessage,
@@ -23,8 +26,10 @@ import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
+import {pulse} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {
@@ -46,6 +51,7 @@ import {
 } from 'sentry/utils/onDemandMetrics/features';
 import withProjects from 'sentry/utils/withProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
 import {OnDemandThresholdChecker} from 'sentry/views/alerts/rules/metric/onDemandThresholdChecker';
 import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
@@ -87,14 +93,6 @@ import {
   getTimeWindowOptions,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
-import type {
-  EventTypes,
-  ExtrapolationMode,
-  MetricActionTemplate,
-  MetricRule,
-  Trigger,
-  UnsavedMetricRule,
-} from './types';
 import {
   AlertRuleComparisonType,
   AlertRuleSeasonality,
@@ -102,7 +100,13 @@ import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
+  ExtrapolationMode,
   TimeWindow,
+  type EventTypes,
+  type MetricActionTemplate,
+  type MetricRule,
+  type Trigger,
+  type UnsavedMetricRule,
 } from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
@@ -366,6 +370,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       }
       if (alertRule) {
         addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
+
+        if (!ruleId) {
+          trackAnalytics('metric_alert_rule.created', {
+            organization,
+            aggregate: alertRule.aggregate,
+            dataset: alertRule.dataset,
+          });
+        }
+
         if (onSubmitSuccess) {
           onSubmitSuccess(alertRule, model);
         }
@@ -789,6 +802,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         const detectionType = detectionTypes.get(comparisonType) ?? '';
         const dataset = this.determinePerformanceDataset();
         this.setState({loading: true});
+        const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
         // Add or update is just the PUT/POST to the org alert-rules api
         // we're splatting the full rule in, then overwriting all the data?
         const [data, , resp] = await addOrUpdateRule(
@@ -817,7 +831,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             sensitivity: sensitivity ?? null,
             seasonality: seasonality ?? null,
             detectionType,
-            extrapolationMode: this.isDuplicateRule ? undefined : extrapolationMode,
+            // We want to change the extrapolation mode to sample weighted once a migrated alert rule is edited
+            extrapolationMode: this.isDuplicateRule
+              ? undefined
+              : getIsMigratedExtrapolationMode(extrapolationMode, dataset, traceItemType)
+                ? ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED
+                : extrapolationMode,
           },
           {
             duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -839,6 +858,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           IndicatorStore.remove(loadingIndicator);
           this.setState({loading: false});
           addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
+
+          if (!ruleId) {
+            trackAnalytics('metric_alert_rule.created', {
+              organization,
+              aggregate: data.aggregate,
+              dataset: data.dataset,
+            });
+          }
+
           if (onSubmitSuccess) {
             onSubmitSuccess(data, model);
           }
@@ -1320,6 +1348,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       alertType,
       isExtrapolatedChartData,
       triggersHaveChanged,
+      extrapolationMode,
     } = this.state;
 
     const wizardBuilderChart = this.renderTriggerChart();
@@ -1373,6 +1402,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     const showErrorMigrationWarning =
       !!ruleId && isMigration && ruleNeedsErrorMigration(rule);
+
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
+
+    const showExtrapolationModeChangeWarning = getIsMigratedExtrapolationMode(
+      extrapolationMode,
+      dataset,
+      traceItemType
+    );
 
     // Rendering the main form body
     return (
@@ -1471,8 +1508,35 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     thresholdChart={wizardBuilderChart}
                     timeWindow={timeWindow}
                     eventTypes={eventTypes}
+                    extrapolationMode={extrapolationMode}
                   />
-                  <AlertListItem>{t('Set thresholds')}</AlertListItem>
+
+                  <AlertListItem>
+                    {
+                      <HeadingContainer>
+                        {t('Set thresholds')}
+                        {showExtrapolationModeChangeWarning && (
+                          <WarningIcon
+                            tooltipProps={{
+                              title: tct(
+                                'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
+                                {
+                                  samplingLink: (
+                                    <ExternalLink
+                                      href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
+                                      openInNewTab
+                                    />
+                                  ),
+                                }
+                              ),
+                              isHoverable: true,
+                            }}
+                            id="thresholds-warning-icon"
+                          />
+                        )}
+                      </HeadingContainer>
+                    }
+                  </AlertListItem>
                   {thresholdTypeForm(formDisabled)}
                   {showErrorMigrationWarning && (
                     <Alert.Container>
@@ -1527,6 +1591,14 @@ function getTimeWindowFromDataset(
   return defaultWindow;
 }
 
+function WarningIcon({tooltipProps, id}: {id: string; tooltipProps?: TooltipProps}) {
+  return (
+    <Tooltip {...tooltipProps} title={tooltipProps?.title} skipWrapper>
+      <StyledIconWarning id={id} size="md" color="warning" />
+    </Tooltip>
+  );
+}
+
 const Main = styled(Layout.Main)`
   max-width: 1000px;
 `;
@@ -1550,7 +1622,7 @@ const AlertInfo = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`
@@ -1561,6 +1633,16 @@ const StyledCircleIndicator = styled(CircleIndicator)`
 
 const Aggregate = styled('span')`
   margin-right: ${space(1)};
+`;
+
+const HeadingContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
 
 export default withProjects(RuleFormContainer);

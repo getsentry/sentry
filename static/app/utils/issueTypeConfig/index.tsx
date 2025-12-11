@@ -16,6 +16,7 @@ import metricIssueConfig from 'sentry/utils/issueTypeConfig/metricIssueConfig';
 import mobileConfig from 'sentry/utils/issueTypeConfig/mobileConfig';
 import outageConfig from 'sentry/utils/issueTypeConfig/outageConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
+import preprodConfig from 'sentry/utils/issueTypeConfig/preprodConfig';
 import replayConfig from 'sentry/utils/issueTypeConfig/replayConfig';
 import type {
   IssueCategoryConfigMapping,
@@ -105,6 +106,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.MOBILE]: mobileConfig,
   [IssueCategory.METRIC]: metricConfig,
   [IssueCategory.AI_DETECTED]: aiDetectedConfig,
+  [IssueCategory.PREPROD]: preprodConfig,
 };
 
 /**
@@ -112,7 +114,7 @@ const issueTypeConfig: Config = {
  * errors that may otherwise be difficult to debug. For example, common framework
  * errors that have no stack trace.
  */
-export function shouldShowCustomErrorResourceConfig(
+function shouldShowCustomErrorResourceConfig(
   params: GetConfigForIssueTypeParams,
   project: Project
 ): boolean {

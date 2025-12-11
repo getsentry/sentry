@@ -54,7 +54,7 @@ describe('CIEfficiency', () => {
         );
 
         const changeTag = screen.getByText('+0.46%');
-        expect(changeTag.parentElement).toHaveAttribute('type', 'error');
+        expect(changeTag.parentElement).toHaveAttribute('type', 'danger');
       });
     });
   });

@@ -121,8 +121,8 @@ const TagValueRow = styled('li')`
 
   align-items: center;
   padding: ${space(0.25)} ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.textColor};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.tokens.content.primary};
   font-variant-numeric: tabular-nums;
 
   &:nth-child(2n) {

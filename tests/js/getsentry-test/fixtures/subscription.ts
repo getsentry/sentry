@@ -59,6 +59,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     addOns[addOnCategory.apiName] = {
       ...addOnCategory,
       enabled: isTrial,
+      isAvailable: addOnCategory.apiName in planDetails.addOnCategories,
     };
   });
 
@@ -255,6 +256,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
         }),
       }),
     },
+    effectiveRetentions: {},
     ...planData,
   };
 }
@@ -290,6 +292,7 @@ export function SubscriptionWithLegacySeerFixture(props: Props): TSubscription {
       ...(subscription.addOns?.[AddOnCategory.LEGACY_SEER] ??
         subscription.planDetails.addOnCategories[AddOnCategory.LEGACY_SEER]),
       enabled: true,
+      isAvailable: true,
     },
   };
   return subscription;

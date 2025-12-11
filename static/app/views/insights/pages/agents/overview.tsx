@@ -6,17 +6,20 @@ import {Flex, Stack} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {NoAccess} from 'sentry/components/noAccess';
+import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {DataCategory} from 'sentry/types/core';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
@@ -38,6 +41,7 @@ import ToolUsageWidget from 'sentry/views/insights/pages/agents/components/toolC
 import {TracesTable} from 'sentry/views/insights/pages/agents/components/tracesTable';
 import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/useAgentSpanSearchProps';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
+import {getAgentRunsFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
@@ -54,10 +58,13 @@ function useShowOnboarding() {
   return !selectedProjects.some(p => p.hasInsightsAgentMonitoring);
 }
 
-function AgentsOverviewPage() {
+interface AgentsOverviewPageProps {
+  datePageFilterProps: DatePageFilterProps;
+}
+
+function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
   const organization = useOrganization();
   const showOnboarding = useShowOnboarding();
-  const datePageFilterProps = limitMaxPickableDays(organization);
   useDefaultToAllProjects();
 
   const {value: conversationTable} = useConversationsTableSwitch();
@@ -70,7 +77,7 @@ function AgentsOverviewPage() {
   // If there are not, we show the count/duration of all AI spans
   const agentRunsRequest = useSpans(
     {
-      search: 'span.op:"gen_ai.invoke_agent"',
+      search: getAgentRunsFilter(),
       fields: ['id'],
       limit: 1,
     },
@@ -166,10 +173,15 @@ function AgentsOverviewPage() {
 }
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   return (
-    <DomainOverviewPageProviders>
+    <DomainOverviewPageProviders maxPickableDays={datePageFilterProps.maxPickableDays}>
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <AgentsOverviewPage />
+        <AgentsOverviewPage datePageFilterProps={datePageFilterProps} />
       </TraceItemAttributeProvider>
     </DomainOverviewPageProviders>
   );
@@ -192,7 +204,7 @@ function LoadingPanel() {
 }
 
 const LoadingMask = styled(TransparentLoadingMask)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 export default PageWithProviders;

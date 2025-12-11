@@ -20,14 +20,15 @@ from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
 from sentry.seer.models import (
-    PreferenceResponse,
     SeerApiError,
     SeerApiResponseValidationError,
     SeerPermissionError,
+    SeerRawPreferenceResponse,
     SeerRepoDefinition,
 )
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.utils import json
+from sentry.utils.cache import cache
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -141,7 +142,7 @@ autofix_connection_pool = connection_from_url(
 )
 
 
-def get_project_seer_preferences(project_id: int):
+def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
     """
     Fetch Seer project preferences from the Seer API.
 
@@ -149,7 +150,7 @@ def get_project_seer_preferences(project_id: int):
         project_id: The project ID to fetch preferences for
 
     Returns:
-        PreferenceResponse object if successful, None otherwise
+        SeerRawPreferenceResponse object if successful
     """
     path = "/v1/project-preference"
     body = orjson.dumps({"project_id": project_id})
@@ -165,11 +166,92 @@ def get_project_seer_preferences(project_id: int):
     if response.status == 200:
         try:
             result = orjson.loads(response.data)
-            return PreferenceResponse.validate(result)
+            return SeerRawPreferenceResponse.validate(result)
         except (pydantic.ValidationError, orjson.JSONDecodeError, UnicodeDecodeError) as e:
             raise SeerApiResponseValidationError(str(e)) from e
 
     raise SeerApiError(response.data.decode("utf-8"), response.status)
+
+
+def has_project_connected_repos(organization_id: int, project_id: int) -> bool:
+    """
+    Check if a project has connected repositories for Seer automation.
+    Checks Seer preferences first, then falls back to Sentry code mappings.
+    Results are cached for 60 minutes to minimize API calls.
+    """
+    cache_key = f"seer-project-has-repos:{organization_id}:{project_id}"
+    cached_value = cache.get(cache_key)
+
+    if cached_value is not None:
+        return cached_value
+
+    has_repos = False
+
+    try:
+        project_preferences = get_project_seer_preferences(project_id)
+        has_repos = bool(
+            project_preferences.preference and project_preferences.preference.repositories
+        )
+    except (SeerApiError, SeerApiResponseValidationError):
+        pass
+
+    if not has_repos:
+        # If it's the first autofix run of project we check code mapping.
+        try:
+            project = Project.objects.get(id=project_id)
+            has_repos = bool(get_autofix_repos_from_project_code_mappings(project))
+        except Project.DoesNotExist:
+            pass
+
+    logger.info(
+        "Checking if project has repositories connected",
+        extra={
+            "org_id": organization_id,
+            "project_id": project_id,
+            "has_repos": has_repos,
+        },
+    )
+
+    cache.set(cache_key, has_repos, timeout=60 * 60)  # Cache for 1 hour
+    return has_repos
+
+
+def bulk_get_project_preferences(organization_id: int, project_ids: list[int]) -> dict[str, dict]:
+    """Bulk fetch Seer project preferences. Returns dict mapping project ID (string) to preference dict."""
+    path = "/v1/project-preference/bulk"
+    body = orjson.dumps({"organization_id": organization_id, "project_ids": project_ids})
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=10,
+    )
+
+    if response.status >= 400:
+        raise SeerApiError(response.data.decode("utf-8"), response.status)
+
+    result = orjson.loads(response.data)
+    return result.get("preferences", {})
+
+
+def bulk_set_project_preferences(organization_id: int, preferences: list[dict]) -> None:
+    """Bulk set Seer project preferences for multiple projects."""
+    if not preferences:
+        return
+
+    path = "/v1/project-preference/bulk-set"
+    body = orjson.dumps({"organization_id": organization_id, "preferences": preferences})
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=15,
+    )
+
+    if response.status >= 400:
+        raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
@@ -326,6 +408,34 @@ def is_seer_scanner_rate_limited(project: Project, organization: Organization) -
     return is_rate_limited
 
 
+def get_seer_seat_based_tier_cache_key(organization_id: int) -> str:
+    """Get the cache key for seat-based Seer tier check."""
+    return f"seer:seat-based-tier:{organization_id}"
+
+
+def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
+    """
+    Check if organization has Seer seat-based pricing via billing.
+    """
+    if features.has("organizations:triage-signals-v0-org", organization):
+        return True
+
+    cache_key = get_seer_seat_based_tier_cache_key(organization.id)
+    cached_value = cache.get(cache_key)
+    if cached_value is not None:
+        return cached_value
+
+    try:
+        has_seat_based_seer = features.has("organizations:seat-based-seer-enabled", organization)
+    except Exception:
+        # This flag will throw an error for self hosted Sentry since it lives in getsentry.
+        has_seat_based_seer = False
+
+    cache.set(cache_key, has_seat_based_seer, timeout=60 * 60 * 4)  # 4 hours TTL
+
+    return has_seat_based_seer
+
+
 def is_issue_eligible_for_seer_automation(group: Group) -> bool:
     """Check if Seer automation is allowed for a given group based on permissions and issue type."""
     from sentry import quotas
@@ -365,7 +475,7 @@ def is_issue_eligible_for_seer_automation(group: Group) -> bool:
     if not seer_enabled:
         return False
 
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
+    has_budget: bool = quotas.backend.check_seer_quota(
         org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
     )
     if not has_budget:

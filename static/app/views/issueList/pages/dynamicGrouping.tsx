@@ -1,38 +1,65 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Alert} from 'sentry/components/core/alert';
+import {bulkUpdate} from 'sentry/actionCreators/group';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {InlineCode} from 'sentry/components/core/code/inlineCode';
 import {Disclosure} from 'sentry/components/core/disclosure';
-import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Link} from 'sentry/components/core/link';
+import {TextArea} from 'sentry/components/core/textarea';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Placeholder from 'sentry/components/placeholder';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Redirect from 'sentry/components/redirect';
-import {IconChat, IconStar} from 'sentry/icons';
+import TimeSince from 'sentry/components/timeSince';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {
+  IconArrow,
+  IconCalendar,
+  IconChevron,
+  IconClock,
+  IconClose,
+  IconCopy,
+  IconEllipsis,
+  IconFire,
+  IconFix,
+  IconRefresh,
+  IconSeer,
+  IconStar,
+  IconUpload,
+  IconUser,
+} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
-import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
+import useApi from 'sentry/utils/useApi';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
 
-const STORAGE_KEY = 'dynamic-grouping-cluster-data';
+const CLUSTERS_PER_PAGE = 20;
 
 interface AssignedEntity {
   email: string | null;
@@ -44,102 +71,250 @@ interface AssignedEntity {
 interface ClusterSummary {
   assignedTo: AssignedEntity[];
   cluster_avg_similarity: number | null;
+  // unused
   cluster_id: number;
   cluster_min_similarity: number | null;
+  // unused
   cluster_size: number | null;
+  // unused
   description: string;
   fixability_score: number | null;
   group_ids: number[];
   issue_titles: string[];
   project_ids: number[];
-  summary: string;
+  summary: string | null;
   tags: string[];
   title: string;
+  code_area_tags?: string[];
+  error_type?: string;
+  error_type_tags?: string[];
+  impact?: string;
+  location?: string;
+  service_tags?: string[];
 }
 
-// Compact issue preview for dynamic grouping - no short ID or quick fix icon
+/**
+ * Formats cluster information for copying to clipboard in a readable format.
+ */
+function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
+  const lines: string[] = [];
+
+  lines.push(`## ${cluster.title}`);
+  lines.push('');
+
+  if (cluster.summary) {
+    lines.push('### Summary');
+    lines.push(cluster.summary);
+    lines.push('');
+  }
+
+  lines.push('### Group IDs');
+  lines.push(cluster.group_ids.join(', '));
+
+  return lines.join('\n');
+}
+
+/**
+ * Formats a prompt for Seer Explorer about the cluster.
+ */
+function formatClusterPromptForSeer(cluster: ClusterSummary): string {
+  const message = formatClusterInfoForClipboard(cluster);
+  return `I'd like to investigate this cluster of issues:\n\n${message}\n\nPlease help me understand the root cause and potential fixes for these related issues.`;
+}
+
+/**
+ * Parses a string and renders backtick-wrapped text as inline code elements.
+ * Example: "Error in `Contains` filter" becomes ["Error in ", <InlineCode>Contains</InlineCode>, " filter"]
+ */
+function renderWithInlineCode(text: string): React.ReactNode {
+  const parts = text.split(/(`[^`]+`)/g);
+  if (parts.length === 1) {
+    return text;
+  }
+  return parts.map((part, index) => {
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return <InlineCode key={index}>{part.slice(1, -1)}</InlineCode>;
+    }
+    return part;
+  });
+}
+
+interface TopIssuesResponse {
+  data: ClusterSummary[];
+  last_updated?: string;
+}
+
 function CompactIssuePreview({group}: {group: Group}) {
-  const organization = useOrganization();
-  const {getReplayCountForIssue} = useReplayCountForIssues();
-
-  const showReplayCount =
-    organization.features.includes('session-replay') &&
-    projectCanLinkToReplay(organization, group.project) &&
-    group.issueCategory &&
-    !!getReplayCountForIssue(group.id, group.issueCategory);
-
-  const issuesPath = `/organizations/${organization.slug}/issues/`;
   const {subtitle} = getTitle(group);
 
   const items = [
     group.project ? (
-      <ShadowlessProjectBadge project={group.project} avatarSize={12} hideName />
+      <ProjectBadge project={group.project} avatarSize={12} hideName disableLink />
     ) : null,
     group.isUnhandled ? <UnhandledTag /> : null,
     group.count ? (
-      <EventCount>{tn('%s event', '%s events', group.count)}</EventCount>
+      <Text size="xs" bold>
+        {tn('%s event', '%s events', group.count)}
+      </Text>
     ) : null,
-    group.lifetime || group.firstSeen || group.lastSeen ? (
-      <TimesTag
-        lastSeen={group.lifetime?.lastSeen || group.lastSeen}
-        firstSeen={group.lifetime?.firstSeen || group.firstSeen}
-      />
+    group.firstSeen || group.lastSeen ? (
+      <TimesTag lastSeen={group.lastSeen} firstSeen={group.firstSeen} />
     ) : null,
-    group.numComments > 0 ? (
-      <CommentsLink
-        to={{
-          pathname: `${issuesPath}${group.id}/activity/`,
-          query: {filter: 'comments'},
-        }}
-      >
-        <IconChat
-          size="xs"
-          color={
-            group.subscriptionDetails?.reason === 'mentioned' ? 'successText' : undefined
-          }
-        />
-        <span>{group.numComments}</span>
-      </CommentsLink>
-    ) : null,
-    showReplayCount ? <IssueReplayCount group={group} /> : null,
-  ].filter(defined);
+  ].filter(Boolean);
 
   return (
-    <CompactIssueWrapper>
-      <CompactTitle>
-        {group.isBookmarked && (
-          <IconWrapper>
-            <IconStar isSolid color="yellow300" size="xs" />
-          </IconWrapper>
-        )}
+    <Flex direction="column" gap="xs">
+      <IssueTitle>
         <EventOrGroupTitle data={group} withStackTracePreview />
-      </CompactTitle>
-      <CompactMessage
+      </IssueTitle>
+      <IssueMessage
         data={group}
         level={group.level}
         message={getMessage(group)}
         type={group.type}
       />
-      {subtitle && <CompactLocation>{subtitle}</CompactLocation>}
+      {subtitle && (
+        <Text size="sm" variant="muted" ellipsis>
+          {subtitle}
+        </Text>
+      )}
       {items.length > 0 && (
-        <CompactExtra>
+        <Flex wrap="wrap" gap="sm" align="center">
           {items.map((item, i) => (
             <Fragment key={i}>
               {item}
-              {i < items.length - 1 ? <CompactSeparator /> : null}
+              {i < items.length - 1 ? <MetaSeparator /> : null}
             </Fragment>
           ))}
-        </CompactExtra>
+        </Flex>
       )}
-    </CompactIssueWrapper>
+    </Flex>
   );
 }
 
-// Fetch and display actual issues from the group_ids
-function ClusterIssues({groupIds}: {groupIds: number[]}) {
+interface ClusterStats {
+  firstSeen: string | null;
+  hasRegressedIssues: boolean;
+  isEscalating: boolean;
+  isPending: boolean;
+  lastSeen: string | null;
+  newIssuesCount: number;
+  totalEvents: number;
+  totalUsers: number;
+}
+
+function useClusterStats(groupIds: number[]): ClusterStats {
   const organization = useOrganization();
 
-  // Only fetch first 3 issues for preview
+  const {data: groups, isPending} = useApiQuery<Group[]>(
+    [
+      `/organizations/${organization.slug}/issues/`,
+      {
+        query: {
+          group: groupIds,
+          query: `issue.id:[${groupIds.join(',')}]`,
+        },
+      },
+    ],
+    {
+      staleTime: 60000,
+      enabled: groupIds.length > 0,
+    }
+  );
+
+  return useMemo(() => {
+    if (isPending || !groups || groups.length === 0) {
+      return {
+        totalEvents: 0,
+        totalUsers: 0,
+        firstSeen: null,
+        lastSeen: null,
+        newIssuesCount: 0,
+        hasRegressedIssues: false,
+        isEscalating: false,
+        isPending,
+      };
+    }
+
+    let totalEvents = 0;
+    let totalUsers = 0;
+    let earliestFirstSeen: Date | null = null;
+    let latestLastSeen: Date | null = null;
+
+    // Calculate new issues (first seen within last week)
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    let newIssuesCount = 0;
+
+    // Check for regressed issues
+    let hasRegressedIssues = false;
+
+    // Calculate escalation by summing event stats across all issues
+    // We'll compare the first half of the 24h stats to the second half
+    let firstHalfEvents = 0;
+    let secondHalfEvents = 0;
+
+    for (const group of groups) {
+      totalEvents += parseInt(group.count, 10) || 0;
+      totalUsers += group.userCount || 0;
+
+      if (group.firstSeen) {
+        const firstSeenDate = new Date(group.firstSeen);
+        if (!earliestFirstSeen || firstSeenDate < earliestFirstSeen) {
+          earliestFirstSeen = firstSeenDate;
+        }
+        // Check if this issue is new (first seen within last week)
+        if (firstSeenDate >= oneWeekAgo) {
+          newIssuesCount++;
+        }
+      }
+
+      if (group.lastSeen) {
+        const lastSeenDate = new Date(group.lastSeen);
+        if (!latestLastSeen || lastSeenDate > latestLastSeen) {
+          latestLastSeen = lastSeenDate;
+        }
+      }
+
+      // Check for regressed substatus
+      if (group.substatus === GroupSubstatus.REGRESSED) {
+        hasRegressedIssues = true;
+      }
+
+      // Aggregate 24h stats for escalation detection
+      const stats24h = group.stats?.['24h'];
+      if (stats24h && stats24h.length > 0) {
+        const midpoint = Math.floor(stats24h.length / 2);
+        for (let i = 0; i < stats24h.length; i++) {
+          const eventCount = stats24h[i]?.[1] ?? 0;
+          if (i < midpoint) {
+            firstHalfEvents += eventCount;
+          } else {
+            secondHalfEvents += eventCount;
+          }
+        }
+      }
+    }
+
+    // Determine if escalating: second half has >1.5x events compared to first half
+    // Only consider escalating if there were events in the first half (avoid division by zero)
+    const isEscalating = firstHalfEvents > 0 && secondHalfEvents > firstHalfEvents * 1.5;
+
+    return {
+      totalEvents,
+      totalUsers,
+      firstSeen: earliestFirstSeen?.toISOString() ?? null,
+      lastSeen: latestLastSeen?.toISOString() ?? null,
+      newIssuesCount,
+      hasRegressedIssues,
+      isEscalating,
+      isPending,
+    };
+  }, [groups, isPending]);
+}
+
+function ClusterIssues({groupIds}: {groupIds: number[]}) {
+  const organization = useOrganization();
   const previewGroupIds = groupIds.slice(0, 3);
 
   const {data: groups, isPending} = useApiQuery<Group[]>(
@@ -153,112 +328,416 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
       },
     ],
     {
-      staleTime: 60000, // Cache for 1 minute
+      staleTime: 60000,
     }
   );
 
-  if (isPending) {
-    return (
-      <Flex direction="column" gap="sm">
-        {[0, 1, 2].map(i => (
-          <Placeholder key={i} height="70px" />
-        ))}
-      </Flex>
-    );
-  }
-
-  if (!groups || groups.length === 0) {
+  if (isPending || !groups || groups.length === 0) {
     return null;
   }
 
   return (
     <Flex direction="column" gap="sm">
       {groups.map(group => (
-        <IssuePreviewContainer
+        <IssuePreviewLink
           key={group.id}
           to={`/organizations/${organization.slug}/issues/${group.id}/`}
         >
           <CompactIssuePreview group={group} />
-        </IssuePreviewContainer>
+        </IssuePreviewLink>
       ))}
     </Flex>
   );
 }
 
-// Individual cluster card
-function ClusterCard({
-  cluster,
-  onRemove,
-  isRemoving,
-}: {
+interface ClusterCardProps {
   cluster: ClusterSummary;
-  isRemoving: boolean;
-  onRemove: (clusterId: number) => void;
-}) {
+  filterByEscalating?: boolean;
+  filterByRegressed?: boolean;
+}
+
+function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCardProps) {
+  const api = useApi();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const [activeTab, setActiveTab] = useState<'summary' | 'root-cause' | 'issues'>(
+    'summary'
+  );
+  const clusterStats = useClusterStats(cluster.group_ids);
+  const {copy} = useCopyToClipboard();
+  const {projects: allProjects} = useLegacyStore(ProjectsStore);
+
+  // Get projects for this cluster
+  const clusterProjects = useMemo(() => {
+    const projectIdStrings = cluster.project_ids.map(id => String(id));
+    return allProjects.filter(project => projectIdStrings.includes(project.id));
+  }, [allProjects, cluster.project_ids]);
+
+  // Track the Seer Explorer run ID for this cluster so subsequent clicks reopen the same chat
+  const seerRunIdRef = useRef<number | null>(null);
+
+  const handleSendToSeer = useCallback(() => {
+    if (seerRunIdRef.current) {
+      // Reopen existing chat
+      openSeerExplorer({runId: seerRunIdRef.current});
+    } else {
+      // Start a new chat with the cluster prompt
+      openSeerExplorer({
+        startNewRun: true,
+        initialMessage: formatClusterPromptForSeer(cluster),
+        onRunCreated: runId => {
+          seerRunIdRef.current = runId;
+        },
+      });
+    }
+  }, [cluster]);
+
+  const handleCopyMarkdown = () => {
+    copy(formatClusterInfoForClipboard(cluster));
+  };
+
+  const handleResolve = useCallback(() => {
+    openConfirmModal({
+      header: t('Resolve All Issues in Cluster'),
+      message: t(
+        'Are you sure you want to resolve all %s issues in this cluster?.',
+        cluster.group_ids.length
+      ),
+      confirmText: t('Resolve All'),
+      onConfirm: () => {
+        bulkUpdate(
+          api,
+          {
+            orgId: organization.slug,
+            itemIds: cluster.group_ids.map(String),
+            data: {status: GroupStatus.RESOLVED},
+            project: selection.projects,
+            environment: selection.environments,
+            ...selection.datetime,
+          },
+          {}
+        );
+      },
+    });
+  }, [api, cluster.group_ids, organization.slug, selection]);
+
+  const handleArchive = useCallback(() => {
+    openConfirmModal({
+      header: t('Archive All Issues in Cluster'),
+      message: t(
+        'Are you sure you want to archive all %s issues in this cluster?.',
+        cluster.group_ids.length
+      ),
+      confirmText: t('Archive All'),
+      onConfirm: () => {
+        bulkUpdate(
+          api,
+          {
+            orgId: organization.slug,
+            itemIds: cluster.group_ids.map(String),
+            data: {
+              status: GroupStatus.IGNORED,
+              statusDetails: {},
+              substatus: GroupSubstatus.ARCHIVED_UNTIL_ESCALATING,
+            },
+            project: selection.projects,
+            environment: selection.environments,
+            ...selection.datetime,
+          },
+          {}
+        );
+      },
+    });
+  }, [api, cluster.group_ids, organization.slug, selection]);
+
+  const handleDismiss = () => {};
+
+  const allTags = useMemo(() => {
+    return [
+      ...new Set([
+        ...(cluster.error_type_tags ?? []),
+        ...(cluster.code_area_tags ?? []),
+        ...(cluster.service_tags ?? []),
+      ]),
+    ];
+  }, [cluster.error_type_tags, cluster.code_area_tags, cluster.service_tags]);
+
+  // Apply filters - hide card if it doesn't match active filters
+  // Only filter once stats are loaded to avoid hiding cards prematurely
+  if (!clusterStats.isPending) {
+    if (filterByRegressed && !clusterStats.hasRegressedIssues) {
+      return null;
+    }
+    if (filterByEscalating && !clusterStats.isEscalating) {
+      return null;
+    }
+  }
 
   return (
-    <CardContainer isRemoving={isRemoving}>
-      <Flex
-        justify="between"
-        align="start"
-        gap="sm"
-        paddingBottom="md"
-        marginBottom="md"
-        borderBottom="primary"
-      >
-        <TitleContainer direction="column" gap="xs">
-          <StyledDisclosure>
-            <Disclosure.Title>
-              <TitleHeading as="h3" size="md">
-                {cluster.title}
-              </TitleHeading>
-            </Disclosure.Title>
-            <Disclosure.Content>
-              <SummaryText variant="muted">{cluster.summary}</SummaryText>
-              {cluster.fixability_score !== null && (
-                <ConfidenceText size="sm" variant="muted">
-                  {t('%s%% confidence', Math.round(cluster.fixability_score * 100))}
-                </ConfidenceText>
+    <CardContainer>
+      <CardHeader>
+        {cluster.impact && <ClusterTitle>{cluster.impact}</ClusterTitle>}
+        <ClusterStats>
+          {cluster.fixability_score !== null &&
+            cluster.fixability_score !== undefined && (
+              <StatItem>
+                <IconFix size="xs" color="gray300" />
+                <Text size="xs">
+                  <Text size="xs" bold as="span">
+                    {Math.round(cluster.fixability_score * 100)}%
+                  </Text>{' '}
+                  {t('relevance')}
+                </Text>
+              </StatItem>
+            )}
+          <StatItem>
+            <IconFire size="xs" color="gray300" />
+            {clusterStats.isPending ? (
+              <Text size="xs" variant="muted">
+                –
+              </Text>
+            ) : (
+              <Text size="xs">
+                <Text size="xs" bold as="span">
+                  {clusterStats.totalEvents.toLocaleString()}
+                </Text>{' '}
+                {tn('event', 'events', clusterStats.totalEvents)}
+              </Text>
+            )}
+          </StatItem>
+          <StatItem>
+            <IconUser size="xs" color="gray300" />
+            {clusterStats.isPending ? (
+              <Text size="xs" variant="muted">
+                –
+              </Text>
+            ) : (
+              <Text size="xs">
+                <Text size="xs" bold as="span">
+                  {clusterStats.totalUsers.toLocaleString()}
+                </Text>{' '}
+                {tn('user', 'users', clusterStats.totalUsers)}
+              </Text>
+            )}
+          </StatItem>
+          {!clusterStats.isPending && clusterStats.lastSeen && (
+            <StatItem>
+              <IconClock size="xs" color="gray300" />
+              <TimeSince
+                tooltipPrefix={t('Last Seen')}
+                date={clusterStats.lastSeen}
+                suffix={t('ago')}
+                unitStyle="short"
+              />
+            </StatItem>
+          )}
+          {!clusterStats.isPending && clusterStats.firstSeen && (
+            <StatItem>
+              <IconCalendar size="xs" color="gray300" />
+              <TimeSince
+                tooltipPrefix={t('First Seen')}
+                date={clusterStats.firstSeen}
+                suffix={t('old')}
+                unitStyle="short"
+              />
+            </StatItem>
+          )}
+        </ClusterStats>
+        {!clusterStats.isPending &&
+          (clusterStats.newIssuesCount > 0 ||
+            clusterStats.hasRegressedIssues ||
+            clusterStats.isEscalating) && (
+            <ClusterStatusTags>
+              {clusterStats.newIssuesCount > 0 && (
+                <StatusTag color="purple">
+                  <IconStar size="xs" />
+                  <Text size="xs" bold>
+                    {tn(
+                      '%s new issue this week',
+                      '%s new issues this week',
+                      clusterStats.newIssuesCount
+                    )}
+                  </Text>
+                </StatusTag>
               )}
-            </Disclosure.Content>
-          </StyledDisclosure>
-        </TitleContainer>
-        <IssueCount>
-          <CountNumber>{cluster.cluster_size ?? cluster.group_ids.length}</CountNumber>
-          <CountLabel size="xs" variant="muted">
-            {tn('issue', 'issues', cluster.cluster_size ?? cluster.group_ids.length)}
-          </CountLabel>
-        </IssueCount>
-      </Flex>
+              {clusterStats.hasRegressedIssues && (
+                <StatusTag color="yellow">
+                  <IconRefresh size="xs" />
+                  <Text size="xs" bold>
+                    {t('Has regressed issues')}
+                  </Text>
+                </StatusTag>
+              )}
+              {clusterStats.isEscalating && (
+                <StatusTag color="red">
+                  <IconArrow direction="up" size="xs" />
+                  <Text size="xs" bold>
+                    {t('Escalating')}
+                  </Text>
+                </StatusTag>
+              )}
+            </ClusterStatusTags>
+          )}
+      </CardHeader>
 
-      <Flex direction="column" flex="1">
-        <ClusterIssues groupIds={cluster.group_ids} />
-
-        {cluster.group_ids.length > 3 && (
-          <Text
-            size="sm"
-            variant="muted"
-            style={{marginTop: space(1), fontStyle: 'italic', textAlign: 'center'}}
+      <TabSection>
+        <TabBar>
+          <Tab isActive={activeTab === 'summary'} onClick={() => setActiveTab('summary')}>
+            {t('Summary')}
+          </Tab>
+          <Tab
+            isActive={activeTab === 'root-cause'}
+            onClick={() => setActiveTab('root-cause')}
           >
-            {t('+ %s more similar issues', cluster.group_ids.length - 3)}
-          </Text>
-        )}
-      </Flex>
+            {t('Root Cause')}
+          </Tab>
+          <Tab isActive={activeTab === 'issues'} onClick={() => setActiveTab('issues')}>
+            {t('Preview Issues')}
+          </Tab>
+        </TabBar>
+        <TabContent>
+          {activeTab === 'summary' && (
+            <Flex direction="column" gap="md">
+              <StructuredInfo>
+                {cluster.error_type && (
+                  <InfoRow>
+                    <InfoLabel>{t('Error')}</InfoLabel>
+                    <InfoValue>{cluster.error_type}</InfoValue>
+                  </InfoRow>
+                )}
+                {cluster.location && (
+                  <InfoRow>
+                    <InfoLabel>{t('Location')}</InfoLabel>
+                    <InfoValue>{cluster.location}</InfoValue>
+                  </InfoRow>
+                )}
+              </StructuredInfo>
+              {allTags.length > 0 && (
+                <TagsContainer>
+                  {allTags.map(tag => (
+                    <TagPill key={tag}>{tag}</TagPill>
+                  ))}
+                </TagsContainer>
+              )}
+            </Flex>
+          )}
+          {activeTab === 'root-cause' &&
+            (cluster.summary ? (
+              <DescriptionText>{renderWithInlineCode(cluster.summary)}</DescriptionText>
+            ) : (
+              <Text size="sm" variant="muted">
+                {t('No root cause analysis available')}
+              </Text>
+            ))}
+          {activeTab === 'issues' && <ClusterIssues groupIds={cluster.group_ids} />}
+        </TabContent>
+      </TabSection>
 
-      <Flex justify="end" align="center" gap="xs" paddingTop="md">
-        <Button size="sm" priority="primary" onClick={() => onRemove(cluster.cluster_id)}>
-          {t('Resolve')}
-        </Button>
-        <Button size="sm" onClick={() => onRemove(cluster.cluster_id)}>
-          {t('Ignore')}
-        </Button>
-        <Link
-          to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
-        >
-          <Button size="sm">{t('View All Issues')}</Button>
-        </Link>
-      </Flex>
+      <CardFooter>
+        {clusterProjects.length > 0 && (
+          <Tooltip
+            isHoverable
+            overlayStyle={{maxWidth: 300}}
+            title={
+              <Flex direction="column" gap="xs">
+                {clusterProjects.map(project => (
+                  <Flex key={project.id} align="center" gap="xs">
+                    <ProjectBadge
+                      project={project}
+                      avatarSize={12}
+                      hideName
+                      disableLink
+                    />
+                    <Text size="xs">{project.slug}</Text>
+                  </Flex>
+                ))}
+              </Flex>
+            }
+          >
+            <ProjectAvatars>
+              {clusterProjects.slice(0, 3).map(project => (
+                <ProjectBadge
+                  key={project.id}
+                  project={project}
+                  avatarSize={16}
+                  hideName
+                  disableLink
+                />
+              ))}
+              {clusterProjects.length > 3 && (
+                <MoreProjectsCount>+{clusterProjects.length - 3}</MoreProjectsCount>
+              )}
+            </ProjectAvatars>
+          </Tooltip>
+        )}
+        <FooterActions>
+          <ButtonBar merged gap="0">
+            <SeerButton
+              size="sm"
+              priority="primary"
+              icon={<IconSeer size="xs" />}
+              onClick={handleSendToSeer}
+            >
+              {t('Explore with Seer')}
+            </SeerButton>
+            <DropdownMenu
+              items={[
+                {
+                  key: 'copy-markdown',
+                  label: t('Copy as markdown for agents'),
+                  leadingItems: <IconCopy size="sm" />,
+                  onAction: handleCopyMarkdown,
+                },
+              ]}
+              trigger={(triggerProps, isOpen) => (
+                <SeerDropdownTrigger
+                  {...triggerProps}
+                  size="sm"
+                  priority="primary"
+                  icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+                  aria-label={t('More options')}
+                />
+              )}
+              position="bottom-end"
+            />
+          </ButtonBar>
+          <Link
+            to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
+          >
+            <Button size="sm">
+              {t('View All Issues') + ` (${cluster.group_ids.length})`}
+            </Button>
+          </Link>
+          <DropdownMenu
+            items={[
+              {
+                key: 'resolve',
+                label: t('Resolve All'),
+                onAction: handleResolve,
+              },
+              {
+                key: 'archive',
+                label: t('Archive All'),
+                onAction: handleArchive,
+              },
+              {
+                key: 'dismiss',
+                label: t('Dismiss'),
+                onAction: handleDismiss,
+              },
+            ]}
+            trigger={triggerProps => (
+              <Button
+                {...triggerProps}
+                size="sm"
+                icon={<IconEllipsis size="sm" />}
+                aria-label={t('More actions')}
+              />
+            )}
+            position="bottom-end"
+          />
+        </FooterActions>
+      </CardFooter>
     </CardContainer>
   );
 }
@@ -266,128 +745,168 @@ function ClusterCard({
 function DynamicGrouping() {
   const organization = useOrganization();
   const user = useUser();
-  const {teams} = useUserTeams();
-  const [jsonInput, setJsonInput] = useState('');
-  const [clusterData, setClusterData] = useState<ClusterSummary[]>([]);
-  const [parseError, setParseError] = useState<string | null>(null);
-  const [showInput, setShowInput] = useState(true);
-  const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
-  const [minFixabilityScore, setMinFixabilityScore] = useState(50);
-  const [removingClusterId, setRemovingClusterId] = useState<number | null>(null);
+  const {teams: userTeams} = useUserTeams();
+  const {selection} = usePageFilters();
+  const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(false);
+  const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
+  const [showJsonInput, setShowJsonInput] = useState(false);
+  const [jsonInputValue, setJsonInputValue] = useState('');
+  const [customClusterData, setCustomClusterData] = useState<ClusterSummary[] | null>(
+    null
+  );
+  const [jsonError, setJsonError] = useState<string | null>(null);
+  const [disableFilters, setDisableFilters] = useState(false);
+  const [showDevTools, setShowDevTools] = useState(false);
+  const [visibleClusterCount, setVisibleClusterCount] = useState(CLUSTERS_PER_PAGE);
+  const [filterByRegressed, setFilterByRegressed] = useState(false);
+  const [filterByEscalating, setFilterByEscalating] = useState(false);
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setClusterData(parsed);
-        setJsonInput(stored);
-        setShowInput(false);
-      } catch {
-        // If stored data is invalid, clear it
-        localStorage.removeItem(STORAGE_KEY);
-      }
+  // Fetch cluster data from API
+  const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
+    [`/organizations/${organization.slug}/top-issues/`],
+    {
+      staleTime: 60000,
+      enabled: customClusterData === null, // Only fetch if no custom data
     }
-  }, []);
+  );
 
-  const handleJsonSubmit = () => {
+  const handleParseJson = () => {
     try {
-      const parsed = JSON.parse(jsonInput);
-      if (!Array.isArray(parsed)) {
-        setParseError(t('JSON must be an array of cluster summaries'));
+      const parsed = JSON.parse(jsonInputValue);
+      const clusters = Array.isArray(parsed) ? parsed : parsed?.data;
+      if (!Array.isArray(clusters)) {
+        setJsonError(t('JSON must be an array or have a "data" property with an array'));
         return;
       }
-      setClusterData(parsed);
-      setParseError(null);
-      setShowInput(false);
-      localStorage.setItem(STORAGE_KEY, jsonInput);
-    } catch (error) {
-      setParseError(error instanceof Error ? error.message : t('Invalid JSON format'));
+      setCustomClusterData(clusters as ClusterSummary[]);
+      setJsonError(null);
+      setShowJsonInput(false);
+    } catch (e) {
+      setJsonError(t('Invalid JSON: %s', e instanceof Error ? e.message : String(e)));
     }
   };
 
-  const handleClear = () => {
-    setClusterData([]);
-    setJsonInput('');
-    setParseError(null);
-    setShowInput(true);
-    localStorage.removeItem(STORAGE_KEY);
+  const handleClearCustomData = () => {
+    setCustomClusterData(null);
+    setJsonInputValue('');
+    setJsonError(null);
+    setDisableFilters(false);
   };
 
-  const handleRemoveCluster = (clusterId: number) => {
-    // Start animation
-    setRemovingClusterId(clusterId);
+  const isUsingCustomData = customClusterData !== null;
 
-    // Wait for animation to complete before removing
-    setTimeout(() => {
-      const updatedClusters = clusterData.filter(
-        cluster => cluster.cluster_id !== clusterId
-      );
-      setClusterData(updatedClusters);
-      setRemovingClusterId(null);
-
-      // Update localStorage with the new data
-      if (updatedClusters.length > 0) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedClusters));
-      } else {
-        localStorage.removeItem(STORAGE_KEY);
+  // Extract all unique teams from the cluster data (for dev tools filter UI)
+  const teamsInData = useMemo(() => {
+    const data = topIssuesResponse?.data ?? [];
+    const teamMap = new Map<string, {id: string; name: string}>();
+    for (const cluster of data) {
+      for (const entity of cluster.assignedTo ?? []) {
+        if (entity.type === 'team' && !teamMap.has(entity.id)) {
+          teamMap.set(entity.id, {id: entity.id, name: entity.name});
+        }
       }
-    }, 300); // Match the animation duration
+    }
+    return Array.from(teamMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [topIssuesResponse?.data]);
+
+  const isTeamFilterActive = selectedTeamIds.size > 0;
+
+  const handleAssignedToMeChange = (checked: boolean) => {
+    setFilterByAssignedToMe(checked);
+    if (checked) {
+      setSelectedTeamIds(new Set());
+    }
   };
 
-  // Check if a cluster has at least one issue assigned to the current user or their teams
-  const isClusterAssignedToMe = useMemo(() => {
-    const userId = user.id;
-    const teamIds = teams.map(team => team.id);
+  const handleTeamToggle = (teamId: string) => {
+    const next = new Set(selectedTeamIds);
+    next.has(teamId) ? next.delete(teamId) : next.add(teamId);
 
-    return (cluster: ClusterSummary) => {
-      // If no assignedTo data, include the cluster
-      if (!cluster.assignedTo || cluster.assignedTo.length === 0) {
-        return false;
-      }
+    setSelectedTeamIds(next);
+    if (next.size > 0) {
+      setFilterByAssignedToMe(false);
+    }
+  };
 
-      // Check if any assigned entity matches the user or their teams
-      return cluster.assignedTo.some(entity => {
-        if (entity.type === 'user' && entity.id === userId) {
-          return true;
-        }
-        if (entity.type === 'team' && teamIds.includes(entity.id)) {
-          return true;
-        }
-        return false;
-      });
-    };
-  }, [user.id, teams]);
-
-  // Filter and sort clusters by fixability score (descending)
   const filteredAndSortedClusters = useMemo(() => {
-    return [...clusterData]
-      .filter((cluster: ClusterSummary) => {
-        // Filter by fixability score - hide clusters below threshold
-        const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
-        if (fixabilityScore < minFixabilityScore) {
+    const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
+
+    if (isUsingCustomData && disableFilters) {
+      return clusterData.filter(
+        cluster => cluster.error_type && cluster.impact && cluster.location
+      );
+    }
+
+    // Apply project filter and require structured fields
+    const baseFiltered = clusterData.filter(cluster => {
+      // Only show clusters with the required structured fields
+      if (!cluster.error_type || !cluster.impact || !cluster.location) {
+        return false;
+      }
+
+      if (
+        selection.projects.length > 0 &&
+        !selection.projects.includes(ALL_ACCESS_PROJECTS)
+      ) {
+        if (!cluster.project_ids.some(pid => selection.projects.includes(pid))) {
           return false;
         }
+      }
 
-        // If "Assigned to Me" filter is enabled, only show clusters assigned to the user
-        if (filterByAssignedToMe) {
-          return isClusterAssignedToMe(cluster);
-        }
-        return true;
-      })
-      .sort(
-        (a: ClusterSummary, b: ClusterSummary) =>
-          (b.fixability_score ?? 0) - (a.fixability_score ?? 0)
-      );
-  }, [clusterData, filterByAssignedToMe, minFixabilityScore, isClusterAssignedToMe]);
+      return true;
+    });
 
-  const totalIssues = useMemo(() => {
-    return filteredAndSortedClusters.reduce(
-      (sum: number, c: ClusterSummary) => sum + (c.cluster_size ?? c.group_ids.length),
-      0
+    // Find clusters assigned to current user or their teams
+    const assignedToMe = baseFiltered.filter(cluster =>
+      cluster.assignedTo?.some(
+        entity =>
+          (entity.type === 'user' && entity.id === user.id) ||
+          (entity.type === 'team' && userTeams.some(team => team.id === entity.id))
+      )
     );
-  }, [filteredAndSortedClusters]);
+
+    // By default, show only clusters assigned to me if there are enough (>=10)
+    const MIN_CLUSTERS_THRESHOLD = 10;
+    let result =
+      assignedToMe.length >= MIN_CLUSTERS_THRESHOLD ? assignedToMe : baseFiltered;
+
+    // Manual filters override the default
+    if (filterByAssignedToMe) {
+      result = assignedToMe;
+    } else if (isTeamFilterActive) {
+      result = baseFiltered.filter(cluster =>
+        cluster.assignedTo?.some(
+          entity => entity.type === 'team' && selectedTeamIds.has(entity.id)
+        )
+      );
+    }
+
+    return result.sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
+  }, [
+    customClusterData,
+    topIssuesResponse?.data,
+    isUsingCustomData,
+    disableFilters,
+    selection.projects,
+    filterByAssignedToMe,
+    user.id,
+    userTeams,
+    isTeamFilterActive,
+    selectedTeamIds,
+  ]);
+
+  const hasMoreClusters = filteredAndSortedClusters.length > visibleClusterCount;
+  const displayedClusters = hasMoreClusters
+    ? filteredAndSortedClusters.slice(0, visibleClusterCount)
+    : filteredAndSortedClusters;
+
+  const totalIssues = filteredAndSortedClusters.flatMap(c => c.group_ids).length;
+  const remainingClusterCount =
+    filteredAndSortedClusters.length - displayedClusters.length;
+
+  const handleShowMore = () => {
+    setVisibleClusterCount(prev => prev + CLUSTERS_PER_PAGE);
+  };
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
   if (!hasTopIssuesUI) {
@@ -395,286 +914,499 @@ function DynamicGrouping() {
   }
 
   return (
-    <PageContainer>
-      <Breadcrumbs
-        crumbs={[
-          {
-            label: t('Issues'),
-            to: `/organizations/${organization.slug}/issues/`,
-          },
-          {
-            label: t('Top Issues'),
-          },
-        ]}
-      />
-
-      <PageHeader>
-        <Flex justify="between" align="start" gap="sm">
-          <div style={{flex: 1}}>
-            <Heading as="h1">{t('Top Issues')}</Heading>
-          </div>
-          {clusterData.length > 0 && !showInput && (
-            <Flex gap="sm" style={{flexShrink: 0}}>
-              <Button size="sm" onClick={() => setShowInput(true)}>
-                {t('Update Data')}
-              </Button>
-              <Button size="sm" priority="danger" onClick={handleClear}>
-                {t('Clear')}
-              </Button>
-            </Flex>
-          )}
-        </Flex>
-      </PageHeader>
-
-      {showInput || clusterData.length === 0 ? (
-        <Container
-          padding="lg"
-          border="primary"
-          radius="md"
-          marginBottom="lg"
-          background="primary"
-        >
-          <Flex direction="column" gap="md">
-            <Text size="sm" variant="muted">
-              {t('Paste cluster summaries JSON data below:')}
-            </Text>
-            <JsonTextarea
-              value={jsonInput}
-              onChange={e => setJsonInput(e.target.value)}
-              placeholder={t('Paste JSON array here...')}
-              rows={10}
-            />
-            {parseError && <Alert type="error">{parseError}</Alert>}
-            <Flex gap="sm">
-              <Button priority="primary" onClick={handleJsonSubmit}>
-                {t('Load Data')}
-              </Button>
-              {clusterData.length > 0 && (
-                <Button onClick={() => setShowInput(false)}>{t('Cancel')}</Button>
-              )}
-            </Flex>
-          </Flex>
-        </Container>
-      ) : (
-        <Fragment>
-          <Flex marginBottom="lg">
-            <Text size="sm" variant="muted">
-              {tn(
-                'Viewing %s issue in %s cluster',
-                'Viewing %s issues across %s clusters',
-                totalIssues,
-                filteredAndSortedClusters.length
-              )}
-            </Text>
-          </Flex>
-
-          <Container
-            padding="md"
-            border="primary"
-            radius="md"
-            marginBottom="lg"
-            background="primary"
-          >
-            <Disclosure>
-              <Disclosure.Title>
-                <Text size="sm" bold>
-                  {t('More Filters')}
+    <PageFiltersContainer>
+      <PageWrapper>
+        <HeaderSection>
+          <Flex align="center" gap="md" style={{marginBottom: space(2)}}>
+            <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
+              {t('Top Issues')}
+            </ClickableHeading>
+            {isUsingCustomData && (
+              <CustomDataBadge>
+                <Text size="xs" bold>
+                  {t('Using Custom Data')}
                 </Text>
-              </Disclosure.Title>
-              <Disclosure.Content>
-                <AdvancedFilterContent>
-                  <Flex gap="sm" align="center">
-                    <Checkbox
-                      checked={filterByAssignedToMe}
-                      onChange={e => setFilterByAssignedToMe(e.target.checked)}
-                      aria-label={t('Show only issues assigned to me')}
-                      size="sm"
-                    />
-                    <Text size="sm" variant="muted">
-                      {t('Only show issues assigned to me')}
-                    </Text>
-                  </Flex>
-                  <Flex gap="sm" align="center">
-                    <Text size="sm" variant="muted">
-                      {t('Minimum fixability score (%)')}
-                    </Text>
-                    <NumberInput
-                      min={0}
-                      max={100}
-                      value={minFixabilityScore}
-                      onChange={value => setMinFixabilityScore(value ?? 0)}
-                      aria-label={t('Minimum fixability score')}
-                      size="sm"
-                    />
-                  </Flex>
-                </AdvancedFilterContent>
-              </Disclosure.Content>
-            </Disclosure>
-          </Container>
+                <Button
+                  size="zero"
+                  borderless
+                  icon={<IconClose size="xs" />}
+                  aria-label={t('Clear custom data')}
+                  onClick={handleClearCustomData}
+                />
+              </CustomDataBadge>
+            )}
+          </Flex>
 
-          <CardsGrid>
-            {filteredAndSortedClusters.map((cluster: ClusterSummary) => (
-              <ClusterCard
-                key={cluster.cluster_id}
-                cluster={cluster}
-                onRemove={handleRemoveCluster}
-                isRemoving={removingClusterId === cluster.cluster_id}
+          <Flex gap="sm" align="center" style={{marginBottom: space(2)}}>
+            <ProjectPageFilter />
+            {showDevTools && (
+              <Button
+                size="sm"
+                icon={<IconUpload size="xs" />}
+                onClick={() => setShowJsonInput(!showJsonInput)}
+              >
+                {showJsonInput ? t('Hide JSON Input') : t('Paste JSON')}
+              </Button>
+            )}
+            <FeedbackButton
+              size="sm"
+              feedbackOptions={{
+                messagePlaceholder: t('What do you think about the new Top Issues page?'),
+                tags: {
+                  ['feedback.source']: 'top-issues',
+                  ['feedback.owner']: 'issues',
+                },
+              }}
+            />
+          </Flex>
+
+          {showJsonInput && (
+            <JsonInputContainer>
+              <Text size="sm" variant="muted" style={{marginBottom: space(1)}}>
+                {t(
+                  'Paste cluster JSON data below. Accepts either a raw array of clusters or an object with a "data" property.'
+                )}
+              </Text>
+              <TextArea
+                value={jsonInputValue}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                  setJsonInputValue(e.target.value);
+                  setJsonError(null);
+                }}
+                placeholder={t('Paste JSON here...')}
+                rows={8}
+                monospace
               />
-            ))}
-          </CardsGrid>
-        </Fragment>
-      )}
-    </PageContainer>
+              {jsonError && (
+                <Text size="sm" style={{color: 'var(--red400)', marginTop: space(1)}}>
+                  {jsonError}
+                </Text>
+              )}
+              <Flex gap="sm" align="center" style={{marginTop: space(1.5)}}>
+                <Checkbox
+                  checked={disableFilters}
+                  onChange={e => setDisableFilters(e.target.checked)}
+                  aria-label={t('Disable filters and sorting')}
+                  size="sm"
+                />
+                <Text size="sm" variant="muted">
+                  {t('Disable filters and sorting')}
+                </Text>
+              </Flex>
+              <Flex gap="sm" style={{marginTop: space(1)}}>
+                <Button size="sm" priority="primary" onClick={handleParseJson}>
+                  {t('Parse and Load')}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setShowJsonInput(false);
+                    setJsonError(null);
+                  }}
+                >
+                  {t('Cancel')}
+                </Button>
+              </Flex>
+            </JsonInputContainer>
+          )}
+
+          {isPending ? null : (
+            <Fragment>
+              <Flex justify="between" align="center">
+                <Text size="sm" variant="muted">
+                  {tn(
+                    'Viewing %s cluster containing %s issue',
+                    'Viewing %s clusters containing %s issues',
+                    filteredAndSortedClusters.length,
+                    totalIssues
+                  )}
+                  {isUsingCustomData && disableFilters && ` ${t('(filters disabled)')}`}
+                </Text>
+                {topIssuesResponse?.last_updated && (
+                  <LastUpdatedText>
+                    {t('Updated')}{' '}
+                    <StyledTimeSince
+                      date={topIssuesResponse.last_updated}
+                      suffix={t('ago')}
+                      unitStyle="short"
+                    />
+                  </LastUpdatedText>
+                )}
+              </Flex>
+
+              {showDevTools && !(isUsingCustomData && disableFilters) && (
+                <Container
+                  padding="sm"
+                  border="primary"
+                  radius="md"
+                  background="primary"
+                  marginTop="md"
+                >
+                  <Disclosure>
+                    <Disclosure.Title>
+                      <Text size="sm" bold>
+                        {t('More Filters')}
+                      </Text>
+                    </Disclosure.Title>
+                    <Disclosure.Content>
+                      <Flex direction="column" gap="md" paddingTop="md">
+                        <Flex gap="sm" align="center">
+                          <Checkbox
+                            checked={filterByAssignedToMe}
+                            onChange={e => handleAssignedToMeChange(e.target.checked)}
+                            aria-label={t('Show only issues assigned to me')}
+                            size="sm"
+                            disabled={isTeamFilterActive}
+                          />
+                          <FilterLabel disabled={isTeamFilterActive}>
+                            {t('Only show issues assigned to me')}
+                          </FilterLabel>
+                        </Flex>
+
+                        {teamsInData.length > 0 && (
+                          <Flex direction="column" gap="sm">
+                            <FilterLabel disabled={filterByAssignedToMe}>
+                              {t('Filter by teams')}
+                            </FilterLabel>
+                            <Flex direction="column" gap="xs" style={{paddingLeft: 8}}>
+                              {teamsInData.map(team => (
+                                <Flex key={team.id} gap="sm" align="center">
+                                  <Checkbox
+                                    checked={selectedTeamIds.has(team.id)}
+                                    onChange={() => handleTeamToggle(team.id)}
+                                    aria-label={t('Filter by team %s', team.name)}
+                                    size="sm"
+                                    disabled={filterByAssignedToMe}
+                                  />
+                                  <FilterLabel disabled={filterByAssignedToMe}>
+                                    #{team.name}
+                                  </FilterLabel>
+                                </Flex>
+                              ))}
+                            </Flex>
+                          </Flex>
+                        )}
+
+                        <Flex direction="column" gap="sm">
+                          <FilterLabel>{t('Filter by status')}</FilterLabel>
+                          <Flex direction="column" gap="xs" style={{paddingLeft: 8}}>
+                            <Flex gap="sm" align="center">
+                              <Checkbox
+                                checked={filterByRegressed}
+                                onChange={e => setFilterByRegressed(e.target.checked)}
+                                aria-label={t('Show only clusters with regressed issues')}
+                                size="sm"
+                              />
+                              <FilterLabel>{t('Has regressed issues')}</FilterLabel>
+                            </Flex>
+                            <Flex gap="sm" align="center">
+                              <Checkbox
+                                checked={filterByEscalating}
+                                onChange={e => setFilterByEscalating(e.target.checked)}
+                                aria-label={t('Show only escalating clusters')}
+                                size="sm"
+                              />
+                              <FilterLabel>{t('Escalating (>1.5x events)')}</FilterLabel>
+                            </Flex>
+                          </Flex>
+                        </Flex>
+                      </Flex>
+                    </Disclosure.Content>
+                  </Disclosure>
+                </Container>
+              )}
+            </Fragment>
+          )}
+        </HeaderSection>
+
+        <CardsSection>
+          {isPending ? (
+            <LoadingIndicator />
+          ) : displayedClusters.length === 0 ? (
+            <Container padding="lg" border="primary" radius="md" background="primary">
+              <Text variant="muted" align="center" as="div">
+                {t('No clusters match the current filters')}
+              </Text>
+            </Container>
+          ) : (
+            <CardsGrid>
+              <CardsColumn>
+                {displayedClusters
+                  .filter((_, index) => index % 2 === 0)
+                  .map(cluster => (
+                    <ClusterCard
+                      key={cluster.cluster_id}
+                      cluster={cluster}
+                      filterByRegressed={filterByRegressed}
+                      filterByEscalating={filterByEscalating}
+                    />
+                  ))}
+              </CardsColumn>
+              <CardsColumn>
+                {displayedClusters
+                  .filter((_, index) => index % 2 === 1)
+                  .map(cluster => (
+                    <ClusterCard
+                      key={cluster.cluster_id}
+                      cluster={cluster}
+                      filterByRegressed={filterByRegressed}
+                      filterByEscalating={filterByEscalating}
+                    />
+                  ))}
+              </CardsColumn>
+            </CardsGrid>
+          )}
+          {hasMoreClusters && (
+            <ShowMoreButton onClick={handleShowMore}>
+              {t('Show more clusters (%s more)', remainingClusterCount)}
+            </ShowMoreButton>
+          )}
+        </CardsSection>
+      </PageWrapper>
+    </PageFiltersContainer>
   );
 }
 
-// Styled Components
-const PageContainer = styled('div')`
-  padding: ${space(3)} ${space(4)};
-  max-width: 1600px;
-  margin: 0 auto;
+const PageWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
 `;
 
-const PageHeader = styled('div')`
-  margin-bottom: ${space(2)};
+const HeaderSection = styled('div')`
+  padding: ${space(4)} ${space(4)} ${space(3)};
+  background: ${p => p.theme.backgroundSecondary};
+`;
+
+const ClickableHeading = styled(Heading)`
+  cursor: pointer;
+  user-select: none;
+`;
+
+const CardsSection = styled('div')`
+  flex: 1;
+  padding: ${space(2)} ${space(4)} ${space(4)};
+  background: ${p => p.theme.backgroundSecondary};
 `;
 
 const CardsGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+  display: flex;
   gap: ${space(3)};
+
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+    flex-direction: column;
+  }
 `;
 
-const CardContainer = styled('div')<{isRemoving: boolean}>`
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(3)};
+const CardsColumn = styled('div')`
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  opacity: ${p => (p.isRemoving ? 0 : 1)};
-  transform: ${p => (p.isRemoving ? 'scale(0.95)' : 'scale(1)')};
+  gap: ${space(3)};
+  min-width: 0;
+`;
+
+// Card with subtle hover effect
+const CardContainer = styled('div')`
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.radius.md};
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
   transition:
-    opacity 0.3s ease,
-    transform 0.3s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 
   &:hover {
-    border-color: ${p => p.theme.purple300};
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: ${p => p.theme.purple200};
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 `;
 
-const SummaryText = styled(Text)`
-  line-height: 1.6;
-  display: block;
-  margin-bottom: ${space(1.5)};
-`;
-
-const ConfidenceText = styled(Text)`
-  display: block;
-  margin-top: ${space(1.5)};
-`;
-
-const TitleContainer = styled(Flex)`
-  flex: 1;
-  min-width: 0;
-`;
-
-const StyledDisclosure = styled(Disclosure)`
-  /* Target the button inside Disclosure.Title */
-  button {
-    width: 100%;
-    display: flex !important;
-    text-align: left !important;
-    white-space: normal;
-    word-break: break-word;
-    padding: 0;
-    margin: 0;
-    justify-content: flex-start !important;
-    align-items: flex-start !important;
-  }
-
-  /* Ensure inner content is left-aligned */
-  button > *,
-  button span {
-    text-align: left !important;
-    justify-content: flex-start !important;
-  }
-
-  /* Adjust content padding */
-  & > div:last-child {
-    padding-top: ${space(1)};
-  }
-`;
-
-const TitleHeading = styled(Heading)`
-  word-break: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
-  text-align: left;
-`;
-
-const IssueCount = styled('div')`
+// Zone 1: Title area - clean and prominent
+const CardHeader = styled('div')`
+  padding: ${space(3)} ${space(3)} ${space(2)};
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: ${space(1)} ${space(1.5)};
-  background: ${p => p.theme.purple100};
-  border-radius: ${p => p.theme.borderRadius};
-  flex-shrink: 0;
+  gap: ${space(1)};
 `;
 
-const CountNumber = styled('div')`
-  font-size: 24px;
+const ClusterTitle = styled('h3')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
-  color: ${p => p.theme.purple400};
-  line-height: 1;
+  color: ${p => p.theme.tokens.content.primary};
+  line-height: 1.3;
+  word-break: break-word;
 `;
 
-const CountLabel = styled(Text)`
-  margin-top: ${space(0.25)};
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+// Stats row within header
+const ClusterStats = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: ${space(2)};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+`;
+
+const StatItem = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
+const ProjectAvatars = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
+`;
+
+const MoreProjectsCount = styled('span')`
+  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.subText};
+  margin-left: ${space(0.25)};
+`;
+
+// Status tags row for new/regressed/escalating indicators
+const ClusterStatusTags = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(1)};
+  margin-top: ${space(1)};
+`;
+
+const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
+  display: inline-flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  padding: ${space(0.5)} ${space(1)};
+  border-radius: ${p => p.theme.radius.md};
+  font-size: ${p => p.theme.fontSize.xs};
+
+  ${p => {
+    switch (p.color) {
+      case 'purple':
+        return `
+          background: ${p.theme.purple100};
+          color: ${p.theme.purple400};
+        `;
+      case 'yellow':
+        return `
+          background: ${p.theme.yellow100};
+          color: ${p.theme.yellow400};
+        `;
+      case 'red':
+        return `
+          background: ${p.theme.red100};
+          color: ${p.theme.red400};
+        `;
+      default:
+        return '';
+    }
+  }}
+`;
+
+// Tab section for Summary / Preview Issues
+const TabSection = styled('div')``;
+
+const TabBar = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  padding: ${space(1)} ${space(3)} 0;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+`;
+
+const Tab = styled('button')<{isActive: boolean}>`
+  background: none;
+  border: none;
+  padding: ${space(1)} ${space(1.5)};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: 500;
-  display: inline-block;
-  width: 6ch;
-  text-align: center;
+  color: ${p => (p.isActive ? p.theme.tokens.content.primary : p.theme.subText)};
+  cursor: pointer;
+  position: relative;
+  margin-bottom: -1px;
+
+  ${p =>
+    p.isActive &&
+    `
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: ${p.theme.purple300};
+    }
+  `}
+
+  &:hover {
+    color: ${p => p.theme.tokens.content.primary};
+  }
 `;
 
-const IssuePreviewContainer = styled(Link)`
+const TabContent = styled('div')`
+  padding: ${space(2)} ${space(3)};
+`;
+
+// Zone 4: Footer with actions
+const CardFooter = styled('div')`
+  padding: ${space(2)} ${space(3)};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const FooterActions = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+// Split button for Send to Seer action
+const SeerButton = styled(Button)`
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+`;
+
+const SeerDropdownTrigger = styled(Button)`
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+`;
+
+// Issue preview link with hover effect - consistent with issue feed cards
+const IssuePreviewLink = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  transition: all 0.15s ease;
+  border-radius: ${p => p.theme.radius.md};
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 
   &:hover {
     border-color: ${p => p.theme.purple300};
     background: ${p => p.theme.backgroundElevated};
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    transform: translateX(2px);
   }
 `;
 
-const CompactIssueWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.75)};
-`;
-
-const CompactTitle = styled('div')`
+// Issue title with ellipsis and nested em styling for EventOrGroupTitle
+const IssueTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.textColor};
+  font-weight: 600;
+  color: ${p => p.theme.tokens.content.primary};
   line-height: 1.4;
-  text-align: left;
   ${p => p.theme.overflowEllipsis};
 
-  & em {
+  em {
     font-size: ${p => p.theme.fontSize.sm};
     font-style: normal;
     font-weight: ${p => p.theme.fontWeight.normal};
@@ -682,95 +1414,129 @@ const CompactTitle = styled('div')`
   }
 `;
 
-const CompactMessage = styled(EventMessage)`
+// EventMessage override for compact display
+const IssueMessage = styled(EventMessage)`
   margin: 0;
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  line-height: 1.4;
+  opacity: 0.9;
 `;
 
-const CompactLocation = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  line-height: 1.3;
-  ${p => p.theme.overflowEllipsis};
-`;
-
-const CompactExtra = styled('div')`
-  display: inline-grid;
-  grid-auto-flow: column dense;
-  gap: ${space(0.75)};
-  justify-content: start;
-  align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.xs};
-  line-height: 1.2;
-
-  & > a {
-    color: ${p => p.theme.subText};
-  }
-`;
-
-const CompactSeparator = styled('div')`
+// Meta separator line
+const MetaSeparator = styled('div')`
   height: 10px;
   width: 1px;
   background-color: ${p => p.theme.innerBorder};
-  border-radius: 1px;
 `;
 
-const ShadowlessProjectBadge = styled(ProjectBadge)`
-  * > img {
-    box-shadow: none;
-  }
-`;
-
-const CommentsLink = styled(Link)`
-  display: inline-grid;
-  gap: ${space(0.5)};
-  align-items: center;
-  grid-auto-flow: column;
-  color: ${p => p.theme.textColor};
-`;
-
-const IconWrapper = styled('span')`
-  display: inline-flex;
-  margin-right: ${space(0.5)};
-`;
-
-const EventCount = styled('span')`
-  color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const JsonTextarea = styled('textarea')`
-  width: 100%;
-  min-height: 300px;
-  padding: ${space(1.5)};
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
-  font-size: 13px;
+const DescriptionText = styled('p')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
   line-height: 1.5;
-  background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.textColor};
-  resize: vertical;
-
-  &:focus {
-    outline: none;
-    border-color: ${p => p.theme.purple300};
-    box-shadow: 0 0 0 1px ${p => p.theme.purple300};
-  }
-
-  &::placeholder {
-    color: ${p => p.theme.subText};
-  }
 `;
 
-const AdvancedFilterContent = styled('div')`
-  padding: ${space(2)} 0;
+const StructuredInfo = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1.5)};
+  gap: ${space(0.5)};
+`;
+
+const TagsContainer = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(0.5)};
+`;
+
+const TagPill = styled('span')`
+  display: inline-block;
+  padding: ${space(0.25)} ${space(1)};
+  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.subText};
+  background: ${p => p.theme.backgroundSecondary};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.radius.md};
+`;
+
+const InfoRow = styled('div')`
+  display: flex;
+  align-items: baseline;
+  gap: ${space(1)};
+  font-size: ${p => p.theme.fontSize.sm};
+`;
+
+const InfoLabel = styled('span')`
+  color: ${p => p.theme.subText};
+  font-weight: 500;
+  min-width: 60px;
+  flex-shrink: 0;
+`;
+
+const InfoValue = styled('span')`
+  color: ${p => p.theme.tokens.content.primary};
+  word-break: break-word;
+`;
+
+const FilterLabel = styled('span')<{disabled?: boolean}>`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.subText)};
+`;
+
+const ShowMoreButton = styled('button')`
+  display: block;
+  width: 100%;
+  margin-top: ${space(3)};
+  padding: ${space(2)} ${space(3)};
+  background: ${p => p.theme.backgroundSecondary};
+  border: 1px dashed ${p => p.theme.border};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.md};
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+
+  &:hover {
+    background: ${p => p.theme.backgroundTertiary};
+    border-color: ${p => p.theme.purple300};
+    color: ${p => p.theme.tokens.content.primary};
+  }
+`;
+
+const JsonInputContainer = styled('div')`
+  margin-bottom: ${space(2)};
+  padding: ${space(2)};
+  background: ${p => p.theme.backgroundSecondary};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.radius.md};
+`;
+
+const CustomDataBadge = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  padding: ${space(0.5)} ${space(1)};
+  background: ${p => p.theme.yellow100};
+  border: 1px solid ${p => p.theme.yellow300};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.yellow400};
+`;
+
+const LastUpdatedText = styled('span')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  white-space: nowrap;
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: none;
+  }
 `;
 
 export default DynamicGrouping;

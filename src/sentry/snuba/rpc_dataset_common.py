@@ -7,6 +7,9 @@ from typing import Any
 
 import sentry_sdk
 from google.protobuf.json_format import MessageToJson
+from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
+    AttributeConditionalAggregation,
+)
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
     Expression,
@@ -19,6 +22,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
 )
+from sentry_protos.snuba.v1.formula_pb2 import Literal
 from sentry_protos.snuba.v1.request_common_pb2 import (
     PageToken,
     RequestMeta,
@@ -26,7 +30,12 @@ from sentry_protos.snuba.v1.request_common_pb2 import (
     TraceItemFilterWithType,
     TraceItemType,
 )
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, Function
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeAggregation,
+    AttributeKey,
+    AttributeValue,
+    Function,
+)
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
@@ -37,16 +46,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.columns import (
-    AnyResolved,
-    ColumnDefinitions,
-    ResolvedAggregate,
-    ResolvedAttribute,
-    ResolvedConditionalAggregate,
-    ResolvedEquation,
-    ResolvedFormula,
-    ResolvedLiteral,
-)
+from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.rpc_utils import and_trace_item_filters
@@ -97,7 +97,7 @@ class TableRequest:
     """Container for rpc requests"""
 
     rpc_request: TraceItemTableRequest
-    columns: list[AnyResolved]
+    columns: list[ResolvedColumn]
 
 
 def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
@@ -106,18 +106,6 @@ def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
             if row[axis] and row[axis] != 0:
                 return True
     return False
-
-
-def log_rpc_request(message: str, rpc_request):
-    rpc_debug_json = json.loads(MessageToJson(rpc_request))
-    logger.info(
-        message,
-        extra={
-            "rpc_query": rpc_debug_json,
-            "referrer": rpc_request.meta.referrer,
-            "trace_item_type": rpc_request.meta.trace_item_type,
-        },
-    )
 
 
 class RPCBase:
@@ -140,63 +128,77 @@ class RPCBase:
     @classmethod
     def categorize_column(
         cls,
-        column: AnyResolved,
+        column: ResolvedColumn,
     ) -> Column:
-        # Can't do bare literals, so they're actually formulas with +0
-        if isinstance(column, (ResolvedFormula, ResolvedEquation, ResolvedLiteral)):
-            return Column(formula=column.proto_definition, label=column.public_alias)
-        elif isinstance(column, ResolvedAggregate):
-            return Column(aggregation=column.proto_definition, label=column.public_alias)
-        elif isinstance(column, ResolvedConditionalAggregate):
-            return Column(
-                conditional_aggregation=column.proto_definition, label=column.public_alias
-            )
-        else:
-            return Column(key=column.proto_definition, label=column.public_alias)
+        proto_definition = column.proto_definition
+
+        if isinstance(proto_definition, AttributeKey):
+            return Column(key=proto_definition, label=column.public_alias)
+
+        if isinstance(proto_definition, AttributeAggregation):
+            return Column(aggregation=proto_definition, label=column.public_alias)
+
+        if isinstance(proto_definition, AttributeConditionalAggregation):
+            return Column(conditional_aggregation=proto_definition, label=column.public_alias)
+
+        if isinstance(proto_definition, Column.BinaryFormula):
+            return Column(formula=proto_definition, label=column.public_alias)
+
+        if isinstance(proto_definition, Literal):
+            return Column(literal=proto_definition, label=column.public_alias)
+
+        raise TypeError(f"Unsupported proto definition type: {type(proto_definition)}")
 
     @classmethod
     def categorize_aggregate(
         cls,
-        column: AnyResolved,
+        column: ResolvedColumn,
     ) -> Expression:
-        if isinstance(column, (ResolvedFormula, ResolvedEquation)):
+        proto_definition = column.proto_definition
+
+        if isinstance(proto_definition, AttributeAggregation):
+            return Expression(aggregation=proto_definition, label=column.public_alias)
+
+        if isinstance(proto_definition, AttributeConditionalAggregation):
+            return Expression(conditional_aggregation=proto_definition, label=column.public_alias)
+
+        if isinstance(proto_definition, Column.BinaryFormula):
             # TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
             return Expression(
-                formula=transform_binary_formula_to_expression(column.proto_definition),
+                formula=transform_binary_formula_to_expression(proto_definition),
                 label=column.public_alias,
             )
-        elif isinstance(column, ResolvedAggregate):
-            return Expression(aggregation=column.proto_definition, label=column.public_alias)
-        elif isinstance(column, ResolvedConditionalAggregate):
-            return Expression(
-                conditional_aggregation=column.proto_definition, label=column.public_alias
-            )
-        else:
-            raise Exception(f"Unknown column type {type(column)}")
+
+        raise TypeError(f"Unsupported proto definition type: {type(proto_definition)}")
 
     @classmethod
-    def get_cross_trace_queries(cls, query: TableQuery) -> list[TraceItemFilterWithType]:
+    def get_cross_trace_queries(
+        cls,
+        additional_queries: AdditionalQueries | None,
+        config: SearchResolverConfig,
+        query_params: SnubaParams,
+    ) -> list[TraceItemFilterWithType]:
         from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
         from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
         from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 
-        if query.additional_queries is None:
+        if additional_queries is None:
             return []
 
         # resolve cross trace queries
         # Copy the existing resolver, but we don't allow aggregate conditions for cross trace filters
-        cross_trace_config = replace(query.resolver.config, use_aggregate_conditions=False)
+        cross_trace_config = replace(config, use_aggregate_conditions=False)
 
         cross_trace_queries = []
         for queries, definitions, item_type in [
             (
-                query.additional_queries.log,
+                additional_queries.log,
                 OURLOG_DEFINITIONS,
                 TraceItemType.TRACE_ITEM_TYPE_LOG,
             ),
-            (query.additional_queries.span, SPAN_DEFINITIONS, TraceItemType.TRACE_ITEM_TYPE_SPAN),
+            (additional_queries.span, SPAN_DEFINITIONS, TraceItemType.TRACE_ITEM_TYPE_SPAN),
             (
-                query.additional_queries.metric,
+                additional_queries.metric,
                 TRACE_METRICS_DEFINITIONS,
                 TraceItemType.TRACE_ITEM_TYPE_METRIC,
             ),
@@ -204,7 +206,7 @@ class RPCBase:
             if queries is not None:
                 # Create a resolver for the subqueries
                 cross_resolver = SearchResolver(
-                    params=query.resolver.params,
+                    params=query_params,
                     config=cross_trace_config,
                     definitions=definitions,
                 )
@@ -237,7 +239,9 @@ class RPCBase:
         # if there are additional conditions to be added, make sure to merge them with the
         where = and_trace_item_filters(where, query.extra_conditions)
 
-        cross_trace_queries = cls.get_cross_trace_queries(query)
+        cross_trace_queries = cls.get_cross_trace_queries(
+            query.additional_queries, query.resolver.config, query.resolver.params
+        )
 
         trace_column, _ = resolver.resolve_column("trace")
         if (
@@ -251,7 +255,7 @@ class RPCBase:
             # incomplete traces.
             meta.downsampled_storage_config.mode = DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
 
-        all_columns: list[AnyResolved] = []
+        all_columns: list[ResolvedColumn] = []
         equations, equation_contexts = resolver.resolve_equations(
             query.equations if query.equations else []
         )
@@ -334,7 +338,6 @@ class RPCBase:
         """Run the query"""
         table_request = cls.get_table_rpc_request(query)
         rpc_request = table_request.rpc_request
-        log_rpc_request("Running a table query with debug on", rpc_request)
         try:
             rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
         except Exception as e:
@@ -544,7 +547,6 @@ class RPCBase:
     def _run_timeseries_rpc(
         self, debug: bool, rpc_request: TimeSeriesRequest
     ) -> TimeSeriesResponse:
-        log_rpc_request("Running a timeseries query with debug on", rpc_request)
         try:
             return snuba_rpc.timeseries_rpc([rpc_request])[0]
         except Exception as e:
@@ -592,9 +594,10 @@ class RPCBase:
         referrer: str,
         sampling_mode: SAMPLING_MODES | None,
         extra_conditions: TraceItemFilter | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> tuple[
         TimeSeriesRequest,
-        list[AnyResolved],
+        list[ResolvedColumn],
         list[ResolvedAttribute],
     ]:
         selected_equations, selected_axes = arithmetic.categorize_columns(y_axes)
@@ -608,6 +611,10 @@ class RPCBase:
             query_string,
             selected_axes,
             selected_equations,
+        )
+
+        cross_trace_queries = cls.get_cross_trace_queries(
+            additional_queries, search_resolver.config, search_resolver.params
         )
 
         trace_column, _ = search_resolver.resolve_column("trace")
@@ -654,6 +661,7 @@ class RPCBase:
                     if isinstance(groupby.proto_definition, AttributeKey)
                 ],
                 granularity_secs=params.timeseries_granularity_secs,
+                trace_filters=cross_trace_queries,
             ),
             (functions + equations),
             groupbys,
@@ -670,6 +678,7 @@ class RPCBase:
         config: SearchResolverConfig,
         sampling_mode: SAMPLING_MODES | None,
         comparison_delta: timedelta | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> SnubaTSResult:
         raise NotImplementedError()
 
@@ -733,6 +742,7 @@ class RPCBase:
         config: SearchResolverConfig,
         sampling_mode: SAMPLING_MODES | None,
         equations: list[str] | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> Any:
         """We intentionally duplicate run_timeseries_query code here to reduce the complexity of needing multiple helper
         functions that both would call
@@ -764,6 +774,7 @@ class RPCBase:
                 sampling_mode=sampling_mode,
                 resolver=table_search_resolver,
                 equations=equations,
+                additional_queries=additional_queries,
             )
         )
         # There aren't any top events, just return an empty dict and save a query
@@ -807,8 +818,6 @@ class RPCBase:
             requests.append(other_request)
 
         """Run the query"""
-        for rpc_request in requests:
-            log_rpc_request("Running a top events query with debug on", rpc_request)
         try:
             timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests)
             rpc_response = timeseries_rpc_response[0]

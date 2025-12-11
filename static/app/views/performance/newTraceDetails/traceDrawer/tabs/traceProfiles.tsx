@@ -20,6 +20,7 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 export function TraceProfiles({tree}: {tree: TraceTree}) {
   const {projects} = useProjects();
@@ -65,22 +66,7 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
           return null;
         }
 
-        const threadId = isEAPSpanNode(node)
-          ? (node.value.additional_attributes?.['thread.id'] ?? undefined)
-          : undefined;
-        const tid = typeof threadId === 'string' ? threadId : undefined;
-
-        const query = isTransactionNode(node)
-          ? {
-              eventId: node.value.event_id,
-              tid,
-            }
-          : isSpanNode(node)
-            ? {
-                eventId: TraceTree.ParentTransaction(node)?.value?.event_id,
-                tid,
-              }
-            : {tid};
+        const query = getProfileRouteQueryFromNode(node);
 
         const link =
           'profiler_id' in profile
@@ -158,13 +144,30 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
   );
 }
 
+function getProfileRouteQueryFromNode(node: TraceTreeNode<TraceTree.NodeValue>) {
+  if (isTransactionNode(node)) {
+    return {eventId: node.value.event_id};
+  }
+  if (isSpanNode(node)) {
+    return {eventId: TraceTree.ParentTransaction(node)?.value?.event_id};
+  }
+  if (isEAPSpanNode(node)) {
+    const threadId = node.value.additional_attributes?.['thread.id'] ?? undefined;
+    return {
+      eventId: node.value.transaction_id,
+      tid: typeof threadId === 'string' ? threadId : undefined,
+    };
+  }
+  return {};
+}
+
 const ProfilesTable = styled('div')`
   display: grid !important;
   grid-template-columns: 1fr min-content;
   grid-template-rows: auto;
   width: 100%;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 
   > div {
     white-space: nowrap;
@@ -196,9 +199,9 @@ const ProfilesTableRow = styled('div')`
   }
 
   &:first-child {
-    background-color: ${p => p.theme.background};
-    border-top-left-radius: ${p => p.theme.borderRadius};
-    border-top-right-radius: ${p => p.theme.borderRadius};
+    background-color: ${p => p.theme.tokens.background.primary};
+    border-top-left-radius: ${p => p.theme.radius.md};
+    border-top-right-radius: ${p => p.theme.radius.md};
   }
 
   &:not(:last-child) {

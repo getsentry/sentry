@@ -1,4 +1,6 @@
-# Sentry Frontend Development Guide
+# Frontend Development Guide
+
+> For critical commands and testing rules, see `/AGENTS.md` in the repository root.
 
 ## Frontend Tech Stack
 
@@ -12,7 +14,7 @@
 
 ## Commands
 
-#### Development Setup
+### Development Setup
 
 ```bash
 # Start the development server
@@ -21,40 +23,6 @@ pnpm run dev
 # Start only the UI development server with hot reload
 pnpm run dev-ui
 ```
-
-#### Testing
-
-```bash
-# Run JavaScript tests
-pnpm test
-
-# Run specific test file(s)
-CI=true pnpm test components/avatar.spec.tsx [...other files]
-```
-
-#### Code Quality
-
-```bash
-# JavaScript/TypeScript linting
-pnpm run lint:js
-
-# Linting for specific file(s)
-pnpm run lint:js components/avatar.tsx [...other files]
-
-# Fix linting issues
-pnpm run fix
-```
-
-## Development
-
-### General Frontend Rules
-
-1. NO new Reflux stores
-2. NO class components
-3. NO CSS files (use [core components](./app/components/core/) or Emotion in edge cases)
-4. ALWAYS use TypeScript
-5. ALWAYS colocate tests
-6. Lazy load routes: `React.lazy(() => import('...'))`
 
 ### Important Files and Directories
 
@@ -459,28 +427,6 @@ function Component() {
 ```
 
 ## React Testing Guidelines
-
-### Running Tests
-
-Always run React tests with the CI flag to use non-interactive mode:
-
-```bash
-CI=true pnpm test <file_path>
-```
-
-### Imports
-
-**Always** import from `sentry-test/reactTestingLibrary`, not directly from `@testing-library/react`:
-
-```tsx
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
-```
 
 ### Testing Philosophy
 

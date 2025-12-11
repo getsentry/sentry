@@ -375,7 +375,7 @@ const ProfilingDetailsListItem = styled('li')<{
     font-weight: ${p => p.theme.fontWeight.normal};
     margin: 0;
     padding: ${p => (p.size === 'sm' ? space(0.25) : space(0.5))} 0;
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     max-height: ${p => (p.size === 'sm' ? '24px' : undefined)};
 
     &::after {
@@ -390,7 +390,7 @@ const ProfilingDetailsListItem = styled('li')<{
     }
 
     &:hover {
-      color: ${p => p.theme.textColor};
+      color: ${p => p.theme.tokens.content.primary};
     }
   }
 

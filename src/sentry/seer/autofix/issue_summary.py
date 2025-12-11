@@ -27,6 +27,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
+    is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
@@ -272,6 +273,27 @@ def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
     return SummarizeIssueResponse.validate(response_data)
 
 
+def get_and_update_group_fixability_score(group: Group, force_generate: bool = False) -> float:
+    """
+    Get the fixability score for a group and update the group with the score.
+    If the fixability score is already set, return it without generating a new one.
+    """
+    if not force_generate and group.seer_fixability_score is not None:
+        return group.seer_fixability_score
+
+    with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
+        issue_summary = _generate_fixability_score(group)
+
+    if not issue_summary.scores:
+        raise ValueError("Issue summary scores is None or empty.")
+    if issue_summary.scores.fixability_score is None:
+        raise ValueError("Issue summary fixability score is None.")
+
+    fixability_score = issue_summary.scores.fixability_score
+    group.update(seer_fixability_score=fixability_score)
+    return fixability_score
+
+
 def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     project = group.project
     option = project.get_option("sentry:autofix_automation_tuning")
@@ -299,32 +321,26 @@ def run_automation(
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return
 
-    # Check event count for ALERT source with triage-signals-v0
-    if source == SeerAutomationSource.ALERT and features.has(
-        "projects:triage-signals-v0", group.project
-    ):
-        # Use times_seen_with_pending if available (set by post_process), otherwise fall back
-        times_seen = (
-            group.times_seen_with_pending
-            if hasattr(group, "_times_seen_pending")
-            else group.times_seen
-        )
-        if times_seen < 10:
-            logger.info(
-                "Triage signals V0: skipping alert automation, event count < 10",
-                extra={"group_id": group.id, "event_count": times_seen},
+    # Check event count for ALERT source with triage-signals-v0-org
+    if is_seer_seat_based_tier_enabled(group.organization):
+        if source == SeerAutomationSource.ALERT:
+            # Use times_seen_with_pending if available (set by post_process), otherwise fall back
+            times_seen = (
+                group.times_seen_with_pending
+                if hasattr(group, "_times_seen_pending")
+                else group.times_seen
             )
-            return
+            if times_seen < 10:
+                return
 
-    # Only log for projects with triage-signals-v0
-    if features.has("projects:triage-signals-v0", group.project):
         try:
             times_seen = group.times_seen_with_pending
         except (AssertionError, AttributeError):
             times_seen = group.times_seen
         logger.info(
-            "Triage signals V0: %s: run_automation called: source=%s, times_seen=%s",
+            "Triage signals V0: %s: run_automation called: project_slug=%s, source=%s, times_seen=%s",
             group.id,
+            group.project.slug,
             source.value,
             times_seen,
         )
@@ -344,18 +360,7 @@ def run_automation(
     )
 
     # Only generate fixability if it doesn't already exist
-    fixability_score = group.seer_fixability_score
-    if fixability_score is None:
-        with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-            issue_summary = _generate_fixability_score(group)
-
-        if not issue_summary.scores:
-            raise ValueError("Issue summary scores is None or empty.")
-        if issue_summary.scores.fixability_score is None:
-            raise ValueError("Issue summary fixability score is None.")
-
-        fixability_score = issue_summary.scores.fixability_score
-        group.update(seer_fixability_score=fixability_score)
+    fixability_score = get_and_update_group_fixability_score(group)
 
     if (
         not _is_issue_fixable(group, fixability_score)
@@ -363,7 +368,7 @@ def run_automation(
     ):
         return
 
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
+    has_budget: bool = quotas.backend.check_seer_quota(
         org_id=group.organization.id,
         data_category=DataCategory.SEER_AUTOFIX,
     )
@@ -379,22 +384,14 @@ def run_automation(
         return
 
     stopping_point = None
-    if features.has("projects:triage-signals-v0", group.project):
-        logger.info("Triage signals V0: %s: generating stopping point", group.id)
+    if is_seer_seat_based_tier_enabled(group.organization):
         fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
-        logger.info("Fixability-based stopping point: %s", fixability_stopping_point)
 
         # Fetch user preference and apply as upper bound
         user_preference = _fetch_user_preference(group.project.id)
-        logger.info("User preference stopping point: %s", user_preference)
 
         stopping_point = _apply_user_preference_upper_bound(
             fixability_stopping_point, user_preference
-        )
-        logger.info(
-            "Triage signals V0: %s: Final stopping point after upper bound: %s",
-            group.id,
-            stopping_point,
         )
 
     _trigger_autofix_task.delay(

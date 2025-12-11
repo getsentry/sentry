@@ -1,6 +1,7 @@
+import type {Simplify} from 'type-fest';
+
 import type {PlatformKey} from 'sentry/types/project';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {Flatten} from 'sentry/utils/types/flatten';
 import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 
 export enum ModuleName {
@@ -113,6 +114,7 @@ export enum SpanFields {
   GEN_AI_USAGE_TOTAL_COST = 'gen_ai.usage.total_cost',
   GEN_AI_USAGE_TOTAL_TOKENS = 'gen_ai.usage.total_tokens',
   GEN_AI_OPERATION_TYPE = 'gen_ai.operation.type',
+  GEN_AI_OPERATION_NAME = 'gen_ai.operation.name',
   MCP_CLIENT_NAME = 'mcp.client.name',
   MCP_TRANSPORT = 'mcp.transport',
   MCP_TOOL_NAME = 'mcp.tool.name',
@@ -499,7 +501,7 @@ type SpanResponseRaw = {
     [Property in SpanFields as `${SpanFunction.COUNT_IF}(${Property},${string},${string})`]: number;
   };
 
-export type SpanResponse = Flatten<SpanResponseRaw>;
+export type SpanResponse = Simplify<SpanResponseRaw>;
 export type SpanProperty = keyof SpanResponse;
 
 export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
@@ -536,7 +538,7 @@ type ErrorResponseRaw = {
   [Property in NoArgErrorFunction as `${Property}()`]: number;
 };
 
-export type ErrorResponse = Flatten<ErrorResponseRaw>;
+export type ErrorResponse = Simplify<ErrorResponseRaw>;
 export type ErrorProperty = keyof ErrorResponse;
 
 // Maps the subregion code to the subregion name according to UN m49 standard

@@ -1,17 +1,21 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   AVERAGE_DURATION_TEXT,
   QUERIES_PER_MINUTE_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/constants';
+import {BASE_FILTERS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/queries';
 import {SpanFields} from 'sentry/views/insights/types';
+
+const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 
 export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'Backend Queries',
+  title: 'Query Details',
   filters: {
     globalFilter: [
       {
@@ -20,15 +24,6 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           key: SpanFields.NORMALIZED_DESCRIPTION,
           name: SpanFields.NORMALIZED_DESCRIPTION,
           kind: FieldKind.TAG,
-        },
-        value: '',
-      },
-      {
-        dataset: WidgetType.ISSUE,
-        tag: {
-          key: 'message',
-          name: 'message',
-          kind: FieldKind.EVENT_FIELD,
         },
         value: '',
       },
@@ -48,19 +43,13 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           fields: ['epm()'],
           aggregates: ['epm()'],
           columns: [],
-          conditions: '',
+          conditions: FILTER_STRING,
           orderby: '',
           isHidden: false,
         },
       ],
       widgetType: WidgetType.SPANS,
-      layout: {
-        x: 3,
-        minH: 1,
-        w: 1,
-        h: 1,
-        y: 0,
-      },
+      layout: {y: 0, x: 2, h: 1, w: 2, minH: 1},
     },
     {
       id: 'metrics-duration',
@@ -75,19 +64,13 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
           aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
           columns: [],
-          conditions: '',
+          conditions: FILTER_STRING,
           orderby: '',
           isHidden: false,
         },
       ],
       widgetType: WidgetType.SPANS,
-      layout: {
-        x: 4,
-        minH: 1,
-        w: 1,
-        h: 1,
-        y: 0,
-      },
+      layout: {y: 0, x: 0, h: 1, w: 2, minH: 1},
     },
     {
       id: 'metrics-time-spent',
@@ -102,50 +85,37 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           fields: [`sum(${SpanFields.SPAN_SELF_TIME})`],
           aggregates: [`sum(${SpanFields.SPAN_SELF_TIME})`],
           columns: [],
-          conditions: '',
+          conditions: FILTER_STRING,
           orderby: '',
           isHidden: false,
         },
       ],
       widgetType: WidgetType.SPANS,
-      layout: {
-        x: 5,
-        minH: 1,
-        w: 1,
-        h: 1,
-        y: 0,
-      },
+      layout: {y: 0, x: 4, h: 1, w: 2, minH: 1},
     },
     {
-      id: 'related-issues',
-      title: 'Related Issues',
+      id: 'example-query',
+      title: 'Example Query',
       description: '',
-      displayType: DisplayType.TABLE,
+      displayType: DisplayType.DETAILS,
       thresholds: null,
       interval: '1h',
       queries: [
         {
           name: '',
-          fields: ['issue', 'assignee', 'title'],
+          fields: ['id', 'span.op', 'span.group', 'span.description', 'span.category'],
           aggregates: [],
-          columns: ['issue', 'assignee', 'title'],
-          fieldAliases: ['', '', ''],
-          conditions:
-            'issue.type:[performance_slow_db_query,performance_n_plus_one_db_queries]',
-          orderby: 'date',
+          columns: ['id', 'span.op', 'span.group', 'span.description', 'span.category'],
+          fieldAliases: [],
+          conditions: FILTER_STRING,
+          orderby: 'id',
           onDemand: [],
-          isHidden: false,
           linkedDashboards: [],
         },
       ],
-      widgetType: WidgetType.ISSUE,
-      layout: {
-        x: 0,
-        minH: 2,
-        w: 6,
-        h: 2,
-        y: 1,
-      },
+      limit: 1,
+      widgetType: WidgetType.SPANS,
+      layout: {y: 1, x: 0, h: 2, w: 6, minH: 2},
     },
     {
       id: 'transactions-with-query',
@@ -161,21 +131,15 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['epm()', `sum(${SpanFields.SPAN_SELF_TIME})`],
           columns: [SpanFields.TRANSACTION],
           fieldAliases: [t('Found In'), t('Queries Per Minute'), t('Time Spent')],
-          conditions: '',
-          orderby: `-${SpanFields.TRANSACTION}`,
+          conditions: FILTER_STRING,
+          orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
           onDemand: [],
           isHidden: false,
           linkedDashboards: [],
         },
       ],
       widgetType: WidgetType.SPANS,
-      layout: {
-        x: 0,
-        minH: 2,
-        w: 6,
-        h: 2,
-        y: 5,
-      },
+      layout: {y: 5, x: 0, h: 2, w: 6, minH: 2},
     },
     {
       id: 'metrics-throughput-line',
@@ -186,12 +150,12 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       interval: '1h',
       queries: [
         {
-          name: '',
+          name: QUERIES_PER_MINUTE_TEXT,
           fields: ['epm()'],
           aggregates: ['epm()'],
           columns: [],
           fieldAliases: [],
-          conditions: '',
+          conditions: FILTER_STRING,
           orderby: 'epm()',
           onDemand: [],
           isHidden: false,
@@ -199,13 +163,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
       ],
       widgetType: WidgetType.SPANS,
-      layout: {
-        x: 0,
-        minH: 2,
-        w: 3,
-        h: 2,
-        y: 3,
-      },
+      layout: {y: 3, x: 0, h: 2, w: 3, minH: 2},
     },
     {
       id: 'metrics-duration-line',
@@ -217,24 +175,18 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       interval: '1h',
       queries: [
         {
-          name: '',
+          name: AVERAGE_DURATION_TEXT,
           fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
           aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
           columns: [],
           fieldAliases: [],
-          conditions: '',
+          conditions: FILTER_STRING,
           orderby: `avg(${SpanFields.SPAN_SELF_TIME})`,
           onDemand: [],
           isHidden: false,
         },
       ],
-      layout: {
-        x: 3,
-        minH: 2,
-        w: 3,
-        h: 2,
-        y: 3,
-      },
+      layout: {y: 3, x: 3, h: 2, w: 3, minH: 2},
     },
   ],
 };

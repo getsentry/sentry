@@ -564,7 +564,7 @@ const ProfileDetailsBar = styled('div')<{layout: FlamegraphPreferences['layout']
   height: ${p =>
     p.layout === 'table left' || p.layout === 'table right' ? '220px' : '100%'};
   border-left: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   grid-area: details;
   position: relative;
 

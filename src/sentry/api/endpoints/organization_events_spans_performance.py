@@ -17,7 +17,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
@@ -86,7 +86,7 @@ SPAN_PERFORMANCE_COLUMNS: dict[str, SpanPerformanceColumn] = {
 }
 
 
-class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
+class OrganizationEventsSpansEndpointBase(OrganizationEventsEndpointBase):
     def get_snuba_params(
         self,
         request: Request,

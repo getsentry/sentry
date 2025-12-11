@@ -7,20 +7,19 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useRouter from 'sentry/utils/useRouter';
-import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
 
 import {useChartSelection} from './chartSelectionContext';
 
 type Props = {
-  chartInfo: ChartInfo;
+  chartIndex: number;
   clearSelection: () => void;
   selection: Selection;
   setTab: (tab: Mode | Tab) => void;
 };
 
-export function FloatingTrigger({chartInfo, selection, clearSelection, setTab}: Props) {
+export function FloatingTrigger({chartIndex, selection, clearSelection, setTab}: Props) {
   const router = useRouter();
   const {setChartSelection} = useChartSelection();
 
@@ -54,10 +53,10 @@ export function FloatingTrigger({chartInfo, selection, clearSelection, setTab}: 
   const handleFindAttributeBreakdowns = useCallback(() => {
     setChartSelection({
       selection,
-      chartInfo,
+      chartIndex,
     });
     setTab(Tab.ATTRIBUTE_BREAKDOWNS);
-  }, [selection, chartInfo, setChartSelection, setTab]);
+  }, [selection, chartIndex, setChartSelection, setTab]);
 
   return (
     <List>
@@ -76,10 +75,11 @@ const List = styled('ul')`
   margin-bottom: 0 !important;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
   background: ${p => p.theme.backgroundElevated};
-  color: ${p => p.theme.textColor};
-  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.tokens.content.primary};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   overflow: hidden;
+  transform: translateY(-20px);
 `;
 
 const ListItem = styled('li')`

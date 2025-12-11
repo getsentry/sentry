@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from enum import Enum, IntEnum, StrEnum
 from typing import Any, ClassVar, NotRequired, TypedDict
 
+from sentry.utils import json
+
 OPSGENIE_DEFAULT_PRIORITY = "P3"
 PAGERDUTY_DEFAULT_SEVERITY = "default"
 
@@ -643,6 +645,9 @@ class SentryAppActionTranslator(BaseActionTranslator):
         data = SentryAppDataBlob()
         if settings := self.action.get("settings"):
             for setting in settings:
+                # stringify setting value if it's a list
+                if isinstance(setting.get("value"), list):
+                    setting["value"] = json.dumps(setting["value"])
                 data.settings.append(SentryAppFormConfigDataBlob(**setting))
 
         return dataclasses.asdict(data)

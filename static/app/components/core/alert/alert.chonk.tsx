@@ -2,7 +2,7 @@ import type {SerializedStyles} from '@emotion/react';
 import {css} from '@emotion/react';
 
 import type {AlertProps} from 'sentry/components/core/alert';
-import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -29,7 +29,7 @@ export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   border-width: ${p => (p.system ? '0px 0px 1px 0px' : '1px')};
   border-style: solid;
-  border-radius: ${p => (p.system ? '0px' : p.theme.borderRadius)};
+  border-radius: ${p => (p.system ? '0px' : p.theme.radius.md)};
   cursor: ${p => (p.expand ? 'pointer' : 'inherit')};
   gap: ${p => p.theme.space.lg};
   row-gap: 0;
@@ -120,14 +120,14 @@ function generateAlertBackground(
           ${tokens.background} ${width}px,
           ${tokens.background} ${width + 1}px
         ),
-        linear-gradient(${theme.colors.background.primary});
+        linear-gradient(${theme.tokens.background.primary});
       padding-left: calc(${width}px + ${props.theme!.space.lg});
     `;
   }
   return css`
     background-image:
       linear-gradient(${tokens.background}),
-      linear-gradient(${theme.colors.background.primary});
+      linear-gradient(${theme.tokens.background.primary});
   `;
 }
 

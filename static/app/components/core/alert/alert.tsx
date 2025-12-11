@@ -3,8 +3,7 @@ import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
-
-import type {DistributiveOmit} from '@sentry/scraps/types';
+import type {DistributedOmit} from 'type-fest';
 
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
@@ -189,7 +188,7 @@ const AlertPanel = styled('div')<AlertProps & {hovered: boolean}>`
   gap: ${space(1)};
   color: ${p => getAlertColors(p.theme, p.type).color};
   font-size: ${p => p.theme.fontSize.md};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => getAlertColors(p.theme, p.type).border};
   padding: ${space(1.5)} ${space(2)};
   background-image: ${p =>
@@ -334,7 +333,7 @@ const Container = styled('div')`
 
 Alert.Container = Container;
 
-function AlertButton(props: DistributiveOmit<ButtonProps, 'size'>) {
+function AlertButton(props: DistributedOmit<ButtonProps, 'size'>) {
   const theme = useTheme();
   return <Button {...props} size={theme.isChonk ? 'zero' : 'sm'} />;
 }

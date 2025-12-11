@@ -114,5 +114,5 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
 
 const ShortId = styled(TextOverflow)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
