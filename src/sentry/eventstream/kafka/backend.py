@@ -6,6 +6,8 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from arroyo.backends.kafka import KafkaPayload
+from arroyo.types import Topic as ArroyoTopic
 from confluent_kafka import KafkaError
 from confluent_kafka import Message as KafkaMessage
 from confluent_kafka import Producer
@@ -185,29 +187,25 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         producer = self.get_producer(topic)
 
-        # Polling the producer is required to ensure callbacks are fired. This
-        # means that the latency between a message being delivered (or failing
-        # to be delivered) and the corresponding callback being fired is
-        # roughly the same as the duration of time that passes between publish
-        # calls. If this ends up being too high, the publisher should be moved
-        # into a background thread that can poll more frequently without
-        # interfering with request handling. (This does `poll` does not act as
-        # a heartbeat for the purposes of any sort of session expiration.)
-        # Note that this call to poll() is *only* dealing with earlier
-        # asynchronous produce() calls from the same process.
-        producer.poll(0.0)
-
         assert isinstance(extra_data, tuple)
 
         real_topic = get_topic_definition(topic)["real_topic_name"]
 
         try:
             producer.produce(
-                topic=real_topic,
-                key=str(project_id).encode("utf-8") if not skip_semantic_partitioning else None,
-                value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
-                on_delivery=self.delivery_callback,
-                headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
+                ArroyoTopic(real_topic),
+                payload=KafkaPayload(
+                    key=str(project_id).encode("utf-8") if not skip_semantic_partitioning else None,
+                    value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data).encode(
+                        "utf-8"
+                    ),
+                    headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
+                ),
+            ).add_done_callback(
+                lambda future: self.delivery_callback(
+                    future.exception() if future.exception() is not None else None,
+                    future.result().message,
+                )
             )
         except Exception as error:
             logger.exception("Could not publish message: %s", error)
@@ -225,8 +223,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
         real_topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
         try:
             producer.produce(
-                topic=real_topic,
-                value=EAP_ITEMS_CODEC.encode(trace_item),
+                ArroyoTopic(real_topic),
+                KafkaPayload(key=None, value=EAP_ITEMS_CODEC.encode(trace_item), headers=[]),
             )
         except Exception as error:
             logger.exception("Could not publish trace items: %s", error)
