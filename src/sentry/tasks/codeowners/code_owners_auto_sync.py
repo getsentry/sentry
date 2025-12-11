@@ -17,7 +17,7 @@ from sentry.taskworker.retry import Retry
 @instrumented_task(
     name="sentry.tasks.code_owners_auto_sync",
     namespace=issues_tasks,
-    retry=Retry(times=1, delay=60 * 5),
+    retry=Retry(times=3, delay=60),
     processing_deadline_duration=60,
     silo_mode=SiloMode.REGION,
 )

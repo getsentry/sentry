@@ -8,7 +8,7 @@ import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import ProgressRing from 'sentry/components/progressRing';
 import {IconLock, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import useMedia from 'sentry/utils/useMedia';
 
@@ -24,7 +24,12 @@ import {
   MILLISECONDS_IN_HOUR,
   supportsPayg,
 } from 'getsentry/utils/billing';
-import {isByteCategory, isContinuousProfiling} from 'getsentry/utils/dataCategory';
+import {
+  calculateSeerUserSpend,
+  formatCategoryQuantityWithDisplayName,
+  isByteCategory,
+  isContinuousProfiling,
+} from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
 import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 import ProductTrialRibbon from 'getsentry/views/subscriptionPage/usageOverview/components/productTrialRibbon';
@@ -55,7 +60,7 @@ function UsageOverviewTableRow({
 }: UsageOverviewTableProps & (ChildProductRowProps | ParentProductRowProps)) {
   const theme = useTheme();
   const showPanelInline = useMedia(
-    `(max-width: ${theme.breakpoints[SIDE_PANEL_MIN_SCREEN_BREAKPOINT]})`
+    `(max-width: calc(${theme.breakpoints[SIDE_PANEL_MIN_SCREEN_BREAKPOINT]} - 1px))`
   );
   const [isHovered, setIsHovered] = useState(false);
   const showAdditionalSpendColumn =
@@ -91,6 +96,7 @@ function UsageOverviewTableRow({
   let formattedFree = null;
   let paygSpend = 0;
   let isUnlimited = false;
+  let otherSpend = 0;
 
   if (isAddOn) {
     if (!addOnInfo) {
@@ -162,13 +168,14 @@ function UsageOverviewTableRow({
     paygSpend = subscription.categories[billedCategory]?.onDemandSpendUsed ?? 0;
   }
 
-  const {reserved} = metricHistory;
+  const {reserved, prepaid, usage} = metricHistory;
   const bucket = getBucket({
     events: reserved ?? 0, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
     buckets: subscription.planDetails.planCategories[billedCategory],
   });
+  otherSpend = calculateSeerUserSpend(metricHistory);
   const recurringReservedSpend = isChildProduct ? 0 : (bucket.price ?? 0);
-  const additionalSpend = recurringReservedSpend + paygSpend;
+  const additionalSpend = recurringReservedSpend + paygSpend + otherSpend;
 
   const formattedSoftCapType =
     isChildProduct || !isAddOn ? getSoftCapType(metricHistory) : null;
@@ -196,9 +203,12 @@ function UsageOverviewTableRow({
     !isUnlimited &&
     (!isAddOn || formattedPrepaid);
 
+  const shouldFormatWithDisplayName =
+    isContinuousProfiling(billedCategory) || billedCategory === DataCategory.SEER_USER;
+
   return (
     <Fragment>
-      <Row
+      <ProductRow
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         isSelected={isSelected}
@@ -264,12 +274,26 @@ function UsageOverviewTableRow({
                   {isUnlimited ? (
                     <Tag type="highlight">{t('Unlimited')}</Tag>
                   ) : isPaygOnly || isChildProduct || !formattedPrepaid ? (
-                    formattedUsage
+                    shouldFormatWithDisplayName ? (
+                      formatCategoryQuantityWithDisplayName({
+                        dataCategory: billedCategory,
+                        quantity: usage,
+                        formattedQuantity: formattedUsage,
+                        subscription,
+                        options: {capitalize: false},
+                      })
+                    ) : (
+                      formattedUsage
+                    )
                   ) : (
-                    `${formattedUsage} / ${formattedPrepaid}`
+                    `${formattedUsage} / ${shouldFormatWithDisplayName ? formatCategoryQuantityWithDisplayName({dataCategory: billedCategory, quantity: prepaid, formattedQuantity: formattedPrepaid, subscription, options: {capitalize: false}}) : formattedPrepaid}`
                   )}
-                  {formattedFree && ` (${formattedFree} gifted)`}
                 </Text>
+                {formattedFree && (
+                  <Text size="xs">
+                    {tct(` ([formattedFree] gifted)`, {formattedFree})}
+                  </Text>
+                )}
               </Flex>
             </td>
             {showAdditionalSpendColumn && (
@@ -282,9 +306,9 @@ function UsageOverviewTableRow({
           </Fragment>
         )}
         {(isSelected || isHovered) && <SelectedPill isSelected={isSelected} />}
-      </Row>
+      </ProductRow>
       {showPanelInline && isSelected && (
-        <tr>
+        <Row>
           <MobilePanelContainer>
             <ProductBreakdownPanel
               organization={organization}
@@ -294,7 +318,7 @@ function UsageOverviewTableRow({
               isInline
             />
           </MobilePanelContainer>
-        </tr>
+        </Row>
       )}
     </Fragment>
   );
@@ -302,12 +326,7 @@ function UsageOverviewTableRow({
 
 export default UsageOverviewTableRow;
 
-const Row = styled('tr')<{isSelected: boolean}>`
-  position: relative;
-  background: ${p => (p.isSelected ? p.theme.backgroundSecondary : p.theme.background)};
-  padding: ${p => p.theme.space.xl};
-  cursor: pointer;
-
+const Row = styled('tr')`
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.border};
   }
@@ -315,6 +334,13 @@ const Row = styled('tr')<{isSelected: boolean}>`
   &:last-child {
     border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   }
+`;
+
+const ProductRow = styled(Row)<{isSelected: boolean}>`
+  position: relative;
+  background: ${p => (p.isSelected ? p.theme.backgroundSecondary : p.theme.background)};
+  padding: ${p => p.theme.space.xl};
+  cursor: pointer;
 
   &:hover {
     background: ${p => p.theme.backgroundSecondary};

@@ -11,12 +11,6 @@ export const space = {
   xl: '16px',
   '2xl': '24px',
   '3xl': '32px',
-  '4xl': '48px',
-  '5xl': '64px',
-  '6xl': '80px',
-  '7xl': '96px',
-  '8xl': '112px',
-  '9xl': '128px',
 };
 
 export const size = {
@@ -53,7 +47,8 @@ export const radius = {
   full: '999px',
 };
 
-export const breakpoint = {
+export const breakpoints = {
+  '2xs': '0px',
   xs: '500px',
   sm: '800px',
   md: '992px',

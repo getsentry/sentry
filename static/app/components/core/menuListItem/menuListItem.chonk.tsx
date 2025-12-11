@@ -29,7 +29,7 @@ function getTextColor({
       return theme.errorText;
     case 'default':
     default:
-      return theme.textColor;
+      return theme.tokens.content.primary;
   }
 }
 

@@ -3,7 +3,6 @@ import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Stack} from '@sentry/scraps/layout/stack';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -12,6 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import SettingsPageTabs from 'getsentry/views/seerAutomation/components/settingsPageTabs';
+import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
   children: React.ReactNode;
@@ -19,7 +19,7 @@ interface Props {
 
 export default function SeerSettingsPageWrapper({children}: Props) {
   const organization = useOrganization();
-  const canWrite = hasEveryAccess(['org:write'], {organization});
+  const canWrite = useCanWriteSettings();
 
   return (
     <Feature

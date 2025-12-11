@@ -82,7 +82,7 @@ def _get_full_trace_id(
             orderby=["-timestamp"],
             offset=0,
             limit=1,
-            referrer=Referrer.SEER_RPC,
+            referrer=Referrer.SEER_EXPLORER_TOOLS,
             config=SearchResolverConfig(),
             sampling_mode=None,
         )
@@ -152,7 +152,7 @@ def execute_table_query(
         "project": project_ids,
         "projectSlug": project_slugs,
         "sampling": sampling_mode,
-        "referrer": Referrer.SEER_RPC,
+        "referrer": Referrer.SEER_EXPLORER_TOOLS,
     }
 
     # Add boolean params only if provided.
@@ -233,7 +233,7 @@ def execute_timeseries_query(
         "project": project_ids,
         "projectSlug": project_slugs,
         "sampling": sampling_mode,
-        "referrer": Referrer.SEER_RPC,
+        "referrer": Referrer.SEER_EXPLORER_TOOLS,
         "excludeOther": "0",  # Always include "Other" series
     }
 
@@ -324,7 +324,7 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
         projects=projects,
         organization=organization,
     )
-    events = query_trace_data(snuba_params, full_trace_id, referrer=Referrer.SEER_RPC)
+    events = query_trace_data(snuba_params, full_trace_id, referrer=Referrer.SEER_EXPLORER_TOOLS)
 
     return EAPTrace(
         trace_id=full_trace_id,
@@ -428,7 +428,7 @@ def rpc_get_profile_flamegraph(
             orderby=[],
             offset=0,
             limit=1,
-            referrer=Referrer.SEER_RPC,
+            referrer=Referrer.SEER_EXPLORER_TOOLS,
             config=SearchResolverConfig(
                 auto_fields=True,
             ),
@@ -1308,7 +1308,7 @@ def get_trace_item_attributes(
 
     params = {
         "item_type": item_type,
-        "referrer": Referrer.SEER_RPC.value,
+        "referrer": Referrer.SEER_EXPLORER_TOOLS.value,
         "trace_id": trace_id,
     }
 
@@ -1363,7 +1363,7 @@ def _make_get_trace_request(
         full_trace_id = trace_id
 
     # Build the GetTraceRequest.
-    meta = resolver.resolve_meta(referrer=Referrer.SEER_RPC, sampling_mode=sampling_mode)
+    meta = resolver.resolve_meta(referrer=Referrer.SEER_EXPLORER_TOOLS, sampling_mode=sampling_mode)
     request = GetTraceRequest(
         meta=meta,
         trace_id=full_trace_id,

@@ -445,12 +445,12 @@ function getTextColor({
           color: ${theme.white};
         `
       : css`
-          color: ${theme.headingColor};
+          color: ${theme.tokens.content.primary};
         `;
   }
 
   return css`
-    color: ${theme.textColor};
+    color: ${theme.tokens.content.primary};
   `;
 }
 

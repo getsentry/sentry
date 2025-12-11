@@ -65,7 +65,7 @@ function App() {
       ? []
       : [
           {
-            match: ['command+/', 'ctrl+/'],
+            match: ['command+/', 'ctrl+/', 'command+.', 'ctrl+.'],
             callback: () => toggleExplorerPanel(),
             includeInputs: true,
           },
