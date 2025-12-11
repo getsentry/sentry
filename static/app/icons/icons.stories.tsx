@@ -1590,7 +1590,7 @@ export default function IconsStories() {
             const variant = variants[idx % variants.length];
             const IconComponent = (Icons as any)[`Icon${icon.name}`];
             return (
-              <Stack key={icon.name} align="center" gap="xs">
+              <Stack key={idx} align="center" gap="xs">
                 <IconComponent size="md" variant={variant} />
                 <Text as="span" size="xs" align="center">
                   {variant}
