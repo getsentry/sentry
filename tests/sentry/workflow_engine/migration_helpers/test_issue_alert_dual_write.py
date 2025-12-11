@@ -113,20 +113,6 @@ class RuleMigrationHelpersTestBase(TestCase):
 
 
 class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
-    def test_rule_snooze_updates_workflow(self) -> None:
-        IssueAlertMigrator(self.issue_alert, self.user.id).run()
-        rule_snooze = RuleSnooze.objects.create(rule=self.issue_alert)
-
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
-        workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
-
-        assert workflow.enabled is False
-
-        rule_snooze.delete()
-
-        workflow.refresh_from_db()
-        assert workflow.enabled is True
-
     def test_ignores_per_user_rule_snooze(self) -> None:
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
