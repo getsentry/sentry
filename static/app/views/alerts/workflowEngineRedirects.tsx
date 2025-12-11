@@ -154,12 +154,17 @@ export const withDetectorDetailsRedirect = <P extends Record<string, any>>(
     const {ruleId, detectorId} = useParams();
     const location = useLocation();
     const alertId = location.query.alert as string | undefined;
+    const notificationUuid = location.query.notification_uuid;
 
+    const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
     const hasRedirectOptOut = organization.features.includes(
       'workflow-engine-redirect-opt-out'
     );
     const shouldRedirect =
-      !hasRedirectOptOut && organization.features.includes('workflow-engine-ui');
+      (!hasRedirectOptOut ||
+        // When clicking from a notification, we never want to opt out of the redirect
+        !!notificationUuid) &&
+      hasWorkflowEngineUI;
 
     // Check for incident open period if alertId is present
     const {data: incidentGroupOpenPeriod, isPending: isOpenPeriodPending} =
