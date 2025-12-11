@@ -128,21 +128,25 @@ export function ConfigureCodeReviewStep() {
         : []),
     ];
 
-    // Only the latest call to mutation will resolve, but they are run conditionally so we need to use Promise.any
-    Promise.any(promises)
-      .then(() => {
-        if (selectedCodeReviewRepositories.length > MAX_REPOSITORIES_TO_PRESELECT) {
-          // When this happens, we clear the pre-populated repositories. Otherwise,
-          // the user will have an overwhelming number of repositories to map.
-          clearRootCauseAnalysisRepositories();
-        }
-        setCurrentStep(currentStep + 1);
-      })
-      .catch(() => {
-        addErrorMessage(
-          t('Failed to update AI Code Review settings, reload and try again')
-        );
-      });
+    if (promises.length > 0) {
+      // Only the latest call to mutation will resolve, but they are run conditionally so we need to use Promise.any
+      Promise.any(promises)
+        .then(() => {
+          if (selectedCodeReviewRepositories.length > MAX_REPOSITORIES_TO_PRESELECT) {
+            // When this happens, we clear the pre-populated repositories. Otherwise,
+            // the user will have an overwhelming number of repositories to map.
+            clearRootCauseAnalysisRepositories();
+          }
+          setCurrentStep(currentStep + 1);
+        })
+        .catch(() => {
+          addErrorMessage(
+            t('Failed to update AI Code Review settings, reload and try again')
+          );
+        });
+    } else {
+      setCurrentStep(currentStep + 1);
+    }
   }, [
     clearRootCauseAnalysisRepositories,
     selectedCodeReviewRepositories,
