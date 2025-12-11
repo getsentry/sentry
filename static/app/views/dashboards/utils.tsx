@@ -673,7 +673,10 @@ export const isChartDisplayType = (displayType?: DisplayType) => {
   if (!displayType) {
     return true;
   }
-  return ![DisplayType.BIG_NUMBER, DisplayType.TABLE, DisplayType.DETAILS].includes(
-    displayType
-  );
+  return ![
+    DisplayType.BIG_NUMBER,
+    DisplayType.TABLE,
+    DisplayType.DETAILS,
+    DisplayType.WHEEL,
+  ].includes(displayType);
 };

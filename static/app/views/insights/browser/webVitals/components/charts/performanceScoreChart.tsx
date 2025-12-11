@@ -134,7 +134,7 @@ const PerformanceScoreLabel = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
-const PerformanceScoreSubtext = styled('div')`
+export const PerformanceScoreSubtext = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};

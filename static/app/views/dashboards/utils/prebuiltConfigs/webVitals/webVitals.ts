@@ -1,0 +1,200 @@
+import {t} from 'sentry/locale';
+import {FieldKind} from 'sentry/utils/fields';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
+import {SpanFields} from 'sentry/views/insights/types';
+
+export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
+  dateCreated: '',
+  projects: [],
+  title: 'Web Vitals',
+  filters: {
+    globalFilter: [
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
+          key: 'span.system',
+          name: 'span.system',
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
+          key: 'span.action',
+          name: 'span.action',
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
+          key: 'span.domain',
+          name: 'span.domain',
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
+    ],
+  },
+  widgets: [
+    {
+      id: 'score-breakdown-wheel',
+      title: t('Performance Score'),
+      displayType: DisplayType.WHEEL,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: DEFAULT_QUERY_FILTER,
+          fields: [
+            'performance_score(measurements.score.lcp)',
+            'performance_score(measurements.score.fcp)',
+            'performance_score(measurements.score.cls)',
+            'performance_score(measurements.score.inp)',
+            'performance_score(measurements.score.ttfb)',
+            'performance_score(measurements.score.total)',
+            'count_scores(measurements.score.total)',
+            'count_scores(measurements.score.lcp)',
+            'count_scores(measurements.score.fcp)',
+            'count_scores(measurements.score.cls)',
+            'count_scores(measurements.score.inp)',
+            'count_scores(measurements.score.ttfb)',
+          ],
+          aggregates: [],
+          columns: [
+            'performance_score(measurements.score.lcp)',
+            'performance_score(measurements.score.fcp)',
+            'performance_score(measurements.score.cls)',
+            'performance_score(measurements.score.inp)',
+            'performance_score(measurements.score.ttfb)',
+            'performance_score(measurements.score.total)',
+            'count_scores(measurements.score.total)',
+            'count_scores(measurements.score.lcp)',
+            'count_scores(measurements.score.fcp)',
+            'count_scores(measurements.score.cls)',
+            'count_scores(measurements.score.inp)',
+            'count_scores(measurements.score.ttfb)',
+          ],
+          orderby: '',
+        },
+      ],
+      layout: {
+        y: 0,
+        w: 2,
+        h: 2,
+        x: 0,
+        minH: 2,
+      },
+    },
+    {
+      id: 'score-breakdown-chart',
+      title: t('Score Breakdown'),
+      displayType: DisplayType.AREA,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: DEFAULT_QUERY_FILTER,
+          fields: [
+            'performance_score(measurements.score.lcp)',
+            'performance_score(measurements.score.fcp)',
+            'performance_score(measurements.score.cls)',
+            'performance_score(measurements.score.inp)',
+            'performance_score(measurements.score.ttfb)',
+          ],
+          aggregates: [
+            'performance_score(measurements.score.lcp)',
+            'performance_score(measurements.score.fcp)',
+            'performance_score(measurements.score.cls)',
+            'performance_score(measurements.score.inp)',
+            'performance_score(measurements.score.ttfb)',
+          ],
+          columns: [],
+          orderby: '',
+        },
+      ],
+      layout: {
+        y: 0,
+        w: 4,
+        h: 2,
+        x: 2,
+        minH: 2,
+      },
+    },
+    {
+      id: 'pages-table',
+      title: t('Pages'),
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      tableWidths: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+      queries: [
+        {
+          name: '',
+          conditions: DEFAULT_QUERY_FILTER,
+          fields: [
+            SpanFields.TRANSACTION,
+            SpanFields.PROJECT,
+            'count()',
+            'p75(measurements.lcp)',
+            'p75(measurements.fcp)',
+            'p75(measurements.cls)',
+            'p75(measurements.ttfb)',
+            'p75(measurements.inp)',
+            'performance_score(measurements.score.total)',
+            'opportunity_score(measurements.score.total)',
+          ],
+          aggregates: [],
+          columns: [
+            SpanFields.TRANSACTION,
+            SpanFields.PROJECT,
+            'count()',
+            'p75(measurements.lcp)',
+            'p75(measurements.fcp)',
+            'p75(measurements.cls)',
+            'p75(measurements.ttfb)',
+            'p75(measurements.inp)',
+            'performance_score(measurements.score.total)',
+            'opportunity_score(measurements.score.total)',
+          ],
+          orderby: `-opportunity_score(measurements.score.total)`,
+          fieldAliases: [
+            t('Pages'),
+            t('Project'),
+            t('Pageloads'),
+            t('LCP'),
+            t('FCP'),
+            t('CLS'),
+            t('TTFB'),
+            t('INP'),
+            t('Perf Score'),
+            t('Opportunity'),
+          ],
+        },
+      ],
+      layout: {
+        y: 2,
+        w: 6,
+        h: 6,
+        x: 0,
+        minH: 2,
+      },
+    },
+  ],
+};
+
+export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
+  dateCreated: '',
+  projects: [],
+  title: 'Web Vitals Page Summary',
+  filters: {
+    globalFilter: [],
+  },
+  widgets: [],
+};
