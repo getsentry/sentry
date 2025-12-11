@@ -169,7 +169,7 @@ const OptionBody = styled('div')`
 const OptionLabel = styled('label')<{disabled?: boolean}>`
   display: grid;
   grid-template-columns: 1fr;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   background-color: ${p => p.theme.surface400};
   font-weight: ${p => p.theme.fontWeight.normal};

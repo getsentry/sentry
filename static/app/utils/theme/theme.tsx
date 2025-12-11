@@ -553,7 +553,6 @@ const commonTheme = {
     },
   },
 
-  borderRadius: '6px',
   fontSize: {
     xs: '11px',
     sm: '12px',

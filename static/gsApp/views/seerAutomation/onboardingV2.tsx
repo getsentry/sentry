@@ -25,7 +25,7 @@ export default function SeerOnboardingV2() {
       <SettingsPageHeader
         title={t('Set Up Seer')}
         subtitle={t(
-          'Follow these steps to configure Seer for your organization. Seer helps automatically analyze and fix issues in your codebase.'
+          'Follow these steps to configure Seer for your organization. Seer helps automatically analyze,fix, and prevent issues in your codebase.'
         )}
       />
 

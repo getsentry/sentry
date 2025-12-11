@@ -239,7 +239,7 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
 
 const Container = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   display: flex;
   flex-direction: column;
   flex: 1;

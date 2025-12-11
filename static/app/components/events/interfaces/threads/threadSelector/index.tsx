@@ -258,7 +258,7 @@ const SortableThreadSelectorGridCell = styled(ThreadSelectorGridCell)`
   margin-bottom: ${space(0.5)};
   cursor: pointer;
   user-select: none;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
   }

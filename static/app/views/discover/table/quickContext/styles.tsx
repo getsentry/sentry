@@ -29,7 +29,7 @@ export const ContextBody = styled('div')`
 
 export const Wrapper = styled('div')`
   background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   width: 320px;
   padding: ${space(1.5)};
 `;

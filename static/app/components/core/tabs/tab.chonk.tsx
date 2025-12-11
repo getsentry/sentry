@@ -83,7 +83,7 @@ export const chonkInnerWrapStyles = ({
   font-size: ${theme.form[size].fontSize};
   line-height: ${theme.form[size].lineHeight};
   padding: ${paddingPerSize(theme, orientation)[size]};
-  border-radius: ${theme.borderRadius};
+  border-radius: ${theme.radius.md};
   transform: translateY(1px);
   margin-bottom: ${orientation === 'horizontal' && variant === 'flat'
     ? theme.space.xs
