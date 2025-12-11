@@ -22,8 +22,8 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
-import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
@@ -423,7 +423,7 @@ function WidgetViewerModal(props: Props) {
     ) => {
       return parsedQuery === null ? undefined : (
         <HighlightContainer {...highlightedContainerProps}>
-          <HighlightQuery parsedQuery={parsedQuery} />
+          <ProvidedFormattedQuery query={conditions} />
         </HighlightContainer>
       );
     };
@@ -1248,9 +1248,6 @@ const StyledQuestionTooltip = styled(QuestionTooltip)`
 const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
   display: ${p => p.display};
   gap: ${space(1)};
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
-  line-height: 2;
   flex: 1;
 `;
 
