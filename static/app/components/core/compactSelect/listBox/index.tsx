@@ -239,7 +239,7 @@ export function ListBox<T extends ObjectLike>({
   );
 }
 
-const sizeEstimations = {
+const heightEstimations = {
   sm: {regular: 32, large: 49},
   md: {regular: 36, large: 53},
   xs: {regular: 25, large: 42},
@@ -255,7 +255,7 @@ function useVirtualizedItems<T extends ObjectLike>({
   virtualized: boolean | undefined;
 }) {
   const scrollElementRef = useRef<HTMLDivElement>(null);
-  const sizeEstimation = sizeEstimations[size];
+  const heightEstimation = heightEstimations[size];
 
   const virtualizer = useVirtualizer({
     count: listItems.length,
@@ -263,9 +263,9 @@ function useVirtualizedItems<T extends ObjectLike>({
     estimateSize: index => {
       const item = listItems[index];
       if (item?.value && 'details' in item.value) {
-        return sizeEstimation.large;
+        return heightEstimation.large;
       }
-      return sizeEstimation.regular;
+      return heightEstimation.regular;
     },
     enabled: virtualized,
   });
