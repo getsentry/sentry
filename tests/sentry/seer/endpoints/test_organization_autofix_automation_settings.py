@@ -20,10 +20,12 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
     )
     @patch(
-        "sentry.seer.endpoints.organization_autofix_automation_settings.get_autofix_repos_from_project_code_mappings"
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
     )
-    def test_put_fixes_enabled_sets_medium_tuning(self, mock_get_repos, mock_bulk_set_preferences):
-        mock_get_repos.return_value = [{"name": "test-repo", "owner": "test-owner"}]
+    def test_put_fixes_enabled_sets_medium_tuning(
+        self, mock_bulk_get_preferences, mock_bulk_set_preferences
+    ):
+        mock_bulk_get_preferences.return_value = {}
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
 
@@ -61,10 +63,12 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
     )
     @patch(
-        "sentry.seer.endpoints.organization_autofix_automation_settings.get_autofix_repos_from_project_code_mappings"
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
     )
-    def test_put_fixes_and_pr_creation_enabled(self, mock_get_repos, mock_bulk_set_preferences):
-        mock_get_repos.return_value = [{"name": "test-repo", "owner": "test-owner"}]
+    def test_put_fixes_and_pr_creation_enabled(
+        self, mock_bulk_get_preferences, mock_bulk_set_preferences
+    ):
+        mock_bulk_get_preferences.return_value = {}
         project = self.create_project(organization=self.organization)
 
         response = self.client.put(
@@ -94,10 +98,12 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
     )
     @patch(
-        "sentry.seer.endpoints.organization_autofix_automation_settings.get_autofix_repos_from_project_code_mappings"
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
     )
-    def test_put_fixes_disabled_sets_off_tuning(self, mock_get_repos, mock_bulk_set_preferences):
-        mock_get_repos.return_value = []
+    def test_put_fixes_disabled_sets_off_tuning(
+        self, mock_bulk_get_preferences, mock_bulk_set_preferences
+    ):
+        mock_bulk_get_preferences.return_value = {}
         project = self.create_project(organization=self.organization)
 
         response = self.client.put(
@@ -116,6 +122,44 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             project.get_option("sentry:autofix_automation_tuning")
             == AutofixAutomationTuningSettings.OFF.value
         )
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_put_preserves_existing_preferences(
+        self, mock_bulk_get_preferences, mock_bulk_set_preferences
+    ):
+        project = self.create_project(organization=self.organization)
+        existing_repos = [{"name": "existing-repo", "owner": "existing-owner"}]
+        mock_bulk_get_preferences.return_value = {
+            str(project.id): {
+                "organization_id": self.organization.id,
+                "project_id": project.id,
+                "repositories": existing_repos,
+                "automated_run_stopping_point": AutofixStoppingPoint.ROOT_CAUSE.value,
+            }
+        }
+
+        response = self.client.put(
+            self.url,
+            data={
+                "projectIds": [project.id],
+                "fixes": True,
+                "pr_creation": True,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 204
+
+        mock_bulk_set_preferences.assert_called_once()
+        call_args = mock_bulk_set_preferences.call_args
+        preferences = call_args[0][1]
+        assert preferences[0]["repositories"] == existing_repos
+        assert preferences[0]["automated_run_stopping_point"] == AutofixStoppingPoint.OPEN_PR.value
 
     def test_put_pr_creation_without_fixes_fails(self):
         project = self.create_project(organization=self.organization)

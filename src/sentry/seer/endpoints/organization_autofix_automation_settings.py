@@ -14,8 +14,8 @@ from sentry.models.organization import Organization
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
+    bulk_get_project_preferences,
     bulk_set_project_preferences,
-    get_autofix_repos_from_project_code_mappings,
 )
 
 OPTION_KEY = "sentry:autofix_automation_tuning"
@@ -96,14 +96,19 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
             else AutofixStoppingPoint.CODE_CHANGES
         )
 
+        project_ids_list = [project.id for project in projects]
+        existing_preferences = bulk_get_project_preferences(organization.id, project_ids_list)
+
         preferences_to_set = []
         for project in projects:
-            repositories = get_autofix_repos_from_project_code_mappings(project)
+            project_id_str = str(project.id)
+            existing_pref = existing_preferences.get(project_id_str, {})
+
             preferences_to_set.append(
                 {
+                    **existing_pref,
                     "organization_id": organization.id,
                     "project_id": project.id,
-                    "repositories": repositories,
                     "automated_run_stopping_point": stopping_point.value,
                 }
             )
