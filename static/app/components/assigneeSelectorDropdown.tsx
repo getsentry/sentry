@@ -431,21 +431,21 @@ export default function AssigneeSelectorDropdown({
         );
         if (assignedTeam) {
           options.push(makeTeamOption(assignedTeam));
-          assignableTeamList = assignableTeamList?.filter(
+          assignableTeamList = assignableTeamList.filter(
             assignableTeam => assignableTeam.team.id !== group.assignedTo?.id
           );
-          suggestedAssignees = suggestedAssignees?.filter(suggestedAssignee => {
-            return suggestedAssignee.id !== group.assignedTo?.id;
-          });
+          suggestedAssignees = suggestedAssignees.filter(
+            suggestedAssignee => suggestedAssignee.id !== group.assignedTo?.id
+          );
         }
       } else {
         assignedUser = currentMemberList.find(user => user.id === group.assignedTo?.id);
         if (assignedUser) {
           options.push(makeMemberOption(assignedUser));
           memList = memList.filter(member => member.id !== group.assignedTo?.id);
-          suggestedAssignees = suggestedAssignees?.filter(suggestedAssignee => {
-            return suggestedAssignee.id !== group.assignedTo?.id;
-          });
+          suggestedAssignees = suggestedAssignees.filter(
+            suggestedAssignee => suggestedAssignee.id !== group.assignedTo?.id
+          );
         }
       }
     }
@@ -453,7 +453,7 @@ export default function AssigneeSelectorDropdown({
     // Only bubble the current user to the top if they are not already assigned or suggested
     const isUserAssignedOrSuggested =
       assignedUser?.id === sessionUser.id ||
-      !!getSuggestedAssignees()?.find(
+      !!getSuggestedAssignees().find(
         suggestedAssignee => suggestedAssignee.id === sessionUser.id
       );
     if (!isUserAssignedOrSuggested) {
@@ -466,10 +466,10 @@ export default function AssigneeSelectorDropdown({
       }
     }
 
-    const suggestedUsers = suggestedAssignees?.filter(
+    const suggestedUsers = suggestedAssignees.filter(
       assignee => assignee.type === 'user'
     );
-    const suggestedTeams = suggestedAssignees?.filter(
+    const suggestedTeams = suggestedAssignees.filter(
       assignee => assignee.type === 'team'
     );
 
@@ -491,16 +491,16 @@ export default function AssigneeSelectorDropdown({
     const teamOptions = {
       value: '_teams',
       label: t('Teams'),
-      options: assignableTeamList?.map(makeTeamOption) ?? [],
+      options: assignableTeamList.map(makeTeamOption) ?? [],
     };
 
     const suggestedOptions = {
       value: '_suggested_assignees',
       label: t('Suggested'),
-      options:
-        suggestedUsers
-          .map(makeSuggestedAssigneeOption)
-          .concat(suggestedTeams?.map(makeSuggestedAssigneeOption)) ?? [],
+      options: [
+        ...suggestedUsers.map(makeSuggestedAssigneeOption),
+        ...suggestedTeams.map(makeSuggestedAssigneeOption),
+      ],
     };
 
     options.push(suggestedOptions, memberOptions, teamOptions);
