@@ -172,7 +172,6 @@ def get_anomaly_data_from_seer(
             },
         )
         return None
-
     return ts
 
 
