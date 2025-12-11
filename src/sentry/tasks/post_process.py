@@ -1684,6 +1684,13 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if not cache.add(automation_dispatch_cache_key, True, timeout=300):
                 return  # Another process already dispatched automation
 
+            # Check if project has connected repositories - requirement for new pricing
+            # which triggers Django model loading before apps are ready
+            from sentry.seer.autofix.utils import has_project_connected_repos
+
+            if not has_project_connected_repos(group.organization.id, group.project.id):
+                return
+
             # Check if summary exists in cache
             cache_key = get_issue_summary_cache_key(group.id)
             if cache.get(cache_key) is not None:

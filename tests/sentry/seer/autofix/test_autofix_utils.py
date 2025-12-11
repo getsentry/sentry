@@ -11,6 +11,7 @@ from sentry.seer.autofix.utils import (
     CodingAgentStatus,
     get_autofix_prompt,
     get_coding_agent_prompt,
+    has_project_connected_repos,
     is_issue_eligible_for_seer_automation,
     is_seer_seat_based_tier_enabled,
 )
@@ -403,3 +404,145 @@ class TestIsSeerSeatBasedTierEnabled(TestCase):
         # Even without feature flags enabled, should return cached True
         result = is_seer_seat_based_tier_enabled(self.organization)
         assert result is True
+
+
+class TestHasProjectConnectedRepos(TestCase):
+    """Test the has_project_connected_repos function."""
+
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_returns_true_when_repos_exist(self, mock_get_preferences, mock_cache):
+        """Test returns True when project has connected repositories."""
+        mock_cache.get.return_value = None
+        mock_preference = Mock()
+        mock_preference.repositories = [{"provider": "github", "owner": "test", "name": "repo"}]
+        mock_response = Mock()
+        mock_response.preference = mock_preference
+        mock_get_preferences.return_value = mock_response
+
+        result = has_project_connected_repos(self.organization.id, self.project.id)
+
+        assert result is True
+        mock_cache.set.assert_called_once_with(
+            f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
+            True,
+            timeout=60 * 60,
+        )
+
+    @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_returns_false_when_no_repos(
+        self, mock_get_preferences, mock_cache, mock_get_code_mappings
+    ):
+        """Test returns False when project has no connected repositories."""
+        mock_cache.get.return_value = None
+        mock_preference = Mock()
+        mock_preference.repositories = []
+        mock_response = Mock()
+        mock_response.preference = mock_preference
+        mock_get_preferences.return_value = mock_response
+        mock_get_code_mappings.return_value = []
+
+        result = has_project_connected_repos(self.organization.id, self.project.id)
+
+        assert result is False
+        mock_cache.set.assert_called_once_with(
+            f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
+            False,
+            timeout=60 * 60,
+        )
+
+    @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_returns_false_when_preference_is_none_and_no_code_mappings(
+        self, mock_get_preferences, mock_cache, mock_get_code_mappings
+    ):
+        """Test returns False when preference is None and no code mappings exist."""
+        mock_cache.get.return_value = None
+        mock_response = Mock()
+        mock_response.preference = None
+        mock_get_preferences.return_value = mock_response
+        mock_get_code_mappings.return_value = []
+
+        result = has_project_connected_repos(self.organization.id, self.project.id)
+
+        assert result is False
+        mock_cache.set.assert_called_once_with(
+            f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
+            False,
+            timeout=60 * 60,
+        )
+
+    @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_falls_back_to_code_mappings_when_no_seer_preference(
+        self, mock_get_preferences, mock_cache, mock_get_code_mappings
+    ):
+        """Test falls back to code mappings when Seer has no preference."""
+        mock_cache.get.return_value = None
+        mock_response = Mock()
+        mock_response.preference = None
+        mock_get_preferences.return_value = mock_response
+        mock_get_code_mappings.return_value = [
+            {"provider": "github", "owner": "test", "name": "repo"}
+        ]
+
+        result = has_project_connected_repos(self.organization.id, self.project.id)
+
+        assert result is True
+        mock_get_code_mappings.assert_called_once()
+        mock_cache.set.assert_called_once_with(
+            f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
+            True,
+            timeout=60 * 60,
+        )
+
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_returns_cached_value_true(self, mock_get_preferences, mock_cache):
+        """Test returns cached True value without calling API."""
+        mock_cache.get.return_value = True
+
+        result = has_project_connected_repos(self.organization.id, self.project.id)
+
+        assert result is True
+        mock_get_preferences.assert_not_called()
+        mock_cache.set.assert_not_called()
+
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_returns_cached_value_false(self, mock_get_preferences, mock_cache):
+        """Test returns cached False value without calling API."""
+        mock_cache.get.return_value = False
+
+        result = has_project_connected_repos(self.organization.id, self.project.id)
+
+        assert result is False
+        mock_get_preferences.assert_not_called()
+        mock_cache.set.assert_not_called()
+
+    @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_falls_back_to_code_mappings_on_api_error(
+        self, mock_get_preferences, mock_cache, mock_get_code_mappings
+    ):
+        """Test falls back to code mappings when Seer API fails."""
+        mock_cache.get.return_value = None
+        mock_get_preferences.side_effect = SeerApiError("API Error", 500)
+        mock_get_code_mappings.return_value = [
+            {"provider": "github", "owner": "test", "name": "repo"}
+        ]
+
+        result = has_project_connected_repos(self.organization.id, self.project.id)
+
+        assert result is True
+        mock_get_code_mappings.assert_called_once()
