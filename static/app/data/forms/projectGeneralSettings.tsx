@@ -158,7 +158,7 @@ export const fields = {
       }
 
       if (Array.isArray(val) && val.every(item => typeof item === 'string')) {
-        return extractMultilineFields(val.join('\n'));
+        return val;
       }
 
       return [];
