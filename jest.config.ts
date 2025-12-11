@@ -183,7 +183,7 @@ function getTestsForGroup(
     if (!nextTest) {
       throw new TypeError('Received falsy test' + JSON.stringify(nextTest));
     }
-    groups[i % 4]!.push(nextTest[0]);
+    groups[i % nodeTotal]!.push(nextTest[0]);
     i++;
   }
 
