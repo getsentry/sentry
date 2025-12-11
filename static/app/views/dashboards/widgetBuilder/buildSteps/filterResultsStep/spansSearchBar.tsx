@@ -1,7 +1,8 @@
-import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useEAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WidgetBuilderSearchBarProps} from 'sentry/views/dashboards/datasetConfig/base';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 /**
@@ -20,27 +21,28 @@ function SpansSearchBar({
   const {
     selection: {projects},
   } = usePageFilters();
-  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
+  const {tags: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemTags('number');
-  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
+  const {tags: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceItemTags('string');
-  return (
-    <EAPSpanSearchQueryBuilder
-      initialQuery={widgetQuery.conditions}
-      onSearch={onSearch}
-      numberTags={numberTags}
-      stringTags={stringTags}
-      numberSecondaryAliases={numberSecondaryAliases}
-      stringSecondaryAliases={stringSecondaryAliases}
-      supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
-      searchSource="dashboards"
-      projects={projects}
-      portalTarget={portalTarget}
-      onChange={(query, state) => {
-        onClose?.(query, {validSearch: state.queryIsValid});
-      }}
-    />
-  );
+
+  const {traceItemSearchQueryBuilderProps} = useEAPSpanSearchQueryBuilderProps({
+    initialQuery: widgetQuery.conditions,
+    numberAttributes,
+    stringAttributes,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+    supportedAggregates: ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+    searchSource: 'dashboards',
+    projects,
+    portalTarget,
+    onSearch,
+    onChange: (query, state) => {
+      onClose?.(query, {validSearch: state.queryIsValid});
+    },
+  });
+
+  return <TraceItemSearchQueryBuilder {...traceItemSearchQueryBuilderProps} />;
 }
 
 export default SpansSearchBar;
