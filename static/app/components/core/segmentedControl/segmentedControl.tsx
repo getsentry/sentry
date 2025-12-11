@@ -258,7 +258,10 @@ const GroupWrap = withChonk(
     border-radius: ${p => p.theme.radius.md};
     min-width: 0;
 
-    ${p => p.theme.form[p.size]}
+    font-size: ${p => p.theme.form[p.size].fontSize};
+    height: ${p => p.theme.form[p.size].height};
+    line-height: ${p => p.theme.form[p.size].lineHeight};
+    min-height: ${p => p.theme.form[p.size].minHeight};
   `,
   ChonkStyledGroupWrap
 );
