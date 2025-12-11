@@ -21,11 +21,13 @@ export function transformPerformanceScoreBreakdownSeries(
 
   const result: MultiSeriesEventsStats = {};
 
-  for (const webVital of ORDER) {
+  ORDER.forEach(webVital => {
     const key = `performance_score(measurements.score.${webVital})`;
     const series = multiSeries[key];
 
-    if (!series?.data) continue;
+    if (!series?.data) {
+      return;
+    }
 
     const transformedSeries: EventsStats = {
       ...series,
@@ -39,7 +41,7 @@ export function transformPerformanceScoreBreakdownSeries(
     };
 
     result[key] = transformedSeries;
-  }
+  });
 
   return result;
 }
