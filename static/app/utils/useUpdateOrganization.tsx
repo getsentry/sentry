@@ -21,10 +21,7 @@ type Context =
     };
 
 function makeDetailedOrganizationQueryKey(organization: Organization): ApiQueryKey {
-  return [
-    `/organizations/${organization.slug}/`,
-    {query: {detailed: 1, include_feature_flags: 1}},
-  ];
+  return [`/organizations/${organization.slug}/`];
 }
 
 export function useUpdateOrganization(organization: Organization) {
