@@ -38,6 +38,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 
 // Full-stack JS frameworks that support Vercel AI SDK (they have server-side capabilities)
@@ -75,7 +76,7 @@ function useAiSpanWaiter(project: Project) {
 
   const request = useSpans(
     {
-      search: 'span.op:"gen_ai.*"',
+      search: getHasAiSpansFilter(),
       fields: ['id'],
       limit: 1,
       enabled: !!project,
