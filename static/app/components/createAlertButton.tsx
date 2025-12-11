@@ -81,9 +81,11 @@ export function CreateAlertFromViewButton({
       AlertWizardRuleTemplates[alertType]
     : DEFAULT_WIZARD_TEMPLATE;
 
-  const isWorkflowEngineEnabled = organization.features.includes('workflow-engine-ui');
+  const shouldDirectToMonitors =
+    organization.features.includes('workflow-engine-ui') &&
+    !organization.features.includes('workflow-engine-redirect-opt-out');
 
-  const to = isWorkflowEngineEnabled
+  const to = shouldDirectToMonitors
     ? getMetricMonitorUrl({
         project,
         environment: queryParams.environment,
@@ -114,7 +116,7 @@ export function CreateAlertFromViewButton({
     onClick?.();
   };
 
-  const createButtonLabel = isWorkflowEngineEnabled
+  const createButtonLabel = shouldDirectToMonitors
     ? t('Create Monitor')
     : t('Create Alert');
 
