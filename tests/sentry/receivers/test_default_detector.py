@@ -33,6 +33,7 @@ class TestEnsureMetricDetector(TestCase):
             "sentry.workflow_engine.processors.detector.send_new_detector_data"
         ) as mock_send:
             detector = _ensure_metric_detector(project, owner_team_id=team.id, enabled=False)
+            assert detector is not None
             mock_send.assert_called_once_with(detector)
 
         # Verify detector
@@ -73,6 +74,7 @@ class TestEnsureMetricDetector(TestCase):
         with mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"):
             detector = _ensure_metric_detector(project, owner_team_id=None, enabled=True)
 
+        assert detector is not None
         assert detector.owner_team_id is None
         assert detector.enabled is True
 
@@ -98,6 +100,8 @@ class TestEnsureMetricDetector(TestCase):
             detector1 = _ensure_metric_detector(project)
             detector2 = _ensure_metric_detector(project)
 
+        assert detector1 is not None
+        assert detector2 is not None
         assert detector1.id == detector2.id
         assert Detector.objects.filter(project=project, type=MetricIssue.slug).count() == 1
         assert DataSource.objects.filter(organization_id=project.organization_id).count() == 1
