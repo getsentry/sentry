@@ -191,7 +191,7 @@ def _make_rpc_requests(
             else:
                 rpc_rows = 0
             logger.info(
-                "Table RPC query response",
+                "Timeseries RPC query response",
                 extra={
                     "rpc_rows": rpc_rows,
                     "meta": timeseries_response.meta,
