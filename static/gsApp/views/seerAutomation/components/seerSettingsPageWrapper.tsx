@@ -1,3 +1,5 @@
+import {useEffect} from 'react';
+
 import {Alert} from '@sentry/scraps/alert/alert';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Stack} from '@sentry/scraps/layout/stack';
@@ -7,22 +9,36 @@ import Feature from 'sentry/components/acl/feature';
 import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import SettingsPageTabs from 'getsentry/views/seerAutomation/components/settingsPageTabs';
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
-import useRedirectOldSeerPlanToSettings from 'getsentry/views/seerAutomation/components/useRedirectOldSeerPlanToSettings';
 
 interface Props {
   children: React.ReactNode;
 }
 
 export default function SeerSettingsPageWrapper({children}: Props) {
+  const navigate = useNavigate();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
 
-  useRedirectOldSeerPlanToSettings();
+  useEffect(() => {
+    // If the org is on the old-seer plan then they shouldn't be here on this new settings page
+    // they need to goto the old settings page, or get downgraded off old seer.
+    if (organization.features.includes('seer-added')) {
+      navigate(`/organizations/${organization.slug}/settings/seer/`);
+      return;
+    }
+
+    // If the org is not on the seat-based seer plan, then they should be redirected to the trial page
+    if (!organization.features.includes('seat-based-seer-enabled')) {
+      navigate(`/organizations/${organization.slug}/settings/seer/trial/`);
+      return;
+    }
+  }, [navigate, organization.features, organization.slug]);
 
   return (
     <Feature

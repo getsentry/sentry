@@ -1,4 +1,5 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
+import {useNavigate} from 'react-router-dom';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 import seerConfigCheck from 'getsentry-images/spot/seer-config-check.svg';
 import seerConfigConnect2 from 'getsentry-images/spot/seer-config-connect-2.svg';
@@ -21,7 +22,6 @@ import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {hasBillingAccess} from 'getsentry/utils/billing';
-import useRedirectOldSeerPlanToSettings from 'getsentry/views/seerAutomation/components/useRedirectOldSeerPlanToSettings';
 
 const BUTTONS = [
   {
@@ -47,9 +47,16 @@ const BUTTONS = [
 ];
 
 export default function SeerAutomationTrial() {
+  const navigate = useNavigate();
   const organization = useOrganization();
 
-  useRedirectOldSeerPlanToSettings();
+  useEffect(() => {
+    // If the org is on the old-seer plan then they shouldn't be here on this new settings page
+    // they need to goto the old settings page, or get downgraded off old seer.
+    if (organization.features.includes('seer-added')) {
+      navigate(`/organizations/${organization.slug}/settings/seer/`);
+    }
+  }, [navigate, organization.features, organization.slug]);
 
   return (
     <Fragment>
