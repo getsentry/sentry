@@ -67,8 +67,14 @@ const legacyInputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   ${p.monospace ? `font-family: ${p.theme.text.familyMono};` : ''}
   ${p.readOnly ? 'cursor: default;' : ''}
 
-  ${p.theme.form[p.size ?? 'md']}
-  ${p.theme.formPadding[p.size ?? 'md']}
+  font-size: ${p.theme.form[p.size ?? 'md'].fontSize};
+  height: ${p.theme.form[p.size ?? 'md'].height};
+  line-height: ${p.theme.form[p.size ?? 'md'].lineHeight};
+  min-height: ${p.theme.form[p.size ?? 'md'].minHeight};
+  padding-bottom: ${p.theme.form[p.size ?? 'md'].paddingBottom};
+  padding-left: ${p.theme.form[p.size ?? 'md'].paddingLeft};
+  padding-right: ${p.theme.form[p.size ?? 'md'].paddingRight};
+  padding-top: ${p.theme.form[p.size ?? 'md'].paddingTop};
 
   &::placeholder {
     color: ${p.theme.formPlaceholder};

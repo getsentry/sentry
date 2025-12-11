@@ -28,7 +28,10 @@ export const ChonkStyledGroupWrap = chonkStyled('div')<{
   grid-auto-flow: column;
   min-width: 0;
 
-  ${p => p.theme.form[p.size]}
+  font-size: ${p => p.theme.form[p.size].fontSize};
+  height: ${p => p.theme.form[p.size].height};
+  line-height: ${p => p.theme.form[p.size].lineHeight};
+  min-height: ${p => p.theme.form[p.size].minHeight};
 
   & > label:first-child {
     border-top-right-radius: 0;

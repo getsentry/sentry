@@ -1,5 +1,4 @@
 import {css} from '@emotion/react';
-import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/core/button';
 import {debossedBackground} from 'sentry/components/core/chonk';
@@ -13,6 +12,12 @@ import {chonkStyled} from 'sentry/utils/theme/theme';
 
 // We don't care about any options for the styles config
 export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
+
+export const selectSpacing = {
+  md: '8px',
+  sm: '6px',
+  xs: '4px',
+} as const satisfies Record<FormSize, string>;
 
 const multiValueSizeMapping = {
   md: {
@@ -69,7 +74,7 @@ export const getChonkStylesConfig = ({
       ...debossedBackground(theme),
       border: `1px solid ${theme.border}`,
       boxShadow,
-      ...theme.formRadius[size],
+      borderRadius: theme.form[size].borderRadius,
       transition: `border ${theme.motion.smooth.fast}, box-shadow ${theme.motion.smooth.fast}`,
       alignItems: 'center',
       ...(state.isFocused && theme.focusRing(boxShadow)),
@@ -79,7 +84,9 @@ export const getChonkStylesConfig = ({
         cursor: 'not-allowed',
         opacity: '60%',
       }),
-      ...omit(theme.form[size], 'height'),
+      minHeight: theme.form[size].minHeight,
+      fontSize: theme.form[size].fontSize,
+      lineHeight: theme.form[size].lineHeight,
       ...(state.isMulti && {
         maxHeight: '12em', // 10 lines (1.2em * 10) + padding
         overflow: 'hidden',
@@ -129,8 +136,8 @@ export const getChonkStylesConfig = ({
       // flex alignItems makes sure we don't need paddings
       paddingTop: 0,
       paddingBottom: 0,
-      paddingLeft: theme.formPadding[size].paddingLeft,
-      paddingRight: theme.formSpacing[size],
+      paddingLeft: theme.form[size].paddingLeft,
+      paddingRight: selectSpacing[size],
       ...(state.isMulti && {
         maxHeight: 'inherit',
         overflowY: 'auto',
@@ -149,7 +156,7 @@ export const getChonkStylesConfig = ({
       alignItems: 'center',
       marginLeft: 0,
       marginRight: 0,
-      width: `calc(100% - ${theme.formPadding[size].paddingLeft}px - ${space(0.5)})`,
+      width: `calc(100% - ${theme.form[size].paddingLeft}px - ${space(0.5)})`,
     }),
     placeholder: (provided, state) => ({
       ...provided,
@@ -196,7 +203,7 @@ export const getChonkStylesConfig = ({
     indicatorsContainer: () => ({
       display: 'grid',
       gridAutoFlow: 'column',
-      marginRight: theme.formSpacing[size],
+      marginRight: selectSpacing[size],
     }),
     clearIndicator: indicatorStyles,
     dropdownIndicator: indicatorStyles,

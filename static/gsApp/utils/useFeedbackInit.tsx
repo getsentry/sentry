@@ -49,9 +49,9 @@ export default function useFeedbackInit() {
         --outline: 1px auto ${theme.tokens.border.accent};
         --interactive-filter: brightness(${theme.type === 'dark' ? '110%' : '95%'});
         --border: 1px solid ${theme.tokens.border.primary};
-        --button-border-radius: ${theme.formRadius.md.borderRadius};
-        --button-primary-border-radius: ${theme.formRadius.md.borderRadius};
-        --input-border-radius: ${theme.formRadius.md.borderRadius};
+        --button-border-radius: ${theme.form.md.borderRadius};
+        --button-primary-border-radius: ${theme.form.md.borderRadius};
+        --input-border-radius: ${theme.form.md.borderRadius};
       }
     `;
     document.head.appendChild(styleElement);
