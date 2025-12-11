@@ -108,8 +108,8 @@ export function Chart({
 
   const actionsHtmlRenderer = useCallback(
     (value: string) =>
-      tooltipActionsHtmlRenderer(value, attributeDistribution.name, theme),
-    [attributeDistribution.name, theme]
+      tooltipActionsHtmlRenderer(value, attributeDistribution.attributeName, theme),
+    [attributeDistribution.attributeName, theme]
   );
 
   const tooltipConfig = useAttributeBreakdownsTooltip({
@@ -136,9 +136,13 @@ export function Chart({
         align="center"
         gap="lg"
       >
-        <Tooltip title={attributeDistribution.name} showOnlyOnOverflow skipWrapper>
+        <Tooltip
+          title={attributeDistribution.attributeName}
+          showOnlyOnOverflow
+          skipWrapper
+        >
           <AttributeBreakdownsComponent.ChartTitle>
-            {attributeDistribution.name}
+            {attributeDistribution.attributeName}
           </AttributeBreakdownsComponent.ChartTitle>
         </Tooltip>
         <Flex gap="sm">
