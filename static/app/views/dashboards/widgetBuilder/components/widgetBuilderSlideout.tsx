@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, RefCallback, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -151,13 +151,20 @@ function WidgetBuilderSlideout({
     [setIsPreviewDraggable]
   );
 
-  const observeForDraggablePreview = useCallback(
-    (elem: HTMLDivElement | null) => {
+  const observeForDraggablePreview = useCallback<RefCallback<HTMLDivElement>>(
+    elem => {
       if (elem) {
         observer.observe(elem);
       } else if (!elem) {
+        // According to React documentation and my observations of reality, this
+        // will never happen. According to TypeScript, it might. Better safe
+        // than sorry!
         observer.disconnect();
       }
+
+      return () => {
+        observer.disconnect();
+      };
     },
     [observer]
   );
