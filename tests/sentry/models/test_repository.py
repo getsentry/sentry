@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.core import mail
 
 from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS
@@ -70,7 +72,7 @@ class RepositoryDeleteEmailTest(TestCase):
 
 
 class RepositoryCodeReviewSettingsTest(TestCase):
-    """Tests for the post_save signal that creates RepositorySettings on repository creation."""
+    """Tests for auto-enabling code review settings on repository creation."""
 
     def test_no_settings_created_when_auto_enable_disabled(self):
         org = self.create_organization()
@@ -186,3 +188,27 @@ class RepositoryCodeReviewSettingsTest(TestCase):
         repo.save()
 
         assert RepositorySettings.objects.filter(repository=repo).count() == 1
+
+    def test_repository_saved_even_if_auto_enable_fails(self):
+        org = self.create_organization()
+
+        OrganizationOption.objects.set_value(
+            organization=org,
+            key="sentry:auto_enable_code_review",
+            value=True,
+        )
+
+        with patch.object(
+            Repository,
+            "_handle_auto_enable_code_review",
+            side_effect=Exception("Test exception"),
+        ):
+            repo = Repository.objects.create(
+                organization_id=org.id,
+                name="test-repo",
+                provider="integrations:github",
+            )
+
+        # Repository should still be saved
+        assert Repository.objects.filter(id=repo.id).exists()
+        assert repo.name == "test-repo"
