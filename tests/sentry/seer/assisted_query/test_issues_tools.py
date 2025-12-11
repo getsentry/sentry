@@ -1307,14 +1307,14 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
         assert result is not None
         assert isinstance(result, list)
 
-    def test_text_fields_not_in_fields_without_predefined_values(self):
-        """Verify text fields are not in FIELDS_WITHOUT_PREDEFINED_VALUES constant"""
-        from sentry.seer.assisted_query.issues_tools import FIELDS_WITHOUT_PREDEFINED_VALUES
+    def test_text_fields_not_in_field_value_types(self):
+        """Verify text fields are not in _FIELD_VALUE_TYPES so they fall through to API query"""
+        from sentry.seer.assisted_query.issues_tools import _FIELD_VALUE_TYPES
 
-        # These text fields should NOT be in the list, so they fall through to API query
-        assert "message" not in FIELDS_WITHOUT_PREDEFINED_VALUES
-        assert "title" not in FIELDS_WITHOUT_PREDEFINED_VALUES
-        assert "location" not in FIELDS_WITHOUT_PREDEFINED_VALUES
+        # These text fields should NOT be in the mapping, so they fall through to API query
+        assert "message" not in _FIELD_VALUE_TYPES
+        assert "title" not in _FIELD_VALUE_TYPES
+        assert "location" not in _FIELD_VALUE_TYPES
 
     def test_release_fields_query_api(self):
         """Test that release fields fall through to API query"""
@@ -1495,3 +1495,111 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
         subscribed_field = next((f for f in built_in_fields if f["key"] == "subscribed"), None)
         assert subscribed_field is not None
         assert "values" in subscribed_field
+
+
+@pytest.mark.django_db(databases=["default", "control"])
+class TestReleaseFieldValues(APITestCase, SnubaTestCase):
+    """Integration tests for release field values"""
+
+    databases = {"default", "control"}
+
+    def test_get_filter_key_values_release_field(self):
+        """Test that release field returns actual release versions"""
+        # Create releases
+        release1 = self.create_release(
+            project=self.project, version="myapp@1.0.0", date_added=before_now(days=1)
+        )
+        release2 = self.create_release(
+            project=self.project, version="myapp@2.0.0", date_added=before_now(hours=1)
+        )
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="release",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+        values = [item["value"] for item in result]
+        assert release1.version in values
+        assert release2.version in values
+
+    def test_get_filter_key_values_first_release_field(self):
+        """Test that firstRelease field returns actual release versions"""
+        # Create releases
+        release1 = self.create_release(project=self.project, version="myapp@1.0.0")
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="firstRelease",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+        values = [item["value"] for item in result]
+        assert release1.version in values
+
+    def test_get_filter_key_values_release_stage_field(self):
+        """Test that release.stage field returns static enum values"""
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="release.stage",
+        )
+
+        assert result is not None
+        assert len(result) == 3
+        values = [item["value"] for item in result]
+        assert "adopted" in values
+        assert "low_adoption" in values
+        assert "replaced" in values
+
+    def test_get_filter_key_values_release_with_substring(self):
+        """Test that release field supports substring filtering"""
+        self.create_release(project=self.project, version="myapp@1.0.0")
+        self.create_release(project=self.project, version="myapp@2.0.0")
+        self.create_release(project=self.project, version="otherapp@1.0.0")
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="release",
+            substring="myapp",
+        )
+
+        assert result is not None
+        # Should only include releases containing "myapp"
+        for item in result:
+            assert "myapp" in item["value"]
+
+    def test_get_issue_filter_keys_includes_release_values(self):
+        """Test that get_issue_filter_keys includes actual release values"""
+        release = self.create_release(project=self.project, version="myapp@3.0.0")
+
+        result = get_issue_filter_keys(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+        )
+
+        assert result is not None
+        assert "built_in_fields" in result
+        built_in_fields = result["built_in_fields"]
+
+        # Find the release field
+        release_field = next((f for f in built_in_fields if f["key"] == "release"), None)
+        assert release_field is not None
+        assert release.version in release_field["values"]
+
+        # Find the firstRelease field
+        first_release_field = next((f for f in built_in_fields if f["key"] == "firstRelease"), None)
+        assert first_release_field is not None
+        assert release.version in first_release_field["values"]
+
+        # Find the release.stage field - should have static values
+        release_stage_field = next(
+            (f for f in built_in_fields if f["key"] == "release.stage"), None
+        )
+        assert release_stage_field is not None
+        assert release_stage_field["values"] == ["adopted", "low_adoption", "replaced"]
