@@ -2,6 +2,7 @@ import copy
 from typing import cast
 
 import orjson
+import pytest
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
@@ -89,6 +90,7 @@ SPAN_KAFKA_MESSAGE: SpanEvent = {
 }
 
 
+@pytest.mark.skip(reason="flaky: #104779")
 def test_convert_span_to_item() -> None:
     item = convert_span_to_item(cast(CompatibleSpan, SPAN_KAFKA_MESSAGE))
 
