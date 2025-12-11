@@ -442,7 +442,7 @@ export default Storybook.story('CompactSelect', story => {
           improves performance when rendering large lists.
         </p>
         <p>
-          To enable virtualization, set the <code>virtualThreshold</code> prop to the
+          To enable virtualization, set the <code>virtualizeThreshold</code> prop to the
           number of options above which virtualization should be enabled. By default,
           virtualization is enabled for lists with more than 150 options.
         </p>

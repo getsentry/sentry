@@ -27,7 +27,7 @@ interface BaseSelectProps<Value extends SelectKey>
    * Number of options above which virtualization will be enabled.
    * @default 100
    */
-  virtualThreshold?: number;
+  virtualizeThreshold?: number;
 }
 
 export type SingleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> &
@@ -66,7 +66,7 @@ export function CompactSelect<Value extends SelectKey>({
   isOptionDisabled,
   sizeLimit,
   sizeLimitMessage,
-  virtualThreshold,
+  virtualizeThreshold,
 
   // Control props
   grid,
@@ -119,7 +119,7 @@ export function CompactSelect<Value extends SelectKey>({
   const [measuredMenuWidth, setMeasuredMenuWidth] = useState<number>();
   const [hasMeasured, setHasMeasured] = useState(false);
   const needsMeasuring =
-    !menuWidth && !hasMeasured && shouldVirtualize(options, virtualThreshold);
+    !menuWidth && !hasMeasured && shouldVirtualize(options, virtualizeThreshold);
 
   const menuRef = useCallback(
     (element: HTMLDivElement | null) => {
@@ -191,7 +191,7 @@ export function CompactSelect<Value extends SelectKey>({
         size={size}
         sizeLimit={sizeLimit}
         sizeLimitMessage={sizeLimitMessage}
-        virtualized={shouldVirtualize(itemsWithKey, virtualThreshold)}
+        virtualized={shouldVirtualize(itemsWithKey, virtualizeThreshold)}
         aria-labelledby={triggerId}
       >
         {(item: SelectOptionOrSectionWithKey<Value>) => {
@@ -223,12 +223,12 @@ export function CompactSelect<Value extends SelectKey>({
 
 function shouldVirtualize<Value extends SelectKey>(
   items: Array<SelectOptionOrSection<Value>>,
-  virtualThreshold = 150
+  virtualizeThreshold = 150
 ) {
   const hasSections = items.some(item => 'options' in item);
   if (hasSections) {
     return false;
   }
 
-  return items.length > virtualThreshold;
+  return items.length > virtualizeThreshold;
 }
