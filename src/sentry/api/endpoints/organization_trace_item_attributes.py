@@ -282,7 +282,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     page_token=PageToken(offset=offset),
                     type=attr_type,
                     value_substring_match=value_substring_match,
-                    intersecting_attributes_filter=query_filter,
                 )
 
                 with handle_query_errors():
