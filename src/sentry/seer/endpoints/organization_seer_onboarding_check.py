@@ -82,6 +82,9 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """Check if the organization has completed Seer onboarding/configuration."""
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         has_scm_integration = has_supported_scm_integration(organization.id)
         code_review_enabled = is_code_review_enabled(organization.id)
         autofix_enabled = is_autofix_enabled(organization.id)
