@@ -92,8 +92,8 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     if (selectedEvent === 'recommended') {
       if (start && end) {
         return isLoading
-          ? `Inspecting issue ${issueId} from between ${start} to ${end}...`
-          : `Inspected issue ${issueId} from between ${start} to ${end}`;
+          ? `Inspecting issue ${issueId} between ${start} to ${end}...`
+          : `Inspected issue ${issueId} between ${start} to ${end}`;
       }
       return isLoading ? `Inspecting issue ${issueId}...` : `Inspected issue ${issueId}`;
     }
