@@ -1,9 +1,11 @@
 from datetime import datetime, timezone
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
+from sentry.incidents.handlers.condition.anomaly_detection_handler import AnomalyDetectionUpdate
 from sentry.seer.anomaly_detection.get_anomaly_data import (
     _adjust_timestamps_for_time_window,
     get_anomaly_data_from_seer,
@@ -13,6 +15,7 @@ from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
     AnomalyDetectionThresholdType,
+    TimeSeriesPoint,
 )
 from sentry.snuba.models import QuerySubscription
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -23,9 +26,9 @@ class AdjustTimestampsForTimeWindowTest(BaseWorkflowTest):
         detector_created_at = 1000.0
         time_window_seconds = 900  # 15 minutes
 
-        data_points = [
-            {"timestamp": 1100.0, "value": 10.0},  # After creation, should be adjusted
-            {"timestamp": 1200.0, "value": 20.0},  # After creation, should be adjusted
+        data_points: list[TimeSeriesPoint] = [
+            TimeSeriesPoint(timestamp=1100.0, value=10.0),  # After creation, should be adjusted
+            TimeSeriesPoint(timestamp=1200.0, value=20.0),  # After creation, should be adjusted
         ]
 
         _adjust_timestamps_for_time_window(
@@ -41,9 +44,9 @@ class AdjustTimestampsForTimeWindowTest(BaseWorkflowTest):
         detector_created_at = 1000.0
         time_window_seconds = 900
 
-        data_points = [
-            {"timestamp": 500.0, "value": 10.0},  # Before creation, should NOT be adjusted
-            {"timestamp": 800.0, "value": 20.0},  # Before creation, should NOT be adjusted
+        data_points: list[TimeSeriesPoint] = [
+            TimeSeriesPoint(timestamp=500.0, value=10.0),  # Before creation, should NOT be adjusted
+            TimeSeriesPoint(timestamp=800.0, value=20.0),  # Before creation, should NOT be adjusted
         ]
 
         _adjust_timestamps_for_time_window(
@@ -59,10 +62,10 @@ class AdjustTimestampsForTimeWindowTest(BaseWorkflowTest):
         detector_created_at = 1000.0
         time_window_seconds = 900
 
-        data_points = [
-            {"timestamp": 500.0, "value": 10.0},  # Before, not adjusted
-            {"timestamp": 1000.0, "value": 20.0},  # Exactly at, should be adjusted
-            {"timestamp": 1500.0, "value": 30.0},  # After, should be adjusted
+        data_points: list[TimeSeriesPoint] = [
+            TimeSeriesPoint(timestamp=500.0, value=10.0),  # Before, not adjusted
+            TimeSeriesPoint(timestamp=1000.0, value=20.0),  # Exactly at, should be adjusted
+            TimeSeriesPoint(timestamp=1500.0, value=30.0),  # After, should be adjusted
         ]
 
         _adjust_timestamps_for_time_window(
@@ -76,7 +79,7 @@ class AdjustTimestampsForTimeWindowTest(BaseWorkflowTest):
         assert data_points[2]["timestamp"] == 1500.0 - 900
 
     def test_empty_data_points(self) -> None:
-        data_points: list = []
+        data_points: list[TimeSeriesPoint] = []
 
         _adjust_timestamps_for_time_window(
             data_points=data_points,
@@ -105,13 +108,13 @@ class GetAnomalyDataFromSeerTest(BaseWorkflowTest):
         response.data = data
         return response
 
-    def _create_subscription_update(self, value: int = 100) -> dict:
-        return {
-            "value": value,
-            "source_id": self.subscription.id,
-            "subscription_id": self.subscription.id,
-            "timestamp": datetime.now(tz=timezone.utc),
-        }
+    def _create_subscription_update(self, value: Any = 100) -> AnomalyDetectionUpdate:
+        return AnomalyDetectionUpdate(
+            value=value,
+            source_id=self.subscription.id,
+            subscription_id=self.subscription.id,
+            timestamp=datetime.now(tz=timezone.utc),
+        )
 
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.make_signed_seer_api_request")
     def test_successful_response(self, mock_request: MagicMock) -> None:
@@ -161,7 +164,7 @@ class GetAnomalyDataFromSeerTest(BaseWorkflowTest):
 
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.make_signed_seer_api_request")
     def test_max_retry_error(self, mock_request: MagicMock) -> None:
-        mock_request.side_effect = MaxRetryError(pool=None, url="test")
+        mock_request.side_effect = MaxRetryError(pool=MagicMock(), url="test")
 
         result = get_anomaly_data_from_seer(
             sensitivity=AnomalyDetectionSensitivity.MEDIUM,
@@ -346,7 +349,7 @@ class GetAnomalyThresholdDataFromSeerTest(BaseWorkflowTest):
 
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.make_signed_seer_api_request")
     def test_max_retry_error(self, mock_request: MagicMock) -> None:
-        mock_request.side_effect = MaxRetryError(pool=None, url="test")
+        mock_request.side_effect = MaxRetryError(pool=MagicMock(), url="test")
 
         result = get_anomaly_threshold_data_from_seer(
             subscription=self.subscription, start=1.0, end=2.0
