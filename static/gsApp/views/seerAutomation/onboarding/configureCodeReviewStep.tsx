@@ -5,6 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   GuidedSteps,
   useGuidedStepsContext,
@@ -12,6 +13,7 @@ import {
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUpdateOrganization} from 'sentry/utils/useUpdateOrganization';
 
 import {
   Field,
@@ -28,14 +30,38 @@ export function ConfigureCodeReviewStep() {
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
 
   const [enableCodeReview, setEnableCodeReview] = useState(
-    organization.autoEnableCodeReview
+    organization.autoEnableCodeReview ?? true
   );
 
-  const handleNextStep = useCallback(() => {
-    // TODO: Save to backend
+  const {mutate: updateOrganization} = useUpdateOrganization(organization);
 
-    setCurrentStep(currentStep + 1);
-  }, [setCurrentStep, currentStep]);
+  const handleNextStep = useCallback(() => {
+    if (enableCodeReview === organization.autoEnableCodeReview) {
+      // No update needed, proceed to next step
+      setCurrentStep(currentStep + 1);
+    } else {
+      updateOrganization(
+        {
+          autoEnableCodeReview: enableCodeReview,
+        },
+        {
+          onSuccess: () => {
+            // TODO: Save selectedCodeReviewRepositories to backend
+            setCurrentStep(currentStep + 1);
+          },
+          onError: () => {
+            addErrorMessage(t('Failed to enable AI Code Review'));
+          },
+        }
+      );
+    }
+  }, [
+    setCurrentStep,
+    currentStep,
+    enableCodeReview,
+    organization.autoEnableCodeReview,
+    updateOrganization,
+  ]);
 
   return (
     <Fragment>
