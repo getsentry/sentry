@@ -443,8 +443,8 @@ const SampleWidgetCard = styled(motion.div)`
   width: 100%;
   min-width: 100%;
   border: 1px dashed ${p => p.theme.gray300};
-  border-radius: ${p => p.theme.borderRadius};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
   z-index: ${p => p.theme.zIndex.initial};
   position: relative;
 
@@ -542,8 +542,8 @@ const SurroundingWidgetContainer = styled('div')`
 
 const FilterBarContainer = styled(motion.div)`
   margin-top: ${space(1)};
-  background-color: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 40vw;

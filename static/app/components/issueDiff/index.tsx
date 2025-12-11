@@ -214,7 +214,7 @@ const StyledIssueDiff = styled('div', {
   ${p =>
     p.loading &&
     css`
-      background-color: ${p.theme.background};
+      background-color: ${p.theme.tokens.background.primary};
       justify-content: center;
       align-items: center;
     `};

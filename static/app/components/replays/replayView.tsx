@@ -136,8 +136,8 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
 }
 
 const Panel = styled(FluidHeight)`
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
