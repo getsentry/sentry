@@ -118,13 +118,14 @@ export default function ReplayBadge({replay}: Props) {
           </Text>
           <Flex gap="xs" align="center">
             <IconCalendar color="gray300" size="xs" />
-            <Text size="sm" variant="muted">
+
+            <StyledText size="sm" variant="muted">
               {timestampType === 'absolute' ? (
                 <DateTime year timeZone date={replay.started_at} />
               ) : (
                 <TimeSince date={replay.started_at} />
               )}
-            </Text>
+            </StyledText>
           </Flex>
         </Flex>
       </Flex>
@@ -134,4 +135,8 @@ export default function ReplayBadge({replay}: Props) {
 
 const Wrapper = styled(Grid)`
   white-space: nowrap;
+`;
+
+const StyledText = styled(Text)`
+  position: relative;
 `;
