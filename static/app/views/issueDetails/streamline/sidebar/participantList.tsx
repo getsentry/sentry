@@ -105,7 +105,7 @@ const StyledOverlay = styled(Overlay)`
 const ParticipantListWrapper = styled('div')`
   max-height: 325px;
   overflow-y: auto;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};
 
   & > div:not(:last-child) {

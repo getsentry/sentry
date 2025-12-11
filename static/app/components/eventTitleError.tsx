@@ -28,7 +28,7 @@ const ErrorMessage = styled('span')`
   background: ${p => p.theme.alert.error.backgroundLight};
   font-size: ${p => p.theme.fontSize.md};
   padding: 0 ${space(0.5)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   display: flex;
   align-items: center;
 `;
