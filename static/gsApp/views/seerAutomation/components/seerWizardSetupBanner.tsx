@@ -18,11 +18,18 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 
 export default function SeerWizardSetupBanner() {
   const organization = useOrganization();
   const config = useLegacyStore(ConfigStore);
   const invertedTheme = config.theme === 'dark' ? lightTheme : darkTheme;
+
+  const {data, isFetched} = useSeerOnboardingCheck();
+
+  if (!isFetched || data?.isSeerConfigured) {
+    return null;
+  }
 
   return (
     <ThemeProvider theme={invertedTheme}>
