@@ -14,11 +14,7 @@ from sentry.notifications.platform.metrics import (
     NotificationInteractionType,
 )
 from sentry.notifications.platform.provider import NotificationProvider
-from sentry.notifications.platform.registry import (
-    notification_data_registry,
-    provider_registry,
-    template_registry,
-)
+from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.target import NotificationTargetDto
 from sentry.notifications.platform.types import (
     NotificationData,
@@ -265,7 +261,7 @@ class NotificationDataDto:
         if source is None:
             raise NotificationServiceError("Source is required")
 
-        notification_data_cls = notification_data_registry.get(source)
+        notification_data_cls = template_registry.get(source).get_data_class()
         notification_fields = data.get("data", {}).copy()
 
         # We're using type hints to know which fields need special conversion

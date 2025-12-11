@@ -5,7 +5,7 @@ from typing import Any
 import orjson
 from django.utils import timezone
 
-from sentry.notifications.platform.registry import notification_data_registry, template_registry
+from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     CodeBlock,
     CodeTextBlock,
@@ -24,7 +24,6 @@ def format_date(date: datetime) -> str:
 
 
 @dataclass(frozen=True)
-@notification_data_registry.register("data-export-success")
 class DataExportSuccess(NotificationData):
     source = "data-export-success"
     export_url: str
@@ -57,7 +56,6 @@ class DataExportSuccessTemplate(NotificationTemplate[DataExportSuccess]):
 
 
 @dataclass(frozen=True)
-@notification_data_registry.register("data-export-failure")
 class DataExportFailure(NotificationData):
     source = "data-export-failure"
     error_message: str

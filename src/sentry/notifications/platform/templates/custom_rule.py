@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from sentry.notifications.platform.registry import notification_data_registry, template_registry
+from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     CodeBlock,
     NotificationCategory,
@@ -19,7 +19,6 @@ def format_datetime(dt: datetime) -> str:
 
 
 @dataclass(frozen=True)
-@notification_data_registry.register("custom-rule-samples-fulfilled")
 class CustomRuleSamplesFulfilled(NotificationData):
     source = "custom-rule-samples-fulfilled"
     query: str | None

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from sentry.notifications.platform.registry import notification_data_registry, template_registry
+from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     CodeTextBlock,
     NotificationCategory,
@@ -13,7 +13,6 @@ from sentry.notifications.platform.types import (
 
 
 @dataclass(frozen=True)
-@notification_data_registry.register("unable-to-delete-repository")
 class UnableToDeleteRepository(NotificationData):
     source = "unable-to-delete-repository"
     repository_name: str
