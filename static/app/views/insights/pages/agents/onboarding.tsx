@@ -423,7 +423,7 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: ${p => p.theme.space['2xl']};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space['3xl']};
 `;
 

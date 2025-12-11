@@ -75,7 +75,7 @@ const FloatingEventNavigation = styled(EventTitle)`
   position: sticky;
   background: ${p => p.theme.background};
   z-index: ${p => p.theme.zIndex.header};
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
 
   &[data-stuck='true'] {
     border-radius: 0;
@@ -86,7 +86,7 @@ const GroupContent = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.translucentBorder};
   background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const ContentPadding = styled('div')`
