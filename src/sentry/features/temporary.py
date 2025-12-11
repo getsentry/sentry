@@ -452,6 +452,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-webhooks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable public RPC endpoint for local seer development
     manager.add("organizations:seer-public-rpc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Organizations on the old usage-based (v0) Seer plan
+    manager.add("organizations:seer-added", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Organizations on the new seat-based Seer plan
+    manager.add("organizations:seat-based-seer-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable new SentryApp webhook request endpoint
     manager.add("organizations:sentry-app-webhook-requests", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable standalone span ingestion
