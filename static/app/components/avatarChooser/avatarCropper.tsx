@@ -394,7 +394,7 @@ const ImageCropper = styled('div')<{resizeDirection: Position | null}>`
     0 10px,
     10px -10px,
     -10px 0px;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   background-image:
     linear-gradient(45deg, ${p => p.theme.backgroundSecondary} 25%, rgba(0, 0, 0, 0) 25%),
     linear-gradient(
@@ -418,7 +418,7 @@ const Mask = styled('div')`
   inset: 0;
   background: rgba(0, 0, 0, 0.25);
   pointer-events: none;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const Cropper = styled('div')`

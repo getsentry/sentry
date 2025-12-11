@@ -343,7 +343,7 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   css`
     flex-direction: column;
     justify-content: center;
-    border-radius: ${p.theme.borderRadius};
+    border-radius: ${p.theme.radius.md};
     margin-inline: 0 auto;
     gap: ${space(0.75)};
     padding: ${space(1)} 0;
@@ -368,7 +368,7 @@ const NavLinkIconContainer = withChonk(
     justify-content: center;
     width: 46px;
     height: 42px;
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     overflow: hidden;
 
     &::before {
@@ -581,7 +581,7 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2px solid ${p => p.theme.background};
+  border: 2px solid ${p => p.theme.tokens.background.primary};
 
   ${p =>
     p.theme.isChonk &&

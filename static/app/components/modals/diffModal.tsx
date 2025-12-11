@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import IssueDiff from 'sentry/components/issueDiff';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = ModalRenderProps & React.ComponentProps<typeof IssueDiff>;

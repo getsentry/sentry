@@ -316,14 +316,14 @@ function ReplayOverlay({
 }
 
 const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   gap: ${space(1.5)};
 
   ${p =>
     p.hasStreamlinedUI &&
     css`
       border: 1px solid ${p.theme.border};
-      border-radius: ${p.theme.borderRadius};
+      border-radius: ${p.theme.radius.md};
       padding: ${space(1.5)};
     `}
 `;

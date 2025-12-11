@@ -82,7 +82,7 @@ const TextBlock = styled('div')`
 `;
 
 const Media = styled('img')`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.translucentGray200};
   max-width: 100%;
 `;
