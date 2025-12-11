@@ -421,7 +421,7 @@ const StyledCard = styled('div')`
   background: ${p => p.theme.backgroundElevated};
   overflow: visible;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(2)} ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
   transition: all 0.3s ease-in-out;
@@ -446,7 +446,7 @@ const SeerDrawerNavigator = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(0.75)} ${space(3)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: ${p => p.theme.translucentBorder} 0 1px;

@@ -167,7 +167,7 @@ const ProfilesTable = styled('div')`
   grid-template-rows: auto;
   width: 100%;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 
   > div {
     white-space: nowrap;
@@ -199,9 +199,9 @@ const ProfilesTableRow = styled('div')`
   }
 
   &:first-child {
-    background-color: ${p => p.theme.background};
-    border-top-left-radius: ${p => p.theme.borderRadius};
-    border-top-right-radius: ${p => p.theme.borderRadius};
+    background-color: ${p => p.theme.tokens.background.primary};
+    border-top-left-radius: ${p => p.theme.radius.md};
+    border-top-right-radius: ${p => p.theme.radius.md};
   }
 
   &:not(:last-child) {

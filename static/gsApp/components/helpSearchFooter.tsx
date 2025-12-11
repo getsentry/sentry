@@ -41,7 +41,7 @@ const Container = styled('div')`
   align-items: center;
   justify-content: space-between;
   padding: ${space(2)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-top: 1px solid ${p => p.theme.border};
   font-size: ${p => p.theme.fontSize.md};
 `;

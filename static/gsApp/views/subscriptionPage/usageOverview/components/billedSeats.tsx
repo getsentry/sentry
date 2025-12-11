@@ -102,7 +102,7 @@ export default BilledSeats;
 
 const Table = styled(SimpleTable)<{hasBorderTop: boolean}>`
   grid-template-columns: 1fr 1fr;
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   border: none;
   border-top: ${p => (p.hasBorderTop ? `1px solid ${p.theme.border}` : 'none')};
 `;

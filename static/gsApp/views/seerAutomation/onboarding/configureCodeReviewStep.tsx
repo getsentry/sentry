@@ -1,10 +1,14 @@
 import {Fragment, useCallback, useState} from 'react';
+import styled from '@emotion/styled';
+
+import configureCodeReviewImg from 'sentry-images/spot/seer-config-check.svg';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   GuidedSteps,
   useGuidedStepsContext,
@@ -12,6 +16,7 @@ import {
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUpdateOrganization} from 'sentry/utils/useUpdateOrganization';
 
 import {
   Field,
@@ -28,27 +33,51 @@ export function ConfigureCodeReviewStep() {
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
 
   const [enableCodeReview, setEnableCodeReview] = useState(
-    organization.autoEnableCodeReview
+    organization.autoEnableCodeReview ?? true
   );
 
-  const handleNextStep = useCallback(() => {
-    // TODO: Save to backend
+  const {mutate: updateOrganization} = useUpdateOrganization(organization);
 
-    setCurrentStep(currentStep + 1);
-  }, [setCurrentStep, currentStep]);
+  const handleNextStep = useCallback(() => {
+    if (enableCodeReview === organization.autoEnableCodeReview) {
+      // No update needed, proceed to next step
+      setCurrentStep(currentStep + 1);
+    } else {
+      updateOrganization(
+        {
+          autoEnableCodeReview: enableCodeReview,
+        },
+        {
+          onSuccess: () => {
+            // TODO: Save selectedCodeReviewRepositories to backend
+            setCurrentStep(currentStep + 1);
+          },
+          onError: () => {
+            addErrorMessage(t('Failed to enable AI Code Review'));
+          },
+        }
+      );
+    }
+  }, [
+    setCurrentStep,
+    currentStep,
+    enableCodeReview,
+    organization.autoEnableCodeReview,
+    updateOrganization,
+  ]);
 
   return (
     <Fragment>
-      <StepContent>
+      <StepContentWithBackground>
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
-              <p>{t(`You successfully connected to GitHub!`)}</p>
+              <p>{t(`You've successfully connected to GitHub!`)}</p>
 
               <p>
-                {t(`
-Now, select which of your repositories you would like to run Seer’s AI Code Review on.
-`)}
+                {t(
+                  `Now, select which repositories you would like to run Seer’s AI Code Review on.`
+                )}
               </p>
             </PanelDescription>
 
@@ -57,7 +86,7 @@ Now, select which of your repositories you would like to run Seer’s AI Code Re
                 <FieldLabel>{t('AI Code Review')}</FieldLabel>
                 <FieldDescription>
                   {t(
-                    'For all repos below, AND for all newly connected repos, Seer will review your PRs and flag potential bugs. '
+                    'For all repos below, AND for all newly connected repos, Seer will review your PRs and flag potential bugs.'
                   )}
                 </FieldDescription>
               </Flex>
@@ -86,7 +115,12 @@ Now, select which of your repositories you would like to run Seer’s AI Code Re
             {t('Next Step')}
           </Button>
         </GuidedSteps.ButtonWrapper>
-      </StepContent>
+      </StepContentWithBackground>
     </Fragment>
   );
 }
+
+const StepContentWithBackground = styled(StepContent)`
+  background: url(${configureCodeReviewImg}) no-repeat 638px 0;
+  background-size: 213px 150px;
+`;

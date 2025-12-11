@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import nextStepsImg from 'sentry-images/spot/seer-config-error.svg';
+
 import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -25,7 +27,7 @@ export function NextStepsStep() {
 
   return (
     <Fragment>
-      <StepContent>
+      <StepContentWithBackground>
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
@@ -36,9 +38,9 @@ export function NextStepsStep() {
                 )}
               </p>
               <NextStepsList>
-                <li>Do AI Code Review</li>
-                <li>Perform root cause analysis on your issues and propose fixes</li>
-                <li>Make PRs on new issues</li>
+                <li>Review your PRs and catch bugs before you ship them to production</li>
+                <li>Perform root cause analysis on your issues and propose solutions</li>
+                <li>Create PRs to fix issues</li>
               </NextStepsList>
               <Text>
                 {tct(
@@ -89,10 +91,15 @@ export function NextStepsStep() {
             {t('Finish')}
           </LinkButton>
         </ActionSection>
-      </StepContent>
+      </StepContentWithBackground>
     </Fragment>
   );
 }
+
+const StepContentWithBackground = styled(StepContent)`
+  background: url(${nextStepsImg}) no-repeat 638px 0;
+  background-size: 192px 168px;
+`;
 
 const NextStepsList = styled('ul')`
   margin: ${p => p.theme.space.xl} 0;
@@ -101,7 +108,7 @@ const NextStepsList = styled('ul')`
 const Well = styled(Flex)`
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 const WellContent = styled(Flex)`
   flex-direction: column;

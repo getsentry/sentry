@@ -325,10 +325,10 @@ const ContextMarkedText = styled(MarkedText)`
 `;
 
 const InsightContainer = styled('div')<{expanded?: boolean}>`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   margin-bottom: 0;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px dashed ${p => p.theme.border};
   border-color: ${p => (p.expanded ? p.theme.border : 'transparent')};
 
@@ -353,7 +353,7 @@ const MiniHeader = styled('p')<{expanded?: boolean}>`
 const ContextBody = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   background: ${p => p.theme.alert.info.backgroundLight};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   overflow: hidden;
   position: relative;
   border-top: 1px dashed ${p => p.theme.innerBorder};

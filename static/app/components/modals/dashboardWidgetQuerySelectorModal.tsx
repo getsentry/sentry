@@ -124,7 +124,7 @@ const Container = styled('div')`
   gap: ${space(1)};
   align-items: start;
   flex-grow: 1;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const SearchLabel = styled('label')`
