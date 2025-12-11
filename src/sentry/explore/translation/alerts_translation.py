@@ -123,7 +123,7 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
             else:
                 parsed_argument = argument
             if len(snapshot_query) > 0:
-                snapshot_query = f"{snapshot_query} AND has:{parsed_argument}"
+                snapshot_query = f"({snapshot_query}) AND has:{parsed_argument}"
             else:
                 snapshot_query = f"has:{parsed_argument}"
 
