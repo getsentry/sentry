@@ -86,10 +86,6 @@ export type Repository = {
   url: string;
 };
 
-export interface RepositoryWithSettings extends Repository {
-  codeReviewTriggers: string[];
-  enabledCodeReview: boolean;
-}
 /**
  * Available only when calling API with `expand=settings` query parameter
  */
