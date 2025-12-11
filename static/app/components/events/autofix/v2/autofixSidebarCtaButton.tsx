@@ -173,6 +173,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 const ButtonPlaceholder = styled(Placeholder)`
   width: 100%;
   height: 38px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   margin-top: ${p => p.theme.space.md};
 `;

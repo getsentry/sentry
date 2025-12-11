@@ -117,7 +117,7 @@ const FileDiffWrapper = styled('div')<{showBorder?: boolean}>`
   overflow: hidden;
   background-color: ${p => p.theme.background};
   ${p => (p.showBorder ? `border: 1px solid ${p.theme.border};` : '')}
-  ${p => (p.showBorder ? `border-radius: ${p.theme.borderRadius};` : '')}
+  ${p => (p.showBorder ? `border-radius: ${p.theme.radius.md};` : '')}
 `;
 
 const FileHeader = styled('div')`
