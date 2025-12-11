@@ -98,7 +98,7 @@ jobs:
           vmstat 1 > vmstat.txt &
           VMSTAT_PID=$!
 
-          TOTAL_TEST_GROUPS=20 TEST_GROUP=0 python3 -b -m pytest tests/acceptance || true
+          TOTAL_TEST_GROUPS=5 TEST_GROUP=0 python3 -b -m pytest tests/acceptance || true
 
           kill $VMSTAT_PID
           wait $VMSTAT_PID || true
