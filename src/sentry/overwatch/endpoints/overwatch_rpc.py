@@ -16,16 +16,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.constants import (
-    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-    HIDE_AI_FEATURES_DEFAULT,
-    ObjectStatus,
-)
+from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.prevent.models import PreventAIConfiguration
 from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT, PREVENT_AI_CONFIG_DEFAULT_V1
+from sentry.seer.utils import can_use_prevent_ai_features
 from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
@@ -84,29 +81,6 @@ class OverwatchRpcSignatureAuthentication(StandardAuthentication):
         sentry_sdk.get_isolation_scope().set_tag("overwatch_rpc_auth", True)
 
         return (AnonymousUser(), token)
-
-
-def _can_use_prevent_ai_features(org: Organization) -> bool:
-    """Check if organization has opted in to Prevent AI features."""
-    if not features.has("organizations:gen-ai-features", org):
-        return False
-
-    hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
-    if hide_ai_features:
-        return False
-
-    pr_review_test_generation_enabled = bool(
-        org.get_option(
-            "sentry:enable_pr_review_test_generation",
-            ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-        )
-    )
-
-    if features.has("organizations:seat-based-seer-enabled", org):
-        # Seat-based plan orgs don't need to check the PR review toggle
-        return True
-    # Usage-based plan orgs and others need to check the PR review toggle
-    return pr_review_test_generation_enabled
 
 
 @region_silo_endpoint
@@ -218,7 +192,7 @@ class PreventPrReviewSentryOrgEndpoint(Endpoint):
                         "org_id": org.id,
                         "org_slug": org.slug,
                         "org_name": org.name,
-                        "has_consent": _can_use_prevent_ai_features(org),
+                        "has_consent": can_use_prevent_ai_features(org),
                     }
                     for org in organizations
                 ]

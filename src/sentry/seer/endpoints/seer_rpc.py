@@ -42,11 +42,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_region_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
-from sentry.constants import (
-    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-    HIDE_AI_FEATURES_DEFAULT,
-    ObjectStatus,
-)
+from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
@@ -102,6 +98,7 @@ from sentry.seer.explorer.tools import (
 )
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
+from sentry.seer.utils import can_use_prevent_ai_features
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
@@ -282,28 +279,6 @@ def get_organization_project_ids(*, org_id: int) -> dict:
     return {"projects": projects}
 
 
-def _can_use_prevent_ai_features(org: Organization) -> bool:
-    if not features.has("organizations:gen-ai-features", org):
-        return False
-
-    hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
-    if hide_ai_features:
-        return False
-
-    pr_review_test_generation_enabled = bool(
-        org.get_option(
-            "sentry:enable_pr_review_test_generation",
-            ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-        )
-    )
-
-    if features.has("organizations:seat-based-seer-enabled", org):
-        # Seat-based plan orgs don't need to check the PR review toggle
-        return True
-    # Usage-based plan orgs and others need to check the PR review toggle
-    return pr_review_test_generation_enabled
-
-
 class SentryOrganizaionIdsAndSlugs(TypedDict):
     org_ids: list[int]
     org_slugs: list[str]
@@ -340,7 +315,7 @@ def get_sentry_organization_ids(
     )
     organizations = Organization.objects.filter(id__in=organization_ids)
     # We then filter out all orgs that didn't give us consent to use AI features.
-    orgs_with_consent = [org for org in organizations if _can_use_prevent_ai_features(org)]
+    orgs_with_consent = [org for org in organizations if can_use_prevent_ai_features(org)]
 
     return {
         "org_ids": [organization.id for organization in orgs_with_consent],
@@ -371,7 +346,7 @@ def get_organization_seer_consent_by_org_name(
     for org_integration in org_integrations:
         try:
             org = Organization.objects.get(id=org_integration.organization_id)
-            if _can_use_prevent_ai_features(org):
+            if can_use_prevent_ai_features(org):
                 return {"consent": True}
             # If this is the last org we will return this URL as the consent URL
             consent_url = org.absolute_url("/settings/organization/")
