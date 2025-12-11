@@ -12,6 +12,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 
 import SettingsPageTabs from 'getsentry/views/seerAutomation/components/settingsPageTabs';
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import useRedirectOldSeerPlanToSettings from 'getsentry/views/seerAutomation/components/useRedirectOldSeerPlanToSettings';
 
 interface Props {
   children: React.ReactNode;
@@ -20,6 +21,8 @@ interface Props {
 export default function SeerSettingsPageWrapper({children}: Props) {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
+
+  useRedirectOldSeerPlanToSettings();
 
   return (
     <Feature
