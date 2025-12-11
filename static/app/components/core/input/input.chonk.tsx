@@ -29,7 +29,11 @@ export const chonkInputStyles = ({
     lineHeight: theme.form[size].lineHeight,
     minHeight: theme.form[size].minHeight,
 
-    ...theme.formPadding[size],
+    paddingBottom: theme.form[size].paddingBottom,
+    paddingLeft: theme.form[size].paddingLeft,
+    paddingRight: theme.form[size].paddingRight,
+    paddingTop: theme.form[size].paddingBottom,
+
     ...theme.formRadius[size],
 
     '&::placeholder': {

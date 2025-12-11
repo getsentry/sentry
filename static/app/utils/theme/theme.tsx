@@ -453,11 +453,6 @@ type FormTheme = {
       height: string;
       lineHeight: string;
       minHeight: string;
-    }
-  >;
-  formPadding: Record<
-    FormSize,
-    {
       paddingBottom: number;
       paddingLeft: number;
       paddingRight: number;
@@ -995,39 +990,26 @@ const formTheme: FormTheme = {
       minHeight: '36px',
       fontSize: '0.875rem',
       lineHeight: '1rem',
-    },
-    sm: {
-      height: '32px',
-      minHeight: '32px',
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-    },
-    xs: {
-      height: '28px',
-      minHeight: '28px',
-      fontSize: '0.75rem',
-      lineHeight: '1rem',
-    },
-  },
-
-  /**
-   * Padding for form inputs
-   * @TODO(jonasbadalic) This should exist on form component
-   */
-  formPadding: {
-    md: {
       paddingLeft: 16,
       paddingRight: 16,
       paddingTop: 12,
       paddingBottom: 12,
     },
     sm: {
+      height: '32px',
+      minHeight: '32px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
       paddingLeft: 12,
       paddingRight: 12,
       paddingTop: 8,
       paddingBottom: 8,
     },
     xs: {
+      height: '28px',
+      minHeight: '28px',
+      fontSize: '0.75rem',
+      lineHeight: '1rem',
       paddingLeft: 8,
       paddingRight: 8,
       paddingTop: 6,

@@ -129,7 +129,7 @@ export const getChonkStylesConfig = ({
       // flex alignItems makes sure we don't need paddings
       paddingTop: 0,
       paddingBottom: 0,
-      paddingLeft: theme.formPadding[size].paddingLeft,
+      paddingLeft: theme.form[size].paddingLeft,
       paddingRight: theme.formSpacing[size],
       ...(state.isMulti && {
         maxHeight: 'inherit',
@@ -149,7 +149,7 @@ export const getChonkStylesConfig = ({
       alignItems: 'center',
       marginLeft: 0,
       marginRight: 0,
-      width: `calc(100% - ${theme.formPadding[size].paddingLeft}px - ${space(0.5)})`,
+      width: `calc(100% - ${theme.form[size].paddingLeft}px - ${space(0.5)})`,
     }),
     placeholder: (provided, state) => ({
       ...provided,

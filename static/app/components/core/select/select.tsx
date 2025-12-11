@@ -256,7 +256,7 @@ const getStylesConfig = ({
     valueContainer: (provided, state) => ({
       ...provided,
       alignItems: 'center',
-      paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft,
+      paddingLeft: theme.form[size ?? 'md'].paddingLeft,
       paddingRight: space(0.5),
       // offset horizontal margin/padding from multiValue (space(0.25)) &
       // multiValueLabel (space(0.75))
@@ -279,9 +279,7 @@ const getStylesConfig = ({
       alignItems: 'center',
       marginLeft: 0,
       marginRight: 0,
-      width: `calc(100% - ${theme.formPadding[size ?? 'md'].paddingLeft}px - ${space(
-        0.5
-      )})`,
+      width: `calc(100% - ${theme.form[size ?? 'md'].paddingLeft}px - ${space(0.5)})`,
     }),
     placeholder: provided => ({
       ...provided,
