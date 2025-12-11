@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
@@ -12,11 +13,11 @@ from sentry.seer.autofix.artifact_schemas import (
     TriageArtifact,
 )
 from sentry.seer.autofix.prompts import (
-    CODE_CHANGES_PROMPT,
-    IMPACT_ASSESSMENT_PROMPT,
-    ROOT_CAUSE_PROMPT,
-    SOLUTION_PROMPT,
-    TRIAGE_PROMPT,
+    code_changes_prompt,
+    impact_assessment_prompt,
+    root_cause_prompt,
+    solution_prompt,
+    triage_prompt,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.explorer.client import SeerExplorerClient
@@ -42,11 +43,11 @@ class StepConfig:
     def __init__(
         self,
         artifact_schema: type[BaseModel] | None,
-        prompt_template: str,
+        prompt_fn: Callable[..., str],
         enable_coding: bool = False,
     ):
         self.artifact_schema = artifact_schema
-        self.prompt_template = prompt_template
+        self.prompt_fn = prompt_fn
         self.enable_coding = enable_coding
 
 
@@ -54,24 +55,24 @@ class StepConfig:
 STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
     AutofixStep.ROOT_CAUSE: StepConfig(
         artifact_schema=RootCauseArtifact,
-        prompt_template=ROOT_CAUSE_PROMPT,
+        prompt_fn=root_cause_prompt,
     ),
     AutofixStep.SOLUTION: StepConfig(
         artifact_schema=SolutionArtifact,
-        prompt_template=SOLUTION_PROMPT,
+        prompt_fn=solution_prompt,
     ),
     AutofixStep.CODE_CHANGES: StepConfig(
         artifact_schema=None,  # Code changes read from file_patches
-        prompt_template=CODE_CHANGES_PROMPT,
+        prompt_fn=code_changes_prompt,
         enable_coding=True,
     ),
     AutofixStep.IMPACT_ASSESSMENT: StepConfig(
         artifact_schema=ImpactAssessmentArtifact,
-        prompt_template=IMPACT_ASSESSMENT_PROMPT,
+        prompt_fn=impact_assessment_prompt,
     ),
     AutofixStep.TRIAGE: StepConfig(
         artifact_schema=TriageArtifact,
-        prompt_template=TRIAGE_PROMPT,
+        prompt_fn=triage_prompt,
     ),
 }
 
@@ -88,7 +89,7 @@ def build_step_prompt(step: AutofixStep, group: Group) -> str:
         Formatted prompt string
     """
     config = STEP_CONFIGS[step]
-    return config.prompt_template.format(
+    return config.prompt_fn(
         short_id=group.qualified_short_id or str(group.id),
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
