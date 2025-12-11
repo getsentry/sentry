@@ -13,6 +13,7 @@ export function PlatformizedWebVitalsOverview() {
     <ModulePageProviders
       moduleName="vital"
       maxPickableDays={maxPickableDays.maxPickableDays}
+      analyticEventName="insight.page_loads.vital"
     >
       <PrebuiltDashboardRenderer prebuiltId={PrebuiltDashboardId.WEB_VITALS} />
     </ModulePageProviders>

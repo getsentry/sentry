@@ -404,9 +404,9 @@ const ExpandButtonWrapper = styled('div')`
   background-repeat: repeat-x;
   border-bottom: ${space(1)} solid ${p => p.theme.background};
   border-top: ${space(1)} solid transparent;
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.radius.md};
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
+    border-bottom-left-radius: ${p => p.theme.radius.md};
   }
 `;
 
@@ -516,9 +516,9 @@ const HiddenProjectsMessage = styled('div')`
   line-height: 24px;
   color: ${p => p.theme.subText};
   background-color: ${p => p.theme.backgroundSecondary};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.radius.md};
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
+    border-bottom-left-radius: ${p => p.theme.radius.md};
   }
 `;
 

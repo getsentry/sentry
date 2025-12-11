@@ -41,7 +41,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/cells';
 import {
   getAgentRunsFilter,
-  getAITracesFilter,
+  getHasAiSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -91,7 +91,7 @@ export function TracesTable() {
     columns: defaultColumnOrder,
   });
 
-  const combinedQuery = useCombinedQuery(getAITracesFilter());
+  const combinedQuery = useCombinedQuery(getHasAiSpansFilter());
   const {cursor, setCursor} = useTableCursor();
 
   const tracesRequest = useTraces({
@@ -111,7 +111,7 @@ export function TracesTable() {
       fields: [
         'trace',
         'count_if(gen_ai.operation.type,equals,ai_client)',
-        'count_if(span.op,equals,gen_ai.execute_tool)',
+        'count_if(gen_ai.operation.type,equals,tool)',
         'sum(gen_ai.usage.total_tokens)',
         'sum(gen_ai.usage.total_cost)',
       ],
@@ -125,7 +125,7 @@ export function TracesTable() {
 
   const agentsRequest = useSpans(
     {
-      search: `span.op:gen_ai.invoke_agent has:gen_ai.agent.name trace:[${tracesRequest.data?.data.map(span => `"${span.trace}"`).join(',')}]`,
+      search: `${getAgentRunsFilter()} has:gen_ai.agent.name trace:[${tracesRequest.data?.data.map(span => `"${span.trace}"`).join(',')}]`,
       fields: ['trace', 'gen_ai.agent.name', 'timestamp'],
       sorts: [{field: 'timestamp', kind: 'asc'}],
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
@@ -173,7 +173,7 @@ export function TracesTable() {
       (acc, span) => {
         acc[span.trace] = {
           llmCalls: Number(span['count_if(gen_ai.operation.type,equals,ai_client)'] ?? 0),
-          toolCalls: Number(span['count_if(span.op,equals,gen_ai.execute_tool)'] ?? 0),
+          toolCalls: Number(span['count_if(gen_ai.operation.type,equals,tool)'] ?? 0),
           totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
           totalCost: Number(span['sum(gen_ai.usage.total_cost)'] ?? 0),
           totalErrors: Number(errors[span.trace] ?? 0),

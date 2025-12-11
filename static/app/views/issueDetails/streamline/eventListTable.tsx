@@ -141,7 +141,7 @@ export const Header = styled('div')`
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.header};
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
 `;
 
 export const Title = styled('div')`
@@ -158,7 +158,7 @@ export const HeaderItem = styled('div')`
 
 const StreamlineGridEditable = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 
   ${Panel} {
     border: 0;
