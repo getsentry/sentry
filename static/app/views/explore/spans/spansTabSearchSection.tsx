@@ -14,10 +14,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import type {EAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
-import {
-  EAPSpanSearchQueryBuilder,
-  useEAPSpanSearchQueryBuilderProps,
-} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useEAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -335,7 +332,7 @@ function SpansSearchBar({
     return <SpansTabSeerComboBox />;
   }
 
-  return <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />;
+  return <TraceItemSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />;
 }
 
 interface SpanTabSearchSectionProps {
@@ -364,13 +361,13 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
     hasCrossEventQueryingFlag && defined(crossEvents) && crossEvents.length > 0;
 
   const {
-    tags: numberTags,
-    isLoading: numberTagsLoading,
+    tags: numberAttributes,
+    isLoading: numberAttributesLoading,
     secondaryAliases: numberSecondaryAliases,
   } = useTraceItemTags('number');
   const {
-    tags: stringTags,
-    isLoading: stringTagsLoading,
+    tags: stringAttributes,
+    isLoading: stringAttributesLoading,
     secondaryAliases: stringSecondaryAliases,
   } = useTraceItemTags('string');
 
@@ -383,8 +380,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       onSearch: (newQuery: string) => {
         const newSearch = new MutableSearch(newQuery);
         const suggestedColumns = findSuggestedColumns(newSearch, oldSearch, {
-          numberAttributes: numberTags,
-          stringAttributes: stringTags,
+          numberAttributes,
+          stringAttributes,
         });
 
         const existingFields = new Set(fields);
@@ -409,8 +406,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
           : undefined,
       supportedAggregates:
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-      numberTags,
-      stringTags,
+      numberAttributes,
+      stringAttributes,
       replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
@@ -426,26 +423,25 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       fields,
       hasRawSearchReplacement,
       mode,
+      numberAttributes,
       numberSecondaryAliases,
-      numberTags,
       oldSearch,
       query,
       setCaseInsensitive,
       setQueryParams,
+      stringAttributes,
       stringSecondaryAliases,
-      stringTags,
     ]
   );
 
-  const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
-    eapSpanSearchQueryBuilderProps
-  );
+  const {searchQueryBuilderProviderProps, traceItemSearchQueryBuilderProps} =
+    useEAPSpanSearchQueryBuilderProps(eapSpanSearchQueryBuilderProps);
 
   return (
     <Layout.Main width="full">
       <SearchQueryBuilderProvider
         enableAISearch={areAiFeaturesAllowed}
-        {...eapSpanSearchQueryProviderProps}
+        {...searchQueryBuilderProviderProps}
       >
         <TourElement<ExploreSpansTour>
           tourContext={ExploreSpansTourContext}
@@ -464,7 +460,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
               <DatePageFilter {...datePageFilterProps} />
             </StyledPageFilterBar>
             <SpansSearchBar
-              eapSpanSearchQueryBuilderProps={eapSpanSearchQueryBuilderProps}
+              eapSpanSearchQueryBuilderProps={traceItemSearchQueryBuilderProps}
             />
             {hasCrossEventQueryingFlag ? <CrossEventQueryingDropdown /> : null}
             {hasCrossEvents ? <SpansTabCrossEventSearchBars /> : null}
@@ -475,9 +471,9 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                 supportedAggregates={
                   mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
                 }
-                numberTags={numberTags}
-                stringTags={stringTags}
-                isLoading={numberTagsLoading || stringTagsLoading}
+                numberTags={numberAttributes}
+                stringTags={stringAttributes}
+                isLoading={numberAttributesLoading || stringAttributesLoading}
                 exploreQuery={query}
                 source={SchemaHintsSources.EXPLORE}
               />
