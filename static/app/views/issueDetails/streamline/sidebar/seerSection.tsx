@@ -119,10 +119,13 @@ export default function SeerSection({
     organization.features.includes('autofix-on-explorer');
 
   // Get explorer artifacts when autofix-on-explorer is enabled
-  const {runState} = useExplorerAutofix(group.id, {enabled: isExplorerEnabled});
+  const {runState: explorerRunState} = useExplorerAutofix(group.id, {
+    enabled: isExplorerEnabled,
+  });
   const explorerArtifacts = useMemo(
-    () => (isExplorerEnabled ? getArtifactsFromBlocks(runState?.blocks ?? []) : {}),
-    [isExplorerEnabled, runState?.blocks]
+    () =>
+      isExplorerEnabled ? getArtifactsFromBlocks(explorerRunState?.blocks ?? []) : {},
+    [isExplorerEnabled, explorerRunState?.blocks]
   );
   const hasExplorerArtifacts = Object.keys(explorerArtifacts).length > 0;
 
