@@ -14,6 +14,7 @@ import {
   createLogicFilterItem,
   createRawSearchFilterContainsValueItem,
   createRawSearchFilterIsValueItem,
+  createRawSearchFuzzyFilterItem,
   createRawSearchItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
@@ -286,6 +287,9 @@ export function useSortedFilterKeyItems({
             : inputValue;
 
           return [
+            ...(/\w \w/.test(inputValue)
+              ? [createRawSearchFuzzyFilterItem(key, inputValue)]
+              : []),
             createRawSearchFilterContainsValueItem(key, value),
             createRawSearchFilterIsValueItem(key, value),
           ];
