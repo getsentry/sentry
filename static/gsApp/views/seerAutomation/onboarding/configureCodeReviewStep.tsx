@@ -47,6 +47,7 @@ export function ConfigureCodeReviewStep() {
     clearRootCauseAnalysisRepositories,
     selectedCodeReviewRepositories,
     unselectedCodeReviewRepositories,
+    setCodeReviewRepositories,
   } = useSeerOnboardingContext();
 
   const [enableCodeReview, setEnableCodeReview] = useState(
@@ -80,6 +81,11 @@ export function ConfigureCodeReviewStep() {
           }
         );
       });
+
+    const existingRepostoriesToRemove = unselectedCodeReviewRepositories
+      .filter(repo => repo.settings?.enabledCodeReview)
+      .map(repo => repo.id);
+
     const updateEnabledCodeReview = () =>
       new Promise<void>((resolve, reject) => {
         updateRepositorySettings(
@@ -100,14 +106,13 @@ export function ConfigureCodeReviewStep() {
       });
 
     // This handles the case where we load selected repositories from the server, but the user unselects some of them.
-    // Note: this will also write the preference for repos that previously had no setting on the server, was selected, and then unselected.
     const updateUnselectedRepositories = () =>
       new Promise<void>((resolve, reject) => {
         updateRepositorySettings(
           {
             codeReviewTriggers: [],
             enabledCodeReview: false,
-            repositoryIds: unselectedCodeReviewRepositories.map(repo => repo.id),
+            repositoryIds: existingRepostoriesToRemove,
           },
           {
             onSuccess: () => {
@@ -122,15 +127,16 @@ export function ConfigureCodeReviewStep() {
 
     const promises = [
       updateOrganizationEnabledCodeReview(),
-      ...(enableCodeReview ? [updateEnabledCodeReview()] : []),
-      ...(unselectedCodeReviewRepositories.length > 0
-        ? [updateUnselectedRepositories()]
-        : []),
+      ...(selectedCodeReviewRepositories.length > 0 ? [updateEnabledCodeReview()] : []),
+      ...(existingRepostoriesToRemove.length > 0 ? [updateUnselectedRepositories()] : []),
     ];
 
-    if (promises.length > 0) {
-      // Only the latest call to mutation will resolve, but they are run conditionally so we need to use Promise.any
-      Promise.any(promises)
+    // Only the latest call to mutation will resolve, but they are run conditionally so we need to find the one that will resolve
+    const promise =
+      promises.length === 2 ? promises[1] : promises.length === 1 ? promises[0] : null;
+
+    if (promise) {
+      promise
         .then(() => {
           if (selectedCodeReviewRepositories.length > MAX_REPOSITORIES_TO_PRESELECT) {
             // When this happens, we clear the pre-populated repositories. Otherwise,
@@ -159,6 +165,20 @@ export function ConfigureCodeReviewStep() {
     updateRepositorySettings,
   ]);
 
+  const handleChangeCodeReview = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setEnableCodeReview(e.target.checked);
+
+      // Unselect selected repositories if code review is disabled
+      if (!e.target.checked) {
+        setCodeReviewRepositories(
+          Object.fromEntries(selectedCodeReviewRepositories.map(repo => [repo.id, false]))
+        );
+      }
+    },
+    [setEnableCodeReview, setCodeReviewRepositories, selectedCodeReviewRepositories]
+  );
+
   return (
     <Fragment>
       <StepContentWithBackground>
@@ -186,7 +206,7 @@ export function ConfigureCodeReviewStep() {
               <Switch
                 size="lg"
                 checked={enableCodeReview}
-                onChange={() => setEnableCodeReview(!enableCodeReview)}
+                onChange={handleChangeCodeReview}
               />
             </Field>
             {enableCodeReview ? null : (

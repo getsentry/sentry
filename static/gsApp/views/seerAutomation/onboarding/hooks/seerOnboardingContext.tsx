@@ -13,7 +13,7 @@ import {useOrganizationRepositoriesWithSettings} from 'sentry/components/events/
 import type {
   IntegrationProvider,
   OrganizationIntegration,
-  Repository,
+  RepositoryWithSettings,
 } from 'sentry/types/integrations';
 
 import {useIntegrationInstallation} from './useIntegrationInstallation';
@@ -35,13 +35,13 @@ interface SeerOnboardingContextProps {
   isRepositoriesFetching: boolean;
   provider: IntegrationProvider | undefined;
   removeRootCauseAnalysisRepository: (repoId: string) => void;
-  repositories: Repository[] | undefined;
+  repositories: RepositoryWithSettings[] | undefined;
   repositoryProjectMapping: Record<string, string[]>;
-  selectedCodeReviewRepositories: Repository[];
+  selectedCodeReviewRepositories: RepositoryWithSettings[];
   selectedCodeReviewRepositoriesMap: Record<string, boolean>;
-  selectedRootCauseAnalysisRepositories: Repository[];
+  selectedRootCauseAnalysisRepositories: RepositoryWithSettings[];
   setCodeReviewRepositories: (newSelections: Record<string, boolean>) => void;
-  unselectedCodeReviewRepositories: Repository[];
+  unselectedCodeReviewRepositories: RepositoryWithSettings[];
 }
 
 const SeerOnboardingContext = createContext<SeerOnboardingContextProps>({
@@ -69,7 +69,7 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
   const [selectedCodeReviewRepositoriesMap, setSelectedCodeReviewRepositoriesMap] =
     useState<Record<string, boolean>>({});
   const [selectedRootCauseAnalysisRepositories, setRootCauseAnalysisRepositories] =
-    useState<Repository[]>([]);
+    useState<RepositoryWithSettings[]>([]);
   const [repositoryProjectMapping, setRepositoryProjectMapping] = useState<
     Record<string, string[]>
   >({});
@@ -146,7 +146,7 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         // Add new repositories that were selected
         const newRepos = Object.entries(newSelections)
           .filter(([repoId, isSelected]) => isSelected && repoId in repositoriesMap)
-          .map(([repoId]) => repositoriesMap[repoId] as Repository);
+          .map(([repoId]) => repositoriesMap[repoId] as RepositoryWithSettings);
 
         return [...existingRepos, ...newRepos];
       });
