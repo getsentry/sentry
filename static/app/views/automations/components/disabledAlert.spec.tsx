@@ -2,6 +2,7 @@ import {AutomationFixture} from 'sentry-fixture/automations';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {DisabledAlert} from './disabledAlert';
 
@@ -86,7 +87,11 @@ describe('DisabledAlert', () => {
 
     await userEvent.hover(enableButton);
     expect(
-      await screen.findByText('You do not have permission to enable this alert')
+      await screen.findByText(
+        textWithMarkupMatcher(
+          'You do not have permission to edit this alert. Ask your organization owner or manager to enable alert access for you.'
+        )
+      )
     ).toBeInTheDocument();
   });
 });
