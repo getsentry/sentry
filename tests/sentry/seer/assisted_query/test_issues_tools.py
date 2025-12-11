@@ -1352,3 +1352,146 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
         if len(result) > 0:
             values = {item["value"] for item in result}
             assert "myapp@1.0.0" in values or "myapp@2.0.0" in values
+
+
+@pytest.mark.django_db(databases=["default", "control"])
+class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
+    """Integration tests for assignee and username field values"""
+
+    databases = {"default", "control"}
+
+    def test_get_filter_key_values_assigned_field(self):
+        """Test that assigned field returns assignee values including special values and team slugs"""
+        # Create a team in the organization
+        team = self.create_team(organization=self.organization, slug="backend-team")
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="assigned",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+        values = [item["value"] for item in result]
+
+        # Should include special values
+        assert "me" in values
+        assert "my_teams" in values
+        assert "none" in values
+
+        # Should include team slug prefixed with #
+        assert f"#{team.slug}" in values
+
+    def test_get_filter_key_values_assigned_or_suggested_field(self):
+        """Test that assigned_or_suggested field returns same values as assigned"""
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="assigned_or_suggested",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+        values = [item["value"] for item in result]
+        assert "me" in values
+        assert "my_teams" in values
+        assert "none" in values
+
+    def test_get_filter_key_values_assigned_includes_member_usernames(self):
+        """Test that assigned field includes organization member usernames"""
+        # The test user is automatically a member of the organization
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="assigned",
+        )
+
+        assert result is not None
+        values = [item["value"] for item in result]
+
+        # Should include the test user's username or email
+        # The test user from APITestCase should be included
+        assert len(values) > 3  # More than just special values (me, my_teams, none)
+
+    def test_get_filter_key_values_bookmarks_field(self):
+        """Test that bookmarks field returns usernames"""
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="bookmarks",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+        # Should have usernames (at least the test user)
+
+    def test_get_filter_key_values_subscribed_field(self):
+        """Test that subscribed field returns usernames"""
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="subscribed",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+
+    def test_get_filter_key_values_assigned_with_substring_filter(self):
+        """Test that substring filtering works on assigned field"""
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="assigned",
+            substring="my_",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+        # Should only include values containing "my_"
+        for item in result:
+            assert "my_" in item["value"].lower()
+
+    def test_get_issue_filter_keys_includes_assignee_values(self):
+        """Test that get_issue_filter_keys includes assignee values in built_in_fields"""
+        # Create a team
+        team = self.create_team(organization=self.organization, slug="test-team")
+
+        result = get_issue_filter_keys(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+        )
+
+        assert result is not None
+        assert "built_in_fields" in result
+        built_in_fields = result["built_in_fields"]
+
+        # Find the assigned field
+        assigned_field = next((f for f in built_in_fields if f["key"] == "assigned"), None)
+        assert assigned_field is not None
+        assert "values" in assigned_field
+        assert "me" in assigned_field["values"]
+        assert "my_teams" in assigned_field["values"]
+        assert "none" in assigned_field["values"]
+        assert f"#{team.slug}" in assigned_field["values"]
+
+        # Find the assigned_or_suggested field
+        assigned_or_suggested_field = next(
+            (f for f in built_in_fields if f["key"] == "assigned_or_suggested"), None
+        )
+        assert assigned_or_suggested_field is not None
+        assert assigned_or_suggested_field["values"] == assigned_field["values"]
+
+        # Find the bookmarks field - should have usernames
+        bookmarks_field = next((f for f in built_in_fields if f["key"] == "bookmarks"), None)
+        assert bookmarks_field is not None
+        assert "values" in bookmarks_field
+
+        # Find the subscribed field - should have usernames
+        subscribed_field = next((f for f in built_in_fields if f["key"] == "subscribed"), None)
+        assert subscribed_field is not None
+        assert "values" in subscribed_field

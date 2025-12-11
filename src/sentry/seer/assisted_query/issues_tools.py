@@ -5,11 +5,14 @@ from sentry.api import client
 from sentry.issues.grouptype import registry as group_type_registry
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.team import Team, TeamStatus
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.seer.endpoints.utils import validate_date_params
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.types.group import PriorityLevel
+from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
 
@@ -56,12 +59,9 @@ FIXABILITY_VALUES = [
 # These return [] from _get_built_in_field_values() to indicate no suggested values available
 # NOTE: Text fields like "message", "title", "location" are NOT included here
 # because they CAN be queried via API for actual values (matching discover_tools.py behavior)
+# NOTE: User reference fields (assigned, assigned_or_suggested, bookmarks, subscribed) are NOT
+# included here because we fetch actual member/team data for them
 FIELDS_WITHOUT_PREDEFINED_VALUES = (
-    # User reference fields - values come from user/team data
-    "assigned",
-    "assigned_or_suggested",
-    "bookmarks",
-    "subscribed",
     # Datetime fields - don't suggest values
     "lastSeen",
     "firstSeen",
@@ -185,8 +185,79 @@ _EVENT_CONTEXT_FIELDS = [
 # Device class enum values
 DEVICE_CLASS_VALUES = ["high", "medium", "low"]
 
+# Special assignee values that are always available
+SPECIAL_ASSIGNEE_VALUES = ["me", "my_teams", "none"]
+
 # API key scopes required for issue queries
 API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
+
+
+def _get_assignee_values(organization: Organization) -> list[dict[str, Any]]:
+    """
+    Get assignee values for the assigned and assigned_or_suggested fields.
+
+    Returns a list of suggested assignee values including:
+    - Special values: "me", "my_teams", "none"
+    - Team slugs prefixed with "#" (e.g., "#backend-team")
+    - Member usernames/emails
+
+    This mirrors the frontend's useAssignedSearchValues hook behavior.
+    """
+    values: list[dict[str, Any]] = []
+
+    # Add special values first (suggested values)
+    for val in SPECIAL_ASSIGNEE_VALUES:
+        values.append({"value": val})
+
+    # Get all active teams in the organization
+    teams = Team.objects.filter(organization=organization, status=TeamStatus.ACTIVE).values_list(
+        "slug", flat=True
+    )
+    for team_slug in teams:
+        values.append({"value": f"#{team_slug}"})
+
+    # Get all approved organization members and their usernames
+    member_user_ids = OrganizationMember.objects.filter(
+        organization=organization,
+        invite_status=InviteStatus.APPROVED.value,
+        user_id__isnull=False,
+    ).values_list("user_id", flat=True)
+
+    if member_user_ids:
+        # Fetch user details to get usernames
+        users = user_service.get_many(filter={"user_ids": list(member_user_ids)})
+        for user in users:
+            # Use username if available, otherwise email
+            username = user.username or user.email
+            if username:
+                values.append({"value": username})
+
+    return values
+
+
+def _get_username_values(organization: Organization) -> list[dict[str, Any]]:
+    """
+    Get username values for the bookmarks and subscribed fields.
+
+    Returns a list of member usernames/emails in the organization.
+    """
+    values: list[dict[str, Any]] = []
+
+    # Get all approved organization members
+    member_user_ids = OrganizationMember.objects.filter(
+        organization=organization,
+        invite_status=InviteStatus.APPROVED.value,
+        user_id__isnull=False,
+    ).values_list("user_id", flat=True)
+
+    if member_user_ids:
+        users = user_service.get_many(filter={"user_ids": list(member_user_ids)})
+        for user in users:
+            username = user.username or user.email
+            if username:
+                values.append({"value": username})
+
+    return values
 
 
 def _get_static_values(key: str) -> list[dict[str, Any]] | None:
@@ -244,6 +315,14 @@ def _get_built_in_field_values(
         if tag_keys is None:
             return []
         return [{"value": tag_key} for tag_key in sorted(tag_keys)]
+
+    # ASSIGNED and ASSIGNED_OR_SUGGESTED field values - return assignee options
+    if attribute_key in ("assigned", "assigned_or_suggested"):
+        return _get_assignee_values(organization)
+
+    # BOOKMARKS and SUBSCRIBED field values - return usernames
+    if attribute_key in ("bookmarks", "subscribed"):
+        return _get_username_values(organization)
 
     # ISSUE_PRIORITY field values
     if attribute_key == "issue.priority":
@@ -303,11 +382,19 @@ def _get_built_in_issue_fields(
         }
     )
 
+    # Get assignee values (me, my_teams, none, #team-slugs, usernames)
+    assignee_values = _get_assignee_values(organization)
+    assignee_value_strings = [v["value"] for v in assignee_values]
+
+    # Get username values for bookmarks/subscribed fields
+    username_values = _get_username_values(organization)
+    username_value_strings = [v["value"] for v in username_values]
+
     # ASSIGNED field - Assigned To field
     built_in_fields.append(
         {
             "key": "assigned",
-            "values": [],  # Values would come from user/team data
+            "values": assignee_value_strings,
         }
     )
 
@@ -316,7 +403,7 @@ def _get_built_in_issue_fields(
         {
             "key": "assigned_or_suggested",
             "isInput": True,
-            "values": [],  # Values would come from user/team data
+            "values": assignee_value_strings,
         }
     )
 
@@ -324,7 +411,7 @@ def _get_built_in_issue_fields(
     built_in_fields.append(
         {
             "key": "bookmarks",
-            "values": [],  # Values would come from user data
+            "values": username_value_strings,
         }
     )
 
@@ -332,7 +419,7 @@ def _get_built_in_issue_fields(
     built_in_fields.append(
         {
             "key": "subscribed",
-            "values": [],  # Values would come from user data
+            "values": username_value_strings,
         }
     )
 
