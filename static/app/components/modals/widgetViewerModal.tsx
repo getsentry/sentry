@@ -25,7 +25,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence, Organization} from 'sentry/types/organization';
@@ -734,7 +733,7 @@ function WidgetViewerModal(props: Props) {
                         wordBreak: 'break-word',
                         flex: 1,
                         display: 'flex',
-                        padding: `0 ${space(0.5)}`,
+                        padding: `0 ${theme.space.xs}`,
                       })}
                     >
                       {queryOptions[selectedQueryIndex]!.getHighlightedQuery({
@@ -1231,23 +1230,23 @@ const Container = styled('div')<{height?: number | null}>`
   flex-direction: column;
   height: ${p => (p.height ? `${p.height}px` : 'auto')};
   position: relative;
-  padding-bottom: ${space(3)};
+  padding-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const QueryContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   position: relative;
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
   position: absolute;
-  top: ${space(1.5)};
-  right: ${space(2)};
+  top: ${p => p.theme.space.lg};
+  right: ${p => p.theme.space.xl};
 `;
 
 const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
   display: ${p => p.display};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex: 1;
 `;
 
@@ -1255,7 +1254,7 @@ const ResultsContainer = styled('div')`
   display: flex;
   flex-grow: 1;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     align-items: center;
@@ -1271,13 +1270,13 @@ const EmptyQueryContainer = styled('span')`
 const WidgetHeader = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const WidgetTitleRow = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
 `;
 
 export default withPageFilters(WidgetViewerModal);
