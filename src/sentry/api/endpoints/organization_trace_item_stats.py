@@ -207,6 +207,8 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 )
             if offset == 0:
                 for i, additional_attr in enumerate(additional_substring_matches):
+                    if additional_attr in SPANS_STATS_EXCLUDED_ATTRIBUTES:
+                        continue
                     chunked_attributes[i % MAX_THREADS].append(
                         AttributeKey(name=additional_attr, type=AttributeKey.TYPE_STRING)
                     )
