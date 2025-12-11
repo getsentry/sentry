@@ -82,12 +82,6 @@ export function ConfigureCodeReviewStep() {
       });
     const updateEnabledCodeReview = () =>
       new Promise<void>((resolve, reject) => {
-        if (!enableCodeReview) {
-          // Nothing to do, just resolve
-          resolve();
-          return;
-        }
-
         updateRepositorySettings(
           {
             codeReviewTriggers: DEFAULT_CODE_REVIEW_TRIGGERS,
@@ -109,12 +103,6 @@ export function ConfigureCodeReviewStep() {
     // Note: this will also write the preference for repos that previously had no setting on the server, was selected, and then unselected.
     const updateUnselectedRepositories = () =>
       new Promise<void>((resolve, reject) => {
-        if (unselectedCodeReviewRepositories.length === 0) {
-          // Nothing to do, just resolve
-          resolve();
-          return;
-        }
-
         updateRepositorySettings(
           {
             codeReviewTriggers: [],
@@ -132,11 +120,16 @@ export function ConfigureCodeReviewStep() {
         );
       });
 
-    updateEnabledCodeReview();
+    const promises = [
+      updateOrganizationEnabledCodeReview(),
+      ...(enableCodeReview ? [updateEnabledCodeReview()] : []),
+      ...(unselectedCodeReviewRepositories.length > 0
+        ? [updateUnselectedRepositories()]
+        : []),
+    ];
 
-    // Only the latest call to mutation will resolve, so we only check updateUnselectedRepositories
-    // We will have another promise here, so leaving this Promise.all for now
-    Promise.all([updateUnselectedRepositories(), updateOrganizationEnabledCodeReview()])
+    // Only the latest call to mutation will resolve, but they are run conditionally so we need to use Promise.any
+    Promise.any(promises)
       .then(() => {
         if (selectedCodeReviewRepositories.length > MAX_REPOSITORIES_TO_PRESELECT) {
           // When this happens, we clear the pre-populated repositories. Otherwise,
