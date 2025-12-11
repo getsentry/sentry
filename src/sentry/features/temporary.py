@@ -128,6 +128,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy v2 (with Break the Glass feature)
     manager.add("organizations:data-secrecy-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable default anomaly detection metric monitor for new projects
+    manager.add("organizations:default-anomaly-detector", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables access to the global data forwarding features
     # Note: organizations:data-forwarding is a permanent, plan-based flag that enables access to the actual feature.
     #       This flag will only be used to access the new UI/UX and endpoints before release.
