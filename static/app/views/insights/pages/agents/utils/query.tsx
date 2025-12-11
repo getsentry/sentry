@@ -30,20 +30,29 @@ export const getAIGenerationsFilter = () => {
   return `gen_ai.operation.type:ai_client`;
 };
 
+enum GenAiOperationType {
+  AGENT = 'agent',
+  TOOL = 'tool',
+  HANDOFF = 'handoff',
+  AI_CLIENT = 'ai_client',
+}
+
 // Should be used only when we don't have the gen_ai.operation.type attribute available
-export const getGenAiOperationTypeFromSpanOp = (spanOp?: string): string | undefined => {
+export const getGenAiOperationTypeFromSpanOp = (
+  spanOp?: string
+): GenAiOperationType | undefined => {
   if (!spanOp?.startsWith('gen_ai.')) {
     return undefined;
   }
 
   if (['gen_ai.invoke_agent', 'gen_ai.create_agent'].includes(spanOp)) {
-    return 'agent';
+    return GenAiOperationType.AGENT;
   }
   if (spanOp === 'gen_ai.execute_tool') {
-    return 'tool';
+    return GenAiOperationType.TOOL;
   }
   if (spanOp === 'gen_ai.handoff') {
-    return 'handoff';
+    return GenAiOperationType.HANDOFF;
   }
-  return 'ai_client';
+  return GenAiOperationType.AI_CLIENT;
 };
