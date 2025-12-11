@@ -142,7 +142,7 @@ function ProductSelect({
                 ariaRole="checkbox"
               >
                 <Flex align="center" gap="lg" padding="xl">
-                  <IconSeer variant="waiting" size="lg" />
+                  <IconSeer kind="waiting" size="lg" />
                   <Heading as="h2">
                     {t('Detect and fix issues faster with our AI agent')}
                   </Heading>
