@@ -737,7 +737,7 @@ module = [
     "tests.sentry.digests.*",
     "tests.sentry.discover.translation.*",
     "tests.sentry.event_manager.test_event_manager",
-    "tests.sentry.eventstream.kafka.*",
+    "tests.sentry.eventstream.*",
     "tests.sentry.eventtypes.*",
     "tests.sentry.flags.*",
     "tests.sentry.grouping.*",

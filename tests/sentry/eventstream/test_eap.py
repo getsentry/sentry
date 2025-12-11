@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sentry_protos.snuba.v1.endpoint_delete_trace_items_pb2 import DeleteTraceItemsResponse
@@ -11,13 +11,13 @@ from sentry.testutils.cases import TestCase
 
 
 class TestEAPDeletion(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization_id = 1
         self.project_id = 123
         self.group_ids = [1, 2, 3]
 
     @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
-    def test_deletion_with_error_dataset(self, mock_rpc):
+    def test_deletion_with_error_dataset(self, mock_rpc: MagicMock) -> None:
         mock_rpc.return_value = DeleteTraceItemsResponse(
             meta=ResponseMeta(),
             matching_items_count=150,
@@ -45,7 +45,7 @@ class TestEAPDeletion(TestCase):
         )
 
     @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
-    def test_multiple_group_ids(self, mock_rpc):
+    def test_multiple_group_ids(self, mock_rpc: MagicMock) -> None:
         mock_rpc.return_value = DeleteTraceItemsResponse(
             meta=ResponseMeta(),
             matching_items_count=500,
@@ -64,7 +64,7 @@ class TestEAPDeletion(TestCase):
         assert list(group_filter.comparison_filter.value.val_int_array.values) == many_group_ids
 
     @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
-    def test_eap_deletion_disabled_skips_deletion(self, mock_rpc):
+    def test_eap_deletion_disabled_skips_deletion(self, mock_rpc: MagicMock) -> None:
         with self.options({"eventstream.eap.deletion-enabled": False}):
             delete_events_from_eap(
                 self.organization_id, self.project_id, self.group_ids, Dataset.Events
@@ -72,7 +72,7 @@ class TestEAPDeletion(TestCase):
 
         mock_rpc.assert_not_called()
 
-    def test_empty_group_ids_raises_error(self):
+    def test_empty_group_ids_raises_error(self) -> None:
         with pytest.raises(ValueError, match="group_ids must not be empty"):
             delete_groups_from_eap_rpc(
                 organization_id=self.organization_id,
@@ -81,7 +81,7 @@ class TestEAPDeletion(TestCase):
             )
 
     @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
-    def test_exception_does_not_propagate(self, mock_rpc):
+    def test_exception_does_not_propagate(self, mock_rpc: MagicMock) -> None:
         mock_rpc.side_effect = Exception("RPC connection failed")
 
         # Should not raise - exception should be caught
