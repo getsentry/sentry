@@ -103,7 +103,9 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
         : `Inspected event ${selectedEvent}`;
     }
     // Should not happen unless there's a bug.
-    return isLoading ? `Inspecting issue ${issueId}...` : `Inspected issue ${issueId}`;
+    return isLoading
+      ? `Inspecting issue ${issueId || 'unknown'}...`
+      : `Inspected issue ${issueId || ''}`;
   },
 
   code_search: (args, isLoading) => {
