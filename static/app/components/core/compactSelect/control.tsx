@@ -298,7 +298,10 @@ export function Control({
     preventOverflowOptions: {
       ...preventOverflowOptions,
       boundary:
-        preventOverflowOptions?.boundary ?? document.querySelector('main') ?? undefined,
+        preventOverflowOptions?.boundary ??
+        document.querySelector('main') ??
+        document.getElementById('main') ??
+        undefined,
     },
     flipOptions,
     strategy,
@@ -589,7 +592,7 @@ const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
   z-index: 2;
 
   font-size: ${p => (p.size === 'xs' ? p.theme.fontSize.xs : p.theme.fontSize.sm)};
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const MenuHeaderTrailingItems = styled('div')`

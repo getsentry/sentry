@@ -8,7 +8,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -124,19 +124,6 @@ const SidebarHeader = styled('header')<{isSuperuser: boolean}>`
   align-items: center;
   justify-content: center;
   margin-bottom: ${space(0.5)};
-
-  ${p =>
-    p.isSuperuser &&
-    !p.theme.isChonk &&
-    css`
-      &:before {
-        content: '';
-        position: absolute;
-        inset: 0 ${space(1)} -${space(0.5)} ${space(1)};
-        border-radius: ${p.theme.borderRadius};
-        background: ${p.theme.sidebar.superuser};
-      }
-    `}
 `;
 
 const SuperuserBadgeContainer = styled('div')`

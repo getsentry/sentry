@@ -8,8 +8,8 @@ import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {loadPrismLanguage} from 'sentry/utils/prism';
-// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
-import {darkTheme} from 'sentry/utils/theme';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme} from 'sentry/utils/theme/theme';
 
 interface CodeBlockProps {
   children: string;
@@ -238,7 +238,7 @@ const Header = styled('div')<{isFloating: boolean}>`
   align-items: center;
 
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => p.theme.fontSize.sm};
   color: var(--prism-base);
   font-weight: ${p => p.theme.fontWeight.bold};
   z-index: 2;

@@ -1,5 +1,6 @@
 import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import type {AddOn, AddOnCategory, ProductTrial, Subscription} from 'getsentry/types';
 import {
@@ -9,7 +10,10 @@ import {
   getPotentialProductTrial,
   productIsEnabled,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+} from 'getsentry/utils/dataCategory';
 
 interface ProductBillingMetadata {
   /**
@@ -50,6 +54,10 @@ interface ProductBillingMetadata {
    * if any.
    */
   addOnInfo?: AddOn;
+  /**
+   * Link to the in-app page for the given product, if any.
+   */
+  productLink?: string;
 }
 
 const EMPTY_PRODUCT_BILLING_METADATA: ProductBillingMetadata = {
@@ -63,17 +71,24 @@ const EMPTY_PRODUCT_BILLING_METADATA: ProductBillingMetadata = {
 };
 
 export function useProductBillingMetadata(
-  subscription: Subscription,
+  subscription: Subscription | null,
   product: DataCategory | AddOnCategory,
   parentProduct?: DataCategory | AddOnCategory,
   excludeProductTrials?: boolean
 ): ProductBillingMetadata {
+  const organization = useOrganization();
   const isAddOn = checkIsAddOn(parentProduct ?? product);
+
+  if (!subscription) {
+    return EMPTY_PRODUCT_BILLING_METADATA;
+  }
   const billedCategory = getBilledCategory(subscription, product);
 
   if (!billedCategory) {
     return EMPTY_PRODUCT_BILLING_METADATA;
   }
+
+  const billedCategoryInfo = getCategoryInfoFromPlural(billedCategory);
 
   let displayName = '';
   let addOnInfo = undefined;
@@ -112,5 +127,9 @@ export function useProductBillingMetadata(
     potentialProductTrial: excludeProductTrials
       ? null
       : getPotentialProductTrial(subscription.productTrials ?? null, billedCategory),
+    productLink:
+      organization && billedCategoryInfo
+        ? billedCategoryInfo.getProductLink?.(organization)
+        : undefined,
   };
 }

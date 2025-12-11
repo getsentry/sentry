@@ -237,12 +237,12 @@ export default function TeamNotificationSettings() {
 }
 
 const NotDisabledText = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   line-height: ${space(2)};
 `;
 const NotDisabledSubText = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.4;
   margin-top: ${space(1)};
 `;

@@ -392,12 +392,12 @@ const DateSelected = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   display: grid;
   grid-column-gap: ${space(1)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   ${p => p.theme.overflowEllipsis};
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding-left: ${space(1)};
 `;
 

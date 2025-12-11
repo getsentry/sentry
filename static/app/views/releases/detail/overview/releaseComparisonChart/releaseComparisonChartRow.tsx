@@ -126,7 +126,7 @@ const NumericCell = styled(Cell)`
 const DescriptionCell = styled(Cell)`
   text-align: left;
   overflow: visible;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const ExpanderCell = styled(Cell)`

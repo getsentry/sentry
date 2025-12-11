@@ -1,12 +1,14 @@
 import {Fragment, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Tag} from '@sentry/scraps/badge';
+
+import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import ProgressRing from 'sentry/components/progressRing';
 import {IconLock, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import useMedia from 'sentry/utils/useMedia';
 
@@ -22,7 +24,12 @@ import {
   MILLISECONDS_IN_HOUR,
   supportsPayg,
 } from 'getsentry/utils/billing';
-import {isByteCategory, isContinuousProfiling} from 'getsentry/utils/dataCategory';
+import {
+  calculateSeerUserSpend,
+  formatCategoryQuantityWithDisplayName,
+  isByteCategory,
+  isContinuousProfiling,
+} from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
 import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 import ProductTrialRibbon from 'getsentry/views/subscriptionPage/usageOverview/components/productTrialRibbon';
@@ -53,7 +60,7 @@ function UsageOverviewTableRow({
 }: UsageOverviewTableProps & (ChildProductRowProps | ParentProductRowProps)) {
   const theme = useTheme();
   const showPanelInline = useMedia(
-    `(max-width: ${theme.breakpoints[SIDE_PANEL_MIN_SCREEN_BREAKPOINT]})`
+    `(max-width: calc(${theme.breakpoints[SIDE_PANEL_MIN_SCREEN_BREAKPOINT]} - 1px))`
   );
   const [isHovered, setIsHovered] = useState(false);
   const showAdditionalSpendColumn =
@@ -68,7 +75,7 @@ function UsageOverviewTableRow({
     usageExceeded,
     activeProductTrial,
     potentialProductTrial,
-  } = useProductBillingMetadata(subscription, product, parentProduct, isChildProduct);
+  } = useProductBillingMetadata(subscription, product, parentProduct);
   if (!billedCategory) {
     return null;
   }
@@ -86,8 +93,10 @@ function UsageOverviewTableRow({
   let percentUsed = 0;
   let formattedUsage = '';
   let formattedPrepaid = null;
+  let formattedFree = null;
   let paygSpend = 0;
   let isUnlimited = false;
+  let otherSpend = 0;
 
   if (isAddOn) {
     if (!addOnInfo) {
@@ -101,6 +110,7 @@ function UsageOverviewTableRow({
     const reservedBudget = subscription.reservedBudgets?.find(
       budget => budget.apiName === reservedBudgetCategory
     );
+    const free = reservedBudget?.freeBudget ?? 0;
     percentUsed = reservedBudget
       ? getPercentage(reservedBudget.totalReservedSpend, reservedBudget.reservedBudget)
       : 0;
@@ -119,6 +129,7 @@ function UsageOverviewTableRow({
       formattedPrepaid = formatReservedWithUnits(UNLIMITED_RESERVED, billedCategory);
     } else if (reservedBudget) {
       formattedPrepaid = displayPriceWithCents({cents: reservedBudget.reservedBudget});
+      formattedFree = free ? displayPriceWithCents({cents: free}) : null;
     }
 
     paygSpend = isChildProduct
@@ -128,7 +139,7 @@ function UsageOverviewTableRow({
         }, 0);
   } else {
     // convert prepaid amount to the same unit as usage to accurately calculate percent used
-    const {prepaid} = metricHistory;
+    const {prepaid, free} = metricHistory;
     isUnlimited = prepaid === UNLIMITED_RESERVED || !!activeProductTrial;
     const rawPrepaid = isUnlimited
       ? prepaid
@@ -147,17 +158,24 @@ function UsageOverviewTableRow({
       useUnitScaling: true,
       isAbbreviated: true,
     });
+    formattedFree = free
+      ? formatReservedWithUnits(free, billedCategory, {
+          useUnitScaling: true,
+          isAbbreviated: true,
+        })
+      : null;
 
     paygSpend = subscription.categories[billedCategory]?.onDemandSpendUsed ?? 0;
   }
 
-  const {reserved} = metricHistory;
+  const {reserved, prepaid, usage} = metricHistory;
   const bucket = getBucket({
     events: reserved ?? 0, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
     buckets: subscription.planDetails.planCategories[billedCategory],
   });
+  otherSpend = calculateSeerUserSpend(metricHistory);
   const recurringReservedSpend = isChildProduct ? 0 : (bucket.price ?? 0);
-  const additionalSpend = recurringReservedSpend + paygSpend;
+  const additionalSpend = recurringReservedSpend + paygSpend + otherSpend;
 
   const formattedSoftCapType =
     isChildProduct || !isAddOn ? getSoftCapType(metricHistory) : null;
@@ -168,19 +186,35 @@ function UsageOverviewTableRow({
   const isPaygOnly =
     !isAddOn && supportsPayg(subscription) && metricHistory.reserved === 0;
 
-  const isClickable = !!potentialProductTrial || isEnabled;
   const isSelected = selectedProduct === product;
+
+  /**
+   * Only show the progress ring if:
+   * - the usage is not exceeded
+   * - the product is not PAYG only
+   * - the product is not a child product (ie. sub-categories of an add-on)
+   * - prepaid volume is not unlimited
+   * - the product is not an add-on or the product is an add-on with a prepaid volume
+   */
+  const showProgressRing =
+    !usageExceeded &&
+    !isPaygOnly &&
+    !isChildProduct &&
+    !isUnlimited &&
+    (!isAddOn || formattedPrepaid);
+
+  const shouldFormatWithDisplayName =
+    isContinuousProfiling(billedCategory) || billedCategory === DataCategory.SEER_USER;
 
   return (
     <Fragment>
-      <Row
-        onMouseEnter={() => isClickable && setIsHovered(true)}
-        onMouseLeave={() => isClickable && setIsHovered(false)}
-        isClickable={isClickable}
+      <ProductRow
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         isSelected={isSelected}
-        onClick={() => (isClickable ? onRowClick(product) : undefined)}
+        onClick={() => onRowClick(product)}
         onKeyDown={e => {
-          if ((e.key === 'Enter' || e.key === ' ') && isClickable) {
+          if (e.key === 'Enter' || e.key === ' ') {
             onRowClick(product);
           }
         }}
@@ -197,10 +231,10 @@ function UsageOverviewTableRow({
         <td>
           <Flex
             paddingLeft={
-              activeProductTrial || potentialProductTrial
-                ? 'lg'
-                : isChildProduct
-                  ? '2xl'
+              isChildProduct
+                ? '2xl'
+                : activeProductTrial || potentialProductTrial
+                  ? 'lg'
                   : undefined
             }
             wrap="nowrap"
@@ -220,22 +254,46 @@ function UsageOverviewTableRow({
             <td>
               <Flex align="center" gap="xs" wrap="wrap">
                 {usageExceeded ? (
-                  <IconWarning size="sm" color="danger" />
-                ) : isPaygOnly || isChildProduct || isUnlimited ? null : (
-                  <ProgressRing
-                    value={percentUsed}
-                    progressColor={
-                      !usageExceeded && percentUsed === 100
-                        ? theme.warningFocus
-                        : undefined
-                    }
-                  />
-                )}
+                  <Container width="18px" height="18px">
+                    <IconWarning size="md" color="danger" />
+                  </Container>
+                ) : showProgressRing ? (
+                  <Container width="18px" height="18px">
+                    <ProgressRing
+                      size={18}
+                      value={percentUsed}
+                      progressColor={
+                        !usageExceeded && percentUsed === 100
+                          ? theme.warningFocus
+                          : undefined
+                      }
+                    />
+                  </Container>
+                ) : null}
                 <Text textWrap="balance">
-                  {isPaygOnly || isChildProduct || !formattedPrepaid
-                    ? formattedUsage
-                    : `${formattedUsage} / ${formattedPrepaid}`}
+                  {isUnlimited ? (
+                    <Tag type="highlight">{t('Unlimited')}</Tag>
+                  ) : isPaygOnly || isChildProduct || !formattedPrepaid ? (
+                    shouldFormatWithDisplayName ? (
+                      formatCategoryQuantityWithDisplayName({
+                        dataCategory: billedCategory,
+                        quantity: usage,
+                        formattedQuantity: formattedUsage,
+                        subscription,
+                        options: {capitalize: false},
+                      })
+                    ) : (
+                      formattedUsage
+                    )
+                  ) : (
+                    `${formattedUsage} / ${shouldFormatWithDisplayName ? formatCategoryQuantityWithDisplayName({dataCategory: billedCategory, quantity: prepaid, formattedQuantity: formattedPrepaid, subscription, options: {capitalize: false}}) : formattedPrepaid}`
+                  )}
                 </Text>
+                {formattedFree && (
+                  <Text size="xs">
+                    {tct(` ([formattedFree] gifted)`, {formattedFree})}
+                  </Text>
+                )}
               </Flex>
             </td>
             {showAdditionalSpendColumn && (
@@ -248,9 +306,9 @@ function UsageOverviewTableRow({
           </Fragment>
         )}
         {(isSelected || isHovered) && <SelectedPill isSelected={isSelected} />}
-      </Row>
+      </ProductRow>
       {showPanelInline && isSelected && (
-        <tr>
+        <Row>
           <MobilePanelContainer>
             <ProductBreakdownPanel
               organization={organization}
@@ -260,7 +318,7 @@ function UsageOverviewTableRow({
               isInline
             />
           </MobilePanelContainer>
-        </tr>
+        </Row>
       )}
     </Fragment>
   );
@@ -268,12 +326,7 @@ function UsageOverviewTableRow({
 
 export default UsageOverviewTableRow;
 
-const Row = styled('tr')<{isClickable: boolean; isSelected: boolean}>`
-  position: relative;
-  background: ${p => (p.isSelected ? p.theme.backgroundSecondary : p.theme.background)};
-  padding: ${p => p.theme.space.xl};
-  cursor: pointer;
-
+const Row = styled('tr')`
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.border};
   }
@@ -281,18 +334,17 @@ const Row = styled('tr')<{isClickable: boolean; isSelected: boolean}>`
   &:last-child {
     border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   }
+`;
 
-  cursor: default;
+const ProductRow = styled(Row)<{isSelected: boolean}>`
+  position: relative;
+  background: ${p => (p.isSelected ? p.theme.backgroundSecondary : p.theme.background)};
+  padding: ${p => p.theme.space.xl};
+  cursor: pointer;
 
-  ${p =>
-    p.isClickable &&
-    css`
-      cursor: pointer;
-
-      &:hover {
-        background: ${p.theme.backgroundSecondary};
-      }
-    `}
+  &:hover {
+    background: ${p => p.theme.backgroundSecondary};
+  }
 `;
 
 const MobilePanelContainer = styled('td')`

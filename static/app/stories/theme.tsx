@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useState} from 'react';
-import type {Theme} from '@emotion/react';
-import {ThemeProvider, useTheme} from '@emotion/react';
+import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -9,30 +8,19 @@ import {IconMoon} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-// eslint-disable-next-line no-restricted-imports -- We need to import theme as we want to locally scope the change
+// eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
-import {
-  DO_NOT_USE_darkChonkTheme,
-  DO_NOT_USE_lightChonkTheme,
-} from 'sentry/utils/theme/theme.chonk';
 
 interface ThemeToggleProps {
   children: React.ReactNode;
 }
 
 export function ThemeToggle({children}: ThemeToggleProps) {
-  const theme = useTheme();
   const config = useLegacyStore(ConfigStore);
 
   const [localThemeName, setLocalThemeName] = useState(config.theme);
 
-  const localThemeValue = theme.isChonk
-    ? localThemeName === 'dark'
-      ? DO_NOT_USE_darkChonkTheme
-      : DO_NOT_USE_lightChonkTheme
-    : localThemeName === 'dark'
-      ? darkTheme
-      : lightTheme;
+  const localThemeValue = localThemeName === 'dark' ? darkTheme : lightTheme;
 
   return (
     <Fragment>
@@ -47,7 +35,7 @@ export function ThemeToggle({children}: ThemeToggleProps) {
           </TabList>
         </Tabs>
       </Inset>
-      <ThemeProvider theme={localThemeValue as Theme}>
+      <ThemeProvider theme={localThemeValue as any}>
         <Background>
           <div>{children}</div>
         </Background>

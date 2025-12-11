@@ -21,6 +21,7 @@ from sentry.notifications.platform.types import (
     NotificationTarget,
     NotificationTemplate,
 )
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -39,7 +40,7 @@ class NotificationService[T: NotificationData]:
         self.data: Final[T] = data
 
     @staticmethod
-    def has_access(organization: Organization, source: str) -> bool:
+    def has_access(organization: Organization | RpcOrganization, source: str) -> bool:
         if not features.has("organizations:notification-platform", organization):
             return False
 
@@ -48,12 +49,17 @@ class NotificationService[T: NotificationData]:
             options.get(option_key)
         except options.UnknownOption:
             logger.warning(
-                "Notification platform key '%s' has not been registered in options/default.py",
-                option_key,
+                "notification.platform.has_access.unknown_option",
+                extra={
+                    "organization_id": organization.id,
+                    "source": source,
+                    "option_key": option_key,
+                },
             )
             return False
 
-        return sample_modulo(option_key, organization.id)
+        modulo_result = sample_modulo(option_key, organization.id)
+        return modulo_result
 
     def notify_target(self, *, target: NotificationTarget) -> None:
         """

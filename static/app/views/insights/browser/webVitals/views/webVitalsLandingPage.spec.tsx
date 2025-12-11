@@ -84,9 +84,21 @@ describe('WebVitalsLandingPage', () => {
       initialRouterConfig,
     });
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-    // Table query
+    // geo subregion query
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'spans',
+          field: ['user.geo.subregion', 'count()'],
+          query: 'has:user.geo.subregion',
+        }),
+      })
+    );
+    // Table query
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      2,
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
@@ -117,7 +129,7 @@ describe('WebVitalsLandingPage', () => {
     );
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(
-      2,
+      3,
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
@@ -137,7 +149,7 @@ describe('WebVitalsLandingPage', () => {
     );
     // Project performance score ring query
     expect(eventsMock).toHaveBeenNthCalledWith(
-      3,
+      4,
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({

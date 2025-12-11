@@ -32,7 +32,6 @@ import type {SavedSearchType, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
 import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 
 export interface SearchQueryBuilderProps {
@@ -199,10 +198,6 @@ function ActionButtons({
     onCaseInsensitiveClick,
   } = useSearchQueryBuilder();
 
-  const hasCaseSensitiveSearch = useOrganization().features.includes(
-    'search-query-builder-case-insensitivity'
-  );
-
   if (disabled) {
     return null;
   }
@@ -213,7 +208,7 @@ function ActionButtons({
   return (
     <ButtonsWrapper ref={ref}>
       {trailingItems}
-      {defined(onCaseInsensitiveClick) && hasCaseSensitiveSearch ? (
+      {defined(onCaseInsensitiveClick) ? (
         <Tooltip title={caseInsensitiveLabel}>
           <ActionButton
             aria-label={caseInsensitiveLabel}

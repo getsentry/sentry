@@ -147,9 +147,7 @@ class OnDemandBudgetEdit extends Component<Props> {
           ),
         ...Object.values(activePlan.addOnCategories)
           .filter(
-            addOnInfo =>
-              !addOnInfo.billingFlag ||
-              organization.features.includes(addOnInfo.billingFlag)
+            addOnInfo => subscription.addOns?.[addOnInfo.apiName]?.isAvailable ?? false
           )
           .map(addOnInfo =>
             toTitleCase(addOnInfo.productName, {allowInnerUpperCase: true})
@@ -392,7 +390,7 @@ const BudgetModeOption = styled(PanelItem)<{isSelected?: boolean}>`
     p.isSelected &&
     css`
       background: ${p.theme.backgroundSecondary};
-      color: ${p.theme.textColor};
+      color: ${p.theme.tokens.content.primary};
     `}
 `;
 
@@ -428,7 +426,7 @@ const BudgetDetails = styled('div')`
   display: inline-grid;
   gap: ${space(0.75)};
   font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Title = styled('div')`
@@ -457,7 +455,7 @@ const Currency = styled('div')`
 
 const OnDemandInput = styled(Input)`
   padding-left: ${space(4)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   max-width: 140px;
   height: 36px;
 `;
