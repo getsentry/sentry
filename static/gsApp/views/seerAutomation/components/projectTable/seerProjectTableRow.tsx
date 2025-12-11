@@ -5,7 +5,11 @@ import {Flex} from '@sentry/scraps/layout/flex';
 import {Link} from '@sentry/scraps/link/link';
 import {Switch} from '@sentry/scraps/switch/switch';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -89,6 +93,7 @@ export default function SeerProjectTableRow({project, organization}: Props) {
             checked={hasAutoFixEnabled}
             onChange={e => {
               const autofixAutomationTuning = e.target.checked ? 'medium' : 'off';
+              addLoadingMessage(t('Updating Auto-Fix for %s', project.name));
               mutateProject(
                 {autofixAutomationTuning, seerScannerAutomation: true},
                 {
@@ -123,6 +128,7 @@ export default function SeerProjectTableRow({project, organization}: Props) {
               const automatedRunStoppingPoint = e.target.checked
                 ? 'open_pr'
                 : 'code_changes';
+              addLoadingMessage(t('Updating PR Creation for %s', project.name));
               updateProjectSeerPreferences(
                 {
                   repositories: preference?.repositories || [],
@@ -155,6 +161,7 @@ export default function SeerProjectTableRow({project, organization}: Props) {
               onChange={() => {
                 // This preference can only be turned off, not on, from here.
                 // You need to go to the project settings page to turn it on.
+                addLoadingMessage(t('Updating background agent for %s', project.name));
                 updateProjectSeerPreferences(
                   {
                     repositories: preference?.repositories || [],
