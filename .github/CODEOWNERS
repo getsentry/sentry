@@ -711,6 +711,10 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/nav/secondary/sections/prevent/         @getsentry/prevent
 # End of Prevent
 
+# Coding Workflows
+/src/sentry/integrations/api/endpoints/organization_repository_settings.py @getsentry/coding-workflows
+# End of Coding Workflows
+
 # Conduit
 /src/sentry/conduit/                                  @getsentry/sre-infrastructure-engineering
 /tests/sentry/conduit/                                @getsentry/sre-infrastructure-engineering
