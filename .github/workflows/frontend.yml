@@ -166,7 +166,7 @@ jobs:
       matrix:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
 
-        instance: [0, 1, 2, 3]
+        instance: [0, 1, 2, 3, 4, 5, 6, 7]
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -211,7 +211,7 @@ jobs:
           #      Otherwise, if there are other things in the matrix, using strategy.job-total
           #      wouldn't be correct. Also, if this increases, make sure to also increase
           #      `flags.frontend.after_n_builds` in `codecov.yml`.
-          CI_NODE_TOTAL: 4
+          CI_NODE_TOTAL: 8
           CI_NODE_INDEX: ${{ matrix.instance }}
           # Disable testing-library from printing out any of of the DOM to
           # stdout. No one actually looks through this in CI, they're just
