@@ -21,7 +21,7 @@ function UserCustomers({userId}: Props) {
     <CustomerGrid
       panelTitle="Organization Membership"
       path={`/_admin/users/${userId}/`}
-      endpoint={`/users/${userId}/customers/`}
+      endpoint={`/_admin/cells/$cell_id/users/${userId}/customers/`}
       hasSearch={false}
       sortOptions={undefined}
       filters={undefined}
