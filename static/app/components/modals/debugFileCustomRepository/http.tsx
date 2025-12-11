@@ -262,8 +262,7 @@ const StyledSelectField = styled(SelectField)`
 `;
 
 const PasswordInput = styled(Input)`
-  padding-right: ${p =>
-    p.theme.formPadding.md.paddingRight + CLEAR_PASSWORD_BUTTON_SIZE}px;
+  padding-right: ${p => p.theme.form.md.paddingRight + CLEAR_PASSWORD_BUTTON_SIZE}px;
 `;
 
 const ClearPasswordButton = styled(Button)`

@@ -5,12 +5,12 @@ import Creatable from 'react-select/creatable';
 import type {CSSObject, Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import {
   ChonkClearIndicator,
   ChonkDropdownIndicator,
   getChonkStylesConfig,
+  selectSpacing,
   type StylesConfig,
 } from '@sentry/scraps/select/select.chonk';
 
@@ -219,7 +219,9 @@ const getStylesConfig = ({
       ...(!state.isSearchable && {
         cursor: 'pointer',
       }),
-      ...omit(theme.form[size ?? 'md'], 'height'),
+      minHeight: theme.form[size ?? 'md'].minHeight,
+      fontSize: theme.form[size ?? 'md'].fontSize,
+      lineHeight: theme.form[size ?? 'md'].lineHeight,
       ...(state.isMulti && {
         maxHeight: '20.8em', // 10 lines (1.8em * 10) + padding
         overflow: 'hidden',
@@ -256,7 +258,7 @@ const getStylesConfig = ({
     valueContainer: (provided, state) => ({
       ...provided,
       alignItems: 'center',
-      paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft,
+      paddingLeft: theme.form[size ?? 'md'].paddingLeft,
       paddingRight: space(0.5),
       // offset horizontal margin/padding from multiValue (space(0.25)) &
       // multiValueLabel (space(0.75))
@@ -279,9 +281,7 @@ const getStylesConfig = ({
       alignItems: 'center',
       marginLeft: 0,
       marginRight: 0,
-      width: `calc(100% - ${theme.formPadding[size ?? 'md'].paddingLeft}px - ${space(
-        0.5
-      )})`,
+      width: `calc(100% - ${theme.form[size ?? 'md'].paddingLeft}px - ${space(0.5)})`,
     }),
     placeholder: provided => ({
       ...provided,
@@ -387,7 +387,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       content: `"${label}"`,
       color: theme.isChonk ? theme.gray500 : theme.gray300,
       fontWeight: 600,
-      marginRight: theme.formSpacing[size ?? 'md'],
+      marginRight: selectSpacing[size ?? 'md'],
     },
   });
 
