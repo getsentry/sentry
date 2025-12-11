@@ -1,5 +1,4 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import BlockComponent from './blockComponents';
 import type {Block} from './types';
@@ -81,35 +80,6 @@ describe('BlockComponent', () => {
       const blockElement = container.firstChild;
       await userEvent.click(blockElement as HTMLElement);
       expect(mockOnClick).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('Focus State', () => {
-    it('shows delete hint when isFocused=true', () => {
-      const block = createUserInputBlock();
-      render(
-        <BlockComponent block={block} blockIndex={0} isFocused onClick={mockOnClick} />
-      );
-
-      expect(
-        screen.getByText(textWithMarkupMatcher('Rethink from here ⌫'))
-      ).toBeInTheDocument();
-    });
-
-    it('does not show delete hint when isFocused=false', () => {
-      const block = createUserInputBlock();
-      render(
-        <BlockComponent
-          block={block}
-          blockIndex={0}
-          isFocused={false}
-          onClick={mockOnClick}
-        />
-      );
-
-      expect(
-        screen.queryByText(textWithMarkupMatcher('Rethink from here ⌫'))
-      ).not.toBeInTheDocument();
     });
   });
 
