@@ -6,7 +6,6 @@ import seerConfigConnect2 from 'getsentry-images/spot/seer-config-connect-2.svg'
 import seerConfigHand2 from 'getsentry-images/spot/seer-config-hand-2.svg';
 import seerConfigMain from 'getsentry-images/spot/seer-config-main.svg';
 
-import {Alert} from '@sentry/scraps/alert/alert';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer/interactionStateLayer';
 import {Container} from '@sentry/scraps/layout/container';
@@ -21,8 +20,6 @@ import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {hasBillingAccess} from 'getsentry/utils/billing';
 
 const BUTTONS = [
   {
@@ -142,21 +139,13 @@ export default function SeerAutomationTrial() {
             </Grid>
           </Text>
           <Flex align="center" justify="center" paddingTop="lg">
-            {hasBillingAccess(organization) ? (
-              <LinkButton
-                to="/settings/billing/overview/?product=seer"
-                priority="primary"
-                icon={<IconUpgrade />}
-              >
-                {t('Try Out Seer Now')}
-              </LinkButton>
-            ) : (
-              <Alert type="warning">
-                {t(
-                  'You need to be a billing member to try out Seer. Please contact your organization owner to upgrade your plan.'
-                )}
-              </Alert>
-            )}
+            <LinkButton
+              to="/settings/billing/overview/?product=seer"
+              priority="primary"
+              icon={<IconUpgrade />}
+            >
+              {t('Try Out Seer Now')}
+            </LinkButton>
           </Flex>
         </Stack>
       </Container>
