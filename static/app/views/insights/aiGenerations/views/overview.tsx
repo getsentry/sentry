@@ -10,10 +10,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {
-  EAPSpanSearchQueryBuilder,
-  useEAPSpanSearchQueryBuilderProps,
-} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useEAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconChevron, IconEdit} from 'sentry/icons';
@@ -30,6 +27,7 @@ import useProjects from 'sentry/utils/useProjects';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
@@ -102,8 +100,8 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
         unsetCursor();
       },
       searchSource: 'ai-generations',
-      numberTags,
-      stringTags,
+      numberAttributes: numberTags,
+      stringAttributes: stringTags,
       numberSecondaryAliases,
       stringSecondaryAliases,
       replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
@@ -128,9 +126,8 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
     ]
   );
 
-  const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
-    eapSpanSearchQueryBuilderProps
-  );
+  const {searchQueryBuilderProviderProps, traceItemSearchQueryBuilderProps} =
+    useEAPSpanSearchQueryBuilderProps(eapSpanSearchQueryBuilderProps);
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -151,7 +148,7 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
   }, [fields, setFields, stringTags, numberTags]);
 
   return (
-    <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
+    <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
       <ModuleFeature moduleName={ModuleName.AI_GENERATIONS}>
         <Stack
           direction="column"
@@ -170,7 +167,7 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
             </PageFilterBar>
             {!showOnboarding && (
               <Flex flex={2} minWidth="50%">
-                <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
+                <TraceItemSearchQueryBuilder {...traceItemSearchQueryBuilderProps} />
               </Flex>
             )}
           </Flex>
