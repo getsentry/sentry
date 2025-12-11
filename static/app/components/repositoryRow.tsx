@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import PanelItem from 'sentry/components/panels/panelItem';
+import getRepoStatusLabel from 'sentry/components/repositories/getRepoStatusLabel';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,22 +23,7 @@ type Props = {
   showProvider?: boolean;
 };
 
-function getStatusLabel(repo: Repository) {
-  switch (repo.status) {
-    case RepositoryStatus.PENDING_DELETION:
-      return 'Deletion Queued';
-    case RepositoryStatus.DELETION_IN_PROGRESS:
-      return 'Deletion in Progress';
-    case RepositoryStatus.DISABLED:
-      return 'Disabled';
-    case RepositoryStatus.HIDDEN:
-      return 'Disabled';
-    default:
-      return null;
-  }
-}
-
-function RepositoryRow({
+export default function RepositoryRow({
   repository,
   onRepositoryChange,
   orgSlug,
@@ -49,9 +35,7 @@ function RepositoryRow({
   const cancelDelete = () =>
     cancelDeleteRepository(api, orgSlug, repository.id).then(
       data => {
-        if (onRepositoryChange) {
-          onRepositoryChange(data);
-        }
+        onRepositoryChange?.(data);
       },
       () => {}
     );
@@ -59,9 +43,7 @@ function RepositoryRow({
   const deleteRepo = () =>
     hideRepository(api, orgSlug, repository.id).then(
       data => {
-        if (onRepositoryChange) {
-          onRepositoryChange(data);
-        }
+        onRepositoryChange?.(data);
       },
       () => {}
     );
@@ -99,7 +81,7 @@ function RepositoryRow({
           <RepositoryTitleAndUrl>
             <RepositoryTitle>
               <strong>{repository.name}</strong>
-              {!isActive && <small> &mdash; {getStatusLabel(repository)}</small>}
+              {!isActive && <small> &mdash; {getRepoStatusLabel(repository)}</small>}
               {repository.status === RepositoryStatus.PENDING_DELETION && (
                 <StyledButton
                   size="xs"
@@ -162,5 +144,3 @@ const RepositoryTitle = styled('div')`
   /* accommodate cancel button height */
   line-height: 26px;
 `;
-
-export default RepositoryRow;
