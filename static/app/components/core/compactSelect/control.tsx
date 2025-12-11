@@ -15,7 +15,7 @@ import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
-import {useOverflowBoundaryContext} from '@sentry/scraps/overflowBoundaryContext';
+import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
@@ -278,7 +278,7 @@ export function Control({
     },
   });
 
-  const overflowBoundaryId = useOverflowBoundaryContext();
+  const overflowBoundaryId = useBoundaryContext();
   const overflowBoundary = overflowBoundaryId
     ? document.getElementById(overflowBoundaryId)
     : null;

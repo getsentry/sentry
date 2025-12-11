@@ -4,7 +4,7 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type Transition} from 'framer-motion';
 
-import {OverflowBoundaryContextProvider} from '@sentry/scraps/overflowBoundaryContext';
+import {BoundaryContextProvider} from '@sentry/scraps/boundaryContext';
 
 import {space} from 'sentry/styles/space';
 
@@ -94,7 +94,7 @@ export function SlideOverPanel({
   const collapsedStyle = position ? COLLAPSED_STYLES[position] : COLLAPSED_STYLES.right;
 
   return (
-    <OverflowBoundaryContextProvider value={id}>
+    <BoundaryContextProvider value={id}>
       <_SlideOverPanel
         ref={ref}
         id={id}
@@ -123,7 +123,7 @@ export function SlideOverPanel({
             ? null
             : children}
       </_SlideOverPanel>
-    </OverflowBoundaryContextProvider>
+    </BoundaryContextProvider>
   );
 }
 

@@ -1,8 +1,8 @@
 import {Fragment, useCallback, useEffect, useId, useState} from 'react';
 import debounce from 'lodash/debounce';
 
+import {BoundaryContextProvider} from '@sentry/scraps/boundaryContext';
 import {Flex} from '@sentry/scraps/layout';
-import {OverflowBoundaryContextProvider} from '@sentry/scraps/overflowBoundaryContext';
 
 import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -451,8 +451,8 @@ export default Storybook.story('CompactSelect', story => {
         </p>
         <p>
           Containers that do not want <code>compactSelect</code> instances to grow beyond
-          them can put their id in the <code>OverflowBoundaryContext</code>. You can also
-          set a custom maximum width for the menu using the <code>menuWidth</code> prop.
+          them can put their id in the <code>BoundaryContext</code>. You can also set a
+          custom maximum width for the menu using the <code>menuWidth</code> prop.
         </p>
 
         <Flex gap="md" direction="column" height="300px" align="start" justify="start">
@@ -466,7 +466,7 @@ export default Storybook.story('CompactSelect', story => {
                 triggerProps={{children: 'Unbound (might break)'}}
                 options={options}
               />
-              <OverflowBoundaryContextProvider value={id}>
+              <BoundaryContextProvider value={id}>
                 <CompactSelect
                   value={value}
                   onChange={newValue => {
@@ -475,7 +475,7 @@ export default Storybook.story('CompactSelect', story => {
                   triggerProps={{children: 'Bound to Parent'}}
                   options={options}
                 />
-              </OverflowBoundaryContextProvider>
+              </BoundaryContextProvider>
               <CompactSelect
                 value={value}
                 menuWidth="250px"
