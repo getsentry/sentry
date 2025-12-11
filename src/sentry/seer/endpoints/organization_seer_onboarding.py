@@ -44,7 +44,11 @@ class ProjectRepoMappingField(serializers.Field):
                 project_id = int(project_id_str)
             except (ValueError, TypeError):
                 raise serializers.ValidationError(
-                    f"Invalid project ID: {project_id_str}. Must be an integer."
+                    f"Invalid project ID: {project_id_str}. Must be a positive integer."
+                )
+            if project_id <= 0:
+                raise serializers.ValidationError(
+                    f"Invalid project ID: {project_id_str}. Must be a positive integer."
                 )
 
             if not isinstance(repos_data, list):

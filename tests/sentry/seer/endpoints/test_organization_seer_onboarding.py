@@ -216,7 +216,7 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
         assert response.json() == {
             "autofix": {
                 "project_repo_mapping": [
-                    "Invalid project ID: invalid_project_id. Must be an integer."
+                    "Invalid project ID: invalid_project_id. Must be a positive integer."
                 ]
             }
         }
@@ -312,3 +312,33 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
         assert response.status_code == 403
         mock_onboarding_update.assert_not_called()
         assert response.json() == {"detail": "You do not have permission to perform this action."}
+
+    @patch("sentry.seer.endpoints.organization_seer_onboarding.onboarding_seer_settings_update")
+    def test_negative_project_id(self, mock_onboarding_update) -> None:
+        response = self.client.post(
+            self.path,
+            {
+                "autofix": {
+                    "fixes": True,
+                    "pr_creation": True,
+                    "project_repo_mapping": {
+                        "-1": [
+                            {
+                                "provider": "github",
+                                "owner": "sentry",
+                                "name": "sentry",
+                                "external_id": "1234567890",
+                            },
+                        ],
+                    },
+                }
+            },
+        )
+
+        assert response.status_code == 400
+        mock_onboarding_update.assert_not_called()
+        assert response.json() == {
+            "autofix": {
+                "project_repo_mapping": ["Invalid project ID: -1. Must be a positive integer."]
+            }
+        }
