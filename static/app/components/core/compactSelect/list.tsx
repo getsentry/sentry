@@ -40,7 +40,6 @@ interface BaseListProps<Value extends SelectKey>
       | 'onSelectionChange'
       | 'autoFocus'
       | 'shouldUseVirtualFocus'
-      | 'isVirtualized'
     >,
     Omit<
       AriaGridListOptions<any>,
@@ -51,7 +50,6 @@ interface BaseListProps<Value extends SelectKey>
       | 'onSelectionChange'
       | 'autoFocus'
       | 'shouldUseVirtualFocus'
-      | 'isVirtualized'
     > {
   items: Array<SelectOptionOrSectionWithKey<Value>>;
   /**
@@ -91,11 +89,6 @@ interface BaseListProps<Value extends SelectKey>
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
-
-  /**
-   * If true, virtualization will be enabled for the list
-   */
-  virtualized?: boolean;
 }
 
 /**
