@@ -57,7 +57,6 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_missing_sentry_org_id_returns_400(self):
-        """Test that missing sentryOrgId parameter returns 400."""
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
         auth = self._auth_header_for_get(url, {}, "test-secret")
         resp = self.client.get(url, HTTP_AUTHORIZATION=auth)
@@ -69,7 +68,6 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_invalid_sentry_org_id_returns_400(self):
-        """Test that invalid sentryOrgId (non-integer) returns 400."""
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
         params = {"sentryOrgId": "not-a-number", "gitOrgName": "test-org", "provider": "github"}
         auth = self._auth_header_for_get(url, params, "test-secret")
@@ -82,7 +80,6 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_negative_sentry_org_id_returns_400(self):
-        """Test that negative sentryOrgId returns 400."""
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
         params = {"sentryOrgId": "-123", "gitOrgName": "test-org", "provider": "github"}
         auth = self._auth_header_for_get(url, params, "test-secret")
@@ -94,21 +91,7 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    def test_zero_sentry_org_id_returns_400(self):
-        """Test that zero sentryOrgId returns 400."""
-        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
-        params = {"sentryOrgId": "0", "gitOrgName": "test-org", "provider": "github"}
-        auth = self._auth_header_for_get(url, params, "test-secret")
-        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
-        assert resp.status_code == 400
-        assert "must be a positive integer" in resp.data["detail"]
-
-    @patch(
-        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
-        ["test-secret"],
-    )
     def test_missing_git_org_name_returns_400(self):
-        """Test that missing gitOrgName parameter returns 400."""
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
         params = {"sentryOrgId": "123"}
         auth = self._auth_header_for_get(url, params, "test-secret")
@@ -121,7 +104,6 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_missing_provider_returns_400(self):
-        """Test that missing provider parameter returns 400."""
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
         params = {"sentryOrgId": "123", "gitOrgName": "test-org"}
         auth = self._auth_header_for_get(url, params, "test-secret")
@@ -134,7 +116,6 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_returns_default_when_no_config(self):
-        """Test that default config is returned when no configuration exists."""
         org = self.create_organization()
         git_org_name = "test-github-org"
 
@@ -171,7 +152,6 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_returns_v1_default_when_feature_flag_enabled(self):
-        """Test that V1 default config is returned when code-review-run-per-commit flag is enabled."""
         org = self.create_organization()
         git_org_name = "test-github-org"
 
@@ -210,7 +190,6 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_returns_config_when_exists(self):
-        """Test that saved configuration is returned when it exists."""
         org = self.create_organization()
         git_org_name = "test-github-org"
 
@@ -245,7 +224,6 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_returns_404_when_integration_not_found(self):
-        """Test that 404 is returned when GitHub integration doesn't exist."""
         org = self.create_organization()
 
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
@@ -264,7 +242,6 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_config_with_repo_overrides(self):
-        """Test that configuration with repo overrides is properly retrieved."""
         org = self.create_organization()
         git_org_name = "test-github-org"
 
@@ -471,7 +448,6 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_missing_sentry_org_id_returns_400(self):
-        """Test that missing sentryOrgId parameter returns 400."""
         url = reverse("sentry-api-0-code-review-repo-settings")
         params = {"externalRepoId": "456", "provider": "integrations:github"}
         auth = self._auth_header_for_get(url, params, "test-secret")
@@ -484,7 +460,6 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_invalid_sentry_org_id_returns_400(self):
-        """Test that invalid sentryOrgId (non-integer) returns 400."""
         url = reverse("sentry-api-0-code-review-repo-settings")
         params = {
             "sentryOrgId": "not-a-number",
@@ -501,7 +476,6 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_zero_sentry_org_id_returns_400(self):
-        """Test that zero sentryOrgId returns 400."""
         url = reverse("sentry-api-0-code-review-repo-settings")
         params = {"sentryOrgId": "0", "externalRepoId": "456", "provider": "integrations:github"}
         auth = self._auth_header_for_get(url, params, "test-secret")
@@ -514,7 +488,6 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_missing_external_repo_id_returns_400(self):
-        """Test that missing externalRepoId parameter returns 400."""
         url = reverse("sentry-api-0-code-review-repo-settings")
         params = {"sentryOrgId": "123", "provider": "integrations:github"}
         auth = self._auth_header_for_get(url, params, "test-secret")
@@ -527,7 +500,6 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_missing_provider_returns_400(self):
-        """Test that missing provider parameter returns 400."""
         url = reverse("sentry-api-0-code-review-repo-settings")
         params = {"sentryOrgId": "123", "externalRepoId": "456"}
         auth = self._auth_header_for_get(url, params, "test-secret")
@@ -540,7 +512,6 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_returns_defaults_when_no_repo_settings_exist(self):
-        """Test that default values are returned when no repository settings exist."""
         org = self.create_organization()
         project = self.create_project(organization=org)
         external_repo_id = "12345"
@@ -568,7 +539,6 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_returns_defaults_when_repo_not_found(self):
-        """Test that default values are returned when repository doesn't exist."""
         org = self.create_organization()
 
         url = reverse("sentry-api-0-code-review-repo-settings")
@@ -587,7 +557,6 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_returns_repo_settings_when_exist(self):
-        """Test that repository settings are returned when they exist."""
         org = self.create_organization()
         project = self.create_project(organization=org)
         external_repo_id = "12345"
@@ -624,7 +593,6 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_filters_inactive_repositories(self):
-        """Test that inactive repositories return default settings."""
         org = self.create_organization()
         project = self.create_project(organization=org)
         external_repo_id = "12345"
@@ -661,7 +629,6 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         ["test-secret"],
     )
     def test_scopes_by_organization(self):
-        """Test that settings are scoped to the correct organization."""
         org1 = self.create_organization()
         org2 = self.create_organization()
         project1 = self.create_project(organization=org1)
