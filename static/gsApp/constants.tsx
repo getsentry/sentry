@@ -212,6 +212,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     feature: 'seer-user-billing',
     canProductTrial: true,
     maxAdminGift: 10_000, // TODO(seer): Update this to the actual max admin gift
+    freeEventsMultiple: 1,
     tallyType: 'seat',
     shortenedUnitName: t('contributor'),
   },
