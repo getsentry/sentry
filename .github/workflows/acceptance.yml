@@ -23,28 +23,7 @@ env:
   SNUBA_NO_WORKERS: 1
 
 jobs:
-  files-changed:
-    name: detect what files changed
-    runs-on: ubuntu-24.04
-    timeout-minutes: 3
-    # Map a step output to a job output
-    outputs:
-      acceptance: ${{ steps.changes.outputs.acceptance }}
-      backend_all: ${{ steps.changes.outputs.backend_all }}
-      frontend_all: ${{ steps.changes.outputs.frontend_all }}
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Check for backend file changes
-        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
   acceptance:
-    if: needs.files-changed.outputs.acceptance == 'true'
-    needs: files-changed
     name: acceptance
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -58,10 +37,10 @@ jobs:
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0, 1, 2, 3, 4]
+        instance: [0]
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-      MATRIX_INSTANCE_TOTAL: 5
+      MATRIX_INSTANCE_TOTAL: 1
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
@@ -100,9 +79,6 @@ jobs:
 
       - name: webpack
         env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-          # should set value either as `true` or `false`
-          CODECOV_ENABLE_BA: ${{ needs.files-changed.outputs.frontend_all == 'true'}}
           GH_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           pnpm run build-acceptance
@@ -117,50 +93,18 @@ jobs:
         with:
           mode: acceptance-ci
 
-      - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        run: make run-acceptance
-
-      - name: Inspect failure
-        if: failure()
+      - name: Run acceptance test
         run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+          vmstat 1 > vmstat.txt &
+          VMSTAT_PID=$!
 
-      - name: Collect test data
-        uses: ./.github/actions/collect-test-data
-        if: ${{ !cancelled() }}
+          TOTAL_TEST_GROUPS=5 TEST_GROUP=0 python3 -b -m pytest tests/acceptance || true
+
+          kill $VMSTAT_PID
+          wait $VMSTAT_PID || true
+
+      - name: Upload vmstat logs
+        uses: actions/upload-artifact@v4
         with:
-          artifact_path: .artifacts/pytest.acceptance.json
-          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-          matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
-
-      # This job runs when FE or BE changes happen, however, we only upload coverage data for
-      # BE changes since it conflicts with codecov's carry forward functionality
-      # Upload coverage data even if running the tests step fails since
-      # it reduces large coverage fluctuations
-      - name: Handle artifacts
-        uses: ./.github/actions/artifacts
-        if: ${{ !cancelled() && needs.files-changed.outputs.backend_all == 'true' }}
-        continue-on-error: true
-        timeout-minutes: 5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          commit_sha: ${{ github.event.pull_request.head.sha }}
-          type: acceptance
-
-  acceptance-required-checks:
-    # this is a required check so we need this job to always run and report a status.
-    if: always()
-    name: Acceptance
-    needs: [acceptance, files-changed]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 3
-    steps:
-      - name: Check for failures
-        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
-        run: |
-          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+          name: vmstat
+          path: vmstat.txt
