@@ -13,6 +13,7 @@ from sentry.integrations.services.repository.model import RpcCreateRepository
 from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.repository import Repository
+from sentry.tasks.seer import cleanup_seer_repository_preferences
 from sentry.users.services.user.model import RpcUser
 
 
@@ -122,11 +123,24 @@ class DatabaseBackedRepositoryService(RepositoryService):
         self, *, organization_id: int, integration_id: int, provider: str
     ) -> None:
         with transaction.atomic(router.db_for_write(Repository)):
-            Repository.objects.filter(
+            repos_to_disable = Repository.objects.filter(
                 organization_id=organization_id,
                 integration_id=integration_id,
                 provider=provider,
-            ).update(status=ObjectStatus.DISABLED)
+            )
+
+            # Trigger cleanup for each repository
+            for repo in repos_to_disable:
+                if repo.external_id and repo.provider:
+                    cleanup_seer_repository_preferences.apply_async(
+                        kwargs={
+                            "organization_id": organization_id,
+                            "repo_external_id": repo.external_id,
+                            "repo_provider": repo.provider,
+                        }
+                    )
+
+            repos_to_disable.update(status=ObjectStatus.DISABLED)
 
     def disassociate_organization_integration(
         self,
