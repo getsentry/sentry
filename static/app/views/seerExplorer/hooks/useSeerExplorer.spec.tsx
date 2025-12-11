@@ -24,7 +24,6 @@ describe('useSeerExplorer', () => {
       expect(result.current.sessionData).toBeNull();
       expect(result.current.isPolling).toBe(false);
       expect(result.current.runId).toBeNull();
-      expect(result.current.deletedFromIndex).toBeNull();
     });
   });
 
@@ -139,39 +138,6 @@ describe('useSeerExplorer', () => {
       });
 
       expect(result.current.runId).toBeNull();
-      expect(result.current.deletedFromIndex).toBeNull();
-    });
-  });
-
-  describe('deleteFromIndex', () => {
-    it('sets deleted from index', () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
-        method: 'GET',
-        body: {session: null},
-      });
-
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
-        organization,
-      });
-
-      act(() => {
-        result.current.deleteFromIndex(2);
-      });
-
-      expect(result.current.deletedFromIndex).toBe(2);
-    });
-
-    it('filters messages based on deleted index', () => {
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
-        organization,
-      });
-
-      act(() => {
-        result.current.deleteFromIndex(1);
-      });
-
-      expect(result.current.deletedFromIndex).toBe(1);
     });
   });
 

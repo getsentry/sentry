@@ -491,7 +491,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                   index === blocks.length - 1 && !(isAwaitingUserInput && pendingInput)
                 }
                 isFocused={focusedBlockIndex === index}
-                isPolling={isPolling}
                 onClick={() => handleBlockClick(index)}
                 onMouseEnter={() => {
                   // Don't change focus while menu is open, if already on this block, or if hover is disabled

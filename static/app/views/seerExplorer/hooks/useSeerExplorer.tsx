@@ -384,8 +384,6 @@ export const useSeerExplorer = () => {
       );
       if (currentSignature !== optimistic.baselineSignature) {
         setOptimistic(null);
-        // Reveal all real blocks immediately after the server responds
-        setDeletedFromIndex(null);
       }
     }
   }, [apiData?.session?.blocks, optimistic]);
@@ -423,8 +421,6 @@ export const useSeerExplorer = () => {
     if (!hasLoadingMessage && filteredSessionData.status !== 'processing') {
       setWaitingForResponse(false);
       setInterruptRequested(false);
-      // Clear deleted index once response is complete
-      setDeletedFromIndex(null);
     }
   }
 
@@ -437,7 +433,6 @@ export const useSeerExplorer = () => {
     // Reset state.
     setRunId(null);
     setWaitingForResponse(false);
-    setDeletedFromIndex(null);
     setOptimistic(null);
     setInterruptRequested(false);
     if (orgSlug) {
@@ -462,7 +457,6 @@ export const useSeerExplorer = () => {
     (newRunId: number) => {
       // Clear any optimistic state from previous run
       setOptimistic(null);
-      setDeletedFromIndex(null);
       setWaitingForResponse(false);
       setInterruptRequested(false);
 
