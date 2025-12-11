@@ -39,7 +39,7 @@ const MoreLink = styled(ExternalLink)<{color?: string}>`
   &:hover,
   &:focus,
   &:active {
-    color: ${p => p.color ?? p.theme.textColor};
+    color: ${p => p.color ?? p.theme.tokens.content.primary};
   }
 `;
 

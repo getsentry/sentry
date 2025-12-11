@@ -314,6 +314,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 ## Flags
 /src/sentry/flags/                                              @getsentry/replay-backend
 /tests/sentry/flags/                                            @getsentry/replay-backend
+/static/app/components/featureFlags/                            @getsentry/replay-frontend
 /static/app/components/events/featureFlags/                     @getsentry/replay-frontend
 /static/app/views/issueDetails/groupDistributionsDrawer.tsx     @getsentry/replay-frontend
 /static/app/views/issueDetails/groupFeatureFlags/               @getsentry/replay-frontend
@@ -519,7 +520,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/onboarding*                                                    @getsentry/telemetry-experience
 /static/app/views/projectInstall/                                                @getsentry/telemetry-experience
-/static/app/views/insights/agents/                                               @getsentry/telemetry-experience
+/static/app/views/insights/pages/agents/                                         @getsentry/telemetry-experience
+/static/app/views/insights/pages/mcp/                                            @getsentry/telemetry-experience
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
@@ -696,6 +698,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/stories/                                  @getsentry/design-engineering
 /static/.cursor/BUGBOT.md                             @getsentry/design-engineering
 /static/CLAUDE.md                                     @getsentry/design-engineering
+/static/AGENTS.md                                     @getsentry/design-engineering
 /scripts/analyze-styled.ts                            @getsentry/design-engineering
 ## End of Frontend Platform
 
@@ -707,6 +710,10 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/prevent/                                @getsentry/prevent
 /static/app/views/nav/secondary/sections/prevent/         @getsentry/prevent
 # End of Prevent
+
+# Coding Workflows
+/src/sentry/integrations/api/endpoints/organization_repository_settings.py @getsentry/coding-workflows
+# End of Coding Workflows
 
 # Conduit
 /src/sentry/conduit/                                  @getsentry/sre-infrastructure-engineering

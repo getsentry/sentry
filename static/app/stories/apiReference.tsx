@@ -345,7 +345,7 @@ function stripNodeModulesPrefix(str: string): string {
 const StoryTableContainer = styled('div')`
   overflow: hidden;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const StoryTypesSearchContainer = styled('div')`
@@ -356,7 +356,7 @@ const StoryTypesTable = styled('table')`
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   word-break: normal;
   table-layout: fixed;
 

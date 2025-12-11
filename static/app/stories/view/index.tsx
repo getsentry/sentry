@@ -23,7 +23,8 @@ export function useStoryParams(): {storyCategory?: StoryCategory; storySlug?: st
   const location = useLocation();
   // Match: /stories/:category/(one/optional/or/more/path/segments)
   // Handles both /stories/... and /organizations/{org}/stories/...
-  const match = location.pathname.match(/\/stories\/([^/]+)\/(.+)/);
+  // Supports optional trailing slashes
+  const match = location.pathname.match(/\/stories\/([^/]+)\/(.+?)\/?$/);
   return {
     storyCategory: match?.[1] as StoryCategory | undefined,
     storySlug: match?.[2] ?? undefined,
@@ -268,13 +269,13 @@ const StoryMainContainer = styled('main')`
     table-layout: auto;
     border: 0;
     border-collapse: collapse;
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.primary};
     margin-bottom: ${p => p.theme.space['3xl']};
 
     & thead {
       height: 36px;
-      border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+      border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
       background: ${p => p.theme.tokens.background.tertiary};
       border-bottom: 4px solid ${p => p.theme.tokens.border.primary};
     }
@@ -284,23 +285,23 @@ const StoryMainContainer = styled('main')`
       padding-block: ${p => p.theme.space.sm};
 
       &:first-of-type {
-        border-radius: ${p => p.theme.borderRadius} 0 0 0;
+        border-radius: ${p => p.theme.radius.md} 0 0 0;
       }
       &:last-of-type {
-        border-radius: 0 ${p => p.theme.borderRadius} 0 0;
+        border-radius: 0 ${p => p.theme.radius.md} 0 0;
       }
     }
 
     tr:last-child td:first-of-type {
-      border-radius: 0 0 0 ${p => p.theme.borderRadius};
+      border-radius: 0 0 0 ${p => p.theme.radius.md};
     }
     tr:last-child td:last-of-type {
-      border-radius: 0 0 ${p => p.theme.borderRadius} 0;
+      border-radius: 0 0 ${p => p.theme.radius.md} 0;
     }
 
     tbody {
       background: ${p => p.theme.tokens.background.primary};
-      border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+      border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
     }
 
     tr {
@@ -325,9 +326,9 @@ const StoryMainContainer = styled('main')`
   }
 
   div + .expressive-code .frame {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
     pre {
-      border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+      border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
     }
   }
 

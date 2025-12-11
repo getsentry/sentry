@@ -199,7 +199,7 @@ const StyledPanelBody = styled(PanelBody)`
   align-items: center;
   justify-content: center;
   flex: 1;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledLoadingIndicator = styled('div')`

@@ -332,13 +332,14 @@ const Row = styled('tr')`
   }
 
   &:last-child {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   }
 `;
 
 const ProductRow = styled(Row)<{isSelected: boolean}>`
   position: relative;
-  background: ${p => (p.isSelected ? p.theme.backgroundSecondary : p.theme.background)};
+  background: ${p =>
+    p.isSelected ? p.theme.backgroundSecondary : p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.xl};
   cursor: pointer;
 

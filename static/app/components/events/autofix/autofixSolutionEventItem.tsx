@@ -279,14 +279,15 @@ const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: bool
   width: 100%;
   padding: ${space(0.25)};
   padding-right: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
   font-weight: ${p => p.theme.fontWeight.normal};
   gap: ${space(1)};
   opacity: ${p => (p.isSelected ? 1 : 0.6)};
   text-decoration: ${p =>
     p.isSelected ? (p.isActive ? 'underline dashed' : 'none') : 'line-through'};
-  text-decoration-color: ${p => (p.isSelected ? p.theme.green300 : p.theme.textColor)};
+  text-decoration-color: ${p =>
+    p.isSelected ? p.theme.green300 : p.theme.tokens.content.primary};
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
   transition: opacity 0.2s ease;
