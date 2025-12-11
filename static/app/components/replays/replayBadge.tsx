@@ -113,3 +113,7 @@ export default function ReplayBadge({replay}: Props) {
 const Wrapper = styled(Grid)`
   white-space: nowrap;
 `;
+
+const StyledText = styled(Text)`
+  position: relative;
+`;
