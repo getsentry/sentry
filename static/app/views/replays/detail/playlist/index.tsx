@@ -1,3 +1,5 @@
+import {Alert} from 'sentry/components/core/alert';
+import {Flex} from 'sentry/components/core/layout/flex';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
 import {
   ReplayBrowserColumn,
@@ -32,16 +34,19 @@ export default function Playlist() {
   const {allMobileProj} = useAllMobileProj({});
   const columns = allMobileProj ? MOBILE_COLUMNS : VISIBLE_COLUMNS;
   return (
-    <ReplayTable
-      columns={columns}
-      error={null}
-      highlightedRowIndex={currentReplayIndex}
-      // we prefer isLoading since isPending is true even if not enabled
-      isPending={isLoading}
-      query={location.query}
-      replays={replays}
-      showDropdownFilters={false}
-      stickyHeader
-    />
+    <Flex direction="column" gap="md" overflow="scroll">
+      <Alert type="info">This playlist is filtered by </Alert>
+      <ReplayTable
+        columns={columns}
+        error={null}
+        highlightedRowIndex={currentReplayIndex}
+        // we prefer isLoading since isPending is true even if not enabled
+        isPending={isLoading}
+        query={location.query}
+        replays={replays}
+        showDropdownFilters={false}
+        stickyHeader
+      />
+    </Flex>
   );
 }

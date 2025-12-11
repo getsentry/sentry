@@ -168,7 +168,7 @@ function RowWithScrollIntoView({
 }
 
 const StyledSimpleTable = styled(SimpleTable)`
-  overflow: auto;
+  overflow: visible;
   grid-auto-rows: min-content;
 
   [data-clickable='true'] {
