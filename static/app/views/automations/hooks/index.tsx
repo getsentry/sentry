@@ -10,7 +10,11 @@ import type {
   DataConditionHandler,
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import type {
+  ApiQueryKey,
+  UseApiQueryOptions,
+  UseMutationOptions,
+} from 'sentry/utils/queryClient';
 import {
   setApiQueryData,
   useApiQuery,
@@ -286,29 +290,34 @@ export function useUpdateAutomationsMutation() {
   });
 }
 
-export function useSendTestNotification() {
+export function useSendTestNotification(
+  options?: UseMutationOptions<void, RequestError, Array<Omit<Action, 'id'>>>
+) {
   const org = useOrganization();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<void, void, Array<Omit<Action, 'id'>>>({
+  return useMutation<void, RequestError, Array<Omit<Action, 'id'>>>({
     mutationFn: data =>
       api.requestPromise(`/organizations/${org.slug}/test-fire-actions/`, {
         method: 'POST',
         data: {actions: data},
       }),
-    onSuccess: (_, variables, __) => {
+    ...options,
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${org.slug}/workflows/`],
       });
       addSuccessMessage(
         tn('Notification fired!', 'Notifications sent!', variables.length)
       );
+      options?.onSuccess?.(data, variables, context);
     },
-    onError: (_, variables, __) => {
+    onError: (error, variables, context) => {
       addErrorMessage(
         tn('Notification failed', 'Notifications failed', variables.length)
       );
+      options?.onError?.(error, variables, context);
     },
   });
 }
