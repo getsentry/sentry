@@ -100,7 +100,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
 
         settings = RepositorySettings.objects.get(repository=repo)
         assert settings.enabled_code_review is True
-        assert settings.code_review_triggers == []
+        assert settings.code_review_triggers == DEFAULT_CODE_REVIEW_TRIGGERS
 
     def test_settings_created_with_triggers(self):
         org = self.create_organization()
