@@ -93,7 +93,6 @@ export function ToolbarGroupByDropdown({
         onChange={handleColumnChange}
         searchable
         triggerProps={{children: label, style: {width: '100%'}}}
-        menuWidth="300px"
         menuTitle="Group By"
         onSearch={onSearch}
         onClose={onClose}
