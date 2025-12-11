@@ -116,7 +116,7 @@ export function AttributeDistribution() {
   // Reset pagination on any query change
   useEffect(() => {
     setPagination({cursor: undefined, page: 0});
-  }, [searchQuery, selection, query]);
+  }, [debouncedSearchQuery, selection, query]);
 
   const parsedLinks = parseLinkHeader(
     getAttributeBreakdownsResponseHeader?.('Link') ?? null

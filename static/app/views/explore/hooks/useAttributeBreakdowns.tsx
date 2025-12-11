@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef} from 'react';
+import {useMemo, useRef} from 'react';
 
 import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -75,7 +75,7 @@ function useAttributeBreakdowns({
     }
   );
 
-  useEffect(() => {
+  const data = useMemo((): AttributeDistributionData | undefined => {
     const newData = result.data?.data[0]?.attribute_distributions?.data;
     if (newData) {
       accumulatedDataRef.current = {
@@ -83,13 +83,9 @@ function useAttributeBreakdowns({
         ...newData,
       };
     }
-  }, [result.data]);
-
-  const data = useMemo((): AttributeDistributionData | undefined => {
-    if (Object.keys(accumulatedDataRef.current).length === 0) {
-      return result.data?.data[0]?.attribute_distributions?.data;
-    }
-    return accumulatedDataRef.current;
+    return Object.keys(accumulatedDataRef.current).length > 0
+      ? accumulatedDataRef.current
+      : newData;
   }, [result.data]);
 
   return {
