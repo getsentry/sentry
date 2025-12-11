@@ -2,6 +2,7 @@ from collections import defaultdict
 from collections.abc import Iterator, Sequence
 from typing import Any
 
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.spans.consumers.process_segments.types import (
@@ -14,7 +15,7 @@ from sentry.spans.consumers.process_segments.types import (
 # Keys of shared sentry attributes that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
 SHARED_SENTRY_ATTRIBUTES = (
-    "sentry.release",
+    ATTRIBUTE_NAMES.SENTRY_RELEASE,
     "sentry.user",
     "sentry.user.id",
     "sentry.user.ip",
@@ -25,19 +26,19 @@ SHARED_SENTRY_ATTRIBUTES = (
     "sentry.user.geo.region",
     "sentry.user.geo.subdivision",
     "sentry.user.geo.subregion",
-    "sentry.environment",
-    "sentry.transaction",
+    ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT,
+    ATTRIBUTE_NAMES.SENTRY_TRANSACTION,
     "sentry.transaction.method",
     "sentry.transaction.op",
     "sentry.trace.status",
     "sentry.mobile",
     "sentry.os.name",
     "sentry.device.class",
-    "sentry.browser.name",
+    ATTRIBUTE_NAMES.SENTRY_BROWSER_NAME,
     "sentry.profiler_id",
-    "sentry.sdk.name",
-    "sentry.sdk.version",
-    "sentry.platform",
+    ATTRIBUTE_NAMES.SENTRY_SDK_NAME,
+    ATTRIBUTE_NAMES.SENTRY_SDK_VERSION,
+    ATTRIBUTE_NAMES.SENTRY_PLATFORM,
     "sentry.thread.id",
     "sentry.thread.name",
 )
@@ -127,16 +128,20 @@ class TreeEnricher:
                 if attributes.get(key) is None:
                     attributes[key] = value
 
-            if is_gen_ai_span(span) and "gen_ai.agent.name" not in attributes:
+            if is_gen_ai_span(span) and ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME not in attributes:
                 if (parent_span_id := span.get("parent_span_id")) is not None:
                     parent_span = self._spans_by_id.get(parent_span_id)
                     if (
                         parent_span is not None
                         and get_span_op(parent_span) == "gen_ai.invoke_agent"
-                        and (agent_name := attribute_value(parent_span, "gen_ai.agent.name"))
+                        and (
+                            agent_name := attribute_value(
+                                parent_span, ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME
+                            )
+                        )
                         is not None
                     ):
-                        attributes["gen_ai.agent.name"] = {
+                        attributes[ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME] = {
                             "type": "string",
                             "value": agent_name,
                         }
