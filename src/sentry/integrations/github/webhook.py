@@ -810,10 +810,11 @@ class PullRequestEventWebhook(GitHubWebhook):
                             external_identifier=self.get_external_id(user["login"]),
                         )
                         contributor.num_actions += 1
+                        contributor.date_updated = timezone.now()
                         is_active = (
                             contributor.num_actions == ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
                         )
-                        contributor.save(update_fields=["num_actions"])
+                        contributor.save(update_fields=["num_actions", "date_updated"])
 
                     if is_active and is_contributor_eligible_for_seat_assignment(
                         user_type, author_association
