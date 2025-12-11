@@ -449,28 +449,17 @@ type FormTheme = {
   form: Record<
     FormSize,
     {
+      borderRadius: string;
       fontSize: string;
       height: string;
       lineHeight: string;
       minHeight: string;
-    }
-  >;
-  formPadding: Record<
-    FormSize,
-    {
       paddingBottom: number;
       paddingLeft: number;
       paddingRight: number;
       paddingTop: number;
     }
   >;
-  formRadius: Record<
-    FormSize,
-    {
-      borderRadius: string;
-    }
-  >;
-  formSpacing: Record<FormSize, string>;
 };
 
 const iconSizes: Record<Size, string> = {
@@ -994,60 +983,34 @@ const formTheme: FormTheme = {
       minHeight: '36px',
       fontSize: '0.875rem',
       lineHeight: '1rem',
+      paddingLeft: 16,
+      paddingRight: 16,
+      paddingTop: 12,
+      paddingBottom: 12,
+      borderRadius: radius.lg,
     },
     sm: {
       height: '32px',
       minHeight: '32px',
       fontSize: '0.875rem',
       lineHeight: '1rem',
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingTop: 8,
+      paddingBottom: 8,
+      borderRadius: radius.md,
     },
     xs: {
       height: '28px',
       minHeight: '28px',
       fontSize: '0.75rem',
       lineHeight: '1rem',
-    },
-  },
-
-  /**
-   * Padding for form inputs
-   * @TODO(jonasbadalic) This should exist on form component
-   */
-  formPadding: {
-    md: {
-      paddingLeft: 16,
-      paddingRight: 16,
-      paddingTop: 12,
-      paddingBottom: 12,
-    },
-    sm: {
-      paddingLeft: 12,
-      paddingRight: 12,
-      paddingTop: 8,
-      paddingBottom: 8,
-    },
-    xs: {
       paddingLeft: 8,
       paddingRight: 8,
       paddingTop: 6,
       paddingBottom: 6,
+      borderRadius: radius.sm,
     },
-  },
-  formRadius: {
-    md: {
-      borderRadius: '8px',
-    },
-    sm: {
-      borderRadius: '6px',
-    },
-    xs: {
-      borderRadius: '5px',
-    },
-  },
-  formSpacing: {
-    md: '8px',
-    sm: '6px',
-    xs: '4px',
   },
 };
 
