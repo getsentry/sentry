@@ -156,7 +156,6 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     # If seer is enabled for an org, every project must have project level settings
     for project in projects:
         project.update_option("sentry:seer_scanner_automation", True)
-        # New automation default for the new pricing is medium.
         project.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
         )
@@ -176,9 +175,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
         # Preserve existing repositories if set, otherwise fall back to code mappings
         repositories = existing_pref.get("repositories")
         if not repositories:
-            project = projects_by_id.get(project_id)
-            if project:
-                repositories = get_autofix_repos_from_project_code_mappings(project)
+            repositories = get_autofix_repos_from_project_code_mappings(projects_by_id[project_id])
 
         # Preserve existing repositories and automation_handoff, only update the stopping point
         preferences_to_set.append(
