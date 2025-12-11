@@ -427,15 +427,6 @@ type ButtonColors = Record<
 
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
-// @TODO: this needs to directly reference the icon direction
-type IconDirection = 'up' | 'right' | 'down' | 'left';
-const iconDirectionToAngle: Record<IconDirection, number> = {
-  up: 0,
-  right: 90,
-  down: 180,
-  left: 270,
-} as const;
-
 /**
  * Unless you are implementing a new component in the `sentry/components/core`
  * directory, use `ComponentProps['size']` instead.
@@ -483,7 +474,6 @@ const commonTheme = {
 
   // Icons
   iconSizes,
-  iconDirections: iconDirectionToAngle,
 
   // Try to keep these ordered plz
   zIndex: {
