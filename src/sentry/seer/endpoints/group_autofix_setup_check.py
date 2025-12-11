@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import logging
-
 import orjson
 import requests
+import sentry_sdk
 from django.conf import settings
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import quotas
@@ -28,10 +28,6 @@ from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-
-logger = logging.getLogger(__name__)
-
-from rest_framework.request import Request
 
 
 def get_autofix_integration_setup_problems(
@@ -163,15 +159,9 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         if is_seer_seat_based_tier_enabled(org):
             try:
                 seer_repos_linked = has_project_connected_repos(org.id, group.project.id)
-            except Exception:
+            except Exception as e:
                 # Default to True if the API call fails to avoid blocking users
-                logger.exception(
-                    "Error checking if project has Seer repos linked",
-                    extra={
-                        "org_id": org.id,
-                        "project_id": group.project.id,
-                    },
-                )
+                sentry_sdk.capture_exception(e)
                 seer_repos_linked = True
 
         return Response(
