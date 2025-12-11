@@ -715,7 +715,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     font-family: ${p.theme.text.family};
     font-variant-numeric: tabular-nums;
     padding: ${space(1)} ${space(2)};
-    border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;
+    border-radius: ${p.theme.radius.md} ${p.theme.radius.md} 0 0;
     cursor: pointer;
     font-size: ${p.theme.fontSize.sm};
   }
@@ -724,18 +724,18 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     justify-content: center;
   }
   .tooltip-release.tooltip-series {
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-release-timerange {
     font-size: ${p.theme.fontSize.xs};
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-series {
     border-bottom: none;
     max-width: calc(100vw - 2 * ${CHART_TOOLTIP_VIEWPORT_OFFSET}px);
   }
   .tooltip-series-solo {
-    border-radius: ${p.theme.borderRadius};
+    border-radius: ${p.theme.radius.md};
   }
   .tooltip-label {
     margin-right: ${space(1)};
@@ -743,10 +743,10 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   }
   .tooltip-label strong {
     font-weight: ${p.theme.fontWeight.normal};
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-label-value {
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-label-indent {
     margin-left: 18px;
@@ -771,7 +771,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     text-align: center;
     position: relative;
     width: auto;
-    border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius};
+    border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md};
     display: flex;
     justify-content: space-between;
     gap: ${space(3)};
@@ -820,7 +820,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip description styling */
   .tooltip-description {
     color: ${p.theme.white};
-    border-radius: ${p.theme.borderRadius};
+    border-radius: ${p.theme.radius.md};
     background: #000;
     opacity: 0.9;
     padding: 5px 10px;

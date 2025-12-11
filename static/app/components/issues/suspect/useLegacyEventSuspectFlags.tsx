@@ -9,6 +9,7 @@ import {
 } from 'sentry/components/featureFlags/utils';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -36,7 +37,9 @@ export default function useLegacyEventSuspectFlags({
 
   // map flag data to arrays of flag names
   const auditLogFlagNames = hydratedFlagData.map(f => f.name);
-  const evaluatedFlagNames = event?.contexts?.flags?.values?.map(f => f.flag);
+  const evaluatedFlagNames = event?.contexts?.flags?.values
+    ?.map(f => f?.flag)
+    .filter(defined);
   const intersectionFlags = useMemo(
     () => intersection(auditLogFlagNames, evaluatedFlagNames),
     [auditLogFlagNames, evaluatedFlagNames]
@@ -98,8 +101,8 @@ export default function useLegacyEventSuspectFlags({
       ? data.data
           .toReversed()
           .filter(
-            (rawFlag: any, idx: any, rawFlagArray: any) =>
-              idx === rawFlagArray.findIndex((f: any) => f.flag === rawFlag.flag)
+            (rawFlag, idx, rawFlagArray) =>
+              idx === rawFlagArray.findIndex(f => f.flag === rawFlag.flag)
           )
           .slice(0, 3)
       : [];

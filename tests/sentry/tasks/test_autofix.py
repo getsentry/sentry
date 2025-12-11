@@ -152,8 +152,9 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        # Check org-level option
+        # Check org-level options
         assert self.organization.get_option("sentry:enable_seer_coding") is True
+        assert self.organization.get_option("sentry:default_autofix_automation_tuning") == "medium"
 
         # Check project-level options
         assert project1.get_option("sentry:seer_scanner_automation") is True

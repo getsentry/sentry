@@ -807,7 +807,7 @@ export const TraceGrid = styled('div')<{
 }>`
   ${traceGridCssVariables}
 
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;
@@ -833,5 +833,5 @@ export const TraceGrid = styled('div')<{
         : '1fr min-content'};
   grid-template-rows: 1fr auto;
 
-  ${p => `border-radius: ${p.theme.borderRadius};`}
+  ${p => `border-radius: ${p.theme.radius.md};`}
 `;

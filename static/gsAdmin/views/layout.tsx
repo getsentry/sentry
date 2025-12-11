@@ -133,7 +133,7 @@ const Sidebar = styled('section')`
   width: var(--sidebarWidth);
   padding: ${space(3)} 0;
   gap: ${space(3)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-right: 1px solid ${p => p.theme.border};
 
   > * {
@@ -146,7 +146,7 @@ const Logo = styled(Link)`
   align-items: center;
   gap: ${space(1)};
   text-transform: uppercase;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
 `;
@@ -172,7 +172,7 @@ const NavLink = styled(ListLink)`
   --activeIndicatorWidth: ${space(0.5)};
 
   padding: ${space(0.25)} 0;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   align-items: center;
   gap: ${space(1)};

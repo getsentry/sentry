@@ -4,7 +4,11 @@ from datetime import datetime, timedelta
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
+from sentry.seer.autofix.constants import (
+    AutofixAutomationTuningSettings,
+    AutofixStatus,
+    SeerAutomationSource,
+)
 from sentry.seer.autofix.utils import (
     bulk_get_project_preferences,
     bulk_set_project_preferences,
@@ -132,6 +136,9 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
     # Set org-level options
     organization.update_option("sentry:enable_seer_coding", True)
+    organization.update_option(
+        "sentry:default_autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+    )
 
     # Invalidate seat-based tier cache so new settings take effect immediately
     cache.delete(get_seer_seat_based_tier_cache_key(organization_id))
@@ -146,7 +153,9 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     for project in projects:
         project.update_option("sentry:seer_scanner_automation", True)
         # New automation default for the new pricing is medium.
-        project.update_option("sentry:autofix_automation_tuning", "medium")
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
 
     preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)
 
