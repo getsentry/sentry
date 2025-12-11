@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+import sentry_sdk
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -21,7 +22,10 @@ from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.spans.attributes import SPANS_STATS_EXCLUDED_ATTRIBUTES
+from sentry.search.eap.spans.attributes import (
+    SPAN_ATTRIBUTE_DEFINITIONS,
+    SPANS_STATS_EXCLUDED_ATTRIBUTES,
+)
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
@@ -123,6 +127,14 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
         attr_type = AttributeKey.Type.TYPE_STRING
         max_attributes = options.get("explore.trace-items.keys.max")
 
+        additional_substring_matches = set()
+        if value_substring_match:
+            additional_substring_matches = {
+                v.internal_name
+                for k, v in SPAN_ATTRIBUTE_DEFINITIONS.items()
+                if value_substring_match in k
+            }
+
         def run_stats_query_with_error_handling(attributes):
             with handle_query_errors():
                 return Spans.run_stats_query(
@@ -152,6 +164,28 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 )
 
                 attrs_response = snuba_rpc.attribute_names_rpc(attrs_request)
+                sentry_sdk.set_tag(
+                    "num_attrs_with_intersecting_filter", len(attrs_response.attributes)
+                )
+
+                # debug code: want to check if the intersecting filter is returning the correct attrs
+                if query_filter:
+                    attrs_request_without_intersecting_filter = TraceItemAttributeNamesRequest(
+                        meta=attrs_meta,
+                        limit=limit,
+                        page_token=PageToken(offset=offset),
+                        type=attr_type,
+                        value_substring_match=value_substring_match,
+                    )
+
+                    attrs_without_intersecting_filter = snuba_rpc.attribute_names_rpc(
+                        attrs_request_without_intersecting_filter
+                    )
+
+                    sentry_sdk.set_tag(
+                        "num_attrs_without_intersecting_filter",
+                        len(attrs_without_intersecting_filter.attributes),
+                    )
 
             # Chunk attributes and run stats query in parallel
             chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
@@ -159,9 +193,25 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 if attr.name in SPANS_STATS_EXCLUDED_ATTRIBUTES:
                     continue
 
+                if attr.name in additional_substring_matches:
+                    # dedupe additional known attrs on the first offset
+                    if offset == 0:
+                        additional_substring_matches.remove(attr.name)
+                    # we've already shown this attr in the first offset, so
+                    # don't show it again
+                    else:
+                        continue
+
                 chunked_attributes[i % MAX_THREADS].append(
                     AttributeKey(name=attr.name, type=AttributeKey.TYPE_STRING)
                 )
+            if offset == 0:
+                for i, additional_attr in enumerate(additional_substring_matches):
+                    if additional_attr in SPANS_STATS_EXCLUDED_ATTRIBUTES:
+                        continue
+                    chunked_attributes[i % MAX_THREADS].append(
+                        AttributeKey(name=additional_attr, type=AttributeKey.TYPE_STRING)
+                    )
 
             stats_results: dict[str, dict[str, dict]] = defaultdict(lambda: {"data": {}})
             with ThreadPoolExecutor(
