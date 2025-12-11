@@ -233,7 +233,7 @@ const StyledCard = styled('div')`
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding-left: ${p => p.theme.space.xl};
   padding-right: ${p => p.theme.space.xl};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const HeaderWrapper = styled('div')`

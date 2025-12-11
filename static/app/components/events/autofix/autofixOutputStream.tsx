@@ -370,8 +370,8 @@ const shimmer = keyframes`
 const Container = styled(motion.div)<{required: boolean}>`
   position: relative;
   width: 100%;
+  background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
-  background: ${p => p.theme.background};
   border: 1px dashed ${p => p.theme.border};
 
   &:before {

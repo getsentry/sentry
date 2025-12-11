@@ -189,8 +189,8 @@ const VitalPillValue = styled('div')`
   justify-content: center;
   border: 1px solid ${p => p.theme.border};
   border-left: none;
+  background: ${p => p.theme.tokens.background.primary};
   border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
-  background: ${p => p.theme.background};
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.lg};
   padding: 0 ${space(1)};

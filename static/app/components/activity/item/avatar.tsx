@@ -46,8 +46,8 @@ const SystemAvatar = styled('span')<SystemAvatarProps>`
   align-items: center;
   width: ${p => p.size}px;
   height: ${p => p.size}px;
+  color: ${p => p.theme.tokens.background.primary};
   background-color: ${p => p.theme.tokens.content.primary};
-  color: ${p => p.theme.background};
   border-radius: 50%;
 `;
 

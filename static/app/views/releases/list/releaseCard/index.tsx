@@ -398,11 +398,11 @@ const ExpandButtonWrapper = styled('div')`
   justify-content: center;
   background-image: linear-gradient(
     180deg,
-    ${p => color(p.theme.background).alpha(0).string()} 0,
-    ${p => p.theme.background}
+    ${p => color(p.theme.tokens.background.primary).alpha(0).string()} 0,
+    ${p => p.theme.tokens.background.primary}
   );
   background-repeat: repeat-x;
-  border-bottom: ${space(1)} solid ${p => p.theme.background};
+  border-bottom: ${space(1)} solid ${p => p.theme.tokens.background.primary};
   border-top: ${space(1)} solid transparent;
   border-bottom-right-radius: ${p => p.theme.radius.md};
   @media (max-width: ${p => p.theme.breakpoints.md}) {
