@@ -184,7 +184,12 @@ export function ListBox<T extends ObjectLike>({
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
-      <Container ref={virtualizer.scrollElementRef} height="100%" overflowY="auto">
+      <Container
+        ref={virtualizer.scrollElementRef}
+        height="100%"
+        overflowY="auto"
+        minWidth="min-content"
+      >
         <Container {...virtualizer.wrapperProps}>
           <ListWrap
             {...mergedProps}
