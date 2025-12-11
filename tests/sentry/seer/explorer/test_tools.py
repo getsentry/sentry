@@ -19,6 +19,8 @@ from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
     get_issue_and_event_details,
+    get_issue_and_event_details_v2,
+    get_issue_and_event_response,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
     get_replay_metadata,
@@ -27,6 +29,7 @@ from sentry.seer.explorer.tools import (
     rpc_get_profile_flamegraph,
 )
 from sentry.seer.sentry_data_models import EAPTrace
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import (
     APITestCase,
     APITransactionTestCase,
@@ -850,32 +853,359 @@ class _SentryEventData(BaseModel):
 
     title: str
     entries: list[dict]
+    groupID: str | None
     tags: list[dict[str, str | None]] | None = None
+
+
+def _validate_event_timeseries(timeseries: dict, expected_total: int | None = None):
+    assert isinstance(timeseries, dict)
+    assert "count()" in timeseries
+    assert "data" in timeseries["count()"]
+    assert isinstance(timeseries["count()"]["data"], list)
+    total_count = 0
+    for item in timeseries["count()"]["data"]:
+        assert len(item) == 2
+        assert isinstance(item[0], int)
+        assert isinstance(item[1], list)
+        assert len(item[1]) == 1
+        assert isinstance(item[1][0], dict)
+        assert "count" in item[1][0]
+        assert isinstance(item[1][0]["count"], int)
+        total_count += item[1][0]["count"]
+    if expected_total is not None:
+        assert (
+            total_count == expected_total
+        ), f"Expected total count {expected_total}, got {total_count}"
+
+
+class TestGetIssueAndEventDetailsV2(
+    APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin, SpanTestCase
+):
+    """Integration tests for the get_issue_and_event_details RPC."""
+
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def _test_get_ie_details_from_issue_id(
+        self,
+        mock_get_tags,
+        expected_event_idx: int,
+        should_include_issue: bool = True,
+        **kwargs,
+    ):
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+
+        # Mock spans for the first 2 events' traces.
+        event0_trace_id = uuid.uuid4().hex
+        event1_trace_id = uuid.uuid4().hex
+        span0 = self.create_span(
+            {
+                "description": "SELECT * FROM users WHERE id = ?",
+                "trace_id": event0_trace_id,
+            },
+            start_ts=before_now(minutes=10),
+            duration=100,
+        )
+        span1 = self.create_span(
+            {
+                "description": "SELECT * FROM users WHERE id = ?",
+                "trace_id": event1_trace_id,
+            },
+            start_ts=before_now(minutes=6),
+            duration=100,
+        )
+        self.store_spans([span0, span1], is_eap=True)
+
+        # Create events with shared stacktrace (should have same group)
+        events: list[Event] = []
+        timestamps = [before_now(minutes=9), before_now(minutes=3), before_now(minutes=1)]
+        for i in range(3):
+            data = load_data("python", timestamp=timestamps[i])
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            if i == 0:
+                data["contexts"] = data.get("contexts", {})
+                data["contexts"]["trace"] = {
+                    "trace_id": event0_trace_id,
+                    "span_id": "1" + uuid.uuid4().hex[:15],
+                }
+            if i == 1:
+                data["contexts"] = data.get("contexts", {})
+                data["contexts"]["trace"] = {
+                    "trace_id": event1_trace_id,
+                    "span_id": "1" + uuid.uuid4().hex[:15],
+                }
+
+            event = self.store_event(data=data, project_id=self.project.id)
+            events.append(event)
+
+        group = events[0].group
+        assert isinstance(group, Group)
+        assert events[1].group_id == group.id
+        assert events[2].group_id == group.id
+
+        for issue_id_param in [group.qualified_short_id, str(group.id)]:
+            result = get_issue_and_event_details_v2(
+                organization_id=self.organization.id,
+                issue_id=issue_id_param,
+                **kwargs,
+            )
+
+            assert result is not None
+            assert result["project_id"] == self.project.id
+            assert result["project_slug"] == self.project.slug
+
+            # Validate issues fields
+            if should_include_issue:
+                assert result["tags_overview"] == mock_get_tags.return_value
+                _validate_event_timeseries(result["event_timeseries"], expected_total=3)
+                assert isinstance(result["issue"], dict)
+                _IssueMetadata.parse_obj(result["issue"])
+            else:
+                assert result.get("issue") is None
+                assert result.get("event_timeseries") is None
+                assert result.get("tags_overview") is None
+
+            # Check correct event is returned.
+            assert result["event_id"] == events[expected_event_idx].event_id
+            assert result["event_trace_id"] == events[expected_event_idx].trace_id
+
+            # Validate fields of the selected event.
+            event_dict = result["event"]
+            assert isinstance(event_dict, dict)
+            _SentryEventData.parse_obj(event_dict)
+            assert result["event_id"] == event_dict["id"]
+
+    def test_get_ie_details_from_issue_id_basic(
+        self,
+    ):
+        # event1 should be returned since its span is more recent.
+        self._test_get_ie_details_from_issue_id(
+            expected_event_idx=1,
+        )
+
+    def test_get_ie_details_from_issue_id_exclude_issue(
+        self,
+    ):
+        self._test_get_ie_details_from_issue_id(
+            expected_event_idx=1,
+            should_include_issue=False,
+            include_issue=False,
+        )
+
+    def test_get_ie_details_from_issue_id_time_range(
+        self,
+    ):
+        # event0 should be returned since the time range excludes event1.
+        self._test_get_ie_details_from_issue_id(
+            expected_event_idx=0,
+            start=before_now(minutes=15).isoformat(),
+            end=before_now(minutes=5).isoformat(),
+        )
+
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def _test_get_ie_details_from_event_id(
+        self,
+        mock_get_tags,
+        include_issue: bool,
+    ):
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+
+        # Create events with shared stacktrace (should have same group)
+        events: list[Event] = []
+        for i in range(3):
+            data = load_data("python", timestamp=before_now(minutes=5 - i))
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            event = self.store_event(data=data, project_id=self.project.id)
+            events.append(event)
+
+        group = events[0].group
+        assert isinstance(group, Group)
+        assert events[1].group_id == group.id
+        assert events[2].group_id == group.id
+
+        # Call the function with events[1].id
+        result = get_issue_and_event_details_v2(
+            organization_id=self.organization.id,
+            event_id=events[1].event_id,
+            include_issue=include_issue,
+        )
+
+        assert result is not None
+        assert result["project_id"] == self.project.id
+        assert result["project_slug"] == self.project.slug
+
+        # Validate issues fields
+        if include_issue:
+            assert result["tags_overview"] == mock_get_tags.return_value
+            _validate_event_timeseries(result["event_timeseries"], expected_total=3)
+            assert isinstance(result["issue"], dict)
+            _IssueMetadata.parse_obj(result["issue"])
+        else:
+            assert result.get("issue") is None
+            assert result.get("event_timeseries") is None
+            assert result.get("tags_overview") is None
+
+        # Check correct event is returned.
+        assert result["event_id"] == events[1].event_id
+        assert result["event_trace_id"] == events[1].trace_id
+
+        # Validate fields of the selected event.
+        event_dict = result["event"]
+        assert isinstance(event_dict, dict)
+        _SentryEventData.parse_obj(event_dict)
+        assert result["event_id"] == event_dict["id"]
+
+    def test_get_ie_details_from_event_id_with_issue(self):
+        self._test_get_ie_details_from_event_id(
+            include_issue=True,
+        )
+
+    def test_get_ie_details_from_event_id_without_issue(self):
+        self._test_get_ie_details_from_event_id(
+            include_issue=False,
+        )
+
+
+class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
+    """Unit tests for the util that derives a response from an event and group."""
+
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_ie_response_tags_exception(self, mock_get_tags):
+        mock_get_tags.side_effect = Exception("Test exception")
+        """Test other fields are returned with null tags_overview when tag util fails."""
+        # Create a valid group.
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+        assert isinstance(group, Group)
+
+        result = get_issue_and_event_response(
+            event=event,
+            group=group,
+            organization=self.organization,
+        )
+        assert result["tags_overview"] is None
+
+        assert "event_trace_id" in result
+        assert isinstance(result.get("project_id"), int)
+        assert isinstance(result.get("issue"), dict)
+        _IssueMetadata.parse_obj(result.get("issue", {}))
+
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_ie_response_with_assigned_user(
+        self,
+        mock_get_tags,
+    ):
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        data = load_data("python", timestamp=before_now(minutes=5))
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+        assert isinstance(group, Group)
+
+        # Create assignee.
+        GroupAssignee.objects.create(group=group, project=self.project, user_id=self.user.id)
+
+        result = get_issue_and_event_response(
+            event=event,
+            group=group,
+            organization=self.organization,
+        )
+
+        md = _IssueMetadata.parse_obj(result["issue"])
+        assert md.assignedTo is not None
+        assert md.assignedTo.type == "user"
+        assert md.assignedTo.id == str(self.user.id)
+        assert md.assignedTo.email == self.user.email
+        assert md.assignedTo.name == self.user.get_display_name()
+
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_ie_response_with_assigned_team(self, mock_get_tags):
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        data = load_data("python", timestamp=before_now(minutes=5))
+        event = self.store_event(data=data, project_id=self.project.id)
+
+        group = event.group
+        assert isinstance(group, Group)
+
+        # Create assignee.
+        GroupAssignee.objects.create(group=group, project=self.project, team=self.team)
+
+        result = get_issue_and_event_response(
+            event=event,
+            group=group,
+            organization=self.organization,
+        )
+
+        md = _IssueMetadata.parse_obj(result["issue"])
+        assert md.assignedTo is not None
+        assert md.assignedTo.type == "team"
+        assert md.assignedTo.id == str(self.team.id)
+        assert md.assignedTo.name == self.team.slug
+        assert md.assignedTo.email is None
+
+    @patch("sentry.seer.explorer.tools.client")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_ie_response_timeseries_resolution(
+        self,
+        mock_get_tags,
+        mock_api_client,
+    ):
+        """Test timeseries resolution for groups with different first_seen dates"""
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+
+        for stats_period, interval in EVENT_TIMESERIES_RESOLUTIONS:
+            # Fresh mock with passthrough to real client - allows testing call args
+            mock_api_client.get = Mock(side_effect=client.get)
+
+            delta = parse_stats_period(stats_period)
+            assert delta is not None
+            if delta > timedelta(days=30):
+                # Skip the 90d test as the retention for testutils is 30d.
+                continue
+
+            # Set a first_seen date slightly newer than the stats period we're testing.
+            first_seen = datetime.now(UTC) - delta + timedelta(minutes=6, seconds=7)
+            data = load_data("python", timestamp=first_seen)
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            event = self.store_event(data=data, project_id=self.project.id)
+
+            # Second newer event
+            data = load_data("python", timestamp=first_seen + timedelta(minutes=6, seconds=7))
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            self.store_event(data=data, project_id=self.project.id)
+
+            group = event.group
+            assert isinstance(group, Group)
+            assert group.first_seen == first_seen
+
+            result = get_issue_and_event_response(
+                event=event,
+                group=group,
+                organization=self.organization,
+            )
+
+            # Assert expected stats params were passed to the API.
+            stats_request_count = 0
+            for _, kwargs in mock_api_client.get.call_args_list:
+                if kwargs["path"] == f"/organizations/{self.organization.slug}/events-stats/":
+                    stats_request_count += 1
+                    assert kwargs["params"]["statsPeriod"] == stats_period
+                    assert kwargs["params"]["interval"] == interval
+
+            assert stats_request_count == 1
+
+            # Validate final results.
+            assert result is not None
+            _validate_event_timeseries(result["event_timeseries"])
+            assert result["timeseries_stats_period"] == stats_period
+            assert result["timeseries_interval"] == interval
+
+            # Ensure next iteration makes a fresh group.
+            group.delete()
 
 
 class TestGetIssueAndEventDetails(
     APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin, SpanTestCase
 ):
-    def _validate_event_timeseries(self, timeseries: dict, expected_total: int | None = None):
-        assert isinstance(timeseries, dict)
-        assert "count()" in timeseries
-        assert "data" in timeseries["count()"]
-        assert isinstance(timeseries["count()"]["data"], list)
-        total_count = 0
-        for item in timeseries["count()"]["data"]:
-            assert len(item) == 2
-            assert isinstance(item[0], int)
-            assert isinstance(item[1], list)
-            assert len(item[1]) == 1
-            assert isinstance(item[1][0], dict)
-            assert "count" in item[1][0]
-            assert isinstance(item[1][0]["count"], int)
-            total_count += item[1][0]["count"]
-        if expected_total is not None:
-            assert (
-                total_count == expected_total
-            ), f"Expected total count {expected_total}, got {total_count}"
-
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     def _test_get_ie_details_basic(
@@ -997,7 +1327,7 @@ class TestGetIssueAndEventDetails(
             else:
                 assert result["event_trace_id"] is None
 
-            self._validate_event_timeseries(result["event_timeseries"], expected_total=3)
+            _validate_event_timeseries(result["event_timeseries"], expected_total=3)
 
         for selected_event in invalid_selected_events:
             with pytest.raises(ValueError, match="badly formed hexadecimal UUID string"):
@@ -1042,34 +1372,6 @@ class TestGetIssueAndEventDetails(
             selected_event="latest",
         )
         assert result is None
-
-    @patch("sentry.models.group.get_oldest_or_latest_event")
-    @patch("sentry.models.group.get_recommended_event")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_ie_details_no_event_found(
-        self, mock_get_tags, mock_get_recommended_event, mock_get_oldest_or_latest_event
-    ):
-        """Test returns None when issue is found but selected_event is not."""
-        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
-        mock_get_recommended_event.return_value = None
-        mock_get_oldest_or_latest_event.return_value = None
-
-        # Create events with shared stacktrace (should have same group)
-        for i in range(2):
-            data = load_data("python", timestamp=before_now(minutes=5 - i))
-            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
-            event = self.store_event(data=data, project_id=self.project.id)
-
-        group = event.group
-        assert isinstance(group, Group)
-
-        for et in ["oldest", "latest", "recommended", uuid.uuid4().hex]:
-            result = get_issue_and_event_details(
-                issue_id=str(group.id),
-                organization_id=self.organization.id,
-                selected_event=et,
-            )
-            assert result is None, et
 
     def test_get_ie_details_no_event_found_null_issue_id(self):
         """Test returns None when issue_id is not provided and selected_event is not found."""
@@ -1221,7 +1523,7 @@ class TestGetIssueAndEventDetails(
 
             # Validate final results.
             assert result is not None
-            self._validate_event_timeseries(result["event_timeseries"])
+            _validate_event_timeseries(result["event_timeseries"])
             assert result["timeseries_stats_period"] == stats_period
             assert result["timeseries_interval"] == interval
 
