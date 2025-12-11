@@ -232,8 +232,13 @@ export const ADOPTION_STAGE_LABELS: Record<
   },
 };
 
-export const isMobileRelease = (releaseProjectPlatform: PlatformKey) =>
-  ([...mobile, ...desktop] as string[]).includes(releaseProjectPlatform);
+export const isMobileRelease = (
+  releaseProjectPlatform: PlatformKey,
+  includeDesktop = true
+) =>
+  ([...mobile, ...(includeDesktop ? desktop : [])] as string[]).includes(
+    releaseProjectPlatform
+  );
 
 /**
  * Helper that escapes quotes and formats release version into release search
