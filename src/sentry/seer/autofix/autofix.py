@@ -593,7 +593,7 @@ def onboarding_seer_settings_update(
     """
     # Get organization and list of projects
     organization = Organization.objects.get(id=organization_id)
-    projects = Project.objects.filter(organization_id=organization_id)
+    projects = Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
 
     # If RCA is explicitly disabled, set the automation tuning to off for org and projects.
     # If RCA is disabled then other settings don't matter.
