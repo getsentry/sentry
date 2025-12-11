@@ -738,6 +738,20 @@ class PreprodDeltaGroupType(GroupType):
     enable_escalation_detection = False
 
 
+@dataclass(frozen=True)
+class SizeBadType(GroupType):
+    type_id = 11001
+    slug = "size_bad"
+    description = "Size Bad"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.MOBILE.value
+    released = True
+    # This is a bad things observed in a given build if we stop seing
+    # it in new builds then it has been resolved:
+    enable_auto_resolve = True
+    default_priority = PriorityLevel.MEDIUM
+
+
 def should_create_group(
     grouptype: type[GroupType],
     client: RedisCluster | StrictRedis,
