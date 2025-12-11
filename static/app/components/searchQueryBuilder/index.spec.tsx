@@ -4339,7 +4339,7 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
       });
 
-      it('should replace raw search keys with defined key:contains:"value space', async () => {
+      it('should replace raw search keys with defined key:contains:"value space"', async () => {
         render(
           <SearchQueryBuilder
             {...defaultProps}
@@ -4357,6 +4357,28 @@ describe('SearchQueryBuilder', () => {
         expect(
           screen.getByRole('row', {
             name: `span.description:${WildcardOperators.CONTAINS}"random value"`,
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('should replace raw search keys with fuzzy search', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery=""
+            replaceRawSearchKeys={['span.description']}
+          />
+        );
+
+        await userEvent.type(screen.getByRole('textbox'), 'random value');
+
+        await userEvent.click(
+          within(screen.getByRole('listbox')).getAllByText('span.description')[2]!
+        );
+
+        expect(
+          screen.getByRole('row', {
+            name: `span.description:*random*value*`,
           })
         ).toBeInTheDocument();
       });

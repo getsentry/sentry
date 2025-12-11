@@ -191,6 +191,29 @@ export function createRawSearchFilterContainsValueItem(
   };
 }
 
+export function createRawSearchFuzzyFilterItem(
+  key: string,
+  value: string
+): RawSearchFilterIsValueItem {
+  const formattedValue = escapeFilterValue(value)
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replaceAll(' ', '*');
+
+  const filter = `${key}:*${formattedValue}*`;
+
+  return {
+    key: getEscapedKey(filter),
+    label: <FormattedQuery query={filter} />,
+    value: filter,
+    textValue: filter,
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: null,
+    type: 'raw-search-filter-is-value',
+  };
+}
+
 export function createRecentFilterItem({filter}: {filter: TokenResult<Token.FILTER>}) {
   const key = getKeyName(filter.key);
   return {
