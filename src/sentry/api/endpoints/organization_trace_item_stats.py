@@ -192,8 +192,16 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
             for i, attr in enumerate(attrs_response.attributes):
                 if attr.name in SPANS_STATS_EXCLUDED_ATTRIBUTES:
                     continue
+
                 if attr.name in additional_substring_matches:
-                    additional_substring_matches.remove(attr.name)
+                    # dedupe additional known attrs on the first offset
+                    if offset == 0:
+                        additional_substring_matches.remove(attr.name)
+                    # we've already shown this attr in the first offset, so
+                    # don't show it again
+                    else:
+                        continue
+
                 chunked_attributes[i % MAX_THREADS].append(
                     AttributeKey(name=attr.name, type=AttributeKey.TYPE_STRING)
                 )
