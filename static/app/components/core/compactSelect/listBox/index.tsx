@@ -6,6 +6,8 @@ import type {ListState} from '@react-stately/list';
 import type {CollectionChildren, Node} from '@react-types/shared';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {
   ListLabel,
   ListSeparator,
@@ -182,14 +184,8 @@ export function ListBox<T extends ObjectLike>({
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
-      <div
-        ref={virtualizer.scrollElementRef}
-        style={{
-          height: '100%',
-          overflowY: 'auto',
-        }}
-      >
-        <div {...virtualizer.wrapperProps}>
+      <Container ref={virtualizer.scrollElementRef} height="100%" overflowY="auto">
+        <Container {...virtualizer.wrapperProps}>
           <ListWrap
             {...mergedProps}
             style={{
@@ -239,8 +235,8 @@ export function ListBox<T extends ObjectLike>({
               </SizeLimitMessage>
             )}
           </ListWrap>
-        </div>
-      </div>
+        </Container>
+      </Container>
     </Fragment>
   );
 }
