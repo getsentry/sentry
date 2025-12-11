@@ -161,8 +161,10 @@ export default function CreateAlertButton({
   const router = useRouter();
   const api = useApi();
   const {projects} = useProjects();
-  const isWorkflowEngineEnabled = organization.features.includes('workflow-engine-ui');
-  const defaultButtonLabel = isWorkflowEngineEnabled
+  const shouldDirectToMonitors =
+    organization.features.includes('workflow-engine-ui') &&
+    !organization.features.includes('workflow-engine-redirect-opt-out');
+  const defaultButtonLabel = shouldDirectToMonitors
     ? t('Create Monitor')
     : t('Create Alert');
   const createAlertUrl = (providedProj: string): string => {
@@ -173,11 +175,11 @@ export default function CreateAlertButton({
     if (providedProj !== ':projectId') {
       params.append('project', providedProj);
     }
-    if (alertOption && !isWorkflowEngineEnabled) {
+    if (alertOption && !shouldDirectToMonitors) {
       params.append('alert_option', alertOption);
     }
     const queryString = params.toString();
-    if (isWorkflowEngineEnabled) {
+    if (shouldDirectToMonitors) {
       const basePath = makeMonitorCreatePathname(organization.slug);
       return queryString ? `${basePath}?${queryString}` : basePath;
     }
