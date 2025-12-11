@@ -99,7 +99,7 @@ describe('useUpdateOrganization', () => {
     expect(OrganizationStore.get().organization?.name).toBe('Original Name');
 
     // Trigger mutation and wait for it to fail
-    await act(async () => {
+    act(() => {
       result.current.mutateAsync({name: 'Updated Name'}).catch(() => {
         // Expected to throw
       });
