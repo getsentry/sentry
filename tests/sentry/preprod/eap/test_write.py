@@ -4,114 +4,20 @@ from unittest.mock import patch
 
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.eap.write import write_preprod_size_metric_to_eap
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodBuildConfiguration,
+)
 from sentry.testutils.cases import TestCase
 
 
 class WritePreprodSizeMetricToEAPTest(TestCase):
-    def test_write_preprod_size_metric_to_eap(self):
-        """Test that preprod size metrics are correctly written to EAP"""
-        # Create a preprod artifact
-        artifact = self.create_preprod_artifact(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-        )
-
-        # Create size metrics
-        size_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            min_install_size=1000,
-            max_install_size=2000,
-            min_download_size=500,
-            max_download_size=1500,
-            processing_version="1.0.0",
-            analysis_file_id=123,
-        )
-
-        # Mock the Kafka producer
-        with patch("sentry.preprod.eap.write.eap_producer") as mock_producer:
-            write_preprod_size_metric_to_eap(
-                size_metric=size_metric,
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-                timestamp=datetime(2024, 1, 1, 12, 0, 0, tzinfo=dt_timezone.utc),
-            )
-
-            # Verify producer was called
-            assert mock_producer.produce.called
-            call_args = mock_producer.produce.call_args
-
-            # Verify the payload contains the correct trace item
-            payload = call_args[0][1]
-            trace_item = payload.value  # This is the encoded trace item
-
-            # We can't directly inspect the encoded payload, but we can verify the call was made
-            # with the correct topic
-            assert call_args[0][0].name == "snuba-items"
-
-    def test_write_preprod_size_metric_with_identifier(self):
-        """Test writing size metrics with an identifier (e.g., dynamic features)"""
-        artifact = self.create_preprod_artifact(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-        )
-
-        # Create size metrics with an identifier
-        size_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
-            identifier="com.example.feature",
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            max_install_size=5000,
-            max_download_size=3000,
-        )
-
-        with patch("sentry.preprod.eap.write.eap_producer") as mock_producer:
-            write_preprod_size_metric_to_eap(
-                size_metric=size_metric,
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-            )
-
-            # Verify producer was called
-            assert mock_producer.produce.called
-
-    def test_write_preprod_size_metric_item_type(self):
-        """Test that the correct trace item type is used"""
-        artifact = self.create_preprod_artifact(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-        )
-
-        size_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        )
-
-        with patch("sentry.preprod.eap.write.eap_producer") as mock_producer:
-            with patch("sentry.preprod.eap.write.EAP_ITEMS_CODEC") as mock_codec:
-                write_preprod_size_metric_to_eap(
-                    size_metric=size_metric,
-                    organization_id=self.organization.id,
-                    project_id=self.project.id,
-                )
-
-                # Verify encode was called with a TraceItem that has the correct item_type
-                encode_call = mock_codec.encode.call_args[0][0]
-                assert encode_call.item_type == TraceItemType.TRACE_ITEM_TYPE_PREPROD
-                assert encode_call.organization_id == self.organization.id
-                assert encode_call.project_id == self.project.id
-
-    def test_write_preprod_size_metric_denormalizes_related_data(self):
-        """Test that related data from PreprodArtifact, CommitComparison, and BuildConfiguration is denormalized"""
-        from sentry.models.commitcomparison import CommitComparison
-        from sentry.preprod.models import PreprodBuildConfiguration
-
-        # Create commit comparison
+    @patch("sentry.preprod.eap.write.eap_producer.produce")
+    def test_write_preprod_size_metric_encodes_all_fields_correctly(self, mock_produce):
         commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
             head_sha="abc123",
@@ -124,12 +30,10 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
             pr_number=42,
         )
 
-        # Create build configuration
         build_config = PreprodBuildConfiguration.objects.create(
             project=self.project, name="Release"
         )
 
-        # Create artifact with all the fields
         artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -141,55 +45,109 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
             main_binary_identifier="com.example.MainBinary",
             commit_comparison=commit_comparison,
             build_configuration=build_config,
+            date_built=datetime(2024, 1, 1, 10, 0, 0, tzinfo=dt_timezone.utc),
+        )
+
+        size_metric = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="com.example.feature",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_install_size=1000,
+            max_install_size=5000,
+            min_download_size=500,
+            max_download_size=3000,
+            processing_version="2.0.0",
+            analysis_file_id=123,
+        )
+
+        write_preprod_size_metric_to_eap(
+            size_metric=size_metric,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+        )
+
+        mock_produce.assert_called_once()
+        topic, payload = mock_produce.call_args[0]
+
+        assert topic.name == "snuba-items"
+
+        codec = get_topic_codec(Topic.SNUBA_ITEMS)
+        trace_item = codec.decode(payload.value)
+
+        assert trace_item.organization_id == self.organization.id
+        assert trace_item.project_id == self.project.id
+        assert trace_item.item_type == TraceItemType.TRACE_ITEM_TYPE_PREPROD
+        assert trace_item.retention_days == 90
+
+        attrs = trace_item.attributes
+
+        assert attrs["preprod_artifact_id"].int_value == artifact.id
+        assert attrs["size_metric_id"].int_value == size_metric.id
+        assert (
+            attrs["metrics_artifact_type"].int_value
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        )
+        assert attrs["identifier"].string_value == "com.example.feature"
+        assert attrs["min_install_size"].int_value == 1000
+        assert attrs["max_install_size"].int_value == 5000
+        assert attrs["min_download_size"].int_value == 500
+        assert attrs["max_download_size"].int_value == 3000
+        assert attrs["processing_version"].string_value == "2.0.0"
+        assert attrs["analysis_file_id"].int_value == 123
+
+        assert attrs["artifact_type"].int_value == PreprodArtifact.ArtifactType.XCARCHIVE
+        assert attrs["artifact_state"].int_value == PreprodArtifact.ArtifactState.PROCESSED
+        assert attrs["app_id"].string_value == "com.example.app"
+        assert attrs["app_name"].string_value == "Example App"
+        assert attrs["build_version"].string_value == "1.2.3"
+        assert attrs["build_number"].int_value == 100
+        assert attrs["main_binary_identifier"].string_value == "com.example.MainBinary"
+        assert attrs["artifact_date_built"].int_value == int(artifact.date_built.timestamp())
+
+        assert attrs["build_configuration_name"].string_value == "Release"
+
+        assert attrs["git_head_sha"].string_value == "abc123"
+        assert attrs["git_base_sha"].string_value == "def456"
+        assert attrs["git_provider"].string_value == "github"
+        assert attrs["git_head_repo_name"].string_value == "owner/repo"
+        assert attrs["git_base_repo_name"].string_value == "owner/repo"
+        assert attrs["git_head_ref"].string_value == "feature/test"
+        assert attrs["git_base_ref"].string_value == "main"
+        assert attrs["git_pr_number"].int_value == 42
+
+    @patch("sentry.preprod.eap.write.eap_producer.produce")
+    def test_write_preprod_size_metric_handles_optional_fields(self, mock_produce):
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
         )
 
         size_metric = PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=artifact,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            max_install_size=5000,
-            max_download_size=3000,
-            processing_version="2.0.0",
         )
 
-        with patch("sentry.preprod.eap.write.eap_producer"):
-            with patch("sentry.preprod.eap.write.EAP_ITEMS_CODEC") as mock_codec:
-                write_preprod_size_metric_to_eap(
-                    size_metric=size_metric,
-                    organization_id=self.organization.id,
-                    project_id=self.project.id,
-                )
+        write_preprod_size_metric_to_eap(
+            size_metric=size_metric,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+        )
 
-                # Verify all denormalized attributes are present
-                trace_item = mock_codec.encode.call_args[0][0]
-                attrs = trace_item.attributes
+        mock_produce.assert_called_once()
+        topic, payload = mock_produce.call_args[0]
 
-                # Size metric attributes
-                assert attrs["size_metric_id"].int_value == size_metric.id
-                assert attrs["max_install_size"].int_value == 5000
-                assert attrs["max_download_size"].int_value == 3000
-                assert attrs["processing_version"].string_value == "2.0.0"
-                # Note: size_metric_state is NOT included because it's always COMPLETED at write time
-                assert "size_metric_state" not in attrs
+        codec = get_topic_codec(Topic.SNUBA_ITEMS)
+        trace_item = codec.decode(payload.value)
 
-                # PreprodArtifact attributes
-                assert attrs["artifact_type"].int_value == PreprodArtifact.ArtifactType.XCARCHIVE
-                assert attrs["artifact_state"].int_value == PreprodArtifact.ArtifactState.PROCESSED
-                assert attrs["app_id"].string_value == "com.example.app"
-                assert attrs["app_name"].string_value == "Example App"
-                assert attrs["build_version"].string_value == "1.2.3"
-                assert attrs["build_number"].int_value == 100
-                assert attrs["main_binary_identifier"].string_value == "com.example.MainBinary"
+        assert trace_item.organization_id == self.organization.id
+        assert trace_item.item_type == TraceItemType.TRACE_ITEM_TYPE_PREPROD
 
-                # BuildConfiguration attributes
-                assert attrs["build_configuration_name"].string_value == "Release"
+        attrs = trace_item.attributes
 
-                # CommitComparison (git) attributes
-                assert attrs["git_head_sha"].string_value == "abc123"
-                assert attrs["git_base_sha"].string_value == "def456"
-                assert attrs["git_provider"].string_value == "github"
-                assert attrs["git_head_repo_name"].string_value == "owner/repo"
-                assert attrs["git_base_repo_name"].string_value == "owner/repo"
-                assert attrs["git_head_ref"].string_value == "feature/test"
-                assert attrs["git_base_ref"].string_value == "main"
-                assert attrs["git_pr_number"].int_value == 42
+        assert "identifier" not in attrs
+        assert "min_install_size" not in attrs
+        assert "max_install_size" not in attrs
+        assert "build_configuration_name" not in attrs
+        assert "git_head_sha" not in attrs
