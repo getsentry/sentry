@@ -214,7 +214,7 @@ def run_llm_issue_detection() -> None:
 @instrumented_task(
     name="sentry.tasks.llm_issue_detection.detect_llm_issues_for_project",
     namespace=issues_tasks,
-    processing_deadline_duration=300,
+    processing_deadline_duration=10 * 60,
 )
 def detect_llm_issues_for_project(project_id: int) -> None:
     """

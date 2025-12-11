@@ -112,6 +112,47 @@ class OrganizationTraceItemsStatsEndpointTest(
         assert "browser.name" in attribute_distribution
         assert "device" not in attribute_distribution
 
+    def test_substring_match_returns_known_public_aliases(self) -> None:
+        # Store spans with known sentry attributes (op, description)
+        self.store_span(
+            self.create_span(
+                {
+                    "sentry_tags": {"custom_attr": "value1", "op": "http.client"},
+                },
+                start_ts=self.ten_mins_ago,
+                duration=100,
+            ),
+            is_eap=True,
+        )
+        self.store_span(
+            self.create_span(
+                {
+                    "sentry_tags": {"other_attr": "value2", "op": "db.query"},
+                },
+                start_ts=self.ten_mins_ago,
+                duration=200,
+            ),
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            query={
+                "statsType": ["attributeDistributions"],
+                "substringMatch": "span.",
+            }
+        )
+        assert response.status_code == 200, response.data
+        assert len(response.data["data"]) == 1
+        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+
+        assert "span.op" in attribute_distribution
+        description_labels = [item["label"] for item in attribute_distribution["span.op"]]
+        assert "http.client" in description_labels
+        assert "db.query" in description_labels
+
+        assert "custom_attr" not in attribute_distribution
+        assert "other_attr" not in attribute_distribution
+
     def test_query_filters_spans_before_stats(self) -> None:
         tags = [
             ({"browser": "chrome", "device": "desktop"}, 100),
