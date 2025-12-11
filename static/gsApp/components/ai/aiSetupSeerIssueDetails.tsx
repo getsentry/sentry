@@ -12,7 +12,6 @@ import {Heading} from '@sentry/scraps/text/heading';
 import {Text} from '@sentry/scraps/text/text';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {useGroupSummary} from 'sentry/components/group/groupSummary';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
@@ -20,18 +19,12 @@ import {IconSeer} from 'sentry/icons/iconSeer';
 import {IconUpgrade} from 'sentry/icons/iconUpgrade';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import {DataCategory} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-
-import StartTrialButton from 'getsentry/components/startTrialButton';
-import useSubscription from 'getsentry/hooks/useSubscription';
-import type {ProductTrial} from 'getsentry/types';
-import {getPotentialProductTrial} from 'getsentry/utils/billing';
 
 interface AiSetupSeerIssueDetailsProps {
   event: Event;
@@ -44,33 +37,17 @@ export default function AiSetupSeerIssueDetails({
   group,
   project,
 }: AiSetupSeerIssueDetailsProps) {
+  const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
 
-  const subscription = useSubscription();
-  const trial = getPotentialProductTrial(
-    subscription?.productTrials ?? null,
-    DataCategory.SEER_AUTOFIX
-  );
-
-  if (!aiConfig.hasAutofixQuota) {
-    if (trial && !trial.isStarted) {
-      return <AiSetupSeerStartTrial trial={trial} />;
-    }
-    // TODO: no quota available but also can't start a trial
-    return null;
+  if (!aiConfig.hasAutofixQuota && organization.features.includes('seer-billing')) {
+    return <AiSetupSeerConfigureQuota />;
   }
 
   return <AiSetupSeerConfiguration event={event} group={group} project={project} />;
 }
 
-interface AiSetupSeerStartTrialProps {
-  trial: ProductTrial;
-}
-
-function AiSetupSeerStartTrial({trial}: AiSetupSeerStartTrialProps) {
-  const organization = useOrganization();
-  const autofixAcknowledgeMutation = useSeerAcknowledgeMutation();
-
+function AiSetupSeerConfigureQuota() {
   return (
     <Fragment>
       <HeroImage src={seerConfigMainImg} />
@@ -86,27 +63,16 @@ function AiSetupSeerStartTrial({trial}: AiSetupSeerStartTrialProps) {
               )}
             </Text>
             <Stack align="center">
-              <StartTrialButton
-                organization={organization}
-                source="seer_drawer"
-                requestData={{
-                  productTrial: {
-                    category: DataCategory.SEER_AUTOFIX,
-                    reasonCode: trial?.reasonCode,
-                  },
-                }}
-                busy={autofixAcknowledgeMutation.isPending}
-                handleClick={() => autofixAcknowledgeMutation.mutate()}
-                size="md"
+              <LinkButton
                 priority="primary"
-                analyticsEventKey="seer_drawer.free_trial_clicked"
-                analyticsEventName="Seer Drawer: Clicked Free Trial"
+                // TODO: point to correct product
+                to="/settings/billing/overview/"
               >
                 <Stack direction="row" gap="sm">
                   <IconUpgrade />
                   {t('Try Out Seer Now')}
                 </Stack>
-              </StartTrialButton>
+              </LinkButton>
             </Stack>
           </Stack>
         </MeetSeerPanel>
@@ -196,7 +162,7 @@ function AiSetupSeerConfiguration({
             ) : isError ? (
               <Stack gap="sm" direction="row">
                 <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
-                <Text>{t('Error loading summary')}</Text>
+                <Text>{t('Error loading what happened')}</Text>
               </Stack>
             ) : (
               data?.whatsWrong && (
@@ -215,7 +181,7 @@ function AiSetupSeerConfiguration({
             ) : isError ? (
               <Stack gap="sm" direction="row">
                 <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
-                <Text>{t('Error loading summary')}</Text>
+                <Text>{t('Error loading initial guess')}</Text>
               </Stack>
             ) : (
               data?.possibleCause && (

@@ -90,8 +90,8 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
     reset,
     isPending: autofixDataPending,
   } = useAiAutofix(group, event);
-  const seerOnboardingCheck = useSeerOnboardingCheck();
   const aiConfig = useAiConfig(group, project);
+  const seerOnboardingCheck = useSeerOnboardingCheck();
   const location = useLocation();
   const navigate = useNavigate();
 
