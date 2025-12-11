@@ -168,25 +168,6 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                     "num_attrs_with_intersecting_filter", len(attrs_response.attributes)
                 )
 
-                # debug code: want to check if the intersecting filter is returning the correct attrs
-                if query_filter:
-                    attrs_request_without_intersecting_filter = TraceItemAttributeNamesRequest(
-                        meta=attrs_meta,
-                        limit=limit,
-                        page_token=PageToken(offset=offset),
-                        type=attr_type,
-                        value_substring_match=value_substring_match,
-                    )
-
-                    attrs_without_intersecting_filter = snuba_rpc.attribute_names_rpc(
-                        attrs_request_without_intersecting_filter
-                    )
-
-                    sentry_sdk.set_tag(
-                        "num_attrs_without_intersecting_filter",
-                        len(attrs_without_intersecting_filter.attributes),
-                    )
-
             # Chunk attributes and run stats query in parallel
             chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
             for i, attr in enumerate(attrs_response.attributes):
