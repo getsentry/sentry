@@ -139,17 +139,17 @@ export function ConfigureRootCauseAnalysisStep() {
             <PanelDescription>
               <p>
                 {t(
-                  'Pair your projects with your repositories to enable Seer to analyze your codebase.'
+                  'Pair your projects with your repositories to make sure Seer can analyze your codebase.'
                 )}
               </p>
             </PanelDescription>
 
             <Field>
               <Flex direction="column" flex="1" gap="xs">
-                <FieldLabel>{t('Propose Fixes For Root Cause Analysis')}</FieldLabel>
+                <FieldLabel>{t('Enable Root Cause Analysis')}</FieldLabel>
                 <FieldDescription>
                   {t(
-                    'For all projects below, Seer will automatically analyze highly actionable issues, and create a root cause analysis and proposed solution without a user needing to prompt it.'
+                    'For all projects below AND newly added projects, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution.'
                   )}
                 </FieldDescription>
               </Flex>
@@ -163,7 +163,9 @@ export function ConfigureRootCauseAnalysisStep() {
               <Flex direction="column" flex="1" gap="xs">
                 <FieldLabel>{t('Automatic PR Creation')}</FieldLabel>
                 <FieldDescription>
-                  {t('For all projects below, Seer will be able to make a pull request.')}
+                  {t(
+                    'For all projects below AND newly added projects, Seer will be able to create a pull request.'
+                  )}
                 </FieldDescription>
               </Flex>
               <Switch
