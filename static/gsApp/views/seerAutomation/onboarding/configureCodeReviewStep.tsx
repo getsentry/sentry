@@ -60,6 +60,10 @@ export function ConfigureCodeReviewStep() {
     useUpdateRepositorySettings();
 
   const handleNextStep = useCallback(() => {
+    const existingRepostoriesToRemove = unselectedCodeReviewRepositories
+      .filter(repo => repo.settings?.enabledCodeReview)
+      .map(repo => repo.id);
+
     const updateOrganizationEnabledCodeReview = () =>
       new Promise<void>((resolve, reject) => {
         if (enableCodeReview === organization.autoEnableCodeReview) {
@@ -67,6 +71,7 @@ export function ConfigureCodeReviewStep() {
           resolve();
           return;
         }
+
         updateOrganization(
           {
             autoEnableCodeReview: enableCodeReview,
@@ -82,12 +87,13 @@ export function ConfigureCodeReviewStep() {
         );
       });
 
-    const existingRepostoriesToRemove = unselectedCodeReviewRepositories
-      .filter(repo => repo.settings?.enabledCodeReview)
-      .map(repo => repo.id);
-
     const updateEnabledCodeReview = () =>
       new Promise<void>((resolve, reject) => {
+        if (selectedCodeReviewRepositories.length === 0) {
+          resolve();
+          return;
+        }
+
         updateRepositorySettings(
           {
             codeReviewTriggers: DEFAULT_CODE_REVIEW_TRIGGERS,
@@ -108,6 +114,11 @@ export function ConfigureCodeReviewStep() {
     // This handles the case where we load selected repositories from the server, but the user unselects some of them.
     const updateUnselectedRepositories = () =>
       new Promise<void>((resolve, reject) => {
+        if (existingRepostoriesToRemove.length === 0) {
+          resolve();
+          return;
+        }
+
         updateRepositorySettings(
           {
             codeReviewTriggers: [],
@@ -127,32 +138,25 @@ export function ConfigureCodeReviewStep() {
 
     const promises = [
       updateOrganizationEnabledCodeReview(),
-      ...(selectedCodeReviewRepositories.length > 0 ? [updateEnabledCodeReview()] : []),
-      ...(existingRepostoriesToRemove.length > 0 ? [updateUnselectedRepositories()] : []),
+      // This is intentionally serial bc they both mutate the same resource (the organization)
+      // And react-query will only resolve the latest mutation
+      updateEnabledCodeReview().then(() => updateUnselectedRepositories()),
     ];
 
-    // Only the latest call to mutation will resolve, but they are run conditionally so we need to find the one that will resolve
-    const promise =
-      promises.length === 2 ? promises[1] : promises.length === 1 ? promises[0] : null;
-
-    if (promise) {
-      promise
-        .then(() => {
-          if (selectedCodeReviewRepositories.length > MAX_REPOSITORIES_TO_PRESELECT) {
-            // When this happens, we clear the pre-populated repositories. Otherwise,
-            // the user will have an overwhelming number of repositories to map.
-            clearRootCauseAnalysisRepositories();
-          }
-          setCurrentStep(currentStep + 1);
-        })
-        .catch(() => {
-          addErrorMessage(
-            t('Failed to update AI Code Review settings, reload and try again')
-          );
-        });
-    } else {
-      setCurrentStep(currentStep + 1);
-    }
+    Promise.all(promises)
+      .then(() => {
+        if (selectedCodeReviewRepositories.length > MAX_REPOSITORIES_TO_PRESELECT) {
+          // When this happens, we clear the pre-populated repositories. Otherwise,
+          // the user will have an overwhelming number of repositories to map.
+          clearRootCauseAnalysisRepositories();
+        }
+        setCurrentStep(currentStep + 1);
+      })
+      .catch(() => {
+        addErrorMessage(
+          t('Failed to update AI Code Review settings, reload and try again')
+        );
+      });
   }, [
     clearRootCauseAnalysisRepositories,
     selectedCodeReviewRepositories,
