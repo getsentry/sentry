@@ -4290,7 +4290,7 @@ describe('SearchQueryBuilder', () => {
       await userEvent.type(screen.getByRole('textbox'), 'random value');
 
       await userEvent.click(
-        within(screen.getByRole('listbox')).getAllByText('span.description')[2]!
+        within(screen.getByRole('listbox')).getAllByText('span.description')[1]!
       );
 
       expect(
@@ -4351,7 +4351,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.type(screen.getByRole('textbox'), 'random value');
 
         await userEvent.click(
-          within(screen.getByRole('listbox')).getAllByText('span.description')[1]!
+          within(screen.getByRole('listbox')).getAllByText('span.description')[0]!
         );
 
         expect(
@@ -4373,7 +4373,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.type(screen.getByRole('textbox'), 'random value');
 
         await userEvent.click(
-          within(screen.getByRole('listbox')).getAllByText('span.description')[0]!
+          within(screen.getByRole('listbox')).getAllByText('span.description')[2]!
         );
 
         expect(
