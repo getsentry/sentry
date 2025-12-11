@@ -13,6 +13,12 @@ import {chonkStyled} from 'sentry/utils/theme/theme';
 // We don't care about any options for the styles config
 export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
 
+export const selectSpacing = {
+  md: '8px',
+  sm: '6px',
+  xs: '4px',
+} as const satisfies Record<FormSize, string>;
+
 const multiValueSizeMapping = {
   md: {
     height: '20px',
@@ -131,7 +137,7 @@ export const getChonkStylesConfig = ({
       paddingTop: 0,
       paddingBottom: 0,
       paddingLeft: theme.form[size].paddingLeft,
-      paddingRight: theme.formSpacing[size],
+      paddingRight: selectSpacing[size],
       ...(state.isMulti && {
         maxHeight: 'inherit',
         overflowY: 'auto',
@@ -197,7 +203,7 @@ export const getChonkStylesConfig = ({
     indicatorsContainer: () => ({
       display: 'grid',
       gridAutoFlow: 'column',
-      marginRight: theme.formSpacing[size],
+      marginRight: selectSpacing[size],
     }),
     clearIndicator: indicatorStyles,
     dropdownIndicator: indicatorStyles,

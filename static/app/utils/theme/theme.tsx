@@ -460,7 +460,6 @@ type FormTheme = {
       paddingTop: number;
     }
   >;
-  formSpacing: Record<FormSize, string>;
 };
 
 const iconSizes: Record<Size, string> = {
@@ -1013,11 +1012,6 @@ const formTheme: FormTheme = {
       paddingBottom: 6,
       borderRadius: radius.sm,
     },
-  },
-  formSpacing: {
-    md: '8px',
-    sm: '6px',
-    xs: '4px',
   },
 };
 

@@ -10,6 +10,7 @@ import {
   ChonkClearIndicator,
   ChonkDropdownIndicator,
   getChonkStylesConfig,
+  selectSpacing,
   type StylesConfig,
 } from '@sentry/scraps/select/select.chonk';
 
@@ -386,7 +387,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       content: `"${label}"`,
       color: theme.isChonk ? theme.gray500 : theme.gray300,
       fontWeight: 600,
-      marginRight: theme.formSpacing[size ?? 'md'],
+      marginRight: selectSpacing[size ?? 'md'],
     },
   });
 
