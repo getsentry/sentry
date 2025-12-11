@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -12,16 +13,7 @@ describe('useUpdateOrganization', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: {
-          retry: false,
-        },
-        mutations: {
-          retry: false,
-        },
-      },
-    });
+    queryClient = makeTestQueryClient();
     OrganizationStore.reset();
   });
 
