@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 
+from sentry.constants import ObjectStatus
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -12,6 +13,7 @@ from sentry.seer.autofix.constants import (
 from sentry.seer.autofix.utils import (
     bulk_get_project_preferences,
     bulk_set_project_preferences,
+    get_autofix_repos_from_project_code_mappings,
     get_autofix_state,
     get_seer_seat_based_tier_cache_key,
 )
@@ -143,7 +145,9 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     # Invalidate seat-based tier cache so new settings take effect immediately
     cache.delete(get_seer_seat_based_tier_cache_key(organization_id))
 
-    projects = list(Project.objects.filter(organization_id=organization_id, status=0))
+    projects = list(
+        Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
+    )
     project_ids = [p.id for p in projects]
 
     if len(project_ids) == 0:
@@ -161,6 +165,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
     # Determine which projects need updates
     preferences_to_set = []
+    projects_by_id = {p.id: p for p in projects}
     for project_id in project_ids:
         existing_pref = preferences_by_id.get(str(project_id), {})
 
@@ -168,16 +173,24 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
         if existing_pref.get("automated_run_stopping_point") in ("open_pr", "code_changes"):
             continue
 
+        # Preserve existing repositories if set, otherwise fall back to code mappings
+        repositories = existing_pref.get("repositories")
+        if not repositories:
+            project = projects_by_id.get(project_id)
+            if project:
+                repositories = get_autofix_repos_from_project_code_mappings(project)
+
         # Preserve existing repositories and automation_handoff, only update the stopping point
         preferences_to_set.append(
             {
                 "organization_id": organization_id,
                 "project_id": project_id,
-                "repositories": existing_pref.get("repositories") or [],
+                "repositories": repositories or [],
                 "automated_run_stopping_point": "code_changes",
                 "automation_handoff": existing_pref.get("automation_handoff"),
             }
         )
+
     if len(preferences_to_set) > 0:
         bulk_set_project_preferences(organization_id, preferences_to_set)
 
