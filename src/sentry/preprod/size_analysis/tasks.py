@@ -246,8 +246,6 @@ def compare_preprod_artifact_size_analysis(
 @instrumented_task(
     name="sentry.preprod.tasks.manual_size_analysis_comparison",
     namespace=preprod_tasks,
-    # TODO(EME-242): Remove once inflight tasks done.
-    alias_namespace=attachments_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
