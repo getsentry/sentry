@@ -86,6 +86,10 @@ export type Repository = {
   url: string;
 };
 
+export interface RepositoryWithSettings extends Repository {
+  codeReviewTriggers: string[];
+  enabledCodeReview: boolean;
+}
 /**
  * Integration Repositories from OrganizationIntegrationReposEndpoint
  */
