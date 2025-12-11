@@ -97,7 +97,8 @@ const SidebarWrapper = styled('div')<{tourIsActive: boolean}>`
   padding: ${space(1.5)} 0 ${space(1)} 0;
   border-right: 1px solid
     ${p => (p.theme.isChonk ? p.theme.border : p.theme.translucentGray200)};
-  background: ${p => (p.theme.isChonk ? p.theme.background : p.theme.surface300)};
+  background: ${p =>
+    p.theme.isChonk ? p.theme.tokens.background.primary : p.theme.surface300};
   display: flex;
   flex-direction: column;
 
@@ -114,7 +115,7 @@ const CollapsedSecondaryWrapper = styled(motion.div)`
   left: ${PRIMARY_SIDEBAR_WIDTH}px;
   height: 100%;
   box-shadow: ${p => (p.theme.isChonk ? 'none' : p.theme.dropShadowHeavy)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const SidebarHeader = styled('header')<{isSuperuser: boolean}>`
@@ -124,19 +125,6 @@ const SidebarHeader = styled('header')<{isSuperuser: boolean}>`
   align-items: center;
   justify-content: center;
   margin-bottom: ${space(0.5)};
-
-  ${p =>
-    p.isSuperuser &&
-    !p.theme.isChonk &&
-    css`
-      &:before {
-        content: '';
-        position: absolute;
-        inset: 0 ${space(1)} -${space(0.5)} ${space(1)};
-        border-radius: ${p.theme.borderRadius};
-        background: ${p.theme.sidebar.superuser};
-      }
-    `}
 `;
 
 const SuperuserBadgeContainer = styled('div')`

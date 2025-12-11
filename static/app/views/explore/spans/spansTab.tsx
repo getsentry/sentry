@@ -382,7 +382,7 @@ const ChevronButton = withChonk(
       p.expanded &&
       css`
         margin-left: -13px;
-        border-left-color: ${p.theme.background};
+        border-left-color: ${p.theme.tokens.background.primary};
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
       `}
@@ -400,7 +400,7 @@ const ChevronButton = withChonk(
         margin-left: -13px;
 
         &::after {
-          border-left-color: ${p.theme.background};
+          border-left-color: ${p.theme.tokens.background.primary};
           border-top-left-radius: 0px;
           border-bottom-left-radius: 0px;
         }

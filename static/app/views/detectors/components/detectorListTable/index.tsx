@@ -15,9 +15,11 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
+import {Button} from 'sentry/components/core/button';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -95,6 +97,7 @@ function DetectorListTable({
   allResultsVisible,
 }: DetectorListTableProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [isVisualizationExpanded, setIsVisualizationExpanded] = useState(false);
 
   const detectorIds = new Set(detectors.map(d => d.id));
   const togglePageSelected = (pageSelected: boolean) => {
@@ -148,6 +151,7 @@ function DetectorListTable({
     <TableContainer>
       <DetectorListSimpleTable
         hasVisualization={hasVisualization}
+        isVisualizationExpanded={isVisualizationExpanded}
         additionalColumns={additionalColumns}
       >
         {selected.size === 0 ? (
@@ -181,14 +185,39 @@ function DetectorListTable({
               <Fragment key={col.id}>{col.renderHeaderCell()}</Fragment>
             ))}
             {hasVisualization && (
-              <Container
+              <VisualizationHeaderContainer
                 data-column-name="visualization"
                 ref={elementRef}
                 borderLeft="muted"
                 minHeight="50px"
               >
                 <GridLineLabels timeWindowConfig={timeWindowConfig} />
-              </Container>
+              </VisualizationHeaderContainer>
+            )}
+            {hasVisualization && (
+              <VisualizationExpandButton>
+                <Button
+                  size="xs"
+                  borderless
+                  icon={
+                    <IconChevron
+                      isDouble
+                      direction={isVisualizationExpanded ? 'right' : 'left'}
+                    />
+                  }
+                  aria-label={
+                    isVisualizationExpanded
+                      ? t('Collapse visualization')
+                      : t('Expand visualization')
+                  }
+                  title={
+                    isVisualizationExpanded
+                      ? t('Collapse visualization')
+                      : t('Expand visualization')
+                  }
+                  onClick={() => setIsVisualizationExpanded(v => !v)}
+                />
+              </VisualizationExpandButton>
             )}
           </SimpleTable.Header>
         ) : (
@@ -212,14 +241,6 @@ function DetectorListTable({
         {isSuccess && detectors.length === 0 && (
           <SimpleTable.Empty>{t('No monitors found')}</SimpleTable.Empty>
         )}
-        {detectors.map(detector => (
-          <DetectorListRow
-            key={detector.id}
-            detector={detector}
-            selected={selected.has(detector.id)}
-            onSelect={handleSelect}
-          />
-        ))}
         {hasVisualization && (
           <PositionedGridLineOverlay
             stickyCursor
@@ -232,6 +253,14 @@ function DetectorListTable({
             cursorOverlayAnchorOffset={10}
           />
         )}
+        {detectors.map(detector => (
+          <DetectorListRow
+            key={detector.id}
+            detector={detector}
+            selected={selected.has(detector.id)}
+            onSelect={handleSelect}
+          />
+        ))}
       </DetectorListSimpleTable>
     </TableContainer>
   );
@@ -241,108 +270,183 @@ const TableContainer = styled('div')`
   container-type: inline-size;
 `;
 
+type ColumnNames =
+  | 'name'
+  | 'type'
+  | 'assignee'
+  | 'last-issue'
+  | 'connected-automations'
+  | 'visualization';
+
+function makeGridSizes(additionalColumns: MonitorListAdditionalColumn[]) {
+  const additionalColumnSizes = additionalColumns
+    .map(col => col.columnWidth ?? 'auto')
+    .join(' ');
+
+  return css`
+    --detector-table-name: 2fr;
+    --detector-table-type: 90px;
+    --detector-table-assignee: 90px;
+    --detector-table-last-issue: 1.5fr;
+    --detector-table-connected-automations: 110px;
+
+    /* Table visualization has two columns to account for the expand button */
+    --detector-table-visualization: ${additionalColumnSizes} 3fr max-content;
+  `;
+}
+
+function makeGridTemplate(columns: ColumnNames[]) {
+  return `grid-template-columns:
+    ${columns.map(col => `var(--detector-table-${col})`).join('\n    ')};`;
+}
+
 const gridDefinitions = (
   p: {theme: Theme},
   additionalColumns: MonitorListAdditionalColumn[]
-) => css`
-  @container (min-width: ${p.theme.breakpoints.xs}) {
-    grid-template-columns: 3fr 0.8fr;
+) => {
+  return css`
+    ${makeGridSizes(additionalColumns)};
 
-    [data-column-name='type'] {
-      display: flex;
+    @container (min-width: ${p.theme.breakpoints.xs}) {
+      ${makeGridTemplate(['name', 'type'])}
+
+      [data-column-name='type'] {
+        display: flex;
+      }
     }
-  }
 
-  @container (min-width: ${p.theme.breakpoints.sm}) {
-    grid-template-columns: 3fr 0.8fr 1.5fr;
+    @container (min-width: ${p.theme.breakpoints.sm}) {
+      ${makeGridTemplate(['name', 'type', 'assignee'])}
 
-    [data-column-name='last-issue'] {
-      display: flex;
+      [data-column-name='assignee'] {
+        display: flex;
+      }
     }
-  }
 
-  @container (min-width: ${p.theme.breakpoints.md}) {
-    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
+    @container (min-width: ${p.theme.breakpoints.md}) {
+      ${makeGridTemplate(['name', 'type', 'last-issue', 'assignee'])}
 
-    [data-column-name='assignee'] {
-      display: flex;
+      [data-column-name='last-issue'] {
+        display: flex;
+      }
     }
-  }
 
-  @container (min-width: ${p.theme.breakpoints.lg}) {
-    grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 1.1fr;
+    @container (min-width: ${p.theme.breakpoints.lg}) {
+      ${makeGridTemplate([
+        'name',
+        'type',
+        'last-issue',
+        'assignee',
+        'connected-automations',
+      ])}
 
-    [data-column-name='connected-automations'] {
-      display: flex;
+      [data-column-name='connected-automations'] {
+        display: flex;
+      }
     }
-  }
 
-  @container (min-width: ${p.theme.breakpoints.xl}) {
-    grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 1.1fr ${additionalColumns
-        .map(col => col.columnWidth ?? 'auto')
-        .join(' ')};
+    @container (min-width: ${p.theme.breakpoints.xl}) {
+      ${makeGridTemplate([
+        'name',
+        'type',
+        'last-issue',
+        'assignee',
+        'connected-automations',
+      ])}
+    }
+  `;
+};
 
-    ${additionalColumns.map(
-      col => css`
-        [data-column-name='${col.id}'] {
-          display: flex;
-        }
-      `
-    )}
-  }
-`;
-
-// When there is a visualization, replace the "Type" column with the visualization
+// When there is a visualization, prioritize showing it over other columns
 const gridDefinitionsWithVisualization = (
   p: {theme: Theme},
   additionalColumns: MonitorListAdditionalColumn[]
-) => css`
-  @container (min-width: ${p.theme.breakpoints.sm}) {
-    grid-template-columns: 3fr 1.5fr;
+) => {
+  const additionalColumnDisplay = additionalColumns.map(
+    col => css`
+      [data-column-name='${col.id}'] {
+        display: flex;
+      }
+    `
+  );
 
-    [data-column-name='last-issue'] {
-      display: flex;
-    }
-  }
+  return css`
+    ${makeGridSizes(additionalColumns)};
 
-  @container (min-width: ${p.theme.breakpoints.md}) {
-    grid-template-columns: 3fr 1.5fr auto;
+    @container (min-width: ${p.theme.breakpoints.sm}) {
+      ${makeGridTemplate(['name', 'visualization'])}
 
-    [data-column-name='assignee'] {
-      display: flex;
-    }
-  }
+      [data-column-name='visualization'] {
+        display: block;
+      }
 
-  @container (min-width: ${p.theme.breakpoints.lg}) {
-    grid-template-columns: 4fr 1.5fr auto 1fr;
-
-    [data-column-name='connected-automations'] {
-      display: flex;
-    }
-  }
-
-  @container (min-width: ${p.theme.breakpoints.xl}) {
-    grid-template-columns: 4.5fr 2fr auto 1.1fr ${additionalColumns
-        .map(col => col.columnWidth ?? 'auto')
-        .join(' ')} 6fr;
-
-    [data-column-name='visualization'] {
-      display: block;
+      ${additionalColumnDisplay}
     }
 
-    ${additionalColumns.map(
-      col => css`
-        [data-column-name='${col.id}'] {
-          display: flex;
-        }
-      `
-    )}
-  }
-`;
+    @container (min-width: ${p.theme.breakpoints.md}) {
+      ${makeGridTemplate(['name', 'assignee', 'visualization'])}
+
+      [data-column-name='assignee'] {
+        display: flex;
+      }
+    }
+
+    @container (min-width: ${p.theme.breakpoints.lg}) {
+      ${makeGridTemplate(['name', 'last-issue', 'assignee', 'visualization'])}
+
+      [data-column-name='last-issue'] {
+        display: flex;
+      }
+    }
+
+    @container (min-width: ${p.theme.breakpoints.xl}) {
+      ${makeGridTemplate([
+        'name',
+        'last-issue',
+        'assignee',
+        'connected-automations',
+        'visualization',
+      ])}
+
+      [data-column-name='connected-automations'] {
+        display: flex;
+      }
+    }
+  `;
+};
+
+// When visualization is expanded, only show name and visualization
+const gridDefinitionsWithVisualizationExpanded = (
+  p: {theme: Theme},
+  additionalColumns: MonitorListAdditionalColumn[]
+) => {
+  const additionalColumnDisplay = additionalColumns.map(
+    col => css`
+      [data-column-name='${col.id}'] {
+        display: flex;
+      }
+    `
+  );
+
+  return css`
+    ${makeGridSizes(additionalColumns)};
+
+    @container (min-width: ${p.theme.breakpoints.sm}) {
+      ${makeGridTemplate(['name', 'visualization'])}
+
+      [data-column-name='visualization'] {
+        display: block;
+      }
+
+      ${additionalColumnDisplay}
+    }
+  `;
+};
 
 const DetectorListSimpleTable = styled(SimpleTable)<{
   additionalColumns: MonitorListAdditionalColumn[];
   hasVisualization: boolean;
+  isVisualizationExpanded: boolean;
 }>`
   grid-template-columns: 1fr;
   margin-bottom: ${space(2)};
@@ -364,22 +468,51 @@ const DetectorListSimpleTable = styled(SimpleTable)<{
       `
     )}
 
-  ${p =>
-    p.hasVisualization
-      ? gridDefinitionsWithVisualization(p, p.additionalColumns)
-      : gridDefinitions(p, p.additionalColumns)}
+  ${p => {
+    if (p.isVisualizationExpanded) {
+      return gridDefinitionsWithVisualizationExpanded(p, p.additionalColumns);
+    }
+    if (p.hasVisualization) {
+      return gridDefinitionsWithVisualization(p, p.additionalColumns);
+    }
+    return gridDefinitions(p, p.additionalColumns);
+  }}
+
+  @container (min-width: ${p => p.theme.breakpoints.sm}) {
+    [data-column-name='visualization'] {
+      grid-column: -3 / -1;
+    }
+  }
 `;
 
 const PositionedGridLineOverlay = styled(GridLineOverlay)`
-  grid-column: -2/-1;
+  grid-column: -3 / -1;
   grid-row: 1 / auto;
   pointer-events: none;
   z-index: 3;
 
   display: none;
 
-  @container (min-width: ${p => p.theme.breakpoints.xl}) {
+  @container (min-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
+  }
+`;
+
+const VisualizationHeaderContainer = styled(Container)`
+  grid-column: -3 / -1;
+`;
+
+const VisualizationExpandButton = styled('div')`
+  grid-row: 1;
+  grid-column: -1;
+  padding: ${space(1.5)} ${space(2)};
+  display: none;
+  z-index: 4;
+
+  @container (min-width: ${p => p.theme.breakpoints.sm}) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 `;
 

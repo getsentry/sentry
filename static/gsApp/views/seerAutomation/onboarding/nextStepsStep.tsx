@@ -36,9 +36,9 @@ export function NextStepsStep() {
                 )}
               </p>
               <NextStepsList>
-                <li>Do AI Code Review</li>
-                <li>Perform root cause analysis on your issues and propose fixes</li>
-                <li>Make PRs on new issues</li>
+                <li>Review your PRs and catch bugs before you ship them to production</li>
+                <li>Perform root cause analysis on your issues and propose solutions</li>
+                <li>Create PRs to fix issues</li>
               </NextStepsList>
               <Text>
                 {tct(
@@ -101,7 +101,7 @@ const NextStepsList = styled('ul')`
 const Well = styled(Flex)`
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 const WellContent = styled(Flex)`
   flex-direction: column;

@@ -284,6 +284,9 @@ from sentry.integrations.api.endpoints.organization_repository_commits import (
 from sentry.integrations.api.endpoints.organization_repository_details import (
     OrganizationRepositoryDetailsEndpoint,
 )
+from sentry.integrations.api.endpoints.organization_repository_settings import (
+    OrganizationRepositorySettingsEndpoint,
+)
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     EventIdLookupEndpoint,
@@ -513,6 +516,9 @@ from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.seer.endpoints.group_autofix_update import GroupAutofixUpdateEndpoint
+from sentry.seer.endpoints.organization_autofix_automation_settings import (
+    OrganizationAutofixAutomationSettingsEndpoint,
+)
 from sentry.seer.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
 from sentry.seer.endpoints.organization_seer_explorer_chat import (
     OrganizationSeerExplorerChatEndpoint,
@@ -523,6 +529,7 @@ from sentry.seer.endpoints.organization_seer_explorer_runs import (
 from sentry.seer.endpoints.organization_seer_explorer_update import (
     OrganizationSeerExplorerUpdateEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheck
 from sentry.seer.endpoints.organization_trace_summary import OrganizationTraceSummaryEndpoint
@@ -2175,6 +2182,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-repositories",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/repos/settings/$",
+        OrganizationRepositorySettingsEndpoint.as_view(),
+        name="sentry-api-0-organization-repository-settings",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/$",
         OrganizationRepositoryDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-repository-details",
@@ -2334,6 +2346,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/setup-check/$",
         OrganizationSeerSetupCheck.as_view(),
         name="sentry-api-0-organization-seer-setup-check",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/onboarding-check/$",
+        OrganizationSeerOnboardingCheck.as_view(),
+        name="sentry-api-0-organization-seer-onboarding-check",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/autofix/automation-settings/$",
+        OrganizationAutofixAutomationSettingsEndpoint.as_view(),
+        name="sentry-api-0-organization-autofix-automation-settings",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer-rpc/(?P<method_name>\w+)/$",

@@ -427,15 +427,6 @@ type ButtonColors = Record<
 
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
-// @TODO: this needs to directly reference the icon direction
-type IconDirection = 'up' | 'right' | 'down' | 'left';
-const iconDirectionToAngle: Record<IconDirection, number> = {
-  up: 0,
-  right: 90,
-  down: 180,
-  left: 270,
-} as const;
-
 /**
  * Unless you are implementing a new component in the `sentry/components/core`
  * directory, use `ComponentProps['size']` instead.
@@ -449,28 +440,17 @@ type FormTheme = {
   form: Record<
     FormSize,
     {
+      borderRadius: string;
       fontSize: string;
       height: string;
       lineHeight: string;
       minHeight: string;
-    }
-  >;
-  formPadding: Record<
-    FormSize,
-    {
       paddingBottom: number;
       paddingLeft: number;
       paddingRight: number;
       paddingTop: number;
     }
   >;
-  formRadius: Record<
-    FormSize,
-    {
-      borderRadius: string;
-    }
-  >;
-  formSpacing: Record<FormSize, string>;
 };
 
 const iconSizes: Record<Size, string> = {
@@ -494,7 +474,6 @@ const commonTheme = {
 
   // Icons
   iconSizes,
-  iconDirections: iconDirectionToAngle,
 
   // Try to keep these ordered plz
   zIndex: {
@@ -564,7 +543,6 @@ const commonTheme = {
     },
   },
 
-  borderRadius: '6px',
   fontSize: {
     xs: '11px',
     sm: '12px',
@@ -995,60 +973,34 @@ const formTheme: FormTheme = {
       minHeight: '36px',
       fontSize: '0.875rem',
       lineHeight: '1rem',
+      paddingLeft: 16,
+      paddingRight: 16,
+      paddingTop: 12,
+      paddingBottom: 12,
+      borderRadius: radius.lg,
     },
     sm: {
       height: '32px',
       minHeight: '32px',
       fontSize: '0.875rem',
       lineHeight: '1rem',
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingTop: 8,
+      paddingBottom: 8,
+      borderRadius: radius.md,
     },
     xs: {
       height: '28px',
       minHeight: '28px',
       fontSize: '0.75rem',
       lineHeight: '1rem',
-    },
-  },
-
-  /**
-   * Padding for form inputs
-   * @TODO(jonasbadalic) This should exist on form component
-   */
-  formPadding: {
-    md: {
-      paddingLeft: 16,
-      paddingRight: 16,
-      paddingTop: 12,
-      paddingBottom: 12,
-    },
-    sm: {
-      paddingLeft: 12,
-      paddingRight: 12,
-      paddingTop: 8,
-      paddingBottom: 8,
-    },
-    xs: {
       paddingLeft: 8,
       paddingRight: 8,
       paddingTop: 6,
       paddingBottom: 6,
+      borderRadius: radius.sm,
     },
-  },
-  formRadius: {
-    md: {
-      borderRadius: '8px',
-    },
-    sm: {
-      borderRadius: '6px',
-    },
-    xs: {
-      borderRadius: '5px',
-    },
-  },
-  formSpacing: {
-    md: '8px',
-    sm: '6px',
-    xs: '4px',
   },
 };
 
@@ -1097,26 +1049,6 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
           default: colorScheme.blue500,
           hover: colorScheme.blue600,
           active: colorScheme.blue700,
-        },
-        promotion: {
-          default: colorScheme.pink500,
-          hover: colorScheme.pink600,
-          active: colorScheme.pink700,
-        },
-        danger: {
-          default: colorScheme.red500,
-          hover: colorScheme.red600,
-          active: colorScheme.red700,
-        },
-        warning: {
-          default: colorScheme.yellow500,
-          hover: colorScheme.yellow600,
-          active: colorScheme.yellow700,
-        },
-        success: {
-          default: colorScheme.green500,
-          hover: colorScheme.green600,
-          active: colorScheme.green700,
         },
       },
     },
@@ -1327,11 +1259,6 @@ const generateAliases = (
   colors: typeof lightColors
 ) => ({
   /**
-   * Heading text color
-   */
-  headingColor: tokens.content.primary,
-
-  /**
    * Primary text color
    */
   textColor: tokens.content.primary,
@@ -1458,11 +1385,6 @@ const generateAliases = (
   formPlaceholder: colors.gray300,
 
   /**
-   *
-   */
-  rowBackground: tokens.background.primary,
-
-  /**
    * Color of lines that flow across the background of the chart to indicate axes levels
    * (This should only be used for yAxis)
    */
@@ -1477,11 +1399,6 @@ const generateAliases = (
    * Color for the 'others' series in topEvent charts
    */
   chartOther: tokens.content.muted,
-
-  /**
-   * Hover color of the drag handle used in the content slider diff view.
-   */
-  diffSliderDragHandleHover: colors.blue500,
 
   /**
    * Default Progressbar color
@@ -1755,15 +1672,6 @@ const lightThemeDefinition = {
   ),
 
   colors: lightColors,
-
-  sidebar: {
-    background: lightAliases.background,
-    scrollbarThumbColor: '#A0A0A0',
-    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
-    gradient: lightAliases.background,
-    border: lightAliases.border,
-    superuser: '#880808',
-  },
 };
 
 /**
@@ -1812,15 +1720,6 @@ export const darkTheme: SentryTheme = {
   ),
 
   colors: darkColors,
-
-  sidebar: {
-    background: darkAliases.background,
-    scrollbarThumbColor: '#A0A0A0',
-    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
-    gradient: darkAliases.background,
-    border: darkAliases.border,
-    superuser: '#880808',
-  },
 };
 
 declare module '@emotion/react' {

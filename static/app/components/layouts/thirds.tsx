@@ -43,9 +43,9 @@ export const Header = styled('header')<{
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   background-color: ${p =>
     p.theme.isChonk
-      ? p.theme.background
+      ? p.theme.tokens.background.primary
       : p.unified
-        ? p.theme.background
+        ? p.theme.tokens.background.primary
         : 'transparent'};
 
   ${p =>
@@ -107,7 +107,7 @@ export const Title = styled('h1')<{withMargins?: boolean}>`
   font-weight: 600;
   letter-spacing: -0.01em;
   margin: 0;
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   margin-bottom: ${p => p.withMargins && space(3)};
   margin-top: ${p => p.withMargins && space(1)};
   line-height: 40px;
@@ -130,7 +130,7 @@ export const HeaderTabs = styled(Tabs)`
 export const Body = styled('div')<{noRowGap?: boolean}>`
   padding: ${space(2)};
   margin: 0;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {

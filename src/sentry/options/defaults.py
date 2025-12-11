@@ -1997,6 +1997,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.traces.pagination.query-limit",
+    type=Int,
+    default=10_000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.traces.pagination.max-timeout",
     type=Float,
     default=0.0,
@@ -3322,12 +3328,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "workflow_engine.use_cohort_selection",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "workflow_engine.schedule.min_cohort_scheduling_age_seconds",
     type=Int,

@@ -240,7 +240,7 @@ export default InputSection;
 // Styled components
 const InputBlock = styled('div')`
   width: 100%;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   position: sticky;
   bottom: 0;
 `;
@@ -255,7 +255,7 @@ const InputRow = styled('div')`
 const InputTextarea = styled(TextArea)`
   width: 100%;
   margin: ${p => p.theme.space.sm};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   resize: none;
   overflow-y: auto;
 `;
@@ -263,7 +263,7 @@ const InputTextarea = styled(TextArea)`
 const ActionBar = styled(motion.div)`
   flex-shrink: 0;
   width: 100%;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   position: sticky;
   bottom: 0;
 `;

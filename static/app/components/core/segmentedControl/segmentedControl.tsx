@@ -253,12 +253,17 @@ const GroupWrap = withChonk(
     display: inline-grid;
     grid-auto-flow: column;
     background: ${p =>
-      p.priority === 'primary' ? p.theme.background : p.theme.backgroundTertiary};
+      p.priority === 'primary'
+        ? p.theme.tokens.background.primary
+        : p.theme.backgroundTertiary};
     border: solid 1px ${p => p.theme.border};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     min-width: 0;
 
-    ${p => p.theme.form[p.size]}
+    font-size: ${p => p.theme.form[p.size].fontSize};
+    height: ${p => p.theme.form[p.size].height};
+    line-height: ${p => p.theme.form[p.size].lineHeight};
+    min-height: ${p => p.theme.form[p.size].minHeight};
   `,
   ChonkStyledGroupWrap
 );
@@ -280,7 +285,7 @@ const SegmentWrap = withChonk(
     display: flex;
     align-items: center;
     margin: 0;
-    border-radius: calc(${p => p.theme.borderRadius} - 1px);
+    border-radius: calc(${p => p.theme.radius.md} - 1px);
     cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
     min-height: 0;
     min-width: 0;
@@ -313,7 +318,7 @@ const SegmentInput = styled('input')`
   bottom: 0;
   right: 0;
 
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   transition: box-shadow 0.125s ease-out;
   z-index: -1;
 
@@ -346,8 +351,8 @@ const SegmentInteractionStateLayer = styled(InteractionStateLayer)<{
   transition:
     left 0.2s,
     right 0.2s;
-  ${p => p.prevOptionIsSelected && `left: calc(-${p.theme.borderRadius} - 2px);`}
-  ${p => p.nextOptionIsSelected && `right: calc(-${p.theme.borderRadius} - 2px);`}
+  ${p => p.prevOptionIsSelected && `left: calc(-${p.theme.radius.md} - 2px);`}
+  ${p => p.nextOptionIsSelected && `right: calc(-${p.theme.radius.md} - 2px);`}
 `;
 
 const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
@@ -361,7 +366,7 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
     p.priority === 'primary'
       ? css`
           background: ${p.theme.active};
-          border-radius: ${p.theme.borderRadius};
+          border-radius: ${p.theme.radius.md};
           input:focus-visible ~ & {
             box-shadow: 0 0 0 3px ${p.theme.focus};
           }
@@ -377,7 +382,7 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
         `
       : css`
           background: ${p.theme.backgroundElevated};
-          border-radius: calc(${p.theme.borderRadius} - 1px);
+          border-radius: calc(${p.theme.radius.md} - 1px);
           box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
           input:focus-visible ~ & {
             box-shadow: 0 0 0 2px ${p.theme.focusBorder};
@@ -445,12 +450,12 @@ function getTextColor({
           color: ${theme.white};
         `
       : css`
-          color: ${theme.headingColor};
+          color: ${theme.tokens.content.primary};
         `;
   }
 
   return css`
-    color: ${theme.textColor};
+    color: ${theme.tokens.content.primary};
   `;
 }
 
