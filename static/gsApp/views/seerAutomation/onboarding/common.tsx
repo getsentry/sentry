@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 
@@ -25,6 +27,8 @@ export const StepContent = styled('div')`
     margin-bottom: 0;
   }
 `;
+
+export const PanelWithImage = styled(Flex)``;
 
 export const ActionSection = styled('div')`
   margin-top: ${p => p.theme.space.xl};
