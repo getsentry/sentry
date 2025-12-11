@@ -84,7 +84,7 @@ from sentry.core.endpoints.organization_auditlogs import OrganizationAuditLogsEn
 from sentry.core.endpoints.organization_avatar import OrganizationAvatarEndpoint
 from sentry.core.endpoints.organization_details import OrganizationDetailsEndpoint
 from sentry.core.endpoints.organization_environments import OrganizationEnvironmentsEndpoint
-from sentry.core.endpoints.organization_index import OrganizationIndexEndpoint
+from sentry.core.endpoints.organization_index_new import OrganizationIndexEndpoint
 from sentry.core.endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from sentry.core.endpoints.organization_member_index import OrganizationMemberIndexEndpoint
 from sentry.core.endpoints.organization_member_invite.details import (
