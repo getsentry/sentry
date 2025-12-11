@@ -34,8 +34,8 @@ export function SvgIcon(props: SVGIconProps) {
       viewBox="0 0 16 16"
       {...iconProps}
       fill={
-        props.variant
-          ? theme.tokens.graphics[props.variant]
+        iconProps.variant
+          ? theme.tokens.graphics[iconProps.variant]
           : resolveIconColor(theme, iconProps)
       }
       height={size}
