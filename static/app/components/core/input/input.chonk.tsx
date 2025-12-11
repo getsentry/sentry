@@ -24,7 +24,11 @@ export const chonkInputStyles = ({
     ...(monospace ? {fontFamily: theme.text.familyMono} : {}),
     ...(readOnly ? {cursor: 'default'} : {}),
 
-    ...theme.form[size],
+    fontSize: theme.form[size].fontSize,
+    height: theme.form[size].height,
+    lineHeight: theme.form[size].lineHeight,
+    minHeight: theme.form[size].minHeight,
+
     ...theme.formPadding[size],
     ...theme.formRadius[size],
 
