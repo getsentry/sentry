@@ -52,20 +52,169 @@ FIXABILITY_VALUES = [
     FixabilityScoreThresholds.SUPER_LOW.to_str(),
 ]
 
+# Fields that don't have predefined values and should NOT be queried via API
+# These return [] from _get_built_in_field_values() to indicate no suggested values available
+# NOTE: Text fields like "message", "title", "location" are NOT included here
+# because they CAN be queried via API for actual values (matching discover_tools.py behavior)
 FIELDS_WITHOUT_PREDEFINED_VALUES = (
+    # User reference fields - values come from user/team data
     "assigned",
     "assigned_or_suggested",
     "bookmarks",
+    "subscribed",
+    # Datetime fields - don't suggest values
     "lastSeen",
     "firstSeen",
-    "firstRelease",
     "event.timestamp",
-    "timesSeen",
+    "timestamp",
     "issue.seer_last_run",
+    # Numeric fields - don't suggest values
+    "timesSeen",
+    # UUID/ID fields - don't suggest values
+    "id",
+    "issue",
+    # Detector field - values are dynamic IDs, don't suggest
+    "detector",
 )
+
+# Field value types mapping (similar to _SPECIAL_FIELD_VALUE_TYPES in discover_tools.py)
+# Used by _get_static_values() to determine how to handle field value queries
+# NOTE: Text fields like "message", "title", "location" are NOT included here
+# because they should fall through to API query for actual values
+_FIELD_VALUE_TYPES: dict[str, str] = {
+    # Boolean fields - return [{"value": "true"}, {"value": "false"}]
+    "error.handled": "boolean",
+    "error.unhandled": "boolean",
+    "error.main_thread": "boolean",
+    "symbolicated_in_app": "boolean",
+    "app.in_foreground": "boolean",
+    # Datetime fields - return [] (don't query for values)
+    "lastSeen": "datetime",
+    "firstSeen": "datetime",
+    "event.timestamp": "datetime",
+    "timestamp": "datetime",
+    "issue.seer_last_run": "datetime",
+    # UUID fields - return [] (don't query for values)
+    "id": "uuid",
+    # Issue short ID - return [] (don't query for values)
+    "issue": "issue_short_id",
+    # Device class - return enum values
+    "device.class": "device_class",
+    # Numeric fields - return [] (don't query for values)
+    "timesSeen": "integer",
+}
+
+# Event context fields available for issue search (from frontend's ISSUE_EVENT_PROPERTY_FIELDS)
+# These are fields that filter on event-level data within issues
+_EVENT_CONTEXT_FIELDS = [
+    # Device fields
+    "device.arch",
+    "device.brand",
+    "device.class",
+    "device.family",
+    "device.locale",
+    "device.model_id",
+    "device.name",
+    "device.orientation",
+    "device.uuid",
+    # Error fields
+    "error.handled",
+    "error.main_thread",
+    "error.mechanism",
+    "error.type",
+    "error.unhandled",
+    "error.value",
+    # Event metadata
+    "event.timestamp",
+    "event.type",
+    "id",
+    "timestamp",
+    "title",
+    "message",
+    "location",
+    # Geographic
+    "geo.city",
+    "geo.country_code",
+    "geo.region",
+    "geo.subdivision",
+    # HTTP
+    "http.method",
+    "http.referer",
+    "http.status_code",
+    "http.url",
+    # OS
+    "os.build",
+    "os.kernel_version",
+    "os.distribution_name",
+    "os.distribution_version",
+    # Platform
+    "platform.name",
+    # Release
+    "release",
+    "release.build",
+    "release.package",
+    "release.version",
+    # SDK
+    "sdk.name",
+    "sdk.version",
+    # Stack
+    "stack.abs_path",
+    "stack.filename",
+    "stack.function",
+    "stack.module",
+    "stack.package",
+    "stack.stack_level",
+    # Other
+    "dist",
+    "trace",
+    "transaction",
+    "symbolicated_in_app",
+    "unreal.crash_type",
+    "app.in_foreground",
+    # User
+    "user.email",
+    "user.id",
+    "user.ip",
+    "user.username",
+    # OTA Updates
+    "ota_updates.channel",
+    "ota_updates.runtime_version",
+    "ota_updates.update_id",
+]
+
+# Device class enum values
+DEVICE_CLASS_VALUES = ["high", "medium", "low"]
 
 # API key scopes required for issue queries
 API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
+
+
+def _get_static_values(key: str) -> list[dict[str, Any]] | None:
+    """
+    Get values for keys with a static set of values based on their field type.
+    Similar to _get_static_values() in discover_tools.py.
+
+    Returns:
+    - [] for fields that shouldn't be queried (uuid, datetime, issue_short_id, integer)
+    - [{"value": x}] for fields with static enum values (boolean, device_class)
+    - None if the key's values are dynamic and should be queried
+    """
+    value_type = _FIELD_VALUE_TYPES.get(key, "")
+
+    # Fields that shouldn't have value suggestions
+    if value_type in ("uuid", "issue_short_id", "datetime", "integer"):
+        return []
+
+    # Boolean fields - return true/false
+    if value_type == "boolean":
+        return [{"value": "true"}, {"value": "false"}]
+
+    # Device class - return enum values
+    if value_type == "device_class":
+        return [{"value": val} for val in DEVICE_CLASS_VALUES]
+
+    # Text fields and others - return None to fall through to API query
+    return None
 
 
 def _get_built_in_field_values(
@@ -82,6 +231,11 @@ def _get_built_in_field_values(
     Returns:
         List of value dicts in the format expected by the API, or None if not a built-in field
     """
+    # First check for static values based on field type (boolean, datetime, uuid, etc.)
+    static_values = _get_static_values(attribute_key)
+    if static_values is not None:
+        return static_values
+
     if attribute_key == "is":
         return [{"value": val} for val in IS_VALUES]
 
@@ -174,6 +328,14 @@ def _get_built_in_issue_fields(
         }
     )
 
+    # SUBSCRIBED field - Users subscribed to the issue
+    built_in_fields.append(
+        {
+            "key": "subscribed",
+            "values": [],  # Values would come from user data
+        }
+    )
+
     # ISSUE_CATEGORY field
     built_in_fields.append(
         {
@@ -205,6 +367,30 @@ def _get_built_in_issue_fields(
         {
             "key": "firstSeen",
             "values": [],
+        }
+    )
+
+    # FIRST_RELEASE field
+    built_in_fields.append(
+        {
+            "key": "firstRelease",
+            "values": [],  # Values are dynamic release versions
+        }
+    )
+
+    # RELEASE field
+    built_in_fields.append(
+        {
+            "key": "release",
+            "values": [],  # Values are dynamic release versions
+        }
+    )
+
+    # RELEASE_STAGE field
+    built_in_fields.append(
+        {
+            "key": "release.stage",
+            "values": [],  # Values are dynamic
         }
     )
 
@@ -240,6 +426,37 @@ def _get_built_in_issue_fields(
             "values": [],
         }
     )
+
+    # DETECTOR field
+    built_in_fields.append(
+        {
+            "key": "detector",
+            "values": [],  # Values are dynamic detector IDs
+        }
+    )
+
+    # Event context fields (from frontend's ISSUE_EVENT_PROPERTY_FIELDS)
+    # These are fields that filter on event-level data within issues
+    for field_key in _EVENT_CONTEXT_FIELDS:
+        # Skip fields already added above
+        if any(f["key"] == field_key for f in built_in_fields):
+            continue
+
+        # Get values based on field type
+        field_values: list[str] = []
+        value_type = _FIELD_VALUE_TYPES.get(field_key, "")
+
+        if value_type == "boolean":
+            field_values = ["true", "false"]
+        elif value_type == "device_class":
+            field_values = DEVICE_CLASS_VALUES
+
+        built_in_fields.append(
+            {
+                "key": field_key,
+                "values": field_values,
+            }
+        )
 
     return built_in_fields
 
