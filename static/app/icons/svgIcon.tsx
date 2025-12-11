@@ -61,18 +61,12 @@ export function useResolvedIconColor(
   return normalizedColor;
 }
 
-type SVGIconDirection = 'up' | 'right' | 'down' | 'left';
-export function convertIconDirectionToAngle(direction: SVGIconDirection): number {
-  switch (direction) {
-    case 'up':
-      return 0;
-    case 'right':
-      return 90;
-    case 'down':
-      return 180;
-    case 'left':
-      return 270;
-    default:
-      return 0;
-  }
-}
+export type SVGIconDirection = 'up' | 'right' | 'down' | 'left';
+const ICON_DIRECTION_TO_ROTATION_ANGLE = {
+  up: 0,
+  right: 90,
+  down: 180,
+  left: 270,
+} as const;
+
+SvgIcon.ICON_DIRECTION_TO_ROTATION_ANGLE = ICON_DIRECTION_TO_ROTATION_ANGLE;

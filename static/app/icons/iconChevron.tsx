@@ -1,8 +1,8 @@
-import type {SVGIconProps} from './svgIcon';
-import {convertIconDirectionToAngle, SvgIcon} from './svgIcon';
+import type {SVGIconDirection, SVGIconProps} from './svgIcon';
+import {SvgIcon} from './svgIcon';
 
 interface Props extends SVGIconProps {
-  direction?: 'up' | 'right' | 'down' | 'left';
+  direction?: SVGIconDirection;
   isDouble?: boolean;
 }
 
@@ -23,8 +23,11 @@ export function IconChevron({isDouble, direction = 'up', ...props}: Props) {
       {...props}
       style={
         direction
-          ? {transform: `rotate(${convertIconDirectionToAngle(direction)}deg)`}
-          : undefined
+          ? {
+              transform: `rotate(${SvgIcon.ICON_DIRECTION_TO_ROTATION_ANGLE[direction] ?? 0}deg)`,
+              ...props.style,
+            }
+          : props.style
       }
     >
       {getChevronPath({isDouble})}
