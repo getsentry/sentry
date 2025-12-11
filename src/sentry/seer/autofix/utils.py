@@ -20,10 +20,10 @@ from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
 from sentry.seer.models import (
-    PreferenceResponse,
     SeerApiError,
     SeerApiResponseValidationError,
     SeerPermissionError,
+    SeerRawPreferenceResponse,
     SeerRepoDefinition,
 )
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
@@ -142,7 +142,7 @@ autofix_connection_pool = connection_from_url(
 )
 
 
-def get_project_seer_preferences(project_id: int):
+def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
     """
     Fetch Seer project preferences from the Seer API.
 
@@ -150,7 +150,7 @@ def get_project_seer_preferences(project_id: int):
         project_id: The project ID to fetch preferences for
 
     Returns:
-        PreferenceResponse object if successful, None otherwise
+        SeerRawPreferenceResponse object if successful
     """
     path = "/v1/project-preference"
     body = orjson.dumps({"project_id": project_id})
@@ -166,7 +166,7 @@ def get_project_seer_preferences(project_id: int):
     if response.status == 200:
         try:
             result = orjson.loads(response.data)
-            return PreferenceResponse.validate(result)
+            return SeerRawPreferenceResponse.validate(result)
         except (pydantic.ValidationError, orjson.JSONDecodeError, UnicodeDecodeError) as e:
             raise SeerApiResponseValidationError(str(e)) from e
 
@@ -185,7 +185,7 @@ def has_project_connected_repos(organization_id: int, project_id: int) -> bool:
         return cached_value
 
     project_preferences = get_project_seer_preferences(project_id)
-    has_repos = bool(project_preferences.code_mapping_repos)
+    has_repos = bool(project_preferences.preference and project_preferences.preference.repositories)
     logger.info(
         "Checking if project has repositories connected in Seer",
         extra={

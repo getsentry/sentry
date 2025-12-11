@@ -419,11 +419,11 @@ class TestHasProjectConnectedRepos(TestCase):
     def test_returns_true_when_repos_exist(self, mock_get_preferences, mock_cache):
         """Test returns True when project has connected repositories."""
         mock_cache.get.return_value = None
-        mock_preferences = Mock()
-        mock_preferences.code_mapping_repos = [
-            {"provider": "github", "owner": "test", "name": "repo"}
-        ]
-        mock_get_preferences.return_value = mock_preferences
+        mock_preference = Mock()
+        mock_preference.repositories = [{"provider": "github", "owner": "test", "name": "repo"}]
+        mock_response = Mock()
+        mock_response.preference = mock_preference
+        mock_get_preferences.return_value = mock_response
 
         result = has_project_connected_repos(self.organization.id, self.project.id)
 
@@ -439,9 +439,29 @@ class TestHasProjectConnectedRepos(TestCase):
     def test_returns_false_when_no_repos(self, mock_get_preferences, mock_cache):
         """Test returns False when project has no connected repositories."""
         mock_cache.get.return_value = None
-        mock_preferences = Mock()
-        mock_preferences.code_mapping_repos = []
-        mock_get_preferences.return_value = mock_preferences
+        mock_preference = Mock()
+        mock_preference.repositories = []
+        mock_response = Mock()
+        mock_response.preference = mock_preference
+        mock_get_preferences.return_value = mock_response
+
+        result = has_project_connected_repos(self.organization.id, self.project.id)
+
+        assert result is False
+        mock_cache.set.assert_called_once_with(
+            f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
+            False,
+            timeout=60 * 60,
+        )
+
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_returns_false_when_preference_is_none(self, mock_get_preferences, mock_cache):
+        """Test returns False when preference is None."""
+        mock_cache.get.return_value = None
+        mock_response = Mock()
+        mock_response.preference = None
+        mock_get_preferences.return_value = mock_response
 
         result = has_project_connected_repos(self.organization.id, self.project.id)
 
