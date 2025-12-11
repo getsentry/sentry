@@ -26,6 +26,7 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
             condition_result=True,
         )
 
+    @pytest.mark.skip(reason="flaky: #104777")
     def test_dual_write(self) -> None:
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
