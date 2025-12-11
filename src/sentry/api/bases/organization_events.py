@@ -43,6 +43,7 @@ from sentry.search.eap.constants import (
     SAMPLING_MODE_MAP,
     VALID_GRANULARITIES,
 )
+from sentry.search.eap.types import AdditionalQueries
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
@@ -770,6 +771,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     }
                 )
         return serialized_values
+
+    def get_additional_queries(self, request: Request) -> AdditionalQueries:
+        return AdditionalQueries(
+            span=request.GET.getlist("spanQuery"),
+            log=request.GET.getlist("logQuery"),
+            metric=request.GET.getlist("metricQuery"),
+        )
 
 
 class KeyTransactionBase(OrganizationEventsEndpointBase):

@@ -3,7 +3,9 @@ import uuid
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
-class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBase):
+class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpointTestBase):
+    viewname = "sentry-api-0-organization-events-timeseries"
+
     def test_cross_trace_query_with_logs(self) -> None:
         trace_id = uuid.uuid4().hex
         excluded_trace_id = uuid.uuid4().hex
@@ -50,13 +52,26 @@ class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBas
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
+                # Interval and statsPeriod are tested by actual timeseries endpoints, just test we get the right data back
+                "interval": "1d",
+                "statsPeriod": "1d",
+                "topEvents": 5,
+                "groupBy": ["tags[foo]"],
                 "logQuery": ["message:foo"],
             }
         )
 
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["tags[foo]"] == "five"
+        assert len(response.data["timeSeries"]) == 2
+        timeseries = response.data["timeSeries"][0]
+        values = timeseries["values"]
+        assert not timeseries["meta"]["isOther"]
+        assert len(values) == 2
+        assert values[0]["value"] == 0
+        assert values[1]["value"] == 1
+
+        other_timeseries = response.data["timeSeries"][1]
+        assert other_timeseries["meta"]["isOther"]
 
     def test_cross_trace_query_with_spans(self) -> None:
         trace_id = uuid.uuid4().hex
@@ -102,13 +117,18 @@ class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBas
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
+                "interval": "1d",
+                "statsPeriod": "1d",
                 "spanQuery": ["tags[foo]:six"],
             }
         )
 
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["tags[foo]"] == "five"
+        assert len(response.data["timeSeries"]) == 1
+        values = response.data["timeSeries"][0]["values"]
+        assert len(values) == 2
+        assert values[0]["value"] == 0
+        assert values[1]["value"] == 1
 
     def test_cross_trace_query_with_spans_and_logs(self) -> None:
         trace_id = uuid.uuid4().hex
@@ -167,14 +187,19 @@ class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBas
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
+                "interval": "1d",
+                "statsPeriod": "1d",
                 "spanQuery": ["tags[foo]:six"],
                 "logQuery": ["message:foo"],
             }
         )
 
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["tags[foo]"] == "five"
+        assert len(response.data["timeSeries"]) == 1
+        values = response.data["timeSeries"][0]["values"]
+        assert len(values) == 2
+        assert values[0]["value"] == 0
+        assert values[1]["value"] == 1
 
     def test_cross_trace_query_with_multiple_spans(self) -> None:
         trace_id = uuid.uuid4().hex
@@ -230,13 +255,18 @@ class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBas
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
+                "interval": "1d",
+                "statsPeriod": "1d",
                 "spanQuery": ["tags[foo]:six", "tags[foo]:seven"],
             }
         )
 
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["tags[foo]"] == "five"
+        assert len(response.data["timeSeries"]) == 1
+        values = response.data["timeSeries"][0]["values"]
+        assert len(values) == 2
+        assert values[0]["value"] == 0
+        assert values[1]["value"] == 1
 
     def test_cross_trace_qurey_with_multiple_logs(self) -> None:
         trace_id = uuid.uuid4().hex
@@ -288,10 +318,15 @@ class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBas
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
+                "interval": "1d",
+                "statsPeriod": "1d",
                 "logQuery": ["message:faa", "message:foo"],
             }
         )
 
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["tags[foo]"] == "five"
+        assert len(response.data["timeSeries"]) == 1
+        values = response.data["timeSeries"][0]["values"]
+        assert len(values) == 2
+        assert values[0]["value"] == 0
+        assert values[1]["value"] == 1
