@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
-from sentry.preprod.lib.eap.write import write_preprod_size_metric_to_eap
+from sentry.preprod.eap.write import write_preprod_size_metric_to_eap
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.testutils.cases import TestCase
 
@@ -31,7 +31,7 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
         )
 
         # Mock the Kafka producer
-        with patch("sentry.preprod.lib.eap.write.eap_producer") as mock_producer:
+        with patch("sentry.preprod.eap.write.eap_producer") as mock_producer:
             write_preprod_size_metric_to_eap(
                 size_metric=size_metric,
                 organization_id=self.organization.id,
@@ -68,7 +68,7 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
             max_download_size=3000,
         )
 
-        with patch("sentry.preprod.lib.eap.write.eap_producer") as mock_producer:
+        with patch("sentry.preprod.eap.write.eap_producer") as mock_producer:
             write_preprod_size_metric_to_eap(
                 size_metric=size_metric,
                 organization_id=self.organization.id,
@@ -91,8 +91,8 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
 
-        with patch("sentry.preprod.lib.eap.write.eap_producer") as mock_producer:
-            with patch("sentry.preprod.lib.eap.write.EAP_ITEMS_CODEC") as mock_codec:
+        with patch("sentry.preprod.eap.write.eap_producer") as mock_producer:
+            with patch("sentry.preprod.eap.write.EAP_ITEMS_CODEC") as mock_codec:
                 write_preprod_size_metric_to_eap(
                     size_metric=size_metric,
                     organization_id=self.organization.id,
@@ -151,8 +151,8 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
             processing_version="2.0.0",
         )
 
-        with patch("sentry.preprod.lib.eap.write.eap_producer"):
-            with patch("sentry.preprod.lib.eap.write.EAP_ITEMS_CODEC") as mock_codec:
+        with patch("sentry.preprod.eap.write.eap_producer"):
+            with patch("sentry.preprod.eap.write.EAP_ITEMS_CODEC") as mock_codec:
                 write_preprod_size_metric_to_eap(
                     size_metric=size_metric,
                     organization_id=self.organization.id,
