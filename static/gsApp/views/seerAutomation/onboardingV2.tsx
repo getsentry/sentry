@@ -51,7 +51,7 @@ export default function SeerOnboardingV2() {
           {tct(
             'Seer is not enabled for your organization. [link:Go to your billing settings] to enable Seer.',
             {
-              link: <Link to="/settings/billing/" />,
+              link: <Link to="/settings/billing/overview/?product=seer" />,
             }
           )}
         </Alert>
