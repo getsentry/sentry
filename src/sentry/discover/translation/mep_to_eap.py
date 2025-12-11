@@ -145,6 +145,9 @@ def column_switcheroo(term):
         "timestamp.to_day": "timestamp",
         "timestamp.to_hour": "timestamp",
         "platform.name": "platform",
+        # parsed MRI column names that need to be swapped
+        "duration": "span.duration",
+        "exclusive_time": "span.self_time",
     }
 
     swapped_term = column_swap_map.get(term, term)
