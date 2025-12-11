@@ -27,12 +27,20 @@ export function SvgIcon(props: SVGIconProps) {
   const iconProps = useIconDefaults(props);
   const size = iconProps.legacySize ?? theme.iconSizes[iconProps.size ?? 'sm'];
 
+  const {
+    variant: _variant,
+    color: _color,
+    size: _size,
+    legacySize: _legacySize,
+    ...rest
+  } = iconProps;
+
   return (
     <svg
       // The icons only ever contain a single graphic, so we can use the img role
       role="img"
       viewBox="0 0 16 16"
-      {...iconProps}
+      {...rest}
       fill={
         iconProps.variant
           ? theme.tokens.graphics[iconProps.variant]
