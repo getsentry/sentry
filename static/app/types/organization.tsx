@@ -14,6 +14,9 @@ import type {Project} from './project';
 import type {Relay} from './relay';
 import type {User} from './user';
 
+// Matches `PrReviewTrigger` in Seer
+type CodeReviewTriggers = 'on_command_phrase' | 'on_ready_for_review' | 'on_new_commit';
+
 /**
  * Organization summaries are sent when you request a list of all organizations
  */
@@ -50,17 +53,21 @@ export interface Organization extends OrganizationSummary {
   access: Scope[];
   aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
+  allowBackgroundAgentDelegation: boolean;
   allowJoinRequests: boolean;
   allowMemberInvite: boolean;
   allowMemberProjectCreation: boolean;
   allowSharedIssues: boolean;
   allowSuperuserAccess: boolean;
   attachmentsRole: string;
+  autoEnableCodeReview: boolean;
+  autoOpenPrs: boolean;
   /** @deprecated use orgRoleList instead. */
   availableRoles: Array<{id: string; name: string}>;
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
+  defaultCodeReviewTriggers: CodeReviewTriggers[];
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
@@ -92,7 +99,6 @@ export interface Organization extends OrganizationSummary {
   targetSampleRate: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
-  autoOpenPrs?: boolean;
   defaultAutofixAutomationTuning?:
     | 'off'
     | 'super_low'

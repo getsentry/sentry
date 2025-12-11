@@ -2859,7 +2859,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.seer.autofix.utils.is_seer_scanner_rate_limited")
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.quotas.backend.check_seer_quota")
     @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
     @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
@@ -3301,7 +3301,7 @@ class TriageSignalsV0TestMixin(BasePostProgressGroupMixin):
 class SeerAutomationHelperFunctionsTestMixin(BasePostProgressGroupMixin):
     """Unit tests for is_issue_eligible_for_seer_automation."""
 
-    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner", return_value=True)
     @patch("sentry.features.has", return_value=True)
     def test_is_issue_eligible_for_seer_automation(

@@ -382,9 +382,16 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     if cached_value is not None:
         return cached_value
 
-    logger.info("Checking if seat-based Seer tier is enabled for organization=%s", organization.id)
     has_seat_based_seer = features.has("organizations:seat-based-seer-enabled", organization)
     cache.set(cache_key, has_seat_based_seer, timeout=60 * 60 * 4)  # 4 hours TTL
+    logger.info(
+        "Checking if seat-based Seer tier is enabled",
+        extra={
+            "org_id": organization.id,
+            "org_slug": organization.slug,
+            "has_seat_based_seer": has_seat_based_seer,
+        },
+    )
 
     return has_seat_based_seer
 
@@ -428,7 +435,7 @@ def is_issue_eligible_for_seer_automation(group: Group) -> bool:
     if not seer_enabled:
         return False
 
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
+    has_budget: bool = quotas.backend.check_seer_quota(
         org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
     )
     if not has_budget:

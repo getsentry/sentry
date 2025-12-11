@@ -14,6 +14,7 @@ import modifyColor from 'color';
 import {spring, type Transition} from 'framer-motion';
 
 import {color} from 'sentry/utils/theme/scraps/color';
+import {breakpoints, radius, size, space} from 'sentry/utils/theme/scraps/size';
 
 type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
 
@@ -424,19 +425,6 @@ type ButtonColors = Record<
   }
 >;
 
-type Breakpoint = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-type Breakpoints = Record<Breakpoint, string>;
-
-const breakpoints = {
-  '2xs': '0px',
-  xs: '500px',
-  sm: '800px',
-  md: '992px',
-  lg: '1200px',
-  xl: '1440px',
-  '2xl': '2560px',
-} as const satisfies Breakpoints;
-
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
 // @TODO: this needs to directly reference the icon direction
@@ -494,42 +482,6 @@ const iconSizes: Record<Size, string> = {
   '2xl': '72px',
 } as const;
 
-const space = {
-  '0': '0px',
-  /**
-   * Equivalent to deprecated `space(0.25)`
-   */
-  '2xs': '2px',
-  /**
-   * Equivalent to deprecated `space(0.5)`
-   */
-  xs: '4px',
-  /**
-   * Equivalent to deprecated `space(0.75)`
-   */
-  sm: '6px',
-  /**
-   * Equivalent to deprecated `space(1)`
-   */
-  md: '8px',
-  /**
-   * Equivalent to deprecated `space(1.5)`
-   */
-  lg: '12px',
-  /**
-   * Equivalent to deprecated `space(2)`
-   */
-  xl: '16px',
-  /**
-   * Equivalent to deprecated `space(3)` (was `20px`)
-   */
-  '2xl': '24px',
-  /**
-   * Equivalent to deprecated `space(4)` (was `30px`)
-   */
-  '3xl': '32px',
-} as const;
-
 /**
  * Values shared between light and dark theme
  */
@@ -537,6 +489,7 @@ const commonTheme = {
   breakpoints,
 
   space,
+  size,
   motion: generateMotion(),
 
   // Icons
@@ -1145,42 +1098,10 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
           hover: colorScheme.blue600,
           active: colorScheme.blue700,
         },
-        promotion: {
-          default: colorScheme.pink500,
-          hover: colorScheme.pink600,
-          active: colorScheme.pink700,
-        },
-        danger: {
-          default: colorScheme.red500,
-          hover: colorScheme.red600,
-          active: colorScheme.red700,
-        },
-        warning: {
-          default: colorScheme.yellow500,
-          hover: colorScheme.yellow600,
-          active: colorScheme.yellow700,
-        },
-        success: {
-          default: colorScheme.green500,
-          hover: colorScheme.green600,
-          active: colorScheme.green700,
-        },
       },
     },
   };
 }
-
-const radius = {
-  '0': '0px',
-  '2xs': '2px',
-  xs: '3px',
-  sm: '4px',
-  md: '6px',
-  lg: '8px',
-  xl: '12px',
-  '2xl': '16px',
-  full: 'calc(infinity*1px)',
-} as const;
 
 const lightColors = {
   black: color.black,
@@ -1197,49 +1118,49 @@ const lightColors = {
   gray600: color.neutral.light.opaque1200, // ⚠ link.muted.hover only
   gray500: color.neutral.light.opaque1100, // content.secondary, link.muted.default
   gray400: color.neutral.light.opaque1000, // graphics.muted
-  gray300: color.neutral.light.transparent300,
-  gray200: color.neutral.light.transparent200,
-  gray100: color.neutral.light.transparent100,
+  gray300: color.neutral.light.transparent400,
+  gray200: color.neutral.light.transparent300,
+  gray100: color.neutral.light.transparent200,
 
-  blue700: color.blue.light.opaque1400, // ⚠ link.accent.active only
-  blue600: color.blue.light.opaque1300, // ⚠ link.accent.hover only
-  blue500: color.blue.light.opaque1200, // content.accent, link.accent.default
+  blue700: color.blue.light.opaque1300, // ⚠ link.accent.active only
+  blue600: color.blue.light.opaque1200, // ⚠ link.accent.hover only
+  blue500: color.blue.light.opaque1100, // content.accent, link.accent.default
   blue400: color.blue.light.opaque1000, // graphics.muted, border.accent
-  blue300: color.blue.light.transparent300,
-  blue200: color.blue.light.transparent200,
-  blue100: color.blue.light.transparent100,
+  blue300: color.blue.light.transparent400,
+  blue200: color.blue.light.transparent300,
+  blue100: color.blue.light.transparent200,
 
   pink700: color.pink.light.opaque1300, // ⚠ link.promotion.active only
   pink600: color.pink.light.opaque1200, // ⚠ link.promotion.hover only
   pink500: color.pink.light.opaque1100, // content.promotion, link.promotion.default
   pink400: color.pink.light.opaque1000, // graphics.promotion, border.promotion
-  pink300: color.pink.light.transparent300,
-  pink200: color.pink.light.transparent200,
-  pink100: color.pink.light.transparent100,
+  pink300: color.pink.light.transparent400,
+  pink200: color.pink.light.transparent300,
+  pink100: color.pink.light.transparent200,
 
   red700: color.red.light.opaque1300, // ⚠ link.danger.active only
   red600: color.red.light.opaque1200, // ⚠ link.danger.hover only
   red500: color.red.light.opaque1100, // ⚠ content.danger, link.danger.default
   red400: color.red.light.opaque1000, // graphics.danger, border.danger
-  red300: color.red.light.transparent300,
-  red200: color.red.light.transparent200,
-  red100: color.red.light.transparent100,
+  red300: color.red.light.transparent400,
+  red200: color.red.light.transparent300,
+  red100: color.red.light.transparent200,
 
   yellow700: color.yellow.light.opaque1300, // ⚠ link.warning.active only
   yellow600: color.yellow.light.opaque1200, // ⚠ link.warning.hover only
   yellow500: color.yellow.light.opaque1100, // content.warning, link.warning.default
-  yellow400: color.yellow.light.opaque600, // graphics.warning, border.warning
-  yellow300: color.yellow.light.transparent300,
-  yellow200: color.yellow.light.transparent200,
-  yellow100: color.yellow.light.transparent100,
+  yellow400: color.yellow.light.opaque800, // graphics.warning, border.warning
+  yellow300: color.yellow.light.transparent400,
+  yellow200: color.yellow.light.transparent300,
+  yellow100: color.yellow.light.transparent200,
 
   green700: color.green.light.opaque1300, // ⚠ link.success.active only
   green600: color.green.light.opaque1200, // ⚠ link.success.hover only
   green500: color.green.light.opaque1100, // content.success, link.success.default
-  green400: color.green.light.opaque800, // graphics.success, border.success
-  green300: color.green.light.transparent300,
-  green200: color.green.light.transparent200,
-  green100: color.green.light.transparent100,
+  green400: color.green.light.opaque1000, // graphics.success, border.success
+  green300: color.green.light.transparent400,
+  green200: color.green.light.transparent300,
+  green100: color.green.light.transparent200,
 
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
@@ -1261,54 +1182,54 @@ const darkColors: Colors = {
   surface200: color.neutral.dark.opaque200, // border.muted
   surface100: color.neutral.dark.opaque100, // border.primary
 
-  gray800: color.neutral.dark.opaque1600, // content.primary
-  gray700: color.neutral.dark.opaque1300, // ⚠ link.muted.active only
-  gray600: color.neutral.dark.opaque1200, // ⚠ link.muted.hover only
-  gray500: color.neutral.dark.opaque1100, // content.secondary, link.muted.default
-  gray400: color.neutral.dark.opaque900, // // graphics.muted
-  gray300: color.neutral.dark.transparent800,
-  gray200: color.neutral.dark.transparent600,
-  gray100: color.neutral.dark.transparent400,
+  gray800: color.neutral.dark.opaque1500, // content.primary
+  gray700: color.neutral.dark.opaque1400, // ⚠ link.muted.active only
+  gray600: color.neutral.dark.opaque1300, // ⚠ link.muted.hover only
+  gray500: color.neutral.dark.opaque1200, // content.secondary, link.muted.default
+  gray400: color.neutral.dark.opaque1100, // // graphics.muted
+  gray300: color.neutral.dark.transparent400,
+  gray200: color.neutral.dark.transparent300,
+  gray100: color.neutral.dark.transparent200,
 
-  blue700: color.blue.dark.opaque1200, // ⚠ link.accent.active only
-  blue600: color.blue.dark.opaque1100, // ⚠ link.accent.hover only
-  blue500: color.blue.dark.opaque1000, // content.accent, link.accent.default
-  blue400: color.blue.dark.opaque900, // // graphics.accent, border.accent
-  blue300: color.blue.dark.transparent300,
-  blue200: color.blue.dark.transparent200,
-  blue100: color.blue.dark.transparent100,
+  blue700: color.blue.dark.opaque1400, // ⚠ link.accent.active only
+  blue600: color.blue.dark.opaque1300, // ⚠ link.accent.hover only
+  blue500: color.blue.dark.opaque1200, // content.accent, link.accent.default
+  blue400: color.blue.dark.opaque1100, // // graphics.accent, border.accent
+  blue300: color.blue.dark.transparent600,
+  blue200: color.blue.dark.transparent500,
+  blue100: color.blue.dark.transparent400,
 
-  pink700: color.pink.dark.opaque1300, // ⚠ link.promotion.active only
-  pink600: color.pink.dark.opaque1200, // ⚠ link.promotion.hover only
-  pink500: color.pink.dark.opaque1100, // content.promotion, link.promotion.default
-  pink400: color.pink.dark.opaque1000, // // graphics.promotion, border.promotion
-  pink300: color.pink.dark.transparent300,
-  pink200: color.pink.dark.transparent200,
-  pink100: color.pink.dark.transparent100,
+  pink700: color.pink.dark.opaque1400, // ⚠ link.promotion.active only
+  pink600: color.pink.dark.opaque1300, // ⚠ link.promotion.hover only
+  pink500: color.pink.dark.opaque1200, // content.promotion, link.promotion.default
+  pink400: color.pink.dark.opaque1100, // // graphics.promotion, border.promotion
+  pink300: color.pink.dark.transparent400,
+  pink200: color.pink.dark.transparent300,
+  pink100: color.pink.dark.transparent200,
 
-  red700: color.red.dark.opaque1200, // ⚠ link.danger.active only
-  red600: color.red.dark.opaque1100, // ⚠ link.danger.hover only
-  red500: color.red.dark.opaque1000, // content.danger, link.danger.default
-  red400: color.red.dark.opaque900, // // graphics.danger, border.danger
-  red300: color.red.dark.transparent300,
-  red200: color.red.dark.transparent200,
-  red100: color.red.dark.transparent100,
+  red700: color.red.dark.opaque1400, // ⚠ link.danger.active only
+  red600: color.red.dark.opaque1300, // ⚠ link.danger.hover only
+  red500: color.red.dark.opaque1200, // content.danger, link.danger.default
+  red400: color.red.dark.opaque1100, // // graphics.danger, border.danger
+  red300: color.red.dark.transparent400,
+  red200: color.red.dark.transparent300,
+  red100: color.red.dark.transparent200,
 
   yellow700: color.yellow.dark.opaque1500, // ⚠ link.warning.active only
   yellow600: color.yellow.dark.opaque1400, // ⚠ link.warning.hover only
   yellow500: color.yellow.dark.opaque1300, // content.warning, link.warning.default
   yellow400: color.yellow.dark.opaque1200, // graphics.warning, border.warning
-  yellow300: color.yellow.dark.transparent300,
-  yellow200: color.yellow.dark.transparent200,
-  yellow100: color.yellow.dark.transparent100,
+  yellow300: color.yellow.dark.transparent400,
+  yellow200: color.yellow.dark.transparent300,
+  yellow100: color.yellow.dark.transparent200,
 
-  green700: color.green.dark.opaque1400, // ⚠ link.success.active only
-  green600: color.green.dark.opaque1300, // ⚠ link.success.hover only
-  green500: color.green.dark.opaque1200, // content.success, link.success.default
-  green400: color.green.dark.opaque1100, // graphics.success, border.success
-  green300: color.green.dark.transparent600,
-  green200: color.green.dark.transparent500,
-  green100: color.green.dark.transparent400,
+  green700: color.green.dark.opaque1500, // ⚠ link.success.active only
+  green600: color.green.dark.opaque1400, // ⚠ link.success.hover only
+  green500: color.green.dark.opaque1300, // content.success, link.success.default
+  green400: color.green.dark.opaque1200, // graphics.success, border.success
+  green300: color.green.dark.transparent400,
+  green200: color.green.dark.transparent300,
+  green100: color.green.dark.transparent200,
 
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
@@ -1385,11 +1306,6 @@ const generateAliases = (
   tokens: ReturnType<typeof generateChonkTokens>,
   colors: typeof lightColors
 ) => ({
-  /**
-   * Heading text color
-   */
-  headingColor: tokens.content.primary,
-
   /**
    * Primary text color
    */
@@ -1517,11 +1433,6 @@ const generateAliases = (
   formPlaceholder: colors.gray300,
 
   /**
-   *
-   */
-  rowBackground: tokens.background.primary,
-
-  /**
    * Color of lines that flow across the background of the chart to indicate axes levels
    * (This should only be used for yAxis)
    */
@@ -1536,11 +1447,6 @@ const generateAliases = (
    * Color for the 'others' series in topEvent charts
    */
   chartOther: tokens.content.muted,
-
-  /**
-   * Hover color of the drag handle used in the content slider diff view.
-   */
-  diffSliderDragHandleHover: colors.blue500,
 
   /**
    * Default Progressbar color
@@ -1814,15 +1720,6 @@ const lightThemeDefinition = {
   ),
 
   colors: lightColors,
-
-  sidebar: {
-    background: lightAliases.background,
-    scrollbarThumbColor: '#A0A0A0',
-    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
-    gradient: lightAliases.background,
-    border: lightAliases.border,
-    superuser: '#880808',
-  },
 };
 
 /**
@@ -1871,15 +1768,6 @@ export const darkTheme: SentryTheme = {
   ),
 
   colors: darkColors,
-
-  sidebar: {
-    background: darkAliases.background,
-    scrollbarThumbColor: '#A0A0A0',
-    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
-    gradient: darkAliases.background,
-    border: darkAliases.border,
-    superuser: '#880808',
-  },
 };
 
 declare module '@emotion/react' {

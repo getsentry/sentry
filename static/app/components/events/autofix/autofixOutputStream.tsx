@@ -465,7 +465,7 @@ const StyledAnimatedSeerIcon = styled(IconSeer)`
   transition: opacity 0.2s ease;
   top: 0;
   flex-shrink: 0;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   z-index: 10000;
 `;
 
