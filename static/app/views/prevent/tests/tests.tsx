@@ -201,7 +201,7 @@ const MessageContainer = styled('div')`
   align-items: center;
   text-align: center;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space['3xl']};
 `;
 

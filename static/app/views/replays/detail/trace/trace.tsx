@@ -169,13 +169,13 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
 // This has the gray background, to match other loaders on Replay Details
 const StyledPlaceholder = styled(Placeholder)`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 // White background, to match the loaded component
 const BorderedSection = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const TraceViewWaterfallWrapper = styled('div')`

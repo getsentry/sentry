@@ -400,7 +400,7 @@ const Column = styled('div')`
 const Box = styled('div')<{padding?: string}>`
   border: 1px solid ${p => p.theme.border};
   padding: ${p => p.padding || space(2)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const Title = styled('label')`

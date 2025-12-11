@@ -226,7 +226,7 @@ const ThoughtsOverlay = styled('div')`
   right: ${space(2)};
   background: ${p => p.theme.backgroundElevated};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   z-index: ${p => p.theme.zIndex.tooltip};
   display: flex;

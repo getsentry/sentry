@@ -286,7 +286,7 @@ const innerWrapStyles = ({
   height: calc(
     ${theme.form.sm.height} + ${orientation === 'horizontal' ? space(0.75) : '0px'}
   );
-  border-radius: ${theme.borderRadius};
+  border-radius: ${theme.radius.md};
   transform: translateY(1px);
 
   ${orientation === 'horizontal'

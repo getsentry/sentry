@@ -369,7 +369,7 @@ const AvatarPreview = styled('div')`
   align-items: center;
   justify-content: center;
   padding: ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background-size: 20px 20px;
   background-position:
     0 0,

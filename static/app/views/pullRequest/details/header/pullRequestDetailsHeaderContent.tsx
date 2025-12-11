@@ -108,5 +108,5 @@ const GitHubAvatar = styled('img')`
 const BranchLabel = styled(Text)`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;

@@ -148,7 +148,7 @@ export const PlayerScrubber = styled(Scrubber)`
   height: ${space(0.5)};
 
   ${Meter} {
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     background: ${p => p.theme.translucentInnerBorder};
   }
 
@@ -166,7 +166,7 @@ export const PlayerScrubber = styled(Scrubber)`
 
   ${PlaybackTimeValue} {
     background: ${p => p.theme.purple200};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
 
     /**
      * Draw the circle (appears on hover) to mark the currentTime of the video
@@ -181,7 +181,7 @@ export const PlayerScrubber = styled(Scrubber)`
 
   ${MouseTrackingValue} {
     background: ${p => p.theme.translucentBorder};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
 
     /**
      * Draw a square so users can see their mouse position when it is left or right of the currentTime

@@ -126,7 +126,7 @@ const ListItem = styled('li')`
   font-variant-numeric: tabular-nums;
   background-color: transparent;
 
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid transparent;
 
   &[data-before='true'] {

@@ -273,7 +273,7 @@ const Left = styled('div')<{hasRight?: boolean}>`
 const Right = styled('div')`
   width: 60%;
   border: 1px solid ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 `;
 
@@ -283,14 +283,14 @@ const TreeContainer = styled('div')`
   overflow: hidden;
   background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border-top-left-radius: 0;
 `;
 
 const DetailsContainer = styled('div')`
   max-height: 30%;
   border: 1px solid ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: auto;
 `;
 
@@ -327,5 +327,5 @@ const DepthMarker = styled('div')<{depth: number}>`
 
 const EmptyStateContainer = styled('div')`
   border: 1px solid ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;

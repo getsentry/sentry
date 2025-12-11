@@ -35,7 +35,7 @@ const Message = styled('div')`
 
   padding: ${space(3)};
   background: ${p => p.theme.gray300};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.white};
   z-index: ${p => p.theme.zIndex.initial};
 `;

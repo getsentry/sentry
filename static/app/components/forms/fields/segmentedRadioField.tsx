@@ -99,7 +99,7 @@ const Container = styled('div')`
     grid-auto-flow: column;
   }
   overflow: hidden;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const shouldForwardProp = (p: PropertyKey) =>
@@ -127,12 +127,12 @@ const RadioItem = styled('label', {shouldForwardProp})<{
   }
 
   &:first-child {
-    border-top-left-radius: ${p => p.theme.borderRadius};
-    border-top-right-radius: ${p => p.theme.borderRadius};
+    border-top-left-radius: ${p => p.theme.radius.md};
+    border-top-right-radius: ${p => p.theme.radius.md};
   }
   &:last-child {
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
-    border-bottom-right-radius: ${p => p.theme.borderRadius};
+    border-bottom-left-radius: ${p => p.theme.radius.md};
+    border-bottom-right-radius: ${p => p.theme.radius.md};
   }
 
   &:nth-child(n + 2) {
@@ -146,11 +146,11 @@ const RadioItem = styled('label', {shouldForwardProp})<{
     }
     &:first-child {
       border-top-right-radius: 0;
-      border-bottom-left-radius: ${p => p.theme.borderRadius};
+      border-bottom-left-radius: ${p => p.theme.radius.md};
     }
     &:last-child {
       border-bottom-left-radius: 0;
-      border-top-right-radius: ${p => p.theme.borderRadius};
+      border-top-right-radius: ${p => p.theme.radius.md};
     }
   }
 

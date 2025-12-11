@@ -349,12 +349,12 @@ export default ArchiveActions;
 
 const ArchiveButton = styled(Button)`
   box-shadow: none;
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
 `;
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   border-left: none;
 `;
 

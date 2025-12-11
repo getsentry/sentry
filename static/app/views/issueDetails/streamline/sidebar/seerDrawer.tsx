@@ -421,7 +421,7 @@ const StyledCard = styled('div')`
   background: ${p => p.theme.backgroundElevated};
   overflow: visible;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(2)} ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
   transition: all 0.3s ease-in-out;

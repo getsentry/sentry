@@ -167,7 +167,7 @@ const AddEditContainer = styled('div')`
   padding: ${space(1)};
   width: 100%;
   background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const EditFormRow = styled('div')`

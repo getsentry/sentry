@@ -219,7 +219,7 @@ const LinkedIssue = styled(LinkButton)`
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
   border: ${p => (p.theme.isChonk ? 'none' : '1px solid ' + p.theme.border)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 `;
 
@@ -228,7 +228,7 @@ const IssueActionButton = styled(Button)`
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
   border: 1px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 `;
 
@@ -237,7 +237,7 @@ const IssueActionLinkButton = styled(LinkButton)`
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
   border: 1px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 `;
 
@@ -246,7 +246,7 @@ const IssueActionDropdownMenu = styled(DropdownButton)`
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
   border: 1px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 
   &[aria-expanded='true'] {

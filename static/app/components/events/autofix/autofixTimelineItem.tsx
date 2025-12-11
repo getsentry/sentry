@@ -170,7 +170,7 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   width: 100%;
   padding: ${space(0.25)};
   padding-right: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
   font-weight: ${p => p.theme.fontWeight.normal};
   gap: ${space(1)};

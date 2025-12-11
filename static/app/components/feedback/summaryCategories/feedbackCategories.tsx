@@ -196,5 +196,5 @@ const ClickableTag = styled(Tag)<{selected: boolean}>`
 const LoadingPlaceholder = styled(Placeholder)`
   height: 16px;
   width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;

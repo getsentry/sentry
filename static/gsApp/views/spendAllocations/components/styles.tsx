@@ -4,7 +4,7 @@ import {space} from 'sentry/styles/space';
 
 export const Card = styled('div')`
   background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px ${p => 'solid ' + p.theme.border};
   box-shadow: ${p => p.theme.dropShadowMedium};
   margin: ${space(2)} 0;

@@ -180,7 +180,7 @@ const Version = styled('small')`
 
 const SetupWizard = styled('div')`
   background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   padding: 40px 40px 20px;
   max-width: 1000px;

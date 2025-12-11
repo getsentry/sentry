@@ -89,7 +89,7 @@ const LearnMoreWrapper = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   padding: ${space(1.5)};
   border-top: 1px solid ${p => p.theme.innerBorder};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   overflow: hidden;
   background: linear-gradient(
     269.35deg,

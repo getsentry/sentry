@@ -58,12 +58,12 @@ const Option = styled('div')<{isSelected: boolean}>`
   &::before {
     height: calc(100% - ${p => p.theme.space['2xs']});
     background: ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
   }
 
   &::after {
     background: ${p => p.theme.background};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     border: 1px solid
       ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
   }

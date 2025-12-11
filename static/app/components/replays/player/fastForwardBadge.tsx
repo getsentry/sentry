@@ -34,7 +34,7 @@ const FastForwardTooltip = styled(Tooltip)`
   background: ${p => p.theme.gray300};
   color: ${p => p.theme.white};
   padding: ${space(1.5)} ${space(2)};
-  border-top-right-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.radius.md};
   z-index: ${p => p.theme.zIndex.initial};
 `;
 

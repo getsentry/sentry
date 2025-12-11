@@ -389,7 +389,7 @@ const NotificationActionFormContainer = styled('div')`
 `;
 
 const NotificationRecipientBadge = styled(Badge)`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   font-weight: ${p => p.theme.fontWeight.normal};
 `;
 

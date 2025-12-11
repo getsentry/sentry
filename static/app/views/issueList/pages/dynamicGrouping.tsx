@@ -1210,7 +1210,7 @@ const CardsColumn = styled('div')`
 const CardContainer = styled('div')`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -1283,7 +1283,7 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
   align-items: center;
   gap: ${space(0.5)};
   padding: ${space(0.5)} ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   font-size: ${p => p.theme.fontSize.xs};
 
   ${p => {
@@ -1387,7 +1387,7 @@ const IssuePreviewLink = styled(Link)`
   padding: ${space(1.5)} ${space(2)};
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   transition:
     border-color 0.15s ease,
     background 0.15s ease;
@@ -1455,7 +1455,7 @@ const TagPill = styled('span')`
   color: ${p => p.theme.subText};
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const InfoRow = styled('div')`
@@ -1489,7 +1489,7 @@ const ShowMoreButton = styled('button')`
   padding: ${space(2)} ${space(3)};
   background: ${p => p.theme.backgroundSecondary};
   border: 1px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.md};
   cursor: pointer;
@@ -1510,7 +1510,7 @@ const JsonInputContainer = styled('div')`
   padding: ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const CustomDataBadge = styled('div')`
@@ -1520,7 +1520,7 @@ const CustomDataBadge = styled('div')`
   padding: ${space(0.5)} ${space(1)};
   background: ${p => p.theme.yellow100};
   border: 1px solid ${p => p.theme.yellow300};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.yellow400};
 `;
 

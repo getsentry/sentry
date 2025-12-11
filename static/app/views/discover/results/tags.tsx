@@ -263,7 +263,7 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   height: 16px;
   margin-bottom: ${space(1.5)};
 `;

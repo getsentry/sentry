@@ -89,7 +89,7 @@ const Box = styled(motion.div)`
   height: 128px;
   background: ${p => p.theme.tokens.border.accent};
   border: 1px solid ${p => p.theme.tokens.border.accent};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 function Control({label, children}: React.PropsWithChildren<{label: string}>) {

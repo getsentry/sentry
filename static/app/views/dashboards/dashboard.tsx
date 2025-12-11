@@ -467,7 +467,7 @@ const GridLayout = styled(WidthProvider(Responsive))`
 
   .react-grid-item.react-grid-placeholder {
     background: ${p => p.theme.purple200};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
   }
 `;
 

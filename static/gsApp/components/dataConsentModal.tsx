@@ -182,7 +182,7 @@ const ConsentHeader = styled('p')`
 
 const ConsentInfo = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding-top: ${space(1.5)};
   padding-bottom: ${space(1.5)};
 `;
@@ -234,7 +234,7 @@ const LearnMore = styled(ExternalLink)`
 
 const ImageHeader = styled('div')`
   margin: -${space(4)} -${space(4)} 0 -${space(4)};
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   background-image: url(${missionControl});
   background-size: cover;
   background-repeat: no-repeat;

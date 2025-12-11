@@ -117,7 +117,7 @@ const IllustrationContainer = styled('img')`
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
     display: block;
-    border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+    border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
     pointer-events: none;
     flex-grow: 1;
   }

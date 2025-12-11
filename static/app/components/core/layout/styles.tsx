@@ -102,7 +102,7 @@ function resolveRadius(sizeComponent: RadiusSize | undefined, theme: Theme) {
     return undefined;
   }
 
-  return isChonkTheme(theme) ? theme.radius[sizeComponent] : theme.borderRadius;
+  return isChonkTheme(theme) ? theme.radius[sizeComponent] : theme.radius.md;
 }
 
 function resolveSpacing(sizeComponent: SpacingSize, theme: Theme) {

@@ -440,7 +440,7 @@ const StyledNavItem = styled(Link)<ItemProps>`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.normal};
   line-height: 177.75%;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   gap: ${space(0.75)};
 
   &:focus-visible {

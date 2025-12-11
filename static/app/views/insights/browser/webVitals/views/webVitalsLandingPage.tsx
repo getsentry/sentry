@@ -200,7 +200,7 @@ const LoadingBox = styled('div')`
   min-width: 140px;
   height: 90px;
   background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const PagesTooltip = styled('span')`

@@ -480,15 +480,15 @@ const SubContent = styled('div')`
   &[data-is-first-column] > div {
     margin-left: -${space(1)};
     padding-left: ${space(1)};
-    border-top-left-radius: ${p => p.theme.borderRadius};
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
+    border-top-left-radius: ${p => p.theme.radius.md};
+    border-bottom-left-radius: ${p => p.theme.radius.md};
   }
 
   &[data-is-last-column] > div {
     margin-right: -${space(1)};
     padding-right: ${space(1)};
-    border-top-right-radius: ${p => p.theme.borderRadius};
-    border-bottom-right-radius: ${p => p.theme.borderRadius};
+    border-top-right-radius: ${p => p.theme.radius.md};
+    border-bottom-right-radius: ${p => p.theme.radius.md};
   }
 `;
 
@@ -536,7 +536,7 @@ const TableHeader = styled(TableRowWrapper)`
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   background: ${p => p.theme.backgroundSecondary};
   white-space: nowrap;
   line-height: 1;

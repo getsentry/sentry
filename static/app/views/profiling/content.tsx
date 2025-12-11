@@ -429,7 +429,7 @@ const LandingAggregateFlamegraphContainer = styled('div')`
   height: 100%;
   position: relative;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledLayoutHeader = styled(Layout.Header)`

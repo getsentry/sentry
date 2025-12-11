@@ -719,7 +719,7 @@ const Ghost = styled('div')`
   display: block;
   position: absolute;
   padding: ${GHOST_PADDING}px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   width: 710px;
   opacity: 0.8;
@@ -745,7 +745,7 @@ const OnDemandContainer = styled('div')`
 const DragPlaceholder = styled('div')`
   margin: 0 ${space(3)} ${space(1)} ${space(3)};
   border: 2px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   height: ${p => p.theme.form.md.height};
 `;
 

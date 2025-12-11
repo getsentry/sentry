@@ -263,7 +263,7 @@ const Wrapper = styled('div')`
 
 const ContentPanel = styled(Panel)<{hideIcon?: boolean}>`
   position: relative;
-  border-top-left-radius: ${p => (p.hideIcon ? p.theme.borderRadius : 0)};
+  border-top-left-radius: ${p => (p.hideIcon ? p.theme.radius.md : 0)};
   overflow: hidden;
 `;
 

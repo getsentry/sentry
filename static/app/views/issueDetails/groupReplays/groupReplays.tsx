@@ -323,7 +323,7 @@ const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
     p.hasStreamlinedUI &&
     css`
       border: 1px solid ${p.theme.border};
-      border-radius: ${p.theme.borderRadius};
+      border-radius: ${p.theme.radius.md};
       padding: ${space(1.5)};
     `}
 `;

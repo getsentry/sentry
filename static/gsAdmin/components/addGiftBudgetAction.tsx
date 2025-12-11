@@ -202,7 +202,7 @@ const BudgetCard = styled('div')<{isSelected: boolean}>`
   padding: ${space(2)};
   margin: ${space(1)} 0;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background-color: ${p => (p.isSelected ? p.theme.surface100 : 'transparent')};
   cursor: pointer;
 `;

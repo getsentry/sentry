@@ -187,7 +187,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
               fontFamily: 'monospace',
               backgroundColor: theme.gray100,
               padding: theme.space.xs,
-              borderRadius: theme.borderRadius,
+              borderRadius: theme.radius.md,
             }}
           >
             {props.searchQuery}
@@ -432,7 +432,7 @@ const ButtonContainer = styled(Flex)`
     max-height: 20px;
     padding: 0 ${space(0.5)};
     background: rgba(0, 0, 0, 0.8);
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     box-shadow: ${p => p.theme.dropShadowMedium};
 
     &:hover {

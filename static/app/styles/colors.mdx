@@ -95,13 +95,13 @@ export const PalettePanelItem = styled(PanelItem)`
   gap: ${space(0.5)};
 
 &:first-child {
-border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
 }
 &:last-child {
-border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
 }
 &:first-child:last-child {
-border-radius: ${p => p.theme.borderRadius};
+border-radius: ${p => p.theme.radius.md};
 }
 
 background: ${p => p.theme[p.color]};
@@ -110,7 +110,7 @@ color: ${p => p.theme[p.text]};
 
 export const ExampleImg = styled('img')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   max-width: 400px;
 `;
 

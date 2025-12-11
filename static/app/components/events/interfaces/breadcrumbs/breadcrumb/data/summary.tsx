@@ -64,7 +64,7 @@ const Wrapper = styled('div')`
 const ContextDataWrapper = styled('div')`
   padding: ${space(1)};
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 
   pre {

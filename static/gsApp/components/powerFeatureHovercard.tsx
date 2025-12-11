@@ -139,7 +139,7 @@ const LearnMoreTextBody = styled('div')`
 
 const StyledHovercard = styled(Hovercard)`
   width: auto;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   .power-icon {
     padding: 0;
     align-items: center;

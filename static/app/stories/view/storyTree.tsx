@@ -619,7 +619,7 @@ const FolderName = styled('div')`
     inset: 0 ${p => p.theme.space['2xs']} 0 -${p => p.theme.space['2xs']};
     position: absolute;
     z-index: -1;
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     opacity: 0;
   }
 
@@ -650,7 +650,7 @@ const FolderLink = styled(Link, {
     inset: 0 ${p => p.theme.space.md} 0 -${p => p.theme.space['2xs']};
     position: absolute;
     z-index: -1;
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     opacity: ${p => (p.active ? 1 : 0)};
     transition: none;
   }
@@ -662,7 +662,7 @@ const FolderLink = styled(Link, {
     height: 20px;
     background: ${p => p.theme.tokens.graphics.accent};
     width: 4px;
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     opacity: ${p => (p.active ? 1 : 0)};
     transition: none;
   }

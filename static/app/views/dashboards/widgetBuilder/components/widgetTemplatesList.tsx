@@ -154,7 +154,7 @@ const TemplateCard = styled('div')<{selected: boolean}>`
   gap: ${space(1.5)};
   padding: ${space(2)};
   border: none;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background-color: ${p => (p.selected ? p.theme.purple100 : p.theme.background)};
   margin: ${p => (p.selected ? space(2) : space(0.5))} 0px;
 
@@ -190,7 +190,7 @@ const IconWrapper = styled('div')<{backgroundColor: string}>`
   padding: ${space(1)};
   min-width: 40px;
   height: 40px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background: ${p => p.backgroundColor};
 `;
 

@@ -443,7 +443,7 @@ const ListItemContainer = styled('div')<{
   gap: ${p => p.theme.space.md};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xs};
   padding-left: ${p => (p.indent ? p.indent * 16 : 4)}px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
   background-color: ${p =>
     p.isSelected ? p.theme.backgroundSecondary : p.theme.background};
@@ -489,7 +489,7 @@ const TransactionButton = styled('button')`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   margin-top: ${p => p.theme.space.md};
   gap: ${p => p.theme.space.xs};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background: transparent;
   border: none;
   outline: none;
