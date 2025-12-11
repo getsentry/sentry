@@ -6,6 +6,7 @@ import {useAutomationBuilderErrorContext} from 'sentry/views/automations/compone
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
+// TODO(ID-1141): Data should live in issueTypeConfig/index.tsx or types/group.tsx
 enum GroupCategory {
   ERROR = 1,
   FEEDBACK = 6,
@@ -15,6 +16,7 @@ enum GroupCategory {
   HTTP_CLIENT = 13,
   FRONTEND = 14,
   MOBILE = 15,
+  PREPROD = 17,
 }
 
 const GROUP_CATEGORY_CHOICES = [
@@ -26,6 +28,7 @@ const GROUP_CATEGORY_CHOICES = [
   {value: GroupCategory.HTTP_CLIENT, label: 'http_client'},
   {value: GroupCategory.FRONTEND, label: 'frontend'},
   {value: GroupCategory.MOBILE, label: 'mobile'},
+  {value: GroupCategory.PREPROD, label: 'preprod'},
 ];
 
 export function IssueCategoryDetails({condition}: {condition: DataCondition}) {
