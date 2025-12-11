@@ -1,6 +1,7 @@
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Any, Final
 
 import sentry_sdk
@@ -12,7 +13,11 @@ from sentry.notifications.platform.metrics import (
     NotificationInteractionType,
 )
 from sentry.notifications.platform.provider import NotificationProvider
-from sentry.notifications.platform.registry import provider_registry, template_registry
+from sentry.notifications.platform.registry import (
+    notification_data_registry,
+    provider_registry,
+    template_registry,
+)
 from sentry.notifications.platform.target import NotificationTargetDto
 from sentry.notifications.platform.types import (
     NotificationData,
@@ -132,8 +137,9 @@ class NotificationService[T: NotificationData]:
 
         for target in targets:
             serialized_target = NotificationTargetDto(target=target)
+            serialzied_data = NotificationDataDto(notification_data=self.data).to_dict()
             notify_target_async.delay(
-                data=self.data,
+                data=serialzied_data,
                 nested_target=serialized_target.to_dict(),
             )
 
@@ -192,9 +198,9 @@ class NotificationService[T: NotificationData]:
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
-def notify_target_async[T: NotificationData](
+def notify_target_async(
     *,
-    data: T,
+    data: dict[str, Any],
     nested_target: dict[str, Any],
 ) -> None:
     """
@@ -202,9 +208,12 @@ def notify_target_async[T: NotificationData](
     NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
             using this method directly to prevent unwanted noise associated with your notifications.
     """
+    notification_data_dto = NotificationDataDto.from_dict(data)
+    notification_data = notification_data_dto.notification_data
+
     lifecycle_metric = NotificationEventLifecycleMetric(
         interaction_type=NotificationInteractionType.NOTIFY_TARGET_ASYNC,
-        notification_source=data.source,
+        notification_source=notification_data.source,
     )
 
     with lifecycle_metric.capture() as lifecycle:
@@ -212,18 +221,18 @@ def notify_target_async[T: NotificationData](
         serialized_target = NotificationTargetDto.from_dict(nested_target)
         target = serialized_target.target
         lifecycle_metric.notification_provider = target.provider_key
-        lifecycle.add_extras({"source": data.source, "target": target.to_dict()})
+        lifecycle.add_extras({"source": notification_data.source, "target": target.to_dict()})
 
         # Step 2: Get the provider, and validate the target against it
         provider = provider_registry.get(target.provider_key)
         provider.validate_target(target=target)
 
         # Step 3: Render the template
-        template_cls = template_registry.get(data.source)
+        template_cls = template_registry.get(notification_data.source)
         template = template_cls()
         lifecycle_metric.notification_category = template.category
         renderable = NotificationService.render_template(
-            data=data, template=template, provider=provider
+            data=notification_data, template=template, provider=provider
         )
 
         # Step 4: Send the notification
@@ -233,3 +242,29 @@ def notify_target_async[T: NotificationData](
             lifecycle.record_halt(halt_reason=e, create_issue=False)
         except Exception as e:
             lifecycle.record_failure(failure_reason=e, create_issue=True)
+
+
+@dataclass
+class NotificationDataDto:
+    """
+    A wrapper class that handles serialization/deserialization of NotificationData.
+    """
+
+    notification_data: NotificationData
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "source": self.notification_data.source,
+            "data": self.notification_data.__dict__,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "NotificationDataDto":
+        source = data.get("source")
+        if source is None:
+            raise NotificationServiceError("Source is required")
+
+        notification_data_cls = notification_data_registry.get(source)
+        notification_fields = data.get("data", {})
+        notification_data = notification_data_cls(**notification_fields)
+        return cls(notification_data=notification_data)
