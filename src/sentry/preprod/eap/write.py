@@ -21,7 +21,6 @@ def write_preprod_size_metric_to_eap(
     size_metric: PreprodArtifactSizeMetrics,
     organization_id: int,
     project_id: int,
-    timestamp: datetime | None = None,
 ) -> None:
     """
     Write a PreprodArtifactSizeMetrics to EAP as a TRACE_ITEM_TYPE_PREPROD trace item.
@@ -29,11 +28,8 @@ def write_preprod_size_metric_to_eap(
     NOTE: EAP is append-only, so this function should only be called after the size metric has been successfully committed
     since we cannot update fields later on.
     """
-    if timestamp is None:
-        timestamp = size_metric.date_added
-
     proto_timestamp = Timestamp()
-    proto_timestamp.FromDatetime(timestamp)
+    proto_timestamp.FromDatetime(size_metric.date_added)
 
     received = Timestamp()
     received.FromDatetime(size_metric.date_added)
