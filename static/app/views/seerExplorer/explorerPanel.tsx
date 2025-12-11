@@ -361,7 +361,8 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       if (e.key === 'Escape' && isPolling && !interruptRequested) {
         e.preventDefault();
         interruptRun();
-      } else if (e.key === 'Escape') {
+      } else if (e.key === 'Escape' && !isFileApprovalPending) {
+        // Don't minimize if file approval is pending (Escape is used to reject)
         e.preventDefault();
         setIsMinimized(true);
       } else if (isPrintableChar) {
@@ -559,8 +560,9 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         onClear={() => setInputValue('')}
         onInputChange={handleInputChange}
         onInputClick={handleInputClick}
-        textAreaRef={textareaRef}
+        onInterrupt={interruptRun}
         onKeyDown={handleInputKeyDown}
+        textAreaRef={textareaRef}
         fileApprovalActions={
           isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
             ? {
