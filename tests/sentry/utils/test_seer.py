@@ -1,8 +1,8 @@
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.seer.utils import can_use_prevent_ai_features
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.seer import can_use_prevent_ai_features
 
 
 @region_silo_test

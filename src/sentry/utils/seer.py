@@ -1,5 +1,3 @@
-"""Shared utilities for Seer AI features."""
-
 from sentry import features
 from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, HIDE_AI_FEATURES_DEFAULT
 from sentry.models.organization import Organization

@@ -22,8 +22,8 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.prevent.models import PreventAIConfiguration
 from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT, PREVENT_AI_CONFIG_DEFAULT_V1
-from sentry.seer.utils import can_use_prevent_ai_features
 from sentry.silo.base import SiloMode
+from sentry.utils.seer import can_use_prevent_ai_features
 
 logger = logging.getLogger(__name__)
 

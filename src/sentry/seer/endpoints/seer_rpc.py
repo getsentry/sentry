@@ -98,13 +98,13 @@ from sentry.seer.explorer.tools import (
 )
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
-from sentry.seer.utils import can_use_prevent_ai_features
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.env import in_test_environment
+from sentry.utils.seer import can_use_prevent_ai_features
 from sentry.utils.snuba_rpc import table_rpc
 
 logger = logging.getLogger(__name__)
