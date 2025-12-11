@@ -198,6 +198,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/audit-logs/'
   | '/organizations/$organizationIdOrSlug/auth-provider/'
   | '/organizations/$organizationIdOrSlug/auth-providers/'
+  | '/organizations/$organizationIdOrSlug/autofix/automation-settings/'
   | '/organizations/$organizationIdOrSlug/available-actions/'
   | '/organizations/$organizationIdOrSlug/avatar/'
   | '/organizations/$organizationIdOrSlug/broadcasts/'
