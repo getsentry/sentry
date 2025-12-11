@@ -4,6 +4,7 @@ from django.conf import settings
 from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
+from sentry import features
 from sentry.conf.server import (
     SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
     SEER_ANOMALY_DETECTION_ENDPOINT_URL,
@@ -173,11 +174,15 @@ def get_anomaly_data_from_seer(
         return None
 
     # Adjust timestamps to be one time window behind for data points after detector creation
-    _adjust_timestamps_for_time_window(
-        data_points=ts,
-        time_window_seconds=snuba_query.time_window,
-        detector_created_at=subscription.date_added.timestamp(),
-    )
+    if features.has(
+        "organizations:anomaly-detection-threshold-data",
+        subscription.project.organization,
+    ):
+        _adjust_timestamps_for_time_window(
+            data_points=ts,
+            time_window_seconds=snuba_query.time_window,
+            detector_created_at=subscription.date_added.timestamp(),
+        )
     return ts
 
 
@@ -245,10 +250,14 @@ def get_anomaly_threshold_data_from_seer(
     data = results.get("data")
     if data:
         # Adjust timestamps to be one time window behind for data points after detector creation
-        snuba_query: SnubaQuery = subscription.snuba_query
-        _adjust_timestamps_for_time_window(
-            data_points=data,
-            time_window_seconds=snuba_query.time_window,
-            detector_created_at=subscription.date_added.timestamp(),
-        )
+        if features.has(
+            "organizations:anomaly-detection-threshold-data",
+            subscription.project.organization,
+        ):
+            snuba_query: SnubaQuery = subscription.snuba_query
+            _adjust_timestamps_for_time_window(
+                data_points=data,
+                time_window_seconds=snuba_query.time_window,
+                detector_created_at=subscription.date_added.timestamp(),
+            )
     return data
