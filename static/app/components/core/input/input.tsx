@@ -55,9 +55,9 @@ const legacyInputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   display: block;
   width: 100%;
   color: ${p.theme.gray400};
-  background: ${p.theme.background};
+  background: ${p.theme.tokens.background.primary};
   border: 1px solid ${p.theme.border};
-  border-radius: ${p.theme.borderRadius};
+  border-radius: ${p.theme.radius.md};
   box-shadow: inset ${p.theme.dropShadowMedium};
   resize: vertical;
   transition:
@@ -67,8 +67,14 @@ const legacyInputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   ${p.monospace ? `font-family: ${p.theme.text.familyMono};` : ''}
   ${p.readOnly ? 'cursor: default;' : ''}
 
-  ${p.theme.form[p.size ?? 'md']}
-  ${p.theme.formPadding[p.size ?? 'md']}
+  font-size: ${p.theme.form[p.size ?? 'md'].fontSize};
+  height: ${p.theme.form[p.size ?? 'md'].height};
+  line-height: ${p.theme.form[p.size ?? 'md'].lineHeight};
+  min-height: ${p.theme.form[p.size ?? 'md'].minHeight};
+  padding-bottom: ${p.theme.form[p.size ?? 'md'].paddingBottom};
+  padding-left: ${p.theme.form[p.size ?? 'md'].paddingLeft};
+  padding-right: ${p.theme.form[p.size ?? 'md'].paddingRight};
+  padding-top: ${p.theme.form[p.size ?? 'md'].paddingTop};
 
   &::placeholder {
     color: ${p.theme.formPlaceholder};
@@ -77,7 +83,7 @@ const legacyInputStyles = (p: InputStylesProps & {theme: Theme}) => css`
 
   &[disabled],
   &[aria-disabled='true'] {
-    background: ${p.theme.background};
+    background: ${p.theme.tokens.background.primary};
     color: ${p.theme.disabled};
     cursor: not-allowed;
 

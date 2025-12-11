@@ -142,8 +142,8 @@ const Wrapper = styled('div')`
   grid-template-rows: 38px 1fr;
   flex: 1 1 100%;
   min-height: 0;
-  background-color: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
 `;
 

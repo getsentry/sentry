@@ -181,10 +181,10 @@ const ExploreParamTitle = styled('span')`
 
 const ExploreVisualizes = styled('span')`
   font-size: ${p => p.theme.form.sm.fontSize};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${space(0.25)} ${space(0.5)};
   border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   height: 24px;
   overflow: hidden;
   white-space: nowrap;

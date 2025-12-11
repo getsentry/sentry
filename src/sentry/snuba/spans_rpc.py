@@ -233,47 +233,48 @@ class Spans(rpc_dataset_common.RPCBase):
         MAX_TIMEOUT = options.get("performance.traces.pagination.max-timeout")
         for _ in range(MAX_ITERATIONS):
             response = snuba_rpc.get_trace_rpc(request)
-            columns_by_name = {col.proto_definition.name: col for col in columns}
-            for item_group in response.item_groups:
-                for span_item in item_group.items:
-                    span: dict[str, Any] = {
-                        "id": span_item.id,
-                        "children": [],
-                        "errors": [],
-                        "occurrences": [],
-                        "event_type": "span",
-                    }
-                    for attribute in span_item.attributes:
-                        resolved_column = columns_by_name[attribute.key.name]
-                        if resolved_column.proto_definition.type == STRING:
-                            span[resolved_column.public_alias] = attribute.value.val_str
-                        elif resolved_column.proto_definition.type == DOUBLE:
-                            span[resolved_column.public_alias] = attribute.value.val_double
-                        elif resolved_column.search_type == "boolean":
-                            span[resolved_column.public_alias] = (
-                                attribute.value.val_bool or attribute.value.val_int == 1
-                            )
-                        elif resolved_column.proto_definition.type == BOOLEAN:
-                            span[resolved_column.public_alias] = attribute.value.val_bool
-
-                        elif resolved_column.proto_definition.type == INT:
-                            span[resolved_column.public_alias] = attribute.value.val_int
-                            if resolved_column.public_alias == "project.id":
-                                span["project.slug"] = resolver.params.project_id_map.get(
-                                    span[resolved_column.public_alias], "Unknown"
+            with sentry_sdk.start_span(op="process.rpc_response"):
+                columns_by_name = {col.proto_definition.name: col for col in columns}
+                for item_group in response.item_groups:
+                    for span_item in item_group.items:
+                        span: dict[str, Any] = {
+                            "id": span_item.id,
+                            "children": [],
+                            "errors": [],
+                            "occurrences": [],
+                            "event_type": "span",
+                        }
+                        for attribute in span_item.attributes:
+                            resolved_column = columns_by_name[attribute.key.name]
+                            if resolved_column.proto_definition.type == STRING:
+                                span[resolved_column.public_alias] = attribute.value.val_str
+                            elif resolved_column.proto_definition.type == DOUBLE:
+                                span[resolved_column.public_alias] = attribute.value.val_double
+                            elif resolved_column.search_type == "boolean":
+                                span[resolved_column.public_alias] = (
+                                    attribute.value.val_bool or attribute.value.val_int == 1
                                 )
-                    spans.append(span)
-            if response.page_token.end_pagination:
-                break
-            if MAX_TIMEOUT > 0 and time.time() - start_time > MAX_TIMEOUT:
-                # If timeout is not set then logging this is not helpful
-                rpc_dataset_common.log_rpc_request(
-                    "running a trace query timed out while paginating",
-                    request,
-                    logger,
-                )
-                break
-            request.page_token.CopyFrom(response.page_token)
+                            elif resolved_column.proto_definition.type == BOOLEAN:
+                                span[resolved_column.public_alias] = attribute.value.val_bool
+
+                            elif resolved_column.proto_definition.type == INT:
+                                span[resolved_column.public_alias] = attribute.value.val_int
+                                if resolved_column.public_alias == "project.id":
+                                    span["project.slug"] = resolver.params.project_id_map.get(
+                                        span[resolved_column.public_alias], "Unknown"
+                                    )
+                        spans.append(span)
+                if response.page_token.end_pagination:
+                    break
+                if MAX_TIMEOUT > 0 and time.time() - start_time > MAX_TIMEOUT:
+                    # If timeout is not set then logging this is not helpful
+                    rpc_dataset_common.log_rpc_request(
+                        "running a trace query timed out while paginating",
+                        request,
+                        logger,
+                    )
+                    break
+                request.page_token.CopyFrom(response.page_token)
         return spans
 
     @classmethod
