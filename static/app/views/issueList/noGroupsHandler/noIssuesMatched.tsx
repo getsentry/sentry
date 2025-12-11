@@ -28,10 +28,10 @@ function NoIssuesMatched() {
         <Tips>
           <li>{t('Double check your project, environment, and date filters')}</li>
           <li>
-            {tct('Make sure your search has the right syntax. [link]', {
+            {tct('Make sure your search has the [link].', {
               link: (
                 <ExternalLink href="https://docs.sentry.io/concepts/search/">
-                  {t('Learn more')}
+                  {t('right syntax')}
                 </ExternalLink>
               ),
             })}
@@ -86,6 +86,18 @@ function NoIssuesMatched() {
             </li>
           )}
         </Tips>
+        <div>
+          {tct(
+            'Still not seeing issues? Can we interest you in some raw telemetry, like [logsLink], instead?',
+            {
+              logsLink: (
+                <ExternalLink href="http://sentry.io/orgredirect/explore/logs">
+                  {t('logs')}
+                </ExternalLink>
+              ),
+            }
+          )}
+        </div>
       </MessageContainer>
     </Wrapper>
   );
