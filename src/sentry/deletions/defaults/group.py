@@ -63,6 +63,8 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupBookmark,
     models.GroupMeta,
     models.GroupEnvironment,
+    # Activity should be deleted before GroupOpenPeriod because GroupOpenPeriod has a foreign key to Activity
+    models.Activity,
     models.GroupOpenPeriod,
     models.GroupRelease,
     models.GroupRedirect,
@@ -76,7 +78,6 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupEmailThread,
     models.GroupSubscription,
     models.GroupReaction,
-    models.Activity,
     RuleFireHistory,
 )
 
