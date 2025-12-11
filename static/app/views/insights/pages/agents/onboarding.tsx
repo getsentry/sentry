@@ -40,6 +40,18 @@ import useProjects from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 
+// Full-stack JS frameworks that support Vercel AI SDK (they have server-side capabilities)
+const fullStackJsPlatforms = [
+  'javascript-astro',
+  'javascript-nextjs',
+  'javascript-nuxt',
+  'javascript-react-router',
+  'javascript-remix',
+  'javascript-solidstart',
+  'javascript-sveltekit',
+  'javascript-tanstackstart-react',
+];
+
 function useOnboardingProject() {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
@@ -210,6 +222,10 @@ export function Onboarding() {
 
   // Local integration options for Agent Monitoring only
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
+  const isNodePlatform = (project?.platform ?? '').startsWith('node');
+  const isFullStackJsPlatform = fullStackJsPlatforms.includes(project?.platform ?? '');
+  const hasVercelAI = isNodePlatform || isFullStackJsPlatform;
+
   const integrationOptions = {
     integration: {
       label: t('Integration'),
@@ -226,7 +242,7 @@ export function Onboarding() {
             {label: 'Other', value: 'manual'},
           ]
         : [
-            {label: 'Vercel AI SDK', value: 'vercel_ai'},
+            ...(hasVercelAI ? [{label: 'Vercel AI SDK', value: 'vercel_ai'}] : []),
             {label: 'OpenAI SDK', value: 'openai'},
             {label: 'Anthropic SDK', value: 'anthropic'},
             {label: 'Google Gen AI SDK', value: 'google_genai'},

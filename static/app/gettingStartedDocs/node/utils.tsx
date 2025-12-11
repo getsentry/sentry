@@ -85,9 +85,12 @@ export function getInstallCodeBlock(
 
 function getImport(
   packageName: `@sentry/${string}`,
-  defaultMode?: 'esm' | 'cjs'
+  importMode?: 'esm' | 'cjs' | 'esm-only'
 ): string[] {
-  return defaultMode === 'esm'
+  if (importMode === 'esm-only') {
+    return [`import * as Sentry from "${packageName}";`];
+  }
+  return importMode === 'esm'
     ? [
         `// Import with \`const Sentry = require("${packageName}");\` if you are using CJS`,
         `import * as Sentry from "${packageName}"`,
@@ -311,8 +314,10 @@ Sentry.profiler.stopProfiler();
 export const getNodeAgentMonitoringOnboarding = ({
   packageName = '@sentry/node',
   configFileName,
+  importMode,
 }: {
   configFileName?: string;
+  importMode?: 'esm' | 'cjs' | 'esm-only';
   packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
   install: params => [
@@ -322,7 +327,7 @@ export const getNodeAgentMonitoringOnboarding = ({
         {
           type: 'text',
           text: tct(
-            'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.14.0].',
+            'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.28.0].',
             {
               code: <code />,
             }
@@ -354,7 +359,7 @@ export const getNodeAgentMonitoringOnboarding = ({
           {
             label: configFileName ? configFileName : 'JavaScript',
             language: 'javascript',
-            code: `${getImport(packageName).join('\n')}
+            code: `${getImport(packageName, importMode).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -421,7 +426,7 @@ const result = await generateText({
           {
             label: 'JavaScript',
             language: 'javascript',
-            code: `${getImport(packageName).join('\n')}
+            code: `${getImport(packageName, importMode).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -455,7 +460,7 @@ Sentry.init({
           {
             label: 'JavaScript',
             language: 'javascript',
-            code: `${getImport(packageName).join('\n')}
+            code: `${getImport(packageName, importMode).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -489,7 +494,7 @@ Sentry.init({
           {
             label: 'JavaScript',
             language: 'javascript',
-            code: `${getImport(packageName).join('\n')}
+            code: `${getImport(packageName, importMode).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -523,7 +528,7 @@ Sentry.init({
           {
             label: 'JavaScript',
             language: 'javascript',
-            code: `${getImport(packageName).join('\n')}
+            code: `${getImport(packageName, importMode).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -557,7 +562,7 @@ Sentry.init({
           {
             label: 'JavaScript',
             language: 'javascript',
-            code: `${getImport(packageName).join('\n')}
+            code: `${getImport(packageName, importMode).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -588,7 +593,7 @@ Sentry.init({
           {
             label: 'JavaScript',
             language: 'javascript',
-            code: `${getImport(packageName).join('\n')}
+            code: `${getImport(packageName, importMode).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
