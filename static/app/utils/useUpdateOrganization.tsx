@@ -55,7 +55,7 @@ export function useUpdateOrganization(organization: Organization) {
       return fetchMutation<Organization>({
         method: 'PUT',
         url: `/organizations/${organization.slug}/`,
-        data: {...data},
+        data,
       });
     },
     onError: (_error, _variables, context) => {
