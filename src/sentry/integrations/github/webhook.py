@@ -813,7 +813,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                         contributor.num_actions += 1
                         contributor.date_updated = django_timezone.now()
                         is_active = (
-                            contributor.num_actions == ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
+                            contributor.num_actions >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
                         )
                         contributor.save(update_fields=["num_actions", "date_updated"])
 
