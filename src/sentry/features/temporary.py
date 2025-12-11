@@ -539,17 +539,13 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:visibility-explore-range-medium", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Update action status when integration is installed/deleted
     manager.add("organizations:update-action-status", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable processing activity updates in workflow engine
-    manager.add("organizations:workflow-engine-process-activity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable single processing through workflow engine for issue alerts
     manager.add("organizations:workflow-engine-single-process-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable logging to debug workflow engine process workflows
     manager.add("organizations:workflow-engine-process-workflows-logs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable logging workflow evaluations (bypasses sample rate when enabled)
     manager.add("organizations:workflow-engine-log-evaluations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable firing actions for workflow engine issue alerts
-    manager.add("organizations:workflow-engine-trigger-actions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable logs to debug metric alert dual processing
+    # Enable logs to debug various metric issue things
     manager.add("organizations:workflow-engine-metric-alert-dual-processing-logs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Creation of Metric Alerts that use the `group_by` field in the workflow_engine
     manager.add("organizations:workflow-engine-metric-alert-group-by-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
