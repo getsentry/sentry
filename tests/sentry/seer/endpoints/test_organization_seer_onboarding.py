@@ -154,7 +154,7 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
                     "enable_root_cause_analysis": True,
                     "auto_open_prs": True,
                     "project_repo_mapping": {
-                        "invalid": [
+                        "invalid_project_id": [
                             {
                                 "provider": "github",
                                 "owner": "sentry",
@@ -171,12 +171,14 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
         mock_onboarding_update.assert_not_called()
         assert response.json() == {
             "autofix": {
-                "project_repo_mapping": ["Invalid project ID: invalid. Must be an integer."]
+                "project_repo_mapping": [
+                    "Invalid project ID: invalid_project_id. Must be an integer."
+                ]
             }
         }
 
     @patch("sentry.seer.endpoints.organization_seer_onboarding.onboarding_seer_settings_update")
-    def test_post_invalid_repo_data(self, mock_onboarding_update) -> None:
+    def test_post_invalid_project_repo_mapping(self, mock_onboarding_update) -> None:
         response = self.client.post(
             self.path,
             {
@@ -202,6 +204,27 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
                 "project_repo_mapping": ["Expected a list of repositories for project 1"],
             }
         }
+
+    @patch("sentry.seer.endpoints.organization_seer_onboarding.onboarding_seer_settings_update")
+    def test_post_empty_project_repo_mapping(self, mock_onboarding_update) -> None:
+        response = self.client.post(
+            self.path,
+            {
+                "autofix": {
+                    "enable_root_cause_analysis": True,
+                    "auto_open_prs": True,
+                    "project_repo_mapping": {},
+                },
+            },
+        )
+
+        assert response.status_code == 204
+        mock_onboarding_update.assert_called_once_with(
+            organization_id=self.org.id,
+            is_rca_enabled=True,
+            is_auto_open_prs_enabled=True,
+            project_repo_dict={},
+        )
 
     @patch("sentry.seer.endpoints.organization_seer_onboarding.onboarding_seer_settings_update")
     def test_post_handles_exceptions(self, mock_onboarding_update) -> None:
