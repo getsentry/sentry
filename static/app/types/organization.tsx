@@ -99,6 +99,7 @@ export interface Organization extends OrganizationSummary {
   targetSampleRate: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
+  consoleSdkInviteQuota?: number;
   defaultAutofixAutomationTuning?:
     | 'off'
     | 'super_low'

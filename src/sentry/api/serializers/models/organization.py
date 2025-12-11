@@ -513,6 +513,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     desiredSampleRate: float
     ingestThroughTrustedRelaysOnly: bool
     enabledConsolePlatforms: list[str]
+    consoleSdkInviteQuota: int
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
@@ -766,6 +767,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ENABLED_CONSOLE_PLATFORMS_DEFAULT,
         )
 
+        quota_limit = obj.get_option("sentry:console_sdk_invite_quota_limit", 1)
+        context["consoleSdkInviteQuota"] = quota_limit
+
         if access.role is not None:
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
@@ -796,6 +800,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
+        "consoleSdkInviteQuota",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(

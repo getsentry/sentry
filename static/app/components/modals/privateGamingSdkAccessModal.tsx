@@ -1,26 +1,46 @@
 import {Fragment, useEffect, useState} from 'react';
-import * as Sentry from '@sentry/react';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import TextField from 'sentry/components/forms/fields/textField';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconGithub} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {UserIdentityConfig} from 'sentry/types/auth';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {useUser} from 'sentry/utils/useUser';
+import {
+  fetchMutation,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
 
-const PRIVATE_GAMING_SDK_OPTIONS = [
-  {value: 'playstation', label: 'PlayStation'},
-  {value: 'xbox', label: 'Xbox'},
-  {value: 'nintendo-switch', label: 'Nintendo Switch'},
-] as const;
+export type GamingPlatform = 'playstation' | 'xbox' | 'nintendo-switch';
 
-type GamingPlatform = (typeof PRIVATE_GAMING_SDK_OPTIONS)[number]['value'];
+interface ConsoleSdkInviteErrorResponse {
+  detail: string;
+  error: string;
+}
+
+interface ConsoleSdkInvitePlatformError {
+  error: string;
+  platform: string;
+}
+
+interface ConsoleSdkInviteResponse {
+  errors: ConsoleSdkInvitePlatformError[] | null;
+  success: true;
+}
+
+interface ConsoleSdkInviteRequest {
+  platforms: GamingPlatform[];
+}
 
 export interface PrivateGamingSdkAccessModalProps {
   organization: Organization;
@@ -38,22 +58,81 @@ export function PrivateGamingSdkAccessModal({
   Footer,
   closeModal,
   organization,
-  projectSlug,
   sdkName,
   gamingPlatform,
   projectId,
   onSubmit,
   origin,
 }: PrivateGamingSdkAccessModalProps & ModalRenderProps) {
-  const user = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [githubProfile, setGithubProfile] = useState('');
-  const [gamingPlatforms, setGamingPlatforms] = useState<string[]>(
+  const [gamingPlatforms, setGamingPlatforms] = useState<GamingPlatform[]>(
     gamingPlatform ? [gamingPlatform] : []
   );
   const [requestError, setRequestError] = useState<string | undefined>(undefined);
+  const location = useLocation();
+  const currentPath = location.pathname + location.search;
+  const queryClient = useQueryClient();
 
-  const isFormValid = !!githubProfile.trim() && gamingPlatforms.length > 0;
+  const {isPending, data: userIdentities} = useApiQuery<UserIdentityConfig[]>(
+    ['/users/me/user-identities/'],
+    {
+      staleTime: Infinity,
+    }
+  );
+
+  const {mutate} = useMutation<
+    ConsoleSdkInviteResponse,
+    ConsoleSdkInviteErrorResponse,
+    ConsoleSdkInviteRequest
+  >({
+    mutationFn: ({platforms}: ConsoleSdkInviteRequest) =>
+      fetchMutation({
+        url: `/organizations/${organization.slug}/console-sdk-invites/`,
+        method: 'POST',
+        data: {platforms},
+      }),
+    onSuccess: (response, {platforms}) => {
+      const platformsWithErrors = response.errors?.map(e => e.platform) ?? [];
+      if (platformsWithErrors) {
+        addErrorMessage(
+          tct(
+            'Invitation to console repositories for these platforms have failed: [errors]',
+            {
+              errors: platformsWithErrors.join(','),
+            }
+          )
+        );
+      }
+      addSuccessMessage(
+        tct('Invitation to these platforms has been sent: [platforms]', {
+          platforms: platforms
+            .filter(platform => platformsWithErrors.includes(platform))
+            .join(','),
+        })
+      );
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${organization.slug}/console-sdk-invites/`],
+      });
+    },
+    onError: errorResponse => {
+      addErrorMessage(
+        tct('[error] [detail]', {
+          error: errorResponse.error,
+          detail: errorResponse.detail,
+        })
+      );
+    },
+  });
+
+  const hasGithubIdentity = userIdentities?.some(
+    userIdentity => userIdentity.provider.key === 'github'
+  );
+  const isFormValid = hasGithubIdentity && gamingPlatforms.length > 0;
+  const readableConsoleNames = new Map([
+    ['nintendo-switch', 'Nintendo Switch'],
+    ['playstation', 'PlayStation'],
+    ['xbox', 'Xbox'],
+  ]);
 
   useEffect(() => {
     trackAnalytics('gaming.private_sdk_access_modal_opened', {
@@ -64,7 +143,7 @@ export function PrivateGamingSdkAccessModal({
     });
   }, [gamingPlatform, organization, projectId, origin]);
 
-  async function handleSubmit() {
+  function handleSubmit() {
     if (!isFormValid) {
       return;
     }
@@ -82,51 +161,8 @@ export function PrivateGamingSdkAccessModal({
 
     onSubmit?.();
 
-    const messageBody = [
-      `This is a request for SDK access for consoles. The user's details are:`,
-      `User: ${user.name}`,
-      `Email: ${user.email}`,
-      gamingPlatforms.length === 1
-        ? `Platform: ${gamingPlatforms[0]}`
-        : `Platforms: ${gamingPlatforms
-            .map(
-              (platform: string) =>
-                PRIVATE_GAMING_SDK_OPTIONS.find(option => option.value === platform)
-                  ?.label || platform
-            )
-            .join(', ')}`,
-      `Org Slug: ${organization.slug}`,
-      `Project: ${projectSlug}`,
-      `GitHub Profile: ${githubProfile}`,
-    ].join('\n');
-
     try {
-      await Sentry.sendFeedback(
-        {
-          message: messageBody,
-          name: user.name,
-          email: user.email,
-          tags: {
-            feature: 'console-sdk-access',
-          },
-        },
-        {
-          captureContext: {
-            user: {
-              id: user.id,
-              email: user.email,
-              username: user.username,
-              name: user.name,
-            },
-          },
-        }
-      );
-
-      addSuccessMessage(
-        tct('Your [sdkName] SDK access request has been submitted.', {
-          sdkName,
-        })
-      );
+      mutate({platforms: gamingPlatforms});
       closeModal();
     } catch (error: any) {
       handleXhrErrorResponse(t('Unable to submit SDK access request'), error);
@@ -146,6 +182,13 @@ export function PrivateGamingSdkAccessModal({
     }
   }
 
+  function stringToConsoleOption(value: string): {label: string; value: string} {
+    return {
+      value,
+      label: readableConsoleNames.get(value) ?? value,
+    };
+  }
+
   return (
     <Fragment>
       <Header closeButton>
@@ -156,58 +199,63 @@ export function PrivateGamingSdkAccessModal({
         </h3>
       </Header>
       <Body>
-        <p>
-          {gamingPlatform
-            ? tct(
-                'Request access to our [sdkName] SDK. Please provide your GitHub profile.',
-                {
-                  sdkName,
-                }
-              )
-            : tct(
-                'Request access to our [sdkName] SDK. Please provide your GitHub profile and the gaming platforms you work with.',
-                {
-                  sdkName,
-                }
+        {isPending ? (
+          <LoadingIndicator />
+        ) : hasGithubIdentity ? (
+          <Fragment>
+            <p>
+              {t(
+                'Select the gaming platforms you need access to. You will receive GitHub repository invitations for each platform.'
               )}
-        </p>
-        <TextField
-          name="githubProfile"
-          label={t('Link to your GitHub profile')}
-          placeholder="https://github.com/username"
-          value={githubProfile}
-          onChange={setGithubProfile}
-          required
-          stacked
-          inline={false}
-        />
-        {!gamingPlatform && (
-          <SelectField
-            name="gamingPlatforms"
-            label={t('Select Gaming Platform')}
-            placeholder={t('Select one or more gaming platforms')}
-            options={PRIVATE_GAMING_SDK_OPTIONS}
-            value={gamingPlatforms}
-            onChange={setGamingPlatforms}
-            multiple
-            required
-            stacked
-            inline={false}
-          />
+            </p>
+            <SelectField
+              name="gamingPlatforms"
+              label={t('Select Gaming Platforms')}
+              placeholder={t('Select one or more gaming platforms')}
+              options={organization.enabledConsolePlatforms?.map(stringToConsoleOption)}
+              defaultValue={gamingPlatforms.map(stringToConsoleOption)}
+              onChange={setGamingPlatforms}
+              multiple
+              required
+              stacked
+              inline={false}
+            />
+            {requestError && <Alert type="error">{requestError}</Alert>}
+          </Fragment>
+        ) : (
+          <Fragment>
+            <p>
+              {t(
+                'To request SDK access, you need to link your GitHub account with your Sentry account.'
+              )}
+            </p>
+            <Button
+              priority="primary"
+              icon={<IconGithub />}
+              onClick={() => {
+                const separator = currentPath.includes('?') ? '&' : '?';
+                const pathWithReopenFlag = `${currentPath}${separator}reopenGamingSdkModal=true`;
+                window.location.href = `/identity/login/github/?next=${encodeURIComponent(pathWithReopenFlag)}`;
+              }}
+            >
+              {t('Log in with GitHub')}
+            </Button>
+          </Fragment>
         )}
-        {requestError && <Alert type="error">{requestError}</Alert>}
       </Body>
       <Footer>
         <ButtonBar>
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button
-            priority="primary"
-            onClick={handleSubmit}
-            disabled={!isFormValid}
-            busy={isSubmitting}
-          >
-            {isSubmitting ? t('Submitting\u2026') : t('Submit Request')}
-          </Button>
+          {hasGithubIdentity && (
+            <Button
+              priority="primary"
+              onClick={handleSubmit}
+              disabled={!isFormValid || isSubmitting}
+              busy={isSubmitting}
+            >
+              {isSubmitting ? t('Sending Invitation') : t('Send Invitation')}
+            </Button>
+          )}
         </ButtonBar>
       </Footer>
     </Fragment>
