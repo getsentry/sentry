@@ -42,6 +42,10 @@ def _encode_value(value: Any) -> AnyValue:
         # Note: bool check must come before int check since bool is a subclass of int
         return AnyValue(bool_value=value)
     elif isinstance(value, int):
+        # int_value is a signed int64, so it has a range of valid values.
+        # if value doesn't fit into an int64, cast it to string.
+        if abs(value) >= (2**63):
+            return AnyValue(string_value=str(value))
         return AnyValue(int_value=value)
     elif isinstance(value, float):
         return AnyValue(double_value=value)
