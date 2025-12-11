@@ -176,7 +176,7 @@ def _get_static_values(attribute_key: str, organization: Organization) -> list[d
     """
     Get static values for fields with predefined value sets or special handling.
     Returns None if the field's values are dynamic and should be queried from the API.
-    
+
     This is similar to discover_tools._get_static_values() but tailored for issue search.
 
     Args:
@@ -187,16 +187,16 @@ def _get_static_values(attribute_key: str, organization: Organization) -> list[d
         List of value dicts, empty list if field has no predefined values, or None if not a static field
     """
     value_type = _ISSUE_FIELD_VALUE_TYPES.get(attribute_key, "")
-    
+
     # Fields that should return empty (no suggestions but are valid)
     # UUID, datetime, and text fields don't have predefined value lists
     if value_type in ["uuid", "issue_short_id", "datetime", "text"]:
         return []
-    
+
     # Boolean fields return true/false
     if value_type == "boolean":
         return [{"value": "true"}, {"value": "false"}]
-    
+
     # IS field - status values
     if attribute_key == "is":
         return [{"value": val} for val in IS_VALUES]
@@ -218,7 +218,7 @@ def _get_static_values(attribute_key: str, organization: Organization) -> list[d
         visible_group_types = group_type_registry.get_visible(organization)
         issue_type_values = [gt.slug for gt in visible_group_types]
         return [{"value": val} for val in issue_type_values]
-    
+
     # Fields with no predefined values but are valid searchable fields
     if attribute_key in ["assigned", "assigned_or_suggested", "bookmarks", "timesSeen", "age", "detector"]:
         return []
@@ -226,7 +226,7 @@ def _get_static_values(attribute_key: str, organization: Organization) -> list[d
     # Not a built-in field
     return None
     Generate built-in issue search fields.
-    
+
     This mirrors the pattern from discover_tools.py and includes all fields from
     ISSUE_FIELDS in the frontend (static/app/utils/fields/index.ts).
 
