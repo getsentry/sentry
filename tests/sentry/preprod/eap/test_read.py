@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 from unittest.mock import patch
@@ -7,6 +8,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableR
 from sentry_protos.snuba.v1.request_common_pb2 import ResponseMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
+from sentry.preprod.eap.constants import PREPROD_NAMESPACE
 from sentry.preprod.eap.read import PreprodSizeFilters, _build_filters, query_preprod_size_metrics
 from sentry.testutils.cases import TestCase
 
@@ -20,7 +22,8 @@ class TestBuildFilters(TestCase):
         filter_item = result[0].comparison_filter
         assert filter_item.key.name == "sentry.trace_id"
         assert filter_item.key.type == AttributeKey.Type.TYPE_STRING
-        assert filter_item.value.val_str == "0000000000000000000000000000007b"
+        expected_trace_id = uuid.uuid5(PREPROD_NAMESPACE, "123").hex
+        assert filter_item.value.val_str == expected_trace_id
 
     def test_string_filters(self):
         filters = PreprodSizeFilters(
@@ -79,7 +82,8 @@ class TestBuildFilters(TestCase):
         result = _build_filters(filters)
 
         filter_item = result[0].comparison_filter
-        assert filter_item.value.val_str == "0000000000000000000000003b9ac9ff"
+        expected_trace_id = uuid.uuid5(PREPROD_NAMESPACE, "999999999").hex
+        assert filter_item.value.val_str == expected_trace_id
 
     def test_combined_artifact_id_and_other_filters(self):
         filters = PreprodSizeFilters(
@@ -94,7 +98,8 @@ class TestBuildFilters(TestCase):
         trace_id_filter = next(
             f for f in result if f.comparison_filter.key.name == "sentry.trace_id"
         )
-        assert trace_id_filter.comparison_filter.value.val_str == "0000000000000000000000000000007b"
+        expected_trace_id = uuid.uuid5(PREPROD_NAMESPACE, "123").hex
+        assert trace_id_filter.comparison_filter.value.val_str == expected_trace_id
 
         app_id_filter = next(f for f in result if f.comparison_filter.key.name == "app_id")
         assert app_id_filter.comparison_filter.value.val_str == "com.example.app"
