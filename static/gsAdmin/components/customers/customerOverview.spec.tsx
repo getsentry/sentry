@@ -20,7 +20,7 @@ import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import CustomerOverview from 'admin/components/customers/customerOverview';
-import {PlanTier, ReservedBudgetCategoryType} from 'getsentry/types';
+import {AddOnCategory, PlanTier} from 'getsentry/types';
 
 describe('CustomerOverview', () => {
   it('renders DetailLabels for SubscriptionSummary section', () => {
@@ -41,7 +41,6 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('Gifted Errors:')).toBeInTheDocument();
     expect(screen.getByText('Gifted Transactions:')).toBeInTheDocument();
     expect(screen.getByText('Can Trial:')).toBeInTheDocument();
-    expect(screen.getByText('Can Grace Period:')).toBeInTheDocument();
     expect(screen.getByText('Legacy Soft Cap:')).toBeInTheDocument();
     expect(screen.getByText('Soft Cap By Category:')).toBeInTheDocument();
   });
@@ -398,7 +397,7 @@ describe('CustomerOverview', () => {
 
   it('renders product trials based on current subscription state', () => {
     const organization = OrganizationFixture();
-    const am3_subscription = SubscriptionFixture({
+    const am3Subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
       planTier: PlanTier.AM3,
@@ -433,10 +432,14 @@ describe('CustomerOverview', () => {
         },
       ],
     });
+    am3Subscription.addOns!.seer = {
+      ...am3Subscription.addOns!.seer!,
+      isAvailable: false,
+    };
 
     render(
       <CustomerOverview
-        customer={am3_subscription}
+        customer={am3Subscription}
         onAction={jest.fn()}
         organization={organization}
       />
@@ -463,11 +466,11 @@ describe('CustomerOverview', () => {
       DataCategory.PROFILE_DURATION,
       DataCategory.PROFILE_DURATION_UI,
       DataCategory.LOG_BYTE,
-      ReservedBudgetCategoryType.SEER,
+      AddOnCategory.LEGACY_SEER,
     ];
 
     const assertProductTrialActions = (
-      category: DataCategory | ReservedBudgetCategoryType,
+      category: DataCategory | AddOnCategory,
       formattedDisplayName: string,
       shouldNotIncludeTrialCategory = false
     ) => {
@@ -504,7 +507,7 @@ describe('CustomerOverview', () => {
           expect(startTrialButton).toBeDisabled();
           expect(stopTrialButton).toBeDisabled();
           expect(within(definition).getByText(/Active \(/)).toBeInTheDocument();
-        } else if (category === ReservedBudgetCategoryType.SEER) {
+        } else if (category === AddOnCategory.LEGACY_SEER) {
           expect(allowTrialButton).toBeEnabled();
           expect(startTrialButton).toBeDisabled();
           expect(stopTrialButton).toBeDisabled();
@@ -522,26 +525,25 @@ describe('CustomerOverview', () => {
       }
     };
 
-    am3_subscription.planDetails.categories.forEach(category => {
+    am3Subscription.planDetails.categories.forEach(category => {
       const formattedDisplayName = toTitleCase(
-        am3_subscription.planDetails.categoryDisplayNames?.[category]?.plural ?? category,
+        am3Subscription.planDetails.categoryDisplayNames?.[category]?.plural ?? category,
         {allowInnerUpperCase: true}
       );
       assertProductTrialActions(category, formattedDisplayName);
     });
-    Object.values(am3_subscription.planDetails.availableReservedBudgetTypes).forEach(
-      productGroup => {
-        const formattedDisplayName = toTitleCase(productGroup.productName, {
+    Object.values(am3Subscription.addOns || {}).forEach(addOn => {
+      const formattedDisplayName =
+        toTitleCase(addOn.productName, {
           allowInnerUpperCase: true,
-        });
-        assertProductTrialActions(productGroup.apiName, formattedDisplayName);
-      }
-    );
+        }) + (addOn.apiName === AddOnCategory.LEGACY_SEER ? ' (Legacy)' : '');
+      assertProductTrialActions(addOn.apiName, formattedDisplayName);
+    });
 
     possibleTrialCategories.forEach(category => {
       if (
-        !am3_subscription.planDetails.categories.includes(category as DataCategory) &&
-        !Object.keys(am3_subscription.planDetails.availableReservedBudgetTypes).includes(
+        !am3Subscription.planDetails.categories.includes(category as DataCategory) &&
+        !Object.keys(am3Subscription.planDetails.availableReservedBudgetTypes).includes(
           category
         )
       ) {
@@ -559,7 +561,7 @@ describe('CustomerOverview', () => {
       features: ['dynamic-sampling'],
       desiredSampleRate: 0.75,
     });
-    const am3_subscription = SubscriptionFixture({
+    const am3Subscription = SubscriptionFixture({
       organization,
       plan: 'am3_team',
       planTier: PlanTier.AM3,
@@ -572,7 +574,7 @@ describe('CustomerOverview', () => {
 
     render(
       <CustomerOverview
-        customer={am3_subscription}
+        customer={am3Subscription}
         onAction={jest.fn()}
         organization={organization}
       />

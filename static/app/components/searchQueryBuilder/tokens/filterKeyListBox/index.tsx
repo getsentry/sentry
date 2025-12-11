@@ -461,8 +461,7 @@ const SectionedOverlay = styled(Overlay, {
   overflow: hidden;
   height: 400px;
   width: ${p => (p.fullWidth ? '100%' : `${p.width}px`)};
-  ${p =>
-    p.fullWidth && `border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
+  ${p => p.fullWidth && `border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md}`};
 `;
 
 const SectionedOverlayFooter = styled('div')`
@@ -513,9 +512,9 @@ const RecentFilterPill = styled('li')`
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
   padding: 0 ${p => p.theme.space.lg} 0 ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   cursor: pointer;
 
   /* Fade out on right side to represent that this is a filter key only */

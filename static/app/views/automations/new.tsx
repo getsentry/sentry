@@ -79,7 +79,7 @@ export default function AutomationNewSettings() {
   const maxWidth = theme.breakpoints.lg;
 
   const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
-    Record<string, string>
+    Record<string, any>
   >({});
   const removeError = useCallback((errorId: string) => {
     setAutomationBuilderErrors(prev => {
@@ -108,16 +108,30 @@ export default function AutomationNewSettings() {
     async (data, _, __, ___, ____) => {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
+      const newAutomationData = getNewAutomationData(data as AutomationFormData, state);
 
       if (Object.keys(errors).length === 0) {
-        const automation = await createAutomation(
-          getNewAutomationData(data as AutomationFormData, state)
-        );
+        try {
+          const automation = await createAutomation(newAutomationData);
+          trackAnalytics('automation.created', {
+            organization,
+            ...getAutomationAnalyticsPayload(newAutomationData),
+            success: true,
+          });
+          navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
+        } catch {
+          trackAnalytics('automation.created', {
+            organization,
+            ...getAutomationAnalyticsPayload(newAutomationData),
+            success: false,
+          });
+        }
+      } else {
         trackAnalytics('automation.created', {
           organization,
-          ...getAutomationAnalyticsPayload(automation),
+          ...getAutomationAnalyticsPayload(newAutomationData),
+          success: false,
         });
-        navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
       }
     },
     [createAutomation, state, navigate, organization]
@@ -182,7 +196,7 @@ export default function AutomationNewSettings() {
 }
 
 const StyledLayoutHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const HeaderInner = styled('div')<{maxWidth?: string}>`

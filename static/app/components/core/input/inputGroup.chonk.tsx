@@ -1,11 +1,11 @@
-import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input/index';
 import {TextArea} from 'sentry/components/core/textarea';
 import {space} from 'sentry/styles/space';
-import type {FormSize, StrictCSSObject} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import type {FormSize, StrictCSSObject, Theme} from 'sentry/utils/theme';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 
 export interface InputStyleProps {
   leadingWidth?: number;
@@ -35,19 +35,18 @@ const chonkInputStyles = ({
   trailingWidth,
   size = 'md',
   theme,
-}: InputStyleProps & {theme: DO_NOT_USE_ChonkTheme}): StrictCSSObject => css`
+}: InputStyleProps & {theme: Theme}): StrictCSSObject => css`
   ${leadingWidth &&
   css`
     padding-left: calc(
-      ${theme.formPadding[size].paddingLeft}px + ${chonkItemsPadding[size]}px +
-        ${leadingWidth}px
+      ${theme.form[size].paddingLeft}px + ${chonkItemsPadding[size]}px + ${leadingWidth}px
     );
   `}
 
   ${trailingWidth &&
   css`
     padding-right: calc(
-      ${theme.formPadding[size].paddingRight}px + ${chonkItemsPadding[size]}px +
+      ${theme.form[size].paddingRight}px + ${chonkItemsPadding[size]}px +
         ${trailingWidth}px
     );
   `}
@@ -65,7 +64,7 @@ export const ChonkStyledLeadingItemsWrap = chonkStyled(InputItemsWrap)<{
   size: NonNullable<InputStyleProps['size']>;
   disablePointerEvents?: boolean;
 }>`
-    left: ${p => p.theme.formPadding[p.size].paddingLeft + 1}px;
+    left: ${p => p.theme.form[p.size].paddingLeft + 1}px;
     ${p => p.disablePointerEvents && `pointer-events: none;`}
   `;
 
@@ -73,6 +72,6 @@ export const ChonkStyledTrailingItemsWrap = chonkStyled(InputItemsWrap)<{
   size: NonNullable<InputStyleProps['size']>;
   disablePointerEvents?: boolean;
 }>`
-    right: ${p => p.theme.formPadding[p.size].paddingRight + 1}px;
+    right: ${p => p.theme.form[p.size].paddingRight + 1}px;
     ${p => p.disablePointerEvents && `pointer-events: none;`}
   `;

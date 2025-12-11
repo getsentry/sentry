@@ -1,17 +1,12 @@
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
-from django.utils.encoding import force_bytes
-
-from sentry import features
 from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (
     fingerprint_http_spans,
@@ -21,6 +16,7 @@ from sentry.issue_detection.detectors.utils import (
     get_url_from_span,
     is_filtered_url,
     parameterize_url,
+    parameterize_url_with_result,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
@@ -28,17 +24,18 @@ from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.utils.safe import get_path
 
 
 class NPlusOneAPICallsDetector(PerformanceDetector):
     """
-    Detect parallel network calls to the same endpoint.
+    Detect parallel network calls to the same parameterized endpoint.
 
       [-------- transaction -----------]
          [-------- parent span -----------]
-          [n0] https://service.io/resources/?id=12443
-          [n1] https://service.io/resources/?id=13342
-          [n2] https://service.io/resources/?id=13441
+          [n0] https://service.io/resources/1/?id=12443
+          [n1] https://service.io/resources/2/?id=13342
+          [n2] https://service.io/resources/3/?id=13441
           ...
     """
 
@@ -50,7 +47,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.spans: list[Span] = []
-        self.span_hashes: dict[str, str | None] = {}
 
     def visit_span(self, span: Span) -> None:
         if not self._is_span_eligible(span):
@@ -59,8 +55,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         op = span.get("op", None)
         if op not in self.settings.get("allowed_span_ops", []):
             return
-
-        self.span_hashes[span["span_id"]] = get_span_hash(span)
 
         previous_span = self.spans[-1] if len(self.spans) > 0 else None
 
@@ -75,9 +69,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self.spans = [span]
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return not features.has(
-            "organizations:experimental-n-plus-one-api-detector-rollout", organization
-        )
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
@@ -138,20 +130,16 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # Once most users update their SDKs to use the latest standard, we
         # won't have to do this, since the URLs will be sent in as `span.data`
         # in a parsed format
-        try:
-            parsed_url = urlparse(str(url))
-        except ValueError:
-            event_has_meta = "_meta" in self._event
-            logging.exception(
-                "N+1 API Calls Detector: URL parsing failed",
-                extra={"event_has_meta": event_has_meta},
-            )
-            return False
+        parsed_url = urlparse(str(url))
 
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern
         _pathname, extension = os.path.splitext(parsed_url.path)
         if extension and extension in [".js", ".css", ".svg", ".png", ".mp3", ".jpg", ".jpeg"]:
+            return False
+
+        is_prefetch_span = get_path(span, "data", "http.request.prefetch")
+        if is_prefetch_span:
             return False
 
         return True
@@ -177,13 +165,27 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not fingerprint:
             return
 
+        if self.stored_problems.get(fingerprint):
+            logging.info(
+                "Multiple occurrences detected for fingerprint",
+                extra={"detector": self.settings_key},
+            )
+            return
+
         offender_span_ids = [span["span_id"] for span in self.spans]
+        problem_description = self._get_parameterized_url(self.spans[0])
+        if problem_description == "":
+            problem_description = os.path.commonprefix(
+                [span.get("description", "") or "" for span in self.spans]
+            )
+
         parent_span_id = last_span.get("parent_span_id")
 
+        parameters = self._get_parameters()
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op=last_span["op"],
-            desc=os.path.commonprefix([span.get("description", "") or "" for span in self.spans]),
+            desc=problem_description,
             type=PerformanceNPlusOneAPICallsGroupType,
             cause_span_ids=[],
             parent_span_ids=[parent_span_id] if parent_span_id else [],
@@ -197,16 +199,15 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
                 "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
                 "repeating_spans": self._get_path_prefix(self.spans[0]),
                 "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
-                "parameters": self._get_parameters(),
+                "parameters": parameters["query_params"],
+                "path_parameters": parameters["path_params"],
+                "common_url": problem_description,
             },
             evidence_display=[
                 IssueEvidence(
                     name="Offending Spans",
                     value=get_notification_attachment_body(
-                        last_span["op"],
-                        os.path.commonprefix(
-                            [span.get("description", "") or "" for span in self.spans]
-                        ),
+                        op=last_span["op"], desc=problem_description
                     ),
                     # Has to be marked important to be displayed in the notifications
                     important=True,
@@ -214,24 +215,39 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             ],
         )
 
-    def _get_parameters(self) -> list[str]:
+    def _get_parameters(self) -> dict[str, list[str]]:
         if not self.spans or len(self.spans) == 0:
-            return []
+            return {"query_params": [], "path_params": []}
 
-        urls = [get_url_from_span(span) for span in self.spans]
-
-        all_parameters: Mapping[str, list[str]] = defaultdict(list)
-
-        for url in urls:
-            parsed_url = urlparse(url)
-            parameters = parse_qs(parsed_url.query)
-
-            for key, value in parameters.items():
-                all_parameters[key] += value
-
-        return [
-            "{{{}: {}}}".format(key, ",".join(values)) for key, values in all_parameters.items()
+        parameterized_urls = [
+            parameterize_url_with_result(get_url_from_span(span)) for span in self.spans
         ]
+        path_params = [param["path_params"] for param in parameterized_urls]
+        query_dict: dict[str, list[str]] = defaultdict(list)
+
+        for parameterized_url in parameterized_urls:
+            query_params = parameterized_url["query_params"]
+            for key, value in query_params.items():
+                query_dict[key] += value
+        # Note: dict.fromkeys() is just to deduplicate values and Python dicts are ordered
+        path_params_list: list[str] = list(
+            dict.fromkeys(
+                [f"{', '.join(param_group)}" for param_group in path_params if param_group]
+            ).keys()
+        )
+        query_params_list: list[str] = list(
+            dict.fromkeys(
+                [f"{key}: {', '.join(values)}" for key, values in query_dict.items()]
+            ).keys()
+        )
+        return {
+            # Use sets to deduplicate the lists, but still preserve the order.
+            "path_params": path_params_list,
+            "query_params": query_params_list,
+        }
+
+    def _get_parameterized_url(self, span: Span) -> str:
+        return parameterize_url(get_url_from_span(span))
 
     def _get_path_prefix(self, repeating_span: Span | None) -> str:
         if not repeating_span:
@@ -247,9 +263,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         # Check if we parameterized the URL at all. If not, do not attempt
         # fingerprinting. Unparameterized URLs run too high a risk of
-        # fingerprinting explosions. Query parameters are parameterized by
-        # definition, so exclude them from comparison
-        if without_query_params(parameterized_first_url) == without_query_params(first_url):
+        # fingerprinting explosions.
+        if parameterized_first_url == first_url:
             return None
 
         fingerprint = fingerprint_http_spans([self.spans[0]])
@@ -257,8 +272,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         return f"1-{PerformanceNPlusOneAPICallsGroupType.type_id}-{fingerprint}"
 
     def _spans_are_concurrent(self, span_a: Span, span_b: Span) -> bool:
-        span_a_start: float = span_a["start_timestamp"]
-        span_b_start: float = span_b["start_timestamp"]
+        span_a_start = span_a["start_timestamp"]
+        span_b_start = span_b["start_timestamp"]
 
         return timedelta(seconds=abs(span_a_start - span_b_start)) < timedelta(
             milliseconds=self.settings["concurrency_threshold"]
@@ -266,65 +281,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     def _spans_are_similar(self, span_a: Span, span_b: Span) -> bool:
         return (
-            self.span_hashes[span_a["span_id"]] == self.span_hashes[span_b["span_id"]]
+            self._get_parameterized_url(span_a) == self._get_parameterized_url(span_b)
             and span_a["parent_span_id"] == span_b["parent_span_id"]
         )
-
-
-HTTP_METHODS = {
-    "GET",
-    "HEAD",
-    "POST",
-    "PUT",
-    "DELETE",
-    "CONNECT",
-    "OPTIONS",
-    "TRACE",
-    "PATCH",
-}
-
-
-def get_span_hash(span: Span) -> str | None:
-    if span.get("op") != "http.client":
-        return span.get("hash")
-
-    parts = remove_http_client_query_string_strategy(span)
-    if not parts:
-        return None
-
-    hash = hashlib.md5()
-    for part in parts:
-        hash.update(force_bytes(part, errors="replace"))
-
-    return hash.hexdigest()[:16]
-
-
-def remove_http_client_query_string_strategy(span: Span) -> Sequence[str] | None:
-    """
-    This is an inline version of the `http.client` parameterization code in
-    `"default:2022-10-27"`, the default span grouping strategy at time of
-    writing. It's inlined here to insulate this detector from changes in the
-    strategy, which are coming soon.
-    """
-
-    # Check the description is of the form `<HTTP METHOD> <URL>`
-    description = span.get("description") or ""
-    parts = description.split(" ", 1)
-    if len(parts) != 2:
-        return None
-
-    # Ensure that this is a valid http method
-    method, url_str = parts
-    method = method.upper()
-    if method not in HTTP_METHODS:
-        return None
-
-    if is_filtered_url(url_str):
-        return None
-
-    url = urlparse(url_str)
-    return [method, url.scheme, url.netloc, url.path]
-
-
-def without_query_params(url: str) -> str:
-    return urlparse(url)._replace(query="").geturl()

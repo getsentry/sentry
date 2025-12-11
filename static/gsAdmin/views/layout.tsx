@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {ThemeProvider, type Theme} from '@emotion/react';
+import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -11,17 +11,15 @@ import {IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {space} from 'sentry/styles/space';
 import localStorage from 'sentry/utils/localStorage';
-import {
-  DO_NOT_USE_darkChonkTheme,
-  DO_NOT_USE_lightChonkTheme,
-} from 'sentry/utils/theme/theme.chonk';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import SystemAlerts from 'sentry/views/app/systemAlerts';
 
 import GlobalStyles from 'admin/globalStyles';
 
 const themes = {
-  darkTheme: DO_NOT_USE_darkChonkTheme as unknown as Theme,
-  lightTheme: DO_NOT_USE_lightChonkTheme as unknown as Theme,
+  darkTheme,
+  lightTheme,
 };
 
 type ThemeName = keyof typeof themes;
@@ -135,7 +133,7 @@ const Sidebar = styled('section')`
   width: var(--sidebarWidth);
   padding: ${space(3)} 0;
   gap: ${space(3)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-right: 1px solid ${p => p.theme.border};
 
   > * {
@@ -148,7 +146,7 @@ const Logo = styled(Link)`
   align-items: center;
   gap: ${space(1)};
   text-transform: uppercase;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
 `;
@@ -174,7 +172,7 @@ const NavLink = styled(ListLink)`
   --activeIndicatorWidth: ${space(0.5)};
 
   padding: ${space(0.25)} 0;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   align-items: center;
   gap: ${space(1)};

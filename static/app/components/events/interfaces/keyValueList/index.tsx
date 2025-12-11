@@ -135,7 +135,7 @@ const ValueWithButtonContainer = styled('div')`
   background: ${p => p.theme.bodyBackground};
   padding: ${space(1)} 10px;
   margin: ${space(0.25)} 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   pre {
     padding: 0 !important;
     margin: 0 !important;

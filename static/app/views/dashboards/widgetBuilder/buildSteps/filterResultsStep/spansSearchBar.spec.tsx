@@ -3,6 +3,7 @@ import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import type {TagValue} from 'sentry/types/group';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -133,7 +134,10 @@ describe('SpansSearchBar', () => {
     await userEvent.keyboard('{enter}');
 
     await waitFor(() => {
-      expect(onSearch).toHaveBeenCalledWith('span.op:function', expect.anything());
+      expect(onSearch).toHaveBeenCalledWith(
+        `span.op:${WildcardOperators.CONTAINS}function`,
+        expect.anything()
+      );
     });
   });
 

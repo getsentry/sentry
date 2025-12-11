@@ -8,10 +8,8 @@ import {IconMoon} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {
-  DO_NOT_USE_darkChonkTheme,
-  DO_NOT_USE_lightChonkTheme,
-} from 'sentry/utils/theme/theme.chonk';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 interface ThemeToggleProps {
   children: React.ReactNode;
@@ -22,8 +20,7 @@ export function ThemeToggle({children}: ThemeToggleProps) {
 
   const [localThemeName, setLocalThemeName] = useState(config.theme);
 
-  const localThemeValue =
-    localThemeName === 'dark' ? DO_NOT_USE_darkChonkTheme : DO_NOT_USE_lightChonkTheme;
+  const localThemeValue = localThemeName === 'dark' ? darkTheme : lightTheme;
 
   return (
     <Fragment>
@@ -54,10 +51,10 @@ const Background = styled('div')`
   display: flex;
   gap: ${p => p.theme.space.md};
   flex-direction: column;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 export function ThemeSwitcher() {

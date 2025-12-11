@@ -316,7 +316,7 @@ const StyledSearchBar = styled(SearchBar)`
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${space(2)};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const ClearButton = styled(Button)`
@@ -330,8 +330,8 @@ const ClearButton = styled(Button)`
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: ${p => p.theme.background};
-  color: ${p => p.theme.textColor};
+  background: ${p => p.theme.tokens.background.primary};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
@@ -386,7 +386,7 @@ const PlatformCard = styled(
     align-items: center;
     justify-content: center;
     width: 100%;
-    color: ${p => (p.selected ? p.theme.textColor : p.theme.subText)};
+    color: ${p => (p.selected ? p.theme.tokens.content.primary : p.theme.subText)};
     text-align: center;
     font-size: ${p => p.theme.fontSize.xs};
     text-transform: uppercase;

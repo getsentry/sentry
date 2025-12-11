@@ -667,7 +667,7 @@ const StyledCircleIndicator = styled(CircleIndicator)`
 const ChartFilters = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.family};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: inline-grid;
   grid-template-columns: max-content max-content auto;
   align-items: center;

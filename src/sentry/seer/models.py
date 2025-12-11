@@ -85,7 +85,15 @@ class SeerProjectPreference(BaseModel):
     automation_handoff: SeerAutomationHandoffConfiguration | None = None
 
 
+class SeerRawPreferenceResponse(BaseModel):
+    """Response model for Seer's /v1/project-preference endpoint."""
+
+    preference: SeerProjectPreference | None
+
+
 class PreferenceResponse(BaseModel):
+    """Response model used by ProjectSeerPreferencesEndpoint which adds code_mapping_repos."""
+
     preference: SeerProjectPreference | None
     code_mapping_repos: list[SeerRepoDefinition]
 

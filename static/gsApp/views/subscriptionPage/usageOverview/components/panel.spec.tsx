@@ -2,6 +2,7 @@ import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
+import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {
   SubscriptionFixture,
   SubscriptionWithLegacySeerFixture,
@@ -67,7 +68,7 @@ describe('ProductBreakdownPanel', () => {
     expect(screen.getByText('Pay-as-you-go')).toBeInTheDocument();
     expect(screen.getByText('$10.00')).toBeInTheDocument();
     expect(screen.getByText('Reserved spend')).toBeInTheDocument();
-    expect(screen.getByText('$245.00')).toBeInTheDocument();
+    expect(screen.getByText('$245.00 / month')).toBeInTheDocument();
   });
 
   it('renders for data category with per-category PAYG set', async () => {
@@ -111,13 +112,19 @@ describe('ProductBreakdownPanel', () => {
     expect(screen.getByText('$10.00 /')).toBeInTheDocument();
     expect(screen.getByText('$100.00')).toBeInTheDocument(); // shows per-category individual budget
     expect(screen.getByText('Reserved spend')).toBeInTheDocument();
-    expect(screen.getByText('$245.00')).toBeInTheDocument();
+    expect(screen.getByText('$245.00 / month')).toBeInTheDocument();
   });
 
   it('renders for reserved budget add-on', async () => {
     const legacySeerSubscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
+      onDemandBudgets: {
+        enabled: true,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 100_00,
+        onDemandSpendUsed: 0,
+      },
     });
     legacySeerSubscription.reservedBudgets![0] = {
       ...legacySeerSubscription.reservedBudgets![0]!,
@@ -153,13 +160,19 @@ describe('ProductBreakdownPanel', () => {
     expect(screen.getByText('Pay-as-you-go')).toBeInTheDocument();
     expect(screen.getByText('$2.00')).toBeInTheDocument();
     expect(screen.getByText('Reserved spend')).toBeInTheDocument();
-    expect(screen.getByText('$20.00')).toBeInTheDocument();
+    expect(screen.getByText('$20.00 / month')).toBeInTheDocument();
   });
 
   it('renders for reserved budget add-on data category', async () => {
     const legacySeerSubscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
+      onDemandBudgets: {
+        enabled: true,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 100_00,
+        onDemandSpendUsed: 0,
+      },
     });
     legacySeerSubscription.reservedBudgets![0] = {
       ...legacySeerSubscription.reservedBudgets![0]!,
@@ -215,8 +228,9 @@ describe('ProductBreakdownPanel', () => {
       />
     );
 
-    await screen.findByRole('heading', {name: 'Continuous Profile Hours'});
-    expect(screen.getByRole('button', {name: 'Activate free trial'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Activate free trial'})
+    ).toBeInTheDocument();
   });
 
   it('renders upgrade CTA', async () => {
@@ -229,8 +243,7 @@ describe('ProductBreakdownPanel', () => {
       />
     );
 
-    await screen.findByRole('heading', {name: 'Continuous Profile Hours'});
-    expect(screen.getByRole('button', {name: 'Upgrade now'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Upgrade now'})).toBeInTheDocument();
   });
 
   it('renders active product trial status', async () => {
@@ -299,5 +312,100 @@ describe('ProductBreakdownPanel', () => {
 
     await screen.findByRole('heading', {name: 'Errors'});
     expect(screen.getByText('Pay-as-you-go limit reached')).toBeInTheDocument();
+  });
+
+  it('hides irrelevant breakdown fields', async () => {
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+    await screen.findByRole('heading', {name: 'Errors'});
+    expect(screen.getByText('Included volume')).toBeInTheDocument();
+    expect(screen.getByText('Business plan')).toBeInTheDocument();
+    expect(screen.getByText('50,000')).toBeInTheDocument();
+    expect(screen.queryByText('Additional reserved')).not.toBeInTheDocument();
+    expect(screen.queryByText('Gifted')).not.toBeInTheDocument();
+    expect(screen.queryByText('Additional spend')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pay-as-you-go')).not.toBeInTheDocument();
+    expect(screen.queryByText('Reserved spend')).not.toBeInTheDocument();
+  });
+
+  it('renders for Seer add-on', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=${DataCategory.SEER_USER}`,
+      method: 'GET',
+      body: [
+        {
+          billingMetric: DataCategory.SEER_USER,
+          created: '2021-01-01',
+          displayName: 'johndoe',
+          id: 1,
+          isTrialSeat: false,
+          projectId: 1,
+          seatIdentifier: '1234567890',
+          status: 'ASSIGNED',
+        },
+
+        {
+          billingMetric: DataCategory.SEER_USER,
+          created: '2021-01-01',
+          displayName: 'janedoe',
+          id: 2,
+          isTrialSeat: false,
+          projectId: 1,
+          seatIdentifier: '1234567890',
+          status: 'ASSIGNED',
+        },
+
+        {
+          billingMetric: DataCategory.SEER_USER,
+          created: '2021-01-01',
+          displayName: 'alicebob',
+          id: 3,
+          isTrialSeat: false,
+          projectId: 1,
+          seatIdentifier: '1234567890',
+          status: 'ASSIGNED',
+        },
+      ],
+    });
+    subscription.categories.seerUsers = MetricHistoryFixture({
+      category: DataCategory.SEER_USER,
+      usage: 3,
+      free: 1,
+      prepaid: 1,
+      reserved: 0,
+    });
+    subscription.addOns!.seer = {
+      ...subscription.addOns!.seer!,
+      enabled: true,
+    };
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={AddOnCategory.SEER}
+      />
+    );
+    await screen.findByRole('heading', {name: 'Seer'});
+    expect(screen.getByText('Included volume')).toBeInTheDocument();
+    expect(screen.queryByText('Business plan')).not.toBeInTheDocument();
+    expect(screen.queryByText('Additional reserved')).not.toBeInTheDocument();
+    expect(screen.getByText('Gifted')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getByText('Additional spend')).toBeInTheDocument();
+    expect(screen.queryByText('Pay-as-you-go')).not.toBeInTheDocument();
+    expect(screen.queryByText('Reserved spend')).not.toBeInTheDocument();
+    expect(screen.getByText('Active contributors spend')).toBeInTheDocument();
+    expect(screen.getByText('$80.00')).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Active Contributors (3)'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Configure Seer'})).toBeInTheDocument();
   });
 });

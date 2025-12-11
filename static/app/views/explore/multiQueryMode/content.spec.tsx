@@ -955,11 +955,11 @@ describe('MultiQueryModeContent', () => {
             environment: [],
             excludeOther: 0,
             groupBy: [],
-            interval: '3h',
+            interval: '30m',
             partial: 1,
             project: [2],
             query: '',
-            referrer: 'api.explore.spans-stats',
+            referrer: 'api.explore.spans-timeseries',
             sampling: 'NORMAL',
             sort: '-timestamp',
             statsPeriod: '7d',
@@ -1009,11 +1009,11 @@ describe('MultiQueryModeContent', () => {
             environment: [],
             excludeOther: 0,
             groupBy: ['span.op'],
-            interval: '3h',
+            interval: '30m',
             partial: 1,
             project: [2],
             query: '',
-            referrer: 'api.explore.spans-stats',
+            referrer: 'api.explore.spans-timeseries',
             sampling: 'NORMAL',
             sort: '-count_span_duration',
             statsPeriod: '7d',
@@ -1143,14 +1143,14 @@ describe('MultiQueryModeContent', () => {
 
     const section = screen.getByTestId('section-visualization-0');
     expect(
-      await within(section).findByRole('button', {name: '3 hours'})
+      await within(section).findByRole('button', {name: '30 minutes'})
     ).toBeInTheDocument();
-    await userEvent.click(within(section).getByRole('button', {name: '3 hours'}));
-    await userEvent.click(within(section).getByRole('option', {name: '30 minutes'}));
+    await userEvent.click(within(section).getByRole('button', {name: '30 minutes'}));
+    await userEvent.click(within(section).getByRole('option', {name: '3 hours'}));
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/traces/compare',
       query: expect.objectContaining({
-        interval: '30m',
+        interval: '3h',
         queries: [
           '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
         ],

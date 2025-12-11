@@ -287,13 +287,13 @@ const StyledIssuesButton = styled(LinkButton)`
 `;
 
 const StyledInteractionStateLayer = styled(InteractionStateLayer)`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 // This style explicitly hides InteractionStateLayer when the Issues button is hovered
 // This is to prevent hover styles displayed on multiple overlapping components simultaneously
 const MeterBarContainer = styled('div')<{clickable?: boolean}>`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   flex: 1;
   position: relative;
   padding: 0;
@@ -307,14 +307,14 @@ const MeterBarContainer = styled('div')<{clickable?: boolean}>`
 
 const MeterBarBody = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)} 0 ${space(0.5)} 0;
 `;
 
 const MeterHeader = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   width: 100%;
   padding: 0 ${space(1)};
@@ -325,9 +325,9 @@ const MeterHeader = styled('div')`
 const MeterValueText = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   flex: 1;
   text-align: center;
   padding: 0 ${space(1)};
@@ -341,7 +341,7 @@ const MeterValueText = styled('div')`
 
 const NoValueContainer = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 function NoValue() {
