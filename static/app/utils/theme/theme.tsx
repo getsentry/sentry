@@ -314,7 +314,9 @@ const generateLevelTheme = (
 ): LevelColors => ({
   sample: tokens.graphics.accent,
   info: tokens.graphics.accent,
-  warning: tokens.graphics.warning,
+  // BAD: accessing named colors is forbidden
+  // but necessary to differente from orange
+  warning: color.categorical[mode].yellow,
   // BAD: hardcoded legacy color! We no longer use orange in the main UI,
   // but do have it in the chart palette. This needs to be harcoded
   // because existing users still associate orange with the "error" level.
