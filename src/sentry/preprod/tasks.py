@@ -46,7 +46,9 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact",
     retry=Retry(times=3),
-    namespace=attachments_tasks,
+    namespace=preprod_tasks,
+    # TODO(EME-242): Remove once inflight tasks done.
+    alias_namespace=attachments_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
@@ -606,7 +608,9 @@ def _assemble_preprod_artifact_size_analysis(
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_size_analysis",
-    namespace=attachments_tasks,
+    namespace=preprod_tasks,
+    # TODO(EME-242): Remove once inflight tasks done.
+    alias_namespace=attachments_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
@@ -693,7 +697,9 @@ def _assemble_preprod_artifact_installable_app(
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_installable_app",
-    namespace=attachments_tasks,
+    namespace=preprod_tasks,
+    # TODO(EME-242): Remove once inflight tasks done.
+    alias_namespace=attachments_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
