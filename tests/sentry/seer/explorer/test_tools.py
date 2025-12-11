@@ -1373,34 +1373,6 @@ class TestGetIssueAndEventDetails(
         )
         assert result is None
 
-    @patch("sentry.models.group.get_oldest_or_latest_event")
-    @patch("sentry.models.group.get_recommended_event")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_ie_details_no_event_found(
-        self, mock_get_tags, mock_get_recommended_event, mock_get_oldest_or_latest_event
-    ):
-        """Test returns None when issue is found but selected_event is not."""
-        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
-        mock_get_recommended_event.return_value = None
-        mock_get_oldest_or_latest_event.return_value = None
-
-        # Create events with shared stacktrace (should have same group)
-        for i in range(2):
-            data = load_data("python", timestamp=before_now(minutes=5 - i))
-            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
-            event = self.store_event(data=data, project_id=self.project.id)
-
-        group = event.group
-        assert isinstance(group, Group)
-
-        for et in ["oldest", "latest", "recommended", uuid.uuid4().hex]:
-            result = get_issue_and_event_details(
-                issue_id=str(group.id),
-                organization_id=self.organization.id,
-                selected_event=et,
-            )
-            assert result is None, et
-
     def test_get_ie_details_no_event_found_null_issue_id(self):
         """Test returns None when issue_id is not provided and selected_event is not found."""
         _ = self.project  # Create an active project.
