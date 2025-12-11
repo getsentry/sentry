@@ -54,7 +54,8 @@ export function ConfigureCodeReviewStep() {
     organization.autoEnableCodeReview ?? true
   );
 
-  const {mutate: updateOrganization} = useUpdateOrganization(organization);
+  const {mutate: updateOrganization, isPending: isUpdateOrganizationPending} =
+    useUpdateOrganization(organization);
 
   const {mutate: updateRepositorySettings, isPending: isUpdateRepositorySettingsPending} =
     useUpdateRepositorySettings();
@@ -226,14 +227,16 @@ export function ConfigureCodeReviewStep() {
           <Flex direction="row" gap="xl" align="center">
             <Button
               size="md"
-              disabled={isUpdateRepositorySettingsPending}
+              disabled={isUpdateRepositorySettingsPending || isUpdateOrganizationPending}
               onClick={handleNextStep}
               priority="primary"
               aria-label={t('Next Step')}
             >
               {t('Next Step')}
             </Button>
-            {isUpdateRepositorySettingsPending && <InlineLoadingIndicator size={20} />}
+            {(isUpdateRepositorySettingsPending || isUpdateOrganizationPending) && (
+              <InlineLoadingIndicator size={20} />
+            )}
           </Flex>
         </GuidedSteps.ButtonWrapper>
       </StepContentWithBackground>
