@@ -13,6 +13,97 @@ from sentry.types.group import PriorityLevel
 
 logger = logging.getLogger(__name__)
 
+# Built-in issue search fields that should always be available
+# This mirrors ISSUE_FIELDS from the frontend (static/app/utils/fields/index.ts)
+# which combines ISSUE_PROPERTY_FIELDS and ISSUE_EVENT_PROPERTY_FIELDS
+_ISSUE_BUILT_IN_FIELDS = frozenset(
+    {
+        # Issue property fields
+        "age",
+        "assigned",
+        "assigned_or_suggested",
+        "bookmarks",
+        "detector",
+        "firstRelease",
+        "firstSeen",
+        "has",
+        "is",
+        "issue.category",
+        "issue.priority",
+        "issue.seer_actionability",
+        "issue.seer_last_run",
+        "issue.type",
+        "issue",
+        "lastSeen",
+        "release.stage",
+        "timesSeen",
+        # Event property fields searchable in issues
+        "app.in_foreground",
+        "culprit",
+        "device.arch",
+        "device.brand",
+        "device.class",
+        "device.family",
+        "device.locale",
+        "device.model_id",
+        "device.name",
+        "device.orientation",
+        "device.uuid",
+        "dist",
+        "environment",
+        "error.handled",
+        "error.main_thread",
+        "error.mechanism",
+        "error.type",
+        "error.unhandled",
+        "error.value",
+        "event.timestamp",
+        "event.type",
+        "geo.city",
+        "geo.country_code",
+        "geo.region",
+        "geo.subdivision",
+        "http.method",
+        "http.referer",
+        "http.status_code",
+        "http.url",
+        "id",
+        "level",
+        "location",
+        "message",
+        "os.build",
+        "os.kernel_version",
+        "os.distribution_name",
+        "os.distribution_version",
+        "platform.name",
+        "release",
+        "release.build",
+        "release.package",
+        "release.version",
+        "sdk.name",
+        "sdk.version",
+        "stack.abs_path",
+        "stack.filename",
+        "stack.function",
+        "stack.module",
+        "stack.package",
+        "stack.stack_level",
+        "symbolicated_in_app",
+        "timestamp",
+        "title",
+        "trace",
+        "transaction",
+        "unreal.crash_type",
+        "user.email",
+        "user.id",
+        "user.ip",
+        "user.username",
+        "ota_updates.channel",
+        "ota_updates.runtime_version",
+        "ota_updates.update_id",
+    }
+)
+
 IS_VALUES = [
     "resolved",
     "unresolved",
@@ -52,21 +143,92 @@ FIXABILITY_VALUES = [
     FixabilityScoreThresholds.SUPER_LOW.to_str(),
 ]
 
-FIELDS_WITHOUT_PREDEFINED_VALUES = (
-    "assigned",
-    "assigned_or_suggested",
-    "bookmarks",
-    "lastSeen",
-    "firstSeen",
-    "firstRelease",
-    "event.timestamp",
-    "timesSeen",
-    "issue.seer_last_run",
-)
+# Field type hints for special handling
+_ISSUE_FIELD_VALUE_TYPES = {
+    "id": "uuid",
+    "issue": "issue_short_id",
+    "timestamp": "datetime",
+    "event.timestamp": "datetime",
+    "firstSeen": "datetime",
+    "lastSeen": "datetime",
+    "issue.seer_last_run": "datetime",
+    "message": "text",
+    "title": "text",
+    "culprit": "text",
+    "location": "text",
+    # Boolean fields
+    "error.handled": "boolean",
+    "error.unhandled": "boolean",
+    "error.main_thread": "boolean",
+    "stack.in_app": "boolean",
+    "symbolicated_in_app": "boolean",
+    "app.in_foreground": "boolean",
+    "device.charging": "boolean",
+    "device.online": "boolean",
+    "device.simulator": "boolean",
+}
 
 # API key scopes required for issue queries
 API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
 
+
+def _get_static_values(attribute_key: str, organization: Organization) -> list[dict[str, Any]] | None:
+    """
+    Get static values for fields with predefined value sets or special handling.
+    Returns None if the field's values are dynamic and should be queried from the API.
+    
+    This is similar to discover_tools._get_static_values() but tailored for issue search.
+
+    Args:
+        attribute_key: The field key to get values for
+        organization: Organization instance
+
+    Returns:
+        List of value dicts, empty list if field has no predefined values, or None if not a static field
+    """
+    value_type = _ISSUE_FIELD_VALUE_TYPES.get(attribute_key, "")
+    
+    # Fields that should return empty (no suggestions but are valid)
+    # UUID, datetime, and text fields don't have predefined value lists
+    if value_type in ["uuid", "issue_short_id", "datetime", "text"]:
+        return []
+    
+    # Boolean fields return true/false
+    if value_type == "boolean":
+        return [{"value": "true"}, {"value": "false"}]
+    
+    # IS field - status values
+    if attribute_key == "is":
+        return [{"value": val} for val in IS_VALUES]
+
+    # ISSUE_PRIORITY field
+    if attribute_key == "issue.priority":
+        return [{"value": val} for val in PRIORITY_VALUES]
+
+    # ISSUE_SEER_ACTIONABILITY field
+    if attribute_key == "issue.seer_actionability":
+        return [{"value": val} for val in FIXABILITY_VALUES]
+
+    # ISSUE_CATEGORY field
+    if attribute_key == "issue.category":
+        return [{"value": val} for val in ISSUE_CATEGORY_VALUES]
+
+    # ISSUE_TYPE field
+    if attribute_key == "issue.type":
+        visible_group_types = group_type_registry.get_visible(organization)
+        issue_type_values = [gt.slug for gt in visible_group_types]
+        return [{"value": val} for val in issue_type_values]
+    
+    # Fields with no predefined values but are valid searchable fields
+    if attribute_key in ["assigned", "assigned_or_suggested", "bookmarks", "timesSeen", "age", "detector"]:
+        return []
+
+    # Not a built-in field
+    return None
+    Generate built-in issue search fields.
+    
+    This mirrors the pattern from discover_tools.py and includes all fields from
+    ISSUE_FIELDS in the frontend (static/app/utils/fields/index.ts).
 
 def _get_built_in_field_values(
     attribute_key: str, organization: Organization, tag_keys: list[str] | None = None
@@ -77,139 +239,24 @@ def _get_built_in_field_values(
     Args:
         attribute_key: The built-in field key (e.g., "is", "issue.priority", "assigned_or_suggested")
         organization: Organization instance
-        tag_keys: Optional list of tag keys (used for 'has' field)
+    for field_key in sorted(_ISSUE_BUILT_IN_FIELDS):
+        # Get static values for this field
+        if field_key == "has":
+            # HAS field is special - returns all available tag keys
+            values = sorted(tag_keys)
+        else:
+            static_values = _get_static_values(field_key, organization)
+            if static_values is None:
+                # Should not happen for fields in _ISSUE_BUILT_IN_FIELDS
+                continue
+            values = [v["value"] for v in static_values] if static_values else []
 
-    Returns:
-        List of value dicts in the format expected by the API, or None if not a built-in field
-    """
-    if attribute_key == "is":
-        return [{"value": val} for val in IS_VALUES]
-
-    # HAS field values - return tag keys
-    if attribute_key == "has":
-        if tag_keys is None:
-            return []
-        return [{"value": tag_key} for tag_key in sorted(tag_keys)]
-
-    # ISSUE_PRIORITY field values
-    if attribute_key == "issue.priority":
-        return [{"value": val} for val in PRIORITY_VALUES]
-
-    # ISSUE_SEER_ACTIONABILITY field values
-    if attribute_key == "issue.seer_actionability":
-        return [{"value": val} for val in FIXABILITY_VALUES]
-
-    # ISSUE_CATEGORY field values
-    if attribute_key == "issue.category":
-        return [{"value": val} for val in ISSUE_CATEGORY_VALUES]
-
-    # ISSUE_TYPE field values
-    if attribute_key == "issue.type":
-        visible_group_types = group_type_registry.get_visible(organization)
-        issue_type_values = [gt.slug for gt in visible_group_types]
-        return [{"value": val} for val in issue_type_values]
-
-    if attribute_key in FIELDS_WITHOUT_PREDEFINED_VALUES:
-        # These fields don't have predefined values
-        # Return empty list to indicate no suggested values available
-        return []
-
-    return None
-
-
-def _get_built_in_issue_fields(
-    organization: Organization, tag_keys: list[str]
-) -> list[dict[str, Any]]:
-    """
-    Generate built-in issue search fields similar to the frontend's builtInIssuesFields.
-
-    Args:
-        organization: Organization instance
-        tag_keys: List of tag keys from the tags API (used for 'has' field values)
-
-    Returns:
-        List of built-in field definitions in Tag format
-    """
-    built_in_fields: list[dict[str, Any]] = []
-
-    # IS field - Status field with exact values from IsFieldValues enum
-    built_in_fields.append(
-        {
-            "key": "is",
-            "values": IS_VALUES,
-        }
-    )
-
-    # HAS field - Has Tag field with tag keys as values
-    has_field_values = sorted(tag_keys)
-    built_in_fields.append(
-        {
-            "key": "has",
-            "values": has_field_values,
-        }
-    )
-
-    # ASSIGNED field - Assigned To field
-    built_in_fields.append(
-        {
-            "key": "assigned",
-            "values": [],  # Values would come from user/team data
-        }
-    )
-
-    # ASSIGNED_OR_SUGGESTED field
-    built_in_fields.append(
-        {
-            "key": "assigned_or_suggested",
-            "isInput": True,
-            "values": [],  # Values would come from user/team data
-        }
-    )
-
-    # BOOKMARKS field
-    built_in_fields.append(
-        {
-            "key": "bookmarks",
-            "values": [],  # Values would come from user data
-        }
-    )
-
-    # ISSUE_CATEGORY field
-    built_in_fields.append(
-        {
-            "key": "issue.category",
-            "values": ISSUE_CATEGORY_VALUES,
-        }
-    )
-
-    # ISSUE_TYPE field - Get visible issue types
-    visible_group_types = group_type_registry.get_visible(organization)
-    issue_type_values = [gt.slug for gt in visible_group_types]
-    built_in_fields.append(
-        {
-            "key": "issue.type",
-            "values": issue_type_values,
-        }
-    )
-
-    # LAST_SEEN field
-    built_in_fields.append(
-        {
-            "key": "lastSeen",
-            "values": [],
-        }
-    )
-
-    # FIRST_SEEN field
-    built_in_fields.append(
-        {
-            "key": "firstSeen",
-            "values": [],
-        }
-    )
-
-    # TIMES_SEEN field
-    built_in_fields.append(
+        built_in_fields.append(
+            {
+                "key": field_key,
+                "values": values,
+            }
+        )
         {
             "key": "timesSeen",
             "isInput": True,
