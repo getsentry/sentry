@@ -90,9 +90,7 @@ describe('BlockComponent', () => {
         <BlockComponent block={block} blockIndex={0} isFocused onClick={mockOnClick} />
       );
 
-      expect(
-        screen.getByRole('button', {name: 'Restart conversation from here'})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: '↩'})).toBeInTheDocument();
     });
 
     it('does not show reset button when isFocused=false', () => {
@@ -106,9 +104,7 @@ describe('BlockComponent', () => {
         />
       );
 
-      expect(
-        screen.queryByRole('button', {name: 'Restart conversation from here'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: '↩'})).not.toBeInTheDocument();
     });
   });
 
