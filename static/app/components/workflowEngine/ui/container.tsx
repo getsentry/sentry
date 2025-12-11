@@ -9,7 +9,7 @@ export const Container = styled('div')`
   justify-content: flex-start;
   background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.translucentBorder};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(1.5)};
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) {

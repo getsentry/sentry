@@ -54,7 +54,7 @@ const Background = styled('div')`
   background: ${p => p.theme.background};
   padding: ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 export function ThemeSwitcher() {

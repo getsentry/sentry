@@ -370,7 +370,7 @@ const shimmer = keyframes`
 const Container = styled(motion.div)<{required: boolean}>`
   position: relative;
   width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.background};
   border: 1px dashed ${p => p.theme.border};
 
@@ -385,7 +385,7 @@ const Container = styled(motion.div)<{required: boolean}>`
       transparent
     );
     background-size: 2000px 100%;
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     animation: ${shimmer} 2s infinite linear;
     pointer-events: none;
   }
@@ -465,7 +465,7 @@ const StyledAnimatedSeerIcon = styled(IconSeer)`
   transition: opacity 0.2s ease;
   top: 0;
   flex-shrink: 0;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   z-index: 10000;
 `;
 

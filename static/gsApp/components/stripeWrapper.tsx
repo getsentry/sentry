@@ -42,13 +42,13 @@ function StripeWrapper({
         appearance: {
           theme: prefersDarkMode ? 'night' : 'stripe',
           variables: {
-            borderRadius: theme.borderRadius,
+            borderRadius: theme.radius.md,
             colorBackground: theme.background,
-            colorText: theme.textColor,
+            colorText: theme.tokens.content.primary,
             colorDanger: theme.danger,
             colorSuccess: theme.success,
             colorWarning: theme.warning,
-            iconColor: theme.textColor,
+            iconColor: theme.tokens.content.primary,
           },
           rules: {
             '.Input': {
