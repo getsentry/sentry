@@ -69,12 +69,12 @@ const Inner = styled('div')`
 const Header = styled('div')`
   display: grid;
   gap: ${space(1)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   max-width: 557px;
 `;
 
 const Title = styled('h3')`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: 0;
 `;

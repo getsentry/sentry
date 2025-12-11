@@ -314,7 +314,7 @@ const MeterBarBody = styled('div')`
 const MeterHeader = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   width: 100%;
   padding: 0 ${space(1)};
@@ -325,9 +325,9 @@ const MeterHeader = styled('div')`
 const MeterValueText = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   flex: 1;
   text-align: center;
   padding: 0 ${space(1)};
@@ -341,7 +341,7 @@ const MeterValueText = styled('div')`
 
 const NoValueContainer = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 function NoValue() {

@@ -230,7 +230,7 @@ const ReleasesTable = styled('div')`
 
   & > *:nth-child(4n + 1),
   & > *:nth-child(4n + 2) {
-    background-color: ${p => p.theme.rowBackground};
+    background-color: ${p => p.theme.tokens.background.primary};
   }
 `;
 

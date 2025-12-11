@@ -45,7 +45,7 @@ from sentry.constants import (
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import record_latest_release
 from sentry.eventstream.base import GroupState
-from sentry.eventtypes import EventType
+from sentry.eventtypes.base import BaseEvent as EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
@@ -1600,7 +1600,7 @@ def _create_group(
             logger.exception("Error after unsticking project counter")
             raise
 
-    create_open_period(group=group, start_time=group.first_seen)
+    create_open_period(group=group, start_time=group.first_seen, event_id=event.event_id)
 
     return group
 
@@ -1812,7 +1812,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
-        create_open_period(group, activity.datetime)
+        create_open_period(group, activity.datetime, event.event_id)
 
     return is_regression
 

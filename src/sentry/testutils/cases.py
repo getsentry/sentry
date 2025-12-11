@@ -3859,7 +3859,6 @@ class ReplayEAPTestCase(BaseTestCase):
         breadcrumb_data = {
             "replay_id": replay_id,
             "segment_id": segment_id,
-            "project_id": project.id,
             "category": category,
         }
 

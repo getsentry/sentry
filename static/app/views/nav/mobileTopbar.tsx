@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -140,13 +139,6 @@ const Topbar = styled('header')<{showSuperuserWarning: boolean}>`
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.sidebar};
-
-  ${p =>
-    p.showSuperuserWarning &&
-    !p.theme.isChonk &&
-    css`
-      background: ${p.theme.sidebar.superuser};
-    `}
 `;
 
 const Left = styled('div')`
@@ -165,6 +157,6 @@ const NavigationOverlay = styled('nav')`
   flex-direction: column;
   background: ${p => p.theme.surface200};
   z-index: ${p => p.theme.zIndex.modal};
-  --color: ${p => p.theme.textColor};
+  --color: ${p => p.theme.tokens.content.primary};
   --color-hover: ${p => p.theme.activeText};
 `;

@@ -50,6 +50,7 @@ type FilterSelectorProps = {
   onRemoveFilter: (filter: GlobalFilter) => void;
   onUpdateFilter: (filter: GlobalFilter) => void;
   searchBarData: SearchBarData;
+  disableRemoveFilter?: boolean;
 };
 
 function FilterSelector({
@@ -57,6 +58,7 @@ function FilterSelector({
   searchBarData,
   onRemoveFilter,
   onUpdateFilter,
+  disableRemoveFilter,
 }: FilterSelectorProps) {
   const {selection} = usePageFilters();
 
@@ -89,11 +91,7 @@ function FilterSelector({
       };
     }
 
-    const operatorInfo = getOperatorInfo({
-      filterToken,
-      hasWildcardOperators: true,
-      fieldDefinition,
-    });
+    const operatorInfo = getOperatorInfo({filterToken, fieldDefinition});
 
     return {
       initialOperator: operatorInfo?.operator ?? TermOperator.DEFAULT,
@@ -251,7 +249,7 @@ function FilterSelector({
 
     if (stagedOperator !== initialOperator) {
       const newToken = parseFilterValue(newValue, globalFilter)[0] ?? filterToken;
-      newValue = modifyFilterOperatorQuery(newToken.text, newToken, stagedOperator, true);
+      newValue = modifyFilterOperatorQuery(newToken.text, newToken, stagedOperator);
     }
 
     onUpdateFilter({
@@ -279,13 +277,15 @@ function FilterSelector({
           {t('Clear')}
         </StyledButton>
       )}
-      <StyledButton
-        aria-label={t('Remove Filter')}
-        size="zero"
-        onClick={() => onRemoveFilter(globalFilter)}
-      >
-        {t('Remove Filter')}
-      </StyledButton>
+      {!disableRemoveFilter && (
+        <StyledButton
+          aria-label={t('Remove Filter')}
+          size="zero"
+          onClick={() => onRemoveFilter(globalFilter)}
+        >
+          {t('Remove Filter')}
+        </StyledButton>
+      )}
     </Flex>
   );
 

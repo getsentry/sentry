@@ -297,8 +297,18 @@ function DashboardTable({
                   data-test-id="dashboard-duplicate"
                   icon={<IconCopy />}
                   size="sm"
-                  disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-                  title={limitMessage}
+                  disabled={
+                    hasReachedDashboardLimit ||
+                    isLoadingDashboardsLimit ||
+                    (defined(dataRow.prebuiltId) &&
+                      !organization.features.includes('dashboards-prebuilt-controls'))
+                  }
+                  title={
+                    defined(dataRow.prebuiltId) &&
+                    !organization.features.includes('dashboards-prebuilt-controls')
+                      ? t('Prebuilt dashboards cannot be duplicated')
+                      : limitMessage
+                  }
                 />
               )}
             </DashboardCreateLimitWrapper>
@@ -382,12 +392,12 @@ const DateSelected = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   display: grid;
   grid-column-gap: ${space(1)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   ${p => p.theme.overflowEllipsis};
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding-left: ${space(1)};
 `;
 

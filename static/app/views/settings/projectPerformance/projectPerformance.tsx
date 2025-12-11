@@ -30,6 +30,7 @@ import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/feat
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {
   setApiQueryData,
   useApiQuery,
@@ -38,7 +39,6 @@ import {
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';

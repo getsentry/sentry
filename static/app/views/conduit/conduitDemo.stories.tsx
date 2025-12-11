@@ -37,7 +37,7 @@ export default Storybook.story('Conduit Demo', story => {
       onMessage: (message: Message) => {
         setMessages(prev => [...prev, message]);
       },
-      onOpen: () => {
+      onConnect: () => {
         setMessages([]);
       },
       onClose: () => {

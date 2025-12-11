@@ -7,7 +7,6 @@ import {
   userEvent,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
 
 import ResolveActions from 'sentry/components/actions/resolve';
 
@@ -169,9 +168,10 @@ describe('ResolveActions', () => {
     await userEvent.click(screen.getByLabelText('More resolve options'));
     await userEvent.click(screen.getByText('Another existing release…'));
 
-    await selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
-    expect(await screen.findByText('1.2.0')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('1.2.0'));
+    const versionTrigger = screen.getByRole('button', {name: /version/i});
+    await userEvent.click(versionTrigger);
+    const option = await screen.findByRole('option', {name: /1\.2\.0/});
+    await userEvent.click(option);
 
     const modal = screen.getByRole('dialog');
     await userEvent.click(within(modal).getByRole('button', {name: 'Resolve'}));

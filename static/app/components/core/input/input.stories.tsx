@@ -8,7 +8,7 @@ import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 export default Storybook.story('Input', (story, APIReference) => {
-  APIReference(documentation.props.Input);
+  APIReference(documentation.props?.Input);
 
   story('Sizes', () => {
     return (

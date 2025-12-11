@@ -149,8 +149,15 @@ export type AddOnCategoryInfo = {
   productName: string;
 };
 
-type AddOn = AddOnCategoryInfo & {
+export type AddOn = AddOnCategoryInfo & {
+  /**
+   * Whether the subscription has bought the add-on
+   */
   enabled: boolean;
+  /**
+   * Whether the subscription can buy the add-on
+   */
+  isAvailable: boolean;
 };
 
 type AddOns = Partial<Record<AddOnCategory, AddOn>>;
@@ -1195,3 +1202,22 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   shortenedUnitName?: string;
 }
+
+type SeatStatus =
+  | 'UNKNOWN'
+  | 'ASSIGNED'
+  | 'OVER_QUOTA'
+  | 'DISABLED_FOR_BILLING'
+  | 'REMOVED'
+  | 'REALLOCATED';
+
+export type BillingSeatAssignment = {
+  billingMetric: DataCategory;
+  created: string;
+  displayName: string;
+  id: number;
+  isTrialSeat: boolean;
+  projectId: number;
+  seatIdentifier: string;
+  status: SeatStatus;
+};

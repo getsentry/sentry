@@ -4,10 +4,12 @@ import styled from '@emotion/styled';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useParams} from 'sentry/utils/useParams';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import InsightIssuesList from 'sentry/views/insights/common/components/issues';
@@ -268,13 +270,21 @@ const DescriptionContainer = styled(ModuleLayout.Full)`
 `;
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
   const hasDashboardsPlatformizedQueries = useHasDashboardsPlatformizedQueries();
   if (hasDashboardsPlatformizedQueries) {
     return <PlatformizedQuerySummaryPage />;
   }
 
   return (
-    <ModulePageProviders moduleName="db" pageTitle={t('Query Summary')}>
+    <ModulePageProviders
+      moduleName="db"
+      pageTitle={t('Query Summary')}
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <DatabaseSpanSummaryPage />
     </ModulePageProviders>
   );

@@ -199,7 +199,7 @@ const SectionTitle = styled('h6')`
 `;
 
 const SectionContent = styled(MarkedText)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.md};
   line-height: 1.4;
   margin-bottom: ${space(3)};
@@ -241,7 +241,7 @@ const StyledListItem = styled('li')`
 
 const StyledLink = styled(Link)`
   text-decoration: none;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: 600;
   margin-right: 6px;
 `;

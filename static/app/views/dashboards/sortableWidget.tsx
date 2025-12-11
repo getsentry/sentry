@@ -52,7 +52,9 @@ type Props = {
 
 function SortableWidget(props: Props) {
   const widgetRef = useRef<HTMLDivElement>(null);
-  const [tableWidths, setTableWidths] = useState<number[]>();
+  const [tableWidths, setTableWidths] = useState<number[]>(
+    props.widget.tableWidths ?? []
+  );
   const [queries, setQueries] = useState<WidgetQuery[]>();
   const {
     widget,
@@ -125,7 +127,7 @@ function SortableWidget(props: Props) {
     onEdit,
     onDuplicate,
     onSetTransactionsDataset,
-    showContextMenu: !isEmbedded,
+    showContextMenu: !isEmbedded || isPrebuiltDashboard,
     isPreview,
     index,
     dashboardFilters,

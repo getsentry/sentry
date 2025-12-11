@@ -451,7 +451,7 @@ class PushEventWebhook(GitHubWebhook):
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
 
-                    file_changes = []
+                    file_changes: list[CommitFileChange] = []
 
                     for fname in commit["added"]:
                         languages.add(get_file_language(fname))
@@ -765,6 +765,16 @@ class PullRequestEventWebhook(GitHubWebhook):
                     "merge_commit_sha": merge_commit_sha,
                 },
             )
+
+            if created:
+                metrics.incr(
+                    "github.webhook.pull_request.created",
+                    sample_rate=1.0,
+                    tags={
+                        "organization_id": organization.id,
+                        "repository_id": repo.id,
+                    },
+                )
 
         except IntegrityError:
             pass

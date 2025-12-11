@@ -647,7 +647,7 @@ const Dot = styled('span')`
   border-radius: ${p => p.theme.borderRadius};
   width: ${space(0.5)};
   height: ${space(0.5)};
-  background-color: ${p => p.theme.textColor};
+  background-color: ${p => p.theme.tokens.content.primary};
 `;
 
 const AlertBody = styled('div')`

@@ -23,7 +23,10 @@ import ActionNodeList from 'sentry/views/automations/components/actionNodeList';
 import {AutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {validateActions} from 'sentry/views/automations/components/automationFormData';
+import {
+  stripActionFields,
+  validateActions,
+} from 'sentry/views/automations/components/automationFormData';
 import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
 import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
 import {useSendTestNotification} from 'sentry/views/automations/hooks';
@@ -141,8 +144,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
     if (Object.keys(actionErrors).length === 0) {
       await sendTestNotification(
         actionFilterActions.map(action => {
-          const {id: _id, ...actionWithoutId} = action;
-          return actionWithoutId;
+          return stripActionFields(action);
         })
       );
     }

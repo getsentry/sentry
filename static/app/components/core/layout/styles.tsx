@@ -1,10 +1,5 @@
 import {useCallback, useMemo, useSyncExternalStore} from 'react';
-import {
-  css,
-  useTheme,
-  type DO_NOT_USE_ChonkTheme,
-  type SerializedStyles,
-} from '@emotion/react';
+import {css, useTheme, type SerializedStyles} from '@emotion/react';
 
 import type {Theme} from 'sentry/utils/theme';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
@@ -70,7 +65,7 @@ const BREAKPOINT_ORDER: readonly Breakpoint[] = [
 ];
 
 // We alias None -> 0 to make it slighly more terse and easier to read.
-export type RadiusSize = keyof DO_NOT_USE_ChonkTheme['radius'];
+export type RadiusSize = keyof Theme['radius'];
 export type SpacingSize = keyof Theme['space'];
 export type Border = keyof Theme['tokens']['border'];
 export type Breakpoint = keyof Theme['breakpoints'];
