@@ -713,7 +713,7 @@ function WheelComponent(props: TableComponentProps): React.ReactNode {
   const ringSegmentColors = theme.chart.getColorPalette(4).slice() as unknown as string[];
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
-  const projectScore = tableResults?.[0]
+  const projectScore = tableResults?.[0]?.data?.[0]
     ? getWebVitalScoresFromTableDataRow(
         tableResults?.[0]?.data?.[0] as unknown as WebVitalScores
       )
