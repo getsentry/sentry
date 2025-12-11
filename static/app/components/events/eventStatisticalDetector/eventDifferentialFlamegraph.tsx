@@ -511,7 +511,7 @@ function DifferentialFlamegraphExplanationBar(
 const DifferentialFlamegraphExplanationBarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   padding: ${space(0.5)} ${space(1)};
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};

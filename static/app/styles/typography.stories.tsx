@@ -593,14 +593,14 @@ const ColorSwatch = styled(
   align-items: center;
 
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(0.25)} ${space(0.5)};
   vertical-align: sub;
 `;
 
 const ExampleImg = styled('img')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const PositiveLabel = styled(

@@ -185,9 +185,7 @@ const Controls = styled('div')<{expanded: boolean}>`
 
   ${MergedGroup}:last-child & {
     ${p => !p.expanded && `border-bottom: none`};
-    ${p =>
-      !p.expanded &&
-      `border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
+    ${p => !p.expanded && `border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md}`};
   }
 `;
 
