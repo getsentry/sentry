@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -9,10 +10,58 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.request_common_pb2 import (
+    PageToken,
+    RequestMeta,
+    TraceItemType,
+)
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    AndFilter,
+    ComparisonFilter,
+    TraceItemFilter,
+)
 
 from sentry.utils import snuba_rpc
+
+
+@dataclass
+class PreprodSizeFilters:
+    # IDs
+    artifact_id: int | None = None
+
+    # App/Artifact attributes
+    app_id: str | None = None
+    artifact_type: int | None = None
+
+    # Build configuration
+    build_configuration_name: str | None = None
+
+    # Git attributes
+    git_head_ref: str | None = None
+    git_head_sha: str | None = None
+    git_base_ref: str | None = None
+    git_base_sha: str | None = None
+    git_provider: str | None = None
+    git_head_repo_name: str | None = None
+    git_base_repo_name: str | None = None
+    git_pr_number: int | None = None
+
+
+_FIELD_TYPES: dict[str, AttributeKey.Type.ValueType] = {
+    "app_id": AttributeKey.Type.TYPE_STRING,
+    "artifact_type": AttributeKey.Type.TYPE_INT,
+    "build_configuration_name": AttributeKey.Type.TYPE_STRING,
+    "git_head_ref": AttributeKey.Type.TYPE_STRING,
+    "git_head_sha": AttributeKey.Type.TYPE_STRING,
+    "git_base_ref": AttributeKey.Type.TYPE_STRING,
+    "git_base_sha": AttributeKey.Type.TYPE_STRING,
+    "git_provider": AttributeKey.Type.TYPE_STRING,
+    "git_head_repo_name": AttributeKey.Type.TYPE_STRING,
+    "git_base_repo_name": AttributeKey.Type.TYPE_STRING,
+    "git_pr_number": AttributeKey.Type.TYPE_INT,
+    # Note: artifact_id is handled specially (converted to trace_id)
+}
 
 
 def query_preprod_size_metrics(
@@ -20,22 +69,34 @@ def query_preprod_size_metrics(
     project_ids: list[int],
     start: datetime,
     end: datetime,
+    filters: PreprodSizeFilters | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> TraceItemTableResponse:
     """
     Query preprod size metrics from EAP.
 
-    Returns all available attributes for the given time range.
+    Example:
+        # Query all iOS Release builds on main branch for a specific app
+        query_preprod_size_metrics(
+            organization_id=1,
+            project_ids=[1, 2],
+            start=datetime.now() - timedelta(days=30),
+            end=datetime.now(),
+            filters=PreprodSizeFilters(
+                app_id="com.example.app",
+                artifact_type=0,  # iOS
+                build_configuration_name="Release",
+                git_head_ref="main",
+            ),
+        )
     """
-    # Convert datetime to protobuf Timestamp
     start_timestamp = Timestamp()
     start_timestamp.FromDatetime(start)
 
     end_timestamp = Timestamp()
     end_timestamp.FromDatetime(end)
 
-    # Define columns to retrieve - all the preprod attributes
     columns = [
         # IDs
         Column(
@@ -145,6 +206,11 @@ def query_preprod_size_metrics(
         ),
     ]
 
+    query_filter = None
+    filter_list = _build_filters(filters) if filters else []
+    if filter_list:
+        query_filter = TraceItemFilter(and_filter=AndFilter(filters=filter_list))
+
     rpc_request = TraceItemTableRequest(
         meta=RequestMeta(
             referrer="preprod.eap.debug",
@@ -157,6 +223,7 @@ def query_preprod_size_metrics(
                 mode=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
             ),
         ),
+        filter=query_filter,
         columns=columns,
         order_by=[
             TraceItemTableRequest.OrderBy(
@@ -174,4 +241,60 @@ def query_preprod_size_metrics(
         page_token=PageToken(offset=offset),
     )
 
-    return snuba_rpc.table_rpc([rpc_request])[0]
+    responses = snuba_rpc.table_rpc([rpc_request])
+    if not responses:
+        raise ValueError("No response from Snuba RPC")
+    return responses[0]
+
+
+def _build_filters(filters: PreprodSizeFilters) -> list[TraceItemFilter]:
+    result = []
+
+    for field_name, value in filters.__dict__.items():
+        if value is None:
+            continue
+
+        # Special case: artifact_id needs to be converted to trace_id format
+        if field_name == "artifact_id":
+            trace_id = f"{value:032x}"
+            result.append(
+                TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=AttributeKey(
+                            name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING
+                        ),
+                        op=ComparisonFilter.OP_EQUALS,
+                        value=AttributeValue(val_str=trace_id),
+                    )
+                )
+            )
+            continue
+
+        attr_type = _FIELD_TYPES.get(field_name)
+        if attr_type is None:
+            raise ValueError(f"Field '{field_name}' is missing from _FIELD_TYPES mapping.")
+
+        if attr_type == AttributeKey.Type.TYPE_STRING:
+            attr_value = AttributeValue(val_str=value)
+        elif attr_type == AttributeKey.Type.TYPE_INT:
+            attr_value = AttributeValue(val_int=value)
+        elif attr_type == AttributeKey.Type.TYPE_DOUBLE:
+            attr_value = AttributeValue(val_double=value)
+        elif attr_type == AttributeKey.Type.TYPE_FLOAT:
+            attr_value = AttributeValue(val_float=value)
+        elif attr_type == AttributeKey.Type.TYPE_BOOLEAN:
+            attr_value = AttributeValue(val_bool=value)
+        else:
+            raise ValueError(f"Unhandled AttributeKey type {attr_type} for field '{field_name}'.")
+
+        result.append(
+            TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name=field_name, type=attr_type),
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=attr_value,
+                )
+            )
+        )
+
+    return result
