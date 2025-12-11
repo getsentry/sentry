@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -13,6 +13,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 
 type Props = {
@@ -22,12 +23,10 @@ type Props = {
 
 export default function MobileBuilds({organization, projectSlug}: Props) {
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const [searchQuery, setSearchQuery] = useQueryState(
-    'query',
-    parseAsString.withDefault('')
-  );
-  const [cursor, setCursor] = useQueryState('cursor', parseAsString);
+  const [searchQuery] = useQueryState('query', parseAsString);
+  const [cursor] = useQueryState('cursor', parseAsString);
 
   const buildsQueryParams = useMemo(() => {
     const query: Record<string, any> = {
@@ -39,12 +38,12 @@ export default function MobileBuilds({organization, projectSlug}: Props) {
       query.cursor = cursor;
     }
 
-    if (searchQuery.trim()) {
+    if (searchQuery?.trim()) {
       query.query = searchQuery.trim();
     }
 
     return query;
-  }, [cursor, location.query, searchQuery]);
+  }, [cursor, location, searchQuery]);
 
   const {
     data: buildsData,
@@ -66,6 +65,16 @@ export default function MobileBuilds({organization, projectSlug}: Props) {
     }
   );
 
+  const handleSearch = useCallback(
+    (query: string) => {
+      navigate({
+        ...location,
+        query: {...location.query, cursor: undefined, query},
+      });
+    },
+    [location, navigate]
+  );
+
   if (!projectSlug) {
     return <LoadingIndicator />;
   }
@@ -80,11 +89,8 @@ export default function MobileBuilds({organization, projectSlug}: Props) {
       {shouldShowSearchBar && (
         <SearchBar
           placeholder={t('Search by build, SHA, branch name, or pull request')}
-          onChange={q => {
-            setSearchQuery(q.trim() || null);
-            setCursor(null); // Clear pagination on search
-          }}
-          query={searchQuery}
+          onSearch={handleSearch}
+          query={searchQuery ?? undefined}
         />
       )}
 

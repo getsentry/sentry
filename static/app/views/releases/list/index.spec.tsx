@@ -621,16 +621,19 @@ describe('ReleasesList', () => {
       )
     );
 
-    await userEvent.clear(
-      screen.getByPlaceholderText('Search by build, SHA, branch name, or pull request')
-    );
-    await userEvent.type(
-      screen.getByPlaceholderText('Search by build, SHA, branch name, or pull request'),
-      'branch:main'
+    const searchInput = screen.getByPlaceholderText(
+      'Search by build, SHA, branch name, or pull request'
     );
 
+    // Clear the input first
+    await userEvent.clear(searchInput);
+
+    // Type the search term and press Enter to submit
+    await userEvent.type(searchInput, 'branch:main{enter}');
+
+    // Wait for the API call with the complete search query
     await waitFor(() =>
-      expect(buildsMock).toHaveBeenLastCalledWith(
+      expect(buildsMock).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${mobileProject.slug}/preprodartifacts/list-builds/`,
         expect.objectContaining({
           query: expect.objectContaining({
