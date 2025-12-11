@@ -1,16 +1,7 @@
 from typing import Any
 
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
-    AndFilter,
-    OrFilter,
-    TraceItemFilter,
-)
-from sentry_protos.snuba.v1.trace_item_pb2 import (
-    AnyValue,
-    ArrayValue,
-    KeyValue,
-    KeyValueList,
-)
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue, KeyValue, KeyValueList
 
 # Maximum value for signed 64-bit integer
 I64_MAX = 2**63 - 1

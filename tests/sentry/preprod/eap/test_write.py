@@ -1,4 +1,5 @@
-from datetime import datetime, timezone as dt_timezone
+from datetime import datetime
+from datetime import timezone as dt_timezone
 from unittest.mock import patch
 
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
@@ -172,9 +173,7 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
                 assert "size_metric_state" not in attrs
 
                 # PreprodArtifact attributes
-                assert (
-                    attrs["artifact_type"].int_value == PreprodArtifact.ArtifactType.XCARCHIVE
-                )
+                assert attrs["artifact_type"].int_value == PreprodArtifact.ArtifactType.XCARCHIVE
                 assert attrs["artifact_state"].int_value == PreprodArtifact.ArtifactState.PROCESSED
                 assert attrs["app_id"].string_value == "com.example.app"
                 assert attrs["app_name"].string_value == "Example App"
