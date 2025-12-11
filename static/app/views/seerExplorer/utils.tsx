@@ -84,14 +84,27 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   },
 
   get_issue_details: (args, isLoading) => {
-    const issueId = args.issue_id || '';
-    const selectedEvent = args.selected_event;
-    if (selectedEvent) {
+    const {issue_id, event_id, start, end} = args;
+
+    if (issue_id) {
+      if (start && end) {
+        return isLoading
+          ? `Inspecting issue ${issue_id} between ${start} to ${end}...`
+          : `Inspected issue ${issue_id} between ${start} to ${end}`;
+      }
       return isLoading
-        ? `Inspecting issue ${issueId} (${selectedEvent} event)...`
-        : `Inspected issue ${issueId} (${selectedEvent} event)`;
+        ? `Inspecting issue ${issue_id}...`
+        : `Inspected issue ${issue_id}`;
     }
-    return isLoading ? `Inspecting issue ${issueId}...` : `Inspected issue ${issueId}`;
+
+    if (event_id) {
+      return isLoading
+        ? `Inspecting event ${event_id}...`
+        : `Inspected event ${event_id}`;
+    }
+
+    // Should not happen unless there's a bug.
+    return isLoading ? `Inspecting issue...` : `Inspected issue`;
   },
 
   code_search: (args, isLoading) => {
