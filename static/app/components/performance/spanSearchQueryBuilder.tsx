@@ -8,6 +8,7 @@ import {FieldKind, type AggregationKey} from 'sentry/utils/fields';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
+  type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -48,9 +49,10 @@ export function EapSpanSearchQueryBuilderWrapper(props: SpanSearchQueryBuilderPr
     useTraceItemTags('string');
 
   return (
-    <EAPSpanSearchQueryBuilder
-      numberTags={numberTags}
-      stringTags={stringTags}
+    <TraceItemSearchQueryBuilder
+      itemType={TraceItemDataset.SPANS}
+      numberAttributes={numberTags}
+      stringAttributes={stringTags}
       numberSecondaryAliases={numberSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
       {...props}
@@ -58,65 +60,75 @@ export function EapSpanSearchQueryBuilderWrapper(props: SpanSearchQueryBuilderPr
   );
 }
 
-export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
+interface UseEAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
+  numberAttributes: TagCollection;
   numberSecondaryAliases: TagCollection;
-  numberTags: TagCollection;
+  stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
-  stringTags: TagCollection;
   autoFocus?: boolean;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   onChange?: (query: string, state: CallbackSearchState) => void;
   portalTarget?: HTMLElement | null;
   supportedAggregates?: AggregationKey[];
 }
+export interface EAPSpanSearchQueryBuilderProps
+  extends UseEAPSpanSearchQueryBuilderProps {
+  itemType: TraceItemDataset;
+}
 
-export function useEAPSpanSearchQueryBuilderProps(props: EAPSpanSearchQueryBuilderProps) {
+export function useEAPSpanSearchQueryBuilderProps(
+  props: UseEAPSpanSearchQueryBuilderProps
+) {
   const {
-    numberTags,
-    stringTags,
-    numberSecondaryAliases,
-    stringSecondaryAliases,
-    ...rest
-  } = props;
-
-  const numberAttributes = numberTags;
-  const stringAttributes = useMemo(() => {
-    if (SpanFields.RELEASE in stringTags) {
-      return {
-        ...stringTags,
-        ...STATIC_SEMVER_TAGS,
-      };
-    }
-    return stringTags;
-  }, [stringTags]);
-
-  return useTraceItemSearchQueryBuilderProps({
-    itemType: TraceItemDataset.SPANS,
     numberAttributes,
     stringAttributes,
     numberSecondaryAliases,
     stringSecondaryAliases,
-    ...rest,
-  });
-}
-
-export function EAPSpanSearchQueryBuilder(props: EAPSpanSearchQueryBuilderProps) {
-  const {
-    numberTags,
-    stringTags,
-    numberSecondaryAliases,
-    stringSecondaryAliases,
     ...rest
   } = props;
 
-  return (
-    <TraceItemSearchQueryBuilder
-      itemType={TraceItemDataset.SPANS}
-      numberAttributes={numberTags}
-      stringAttributes={stringTags}
-      numberSecondaryAliases={numberSecondaryAliases}
-      stringSecondaryAliases={stringSecondaryAliases}
-      {...rest}
-    />
+  const stringAttributesWithSemver = useMemo(() => {
+    if (SpanFields.RELEASE in stringAttributes) {
+      return {
+        ...stringAttributes,
+        ...STATIC_SEMVER_TAGS,
+      };
+    }
+    return stringAttributes;
+  }, [stringAttributes]);
+
+  const traceItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps = useMemo(
+    () => ({
+      itemType: TraceItemDataset.SPANS,
+      numberAttributes,
+      stringAttributes: stringAttributesWithSemver,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      ...rest,
+    }),
+    [
+      numberAttributes,
+      numberSecondaryAliases,
+      rest,
+      stringAttributesWithSemver,
+      stringSecondaryAliases,
+    ]
+  );
+
+  const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps({
+    itemType: TraceItemDataset.SPANS,
+    numberAttributes,
+    stringAttributes: stringAttributesWithSemver,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+    ...rest,
+  });
+
+  return useMemo(
+    () => ({
+      searchQueryBuilderProviderProps,
+      traceItemSearchQueryBuilderProps,
+    }),
+    [searchQueryBuilderProviderProps, traceItemSearchQueryBuilderProps]
   );
 }
