@@ -98,7 +98,13 @@ describe('IssuesTraceTree', () => {
       organization,
     });
 
-    const errors = tree.root.findAllChildren(n => n.hasIssues).slice(0, 10);
+    const errors = tree.root
+      .findAllChildren(
+        n =>
+          n.hasIssues &&
+          !!(n.value && 'event_type' in n.value && n.value.event_type === 'error')
+      )
+      .slice(0, 10);
     expect(tree.build().collapseList(errors, 3, 0).serialize()).toMatchSnapshot();
   });
 
