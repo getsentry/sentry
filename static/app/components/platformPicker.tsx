@@ -316,7 +316,7 @@ const StyledSearchBar = styled(SearchBar)`
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${space(2)};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const ClearButton = styled(Button)`
@@ -330,7 +330,7 @@ const ClearButton = styled(Button)`
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
