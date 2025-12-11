@@ -36,13 +36,13 @@ export const getGenAiOperationTypeFromSpanOp = (spanOp?: string): string | undef
     return undefined;
   }
 
-  if (spanOp.includes('agent')) {
+  if (['gen_ai.invoke_agent', 'gen_ai.create_agent'].includes(spanOp)) {
     return 'agent';
   }
-  if (spanOp.includes('tool')) {
+  if (spanOp === 'gen_ai.execute_tool') {
     return 'tool';
   }
-  if (spanOp.includes('handoff')) {
+  if (spanOp === 'gen_ai.handoff') {
     return 'handoff';
   }
   return 'ai_client';
