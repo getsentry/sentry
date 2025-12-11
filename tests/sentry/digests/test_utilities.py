@@ -18,6 +18,7 @@ from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.types.actor import ActorType
 
 
@@ -80,7 +81,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         assert record.value.identifier_key == IdentifierKey.WORKFLOW
         assert record.value.rules == [workflow.id]
 
-    @with_feature("organizations:workflow-engine-trigger-actions")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     def test_event_to_record_with_legacy_rule_id(self) -> None:
         project = self.create_project(fire_project_created=True)
         shadow_rule = self.create_project_rule(project)
@@ -258,7 +259,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
 
         assert_get_personalized_digests(self.project, digest, expected_result)
 
-    @with_feature("organizations:workflow-engine-trigger-actions")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     def test_simple_with_legacy_rule_id(self) -> None:
         records = [
             event_to_record(event, (self.rule_with_legacy_rule_id,))
@@ -300,7 +301,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             self.project, digest, expected_result, ActionTargetType.MEMBER, self.user1.id
         )
 
-    @with_feature("organizations:workflow-engine-trigger-actions")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     def test_direct_email_with_legacy_rule_id(self) -> None:
         """When the action type is not Issue Owners, then the target actor gets a digest."""
         self.project_ownership.update(fallthrough=False)
@@ -362,7 +363,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             actor for actors in participants_by_provider_by_event.values() for actor in actors
         }  # no users in this team no digests should be processed
 
-    @with_feature("organizations:workflow-engine-trigger-actions")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     def test_team_without_members_with_legacy_rule_id(self) -> None:
         team = self.create_team()
         project = self.create_project(teams=[team], fire_project_created=True)
@@ -441,7 +442,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         }
         assert_get_personalized_digests(self.project, digest, expected_result)
 
-    @with_feature("organizations:workflow-engine-trigger-actions")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     def test_everyone_with_owners_with_legacy_rule_id(self) -> None:
         events = self.create_events_from_filenames(
             self.project, ["hello.moz", "goodbye.moz", "hola.moz", "adios.moz"]
@@ -460,7 +461,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         }
         assert_get_personalized_digests(self.project, digest, expected_result)
 
-    @with_feature("organizations:workflow-engine-trigger-actions")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     def test_simple_with_workflow_id_flag_off_fallback(self) -> None:
         """
         Test that when workflow_ids are present but the feature flag is off,
