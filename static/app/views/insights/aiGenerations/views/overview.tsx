@@ -11,8 +11,8 @@ import type {DatePageFilterProps} from 'sentry/components/organizations/datePage
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {
-  useEAPSpanSearchQueryBuilderProps,
-  type UseEAPSpanSearchQueryBuilderProps,
+  useSpanSearchQueryBuilderProps,
+  type UseSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
@@ -87,7 +87,7 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
     'search-query-builder-raw-search-replacement'
   );
 
-  const searchQueryBuilderProps: UseEAPSpanSearchQueryBuilderProps = useMemo(
+  const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
@@ -113,8 +113,8 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
     ]
   );
 
-  const {searchQueryBuilderProviderProps, eapSpanSearchQueryBuilderProps} =
-    useEAPSpanSearchQueryBuilderProps(searchQueryBuilderProps);
+  const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
+    useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -135,7 +135,7 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
   }, [fields, setFields, stringTags, numberTags]);
 
   return (
-    <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
+    <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
       <ModuleFeature moduleName={ModuleName.AI_GENERATIONS}>
         <Stack
           direction="column"
@@ -154,7 +154,7 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
             </PageFilterBar>
             {!showOnboarding && (
               <Flex flex={2} minWidth="50%">
-                <TraceItemSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
+                <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
               </Flex>
             )}
           </Flex>

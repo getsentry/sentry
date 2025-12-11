@@ -5,7 +5,7 @@ import keyBy from 'lodash/keyBy';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -22,6 +22,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 // TODO(release-drawer): Move InsightsLineChartWidget into separate, self-contained component
 // eslint-disable-next-line no-restricted-imports
@@ -263,6 +264,14 @@ export function MessageSpanSamplesPanel() {
     };
   }, [samplesPlottable, spanSamplesById, highlightedSpanId]);
 
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    searchSource: `${ModuleName.QUEUE}-sample-panel`,
+    initialQuery: query.spanSearchQuery,
+    onSearch: handleSearch,
+    placeholder: t('Search for span attributes'),
+    projects: selection.projects,
+  });
+
   return (
     <PageAlertProvider>
       <InsightsSpanTagProvider>
@@ -333,13 +342,7 @@ export function MessageSpanSamplesPanel() {
             </ModuleLayout.Full>
 
             <ModuleLayout.Full>
-              <EapSpanSearchQueryBuilderWrapper
-                searchSource={`${ModuleName.QUEUE}-sample-panel`}
-                initialQuery={query.spanSearchQuery}
-                onSearch={handleSearch}
-                placeholder={t('Search for span attributes')}
-                projects={selection.projects}
-              />
+              <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
             </ModuleLayout.Full>
 
             <ModuleLayout.Full>

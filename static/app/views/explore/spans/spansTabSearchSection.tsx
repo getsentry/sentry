@@ -13,11 +13,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import type {
-  EAPSpanSearchQueryBuilderProps,
-  UseEAPSpanSearchQueryBuilderProps,
-} from 'sentry/components/performance/spanSearchQueryBuilder';
-import {useEAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -40,6 +36,7 @@ import {ExploreSchemaHintsSection} from 'sentry/views/explore/components/styles'
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
+  type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {MAX_CROSS_EVENT_QUERIES} from 'sentry/views/explore/constants';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -325,9 +322,9 @@ function SpansTabCrossEventSearchBars() {
 }
 
 function SpansSearchBar({
-  eapSpanSearchQueryBuilderProps,
+  spanSearchQueryBuilderProps,
 }: {
-  eapSpanSearchQueryBuilderProps: EAPSpanSearchQueryBuilderProps;
+  spanSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
 }) {
   const {displayAskSeer} = useSearchQueryBuilder();
 
@@ -335,7 +332,7 @@ function SpansSearchBar({
     return <SpansTabSeerComboBox />;
   }
 
-  return <TraceItemSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />;
+  return <TraceItemSearchQueryBuilder autoFocus {...spanSearchQueryBuilderProps} />;
 }
 
 interface SpanTabSearchSectionProps {
@@ -371,7 +368,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
 
-  const searchQueryBuilderProps: UseEAPSpanSearchQueryBuilderProps = useMemo(
+  const searchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: query,
       onSearch: (newQuery: string) => {
@@ -425,14 +422,14 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
     ]
   );
 
-  const {searchQueryBuilderProviderProps, eapSpanSearchQueryBuilderProps} =
-    useEAPSpanSearchQueryBuilderProps(searchQueryBuilderProps);
+  const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
+    useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
   return (
     <Layout.Main width="full">
       <SearchQueryBuilderProvider
         enableAISearch={areAiFeaturesAllowed}
-        {...searchQueryBuilderProviderProps}
+        {...spanSearchQueryBuilderProviderProps}
       >
         <TourElement<ExploreSpansTour>
           tourContext={ExploreSpansTourContext}
@@ -450,9 +447,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
               <EnvironmentPageFilter />
               <DatePageFilter {...datePageFilterProps} />
             </StyledPageFilterBar>
-            <SpansSearchBar
-              eapSpanSearchQueryBuilderProps={eapSpanSearchQueryBuilderProps}
-            />
+            <SpansSearchBar spanSearchQueryBuilderProps={spanSearchQueryBuilderProps} />
             {hasCrossEventQueryingFlag ? <CrossEventQueryingDropdown /> : null}
             {hasCrossEvents ? <SpansTabCrossEventSearchBars /> : null}
           </Grid>
