@@ -1,7 +1,10 @@
 import React, {Fragment, isValidElement, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import lowerFirst from 'lodash/lowerFirst';
 import {PlatformIcon, platforms} from 'platformicons';
+
+import {InlineCode} from '@sentry/scraps/code';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Input} from 'sentry/components/core/input';
@@ -1519,6 +1522,7 @@ const SECTIONS: TSection[] = [
 ];
 
 export default function IconsStories() {
+  const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
 
   const definedWithPrefix = new Set<string>();
@@ -1534,6 +1538,12 @@ export default function IconsStories() {
       .filter(name => !definedWithPrefix.has(name))
       .map((name): TIcon => ({id: name, name})),
   };
+
+  const allIcons: TIcon[] = SECTIONS.flatMap(section => section.icons);
+
+  const variants = Object.keys(theme.tokens.graphics);
+  const shuffled = [...allIcons].sort(() => Math.random() - 0.5);
+  const picked = shuffled.slice(0, variants.length);
 
   return (
     <Fragment>
@@ -1560,11 +1570,39 @@ export default function IconsStories() {
           />
         </Flex>
       </StyledSticky>
-
+      <Heading as="h5" size="xl" variant="primary">
+        Icon Variants
+      </Heading>
+      <Text as="p" density="comfortable" size="md" variant="primary">
+        Just like other Core components, Icons support a set of variants that control the
+        color of the icon. The full list of variants is{' '}
+        {variants.map((v, idx) => (
+          <Fragment key={v}>
+            <InlineCode>{v}</InlineCode>
+            {idx < variants.length - 1 ? ', ' : ''}
+          </Fragment>
+        ))}
+        .
+      </Text>
+      <Flex direction="row" gap="md" justify="between" width="100%">
+        {picked
+          .map((icon, idx) => {
+            const variant = variants[idx % variants.length];
+            const IconComponent = (Icons as any)[`Icon${icon.name}`];
+            return (
+              <Stack key={icon.name} align="center" gap="xs">
+                <IconComponent size="md" variant={variant} />
+                <Text as="span" size="xs" align="center">
+                  {variant}
+                </Text>
+              </Stack>
+            );
+          })
+          .filter(Boolean)}
+      </Flex>
       {SECTIONS.map(section => (
         <CoreSection searchTerm={searchTerm} key={section.id} section={section} />
       ))}
-
       <CoreSection searchTerm={searchTerm} section={unclassifiedSection} />
       <PluginIconsSection searchTerm={searchTerm} />
       <IdentityIconsSection searchTerm={searchTerm} />
