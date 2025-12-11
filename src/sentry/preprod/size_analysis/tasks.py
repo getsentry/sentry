@@ -215,14 +215,11 @@ def compare_preprod_artifact_size_analysis(
 
     time_now = timezone.now()
     e2e_size_analysis_compare_duration = time_now - artifact.date_added
-    # TODO: Remove project_id_value once this metric's volume get too big to avoid high cardinality cost issues
     metrics.distribution(
         "preprod.size_analysis.compare.results_e2e",
         e2e_size_analysis_compare_duration.total_seconds(),
         sample_rate=1.0,
         tags={
-            "project_id_value": project_id,
-            "organization_id": org_id,
             "artifact_type": artifact_type_name,
         },
     )
