@@ -403,7 +403,7 @@ const DefaultLine = styled('div')<{
   justify-content: space-between;
   align-items: center;
   background: ${p => (p.isSubFrame ? `${p.theme.surface100}` : `${p.theme.surface200}`)};
-  min-height: ${p => (p.theme.isChonk ? '40px' : '38px')};
+  min-height: 40px;
   word-break: break-word;
   padding: ${space(0.75)} ${space(1.5)};
   font-size: ${p => p.theme.fontSize.sm};

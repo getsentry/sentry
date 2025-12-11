@@ -95,7 +95,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     return null;
   }
 
-  const FilterBar = theme.isChonk ? PageFilterBar : StyledPageFilterBar;
+  const FilterBar = PageFilterBar;
   const searchBarEnabled = issueTypeConfig.header.filterBar.searchBar?.enabled !== false;
 
   return (
@@ -272,10 +272,6 @@ const DetailsContainer = styled('div')<{
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     border-right: 1px solid ${p => p.theme.translucentBorder};
   }
-`;
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const GraphSection = styled('div')`
