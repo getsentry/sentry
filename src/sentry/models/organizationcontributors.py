@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import enum
-
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -9,11 +7,7 @@ from sentry.db.models import BoundedIntegerField, FlexibleForeignKey, region_sil
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
-
-class OrganizationContributionStatus(enum.IntEnum):
-    INACTIVE = 0
-    PENDING = 1
-    ACTIVE = 2
+ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD = 2
 
 
 @region_silo_model

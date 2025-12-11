@@ -134,7 +134,6 @@ class AssignSeatToOrganizationContributorTest(TestCase):
     @patch("sentry.tasks.organization_contributors.logger")
     @patch("sentry.tasks.organization_contributors.quotas.backend.assign_seat")
     def test_seat_assigned_successfully(self, mock_assign_seat, mock_logger):
-        """When assign_seat returns ACCEPTED outcome, no warning is logged."""
         contributor = OrganizationContributors.objects.create(
             organization=self.organization,
             integration_id=self.integration.id,
@@ -153,7 +152,6 @@ class AssignSeatToOrganizationContributorTest(TestCase):
     @patch("sentry.tasks.organization_contributors.logger")
     @patch("sentry.tasks.organization_contributors.quotas.backend.assign_seat")
     def test_seat_assignment_fails_logs_warning(self, mock_assign_seat, mock_logger):
-        """When assign_seat returns non-ACCEPTED outcome, a warning is logged."""
         contributor = OrganizationContributors.objects.create(
             organization=self.organization,
             integration_id=self.integration.id,
@@ -181,7 +179,6 @@ class AssignSeatToOrganizationContributorTest(TestCase):
     @patch("sentry.tasks.organization_contributors.logger")
     @patch("sentry.tasks.organization_contributors.quotas.backend.assign_seat")
     def test_contributor_not_found_logs_warning(self, mock_assign_seat, mock_logger):
-        """When contributor is not found, a warning is logged."""
         assign_seat_to_organization_contributor(999999)
 
         mock_assign_seat.assert_not_called()

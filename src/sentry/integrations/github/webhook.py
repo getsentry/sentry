@@ -39,7 +39,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import (
-    OrganizationContributionStatus,
+    ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
     OrganizationContributors,
 )
 from sentry.models.pullrequest import PullRequest
@@ -810,7 +810,9 @@ class PullRequestEventWebhook(GitHubWebhook):
                             external_identifier=self.get_external_id(user["login"]),
                         )
                         contributor.num_actions += 1
-                        is_active = contributor.num_actions == OrganizationContributionStatus.ACTIVE
+                        is_active = (
+                            contributor.num_actions == ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
+                        )
                         contributor.save(update_fields=["num_actions"])
 
                     if is_active and is_contributor_eligible_for_seat_assignment(

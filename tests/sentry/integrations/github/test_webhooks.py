@@ -1025,7 +1025,6 @@ class PullRequestEventWebhook(APITestCase):
     def test_no_contributor_tracking_when_feature_disabled(
         self, mock_has_seer_features: MagicMock, mock_assign_seat: MagicMock
     ) -> None:
-        """When has_seer_and_ai_features_enabled_for_repo returns False, no contributor tracking occurs."""
         Repository.objects.create(
             organization_id=self.project.organization.id,
             external_id="35129377",
@@ -1046,7 +1045,6 @@ class PullRequestEventWebhook(APITestCase):
     def test_seat_assignment_not_triggered_when_contributor_becomes_inactive(
         self, mock_has_seer_features: MagicMock, mock_assign_seat: MagicMock
     ) -> None:
-        """Seat assignment task is not triggered when contributor reaches INACTIVE status (num_actions=1)."""
         Repository.objects.create(
             organization_id=self.project.organization.id,
             external_id="35129377",
@@ -1073,7 +1071,6 @@ class PullRequestEventWebhook(APITestCase):
     def test_seat_assignment_triggered_when_contributor_becomes_active(
         self, mock_has_seer_features: MagicMock, mock_assign_seat: MagicMock
     ) -> None:
-        """Seat assignment task is triggered when contributor reaches ACTIVE status (num_actions=2)."""
         Repository.objects.create(
             organization_id=self.project.organization.id,
             external_id="35129377",
@@ -1091,7 +1088,6 @@ class PullRequestEventWebhook(APITestCase):
             )
             integration.add_organization(self.project.organization.id, self.user)
 
-        # Pre-create contributor with num_actions=1 so next PR makes it ACTIVE (2)
         contributor = OrganizationContributors.objects.create(
             organization_id=self.organization.id,
             integration_id=integration.id,
@@ -1121,7 +1117,6 @@ class PullRequestEventWebhook(APITestCase):
     def test_seat_assignment_not_triggered_for_bot_contributor(
         self, mock_has_seer_features: MagicMock, mock_assign_seat: MagicMock
     ) -> None:
-        """Seat assignment task is NOT triggered for Bot users even when they reach ACTIVE status."""
         Repository.objects.create(
             organization_id=self.project.organization.id,
             external_id="35129377",
@@ -1139,7 +1134,6 @@ class PullRequestEventWebhook(APITestCase):
             )
             integration.add_organization(self.project.organization.id, self.user)
 
-        # Pre-create contributor with num_actions=1 so next PR would make it ACTIVE (2)
         contributor = OrganizationContributors.objects.create(
             organization_id=self.organization.id,
             integration_id=integration.id,
@@ -1147,7 +1141,6 @@ class PullRequestEventWebhook(APITestCase):
             num_actions=1,
         )
 
-        # Modify the fixture to have Bot user type
         body = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
         body["pull_request"]["user"]["type"] = "Bot"
         modified_body = json.dumps(body).encode("utf-8")
@@ -1174,7 +1167,6 @@ class PullRequestEventWebhook(APITestCase):
     def test_seat_assignment_not_triggered_for_non_member_contributor(
         self, mock_has_seer_features: MagicMock, mock_assign_seat: MagicMock
     ) -> None:
-        """Seat assignment task is NOT triggered for non-member/owner contributors even when they reach ACTIVE status."""
         Repository.objects.create(
             organization_id=self.project.organization.id,
             external_id="35129377",
@@ -1192,7 +1184,6 @@ class PullRequestEventWebhook(APITestCase):
             )
             integration.add_organization(self.project.organization.id, self.user)
 
-        # Pre-create contributor with num_actions=1 so next PR would make it ACTIVE (2)
         contributor = OrganizationContributors.objects.create(
             organization_id=self.organization.id,
             integration_id=integration.id,
@@ -1200,7 +1191,6 @@ class PullRequestEventWebhook(APITestCase):
             num_actions=1,
         )
 
-        # Modify the fixture to have COLLABORATOR author_association (not MEMBER/OWNER)
         body = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
         body["pull_request"]["author_association"] = "COLLABORATOR"
         modified_body = json.dumps(body).encode("utf-8")
