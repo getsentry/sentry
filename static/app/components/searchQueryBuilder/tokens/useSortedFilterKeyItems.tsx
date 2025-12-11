@@ -287,11 +287,11 @@ export function useSortedFilterKeyItems({
             : inputValue;
 
           return [
+            createRawSearchFilterContainsValueItem(key, value),
+            createRawSearchFilterIsValueItem(key, value),
             ...(/\w \w/.test(inputValue)
               ? [createRawSearchFuzzyFilterItem(key, inputValue)]
               : []),
-            createRawSearchFilterContainsValueItem(key, value),
-            createRawSearchFilterIsValueItem(key, value),
           ];
         }) ?? [];
 
