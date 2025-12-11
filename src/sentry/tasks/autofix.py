@@ -166,7 +166,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     preferences_to_set = []
     projects_by_id = {p.id: p for p in projects}
     for project_id in project_ids:
-        existing_pref = preferences_by_id.get(str(project_id), {})
+        existing_pref = preferences_by_id[str(project_id)] or {}
 
         # Skip projects that already have an acceptable stopping point configured
         if existing_pref.get("automated_run_stopping_point") in ("open_pr", "code_changes"):
