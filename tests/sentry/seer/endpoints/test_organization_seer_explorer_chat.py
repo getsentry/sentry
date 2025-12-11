@@ -125,6 +125,7 @@ class CollectUserOrgContextTest(APITestCase):
         assert context["user_id"] == self.user.id
         assert context["user_name"] == self.user.name
         assert context["user_email"] == self.user.email
+        assert context["user_timezone"] is None  # No timezone set by default
 
         # Should have exactly one team
         assert len(context["user_teams"]) == 1
@@ -172,3 +173,16 @@ class CollectUserOrgContextTest(APITestCase):
         # All org projects should still be present
         all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
         assert all_project_slugs == {"project-1", "project-2", "other-project"}
+
+    def test_collect_context_with_timezone(self):
+        """Test context collection includes user's timezone setting"""
+        from sentry.users.services.user_option import user_option_service
+
+        user_option_service.set_option(
+            user_id=self.user.id, key="timezone", value="America/Los_Angeles"
+        )
+
+        context = collect_user_org_context(self.user, self.organization)
+
+        assert context is not None
+        assert context["user_timezone"] == "America/Los_Angeles"
