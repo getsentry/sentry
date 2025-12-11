@@ -67,7 +67,6 @@ describe('MissingInstrumentationNodeDetails', () => {
       extra
     );
 
-    // Mock the transaction API (used to fetch event transaction)
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/:/`,
       method: 'GET',
@@ -89,18 +88,14 @@ describe('MissingInstrumentationNodeDetails', () => {
       </TraceStateProvider>
     );
 
-    // Verify title is rendered
     expect(screen.getByText('No Instrumentation')).toBeInTheDocument();
 
-    // Verify subtitle is rendered
     expect(screen.getByText('How Awkward')).toBeInTheDocument();
 
-    // Verify explanatory text is rendered
     expect(
       screen.getByText(/It looks like there's more than 100ms unaccounted for/)
     ).toBeInTheDocument();
 
-    // Verify settings note is rendered
     expect(
       screen.getByText(
         "If you'd prefer, you can also turn the feature off in the settings above."

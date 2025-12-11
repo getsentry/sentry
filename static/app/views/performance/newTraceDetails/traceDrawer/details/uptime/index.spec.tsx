@@ -41,7 +41,6 @@ describe('UptimeNodeDetails', () => {
     const extra = createMockExtra({organization});
     const node = new UptimeCheckNode(null, uptimeCheckValue, extra);
 
-    // Mock the trace item details API
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/trace-items/${uptimeCheckValue.event_id}/`,
       method: 'GET',

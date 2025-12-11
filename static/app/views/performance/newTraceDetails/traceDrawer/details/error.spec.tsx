@@ -55,13 +55,10 @@ describe('ErrorNodeDetails', () => {
       </TraceStateProvider>
     );
 
-    // Verify title is rendered
     expect(screen.getByText('Error')).toBeInTheDocument();
 
-    // Verify error ID subtitle is rendered
     expect(screen.getByText(/ID: test-error-id/)).toBeInTheDocument();
 
-    // Verify explanatory text is rendered
     expect(
       screen.getByText(/This error is related to an ongoing issue/)
     ).toBeInTheDocument();

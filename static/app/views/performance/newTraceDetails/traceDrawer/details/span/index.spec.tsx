@@ -45,7 +45,6 @@ describe('SpanNodeDetails', () => {
     const extra = createMockExtra({organization});
     const node = new EapSpanNode(null, spanValue, extra);
 
-    // Mock the trace item details API
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/trace-items/${spanValue.event_id}/`,
       method: 'GET',
@@ -57,21 +56,18 @@ describe('SpanNodeDetails', () => {
       },
     });
 
-    // Mock the transaction API (returns undefined for non-transaction spans)
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {data: []},
     });
 
-    // Mock the avg span duration query
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {data: []},
     });
 
-    // Mock logs query
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/logs/`,
       method: 'GET',
@@ -93,16 +89,12 @@ describe('SpanNodeDetails', () => {
       </TraceStateProvider>
     );
 
-    // Verify title is rendered
     expect(await screen.findByText('Span')).toBeInTheDocument();
 
-    // Verify span ID subtitle is rendered
     expect(screen.getByText(/ID: test-span-id/)).toBeInTheDocument();
 
-    // Verify op is rendered
     expect(screen.getByText('db.query')).toBeInTheDocument();
 
-    // Verify description is rendered
     expect(screen.getByText(/SELECT \* FROM users/)).toBeInTheDocument();
   });
 
@@ -136,16 +128,12 @@ describe('SpanNodeDetails', () => {
       </TraceStateProvider>
     );
 
-    // Verify title is rendered
     expect(screen.getByText('Span')).toBeInTheDocument();
 
-    // Verify span ID subtitle is rendered
     expect(screen.getByText(/ID: legacy-span-id/)).toBeInTheDocument();
 
-    // Verify op is rendered (may appear multiple times)
     expect(screen.getAllByText('http.client').length).toBeGreaterThan(0);
 
-    // Verify description is rendered (may appear multiple times)
     expect(screen.getAllByText(/GET \/api\/users/).length).toBeGreaterThan(0);
   });
 });

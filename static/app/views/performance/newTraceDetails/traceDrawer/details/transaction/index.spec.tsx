@@ -61,7 +61,6 @@ describe('TransactionNodeDetails', () => {
       }),
     });
 
-    // Mock the spans query for cache metrics
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -83,16 +82,12 @@ describe('TransactionNodeDetails', () => {
       </TraceStateProvider>
     );
 
-    // Verify title is rendered
     expect(await screen.findByText('Transaction')).toBeInTheDocument();
 
-    // Verify transaction ID subtitle is rendered
     expect(screen.getByText(/ID: test-transaction-id/)).toBeInTheDocument();
 
-    // Verify op is rendered (may appear multiple times)
     expect(screen.getAllByText('http.server').length).toBeGreaterThan(0);
 
-    // Verify transaction name is rendered (may appear multiple times)
     expect(screen.getAllByText(/GET \/api\/users/).length).toBeGreaterThan(0);
   });
 });

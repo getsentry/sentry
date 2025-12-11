@@ -52,18 +52,14 @@ describe('AutogroupNodeDetails', () => {
       </TraceStateProvider>
     );
 
-    // Verify title is rendered
     expect(screen.getByText('Autogroup')).toBeInTheDocument();
 
-    // Verify span ID subtitle is rendered
     expect(screen.getByText(/ID: test-span-id/)).toBeInTheDocument();
 
-    // Verify explanation text is rendered
     expect(
       screen.getByText(/This block represents autogrouped spans/)
     ).toBeInTheDocument();
 
-    // Verify criteria bullet points are rendered
     expect(
       screen.getByText('5 or more siblings with the same operation and description')
     ).toBeInTheDocument();
@@ -71,7 +67,6 @@ describe('AutogroupNodeDetails', () => {
       screen.getByText('2 or more descendants with the same operation')
     ).toBeInTheDocument();
 
-    // Verify usage instruction is rendered
     expect(
       screen.getByText(/You can either open this autogroup using the chevron/)
     ).toBeInTheDocument();
