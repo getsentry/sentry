@@ -94,7 +94,7 @@ export function useEAPSpanSearchQueryBuilderProps(
     return stringAttributes;
   }, [stringAttributes]);
 
-  const traceItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps = useMemo(
+  const eapSpanSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps = useMemo(
     () => ({
       itemType: TraceItemDataset.SPANS,
       numberAttributes,
@@ -124,8 +124,8 @@ export function useEAPSpanSearchQueryBuilderProps(
   return useMemo(
     () => ({
       searchQueryBuilderProviderProps,
-      traceItemSearchQueryBuilderProps,
+      eapSpanSearchQueryBuilderProps,
     }),
-    [searchQueryBuilderProviderProps, traceItemSearchQueryBuilderProps]
+    [searchQueryBuilderProviderProps, eapSpanSearchQueryBuilderProps]
   );
 }

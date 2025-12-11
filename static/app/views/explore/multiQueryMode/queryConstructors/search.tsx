@@ -20,7 +20,7 @@ export function SearchBarSection({query, index}: Props) {
 
   const updateQuerySearch = useUpdateQueryAtIndex(index);
 
-  const {traceItemSearchQueryBuilderProps} = useEAPSpanSearchQueryBuilderProps({
+  const {eapSpanSearchQueryBuilderProps} = useEAPSpanSearchQueryBuilderProps({
     projects: selection.projects,
     initialQuery: query.query ?? '',
     onSearch: value => updateQuerySearch({query: value}),
@@ -34,7 +34,7 @@ export function SearchBarSection({query, index}: Props) {
           <SectionLabel>{t('Filter')}</SectionLabel>
         </Tooltip>
       </SectionHeader>
-      <TraceItemSearchQueryBuilder {...traceItemSearchQueryBuilderProps} />
+      <TraceItemSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
     </Section>
   );
 }

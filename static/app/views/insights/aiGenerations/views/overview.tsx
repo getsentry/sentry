@@ -87,7 +87,7 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
     'search-query-builder-raw-search-replacement'
   );
 
-  const eapSpanSearchQueryBuilderProps: UseEAPSpanSearchQueryBuilderProps = useMemo(
+  const searchQueryBuilderProps: UseEAPSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
@@ -113,8 +113,8 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
     ]
   );
 
-  const {searchQueryBuilderProviderProps, traceItemSearchQueryBuilderProps} =
-    useEAPSpanSearchQueryBuilderProps(eapSpanSearchQueryBuilderProps);
+  const {searchQueryBuilderProviderProps, eapSpanSearchQueryBuilderProps} =
+    useEAPSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -154,7 +154,7 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
             </PageFilterBar>
             {!showOnboarding && (
               <Flex flex={2} minWidth="50%">
-                <TraceItemSearchQueryBuilder {...traceItemSearchQueryBuilderProps} />
+                <TraceItemSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
               </Flex>
             )}
           </Flex>

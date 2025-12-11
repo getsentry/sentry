@@ -21,7 +21,7 @@ function SpansSearchBar({
     selection: {projects},
   } = usePageFilters();
 
-  const {traceItemSearchQueryBuilderProps} = useEAPSpanSearchQueryBuilderProps({
+  const {eapSpanSearchQueryBuilderProps} = useEAPSpanSearchQueryBuilderProps({
     initialQuery: widgetQuery.conditions,
     supportedAggregates: ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
     searchSource: 'dashboards',
@@ -33,7 +33,7 @@ function SpansSearchBar({
     },
   });
 
-  return <TraceItemSearchQueryBuilder {...traceItemSearchQueryBuilderProps} />;
+  return <TraceItemSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />;
 }
 
 export default SpansSearchBar;
