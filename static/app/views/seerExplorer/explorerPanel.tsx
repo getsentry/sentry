@@ -358,7 +358,12 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 
-      if (e.key === 'Escape' && isPolling && !interruptRequested) {
+      if (
+        e.key === 'Escape' &&
+        isPolling &&
+        !interruptRequested &&
+        !isFileApprovalPending
+      ) {
         e.preventDefault();
         interruptRun();
       } else if (e.key === 'Escape' && !isFileApprovalPending) {
