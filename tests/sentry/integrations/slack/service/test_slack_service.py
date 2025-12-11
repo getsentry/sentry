@@ -23,6 +23,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
@@ -415,7 +416,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
             self.service.notify_all_threads_for_activity(activity=self.activity)
             mock_notify.assert_called_once()
 
-    @with_feature("organizations:workflow-engine-trigger-actions")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch(
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
@@ -463,12 +464,9 @@ class TestNotifyAllThreadsForActivity(TestCase):
             mock_get_channel_id.call_args.args[0].__class__ == NotificationActionNotificationMessage
         )
 
-    @with_feature(
-        {
-            "organizations:workflow-engine-trigger-actions": True,
-            "organizations:slack-threads-refactor-uptime": True,
-        }
-    )
+    @with_feature("organizations:slack-threads-refactor-uptime")
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [7001]})
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch(
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"

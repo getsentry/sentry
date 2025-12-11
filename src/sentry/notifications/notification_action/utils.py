@@ -29,10 +29,6 @@ def should_fire_workflow_actions(org: Organization, type_id: int) -> bool:
             and features.has("organizations:workflow-engine-single-process-workflows", org)
         )
         or (type_id == MetricIssue.type_id)
-        or features.has(
-            "organizations:workflow-engine-trigger-actions",
-            org,  # Other action testing
-        )
     )
 
 
