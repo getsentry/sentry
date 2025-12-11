@@ -175,7 +175,8 @@ def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
 
 def has_project_connected_repos(organization_id: int, project_id: int) -> bool:
     """
-    Check if a project has connected repositories in Seer.
+    Check if a project has connected repositories for Seer automation.
+    Checks Seer preferences first, then falls back to Sentry code mappings.
     Results are cached for 60 minutes to minimize API calls.
     """
     cache_key = f"seer-project-has-repos:{organization_id}:{project_id}"
@@ -184,10 +185,26 @@ def has_project_connected_repos(organization_id: int, project_id: int) -> bool:
     if cached_value is not None:
         return cached_value
 
-    project_preferences = get_project_seer_preferences(project_id)
-    has_repos = bool(project_preferences.preference and project_preferences.preference.repositories)
+    has_repos = False
+
+    try:
+        project_preferences = get_project_seer_preferences(project_id)
+        has_repos = bool(
+            project_preferences.preference and project_preferences.preference.repositories
+        )
+    except (SeerApiError, SeerApiResponseValidationError):
+        pass
+
+    if not has_repos:
+        # If it's the first autofix run of project we check code mapping.
+        try:
+            project = Project.objects.get(id=project_id)
+            has_repos = bool(get_autofix_repos_from_project_code_mappings(project))
+        except Project.DoesNotExist:
+            pass
+
     logger.info(
-        "Checking if project has repositories connected in Seer",
+        "Checking if project has repositories connected",
         extra={
             "org_id": organization_id,
             "project_id": project_id,
