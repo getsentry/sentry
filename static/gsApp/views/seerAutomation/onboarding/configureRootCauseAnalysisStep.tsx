@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import configureRootCauseAnalysisImg from 'sentry-images/spot/seer-config-connect-2.svg';
+
 import {Button} from '@sentry/scraps/button';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -133,7 +135,7 @@ export function ConfigureRootCauseAnalysisStep() {
 
   return (
     <Fragment>
-      <StepContent>
+      <StepContentWithBackground>
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
@@ -210,7 +212,7 @@ export function ConfigureRootCauseAnalysisStep() {
             )}
           </PanelBody>
         </MaxWidthPanel>
-      </StepContent>
+      </StepContentWithBackground>
 
       <GuidedSteps.ButtonWrapper>
         <Button size="md" onClick={handlePreviousStep} aria-label={t('Previous Step')}>
@@ -229,6 +231,11 @@ export function ConfigureRootCauseAnalysisStep() {
     </Fragment>
   );
 }
+
+const StepContentWithBackground = styled(StepContent)`
+  background: url(${configureRootCauseAnalysisImg}) no-repeat 638px 0;
+  background-size: 200px 256px;
+`;
 
 const AddRepoRow = styled(PanelItem)`
   align-items: center;
