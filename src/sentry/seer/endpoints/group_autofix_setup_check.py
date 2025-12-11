@@ -19,7 +19,11 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
+from sentry.seer.autofix.utils import (
+    get_autofix_repos_from_project_code_mappings,
+    has_project_connected_repos,
+    is_seer_seat_based_tier_enabled,
+)
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
@@ -155,6 +159,14 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
             org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
         )
 
+        seer_repos_linked = None
+        if is_seer_seat_based_tier_enabled(org):
+            try:
+                seer_repos_linked = has_project_connected_repos(org.id, group.project.id)
+            except Exception:
+                # Default to True if the API call fails to avoid blocking users
+                seer_repos_linked = True
+
         return Response(
             {
                 "integration": {
@@ -169,5 +181,6 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 "billing": {
                     "hasAutofixQuota": has_autofix_quota,
                 },
+                "seerReposLinked": seer_repos_linked,
             }
         )

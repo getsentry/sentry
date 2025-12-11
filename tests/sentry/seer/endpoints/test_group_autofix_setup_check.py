@@ -118,7 +118,15 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             source_root="sentry/",
         )
 
-    def test_successful_setup(self) -> None:
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_seer_seat_based_tier_enabled",
+        return_value=True,
+    )
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.has_project_connected_repos",
+        return_value=True,
+    )
+    def test_successful_setup(self, mock_has_repos: MagicMock, mock_seat_based: MagicMock) -> None:
         """
         Everything is set up correctly, should respond with OKs.
         """
@@ -141,9 +149,20 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             "billing": {
                 "hasAutofixQuota": True,
             },
+            "seerReposLinked": True,
         }
 
-    def test_current_user_acknowledged_setup(self) -> None:
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_seer_seat_based_tier_enabled",
+        return_value=True,
+    )
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.has_project_connected_repos",
+        return_value=True,
+    )
+    def test_current_user_acknowledged_setup(
+        self, mock_has_repos: MagicMock, mock_seat_based: MagicMock
+    ) -> None:
         """
         Test when the current user has acknowledged the setup.
         """
@@ -169,7 +188,17 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             "userHasAcknowledged": True,
         }
 
-    def test_org_acknowledged_not_user(self) -> None:
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_seer_seat_based_tier_enabled",
+        return_value=True,
+    )
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.has_project_connected_repos",
+        return_value=True,
+    )
+    def test_org_acknowledged_not_user(
+        self, mock_has_repos: MagicMock, mock_seat_based: MagicMock
+    ) -> None:
         """
         Test when another user in the org has acknowledged, but not the requesting user.
         """
@@ -198,6 +227,14 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         }
 
     @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_seer_seat_based_tier_enabled",
+        return_value=True,
+    )
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.has_project_connected_repos",
+        return_value=True,
+    )
+    @patch(
         "sentry.seer.endpoints.group_autofix_setup_check.get_repos_and_access",
         return_value=[
             {
@@ -209,7 +246,12 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             }
         ],
     )
-    def test_successful_with_write_access(self, mock_get_repos_and_access: MagicMock) -> None:
+    def test_successful_with_write_access(
+        self,
+        mock_get_repos_and_access: MagicMock,
+        mock_has_repos: MagicMock,
+        mock_seat_based: MagicMock,
+    ) -> None:
         """
         Everything is set up correctly, should respond with OKs.
         """
@@ -243,11 +285,84 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             "billing": {
                 "hasAutofixQuota": True,
             },
+            "seerReposLinked": True,
         }
+
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_seer_seat_based_tier_enabled",
+        return_value=True,
+    )
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.has_project_connected_repos",
+        return_value=False,
+    )
+    def test_seer_repos_not_linked(
+        self, mock_has_repos: MagicMock, mock_seat_based: MagicMock
+    ) -> None:
+        """
+        Test when project has no repos linked in Seer.
+        """
+        group = self.create_group()
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["seerReposLinked"] is False
+
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_seer_seat_based_tier_enabled",
+        return_value=True,
+    )
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.has_project_connected_repos",
+        side_effect=Exception("API error"),
+    )
+    def test_seer_repos_linked_defaults_to_true_on_error(
+        self, mock_has_repos: MagicMock, mock_seat_based: MagicMock
+    ) -> None:
+        """
+        Test that seerReposLinked defaults to True when the API call fails.
+        """
+        group = self.create_group()
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["seerReposLinked"] is True
+
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_seer_seat_based_tier_enabled",
+        return_value=False,
+    )
+    def test_seer_repos_linked_is_none_when_feature_disabled(
+        self, mock_seat_based: MagicMock
+    ) -> None:
+        """
+        Test that seerReposLinked is None when seat-based tier is not enabled.
+        """
+        group = self.create_group()
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["seerReposLinked"] is None
 
 
 class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
-    def test_missing_integration(self) -> None:
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_seer_seat_based_tier_enabled",
+        return_value=True,
+    )
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.has_project_connected_repos",
+        return_value=True,
+    )
+    def test_missing_integration(
+        self, mock_has_repos: MagicMock, mock_seat_based: MagicMock
+    ) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.organization_integration.delete()
 
@@ -262,6 +377,14 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
             "reason": "integration_missing",
         }
 
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_seer_seat_based_tier_enabled",
+        return_value=True,
+    )
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.has_project_connected_repos",
+        return_value=True,
+    )
     @patch(
         "sentry.seer.endpoints.group_autofix_setup_check.get_repos_and_access",
         return_value=[
@@ -281,7 +404,12 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
             },
         ],
     )
-    def test_repo_write_access_not_ready(self, mock_get_repos_and_access: MagicMock) -> None:
+    def test_repo_write_access_not_ready(
+        self,
+        mock_get_repos_and_access: MagicMock,
+        mock_has_repos: MagicMock,
+        mock_seat_based: MagicMock,
+    ) -> None:
         group = self.create_group()
         self.login_as(user=self.user)
         url = f"/api/0/issues/{group.id}/autofix/setup/?check_write_access=true"
@@ -309,10 +437,23 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         }
 
     @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_seer_seat_based_tier_enabled",
+        return_value=True,
+    )
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.has_project_connected_repos",
+        return_value=True,
+    )
+    @patch(
         "sentry.seer.endpoints.group_autofix_setup_check.get_repos_and_access",
         return_value=[],
     )
-    def test_repo_write_access_no_repos(self, mock_get_repos_and_access: MagicMock) -> None:
+    def test_repo_write_access_no_repos(
+        self,
+        mock_get_repos_and_access: MagicMock,
+        mock_has_repos: MagicMock,
+        mock_seat_based: MagicMock,
+    ) -> None:
         group = self.create_group()
         self.login_as(user=self.user)
         url = f"/api/0/issues/{group.id}/autofix/setup/?check_write_access=true"
