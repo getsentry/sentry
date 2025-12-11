@@ -168,7 +168,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
           </LoadingWrapper>
         ) : (
           <Fragment>
-            <StyledListBox
+            <ListBox
               {...listBoxProps}
               ref={listBoxRefCallback}
               listState={state}
@@ -207,10 +207,6 @@ const SectionedOverlay = styled(Overlay)`
   grid-template-rows: 1fr auto;
   overflow: hidden;
   max-height: 340px;
-  width: min-content;
-`;
-
-const StyledListBox = styled(ListBox)`
   width: min-content;
   min-width: 200px;
 `;
