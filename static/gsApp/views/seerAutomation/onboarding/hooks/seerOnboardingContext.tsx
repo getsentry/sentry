@@ -1,7 +1,15 @@
-import {createContext, useCallback, useContext, useMemo, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
+import {useOrganizationRepositoriesWithSettings} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
@@ -32,6 +40,7 @@ interface SeerOnboardingContextProps {
   selectedCodeReviewRepositoriesMap: Record<string, boolean>;
   selectedRootCauseAnalysisRepositories: Repository[];
   setCodeReviewRepositories: (newSelections: Record<string, boolean>) => void;
+  unselectedCodeReviewRepositories: Repository[];
 }
 
 const SeerOnboardingContext = createContext<SeerOnboardingContextProps>({
@@ -44,6 +53,7 @@ const SeerOnboardingContext = createContext<SeerOnboardingContextProps>({
   selectedCodeReviewRepositories: [],
   selectedCodeReviewRepositoriesMap: {},
   selectedRootCauseAnalysisRepositories: [],
+  unselectedCodeReviewRepositories: [],
   repositoryProjectMapping: {},
   changeRepositoryProjectMapping: () => {},
   changeRootCauseAnalysisRepository: () => {},
@@ -62,11 +72,36 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
     Record<string, string[]>
   >({});
 
+  // Track if we've initialized the map to avoid overwriting user changes
+  const hasInitializedCodeReviewMap = useRef(false);
+
   const {data: repositories, isFetching: isRepositoriesFetching} =
-    useOrganizationRepositories();
+    useOrganizationRepositoriesWithSettings();
   const {data: installationData, isPending: isInstallationPending} =
     useIntegrationInstallation('github');
   const {provider, isPending: isProviderPending} = useIntegrationProvider('github');
+
+  // Initialize selectedCodeReviewRepositoriesMap from server data
+  useEffect(() => {
+    if (!repositories || isRepositoriesFetching || hasInitializedCodeReviewMap.current) {
+      return;
+    }
+
+    const initialMap = repositories.reduce<Record<string, boolean>>((acc, repo) => {
+      if (repo.settings?.enabledCodeReview) {
+        acc[repo.id] = true;
+      }
+      return acc;
+    }, {});
+
+    setSelectedCodeReviewRepositoriesMap(initialMap);
+
+    // Initialize RCA repos to match code review repos (keeping them in sync)
+    const enabledRepos = repositories.filter(repo => repo.settings?.enabledCodeReview);
+    setRootCauseAnalysisRepositories(enabledRepos);
+
+    hasInitializedCodeReviewMap.current = true;
+  }, [repositories, isRepositoriesFetching]);
 
   // Create map for lookup for `selectedRepositories`
   const repositoriesMap = useMemo(
@@ -78,6 +113,18 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
     () =>
       Object.entries(selectedCodeReviewRepositoriesMap)
         .filter(([_, isSelected]) => isSelected)
+        .map(([repoId]) => repositoriesMap[repoId])
+        .filter(repo => repo !== undefined),
+    [selectedCodeReviewRepositoriesMap, repositoriesMap]
+  );
+
+  /**
+   * Repositories that were selected but became unselected
+   */
+  const unselectedCodeReviewRepositories = useMemo(
+    () =>
+      Object.entries(selectedCodeReviewRepositoriesMap)
+        .filter(([_, isSelected]) => !isSelected)
         .map(([repoId]) => repositoriesMap[repoId])
         .filter(repo => repo !== undefined),
     [selectedCodeReviewRepositoriesMap, repositoriesMap]
@@ -247,6 +294,7 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         provider,
         isProviderPending,
         selectedCodeReviewRepositories,
+        unselectedCodeReviewRepositories,
         selectedCodeReviewRepositoriesMap,
         setCodeReviewRepositories,
         selectedRootCauseAnalysisRepositories,
