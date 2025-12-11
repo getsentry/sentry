@@ -69,7 +69,7 @@ export const getChonkStylesConfig = ({
       ...debossedBackground(theme),
       border: `1px solid ${theme.border}`,
       boxShadow,
-      ...theme.formRadius[size],
+      borderRadius: theme.form[size].borderRadius,
       transition: `border ${theme.motion.smooth.fast}, box-shadow ${theme.motion.smooth.fast}`,
       alignItems: 'center',
       ...(state.isFocused && theme.focusRing(boxShadow)),

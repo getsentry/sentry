@@ -34,7 +34,7 @@ export const chonkInputStyles = ({
     paddingRight: theme.form[size].paddingRight,
     paddingTop: theme.form[size].paddingBottom,
 
-    ...theme.formRadius[size],
+    borderRadius: theme.form[size].borderRadius,
 
     '&::placeholder': {
       color: theme.tokens.content.muted,

@@ -449,6 +449,7 @@ type FormTheme = {
   form: Record<
     FormSize,
     {
+      borderRadius: string;
       fontSize: string;
       height: string;
       lineHeight: string;
@@ -457,12 +458,6 @@ type FormTheme = {
       paddingLeft: number;
       paddingRight: number;
       paddingTop: number;
-    }
-  >;
-  formRadius: Record<
-    FormSize,
-    {
-      borderRadius: string;
     }
   >;
   formSpacing: Record<FormSize, string>;
@@ -994,6 +989,7 @@ const formTheme: FormTheme = {
       paddingRight: 16,
       paddingTop: 12,
       paddingBottom: 12,
+      borderRadius: radius.lg,
     },
     sm: {
       height: '32px',
@@ -1004,6 +1000,7 @@ const formTheme: FormTheme = {
       paddingRight: 12,
       paddingTop: 8,
       paddingBottom: 8,
+      borderRadius: radius.md,
     },
     xs: {
       height: '28px',
@@ -1014,17 +1011,7 @@ const formTheme: FormTheme = {
       paddingRight: 8,
       paddingTop: 6,
       paddingBottom: 6,
-    },
-  },
-  formRadius: {
-    md: {
-      borderRadius: '8px',
-    },
-    sm: {
-      borderRadius: '6px',
-    },
-    xs: {
-      borderRadius: '5px',
+      borderRadius: radius.sm,
     },
   },
   formSpacing: {
