@@ -1014,6 +1014,7 @@ const formTheme: FormTheme = {
   },
 };
 
+(() => {})();
 // @TODO(jonasbadalic): eventually, we should port component usage to these values
 function generateChonkTokens(colorScheme: typeof lightColors) {
   return {
