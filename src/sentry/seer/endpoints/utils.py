@@ -51,8 +51,8 @@ def validate_date_params(
     if start and end:
         start_dt = datetime.datetime.fromisoformat(start)
         end_dt = datetime.datetime.fromisoformat(end)
-        if start_dt >= end_dt:
-            raise ValueError("start must be before end")
+        if start_dt > end_dt:
+            raise ValueError("start is greater than end")
         return None, start, end
 
     if stats_period:
