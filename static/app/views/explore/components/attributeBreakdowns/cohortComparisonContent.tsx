@@ -152,9 +152,17 @@ export function CohortComparison({
                     ))}
                 </AttributeBreakdownsComponent.ChartsGrid>
                 <AttributeBreakdownsComponent.Pagination
-                  currentPage={page}
-                  onPageChange={setPage}
-                  totalItems={filteredRankedAttributes.length}
+                  isNextDisabled={
+                    page ===
+                    Math.ceil(filteredRankedAttributes.length / CHARTS_PER_PAGE) - 1
+                  }
+                  isPrevDisabled={page === 0}
+                  onNextClick={() => {
+                    setPage(page + 1);
+                  }}
+                  onPrevClick={() => {
+                    setPage(page - 1);
+                  }}
                 />
               </Fragment>
             ) : (

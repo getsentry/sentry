@@ -9,6 +9,7 @@ import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -26,15 +27,27 @@ import {CHARTS_PER_PAGE} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
 
 export type AttributeDistribution = Array<{
-  name: string;
+  attributeName: string;
   values: Array<{label: string; value: number}>;
 }>;
+
+type PaginationState = {
+  cursor: string | undefined;
+  page: number;
+};
 
 export function AttributeDistribution() {
   const [searchQuery, setSearchQuery] = useQueryParamState({
     fieldName: 'attributeBreakdownsSearch',
   });
-  const [page, setPage] = useState(0);
+
+  // Little unconventional, but the /trace-items/stats/ endpoint but recommends fetching
+  // more data than we need to display the current page. We maintain a cursor to fetch the next page,
+  // and a page index to display the current page, from the accumulated data.
+  const [pagination, setPagination] = useState<PaginationState>({
+    cursor: undefined,
+    page: 0,
+  });
 
   const query = useQueryParamsQuery();
   const dataset = useSpansDataset();
@@ -56,15 +69,10 @@ export function AttributeDistribution() {
   }, [dataset, query, selection]);
 
   const {
-    data: attributeBreakdownsData,
-    isLoading: isAttributeBreakdownsLoading,
-    error: attributeBreakdownsError,
-  } = useAttributeBreakdowns();
-
-  const {
     data: cohortCountResponse,
     isLoading: isCohortCountLoading,
     error: cohortCountError,
+    refetch: refetchCohortCount,
   } = useApiQuery<{data: Array<{'count()': number}>}>(
     [
       `/organizations/${organization.slug}/events/`,
@@ -76,8 +84,7 @@ export function AttributeDistribution() {
       },
     ],
     {
-      staleTime: Infinity,
-      refetchOnWindowFocus: false,
+      staleTime: 0,
     }
   );
 
@@ -85,55 +92,57 @@ export function AttributeDistribution() {
 
   // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
   // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
-  const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 100);
+  const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 200);
 
-  const filteredAttributeDistribution: AttributeDistribution = useMemo(() => {
-    const attributeDistribution =
-      attributeBreakdownsData?.data[0]?.attribute_distributions.data;
-    if (!attributeDistribution) return [];
+  const {
+    data: attributeBreakdownsData,
+    getResponseHeader: getAttributeBreakdownsResponseHeader,
+    isLoading: isAttributeBreakdownsLoading,
+    error: attributeBreakdownsError,
+  } = useAttributeBreakdowns({
+    cursor: pagination.cursor,
+    substringMatch: debouncedSearchQuery,
+  });
+
+  // Refetch the cohort count when the attributeBreakdownsData changes
+  // This ensures that the population percentages are calculated correctly,
+  // for none absolute date ranges.
+  useEffect(() => {
+    if (!isAttributeBreakdownsLoading && attributeBreakdownsData) {
+      refetchCohortCount();
+    }
+  }, [attributeBreakdownsData, isAttributeBreakdownsLoading, refetchCohortCount]);
+
+  // Reset pagination on any query change
+  useEffect(() => {
+    setPagination({cursor: undefined, page: 0});
+  }, [debouncedSearchQuery, selection, query]);
+
+  const parsedLinks = parseLinkHeader(
+    getAttributeBreakdownsResponseHeader?.('Link') ?? null
+  );
+
+  const uniqueAttributeDistribution: AttributeDistribution = useMemo(() => {
+    if (!attributeBreakdownsData) return [];
 
     const seen = new Set<string>();
-    const searchFor = debouncedSearchQuery.trim().toLocaleLowerCase();
-
-    const filtered = Object.entries(attributeDistribution).reduce<AttributeDistribution>(
-      (acc, [name, values]) => {
-        const prettyName = prettifyAttributeName(name);
-        const normalizedName = prettyName.toLocaleLowerCase().trim();
-        if (normalizedName.includes(searchFor) && !seen.has(normalizedName)) {
-          seen.add(normalizedName);
-          acc.push({
-            name: prettyName,
-            values,
-          });
-        }
-        return acc;
-      },
-      []
-    );
-
-    // We sort the attributes by descending population density
-    //  (i.e. the number of spans with the attribute populated / total number of spans)
-    filtered.sort((a, b) => {
-      const sumA = a.values.reduce(
-        (sum, v) => sum + (typeof v.value === 'number' ? v.value : 0),
-        0
-      );
-      const sumB = b.values.reduce(
-        (sum, v) => sum + (typeof v.value === 'number' ? v.value : 0),
-        0
-      );
-      const ratioA = cohortCount > 0 ? sumA / cohortCount : 0;
-      const ratioB = cohortCount > 0 ? sumB / cohortCount : 0;
-      return ratioB - ratioA;
-    });
+    const filtered = Object.entries(
+      attributeBreakdownsData
+    ).reduce<AttributeDistribution>((acc, [name, values]) => {
+      const prettyName = prettifyAttributeName(name);
+      const normalizedName = prettyName.toLocaleLowerCase().trim();
+      if (!seen.has(normalizedName)) {
+        seen.add(normalizedName);
+        acc.push({
+          attributeName: prettyName,
+          values,
+        });
+      }
+      return acc;
+    }, []);
 
     return filtered;
-  }, [attributeBreakdownsData, debouncedSearchQuery, cohortCount]);
-
-  useEffect(() => {
-    // Ensure that we are on the first page whenever filtered attributes change.
-    setPage(0);
-  }, [filteredAttributeDistribution]);
+  }, [attributeBreakdownsData]);
 
   const error = attributeBreakdownsError ?? cohortCountError;
 
@@ -156,24 +165,42 @@ export function AttributeDistribution() {
           <AttributeBreakdownsComponent.LoadingCharts />
         ) : error ? (
           <AttributeBreakdownsComponent.ErrorState error={error} />
-        ) : filteredAttributeDistribution.length > 0 ? (
+        ) : uniqueAttributeDistribution.length > 0 ? (
           <Fragment>
             <AttributeBreakdownsComponent.ChartsGrid>
-              {filteredAttributeDistribution
-                .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
-                .map(attribute => (
+              {uniqueAttributeDistribution
+                .slice(
+                  pagination.page * CHARTS_PER_PAGE,
+                  (pagination.page + 1) * CHARTS_PER_PAGE
+                )
+                .map(distribution => (
                   <Chart
-                    key={attribute.name}
-                    attributeDistribution={attribute}
+                    key={distribution.attributeName}
+                    attributeDistribution={distribution}
                     cohortCount={cohortCount}
                     theme={theme}
                   />
                 ))}
             </AttributeBreakdownsComponent.ChartsGrid>
             <AttributeBreakdownsComponent.Pagination
-              currentPage={page}
-              onPageChange={setPage}
-              totalItems={filteredAttributeDistribution?.length ?? 0}
+              isPrevDisabled={pagination.page === 0}
+              isNextDisabled={
+                pagination.page ===
+                Math.ceil(uniqueAttributeDistribution.length / CHARTS_PER_PAGE) - 1
+              }
+              onPrevClick={() => {
+                setPagination({...pagination, page: pagination.page - 1});
+              }}
+              onNextClick={() => {
+                if (parsedLinks.next?.results) {
+                  setPagination({
+                    cursor: parsedLinks.next?.cursor,
+                    page: pagination.page + 1,
+                  });
+                } else {
+                  setPagination({...pagination, page: pagination.page + 1});
+                }
+              }}
             />
           </Fragment>
         ) : (

@@ -7,7 +7,6 @@ import {Switch} from '@sentry/scraps/switch/switch';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import {useUpdateProjectAutomation} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectAutomation';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
@@ -17,7 +16,8 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
@@ -43,7 +43,7 @@ export default function SeerProjectTableRow({project, organization}: Props) {
     codeMappingRepos,
   } = useProjectSeerPreferences(project);
 
-  const {mutate: mutateProject} = useUpdateProjectAutomation(project);
+  const {mutate: mutateProject} = useUpdateProject(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
   // We used to support multiple sensitivity values for Auto-Fix. Now we only support 'off' and 'medium'.
@@ -164,11 +164,13 @@ export default function SeerProjectTableRow({project, organization}: Props) {
                   {
                     onError: () => {
                       addErrorMessage(
-                        t('Failed to update Cursor Agent for %s', project.name)
+                        t('Failed to update background agent for %s', project.name)
                       );
                     },
                     onSuccess: () => {
-                      addSuccessMessage(t('Updated Cursor Agent for %s', project.name));
+                      addSuccessMessage(
+                        t('Updated background agent for %s', project.name)
+                      );
                     },
                   }
                 );

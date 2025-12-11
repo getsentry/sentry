@@ -28,9 +28,12 @@ export default function SeerAutomationSettings() {
             organization.allowBackgroundAgentDelegation ?? false,
 
           // Second section
-          enableSeerCoding: organization.enableSeerCoding ?? true,
-          // run on opened PRs -> boolean
-          // run when mentioned -> boolean
+          autoEnableCodeReview: organization.autoEnableCodeReview ?? true,
+          defaultCodeReviewTriggers: organization.defaultCodeReviewTriggers ?? [
+            'on_command_phrase',
+            'on_ready_for_review',
+            'on_new_commit',
+          ],
 
           // Third section
           enableSeerEnhancedAlerts: organization.enableSeerEnhancedAlerts ?? true,
@@ -68,7 +71,6 @@ export default function SeerAutomationSettings() {
                   type: 'boolean',
                 },
                 {
-                  // TODO: Depends on https://github.com/getsentry/sentry/pull/104362
                   visible: false, // TODO(ryan953): Disabled until the backend is fully ready
                   name: 'allowBackgroundAgentDelegation',
                   label: t('Allow Delegation to Background Agents'),
@@ -88,7 +90,7 @@ export default function SeerAutomationSettings() {
               title: t('Default Code Review for New Repos'),
               fields: [
                 {
-                  name: 'defaultRepoCodeReview',
+                  name: 'autoEnableCodeReview',
                   label: t('Enable Code Review by Default'),
                   help: t(
                     'For all new repos connected, Seer will review your PRs and flag potential bugs'
@@ -96,29 +98,17 @@ export default function SeerAutomationSettings() {
                   type: 'boolean',
                 },
                 {
-                  name: '',
-                  type: 'collapsible',
-                  label: t('additional settings'),
-                  fields: [
-                    {
-                      name: 'defaultRepoPRRunOnOpenedPullRequests',
-                      label: t('Auto Run on Opened Pull Requests'),
-                      help: t(
-                        'Run when a new pull request is published, ignoring subsequent pushes.'
-                      ),
-                      type: 'boolean',
-                    },
-                    {
-                      name: 'defaultRepoPRRunWhenMentioned',
-                      label: t('Run When Mentioned'),
-                      help: tct(
-                        'Run when [code:@sentry review] is commented on a pull request.',
-                        {
-                          code: <code />,
-                        }
-                      ),
-                      type: 'boolean',
-                    },
+                  name: 'defaultCodeReviewTriggers',
+                  label: t('Auto Run on Opened Pull Requests'),
+                  help: t(
+                    'Run when a new pull request is published, ignoring subsequent pushes.'
+                  ),
+                  type: 'choice',
+                  multiple: true,
+                  choices: [
+                    ['on_command_phrase', t('On Command Phrase')],
+                    ['on_ready_for_review', t('On Ready for Review')],
+                    ['on_new_commit', t('On New Commit')],
                   ],
                 },
               ],

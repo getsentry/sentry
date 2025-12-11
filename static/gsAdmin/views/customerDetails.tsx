@@ -226,11 +226,6 @@ export default function CustomerDetails() {
     // Categories that are not giftable in any state for the subscription are excluded (ie. plan does not include category).
     return Object.fromEntries(
       subscription.planDetails.categories
-        .filter(
-          category =>
-            subscription.planDetails.checkoutCategories.includes(category) ||
-            subscription.planDetails.onDemandCategories.includes(category)
-        )
         .filter(category => {
           const categoryInfo = getCategoryInfoFromPlural(category);
           return categoryInfo?.maxAdminGift && categoryInfo.freeEventsMultiple;

@@ -463,7 +463,10 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
         onCreatePR={createPR}
         onFeedbackClick={handleFeedbackClick}
-        onNewChatClick={startNewSession}
+        onNewChatClick={() => {
+          startNewSession();
+          focusInput();
+        }}
         onPRWidgetClick={openPRWidget}
         onSessionHistoryClick={openSessionHistory}
         onSizeToggleClick={handleSizeToggle}
@@ -514,7 +517,10 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                     hoveredBlockIndex.current = -1;
                   }
                 }}
-                onDelete={() => deleteFromIndex(index)}
+                onDelete={() => {
+                  deleteFromIndex(index);
+                  focusInput();
+                }}
                 onNavigate={() => setIsMinimized(true)}
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);
