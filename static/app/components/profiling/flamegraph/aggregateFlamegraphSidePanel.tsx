@@ -244,7 +244,7 @@ const RowContainer = styled('div')`
     background-color: ${p => p.theme.backgroundSecondary};
   }
   color: ${p => p.theme.subText};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px transparent;
 `;
 

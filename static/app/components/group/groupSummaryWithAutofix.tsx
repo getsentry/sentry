@@ -353,7 +353,7 @@ const InsightCardButton = styled(motion.div)`
   cursor: pointer;
   padding: 0;
   box-shadow: ${p => p.theme.dropShadowLight};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};

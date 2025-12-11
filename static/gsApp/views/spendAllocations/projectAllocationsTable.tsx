@@ -122,7 +122,7 @@ const Wrapper = styled('div')`
 `;
 
 const Table = styled('table')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   border-collapse: separate;
   border: 1px ${p => 'solid ' + p.theme.border};

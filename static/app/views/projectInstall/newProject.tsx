@@ -21,7 +21,7 @@ function NewProject() {
 
 const Container = styled('div')`
   flex: 1;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const Content = styled('div')`

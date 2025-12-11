@@ -100,7 +100,7 @@ const RadioMarker = styled('div')<{isSelected?: boolean}>`
   width: ${p => p.theme.space.xl};
   height: ${p => p.theme.space.xl};
   border-radius: ${p => p.theme.space['3xl']};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-color: ${p => (p.isSelected ? p.theme.tokens.border.accent : p.theme.border)};
   border-width: ${p => (p.isSelected ? '4px' : '1px')};
   border-style: solid;

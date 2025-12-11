@@ -316,11 +316,11 @@ const ClipFade = styled('div')`
   padding: 40px 0 0;
   background-image: linear-gradient(
     180deg,
-    ${p => color(p.theme.background).alpha(0.15).string()},
-    ${p => p.theme.background}
+    ${p => color(p.theme.tokens.background.primary).alpha(0.15).string()},
+    ${p => p.theme.tokens.background.primary}
   );
   text-align: center;
-  border-bottom: ${space(1.5)} solid ${p => p.theme.background};
+  border-bottom: ${space(1.5)} solid ${p => p.theme.tokens.background.primary};
   /* Let pointer-events pass through ClipFade to visible elements underneath it */
   pointer-events: none;
   /* Ensure pointer-events trigger event listeners on "Expand" button */

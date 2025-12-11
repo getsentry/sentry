@@ -200,7 +200,8 @@ const MinimalistSidebar = styled('div')`
   height: 60px;
   border-bottom: 1px solid
     ${p => (p.theme.isChonk ? p.theme.border : p.theme.translucentGray200)};
-  background: ${p => (p.theme.isChonk ? p.theme.background : p.theme.surface300)};
+  background: ${p =>
+    p.theme.isChonk ? p.theme.tokens.background.primary : p.theme.surface300};
   display: flex;
   align-items: center;
   justify-content: space-between;

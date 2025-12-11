@@ -243,7 +243,7 @@ const Divider = styled(Flex)`
   > * {
     position: relative;
     z-index: 1;
-    background: ${p => p.theme.background};
+    background: ${p => p.theme.tokens.background.primary};
     padding: 0 ${p => p.theme.space.xl};
   }
 `;

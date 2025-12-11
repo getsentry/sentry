@@ -211,7 +211,7 @@ const ResourcesContent = styled('div')<{isExpanded: boolean}>`
         left: 0;
         right: 0;
         height: 40px;
-        background: linear-gradient(transparent, ${p.theme.background});
+        background: linear-gradient(transparent, ${p.theme.tokens.background.primary});
       }
     `}
 `;

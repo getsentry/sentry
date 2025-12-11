@@ -213,7 +213,7 @@ const PlayerBreadcrumbContainer = styled(FluidHeight)`
 
 const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
   gap: ${space(2)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   height: unset;
   overflow: unset;
 

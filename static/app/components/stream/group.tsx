@@ -858,7 +858,7 @@ const GroupCheckBoxWrapper = styled('div')`
 `;
 
 const CheckboxWithBackground = styled(Checkbox)`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const CountsWrapper = styled('div')`

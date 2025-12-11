@@ -95,7 +95,7 @@ const CollapsedProjects = styled('div')`
 `;
 
 const AvatarStyle = (p: any) => css`
-  border: 2px solid ${p.theme.background};
+  border: 2px solid ${p.theme.tokens.background.primary};
   margin-right: -8px;
   cursor: default;
 

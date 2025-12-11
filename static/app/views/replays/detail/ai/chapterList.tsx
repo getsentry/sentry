@@ -243,7 +243,7 @@ const ChapterIconWrapper = styled('div')`
   justify-content: center;
   padding: ${space(0.5)};
   margin-right: ${space(1)};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   border-radius: 50%;
   z-index: 2; /* needs to be above "ChapterWrapper summary::after" */
 `;

@@ -178,7 +178,7 @@ const Container = styled('div')`
   padding: ${space(2)};
   border: 1px solid ${p => p.theme.border};
   border-bottom: none;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 
   &:last-child {
     border-bottom: 1px solid ${p => p.theme.border};

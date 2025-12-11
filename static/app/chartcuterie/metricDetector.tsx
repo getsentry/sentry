@@ -71,7 +71,7 @@ export function makeMetricDetectorCharts(
 
       return {
         ...chartOption,
-        backgroundColor: theme.background,
+        backgroundColor: theme.tokens.background.primary,
         series: transformAreaSeries(chartOption.series),
         xAxis: metricDetectorXaxis,
         yAxis: {
@@ -108,7 +108,7 @@ export function makeMetricDetectorCharts(
 
       return {
         ...chartOption,
-        backgroundColor: theme.background,
+        backgroundColor: theme.tokens.background.primary,
         series: transformAreaSeries(chartOption.series),
         xAxis: metricDetectorXaxis,
         yAxis: {

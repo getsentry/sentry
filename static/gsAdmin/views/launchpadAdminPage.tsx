@@ -423,7 +423,7 @@ const StyledInput = styled(Input)`
 `;
 
 const InfoDisplay = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.md};

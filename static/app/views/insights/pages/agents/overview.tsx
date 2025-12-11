@@ -204,7 +204,7 @@ function LoadingPanel() {
 }
 
 const LoadingMask = styled(TransparentLoadingMask)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 export default PageWithProviders;

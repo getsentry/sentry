@@ -594,7 +594,7 @@ const FormFieldGroup = styled('div')`
   gap: ${space(2)};
   align-items: end;
   padding: ${space(3)} 0;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const FormLabel = styled('div')`

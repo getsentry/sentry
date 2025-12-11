@@ -200,7 +200,7 @@ const StyledPanelHeader = styled(PanelHeader)`
   display: flex;
   justify-content: space-between;
   text-transform: none;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const StyledPanelBody = styled(PanelBody)<{hasHeader: boolean}>`

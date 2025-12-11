@@ -62,7 +62,7 @@ const Option = styled('div')<{isSelected: boolean}>`
   }
 
   &::after {
-    background: ${p => p.theme.background};
+    background: ${p => p.theme.tokens.background.primary};
     border-radius: ${p => p.theme.radius.md};
     border: 1px solid
       ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};

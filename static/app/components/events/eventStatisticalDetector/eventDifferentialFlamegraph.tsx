@@ -631,7 +631,7 @@ const ErrorMessageContainer = styled('div')`
   justify-content: center;
   width: 100%;
   height: 100%;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.subText};
   text-align: center;
   padding: ${space(2)} ${space(4)};

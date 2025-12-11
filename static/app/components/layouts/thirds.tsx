@@ -43,9 +43,9 @@ export const Header = styled('header')<{
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   background-color: ${p =>
     p.theme.isChonk
-      ? p.theme.background
+      ? p.theme.tokens.background.primary
       : p.unified
-        ? p.theme.background
+        ? p.theme.tokens.background.primary
         : 'transparent'};
 
   ${p =>
@@ -130,7 +130,7 @@ export const HeaderTabs = styled(Tabs)`
 export const Body = styled('div')<{noRowGap?: boolean}>`
   padding: ${space(2)};
   margin: 0;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {

@@ -40,7 +40,7 @@ export const DesyncedFilterIndicator = styled('div')`
   height: 8px;
   border-radius: 50%;
   background: ${p => p.theme.active};
-  border: solid 1px ${p => p.theme.background};
+  border: solid 1px ${p => p.theme.tokens.background.primary};
   position: absolute;
   top: -${space(0.25)};
   right: -${space(0.75)};

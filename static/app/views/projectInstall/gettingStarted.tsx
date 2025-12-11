@@ -50,7 +50,7 @@ function GettingStarted({params}: Props) {
 }
 
 const GettingStartedLayout = styled(Layout.Page)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding-top: ${space(3)};
 `;
 

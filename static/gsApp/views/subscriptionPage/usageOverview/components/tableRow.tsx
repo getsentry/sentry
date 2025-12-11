@@ -338,7 +338,8 @@ const Row = styled('tr')`
 
 const ProductRow = styled(Row)<{isSelected: boolean}>`
   position: relative;
-  background: ${p => (p.isSelected ? p.theme.backgroundSecondary : p.theme.background)};
+  background: ${p =>
+    p.isSelected ? p.theme.backgroundSecondary : p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.xl};
   cursor: pointer;
 

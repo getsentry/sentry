@@ -150,7 +150,7 @@ const FluidContainer = styled('section')`
 `;
 
 const BodyGrid = styled('main')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 
   display: grid;
   grid-template-rows: 1fr auto;
@@ -177,7 +177,7 @@ const VideoSection = styled('div')`
   flex-wrap: nowrap;
   flex-grow: 1;
 
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   gap: ${space(1)};
 
   :fullscreen {

@@ -253,7 +253,9 @@ const GroupWrap = withChonk(
     display: inline-grid;
     grid-auto-flow: column;
     background: ${p =>
-      p.priority === 'primary' ? p.theme.background : p.theme.backgroundTertiary};
+      p.priority === 'primary'
+        ? p.theme.tokens.background.primary
+        : p.theme.backgroundTertiary};
     border: solid 1px ${p => p.theme.border};
     border-radius: ${p => p.theme.radius.md};
     min-width: 0;

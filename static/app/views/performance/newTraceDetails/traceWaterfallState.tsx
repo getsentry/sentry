@@ -138,7 +138,7 @@ const LoadingContainer = styled('div')<{animate: boolean; error?: boolean}>`
   color: ${p => p.theme.subText};
   z-index: 30;
   padding: 20px;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   transform-origin: 50% 50%;

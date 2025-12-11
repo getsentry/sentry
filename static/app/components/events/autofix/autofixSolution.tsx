@@ -708,7 +708,7 @@ const SolutionContainer = styled('div')`
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${p => p.theme.space.lg};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const Content = styled('div')`

@@ -212,7 +212,7 @@ const StyledArrowButton = styled(Button)<{orientation: 'horizontal' | 'vertical'
   z-index: 1;
   color: ${p => p.theme.subText};
   opacity: 0.6;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 
   &:hover {
     opacity: 1;
@@ -234,11 +234,11 @@ const LeftMask = styled('div')<{transparentMask: boolean}>`
   left: 0;
   background: ${p =>
     p.transparentMask
-      ? `linear-gradient(to left, ${Color(p.theme.background).alpha(0).rgb().string()}, ${p.theme.background})`
+      ? `linear-gradient(to left, ${Color(p.theme.tokens.background.primary).alpha(0).rgb().string()}, ${p.theme.tokens.background.primary})`
       : `linear-gradient(
     90deg,
-    ${p.theme.background} 50%,
-    ${Color(p.theme.background).alpha(0.09).rgb().string()} 100%
+    ${p.theme.tokens.background.primary} 50%,
+    ${Color(p.theme.tokens.background.primary).alpha(0.09).rgb().string()} 100%
   )`};
 `;
 
@@ -247,11 +247,11 @@ const RightMask = styled('div')<{transparentMask: boolean}>`
   right: 0;
   background: ${p =>
     p.transparentMask
-      ? `linear-gradient(to right, transparent, ${p.theme.background})`
+      ? `linear-gradient(to right, transparent, ${p.theme.tokens.background.primary})`
       : `linear-gradient(
     270deg,
-    ${p.theme.background} 50%,
-    ${Color(p.theme.background).alpha(0.09).rgb().string()} 100%
+    ${p.theme.tokens.background.primary} 50%,
+    ${Color(p.theme.tokens.background.primary).alpha(0.09).rgb().string()} 100%
   )`};
 `;
 
@@ -269,11 +269,11 @@ const TopMask = styled('div')<{transparentMask: boolean}>`
   top: 0;
   background: ${p =>
     p.transparentMask
-      ? `linear-gradient(to top, ${Color(p.theme.background).alpha(0).rgb().string()}, ${p.theme.background})`
+      ? `linear-gradient(to top, ${Color(p.theme.tokens.background.primary).alpha(0).rgb().string()}, ${p.theme.tokens.background.primary})`
       : `linear-gradient(
     180deg,
-    ${p.theme.background} 50%,
-    ${Color(p.theme.background).alpha(0.09).rgb().string()} 100%
+    ${p.theme.tokens.background.primary} 50%,
+    ${Color(p.theme.tokens.background.primary).alpha(0.09).rgb().string()} 100%
   )`};
 `;
 
@@ -282,11 +282,11 @@ const BottomMask = styled('div')<{transparentMask: boolean}>`
   bottom: 0;
   background: ${p =>
     p.transparentMask
-      ? `linear-gradient(to bottom, transparent, ${p.theme.background})`
+      ? `linear-gradient(to bottom, transparent, ${p.theme.tokens.background.primary})`
       : `linear-gradient(
     0deg,
-    ${p.theme.background} 50%,
-    ${Color(p.theme.background).alpha(0.09).rgb().string()} 100%
+    ${p.theme.tokens.background.primary} 50%,
+    ${Color(p.theme.tokens.background.primary).alpha(0.09).rgb().string()} 100%
   )`};
 `;
 

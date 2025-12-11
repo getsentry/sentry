@@ -28,7 +28,7 @@ export const ContextBody = styled('div')`
 `;
 
 export const Wrapper = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   width: 320px;
   padding: ${space(1.5)};

@@ -550,7 +550,7 @@ const PanelWrapper = styled('div')<{
   bottom: 0;
   right: 0;
   position: relative;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.tokens.content.primary};
   text-align: left;
   z-index: 10;
@@ -561,7 +561,7 @@ const TabsHeightContainer = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
   absolute?: boolean;
 }>`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   left: ${p => (p.layout === 'drawer left' ? '0' : 'initial')};
   right: ${p => (p.layout === 'drawer right' ? '0' : 'initial')};
   position: ${p => (p.absolute ? 'absolute' : 'relative')};
@@ -618,7 +618,7 @@ const TabLayoutControlItem = styled('li')`
   margin: 0;
   position: relative;
   z-index: 10;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   height: 100%;
 `;
 

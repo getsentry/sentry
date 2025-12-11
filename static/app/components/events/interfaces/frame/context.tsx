@@ -242,7 +242,7 @@ const CodeWrapper = styled('div')`
     white-space: pre-wrap;
     margin: 0;
     overflow: hidden;
-    background: ${p => p.theme.background};
+    background: ${p => p.theme.tokens.background.primary};
     padding: 0;
     border-radius: 0;
   }
@@ -262,7 +262,7 @@ const ContextLineWrapper = styled('div')<{isActive: boolean}>`
   grid-template-columns: 58px 1fr;
   gap: ${space(1)};
   background: ${p =>
-    p.isActive ? 'var(--prism-highlight-background)' : p.theme.background};
+    p.isActive ? 'var(--prism-highlight-background)' : p.theme.tokens.background.primary};
   padding-right: ${space(2)};
 `;
 

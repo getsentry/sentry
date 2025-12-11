@@ -159,7 +159,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     width: 100%;
     display: block;
     padding: ${space(2)} 0;
-    background: ${p => p.theme.background};
+    background: ${p => p.theme.tokens.background.primary};
     border-radius: 0 0 3px 3px;
     border: 1px solid ${p => p.theme.border};
     border-top: none;

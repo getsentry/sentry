@@ -92,7 +92,7 @@ export function StaticReplayPreview({
 
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   gap: ${space(1)};
   max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
 `;

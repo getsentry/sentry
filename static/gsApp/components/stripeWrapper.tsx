@@ -42,8 +42,8 @@ function StripeWrapper({
         appearance: {
           theme: prefersDarkMode ? 'night' : 'stripe',
           variables: {
+            colorBackground: theme.tokens.background.primary,
             borderRadius: theme.radius.md,
-            colorBackground: theme.background,
             colorText: theme.tokens.content.primary,
             colorDanger: theme.danger,
             colorSuccess: theme.success,
