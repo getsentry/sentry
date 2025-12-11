@@ -5,7 +5,6 @@ import Creatable from 'react-select/creatable';
 import type {CSSObject, Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import {
   ChonkClearIndicator,
@@ -219,7 +218,9 @@ const getStylesConfig = ({
       ...(!state.isSearchable && {
         cursor: 'pointer',
       }),
-      ...omit(theme.form[size ?? 'md'], 'height'),
+      minHeight: theme.form[size ?? 'md'].minHeight,
+      fontSize: theme.form[size ?? 'md'].fontSize,
+      lineHeight: theme.form[size ?? 'md'].lineHeight,
       ...(state.isMulti && {
         maxHeight: '20.8em', // 10 lines (1.8em * 10) + padding
         overflow: 'hidden',

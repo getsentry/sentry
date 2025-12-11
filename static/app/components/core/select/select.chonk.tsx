@@ -1,5 +1,4 @@
 import {css} from '@emotion/react';
-import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/core/button';
 import {debossedBackground} from 'sentry/components/core/chonk';
@@ -79,7 +78,9 @@ export const getChonkStylesConfig = ({
         cursor: 'not-allowed',
         opacity: '60%',
       }),
-      ...omit(theme.form[size], 'height'),
+      minHeight: theme.form[size].minHeight,
+      fontSize: theme.form[size].fontSize,
+      lineHeight: theme.form[size].lineHeight,
       ...(state.isMulti && {
         maxHeight: '12em', // 10 lines (1.2em * 10) + padding
         overflow: 'hidden',
