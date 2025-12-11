@@ -203,7 +203,9 @@ function getProfileTimeWindow(event: Event): {end: string; start: string} | null
 
     if (
       typeof transaction.startTimestamp === 'number' &&
-      typeof transaction.endTimestamp === 'number'
+      !isNaN(transaction.startTimestamp) &&
+      typeof transaction.endTimestamp === 'number' &&
+      !isNaN(transaction.endTimestamp)
     ) {
       return {
         end: new Date(transaction.endTimestamp * 1000).toISOString(),
