@@ -6,7 +6,6 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from arroyo.backends.kafka import build_kafka_producer_configuration
 from confluent_kafka import KafkaError
 from confluent_kafka import Message as KafkaMessage
 from confluent_kafka import Producer
@@ -21,7 +20,7 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.killswitches import killswitch_matches_context
 from sentry.utils import json
 from sentry.utils.arroyo_producer import get_arroyo_producer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.kafka_config import get_topic_definition
 
 EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
 
@@ -45,15 +44,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def get_producer(self, topic: Topic) -> Producer:
         if topic not in self.__producers:
-            cluster_name = get_topic_definition(topic)["cluster"]
-            cluster_options = get_kafka_producer_cluster_options(cluster_name)
-            cluster_options["client.id"] = "sentry.eventstream.kafka"
-            config = build_kafka_producer_configuration(default_config=cluster_options)
-            config["queue.buffering.max.messages"] = 200000
             self.__producers[topic] = get_arroyo_producer(
                 name="sentry.eventstream.kafka",
                 topic=topic,
-                additional_config=cluster_options,
             )
 
         return self.__producers[topic]
