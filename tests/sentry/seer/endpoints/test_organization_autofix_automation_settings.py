@@ -1,6 +1,9 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import APITestCase
 
 
@@ -13,7 +16,14 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def test_put_bulk_update_settings(self):
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.get_autofix_repos_from_project_code_mappings"
+    )
+    def test_put_fixes_enabled_sets_medium_tuning(self, mock_get_repos, mock_bulk_set_preferences):
+        mock_get_repos.return_value = [{"name": "test-repo", "owner": "test-owner"}]
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
 
@@ -21,7 +31,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             self.url,
             data={
                 "projectIds": [project1.id, project2.id],
-                "autofixAutomationTuning": "high",
+                "fixes": True,
             },
             format="json",
         )
@@ -32,38 +42,122 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         project2.refresh_from_db()
         assert (
             project1.get_option("sentry:autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.HIGH
+            == AutofixAutomationTuningSettings.MEDIUM.value
         )
         assert (
             project2.get_option("sentry:autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.HIGH
+            == AutofixAutomationTuningSettings.MEDIUM.value
         )
 
-    def test_put_invalid_setting(self):
+        mock_bulk_set_preferences.assert_called_once()
+        call_args = mock_bulk_set_preferences.call_args
+        assert call_args[0][0] == self.organization.id
+        preferences = call_args[0][1]
+        assert len(preferences) == 2
+        for pref in preferences:
+            assert pref["automated_run_stopping_point"] == AutofixStoppingPoint.CODE_CHANGES.value
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.get_autofix_repos_from_project_code_mappings"
+    )
+    def test_put_fixes_and_pr_creation_enabled(self, mock_get_repos, mock_bulk_set_preferences):
+        mock_get_repos.return_value = [{"name": "test-repo", "owner": "test-owner"}]
         project = self.create_project(organization=self.organization)
 
         response = self.client.put(
             self.url,
             data={
                 "projectIds": [project.id],
-                "autofixAutomationTuning": "invalid_setting",
+                "fixes": True,
+                "pr_creation": True,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 204
+
+        project.refresh_from_db()
+        assert (
+            project.get_option("sentry:autofix_automation_tuning")
+            == AutofixAutomationTuningSettings.MEDIUM.value
+        )
+
+        mock_bulk_set_preferences.assert_called_once()
+        call_args = mock_bulk_set_preferences.call_args
+        preferences = call_args[0][1]
+        assert preferences[0]["automated_run_stopping_point"] == AutofixStoppingPoint.OPEN_PR.value
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.get_autofix_repos_from_project_code_mappings"
+    )
+    def test_put_fixes_disabled_sets_off_tuning(self, mock_get_repos, mock_bulk_set_preferences):
+        mock_get_repos.return_value = []
+        project = self.create_project(organization=self.organization)
+
+        response = self.client.put(
+            self.url,
+            data={
+                "projectIds": [project.id],
+                "fixes": False,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 204
+
+        project.refresh_from_db()
+        assert (
+            project.get_option("sentry:autofix_automation_tuning")
+            == AutofixAutomationTuningSettings.OFF.value
+        )
+
+    def test_put_pr_creation_without_fixes_fails(self):
+        project = self.create_project(organization=self.organization)
+
+        response = self.client.put(
+            self.url,
+            data={
+                "projectIds": [project.id],
+                "fixes": False,
+                "pr_creation": True,
             },
             format="json",
         )
 
         assert response.status_code == 400
+        assert "pr_creation" in response.data
 
     def test_put_empty_project_ids(self):
         response = self.client.put(
             self.url,
             data={
                 "projectIds": [],
-                "autofixAutomationTuning": "high",
+                "fixes": True,
             },
             format="json",
         )
 
         assert response.status_code == 400
+
+    def test_put_missing_fixes_field(self):
+        project = self.create_project(organization=self.organization)
+
+        response = self.client.put(
+            self.url,
+            data={
+                "projectIds": [project.id],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "fixes" in response.data
 
     def test_put_project_not_in_organization(self):
         other_org = self.create_organization()
@@ -73,27 +167,9 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             self.url,
             data={
                 "projectIds": [other_project.id],
-                "autofixAutomationTuning": "high",
+                "fixes": True,
             },
             format="json",
         )
 
         assert response.status_code == 403
-
-    def test_put_all_valid_settings(self):
-        for setting in AutofixAutomationTuningSettings:
-            project = self.create_project(organization=self.organization)
-
-            response = self.client.put(
-                self.url,
-                data={
-                    "projectIds": [project.id],
-                    "autofixAutomationTuning": setting.value,
-                },
-                format="json",
-            )
-
-            assert response.status_code == 204
-
-            project.refresh_from_db()
-            assert project.get_option("sentry:autofix_automation_tuning") == setting

@@ -12,6 +12,11 @@ from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    bulk_set_project_preferences,
+    get_autofix_repos_from_project_code_mappings,
+)
 
 OPTION_KEY = "sentry:autofix_automation_tuning"
 
@@ -26,19 +31,30 @@ class SeerAutofixSettingSerializer(serializers.Serializer):
         max_length=1000,
         help_text="List of project IDs to update settings for.",
     )
-    autofixAutomationTuning = serializers.ChoiceField(
-        choices=[setting.value for setting in AutofixAutomationTuningSettings],
+    fixes = serializers.BooleanField(
         required=True,
-        help_text="The autofix automation tuning level to set.",
+        help_text="Whether to enable fixes for the projects.",
     )
+    pr_creation = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Whether to enable PR creation for the projects. Requires fixes to be enabled.",
+    )
+
+    def validate(self, data):
+        # If fixes is disabled, pr_creation must also be disabled
+        if not data.get("fixes") and data.get("pr_creation"):
+            raise serializers.ValidationError(
+                {"pr_creation": "PR creation cannot be enabled when fixes is disabled."}
+            )
+        return data
 
 
 @region_silo_endpoint
 class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
-    """Bulk endpoint for managing project autofix automation tuning settings."""
+    """Bulk endpoint for managing project level autofix automation settings."""
 
-    # TODO update this to coding_workflows after https://github.com/getsentry/sentry/pull/104722 merged
-    owner = ApiOwner.ML_AI
+    owner = ApiOwner.CODING_WORKFLOWS
 
     publish_status = {
         "PUT": ApiPublishStatus.PRIVATE,
@@ -48,25 +64,51 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
     def put(self, request: Request, organization: Organization) -> Response:
         """
-        Bulk update the autofix automation tuning setting of projects in a single request.
+        Bulk update the autofix automation settings of projects in a single request.
 
-        :pparam string organization_id_or_slug: the id or slug of the
-            organization.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
         :auth: required
         """
-
         serializer = SeerAutofixSettingSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
         project_ids = set(data["projectIds"])
-        setting = data["autofixAutomationTuning"]
+        fixes_enabled = data["fixes"]
+        pr_creation_enabled = data.get("pr_creation", False)
 
         projects = self.get_projects(request, organization, project_ids=project_ids)
 
+        tuning_setting = (
+            AutofixAutomationTuningSettings.MEDIUM
+            if fixes_enabled
+            else AutofixAutomationTuningSettings.OFF
+        )
+
         with transaction.atomic(router.db_for_write(ProjectOption)):
             for project in projects:
-                project.update_option(OPTION_KEY, setting)
+                project.update_option(OPTION_KEY, tuning_setting.value)
+
+        stopping_point = (
+            AutofixStoppingPoint.OPEN_PR
+            if pr_creation_enabled
+            else AutofixStoppingPoint.CODE_CHANGES
+        )
+
+        preferences_to_set = []
+        for project in projects:
+            repositories = get_autofix_repos_from_project_code_mappings(project)
+            preferences_to_set.append(
+                {
+                    "organization_id": organization.id,
+                    "project_id": project.id,
+                    "repositories": repositories,
+                    "automated_run_stopping_point": stopping_point.value,
+                }
+            )
+
+        if preferences_to_set:
+            bulk_set_project_preferences(organization.id, preferences_to_set)
 
         return Response(status=204)
