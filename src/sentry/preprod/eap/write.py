@@ -42,10 +42,6 @@ def write_preprod_size_metric_to_eap(
     # (e.g., main app + Watch extension + dynamic features) under one trace.
     trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(size_metric.preprod_artifact_id)).hex
 
-    # Generate a unique item_id for this specific size metric
-    # Convert to 16 bytes in little-endian format (consistent with span item_id format)
-    item_id = uuid.uuid4().bytes
-
     attributes: dict[str, Any] = {
         "preprod_artifact_id": size_metric.preprod_artifact_id,
         "size_metric_id": size_metric.id,
@@ -132,10 +128,10 @@ def write_preprod_size_metric_to_eap(
     trace_item = EAPTraceItem(
         organization_id=organization_id,
         project_id=project_id,
+        item_id=uuid.uuid4().bytes,
         item_type=TraceItemType.TRACE_ITEM_TYPE_PREPROD,
         timestamp=proto_timestamp,
         trace_id=trace_id,
-        item_id=item_id,
         received=received,
         retention_days=90,  # Default retention for preprod data
         attributes={k: anyvalue(v) for k, v in attributes.items()},
