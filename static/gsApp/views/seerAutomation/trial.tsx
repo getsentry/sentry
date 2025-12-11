@@ -144,7 +144,7 @@ export default function SeerAutomationTrial() {
           <Flex align="center" justify="center" paddingTop="lg">
             {hasBillingAccess(organization) ? (
               <LinkButton
-                href="/settings/billing/overview/?product=seer"
+                to="/settings/billing/overview/?product=seer"
                 priority="primary"
                 icon={<IconUpgrade />}
               >
