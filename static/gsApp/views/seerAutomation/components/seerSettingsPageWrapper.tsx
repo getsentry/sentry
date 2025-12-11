@@ -9,6 +9,7 @@ import Feature from 'sentry/components/acl/feature';
 import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -29,13 +30,13 @@ export default function SeerSettingsPageWrapper({children}: Props) {
     // If the org is on the old-seer plan then they shouldn't be here on this new settings page
     // they need to goto the old settings page, or get downgraded off old seer.
     if (organization.features.includes('seer-added')) {
-      navigate(`/organizations/${organization.slug}/settings/seer/`);
+      navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
       return;
     }
 
     // If the org is not on the seat-based seer plan, then they should be redirected to the trial page
     if (!organization.features.includes('seat-based-seer-enabled')) {
-      navigate(`/organizations/${organization.slug}/settings/seer/trial/`);
+      navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/trial/`));
       return;
     }
   }, [navigate, organization.features, organization.slug]);
