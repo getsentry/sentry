@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import {STATIC_SEMVER_TAGS} from 'sentry/components/events/searchBarFieldConstants';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
 import type {PageFilters} from 'sentry/types/core';
-import {type TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, type AggregationKey} from 'sentry/utils/fields';
 import {
   TraceItemSearchQueryBuilder,
@@ -60,11 +60,7 @@ export function EapSpanSearchQueryBuilderWrapper(props: SpanSearchQueryBuilderPr
   );
 }
 
-interface UseEAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
-  numberAttributes: TagCollection;
-  numberSecondaryAliases: TagCollection;
-  stringAttributes: TagCollection;
-  stringSecondaryAliases: TagCollection;
+export interface UseEAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
   autoFocus?: boolean;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   onChange?: (query: string, state: CallbackSearchState) => void;
@@ -74,18 +70,19 @@ interface UseEAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps 
 export interface EAPSpanSearchQueryBuilderProps
   extends UseEAPSpanSearchQueryBuilderProps {
   itemType: TraceItemDataset;
+  numberAttributes: TagCollection;
+  numberSecondaryAliases: TagCollection;
+  stringAttributes: TagCollection;
+  stringSecondaryAliases: TagCollection;
 }
 
 export function useEAPSpanSearchQueryBuilderProps(
   props: UseEAPSpanSearchQueryBuilderProps
 ) {
-  const {
-    numberAttributes,
-    stringAttributes,
-    numberSecondaryAliases,
-    stringSecondaryAliases,
-    ...rest
-  } = props;
+  const {tags: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemTags('number');
+  const {tags: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemTags('string');
 
   const stringAttributesWithSemver = useMemo(() => {
     if (SpanFields.RELEASE in stringAttributes) {
@@ -104,12 +101,12 @@ export function useEAPSpanSearchQueryBuilderProps(
       stringAttributes: stringAttributesWithSemver,
       numberSecondaryAliases,
       stringSecondaryAliases,
-      ...rest,
+      ...props,
     }),
     [
       numberAttributes,
       numberSecondaryAliases,
-      rest,
+      props,
       stringAttributesWithSemver,
       stringSecondaryAliases,
     ]
@@ -121,7 +118,7 @@ export function useEAPSpanSearchQueryBuilderProps(
     stringAttributes: stringAttributesWithSemver,
     numberSecondaryAliases,
     stringSecondaryAliases,
-    ...rest,
+    ...props,
   });
 
   return useMemo(

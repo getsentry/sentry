@@ -13,7 +13,10 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import type {EAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
+import type {
+  EAPSpanSearchQueryBuilderProps,
+  UseEAPSpanSearchQueryBuilderProps,
+} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {useEAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
@@ -360,21 +363,15 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const hasCrossEvents =
     hasCrossEventQueryingFlag && defined(crossEvents) && crossEvents.length > 0;
 
-  const {
-    tags: numberAttributes,
-    isLoading: numberAttributesLoading,
-    secondaryAliases: numberSecondaryAliases,
-  } = useTraceItemTags('number');
-  const {
-    tags: stringAttributes,
-    isLoading: stringAttributesLoading,
-    secondaryAliases: stringSecondaryAliases,
-  } = useTraceItemTags('string');
+  const {tags: numberAttributes, isLoading: numberAttributesLoading} =
+    useTraceItemTags('number');
+  const {tags: stringAttributes, isLoading: stringAttributesLoading} =
+    useTraceItemTags('string');
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
 
-  const eapSpanSearchQueryBuilderProps = useMemo(
+  const eapSpanSearchQueryBuilderProps: UseEAPSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: query,
       onSearch: (newQuery: string) => {
@@ -406,15 +403,11 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
           : undefined,
       supportedAggregates:
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-      numberAttributes,
-      stringAttributes,
       replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
         {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
       ],
-      numberSecondaryAliases,
-      stringSecondaryAliases,
       caseInsensitive,
       onCaseInsensitiveClick: setCaseInsensitive,
     }),
@@ -424,13 +417,11 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       hasRawSearchReplacement,
       mode,
       numberAttributes,
-      numberSecondaryAliases,
       oldSearch,
       query,
       setCaseInsensitive,
       setQueryParams,
       stringAttributes,
-      stringSecondaryAliases,
     ]
   );
 

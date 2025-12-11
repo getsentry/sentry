@@ -10,7 +10,10 @@ import {openModal} from 'sentry/actionCreators/modal';
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {useEAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {
+  useEAPSpanSearchQueryBuilderProps,
+  type UseEAPSpanSearchQueryBuilderProps,
+} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconChevron, IconEdit} from 'sentry/icons';
@@ -77,22 +80,14 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
 
   const [fields, setFields] = useFieldsQueryParam();
 
-  const {
-    tags: numberTags,
-    secondaryAliases: numberSecondaryAliases,
-    isLoading: numberTagsLoading,
-  } = useTraceItemTags('number');
-  const {
-    tags: stringTags,
-    secondaryAliases: stringSecondaryAliases,
-    isLoading: stringTagsLoading,
-  } = useTraceItemTags('string');
+  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
+  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
 
-  const eapSpanSearchQueryBuilderProps = useMemo(
+  const eapSpanSearchQueryBuilderProps: UseEAPSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
@@ -100,10 +95,6 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
         unsetCursor();
       },
       searchSource: 'ai-generations',
-      numberAttributes: numberTags,
-      stringAttributes: stringTags,
-      numberSecondaryAliases,
-      stringSecondaryAliases,
       replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
@@ -115,13 +106,9 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
     [
       caseInsensitive,
       hasRawSearchReplacement,
-      numberSecondaryAliases,
-      numberTags,
       searchQuery,
       setCaseInsensitive,
       setSearchQuery,
-      stringSecondaryAliases,
-      stringTags,
       unsetCursor,
     ]
   );
