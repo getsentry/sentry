@@ -165,6 +165,13 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 seer_repos_linked = has_project_connected_repos(org.id, group.project.id)
             except Exception:
                 # Default to True if the API call fails to avoid blocking users
+                logger.exception(
+                    "Error checking if project has Seer repos linked",
+                    extra={
+                        "org_id": org.id,
+                        "project_id": group.project.id,
+                    },
+                )
                 seer_repos_linked = True
 
         return Response(
