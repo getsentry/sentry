@@ -79,9 +79,11 @@ export function getGenAiOpType(
   }
 
   const op = isTransactionNode(node) ? node.value?.['transaction.op'] : node.value?.op;
-  const attributeObject =
-    ensureAttributeObject(node) ??
-    (isEAPSpanNode(node) ? node.value.additional_attributes : undefined);
+  const attributeObject = isSpanNode(node)
+    ? node.value.data
+    : isEAPSpanNode(node)
+      ? node.value.additional_attributes
+      : undefined);
 
   return (
     attributeObject?.[SpanFields.GEN_AI_OPERATION_TYPE] ??
