@@ -23,7 +23,6 @@ import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -401,30 +400,27 @@ function WidgetViewerModal(props: Props) {
       dashboardFilters,
       widget.widgetType
     );
-    const parsedQuery =
-      !name && !!conditions
-        ? parseSearch(
-            conditions +
-              (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`),
-            {
-              getFilterTokenWarning: shouldDisplayOnDemandWidgetWarning(
+
+    const getHighlightedQuery = (
+      highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
+    ) => {
+      const queryString = `${conditions} ${dashboardFiltersString}`;
+      return !name && !!queryString ? (
+        <HighlightContainer {...highlightedContainerProps}>
+          <ProvidedFormattedQuery
+            query={queryString}
+            getFilterTokenWarning={
+              shouldDisplayOnDemandWidgetWarning(
                 query,
                 widget.widgetType ?? WidgetType.DISCOVER,
                 organization
               )
                 ? getOnDemandFilterWarning
-                : undefined,
+                : undefined
             }
-          )
-        : null;
-    const getHighlightedQuery = (
-      highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
-    ) => {
-      return parsedQuery === null ? undefined : (
-        <HighlightContainer {...highlightedContainerProps}>
-          <ProvidedFormattedQuery query={conditions} />
+          />
         </HighlightContainer>
-      );
+      ) : null;
     };
 
     return {
