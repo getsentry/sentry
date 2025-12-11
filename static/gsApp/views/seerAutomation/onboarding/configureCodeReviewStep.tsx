@@ -12,8 +12,8 @@ import {
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
 
+import {useUpdateOrganization} from './hooks/useUpdateOrganization';
 import {
   Field,
   FieldDescription,
@@ -32,15 +32,16 @@ export function ConfigureCodeReviewStep() {
     organization.autoEnableCodeReview ?? true
   );
 
-  const {mutate: updateOrganization} = useUpdateOrganization();
+  const {mutate: updateOrganization} = useUpdateOrganization(organization);
 
   const handleNextStep = useCallback(() => {
-    // TODO: Save to backend
     if (enableCodeReview !== organization.autoEnableCodeReview) {
       updateOrganization({
         autoEnableCodeReview: enableCodeReview,
       });
     }
+
+    // TODO: Save selectedCodeReviewRepositories to backend
 
     setCurrentStep(currentStep + 1);
   }, [
