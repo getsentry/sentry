@@ -25,7 +25,7 @@ interface BaseSelectProps<Value extends SelectKey>
   options: Array<SelectOptionOrSection<Value>>;
   /**
    * Number of options above which virtualization will be enabled.
-   * @default 100
+   * @default 150
    */
   virtualizeThreshold?: number;
 }
