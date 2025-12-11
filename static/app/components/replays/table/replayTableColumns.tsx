@@ -528,7 +528,6 @@ export const ReplaySessionColumn: ReplayTableColumn = {
         platform: project?.platform,
         organization,
         referrer,
-        referrer_table: 'main',
       });
 
     return (
