@@ -22,21 +22,21 @@ class TypesClass:
     TYPES: list[tuple[int, str]]
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> list[tuple[int, str]]:
         return [(k, str(v)) for k, v in cls.TYPES]
 
     @classmethod
-    def as_text_choices(cls):
+    def as_text_choices(cls) -> list[tuple[str, str]]:
         return [(str(v), str(v)) for _, v in cls.TYPES]
 
     @classmethod
-    def get_type_name(cls, num):
+    def get_type_name(cls, num) -> str | None:
         for id, name in cls.TYPES:
             if id == num:
                 return name
 
     @classmethod
-    def get_id_for_type_name(cls, type_name):
+    def get_id_for_type_name(cls, type_name) -> int | None:
         for id, name in cls.TYPES:
             if type_name == name:
                 return id
@@ -137,11 +137,11 @@ class DatasetSourcesTypes(Enum):
     SPAN_MIGRATION_VERSION_5 = 11
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
         return tuple((source.value, source.name.lower()) for source in cls)
 
     @classmethod
-    def as_text_choices(cls):
+    def as_text_choices(cls) -> tuple[tuple[str, int], ...]:
         return tuple((source.name.lower(), source.value) for source in cls)
 
 
