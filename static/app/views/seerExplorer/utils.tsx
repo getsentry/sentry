@@ -86,17 +86,23 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   get_issue_details: (args, isLoading) => {
     const issueId = args.issue_id;
     const selectedEvent = args.selected_event; // "recommended" or event_id
+    const start = args.start;
+    const end = args.end;
 
     if (selectedEvent === 'recommended') {
-      return isLoading
-        ? `Inspecting issue ${issueId} and recommended event...`
-        : `Inspected issue ${issueId} and recommended event`;
+      if (start && end) {
+        return isLoading
+          ? `Inspecting issue ${issueId} from between ${start} to ${end}...`
+          : `Inspected issue ${issueId} from between ${start} to ${end}`;
+      }
+      return isLoading ? `Inspecting issue ${issueId}...` : `Inspected issue ${issueId}`;
     }
     if (selectedEvent) {
       return isLoading
         ? `Inspecting event ${selectedEvent}...`
         : `Inspected event ${selectedEvent}`;
     }
+    // Should not happen unless there's a bug.
     return isLoading ? `Inspecting issue ${issueId}...` : `Inspected issue ${issueId}`;
   },
 
