@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models import BranchOverride, SeerRepoDefinition
 from sentry.testutils.cases import APITestCase
 
 
@@ -32,6 +32,19 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
                                 "owner": "sentry",
                                 "name": "sentry",
                                 "external_id": "1234567890",
+                                "organization_id": "1234567890",
+                                "integration_id": "1234567890",
+                                "branch_name": "my-branch",
+                                "branch_overrides": [
+                                    {
+                                        "tag_name": "my-tag",
+                                        "tag_value": "my-value",
+                                        "branch_name": "my-branch",
+                                    }
+                                ],
+                                "instructions": "my-instructions",
+                                "base_commit_sha": "1234567890",
+                                "provider_raw": "github",
                             },
                             {
                                 "provider": "github-enterprise",
@@ -66,13 +79,19 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
                         owner="sentry",
                         name="sentry",
                         external_id="1234567890",
-                        organization_id=None,
-                        integration_id=None,
-                        branch_name=None,
-                        branch_overrides=[],
-                        instructions=None,
-                        base_commit_sha=None,
-                        provider_raw=None,
+                        organization_id=1234567890,
+                        integration_id="1234567890",
+                        branch_name="my-branch",
+                        branch_overrides=[
+                            BranchOverride(
+                                tag_name="my-tag",
+                                tag_value="my-value",
+                                branch_name="my-branch",
+                            )
+                        ],
+                        instructions="my-instructions",
+                        base_commit_sha="1234567890",
+                        provider_raw="github",
                     ),
                     SeerRepoDefinition(
                         provider="github-enterprise",
