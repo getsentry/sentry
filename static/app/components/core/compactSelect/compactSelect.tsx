@@ -1,6 +1,5 @@
-import {useCallback, useId, useMemo, useState} from 'react';
+import {useId, useMemo} from 'react';
 import {Item, Section} from '@react-stately/collections';
-import maxBy from 'lodash/maxBy';
 import type {DistributedOmit} from 'type-fest';
 
 import {t} from 'sentry/locale';
@@ -23,12 +22,6 @@ export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 interface BaseSelectProps<Value extends SelectKey>
   extends Omit<ControlProps, 'onClear' | 'clearable'> {
   options: Array<SelectOptionOrSection<Value>>;
-  /**
-   * Number of options above which virtualization will be enabled.
-   * Note that virtualization is always disabled if there are sections in the options.
-   * @default 150
-   */
-  virtualizeThreshold?: number;
 }
 
 export type SingleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> &
@@ -67,7 +60,6 @@ export function CompactSelect<Value extends SelectKey>({
   isOptionDisabled,
   sizeLimit,
   sizeLimitMessage,
-  virtualizeThreshold,
 
   // Control props
   grid,
@@ -76,7 +68,6 @@ export function CompactSelect<Value extends SelectKey>({
   size = 'md',
   closeOnSelect,
   triggerProps,
-  menuWidth,
   ...controlProps
 }: SelectProps<Value>) {
   const triggerId = useId();
@@ -117,57 +108,18 @@ export function CompactSelect<Value extends SelectKey>({
     };
   }, [multiple, clearable, value, onChange, closeOnSelect, grid]);
 
-  const [measuredMenuWidth, setMeasuredMenuWidth] = useState<number>();
-  const [hasMeasured, setHasMeasured] = useState(false);
-  const needsMeasuring =
-    !menuWidth && !hasMeasured && shouldVirtualize(options, virtualizeThreshold);
-
-  const menuRef = useCallback(
-    (element: HTMLDivElement | null) => {
-      if (element && needsMeasuring) {
-        setMeasuredMenuWidth(element.offsetWidth + 1);
-      }
-      // we only measure once, even if the width isn't saved
-      // this ensures the menu isn't measured when more options come in that put us over the threshold
-      setHasMeasured(true);
-    },
-    [needsMeasuring]
-  );
+  const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 
   const controlDisabled = disabled ?? options?.length === 0;
-
-  const allItemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
-  const longestOptionItemsWithKey = useMemo(() => {
-    if (needsMeasuring) {
-      const longestOption = maxBy(options, option => {
-        if ('options' in option) {
-          return 0;
-        }
-        if (option.textValue) {
-          return option.textValue.length;
-        }
-        if (typeof option.label === 'string') {
-          return option.label.length;
-        }
-        return 0;
-      });
-      return longestOption ? getItemsWithKeys([longestOption]) : [];
-    }
-    return [];
-  }, [needsMeasuring, options]);
-  const itemsWithKey = needsMeasuring ? longestOptionItemsWithKey : allItemsWithKey;
 
   return (
     <Control
       {...controlProps}
-      menuWidth={menuWidth ?? measuredMenuWidth}
-      // decrease height to 1px during measuring so that scrollbars are shown & measured
-      menuHeight={needsMeasuring ? '1px' : undefined}
       triggerProps={{...triggerProps, id: triggerId}}
       disabled={controlDisabled}
       grid={grid}
       size={size}
-      items={allItemsWithKey}
+      items={itemsWithKey}
       value={value}
       clearable={clearable}
       onClear={({overlayState}) => {
@@ -182,7 +134,6 @@ export function CompactSelect<Value extends SelectKey>({
           }
         }
       }}
-      menuRef={menuRef}
     >
       <List
         {...listProps}
@@ -192,7 +143,6 @@ export function CompactSelect<Value extends SelectKey>({
         size={size}
         sizeLimit={sizeLimit}
         sizeLimitMessage={sizeLimitMessage}
-        virtualized={shouldVirtualize(itemsWithKey, virtualizeThreshold)}
         aria-labelledby={triggerId}
       >
         {(item: SelectOptionOrSectionWithKey<Value>) => {
@@ -220,16 +170,4 @@ export function CompactSelect<Value extends SelectKey>({
       <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage>
     </Control>
   );
-}
-
-function shouldVirtualize<Value extends SelectKey>(
-  items: Array<SelectOptionOrSection<Value>>,
-  virtualizeThreshold = 150
-) {
-  const hasSections = items.some(item => 'options' in item);
-  if (hasSections) {
-    return false;
-  }
-
-  return items.length > virtualizeThreshold;
 }

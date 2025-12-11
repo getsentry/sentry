@@ -1,14 +1,9 @@
-import {Fragment, useCallback, useEffect, useId, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import debounce from 'lodash/debounce';
-
-import {BoundaryContextProvider} from '@sentry/scraps/boundaryContext';
-import {Flex} from '@sentry/scraps/layout';
-import {Heading} from '@sentry/scraps/text';
 
 import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
-import {SizingWindow} from 'sentry/stories';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 
 import {CompactSelect} from './';
@@ -427,114 +422,6 @@ export default Storybook.story('CompactSelect', story => {
           }}
           options={options}
         />
-      </Fragment>
-    );
-  });
-
-  story('Virtualization', () => {
-    const [value, setValue] = useState<string>('');
-    const options = COUNTRY_NAMES.map(name => ({
-      value: name,
-      label: name,
-    }));
-
-    return (
-      <Fragment>
-        <p>
-          <code>CompactSelect</code> can be virtualized for large lists of options. This
-          improves performance when rendering large lists.
-        </p>
-        <p>
-          To enable virtualization, set the <code>virtualizeThreshold</code> prop to the
-          number of options above which virtualization should be enabled. By default,
-          virtualization is enabled for lists with more than 150 options.
-        </p>
-        <Heading as="h3">Known Limitations</Heading>
-        <p>
-          Virtualization comes with some limitations. Currently, it does not support items
-          that are grouped into sections, so virtualization will be disabled if sections
-          are found.
-        </p>
-        <p>
-          Additionally, since not all items are rendered to the DOM, we cannot
-          automatically calculate the width of the underlying menu. To address this, we
-          are trying to find out which option will be the longest to render & measure it
-          when the menu is first opened. This process only looks at <code>textValue</code>{' '}
-          and <code>label</code> of the option, so it might fail in cases where different{' '}
-          <code>trailingItems</code> or <code>leadingItems</code> are used, or when long{' '}
-          <code>details</code> are rendered. You can instead also pass a hardcoded{' '}
-          <code>menuWidth</code> to <code>CompactSelect</code>.
-        </p>
-
-        <CompactSelect
-          value={value}
-          onChange={newValue => {
-            setValue(newValue.value);
-          }}
-          options={options}
-        />
-      </Fragment>
-    );
-  });
-
-  story('Limit Menu Width', () => {
-    const [value, setValue] = useState<string>('');
-    const options = [
-      {value: '1', label: 'Short option'},
-      {value: '2', label: 'A longer option', details: 'With details'},
-      {
-        value: '3',
-        label:
-          'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua',
-      },
-    ];
-    const id = useId();
-
-    return (
-      <Fragment>
-        <p>
-          Per default, the dropdown menu will grow to fit the width of its longest item,
-          but it's constrained by the <code>main</code> DOM element's width.
-        </p>
-        <p>
-          Containers that do not want <code>compactSelect</code> instances to grow beyond
-          them can put their id in the <code>BoundaryContext</code>. You can also set a
-          custom maximum width for the menu using the <code>menuWidth</code> prop.
-        </p>
-
-        <Flex gap="md" direction="column" height="300px" align="start" justify="start">
-          {props => (
-            <SizingWindow id={id} {...props}>
-              <CompactSelect
-                value={value}
-                onChange={newValue => {
-                  setValue(newValue.value);
-                }}
-                triggerProps={{children: 'Unbound (might break)'}}
-                options={options}
-              />
-              <BoundaryContextProvider value={id}>
-                <CompactSelect
-                  value={value}
-                  onChange={newValue => {
-                    setValue(newValue.value);
-                  }}
-                  triggerProps={{children: 'Bound to Parent'}}
-                  options={options}
-                />
-              </BoundaryContextProvider>
-              <CompactSelect
-                value={value}
-                menuWidth="250px"
-                onChange={newValue => {
-                  setValue(newValue.value);
-                }}
-                triggerProps={{children: 'Fixed width 250px'}}
-                options={options}
-              />
-            </SizingWindow>
-          )}
-        </Flex>
       </Fragment>
     );
   });
