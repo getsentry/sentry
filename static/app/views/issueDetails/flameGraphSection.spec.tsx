@@ -64,7 +64,7 @@ jest.mock('sentry/views/profiling/profilesProvider', () => {
 
 describe('FlameGraphSection', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture();
+  const project = ProjectFixture({platform: 'javascript'});
 
   beforeEach(() => {
     mockProfilesState = {type: 'initial'};
@@ -116,9 +116,20 @@ describe('FlameGraphSection', () => {
 
     expect(
       screen.getByText(
-        'We couldn’t load the profile attached to this event. It may have been sampled out.'
+        "A performance profile was attached to this event, but it wasn't stored."
       )
     ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(
+        'This may be due to exceeding your profiling quota, or the profile being sampled out. Ensure your project has profiling quota to see flamegraphs for future events.'
+      )
+    ).toBeInTheDocument();
+
+    expect(screen.getByRole('link', {name: 'in our documentation'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/javascript/profiling/'
+    );
   });
 
   it('renders flamegraph preview and open button once profiles are resolved', () => {

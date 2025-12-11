@@ -3,15 +3,17 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -91,7 +93,7 @@ export function FlameGraphSection({event, project}: {event: Event; project: Proj
                 traceID={profileMeta.profiler_id || ''}
               >
                 <FlamegraphThemeProvider>
-                  <InlineFlamegraphPreview />
+                  <InlineFlamegraphPreview platform={project.platform} />
                 </FlamegraphThemeProvider>
               </ProfileGroupProvider>
             )}
@@ -102,7 +104,7 @@ export function FlameGraphSection({event, project}: {event: Event; project: Proj
   );
 }
 
-function InlineFlamegraphPreview() {
+function InlineFlamegraphPreview({platform}: {platform?: PlatformKey | null}) {
   const profiles = useProfiles();
   const profileGroup = useProfileGroup();
 
@@ -114,6 +116,13 @@ function InlineFlamegraphPreview() {
     () => (active ? new FlamegraphModel(active, {sort: 'left heavy'}) : null),
     [active]
   );
+
+  const currentPlatform = platform ? platforms.find(p => p.id === platform) : undefined;
+
+  const platformLabel = currentPlatform?.name ?? t('your platform');
+  const docsUrl = currentPlatform?.link
+    ? `${currentPlatform.link}profiling/`
+    : 'https://docs.sentry.io/product/profiling/';
 
   if (profiles.type === 'loading') {
     return (
@@ -127,9 +136,18 @@ function InlineFlamegraphPreview() {
     return (
       <Alert.Container>
         <Alert type="warning" showIcon>
-          {t(
-            'We couldn’t load the profile attached to this event. It may have been sampled out.'
-          )}
+          <p>
+            {t("A performance profile was attached to this event, but it wasn't stored.")}
+          </p>
+          <p>
+            {t(
+              'This may be due to exceeding your profiling quota, or the profile being sampled out. Ensure your project has profiling quota to see flamegraphs for future events.'
+            )}
+          </p>
+          <p>
+            {t('Learn more about Profiling for %s ', platformLabel)}
+            <ExternalLink href={docsUrl}>{t('in our documentation')}</ExternalLink>.
+          </p>
         </Alert>
       </Alert.Container>
     );
