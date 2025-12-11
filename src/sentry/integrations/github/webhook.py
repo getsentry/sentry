@@ -12,6 +12,7 @@ import orjson
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest, HttpResponse
+from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -810,7 +811,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                             external_identifier=self.get_external_id(user["login"]),
                         )
                         contributor.num_actions += 1
-                        contributor.date_updated = timezone.now()
+                        contributor.date_updated = django_timezone.now()
                         is_active = (
                             contributor.num_actions == ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
                         )
