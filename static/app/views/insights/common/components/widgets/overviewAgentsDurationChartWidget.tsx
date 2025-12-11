@@ -14,7 +14,7 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {
   getAgentRunsFilter,
-  getAITracesFilter,
+  getHasAiSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
@@ -32,7 +32,7 @@ export default function OverviewAgentsDurationChartWidget(
   const releaseBubbleProps = useReleaseBubbleProps(props);
 
   const fullQuery = useCombinedQuery(
-    props.hasAgentRuns ? getAgentRunsFilter() : getAITracesFilter()
+    props.hasAgentRuns ? getAgentRunsFilter() : getHasAiSpansFilter()
   );
 
   const {data, isLoading, error} = useFetchSpanTimeSeries(

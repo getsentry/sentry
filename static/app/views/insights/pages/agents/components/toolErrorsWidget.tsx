@@ -15,6 +15,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
+import {getToolSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -37,7 +38,7 @@ export default function ToolErrorsWidget() {
   const theme = useTheme();
 
   const fullQuery = useCombinedQuery(
-    'span.op:gen_ai.execute_tool span.status:internal_error'
+    `${getToolSpansFilter()} span.status:internal_error`
   );
 
   const toolsRequest = useSpans(

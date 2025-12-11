@@ -41,6 +41,8 @@ export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceRes
       SpanFields.GEN_AI_USAGE_TOTAL_TOKENS,
       SpanFields.GEN_AI_USAGE_TOTAL_COST,
       SpanFields.GEN_AI_TOOL_NAME,
+      SpanFields.GEN_AI_OPERATION_TYPE,
+      SpanFields.GEN_AI_OPERATION_NAME,
       SpanFields.SPAN_STATUS,
       'status',
     ],

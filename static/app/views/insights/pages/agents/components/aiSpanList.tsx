@@ -10,12 +10,14 @@ import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
-import {getIsAiRunNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getGenAiOpType,
+  getIsAiAgentNode,
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getNodeId} from 'sentry/views/insights/pages/agents/utils/getNodeId';
 import {
-  getIsAiCreateAgentSpan,
+  getIsAiAgentSpan,
   getIsAiGenerationSpan,
-  getIsAiRunSpan,
   getIsExecuteToolSpan,
   getIsHandoffSpan,
 } from 'sentry/views/insights/pages/agents/utils/query';
@@ -140,7 +142,7 @@ function TransactionWrapper({
   const nodeAiRunParentsMap = useMemo<Record<string, AITraceSpanNode>>(() => {
     const parents: Record<string, AITraceSpanNode> = {};
     for (const node of nodes) {
-      const parent = getClosestNode(node, getIsAiRunNode);
+      const parent = getClosestNode(node, getIsAiAgentNode);
       if (parent) {
         parents[getNodeId(node)] = parent;
       }
@@ -337,8 +339,8 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
     'default';
   const truncatedOp = op.startsWith('gen_ai.') ? op.slice(7) : op;
   nodeInfo.title = truncatedOp;
-
-  if (getIsAiRunSpan({op}) || getIsAiCreateAgentSpan({op})) {
+  const genAiOpType = getGenAiOpType(node);
+  if (getIsAiAgentSpan(genAiOpType)) {
     const agentName =
       getNodeAttribute(SpanFields.GEN_AI_AGENT_NAME) ||
       getNodeAttribute(SpanFields.GEN_AI_FUNCTION_ID) ||
@@ -358,7 +360,7 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
       );
     }
     nodeInfo.color = colors[0];
-  } else if (getIsAiGenerationSpan({op})) {
+  } else if (getIsAiGenerationSpan(genAiOpType)) {
     const tokens = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
     const cost = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_COST);
     nodeInfo.title = node.value.description || nodeInfo.title;
@@ -379,13 +381,13 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
       );
     }
     nodeInfo.color = colors[2];
-  } else if (getIsExecuteToolSpan({op})) {
+  } else if (getIsExecuteToolSpan(genAiOpType)) {
     const toolName = getNodeAttribute(SpanFields.GEN_AI_TOOL_NAME);
     nodeInfo.icon = <IconFix size="md" />;
     nodeInfo.title = toolName || truncatedOp;
     nodeInfo.subtitle = toolName ? truncatedOp : '';
     nodeInfo.color = colors[5];
-  } else if (getIsHandoffSpan({op})) {
+  } else if (getIsHandoffSpan(genAiOpType)) {
     nodeInfo.icon = <IconChevron size="md" isDouble direction="right" />;
     nodeInfo.subtitle = node.value.description || '';
     nodeInfo.color = colors[4];

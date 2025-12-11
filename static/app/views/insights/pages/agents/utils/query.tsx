@@ -1,66 +1,58 @@
-// AI Runs - equivalent to OTEL Invoke Agent span
-// https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-agent-spans.md#invoke-agent-span
-export const AI_RUN_OPS = [
-  'ai.run.generateText',
-  'ai.run.generateObject',
-  'gen_ai.invoke_agent',
-  'ai.pipeline.generate_text',
-  'ai.pipeline.generate_object',
-  'ai.pipeline.stream_text',
-  'ai.pipeline.stream_object',
-];
-
-export const AI_CREATE_AGENT_OPS = ['gen_ai.create_agent'];
-
-const NON_GENERATION_OPS = [
-  ...AI_RUN_OPS,
-  ...AI_CREATE_AGENT_OPS,
-  'gen_ai.execute_tool',
-  'gen_ai.handoff',
-];
-
-export function getIsAiSpan({op = 'default'}: {op?: string}) {
-  return op.startsWith('gen_ai.');
+export function getIsAiAgentSpan(genAiOpType: string | undefined) {
+  return genAiOpType === 'agent';
 }
 
-export function getIsAiRunSpan({op = 'default'}: {op?: string}) {
-  return AI_RUN_OPS.includes(op);
+export function getIsExecuteToolSpan(genAiOpType: string | undefined) {
+  return genAiOpType === 'tool';
 }
 
-// All of the gen_ai.* spans that are not agent invocations, handoffs, or tool calls are considered generation spans
-export function getIsAiGenerationSpan({op = 'default'}: {op?: string}) {
-  return op.startsWith('gen_ai.') && !NON_GENERATION_OPS.includes(op);
+export function getIsHandoffSpan(genAiOpType: string | undefined) {
+  return genAiOpType === 'handoff';
 }
 
-export function getIsExecuteToolSpan({op = 'default'}: {op?: string}) {
-  return op === 'gen_ai.execute_tool';
+export function getIsAiGenerationSpan(genAiOpType: string | undefined) {
+  return genAiOpType === 'ai_client';
 }
 
-export function getIsHandoffSpan({op = 'default'}: {op?: string}) {
-  return op === 'gen_ai.handoff';
-}
-
-export function getIsAiCreateAgentSpan({op = 'default'}: {op?: string}) {
-  return AI_CREATE_AGENT_OPS.includes(op);
-}
-
-function joinValues(values: string[]) {
-  return values.map(value => `"${value}"`).join(',');
+export function getHasAiSpansFilter() {
+  return `has:gen_ai.operation.type`;
 }
 
 export const getAgentRunsFilter = ({negated = false}: {negated?: boolean} = {}) => {
-  return `${negated ? '!' : ''}span.op:[${joinValues(AI_RUN_OPS)}]`;
-};
-
-// All of the gen_ai.* spans that are not agent invocations, handoffs, or tool calls are considered generation spans
-export const getAIGenerationsFilter = () => {
-  return `span.op:gen_ai.* !span.op:[${joinValues(NON_GENERATION_OPS)}]`;
+  return `${negated ? '!' : ''}gen_ai.operation.type:agent`;
 };
 
 export const getToolSpansFilter = () => {
-  return `span.op:"gen_ai.execute_tool"`;
+  return `gen_ai.operation.type:tool`;
 };
 
-export const getAITracesFilter = () => {
-  return `span.op:gen_ai.*`;
+export const getAIGenerationsFilter = () => {
+  return `gen_ai.operation.type:ai_client`;
+};
+
+enum GenAiOperationType {
+  AGENT = 'agent',
+  TOOL = 'tool',
+  HANDOFF = 'handoff',
+  AI_CLIENT = 'ai_client',
+}
+
+// Should be used only when we don't have the gen_ai.operation.type attribute available
+export const getGenAiOperationTypeFromSpanOp = (
+  spanOp?: string
+): GenAiOperationType | undefined => {
+  if (!spanOp?.startsWith('gen_ai.')) {
+    return undefined;
+  }
+
+  if (['gen_ai.invoke_agent', 'gen_ai.create_agent'].includes(spanOp)) {
+    return GenAiOperationType.AGENT;
+  }
+  if (spanOp === 'gen_ai.execute_tool') {
+    return GenAiOperationType.TOOL;
+  }
+  if (spanOp === 'gen_ai.handoff') {
+    return GenAiOperationType.HANDOFF;
+  }
+  return GenAiOperationType.AI_CLIENT;
 };

@@ -14,9 +14,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {
-  AI_CREATE_AGENT_OPS,
-  AI_RUN_OPS,
-  getIsAiSpan,
+  getIsAiAgentSpan,
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
@@ -41,13 +39,14 @@ export function getHighlightedSpanAttributes({
   attributes = {},
 }: {
   attributes: Record<string, string> | undefined | TraceItemResponseAttribute[];
-  op: string | undefined;
   spanId: string;
+  op?: string;
 }): HighlightedAttribute[] {
   const attributeObject = ensureAttributeObject(attributes);
+  const genAiOpType = attributeObject['gen_ai.operation.type'] as string | undefined;
 
-  if (getIsAiSpan({op})) {
-    return getAISpanAttributes({attributes: attributeObject, op, spanId});
+  if (genAiOpType) {
+    return getAISpanAttributes({attributes: attributeObject, spanId});
   }
 
   if (op?.startsWith('mcp.')) {
@@ -76,15 +75,15 @@ function ensureAttributeObject(
 }
 
 function getAISpanAttributes({
-  op,
   spanId,
   attributes = {},
 }: {
   attributes: Record<string, string | number | boolean>;
-  op: string | undefined;
   spanId: string;
 }) {
   const highlightedAttributes = [];
+
+  const genAiOpType = attributes['gen_ai.operation.type'] as string | undefined;
 
   const agentName = attributes['gen_ai.agent.name'] || attributes['gen_ai.function_id'];
   if (agentName) {
@@ -140,12 +139,10 @@ function getAISpanAttributes({
         span_type: 'gen_ai',
         has_model: 'true',
         has_cost: 'false',
-        span_operation: op || 'unknown',
         model: model.toString(),
       },
       extra: {
         total_costs: totalCosts,
-        span_operation: op,
         attributes,
       },
     });
@@ -165,7 +162,7 @@ function getAISpanAttributes({
     toolsArray &&
     Array.isArray(toolsArray) &&
     toolsArray.length > 0 &&
-    [...AI_RUN_OPS, ...AI_CREATE_AGENT_OPS].includes(op!)
+    getIsAiAgentSpan(genAiOpType)
   ) {
     highlightedAttributes.push({
       name: t('Available Tools'),
@@ -200,7 +197,6 @@ function getAISpanAttributes({
       tags: {
         feature: 'agent-monitoring',
         span_type: 'gen_ai',
-        span_operation: op || 'unknown',
         missing_attributes: missingGenAIAttributes.join(','),
         origin,
         sdk:
