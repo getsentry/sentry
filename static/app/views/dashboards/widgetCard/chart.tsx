@@ -5,6 +5,8 @@ import type {LegendComponentOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -730,7 +732,7 @@ function WheelComponent(props: TableComponentProps): React.ReactNode {
   return (
     <React.Fragment>
       <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
-      <Centered>
+      <Flex justify="center" align="center">
         <PerformanceScoreRingWithTooltips
           projectScore={projectScore}
           text={score}
@@ -739,7 +741,7 @@ function WheelComponent(props: TableComponentProps): React.ReactNode {
           ringBackgroundColors={ringBackgroundColors}
           ringSegmentColors={ringSegmentColors}
         />
-      </Centered>
+      </Flex>
     </React.Fragment>
   );
 }
@@ -875,10 +877,4 @@ const StyledErrorPanel = styled(ErrorPanel)`
 
 const RenderedChartContainer = styled('div')`
   flex: 1;
-`;
-
-const Centered = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
 `;
