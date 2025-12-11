@@ -404,7 +404,7 @@ const TagPreviewGrid = styled(Link)`
   align-items: center;
   padding: 0 ${p => p.theme.space.sm};
   margin: 0 -${p => p.theme.space.sm};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
 

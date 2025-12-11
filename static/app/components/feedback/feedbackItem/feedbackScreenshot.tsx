@@ -83,7 +83,7 @@ const StyledPanel = styled(Panel)`
   align-items: center;
   margin-bottom: 0;
   border: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledLoadingIndicator = styled('div')`
@@ -105,7 +105,7 @@ const StyledImageButton = styled('button')`
 const StyledImageVisualization = styled(ImageVisualization)`
   z-index: 1;
   border: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   img {
     width: auto;

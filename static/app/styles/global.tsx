@@ -17,7 +17,7 @@ const prismStyles = (theme: Theme) => css`
   pre[class*='language-'] {
     overflow-x: auto;
     padding: ${space(1)} ${space(2)};
-    border-radius: ${theme.borderRadius};
+    border-radius: ${theme.radius.md};
     box-shadow: none;
 
     code {

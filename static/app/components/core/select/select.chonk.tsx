@@ -90,7 +90,7 @@ export const getChonkStylesConfig = ({
       ...provided,
       zIndex: theme.zIndex.dropdown,
       background: theme.backgroundElevated,
-      borderRadius: theme.borderRadius,
+      borderRadius: theme.radius.md,
       border: `1px solid ${theme.border}`,
       boxShadow: 'none',
       width: 'auto',
