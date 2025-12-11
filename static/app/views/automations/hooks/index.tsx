@@ -313,5 +313,11 @@ export function useSendTestNotification(
       );
       options?.onSuccess?.(data, variables, context);
     },
+    onError: (error, variables, context) => {
+      addErrorMessage(
+        tn('Notification failed', 'Notifications failed', variables.length)
+      );
+      options?.onError?.(error, variables, context);
+    },
   });
 }
