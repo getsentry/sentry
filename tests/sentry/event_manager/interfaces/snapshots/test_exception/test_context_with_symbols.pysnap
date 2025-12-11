@@ -28,6 +28,7 @@ get_api_context:
         package: null
         platform: null
         rawFunction: null
+        revision: null
         sourceLink: null
         symbol: Class.myfunc
         symbolAddr: null

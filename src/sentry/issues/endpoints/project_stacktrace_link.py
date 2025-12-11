@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from django.http import QueryDict
 from rest_framework.request import Request
@@ -36,7 +36,7 @@ class StacktraceLinkContext(TypedDict):
     module: str | None
     package: str | None
     sdk_name: str | None
-    revision: str | None
+    revision: NotRequired[str | None]
 
 
 def generate_context(parameters: QueryDict) -> StacktraceLinkContext:
