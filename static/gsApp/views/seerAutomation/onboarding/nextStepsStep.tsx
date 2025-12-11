@@ -13,13 +13,7 @@ import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
-import {
-  ActionSection,
-  MaxWidthPanel,
-  PanelDescription,
-  PanelWithImage,
-  StepContent,
-} from './common';
+import {ActionSection, MaxWidthPanel, PanelDescription, StepContent} from './common';
 
 export function NextStepsStep() {
   const {selectedCodeReviewRepositories, selectedRootCauseAnalysisRepositories} =
@@ -33,67 +27,60 @@ export function NextStepsStep() {
 
   return (
     <Fragment>
-      <StepContent>
-        <PanelWithImage gap="3xl">
-          <MaxWidthPanel>
-            <PanelBody>
-              <PanelDescription>
-                <Text bold>{t('Congratulations, you’ve finished setting up Seer!')}</Text>
-                <p>
-                  {t(
-                    'For connected projects and repos, you will now be able to have Seer:'
-                  )}
-                </p>
-                <NextStepsList>
-                  <li>
-                    Review your PRs and catch bugs before you ship them to production
-                  </li>
-                  <li>
-                    Perform root cause analysis on your issues and propose solutions
-                  </li>
-                  <li>Create PRs to fix issues</li>
-                </NextStepsList>
+      <StepContentWithBackground>
+        <MaxWidthPanel>
+          <PanelBody>
+            <PanelDescription>
+              <Text bold>{t('Congratulations, you’ve finished setting up Seer!')}</Text>
+              <p>
+                {t(
+                  'For connected projects and repos, you will now be able to have Seer:'
+                )}
+              </p>
+              <NextStepsList>
+                <li>Review your PRs and catch bugs before you ship them to production</li>
+                <li>Perform root cause analysis on your issues and propose solutions</li>
+                <li>Create PRs to fix issues</li>
+              </NextStepsList>
+              <Text>
+                {tct(
+                  'If you want to adjust your configurations, you can modify them on the [settings:Seer Settings Page], or configure [projects:projects] and [repos:repos] individually. ',
+                  {
+                    settings: <Link to={`/settings/${organization.slug}/seer/`} />,
+                    projects: (
+                      <Link to={`/settings/${organization.slug}/seer/projects/`} />
+                    ),
+                    repos: <Link to={`/settings/${organization.slug}/seer/repos/`} />,
+                  }
+                )}
+              </Text>
+            </PanelDescription>
+            <PanelDescription>
+              <Flex direction="column" gap="md">
+                <Text bold>{t('Predicted spend')}</Text>
                 <Text>
-                  {tct(
-                    'If you want to adjust your configurations, you can modify them on the [settings:Seer Settings Page], or configure [projects:projects] and [repos:repos] individually. ',
-                    {
-                      settings: <Link to={`/settings/${organization.slug}/seer/`} />,
-                      projects: (
-                        <Link to={`/settings/${organization.slug}/seer/projects/`} />
-                      ),
-                      repos: <Link to={`/settings/${organization.slug}/seer/repos/`} />,
-                    }
-                  )}
-                </Text>
-              </PanelDescription>
-              <PanelDescription>
-                <Flex direction="column" gap="md">
-                  <Text bold>{t('Predicted spend')}</Text>
-                  <Text>
-                    {t(`Based on the activity in your Seer-connected repositories
+                  {t(`Based on the activity in your Seer-connected repositories
               over the last month, this is an estimate of what you would owe at the end of
               your trial:`)}
-                  </Text>
-                  <Well>
-                    <WellContent>
-                      <CellTitle>{t('Connected Repos')}</CellTitle>
-                      <Text>{totalRepositories}</Text>
-                    </WellContent>
-                    <WellContent>
-                      <CellTitle>{t('Active Contributors')}</CellTitle>
-                      <Text>??</Text>
-                    </WellContent>
-                    <WellContent>
-                      <CellTitle>{t('Predicted Spend')}</CellTitle>
-                      <Text>$4,000</Text>
-                    </WellContent>
-                  </Well>
-                </Flex>
-              </PanelDescription>
-            </PanelBody>
-          </MaxWidthPanel>
-          <Image src={nextStepsImg} alt="Next Steps" />
-        </PanelWithImage>
+                </Text>
+                <Well>
+                  <WellContent>
+                    <CellTitle>{t('Connected Repos')}</CellTitle>
+                    <Text>{totalRepositories}</Text>
+                  </WellContent>
+                  <WellContent>
+                    <CellTitle>{t('Active Contributors')}</CellTitle>
+                    <Text>??</Text>
+                  </WellContent>
+                  <WellContent>
+                    <CellTitle>{t('Predicted Spend')}</CellTitle>
+                    <Text>$4,000</Text>
+                  </WellContent>
+                </Well>
+              </Flex>
+            </PanelDescription>
+          </PanelBody>
+        </MaxWidthPanel>
 
         <ActionSection>
           <LinkButton
@@ -104,10 +91,15 @@ export function NextStepsStep() {
             {t('Finish')}
           </LinkButton>
         </ActionSection>
-      </StepContent>
+      </StepContentWithBackground>
     </Fragment>
   );
 }
+
+const StepContentWithBackground = styled(StepContent)`
+  background: url(${nextStepsImg}) no-repeat 638px 0;
+  background-size: 192px 168px;
+`;
 
 const NextStepsList = styled('ul')`
   margin: ${p => p.theme.space.xl} 0;
@@ -131,14 +123,4 @@ const CellTitle = styled(Text)`
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
-`;
-
-const Image = styled('img')`
-  height: 168px;
-  width: 192px;
-  margin-left: ${p => p.theme.space['2xl']};
-  margin-top: -${p => p.theme.space['3xl']};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;

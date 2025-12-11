@@ -24,7 +24,6 @@ import {
   FieldLabel,
   MaxWidthPanel,
   PanelDescription,
-  PanelWithImage,
   StepContent,
 } from './common';
 import {RepositorySelector} from './repositorySelector';
@@ -69,47 +68,42 @@ export function ConfigureCodeReviewStep() {
 
   return (
     <Fragment>
-      <StepContent>
-        <PanelWithImage gap="3xl">
-          <MaxWidthPanel>
-            <PanelBody>
-              <PanelDescription>
-                <p>{t(`You've successfully connected to GitHub!`)}</p>
+      <StepContentWithBackground>
+        <MaxWidthPanel>
+          <PanelBody>
+            <PanelDescription>
+              <p>{t(`You've successfully connected to GitHub!`)}</p>
 
-                <p>
-                  {t(
-                    `Now, select which repositories you would like to run Seer’s AI Code Review on.`
-                  )}
-                </p>
-              </PanelDescription>
+              <p>
+                {t(
+                  `Now, select which repositories you would like to run Seer’s AI Code Review on.`
+                )}
+              </p>
+            </PanelDescription>
 
-              <Field>
-                <Flex direction="column" flex="1" gap="xs">
-                  <FieldLabel>{t('AI Code Review')}</FieldLabel>
-                  <FieldDescription>
-                    {t(
-                      'For all repos below, AND for all newly connected repos, Seer will review your PRs and flag potential bugs.'
-                    )}
-                  </FieldDescription>
-                </Flex>
-                <Switch
-                  size="lg"
-                  checked={enableCodeReview}
-                  onChange={() => setEnableCodeReview(!enableCodeReview)}
-                />
-              </Field>
-              {enableCodeReview ? null : (
-                <Alert type="info">
+            <Field>
+              <Flex direction="column" flex="1" gap="xs">
+                <FieldLabel>{t('AI Code Review')}</FieldLabel>
+                <FieldDescription>
                   {t(
-                    'AI Code Review needs to be enabled in order to select repositories.'
+                    'For all repos below, AND for all newly connected repos, Seer will review your PRs and flag potential bugs.'
                   )}
-                </Alert>
-              )}
-              <RepositorySelector disabled={!enableCodeReview} />
-            </PanelBody>
-          </MaxWidthPanel>
-          <Image src={configureCodeReviewImg} alt="Configure Code Review" />
-        </PanelWithImage>
+                </FieldDescription>
+              </Flex>
+              <Switch
+                size="lg"
+                checked={enableCodeReview}
+                onChange={() => setEnableCodeReview(!enableCodeReview)}
+              />
+            </Field>
+            {enableCodeReview ? null : (
+              <Alert type="info">
+                {t('AI Code Review needs to be enabled in order to select repositories.')}
+              </Alert>
+            )}
+            <RepositorySelector disabled={!enableCodeReview} />
+          </PanelBody>
+        </MaxWidthPanel>
 
         <GuidedSteps.ButtonWrapper>
           <Button
@@ -121,17 +115,12 @@ export function ConfigureCodeReviewStep() {
             {t('Next Step')}
           </Button>
         </GuidedSteps.ButtonWrapper>
-      </StepContent>
+      </StepContentWithBackground>
     </Fragment>
   );
 }
 
-const Image = styled('img')`
-  height: 150px;
-  width: 213px;
-  margin-left: ${p => p.theme.space.xl};
-  margin-top: ${p => p.theme.space['3xl']};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
+const StepContentWithBackground = styled(StepContent)`
+  background: url(${configureCodeReviewImg}) no-repeat 638px 0;
+  background-size: 213px 150px;
 `;

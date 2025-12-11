@@ -28,7 +28,6 @@ import {
   FieldLabel,
   MaxWidthPanel,
   PanelDescription,
-  PanelWithImage,
   StepContent,
 } from './common';
 import {RepositoryToProjectConfiguration} from './repositoryToProjectConfiguration';
@@ -136,90 +135,84 @@ export function ConfigureRootCauseAnalysisStep() {
 
   return (
     <Fragment>
-      <StepContent>
-        <PanelWithImage gap="3xl">
-          <MaxWidthPanel>
-            <PanelBody>
-              <PanelDescription>
-                <p>
+      <StepContentWithBackground>
+        <MaxWidthPanel>
+          <PanelBody>
+            <PanelDescription>
+              <p>
+                {t(
+                  'Pair your projects with your repositories to make sure Seer can analyze your codebase.'
+                )}
+              </p>
+            </PanelDescription>
+
+            <Field>
+              <Flex direction="column" flex="1" gap="xs">
+                <FieldLabel>{t('Enable Root Cause Analysis')}</FieldLabel>
+                <FieldDescription>
                   {t(
-                    'Pair your projects with your repositories to make sure Seer can analyze your codebase.'
+                    'For all projects below AND newly added projects, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution.'
                   )}
-                </p>
-              </PanelDescription>
-
-              <Field>
-                <Flex direction="column" flex="1" gap="xs">
-                  <FieldLabel>{t('Enable Root Cause Analysis')}</FieldLabel>
-                  <FieldDescription>
-                    {t(
-                      'For all projects below AND newly added projects, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution.'
-                    )}
-                  </FieldDescription>
-                </Flex>
-                <Switch
-                  size="lg"
-                  checked={proposeFixesEnabled}
-                  onChange={() => setProposeFixesEnabled(!proposeFixesEnabled)}
-                />
-              </Field>
-              <Field>
-                <Flex direction="column" flex="1" gap="xs">
-                  <FieldLabel>{t('Automatic PR Creation')}</FieldLabel>
-                  <FieldDescription>
-                    {t(
-                      'For all projects below AND newly added projects, Seer will be able to create a pull request.'
-                    )}
-                  </FieldDescription>
-                </Flex>
-                <Switch
-                  size="lg"
-                  checked={autoCreatePREnabled}
-                  onChange={() => setAutoCreatePREnabled(!autoCreatePREnabled)}
-                />
-              </Field>
-
-              {isProjectsLoaded && !isProjectsFetching ? (
-                <Fragment>
-                  <RepositoryToProjectConfiguration
-                    isPending={isCodeMappingsLoading}
-                    projects={projects}
-                    onChange={handleRepositoryProjectMappingsChange}
-                    onChangeRepository={changeRootCauseAnalysisRepository}
-                  />
-                  {availableRepositories.length > 0 && (
-                    <AddRepoRow>
-                      <CompactSelect
-                        size="sm"
-                        searchable
-                        value={undefined}
-                        strategy="fixed"
-                        triggerProps={{
-                          icon: <IconAdd />,
-                          children: t('Add Repository'),
-                        }}
-                        onChange={handleAddRepository}
-                        options={repositoryOptions}
-                        menuTitle={t('Select Repository')}
-                      />
-                    </AddRepoRow>
+                </FieldDescription>
+              </Flex>
+              <Switch
+                size="lg"
+                checked={proposeFixesEnabled}
+                onChange={() => setProposeFixesEnabled(!proposeFixesEnabled)}
+              />
+            </Field>
+            <Field>
+              <Flex direction="column" flex="1" gap="xs">
+                <FieldLabel>{t('Automatic PR Creation')}</FieldLabel>
+                <FieldDescription>
+                  {t(
+                    'For all projects below AND newly added projects, Seer will be able to create a pull request.'
                   )}
-                </Fragment>
-              ) : (
-                <Flex direction="column" gap="md" padding="md">
-                  {selectedRootCauseAnalysisRepositories.map(repository => (
-                    <Placeholder key={repository.id} />
-                  ))}
-                </Flex>
-              )}
-            </PanelBody>
-          </MaxWidthPanel>
-          <Image
-            src={configureRootCauseAnalysisImg}
-            alt="Configure Root Cause Analysis"
-          />
-        </PanelWithImage>
-      </StepContent>
+                </FieldDescription>
+              </Flex>
+              <Switch
+                size="lg"
+                checked={autoCreatePREnabled}
+                onChange={() => setAutoCreatePREnabled(!autoCreatePREnabled)}
+              />
+            </Field>
+
+            {isProjectsLoaded && !isProjectsFetching ? (
+              <Fragment>
+                <RepositoryToProjectConfiguration
+                  isPending={isCodeMappingsLoading}
+                  projects={projects}
+                  onChange={handleRepositoryProjectMappingsChange}
+                  onChangeRepository={changeRootCauseAnalysisRepository}
+                />
+                {availableRepositories.length > 0 && (
+                  <AddRepoRow>
+                    <CompactSelect
+                      size="sm"
+                      searchable
+                      value={undefined}
+                      strategy="fixed"
+                      triggerProps={{
+                        icon: <IconAdd />,
+                        children: t('Add Repository'),
+                      }}
+                      onChange={handleAddRepository}
+                      options={repositoryOptions}
+                      menuTitle={t('Select Repository')}
+                    />
+                  </AddRepoRow>
+                )}
+              </Fragment>
+            ) : (
+              <Flex direction="column" gap="md" padding="md">
+                {selectedRootCauseAnalysisRepositories.map(repository => (
+                  <Placeholder key={repository.id} />
+                ))}
+              </Flex>
+            )}
+          </PanelBody>
+        </MaxWidthPanel>
+      </StepContentWithBackground>
 
       <GuidedSteps.ButtonWrapper>
         <Button size="md" onClick={handlePreviousStep} aria-label={t('Previous Step')}>
@@ -239,18 +232,12 @@ export function ConfigureRootCauseAnalysisStep() {
   );
 }
 
+const StepContentWithBackground = styled(StepContent)`
+  background: url(${configureRootCauseAnalysisImg}) no-repeat 638px 0;
+  background-size: 200px 256px;
+`;
+
 const AddRepoRow = styled(PanelItem)`
   align-items: center;
   justify-content: flex-end;
-`;
-
-const Image = styled('img')`
-  height: 256px;
-  width: 200px;
-  margin-left: ${p => p.theme.space['2xl']};
-  margin-top: -${p => p.theme.space['3xl']};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
