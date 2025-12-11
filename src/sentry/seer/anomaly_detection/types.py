@@ -11,6 +11,8 @@ class TimeSeriesPoint(TypedDict):
     timestamp: float
     value: float
     anomaly: NotRequired[Anomaly]
+    yhat_lower: NotRequired[float]
+    yhat_upper: NotRequired[float]
 
 
 class DataSourceType(IntEnum):
