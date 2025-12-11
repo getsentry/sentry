@@ -1,4 +1,4 @@
-import {createContext, useContext} from 'react';
+import {createContext, useContext, type Dispatch, type SetStateAction} from 'react';
 
 import type RequestError from 'sentry/utils/requestError/requestError';
 
@@ -6,7 +6,7 @@ export const AutomationBuilderErrorContext = createContext<{
   errors: Record<string, any>;
   mutationErrors: RequestError['responseJSON'];
   removeError: (errorId: string) => void;
-  setErrors: (errors: Record<string, string>) => void;
+  setErrors: (errors: Dispatch<SetStateAction<Record<string, any>>>) => void;
 } | null>(null);
 
 export const useAutomationBuilderErrorContext = () => {

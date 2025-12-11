@@ -126,7 +126,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   const {state, actions} = useAutomationBuilderReducer(initialState);
 
   const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
-    Record<string, string>
+    Record<string, any>
   >({});
 
   const {mutateAsync: updateAutomation, error} = useUpdateAutomation();
