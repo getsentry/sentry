@@ -680,7 +680,6 @@ def fire_actions_for_groups(
     )
 
     # Feature check caching to keep us within the trace budget.
-    trigger_actions_ff = features.has("organizations:workflow-engine-trigger-actions", organization)
     single_processing_ff = features.has(
         "organizations:workflow-engine-single-process-workflows", organization
     )
@@ -688,9 +687,7 @@ def fire_actions_for_groups(
     rollout_type_ids = options.get("workflow_engine.issue_alert.group.type_id.rollout")
 
     should_trigger_actions = lambda type_id: (
-        type_id in ga_type_ids
-        or (type_id in rollout_type_ids and single_processing_ff)
-        or trigger_actions_ff
+        type_id in ga_type_ids or (type_id in rollout_type_ids and single_processing_ff)
     )
 
     total_actions = 0

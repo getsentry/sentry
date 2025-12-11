@@ -179,7 +179,7 @@ const Version = styled('small')`
 `;
 
 const SetupWizard = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   padding: 40px 40px 20px;

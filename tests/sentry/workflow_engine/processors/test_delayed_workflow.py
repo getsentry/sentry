@@ -16,6 +16,7 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.taskworker.state import CurrentTaskState
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.snuba import RateLimitExceeded
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
@@ -937,8 +938,9 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         assert second_call_kwargs["group_id"] == self.group2.id
         assert second_call_kwargs["workflow_id"] == self.workflow2.id
 
-    @with_feature("organizations:workflow-engine-trigger-actions")
+    @with_feature("organizations:workflow-engine-single-process-workflows")
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     def test_fire_actions_for_groups__workflow_fire_history(self, mock_process: MagicMock) -> None:
         mock_process.return_value = (
             ProcessedDataConditionGroup(logic_result=TriggerResult.TRUE, condition_results=[]),

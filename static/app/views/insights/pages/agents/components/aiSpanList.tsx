@@ -446,7 +446,7 @@ const ListItemContainer = styled('div')<{
   border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
   background-color: ${p =>
-    p.isSelected ? p.theme.backgroundSecondary : p.theme.background};
+    p.isSelected ? p.theme.backgroundSecondary : p.theme.tokens.background.primary};
   outline: ${p =>
     p.isSelected
       ? p.hasErrors

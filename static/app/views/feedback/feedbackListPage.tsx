@@ -195,7 +195,7 @@ export default function FeedbackListPage() {
 }
 
 const Background = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   overflow: hidden;
   display: flex;
   flex-direction: column;

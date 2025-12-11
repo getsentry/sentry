@@ -4,6 +4,7 @@ from django.conf import settings
 from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
+from sentry import features
 from sentry.conf.server import (
     SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
     SEER_ANOMALY_DETECTION_ENDPOINT_URL,
@@ -30,6 +31,25 @@ from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
+
+
+def _adjust_timestamps_for_time_window(
+    data_points: list[TimeSeriesPoint] | list[AnomalyThresholdDataPoint],
+    time_window_seconds: int,
+    detector_created_at: float,
+) -> None:
+    """
+    Adjust timestamps in-place to be one time window behind for data points
+    that were created after the detector was created. Historical data points
+    (before detector creation) remain unchanged.
+
+    Seer returns end-of-bucket timestamps, but we want start-of-bucket timestamps
+    for data points generated after the detector was created.
+    """
+    for point in data_points:
+        if point["timestamp"] >= detector_created_at:
+            point["timestamp"] = point["timestamp"] - time_window_seconds
+
 
 SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
@@ -138,6 +158,9 @@ def get_anomaly_data_from_seer(
         detailed_error_message = results.get("message", "<unknown>")
         # We want Sentry to group them by error message.
         msg = f"Error when hitting Seer detect anomalies endpoint: {detailed_error_message}"
+        value = context["cur_window"]["value"]
+        extra_data["value"] = value
+        extra_data["value_str"] = str(value)  # Explicit string to catch NaN/Inf, just in case
         logger.warning(msg, extra=extra_data)
         return None
 
@@ -216,4 +239,17 @@ def get_anomaly_threshold_data_from_seer(
         logger.warning(msg)
         return None
 
-    return results.get("data")
+    data = results.get("data")
+    if data:
+        # Adjust timestamps to be one time window behind for data points after detector creation
+        if features.has(
+            "organizations:anomaly-detection-threshold-data",
+            subscription.project.organization,
+        ):
+            snuba_query: SnubaQuery = subscription.snuba_query
+            _adjust_timestamps_for_time_window(
+                data_points=data,
+                time_window_seconds=snuba_query.time_window,
+                detector_created_at=subscription.date_added.timestamp(),
+            )
+    return data
