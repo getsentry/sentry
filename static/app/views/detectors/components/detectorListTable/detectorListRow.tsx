@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
@@ -67,10 +67,13 @@ export function DetectorListRowSkeleton() {
   return (
     <DetectorSimpleTableRow>
       <SimpleTable.RowCell>
-        <div style={{width: '100%'}}>
-          <Placeholder height="20px" width="50%" style={{marginBottom: '4px'}} />
-          <Placeholder height="16px" width="20%" />
-        </div>
+        <Flex gap="md" width="100%">
+          <CheckboxWrapper />
+          <Container width="100%">
+            <Placeholder height="20px" width="50%" style={{marginBottom: '4px'}} />
+            <Placeholder height="16px" width="20%" />
+          </Container>
+        </Flex>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell data-column-name="type">
         <Placeholder height="20px" />
