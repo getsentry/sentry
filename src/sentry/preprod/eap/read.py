@@ -18,6 +18,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
+from sentry.search.eap.rpc_utils import create_attribute_value
 from sentry.utils import snuba_rpc
 
 
@@ -268,27 +269,17 @@ def _build_filters(filters: PreprodSizeFilters) -> list[TraceItemFilter]:
 
         attr_type = _FIELD_TYPES.get(field_name)
         if attr_type is None:
-            raise ValueError(f"Field '{field_name}' is missing from _FIELD_TYPES mapping.")
-
-        if attr_type == AttributeKey.Type.TYPE_STRING:
-            attr_value = AttributeValue(val_str=value)
-        elif attr_type == AttributeKey.Type.TYPE_INT:
-            attr_value = AttributeValue(val_int=value)
-        elif attr_type == AttributeKey.Type.TYPE_DOUBLE:
-            attr_value = AttributeValue(val_double=value)
-        elif attr_type == AttributeKey.Type.TYPE_FLOAT:
-            attr_value = AttributeValue(val_float=value)
-        elif attr_type == AttributeKey.Type.TYPE_BOOLEAN:
-            attr_value = AttributeValue(val_bool=value)
-        else:
-            raise ValueError(f"Unhandled AttributeKey type {attr_type} for field '{field_name}'.")
+            raise ValueError(
+                f"Field '{field_name}' is missing from _FIELD_TYPES mapping. "
+                f"Add it to the mapping in read.py"
+            )
 
         result.append(
             TraceItemFilter(
                 comparison_filter=ComparisonFilter(
                     key=AttributeKey(name=field_name, type=attr_type),
                     op=ComparisonFilter.OP_EQUALS,
-                    value=attr_value,
+                    value=create_attribute_value(attr_type, value),
                 )
             )
         )
