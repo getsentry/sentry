@@ -59,7 +59,7 @@ export const HeaderTitle = styled('div')`
 // This header can be rendered while the chart is still loading
 export const HeaderTitleLegend = styled(HeaderTitle)`
   background-color: ${p => p.theme.background};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.radius.md};
   position: absolute;
   z-index: 1;
 `;

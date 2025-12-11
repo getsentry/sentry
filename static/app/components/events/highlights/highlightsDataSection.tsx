@@ -307,7 +307,7 @@ const HighlightContainer = styled(TreeContainer)<{columnCount: number}>`
 
 const EmptyHighlights = styled('div')`
   padding: ${space(2)} ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px dashed ${p => p.theme.translucentBorder};
   background: ${p => p.theme.bodyBackground};
   grid-column: 1 / -1;

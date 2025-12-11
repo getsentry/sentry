@@ -376,8 +376,8 @@ const FieldControlWrapper = styled('div')`
 const NextButtonPanelAlert = styled(PanelAlert)`
   align-items: center;
   margin-bottom: -1px;
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  border-bottom-left-radius: ${p => p.theme.radius.md};
+  border-bottom-right-radius: ${p => p.theme.radius.md};
 `;
 
 const NextButtonWrapper = styled('div')`

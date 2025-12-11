@@ -123,7 +123,7 @@ const TagPanel = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   padding: ${space(1)};
 `;

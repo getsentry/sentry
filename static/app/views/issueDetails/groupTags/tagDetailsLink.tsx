@@ -62,7 +62,7 @@ export default function TagDetailsLink({
 }
 
 const StyledLink = styled(Link)`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   display: block;
 
   &:hover h5 {

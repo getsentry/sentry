@@ -320,7 +320,7 @@ const PanelDragHandle = styled('div')`
     content: '';
     height: 5px;
     width: 100%;
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
     transition: background 100ms ease-in-out;
   }
 

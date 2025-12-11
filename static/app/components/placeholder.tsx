@@ -35,7 +35,7 @@ const Placeholder = styled(
   flex-shrink: 0;
   justify-content: center;
   align-items: center;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background-color: ${p => (p.error ? p.theme.red100 : p.theme.backgroundTertiary)};
   ${p => !!p.error && `color: ${p.theme.red200};`}
   width: ${p => p.width ?? '100%'};

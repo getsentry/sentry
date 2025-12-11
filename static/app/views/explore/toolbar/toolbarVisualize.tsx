@@ -251,7 +251,7 @@ export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps)
 
 const Label = styled('div')`
   cursor: pointer;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background-color: ${p => p.theme.purple100};
   color: ${p => p.theme.purple300};
   font-weight: ${p => p.theme.fontWeight.bold};

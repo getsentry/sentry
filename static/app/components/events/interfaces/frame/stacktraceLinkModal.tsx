@@ -324,7 +324,7 @@ const StyledList = styled(List)`
 
 const Suggestions = styled('div')`
   background-color: ${p => p.theme.surface100};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)} ${space(1)} ${space(1)} ${space(2)};
 `;
 

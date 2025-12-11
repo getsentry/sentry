@@ -208,7 +208,7 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
   color: ${p.theme.error};
   margin: -1px;
   border: 1px solid ${p.theme.error};
-  border-radius: ${p.theme.borderRadius};
+  border-radius: ${p.theme.radius.md};
 
     &:before {
       display: block;

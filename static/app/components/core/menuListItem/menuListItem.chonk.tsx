@@ -65,7 +65,7 @@ export const ChonkInnerWrap = chonkStyled('div', {
     padding: 0 ${space(1)} 0 ${space(1.5)};
     padding-top: ${p => getVerticalPadding(p.size)};
     padding-bottom: ${p => getVerticalPadding(p.size)};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     box-sizing: border-box;
 
     font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};

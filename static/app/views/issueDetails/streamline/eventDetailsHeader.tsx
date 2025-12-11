@@ -288,7 +288,7 @@ const GraphSection = styled('div')`
 
   & > * {
     background: ${p => p.theme.background};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     border: 1px solid ${p => p.theme.translucentBorder};
   }
 `;
@@ -297,7 +297,7 @@ const OccurrenceSummarySection = styled(OccurrenceSummary)`
   white-space: unset;
   background: ${p => p.theme.background};
   padding: ${p => p.theme.space.lg};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.translucentBorder};
 `;
 

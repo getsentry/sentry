@@ -109,7 +109,7 @@ const ExploreVisualizes = styled('span')`
   background: ${p => p.theme.background};
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
   border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   height: 24px;
   overflow: hidden;
   white-space: nowrap;

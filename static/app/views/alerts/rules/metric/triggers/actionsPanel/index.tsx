@@ -539,9 +539,9 @@ const PanelItemSelects = styled('div')`
 const RuleRowContainer = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   border: 1px ${p => p.theme.border} solid;
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   &:last-child {
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
   }
 `;
 
@@ -556,7 +556,7 @@ const PerformActionsListItem = styled(StyledListItem)`
 `;
 
 const FooterAlert = styled(Alert)`
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   margin-top: -1px; /* remove double border on panel bottom */
   a {
     white-space: nowrap;

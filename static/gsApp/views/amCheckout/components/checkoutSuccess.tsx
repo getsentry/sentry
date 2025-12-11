@@ -659,7 +659,7 @@ const StyledGrid = styled(Grid)`
 const ReceiptSlot = styled('div')`
   width: 445px;
   height: 7px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.gray200};
   box-shadow: 0px 2px 4px 0px
     ${p => Color(p.theme.black).lighten(0.08).alpha(0.15).toString()} inset;

@@ -188,7 +188,7 @@ const Breakdown = styled('div')`
   display: flex;
   height: ${space(2)};
   width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   background: ${p => p.theme.backgroundTertiary};
 `;

@@ -57,7 +57,7 @@ const legacyInputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   color: ${p.theme.gray400};
   background: ${p.theme.background};
   border: 1px solid ${p.theme.border};
-  border-radius: ${p.theme.borderRadius};
+  border-radius: ${p.theme.radius.md};
   box-shadow: inset ${p.theme.dropShadowMedium};
   resize: vertical;
   transition:

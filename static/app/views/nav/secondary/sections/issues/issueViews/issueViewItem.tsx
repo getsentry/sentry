@@ -213,7 +213,7 @@ const StyledReorderItem = styled(Reorder.Item, {
 })<{grabbing: boolean}>`
   position: relative;
   background-color: ${p => (p.grabbing ? p.theme.translucentSurface200 : 'transparent')};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledInteractionStateLayer = styled(InteractionStateLayer)`

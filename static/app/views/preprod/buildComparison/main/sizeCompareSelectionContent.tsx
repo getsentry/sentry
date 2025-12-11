@@ -286,7 +286,7 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
 
 const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
   border: 1px solid ${p => (p.isSelected ? p.theme.focusBorder : p.theme.border)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.md};
   cursor: pointer;
 
@@ -304,7 +304,7 @@ const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
 const BuildItemBranchTag = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.purple400};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};

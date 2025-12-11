@@ -101,7 +101,7 @@ const NextStepsList = styled('ul')`
 const Well = styled(Flex)`
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 const WellContent = styled(Flex)`
   flex-direction: column;

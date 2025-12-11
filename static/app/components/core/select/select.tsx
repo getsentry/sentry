@@ -203,7 +203,7 @@ const getStylesConfig = ({
       background: theme.background,
       border: `1px solid ${theme.border}`,
       boxShadow: theme.dropShadowMedium,
-      borderRadius: theme.borderRadius,
+      borderRadius: theme.radius.md,
       transition: 'border 0.1s, box-shadow 0.1s',
       alignItems: 'center',
       ...(state.isFocused && {
@@ -230,7 +230,7 @@ const getStylesConfig = ({
       ...provided,
       zIndex: theme.zIndex.dropdown,
       background: theme.backgroundElevated,
-      borderRadius: theme.borderRadius,
+      borderRadius: theme.radius.md,
       boxShadow: `${theme.dropShadowHeavy}, 0 0 0 1px ${theme.translucentBorder}`,
       width: 'auto',
       minWidth: '100%',

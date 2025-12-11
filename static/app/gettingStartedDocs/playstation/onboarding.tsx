@@ -286,6 +286,6 @@ const CardIllustration = styled('img')`
   height: auto;
   object-fit: contain;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowLight};
 `;

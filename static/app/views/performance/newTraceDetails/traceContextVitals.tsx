@@ -171,7 +171,7 @@ const VitalPillName = styled('div')<{status: PerformanceScore}>`
       p.status === 'none'
         ? p.theme.border
         : makePerformanceScoreColors(p.theme)[p.status].border};
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
   font-size: ${p => p.theme.fontSize.sm};
@@ -189,7 +189,7 @@ const VitalPillValue = styled('div')`
   justify-content: center;
   border: 1px solid ${p => p.theme.border};
   border-left: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   background: ${p => p.theme.background};
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.lg};

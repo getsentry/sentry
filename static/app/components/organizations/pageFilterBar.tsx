@@ -29,7 +29,7 @@ export default PageFilterBar;
 const pageFilterBarStyles = (p: {theme: Theme; condensed?: boolean}) => css`
   display: flex;
   position: relative;
-  border-radius: ${p.theme.borderRadius};
+  border-radius: ${p.theme.radius.md};
   height: ${p.theme.form.md.height};
 
   ${p.condensed &&
@@ -47,7 +47,7 @@ const pageFilterBarStyles = (p: {theme: Theme; condensed?: boolean}) => css`
     right: 0;
     pointer-events: none;
     box-shadow: inset 0 0 0 1px ${p.theme.border};
-    border-radius: ${p.theme.borderRadius};
+    border-radius: ${p.theme.radius.md};
   }
 
   & [role='button'] {

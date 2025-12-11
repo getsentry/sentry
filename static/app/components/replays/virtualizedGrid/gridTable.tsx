@@ -4,7 +4,7 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 export const GridTable = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 
   .beforeHoverTime + .afterHoverTime:before {
     border-top: 1px solid ${p => p.theme.purple200};

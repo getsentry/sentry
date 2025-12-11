@@ -84,7 +84,7 @@ const NotificationLinkButton = styled(LinkButton, {
     top: 50%;
     transform: translateY(-50%);
     background: ${p => p.theme.tokens.graphics.success};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     opacity: ${p => (p.active ? 1 : 0)};
   }
   &:hover {

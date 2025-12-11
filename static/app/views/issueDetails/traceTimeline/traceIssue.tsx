@@ -130,7 +130,7 @@ const TraceIssueLinkContainer = styled(Link)`
   padding: ${space(2)} ${space(2)} ${space(2)} ${space(2)};
   margin: ${space(1)} 0 ${space(1)} 0;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   font-size: ${p => p.theme.fontSize.md};
 
   &:hover {

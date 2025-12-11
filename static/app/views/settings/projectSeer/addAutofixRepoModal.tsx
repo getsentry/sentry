@@ -226,7 +226,7 @@ const ModalReposContainer = styled('div')`
   height: 35vh;
   overflow-y: auto;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 
   & > div > div {
     &:not(:last-child) {

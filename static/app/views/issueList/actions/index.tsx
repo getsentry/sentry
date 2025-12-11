@@ -481,7 +481,7 @@ const StickyActions = styled(Sticky)`
 
   border-bottom: 1px solid ${p => p.theme.border};
   border-top: none;
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
 `;
 
 const ActionsBarContainer = styled('div')`

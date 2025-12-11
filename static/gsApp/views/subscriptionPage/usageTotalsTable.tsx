@@ -426,10 +426,10 @@ const Bar = styled('div')<{
   width: ${p => `${p.fillPercentage}%`};
   height: 7px;
   background: ${p => p.barColor ?? p.theme.gray200};
-  border-top-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.borderRadius : 0)};
-  border-bottom-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.borderRadius : 0)};
-  border-top-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.borderRadius : 0)};
-  border-bottom-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.borderRadius : 0)};
+  border-top-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.radius.md : 0)};
+  border-bottom-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.radius.md : 0)};
+  border-top-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.radius.md : 0)};
+  border-bottom-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.radius.md : 0)};
 `;
 
 const OutcomeLegend = styled('div')<{color: string}>`

@@ -320,7 +320,7 @@ export const InnerWrap = withChonk(
     display: flex;
     position: relative;
     padding: 0 ${space(1)} 0 ${space(1.5)};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     box-sizing: border-box;
 
     font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};

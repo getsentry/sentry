@@ -654,7 +654,7 @@ const FilterGridItem = styled('div')`
   gap: ${space(1)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(1.5)};
 `;
 

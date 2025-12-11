@@ -287,7 +287,7 @@ const StyledIssuesButton = styled(LinkButton)`
 `;
 
 const StyledInteractionStateLayer = styled(InteractionStateLayer)`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 // This style explicitly hides InteractionStateLayer when the Issues button is hovered
@@ -307,7 +307,7 @@ const MeterBarContainer = styled('div')<{clickable?: boolean}>`
 
 const MeterBarBody = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)} 0 ${space(0.5)} 0;
 `;
 

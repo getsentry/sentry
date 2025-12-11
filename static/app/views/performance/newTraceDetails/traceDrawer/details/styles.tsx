@@ -215,7 +215,7 @@ const IconTitleWrapper = styled(FlexBox)`
 
 const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   background-color: ${p => p.backgroundColor};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: 0;
   display: flex;
   align-items: center;
@@ -1304,7 +1304,7 @@ function MultilineText({children}: {children: string}) {
 const MultilineTextWrapper = styled('div')`
   white-space: pre-wrap;
   background-color: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)};
   word-break: break-word;
   &:not(:last-child) {

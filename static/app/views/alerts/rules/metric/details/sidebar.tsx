@@ -424,7 +424,7 @@ const TriggerText = styled('span')`
   display: block;
   background-color: ${p => p.theme.surface200};
   padding: ${space(0.25)} ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
   width: 100%;

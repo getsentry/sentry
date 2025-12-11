@@ -221,7 +221,7 @@ const Wrapper = styled('div')<{isRounded: boolean}>`
   position: relative;
   height: 100%;
   background: var(--prism-block-background);
-  border-radius: ${p => (p.isRounded ? p.theme.borderRadius : '0px')};
+  border-radius: ${p => (p.isRounded ? p.theme.radius.md : '0px')};
 
   pre {
     margin: 0;

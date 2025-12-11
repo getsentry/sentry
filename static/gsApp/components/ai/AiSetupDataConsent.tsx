@@ -316,7 +316,7 @@ const SingleCard = styled('div')`
   gap: ${space(1.5)};
   background-color: ${p => p.theme.background};
   padding: ${space(2)} ${space(2)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   margin-top: ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};

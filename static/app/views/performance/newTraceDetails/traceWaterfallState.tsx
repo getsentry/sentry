@@ -139,7 +139,7 @@ const LoadingContainer = styled('div')<{animate: boolean; error?: boolean}>`
   z-index: 30;
   padding: 20px;
   background-color: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   transform-origin: 50% 50%;
   transform: translate(-50%, -50%);

@@ -227,12 +227,12 @@ export function SizeCompareSelectedBuilds({
 const BuildBranch = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const SelectBuild = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border-style: dashed;
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 `;

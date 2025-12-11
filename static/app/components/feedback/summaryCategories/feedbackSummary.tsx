@@ -81,7 +81,7 @@ export default function FeedbackSummary() {
 const LoadingPlaceholder = styled(Placeholder)`
   height: 48px;
   width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const SummaryContent = styled('p')`

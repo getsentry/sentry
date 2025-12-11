@@ -50,7 +50,7 @@ const AuthSidebar = styled('div')`
   justify-content: center;
   align-items: flex-start;
   padding: ${space(3)};
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   margin: -1px;
   margin-right: 0;
   background: #564f64;

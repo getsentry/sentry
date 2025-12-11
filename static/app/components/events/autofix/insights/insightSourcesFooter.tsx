@@ -203,7 +203,7 @@ const FooterInputContainer = styled('div')`
 const FooterInputWrapper = styled('form')`
   display: flex;
   position: relative;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const FooterInput = styled(Input)`

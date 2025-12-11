@@ -183,7 +183,7 @@ const AttachmentComponentWrapper = styled('div')`
     width: 100%;
     height: auto;
     object-fit: contain;
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
   }
 `;
 

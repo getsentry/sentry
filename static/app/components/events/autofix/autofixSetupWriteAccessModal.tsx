@@ -170,5 +170,5 @@ const RepoItem = styled('li')<{isOk?: boolean}>`
   padding: ${space(1)};
   margin-bottom: ${space(0.5)};
   background-color: ${p => (p.isOk ? p.theme.green100 : 'transparent')};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;

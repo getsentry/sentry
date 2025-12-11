@@ -99,7 +99,7 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
   position: relative;
   margin-bottom: ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   height: 180px;
   color: ${p => p.theme.white};
 

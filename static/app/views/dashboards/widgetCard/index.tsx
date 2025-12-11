@@ -544,7 +544,7 @@ const ErrorCard = styled(Placeholder)`
   background-color: ${p => p.theme.alert.error.backgroundLight};
   border: 1px solid ${p => p.theme.alert.error.border};
   color: ${p => p.theme.alert.error.textLight};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   margin-bottom: ${space(2)};
 `;
 

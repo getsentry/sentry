@@ -199,7 +199,7 @@ const ErrorTable = styled('div')`
   height: 100%;
 
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 
   .beforeHoverTime + .afterHoverTime:before {
     border-top: 1px solid ${p => p.theme.purple200};

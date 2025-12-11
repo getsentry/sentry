@@ -344,7 +344,7 @@ const Content = styled('div')`
 `;
 
 const InsightCardButton = styled(motion.div)`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   width: 100%;
   min-height: 0;

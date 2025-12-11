@@ -1954,7 +1954,7 @@ const Cell = styled('button')`
   gap: ${p => p.theme.space.md};
   align-items: center;
   border: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.md};
   cursor: pointer;
   text-align: left;

@@ -122,6 +122,6 @@ const CollapsedBadge = styled('div')<{fontSize: number; size: number}>`
   font-size: ${p => p.fontSize}px;
   width: ${p => p.size}px;
   height: ${p => p.size}px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   ${AvatarStyle}
 `;

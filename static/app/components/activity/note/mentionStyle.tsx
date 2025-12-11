@@ -27,7 +27,7 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
     padding: `${space(1)} ${space(1.5)}`,
     outline: 0,
     border: `1px solid ${theme.border}`,
-    borderRadius: theme.borderRadius,
+    borderRadius: theme.radius.md,
     minHeight,
     overflow: 'auto',
   };
@@ -78,14 +78,14 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
         overflow: 'auto',
         backgroundColor: `${theme.background}`,
         border: '1px solid rgba(0,0,0,0.15)',
-        borderRadius: theme.borderRadius,
+        borderRadius: theme.radius.md,
         fontSize: theme.fontSize.sm,
         padding: space(0.5),
       },
 
       item: {
         padding: space(0.5),
-        borderRadius: theme.borderRadius,
+        borderRadius: theme.radius.md,
         '&focused': {
           backgroundColor: theme.hover,
         },

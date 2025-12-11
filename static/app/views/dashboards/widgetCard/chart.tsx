@@ -810,8 +810,8 @@ const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boole
 const TableWrapper = styled('div')`
   margin-top: ${space(1.5)};
   min-height: 0;
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  border-bottom-left-radius: ${p => p.theme.radius.md};
+  border-bottom-right-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`

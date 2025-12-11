@@ -484,7 +484,7 @@ const SeerSuggestionGrid = styled('div')`
 const SeerSuggestionCard = styled('div')`
   display: flex;
   flex-direction: column;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   width: 100%;
   min-height: 0;
 `;

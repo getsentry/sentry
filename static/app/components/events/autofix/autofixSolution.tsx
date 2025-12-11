@@ -704,7 +704,7 @@ const NoSolutionPadding = styled('div')`
 
 const SolutionContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${p => p.theme.space.lg};
@@ -753,7 +753,7 @@ const HeaderIconWrapper = styled('div')`
 const InstructionsInputWrapper = styled('form')`
   display: flex;
   position: relative;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   margin-left: ${p => p.theme.space['3xl']};
   width: 250px;
 `;

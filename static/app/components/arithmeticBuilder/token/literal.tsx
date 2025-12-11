@@ -292,7 +292,7 @@ const Row = styled('div')`
   height: 24px;
   max-width: 100%;
   border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 
   :focus {
     background-color: ${p => p.theme.gray100};

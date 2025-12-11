@@ -187,7 +187,7 @@ const Title = styled('div')`
 const Description = styled('div')``;
 
 const HeaderWrapper = styled('div')`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(4)};
 `;
 

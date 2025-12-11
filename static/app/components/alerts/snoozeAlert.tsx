@@ -163,7 +163,5 @@ export default SnoozeAlert;
 const MuteButton = styled(Button)<{hasDropdown: boolean}>`
   box-shadow: none;
   border-radius: ${p =>
-    p.hasDropdown
-      ? `${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`
-      : p.theme.borderRadius};
+    p.hasDropdown ? `${p.theme.radius.md} 0 0 ${p.theme.radius.md}` : p.theme.radius.md};
 `;

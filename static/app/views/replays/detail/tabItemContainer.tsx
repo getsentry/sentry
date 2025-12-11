@@ -5,7 +5,7 @@ const TabItemContainer = styled('div')`
   flex-grow: 1;
   overflow: hidden;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   display: grid;
 
   .beforeCurrentTime,

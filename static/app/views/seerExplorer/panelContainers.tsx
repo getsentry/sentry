@@ -125,7 +125,7 @@ const PanelContent = styled('div')`
   height: 100%;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   display: flex;
   flex-direction: column;
@@ -150,7 +150,7 @@ const MinimizedOverlay = styled(motion.div)`
   align-items: flex-start;
   justify-content: center;
   padding-top: ${p => p.theme.space.lg};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   z-index: 1;
   cursor: pointer;
