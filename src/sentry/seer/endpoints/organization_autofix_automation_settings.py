@@ -86,10 +86,6 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
             else AutofixAutomationTuningSettings.OFF
         )
 
-        with transaction.atomic(router.db_for_write(ProjectOption)):
-            for project in projects:
-                project.update_option(OPTION_KEY, tuning_setting.value)
-
         stopping_point = (
             AutofixStoppingPoint.OPEN_PR
             if pr_creation_enabled
@@ -113,7 +109,13 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                 }
             )
 
-        if preferences_to_set:
-            bulk_set_project_preferences(organization.id, preferences_to_set)
+        # Wrap DB writes and Seer API call in a transaction.
+        # If Seer API fails, DB changes are rolled back.
+        with transaction.atomic(router.db_for_write(ProjectOption)):
+            for project in projects:
+                project.update_option(OPTION_KEY, tuning_setting.value)
+
+            if preferences_to_set:
+                bulk_set_project_preferences(organization.id, preferences_to_set)
 
         return Response(status=204)
