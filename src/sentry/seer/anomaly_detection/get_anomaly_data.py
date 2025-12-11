@@ -173,16 +173,6 @@ def get_anomaly_data_from_seer(
         )
         return None
 
-    # Adjust timestamps to be one time window behind for data points after detector creation
-    if features.has(
-        "organizations:anomaly-detection-threshold-data",
-        subscription.project.organization,
-    ):
-        _adjust_timestamps_for_time_window(
-            data_points=ts,
-            time_window_seconds=snuba_query.time_window,
-            detector_created_at=subscription.date_added.timestamp(),
-        )
     return ts
 
 
