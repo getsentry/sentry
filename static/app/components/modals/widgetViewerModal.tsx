@@ -404,7 +404,7 @@ function WidgetViewerModal(props: Props) {
     const getHighlightedQuery = (
       highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
     ) => {
-      const queryString = `${conditions} ${dashboardFiltersString}`;
+      const queryString = `${conditions} ${dashboardFiltersString}`.trim();
       return !name && !!queryString ? (
         <HighlightContainer {...highlightedContainerProps}>
           <ProvidedFormattedQuery
