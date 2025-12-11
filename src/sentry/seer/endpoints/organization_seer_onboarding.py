@@ -1,0 +1,138 @@
+from __future__ import annotations
+
+import logging
+
+from rest_framework import serializers
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.models.organization import Organization
+from sentry.seer.autofix.autofix import onboarding_seer_settings_update
+from sentry.seer.endpoints.project_seer_preferences import BranchOverrideSerializer
+from sentry.seer.models import SeerRepoDefinition
+
+logger = logging.getLogger(__name__)
+
+
+class RepositorySerializer(CamelSnakeSerializer):
+    provider = serializers.CharField(required=True)
+    owner = serializers.CharField(required=True)
+    name = serializers.CharField(required=True)
+    external_id = serializers.CharField(required=True)
+    organization_id = serializers.IntegerField(required=False, allow_null=True)
+    integration_id = serializers.CharField(required=False, allow_null=True)
+    branch_name = serializers.CharField(required=False, allow_null=True)
+    branch_overrides = BranchOverrideSerializer(many=True, required=False, default=list)
+    instructions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    base_commit_sha = serializers.CharField(required=False, allow_null=True)
+    provider_raw = serializers.CharField(required=False, allow_null=True)
+
+
+class ProjectRepoMappingField(serializers.Field):
+    """Custom field to handle dict with project IDs as string keys and list of repos as values."""
+
+    def to_internal_value(self, data):
+        if not isinstance(data, dict):
+            raise serializers.ValidationError("Expected a dictionary")
+
+        result = {}
+        for project_id_str, repos_data in data.items():
+            # Validate project ID is numeric
+            try:
+                project_id = int(project_id_str)
+            except (ValueError, TypeError):
+                raise serializers.ValidationError(
+                    f"Invalid project ID: {project_id_str}. Must be an integer."
+                )
+
+            # Validate repos is a list
+            if not isinstance(repos_data, list):
+                raise serializers.ValidationError(
+                    f"Expected a list of repositories for project {project_id_str}"
+                )
+
+            # Serialize each repository
+            serialized_repos = []
+            for repo_data in repos_data:
+                repo_serializer = RepositorySerializer(data=repo_data)
+                if not repo_serializer.is_valid():
+                    raise serializers.ValidationError(
+                        {f"project_{project_id_str}": repo_serializer.errors}
+                    )
+                serialized_repos.append(repo_serializer.validated_data)
+
+            result[project_id] = serialized_repos
+
+        return result
+
+
+class AutofixConfigSerializer(CamelSnakeSerializer):
+    enable_root_cause_analysis = serializers.BooleanField(required=True)
+    auto_open_prs = serializers.BooleanField(required=True)
+    project_repo_mapping = ProjectRepoMappingField(required=True)
+
+
+class SeerOnboardingSerializer(serializers.Serializer):
+    autofix = AutofixConfigSerializer(required=True)
+
+
+@region_silo_endpoint
+class OrganizationSeerOnboardingEndpoint(OrganizationEndpoint):
+    """Endpoint for configuring Seer settings during organization onboarding."""
+
+    owner = ApiOwner.ML_AI
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+    permission_classes = (OrganizationPermission,)
+
+    def post(self, request: Request, organization: Organization) -> Response:
+        """
+        Configure Seer autofix settings for an organization during onboarding.
+
+        :pparam string organization_id_or_slug: the id or slug of the organization.
+        :auth: required
+        """
+        serializer = SeerOnboardingSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        data = serializer.validated_data
+        autofix_config = data["autofix"]
+
+        is_rca_enabled = autofix_config["enable_root_cause_analysis"]
+        is_auto_open_prs_enabled = autofix_config["auto_open_prs"]
+        project_repo_mapping = autofix_config["project_repo_mapping"]
+
+        # Transform the validated data into project_repo_dict with SeerRepoDefinition objects
+        project_repo_dict: dict[int, list[SeerRepoDefinition]] = {}
+        for project_id, repos_data in project_repo_mapping.items():
+            repo_definitions = []
+            for repo_data in repos_data:
+                # Convert snake_case validated data back to match SeerRepoDefinition fields
+                repo_definitions.append(SeerRepoDefinition(**repo_data))
+            project_repo_dict[project_id] = repo_definitions
+
+        try:
+            onboarding_seer_settings_update(
+                organization_id=organization.id,
+                is_rca_enabled=is_rca_enabled,
+                is_auto_open_prs_enabled=is_auto_open_prs_enabled,
+                project_repo_dict=project_repo_dict,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to update Seer settings during onboarding",
+                extra={"organization_id": organization.id},
+            )
+            return Response(
+                {"detail": "Failed to update Seer settings. Please try again."},
+                status=500,
+            )
+
+        return Response(status=204)
