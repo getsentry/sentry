@@ -37,6 +37,7 @@ interface ListBoxProps<T extends ObjectLike>
       | 'defaultSelectedKeys'
       | 'onSelectionChange'
       | 'autoFocus'
+      | 'isVirtualized'
     > {
   /**
    * Object containing the selection state and focus position, needed for
@@ -94,6 +95,11 @@ interface ListBoxProps<T extends ObjectLike>
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
+
+  /**
+   * If true, virtualization will be enabled for the list
+   */
+  virtualized?: boolean;
 }
 
 const EMPTY_SET = new Set<never>();
@@ -125,7 +131,7 @@ export function ListBox<T extends ObjectLike>({
   showSectionHeaders = true,
   showDetails = true,
   onAction,
-  isVirtualized,
+  virtualized,
   ...props
 }: ListBoxProps<T>) {
   const listElementRef = useRef<HTMLUListElement>(null);
@@ -170,7 +176,7 @@ export function ListBox<T extends ObjectLike>({
     listState.selectionManager.setFocusedKey(null);
   };
 
-  const virtualizer = useVirtualizedItems({listItems, isVirtualized, size});
+  const virtualizer = useVirtualizedItems({listItems, virtualized, size});
 
   return (
     <Fragment>
@@ -247,12 +253,12 @@ const sizeEstimations = {
 
 function useVirtualizedItems<T extends ObjectLike>({
   listItems,
-  isVirtualized = false,
+  virtualized = false,
   size,
 }: {
-  isVirtualized: boolean | undefined;
   listItems: Array<Node<T>>;
   size: FormSize;
+  virtualized: boolean | undefined;
 }) {
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const sizeEstimation = sizeEstimations[size];
@@ -267,10 +273,10 @@ function useVirtualizedItems<T extends ObjectLike>({
       }
       return sizeEstimation.regular;
     },
-    enabled: isVirtualized,
+    enabled: virtualized,
   });
 
-  if (isVirtualized) {
+  if (virtualized) {
     const virtualizedItems = virtualizer.getVirtualItems();
     return {
       items: virtualizedItems,

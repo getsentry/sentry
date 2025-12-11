@@ -191,7 +191,7 @@ export function CompactSelect<Value extends SelectKey>({
         size={size}
         sizeLimit={sizeLimit}
         sizeLimitMessage={sizeLimitMessage}
-        isVirtualized={shouldVirtualize(itemsWithKey, virtualThreshold)}
+        virtualized={shouldVirtualize(itemsWithKey, virtualThreshold)}
         aria-labelledby={triggerId}
       >
         {(item: SelectOptionOrSectionWithKey<Value>) => {
