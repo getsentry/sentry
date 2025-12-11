@@ -83,7 +83,7 @@ export function getGenAiOpType(
     ? node.value.data
     : isEAPSpanNode(node)
       ? node.value.additional_attributes
-      : undefined);
+      : undefined;
 
   return (
     attributeObject?.[SpanFields.GEN_AI_OPERATION_TYPE] ??
