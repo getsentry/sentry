@@ -34,15 +34,12 @@ class RepositorySerializer(CamelSnakeSerializer):
 
 
 class ProjectRepoMappingField(serializers.Field):
-    """Custom field to handle dict with project IDs as string keys and list of repos as values."""
-
     def to_internal_value(self, data):
         if not isinstance(data, dict):
             raise serializers.ValidationError("Expected a dictionary")
 
         result = {}
         for project_id_str, repos_data in data.items():
-            # Validate project ID is numeric
             try:
                 project_id = int(project_id_str)
             except (ValueError, TypeError):
@@ -50,13 +47,11 @@ class ProjectRepoMappingField(serializers.Field):
                     f"Invalid project ID: {project_id_str}. Must be an integer."
                 )
 
-            # Validate repos is a list
             if not isinstance(repos_data, list):
                 raise serializers.ValidationError(
                     f"Expected a list of repositories for project {project_id_str}"
                 )
 
-            # Serialize each repository
             serialized_repos = []
             for repo_data in repos_data:
                 repo_serializer = RepositorySerializer(data=repo_data)
@@ -85,19 +80,13 @@ class SeerOnboardingSerializer(serializers.Serializer):
 class OrganizationSeerOnboardingEndpoint(OrganizationEndpoint):
     """Endpoint for configuring Seer settings during organization onboarding."""
 
-    owner = ApiOwner.ML_AI
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationPermission,)
 
     def post(self, request: Request, organization: Organization) -> Response:
-        """
-        Configure Seer autofix settings for an organization during onboarding.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization.
-        :auth: required
-        """
         serializer = SeerOnboardingSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -109,14 +98,11 @@ class OrganizationSeerOnboardingEndpoint(OrganizationEndpoint):
         is_auto_open_prs_enabled = autofix_config["auto_open_prs"]
         project_repo_mapping = autofix_config["project_repo_mapping"]
 
-        # Transform the validated data into project_repo_dict with SeerRepoDefinition objects
         project_repo_dict: dict[int, list[SeerRepoDefinition]] = {}
         for project_id, repos_data in project_repo_mapping.items():
-            repo_definitions = []
-            for repo_data in repos_data:
-                # Convert snake_case validated data back to match SeerRepoDefinition fields
-                repo_definitions.append(SeerRepoDefinition(**repo_data))
-            project_repo_dict[project_id] = repo_definitions
+            project_repo_dict[project_id] = [
+                SeerRepoDefinition(**repo_data) for repo_data in repos_data
+            ]
 
         try:
             onboarding_seer_settings_update(
