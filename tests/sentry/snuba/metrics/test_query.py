@@ -10,6 +10,7 @@ from snuba_sdk.conditions import ConditionGroup
 
 from sentry.exceptions import InvalidParams
 from sentry.receivers import create_default_projects
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
     OPERATIONS,
     DeprecatingMetricsQuery,
@@ -181,6 +182,15 @@ def test_validate_select_invalid_use_case_ids() -> None:
             .with_select([metric_field_1, metric_field_2])
             .to_metrics_query_dict()
         )
+
+
+def test_custom_namespace_defaults_to_transactions_use_case() -> None:
+    custom_metric = MetricField(op="avg", metric_mri="g:custom/memory.external@megabyte")
+    query = DeprecatingMetricsQuery(
+        **MetricsQueryBuilder().with_select([custom_metric]).to_metrics_query_dict()
+    )
+
+    assert query.use_case_id is UseCaseID.TRANSACTIONS
 
 
 def test_validate_order_by() -> None:
