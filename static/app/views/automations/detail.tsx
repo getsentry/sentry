@@ -75,7 +75,12 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
         </DetailLayout.Header>
         <DetailLayout.Body>
           <DetailLayout.Main>
-            {warning && (
+            {!automation.enabled && (
+              <Alert type="muted">
+                {t('This alert is disabled and will not send notifications.')}
+              </Alert>
+            )}
+            {automation.enabled && warning && (
               <Alert type={warning.color === 'warning' ? 'warning' : 'error'}>
                 {warning.message}
               </Alert>
