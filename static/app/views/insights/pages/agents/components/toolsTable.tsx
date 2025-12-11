@@ -27,6 +27,7 @@ import {
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
+import {getToolSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
@@ -63,7 +64,7 @@ export function ToolsTable() {
     columns: defaultColumnOrder,
   });
 
-  const fullQuery = useCombinedQuery(`span.op:gen_ai.execute_tool`);
+  const fullQuery = useCombinedQuery(getToolSpansFilter());
 
   const {cursor, setCursor} = useTableCursor();
 

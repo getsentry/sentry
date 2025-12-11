@@ -2,12 +2,13 @@ import type {EventTransaction} from 'sentry/types/event';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
+  getGenAiOperationTypeFromSpanOp,
+  getIsAiAgentSpan,
   getIsAiGenerationSpan,
-  getIsAiRunSpan,
-  getIsAiSpan,
   getIsExecuteToolSpan,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {
   isEAPSpanNode,
   isSpanNode,
@@ -64,6 +65,32 @@ export function ensureAttributeObject(
   return undefined;
 }
 
+/**
+ * Returns the `gen_ai.operation.type` for a given trace node.
+ * If the attribute is not present it will deduce it from the `span.op`
+ *
+ * **Note:** To keep the complexity manageable, this logic does not work for the edge case of transactions without `span.op` on the old data model.
+ */
+export function getGenAiOpType(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): string | undefined {
+  if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
+    return undefined;
+  }
+
+  const op = isTransactionNode(node) ? node.value?.['transaction.op'] : node.value?.op;
+  const attributeObject = isSpanNode(node)
+    ? node.value.data
+    : isEAPSpanNode(node)
+      ? node.value.additional_attributes
+      : undefined;
+
+  return (
+    attributeObject?.[SpanFields.GEN_AI_OPERATION_TYPE] ??
+    getGenAiOperationTypeFromSpanOp(op)
+  );
+}
+
 export function getTraceNodeAttribute(
   name: string,
   node: TraceTreeNode<TraceTree.NodeValue>,
@@ -74,18 +101,17 @@ export function getTraceNodeAttribute(
   return attributeObject?.[name];
 }
 
-function createGetIsAiNode(predicate: ({op}: {op?: string}) => boolean) {
+function createGetIsAiNode(predicate: (genAiOpType: string | undefined) => boolean) {
   return (node: TraceTreeNode<TraceTree.NodeValue>): node is AITraceSpanNode => {
     if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
       return false;
     }
 
-    const op = isTransactionNode(node) ? node.value?.['transaction.op'] : node.value?.op;
-    return predicate({op});
+    return predicate(getGenAiOpType(node));
   };
 }
 
-export const getIsAiNode = createGetIsAiNode(getIsAiSpan);
-export const getIsAiRunNode = createGetIsAiNode(getIsAiRunSpan);
+export const getIsAiNode = createGetIsAiNode(genAiOpType => Boolean(genAiOpType));
+export const getIsAiAgentNode = createGetIsAiNode(getIsAiAgentSpan);
 export const getIsAiGenerationNode = createGetIsAiNode(getIsAiGenerationSpan);
 export const getIsExecuteToolNode = createGetIsAiNode(getIsExecuteToolSpan);

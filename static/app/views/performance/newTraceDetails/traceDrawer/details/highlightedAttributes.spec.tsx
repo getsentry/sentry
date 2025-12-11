@@ -7,11 +7,6 @@ jest.mock('@sentry/react', () => ({
   captureMessage: jest.fn(),
 }));
 
-// Mock the query utility
-jest.mock('sentry/views/insights/pages/agents/utils/query', () => ({
-  getIsAiSpan: jest.fn(({op}) => op?.startsWith('gen_ai.')),
-}));
-
 describe('getHighlightedSpanAttributes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -21,10 +16,10 @@ describe('getHighlightedSpanAttributes', () => {
     const attributes = {
       'gen_ai.request.model': 'gpt-4',
       'gen_ai.usage.total_cost': '0',
+      'gen_ai.operation.type': 'ai_client',
     };
 
     getHighlightedSpanAttributes({
-      op: 'gen_ai.chat',
       spanId: '123',
       attributes,
     });
@@ -38,12 +33,10 @@ describe('getHighlightedSpanAttributes', () => {
           span_type: 'gen_ai',
           has_model: 'true',
           has_cost: 'false',
-          span_operation: 'gen_ai.chat',
           model: 'gpt-4',
         },
         extra: {
           total_costs: '0',
-          span_operation: 'gen_ai.chat',
           attributes,
         },
       }
@@ -54,10 +47,10 @@ describe('getHighlightedSpanAttributes', () => {
     const attributes = {
       'gen_ai.request.model': 'gpt-4',
       'gen_ai.usage.total_cost': '0.05',
+      'gen_ai.operation.type': 'ai_client',
     };
 
     getHighlightedSpanAttributes({
-      op: 'gen_ai.chat',
       spanId: '123',
       attributes,
     });
@@ -68,10 +61,10 @@ describe('getHighlightedSpanAttributes', () => {
   it('should not emit Sentry error when gen_ai span has no model', () => {
     const attributes = {
       'gen_ai.usage.total_cost': '0',
+      'gen_ai.operation.type': 'ai_client',
     };
 
     getHighlightedSpanAttributes({
-      op: 'gen_ai.chat',
       spanId: '123',
       attributes,
     });
@@ -86,7 +79,6 @@ describe('getHighlightedSpanAttributes', () => {
     };
 
     getHighlightedSpanAttributes({
-      op: 'http.request',
       spanId: '123',
       attributes,
     });
@@ -101,11 +93,11 @@ describe('getHighlightedSpanAttributes', () => {
       'gen_ai.usage.total_cost': '0.05',
       'sdk.name': 'sentry.python',
       'sdk.version': '2.0.0',
+      'gen_ai.operation.type': 'ai_client',
       // Missing: gen_ai.system, gen_ai.operation.name, gen_ai.agent.name
     };
 
     getHighlightedSpanAttributes({
-      op: 'gen_ai.chat',
       spanId: '123',
       attributes,
     });
@@ -117,7 +109,6 @@ describe('getHighlightedSpanAttributes', () => {
         tags: {
           feature: 'agent-monitoring',
           span_type: 'gen_ai',
-          span_operation: 'gen_ai.chat',
           missing_attributes: 'gen_ai.system,gen_ai.operation.name,gen_ai.agent.name',
           origin: 'auto.ai.openai',
           sdk: 'sentry.python@2.0.0',
@@ -135,10 +126,10 @@ describe('getHighlightedSpanAttributes', () => {
       'gen_ai.usage.total_cost': '0.05',
       'gen_ai.operation.name': 'chat',
       'gen_ai.agent.name': 'my-agent',
+      'gen_ai.operation.type': 'ai_client',
     };
 
     getHighlightedSpanAttributes({
-      op: 'gen_ai.chat',
       spanId: '123',
       attributes,
     });
@@ -153,7 +144,6 @@ describe('getHighlightedSpanAttributes', () => {
     };
 
     getHighlightedSpanAttributes({
-      op: 'gen_ai.chat',
       spanId: '123',
       attributes,
     });
@@ -167,7 +157,6 @@ describe('getHighlightedSpanAttributes', () => {
     };
 
     getHighlightedSpanAttributes({
-      op: 'gen_ai.chat',
       spanId: '123',
       attributes,
     });
@@ -178,11 +167,11 @@ describe('getHighlightedSpanAttributes', () => {
   it('should use unknown for sdk when not provided', () => {
     const attributes = {
       'gen_ai.origin': 'auto.ai.openai',
+      'gen_ai.operation.type': 'ai_client',
       // No sdk.name or sdk.version
     };
 
     getHighlightedSpanAttributes({
-      op: 'gen_ai.chat',
       spanId: '456',
       attributes,
     });
@@ -194,7 +183,6 @@ describe('getHighlightedSpanAttributes', () => {
         tags: {
           feature: 'agent-monitoring',
           span_type: 'gen_ai',
-          span_operation: 'gen_ai.chat',
           missing_attributes:
             'gen_ai.system,gen_ai.request.model,gen_ai.operation.name,gen_ai.agent.name',
           origin: 'auto.ai.openai',
