@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import type {EAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
+import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {
   CaseInsensitive,
@@ -29,7 +29,7 @@ export type TraceItemSearchQueryBuilderProps = {
   namespace?: string;
   onCaseInsensitiveClick?: SetCaseInsensitive;
   replaceRawSearchKeys?: string[];
-} & Omit<EAPSpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
+} & Omit<SpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
 const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   if (!supportedAggregates?.length) {

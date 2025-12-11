@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,6 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -152,6 +153,14 @@ export function SpanSamplesContainer({
 
   const handleMouseLeaveSample = useCallback(() => setHighlightedSpanId(undefined), []);
 
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    searchSource: `${moduleName}-sample-panel`,
+    initialQuery: searchQuery ?? '',
+    onSearch: handleSearch,
+    placeholder: t('Search for span attributes'),
+    projects: selection.projects,
+  });
+
   return (
     <Fragment>
       <InsightsSpanTagProvider>
@@ -207,13 +216,7 @@ export function SpanSamplesContainer({
         />
 
         <StyledSearchBar>
-          <EapSpanSearchQueryBuilderWrapper
-            searchSource={`${moduleName}-sample-panel`}
-            initialQuery={searchQuery ?? ''}
-            onSearch={handleSearch}
-            placeholder={t('Search for span attributes')}
-            projects={selection.projects}
-          />
+          <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
         </StyledSearchBar>
 
         <SampleTable

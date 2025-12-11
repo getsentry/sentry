@@ -1,4 +1,4 @@
-import {useEAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WidgetBuilderSearchBarProps} from 'sentry/views/dashboards/datasetConfig/base';
@@ -21,7 +21,7 @@ function SpansSearchBar({
     selection: {projects},
   } = usePageFilters();
 
-  const {eapSpanSearchQueryBuilderProps} = useEAPSpanSearchQueryBuilderProps({
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
     initialQuery: widgetQuery.conditions,
     supportedAggregates: ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
     searchSource: 'dashboards',
@@ -33,7 +33,7 @@ function SpansSearchBar({
     },
   });
 
-  return <TraceItemSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />;
+  return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
 }
 
 export default SpansSearchBar;

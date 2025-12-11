@@ -2,8 +2,8 @@ import {useMemo} from 'react';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {
-  useEAPSpanSearchQueryBuilderProps,
-  type UseEAPSpanSearchQueryBuilderProps,
+  useSpanSearchQueryBuilderProps,
+  type UseSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
@@ -20,7 +20,7 @@ export function useMcpSpanSearchProps() {
     'search-query-builder-raw-search-replacement'
   );
 
-  const searchQueryBuilderProps: UseEAPSpanSearchQueryBuilderProps = useMemo(
+  const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
@@ -38,11 +38,11 @@ export function useMcpSpanSearchProps() {
     [hasRawSearchReplacement, searchQuery, setSearchQuery, unsetCursor]
   );
 
-  const {searchQueryBuilderProviderProps, eapSpanSearchQueryBuilderProps} =
-    useEAPSpanSearchQueryBuilderProps(searchQueryBuilderProps);
+  const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
+    useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
   return {
-    queryBuilder: eapSpanSearchQueryBuilderProps,
-    provider: searchQueryBuilderProviderProps,
+    queryBuilder: spanSearchQueryBuilderProps,
+    provider: spanSearchQueryBuilderProviderProps,
   };
 }

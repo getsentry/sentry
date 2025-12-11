@@ -2,7 +2,7 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,6 +16,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
 import decodeSubregions from 'sentry/views/insights/browser/resources/utils/queryParameterDecoders/subregions';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
@@ -143,6 +144,14 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
 
   const handleMouseLeaveSample = useCallback(() => setHighlightedSpanId(undefined), []);
 
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects: selection.projects,
+    initialQuery: spanSearchQuery ?? '',
+    onSearch: handleSearch,
+    placeholder: t('Search for span attributes'),
+    searchSource: `${moduleName}-sample-panel`,
+  });
+
   return (
     <PageAlertProvider>
       <InsightsSpanTagProvider>
@@ -178,13 +187,7 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
           />
 
           <StyledSearchBar>
-            <EapSpanSearchQueryBuilderWrapper
-              projects={selection.projects}
-              initialQuery={spanSearchQuery ?? ''}
-              onSearch={handleSearch}
-              placeholder={t('Search for span attributes')}
-              searchSource={`${moduleName}-sample-panel`}
-            />
+            <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
           </StyledSearchBar>
 
           <SampleTable

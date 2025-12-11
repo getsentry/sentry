@@ -1,5 +1,5 @@
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {useEAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
@@ -20,7 +20,7 @@ export function SearchBarSection({query, index}: Props) {
 
   const updateQuerySearch = useUpdateQueryAtIndex(index);
 
-  const {eapSpanSearchQueryBuilderProps} = useEAPSpanSearchQueryBuilderProps({
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
     projects: selection.projects,
     initialQuery: query.query ?? '',
     onSearch: value => updateQuerySearch({query: value}),
@@ -34,7 +34,7 @@ export function SearchBarSection({query, index}: Props) {
           <SectionLabel>{t('Filter')}</SectionLabel>
         </Tooltip>
       </SectionHeader>
-      <TraceItemSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
+      <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
     </Section>
   );
 }
