@@ -34,6 +34,7 @@ import AutomationHistoryList from 'sentry/views/automations/components/automatio
 import {AutomationStatsChart} from 'sentry/views/automations/components/automationStatsChart';
 import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
+import {DisabledAlert} from 'sentry/views/automations/components/disabledAlert';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
 import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
 import {
@@ -75,11 +76,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
         </DetailLayout.Header>
         <DetailLayout.Body>
           <DetailLayout.Main>
-            {!automation.enabled && (
-              <Alert type="muted">
-                {t('This alert is disabled and will not send notifications.')}
-              </Alert>
-            )}
+            <DisabledAlert automation={automation} />
             {automation.enabled && warning && (
               <Alert type={warning.color === 'warning' ? 'warning' : 'error'}>
                 {warning.message}
