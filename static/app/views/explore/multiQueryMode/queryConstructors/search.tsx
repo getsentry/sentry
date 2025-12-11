@@ -1,7 +1,8 @@
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useEAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {
   useUpdateQueryAtIndex,
@@ -24,6 +25,17 @@ export function SearchBarSection({query, index}: Props) {
 
   const updateQuerySearch = useUpdateQueryAtIndex(index);
 
+  const {traceItemSearchQueryBuilderProps} = useEAPSpanSearchQueryBuilderProps({
+    projects: selection.projects,
+    initialQuery: query.query ?? '',
+    onSearch: value => updateQuerySearch({query: value}),
+    searchSource: 'explore',
+    numberAttributes: numberTags,
+    stringAttributes: stringTags,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+  });
+
   return (
     <Section data-test-id={`section-filter-${index}`}>
       <SectionHeader>
@@ -31,16 +43,7 @@ export function SearchBarSection({query, index}: Props) {
           <SectionLabel>{t('Filter')}</SectionLabel>
         </Tooltip>
       </SectionHeader>
-      <EAPSpanSearchQueryBuilder
-        projects={selection.projects}
-        initialQuery={query.query ?? ''}
-        onSearch={value => updateQuerySearch({query: value})}
-        searchSource="explore"
-        numberTags={numberTags}
-        stringTags={stringTags}
-        numberSecondaryAliases={numberSecondaryAliases}
-        stringSecondaryAliases={stringSecondaryAliases}
-      />
+      <TraceItemSearchQueryBuilder {...traceItemSearchQueryBuilderProps} />
     </Section>
   );
 }
