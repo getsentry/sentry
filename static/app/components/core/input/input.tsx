@@ -12,8 +12,7 @@ export interface InputProps
   ref?: React.Ref<HTMLInputElement>;
 }
 
-export const inputStyles = (p: InputStylesProps & {theme: Theme}) =>
-  chonkInputStyles(p as any);
+export const inputStyles = (p: InputStylesProps & {theme: Theme}) => chonkInputStyles(p);
 
 /**
  * Basic input component.

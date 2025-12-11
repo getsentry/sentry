@@ -27,5 +27,5 @@ export const Radio = styled(
     shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
   }
 )`
-  ${p => chonkRadioStyles(p as any)}
+  ${p => chonkRadioStyles(p)}
 `;

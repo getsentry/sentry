@@ -85,7 +85,7 @@ function Title({children, trailingItems, ...rest}: DisclosureTitleProps) {
   const {pressProps} = usePress({...restProps});
 
   return (
-    <HoverStyleFlex
+    <Flex
       justify="start"
       gap={context.size}
       align="center"
@@ -104,11 +104,9 @@ function Title({children, trailingItems, ...rest}: DisclosureTitleProps) {
         {children}
       </StretchedButton>
       {trailingItems ?? null}
-    </HoverStyleFlex>
+    </Flex>
   );
 }
-
-const HoverStyleFlex = styled(Flex)``;
 
 const StretchedButton = styled(Button)`
   flex-grow: 1;
