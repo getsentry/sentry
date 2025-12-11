@@ -55,9 +55,7 @@ class ProcessBufferedWorkflowsTest(CreateEventTestCase):
         {"delayed_workflow.rollout": True},
     )
     @patch("sentry.workflow_engine.processors.schedule.process_in_batches")
-    def test_fetches_from_buffer_and_executes_with_conditional_delete(
-        self, mock_process_in_batches: MagicMock
-    ) -> None:
+    def test_fetches_from_buffer_and_executes(self, mock_process_in_batches: MagicMock) -> None:
         project = self.create_project()
         project_two = self.create_project()
         group = self.create_group(project)
@@ -521,7 +519,6 @@ class TestChosenProjects:
         mock_buffer_client.persist_updates.assert_not_called()
 
 
-@override_options({"workflow_engine.scheduler.use_conditional_delete": True})
 def test_mark_projects_processed_only_cleans_up_processed_projects() -> None:
     """Test that mark_projects_processed only cleans up processed projects, not all projects."""
     processed_project_id = 5000
