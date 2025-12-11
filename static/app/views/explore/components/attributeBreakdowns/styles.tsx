@@ -21,11 +21,7 @@ import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
-import {
-  CHART_AXIS_LABEL_FONT_SIZE,
-  CHARTS_COLUMN_COUNT,
-  CHARTS_PER_PAGE,
-} from './constants';
+import {CHART_AXIS_LABEL_FONT_SIZE, CHARTS_COLUMN_COUNT} from './constants';
 import {formatChartXAxisLabel, percentageFormatter} from './utils';
 
 function FeedbackButton() {
@@ -318,15 +314,19 @@ const PaginationContainer = styled(Flex)`
   justify-content: end;
 `;
 
-interface PaginationProps {
-  currentPage: number;
-  onPageChange: (page: number) => void;
-  totalItems: number;
-}
+type PaginationProps = {
+  isNextDisabled: boolean;
+  isPrevDisabled: boolean;
+  onNextClick: () => void;
+  onPrevClick: () => void;
+};
 
-function Pagination({currentPage, onPageChange, totalItems}: PaginationProps) {
-  const totalPages = Math.ceil(totalItems / CHARTS_PER_PAGE);
-
+function Pagination({
+  isPrevDisabled,
+  isNextDisabled,
+  onPrevClick,
+  onNextClick,
+}: PaginationProps) {
   return (
     <PaginationContainer>
       <ButtonBar merged gap="0">
@@ -334,19 +334,15 @@ function Pagination({currentPage, onPageChange, totalItems}: PaginationProps) {
           icon={<IconChevron direction="left" />}
           aria-label={t('Previous')}
           size="sm"
-          disabled={currentPage === 0}
-          onClick={() => {
-            onPageChange(currentPage - 1);
-          }}
+          disabled={isPrevDisabled}
+          onClick={onPrevClick}
         />
         <Button
           icon={<IconChevron direction="right" />}
           aria-label={t('Next')}
           size="sm"
-          disabled={currentPage === totalPages - 1}
-          onClick={() => {
-            onPageChange(currentPage + 1);
-          }}
+          disabled={isNextDisabled}
+          onClick={onNextClick}
         />
       </ButtonBar>
     </PaginationContainer>
