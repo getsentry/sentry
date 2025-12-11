@@ -65,6 +65,8 @@ class PrebuiltDashboardId(IntEnum):
     FRONTEND_SESSION_HEALTH = 1
     BACKEND_QUERIES = 2
     BACKEND_QUERIES_SUMMARY = 3
+    WEB_VITALS = 6
+    WEB_VITALS_SUMMARY = 7
 
 
 class PrebuiltDashboard(TypedDict):
@@ -93,6 +95,10 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
         "title": "Query Details",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.WEB_VITALS,
+        "title": "Web Vitals",
     },
 ]
 
