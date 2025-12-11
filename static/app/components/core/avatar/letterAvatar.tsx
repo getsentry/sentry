@@ -46,10 +46,10 @@ const LetterAvatarComponent = styled('svg')<LetterAvatarProps>`
     fill: ${props =>
       isChonkTheme(props.theme)
         ? props.suggested
-          ? props.theme.background
+          ? props.theme.tokens.background.primary
           : getChonkColor(props.identifier, props.theme).background
         : props.suggested
-          ? props.theme.background
+          ? props.theme.tokens.background.primary
           : getColor(props.identifier)};
   }
 

@@ -927,7 +927,7 @@ function IssueListOverview({
 export default Sentry.withProfiler(IssueListOverview);
 
 const StyledBody = styled('div')`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   flex: 1;
 `;
 

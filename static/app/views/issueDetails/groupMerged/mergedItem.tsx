@@ -202,7 +202,7 @@ const FingerprintLabel = styled('label')`
 const MergedEventList = styled('div')`
   overflow: hidden;
   border: none;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const EventDetails = styled('div')`

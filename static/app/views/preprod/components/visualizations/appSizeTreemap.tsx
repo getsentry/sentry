@@ -294,7 +294,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const tooltip: TooltipOption = {
     trigger: 'item',
     borderWidth: 0,
-    backgroundColor: theme.background,
+    backgroundColor: theme.tokens.background.primary,
     hideDelay: 0,
     transitionDuration: 0,
     padding: 12,

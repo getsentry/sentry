@@ -171,8 +171,8 @@ const UpdatesList = styled(List)`
     width: 2px;
     background: linear-gradient(
       0deg,
-      ${p => p.theme.background},
-      ${p => color(p.theme.background).alpha(0).string()}
+      ${p => p.theme.tokens.background.primary},
+      ${p => color(p.theme.tokens.background.primary).alpha(0).string()}
     );
   }
 `;

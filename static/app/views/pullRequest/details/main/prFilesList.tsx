@@ -231,7 +231,7 @@ const DiffRow = styled('tr')`
   }
 
   &.context {
-    background-color: ${p => p.theme.background};
+    background-color: ${p => p.theme.tokens.background.primary};
 
     td {
       color: ${p => p.theme.gray400};

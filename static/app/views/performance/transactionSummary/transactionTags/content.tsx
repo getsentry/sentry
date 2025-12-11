@@ -328,7 +328,7 @@ const StyledSectionHeading = styled(SectionHeading)`
 // TODO(k-fish): Adjust thirds layout to allow for this instead.
 const ReversedLayoutBody = styled('div')`
   margin: 0;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {

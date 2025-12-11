@@ -51,7 +51,7 @@ const Wrapper = styled(PanelHeader)`
   align-items: center;
   justify-content: space-between;
   text-transform: none;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 export default ScreenshotPagination;

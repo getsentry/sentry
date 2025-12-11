@@ -68,7 +68,7 @@ const PlatformIcons = styled('div')`
 const StyledPlatformIcon = styled(PlatformIcon)`
   cursor: default;
   border-radius: ${p => p.theme.radius.md};
-  box-shadow: 0 0 0 1px ${p => p.theme.background};
+  box-shadow: 0 0 0 1px ${p => p.theme.tokens.background.primary};
   :hover {
     z-index: 1;
   }

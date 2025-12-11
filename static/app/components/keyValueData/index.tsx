@@ -257,7 +257,7 @@ const ContentWrapper = styled('div')<{
       ? p.theme.alert.error.backgroundLight
       : p.isSuspectFlag
         ? p.theme.yellow100
-        : p.theme.background};
+        : p.theme.tokens.background.primary};
   &:nth-child(odd) {
     background-color: ${p =>
       p.hasErrors

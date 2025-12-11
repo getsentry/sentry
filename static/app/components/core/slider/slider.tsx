@@ -67,7 +67,7 @@ const StyledSlider = styled('input')<React.InputHTMLAttributes<HTMLInputElement>
   }
 
   &::-webkit-slider-thumb {
-    box-shadow: 0 0 0 3px ${p => p.theme.background};
+    box-shadow: 0 0 0 3px ${p => p.theme.tokens.background.primary};
     height: 17px;
     width: 17px;
     border-radius: 50%;
@@ -84,7 +84,7 @@ const StyledSlider = styled('input')<React.InputHTMLAttributes<HTMLInputElement>
   }
 
   &::-moz-range-thumb {
-    box-shadow: 0 0 0 3px ${p => p.theme.background};
+    box-shadow: 0 0 0 3px ${p => p.theme.tokens.background.primary};
     height: 17px;
     width: 17px;
     border-radius: 50%;
@@ -134,22 +134,22 @@ const StyledSlider = styled('input')<React.InputHTMLAttributes<HTMLInputElement>
 
   &:focus::-webkit-slider-thumb {
     box-shadow:
-      ${p => p.theme.background} 0 0 0 3px,
+      ${p => p.theme.tokens.background.primary} 0 0 0 3px,
       ${p => p.theme.focus} 0 0 0 6px;
   }
   &:focus-visible::-webkit-slider-thumb {
     box-shadow:
-      ${p => p.theme.background} 0 0 0 3px,
+      ${p => p.theme.tokens.background.primary} 0 0 0 3px,
       ${p => p.theme.focus} 0 0 0 6px;
   }
   &:focus::-moz-range-thumb {
     box-shadow:
-      ${p => p.theme.background} 0 0 0 3px,
+      ${p => p.theme.tokens.background.primary} 0 0 0 3px,
       ${p => p.theme.focus} 0 0 0 6px;
   }
   &:focus-visible::-moz-range-thumb {
     box-shadow:
-      ${p => p.theme.background} 0 0 0 3px,
+      ${p => p.theme.tokens.background.primary} 0 0 0 3px,
       ${p => p.theme.focus} 0 0 0 6px;
   }
 `;

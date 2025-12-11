@@ -19,7 +19,8 @@ const Panel = styled(
   ),
   {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
 )`
-  background: ${p => (p.dashedBorder ? p.theme.backgroundSecondary : p.theme.background)};
+  background: ${p =>
+    p.dashedBorder ? p.theme.backgroundSecondary : p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   border: 1px
     ${p =>

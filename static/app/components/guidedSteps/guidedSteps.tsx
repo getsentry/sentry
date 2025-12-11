@@ -235,7 +235,7 @@ const StepButtonsWrapper = styled('div')`
 `;
 
 const StepsWrapper = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
@@ -285,7 +285,7 @@ const StepNumber = styled('div')<{isActive: boolean}>`
       : isChonkTheme(p.theme)
         ? p.theme.white
         : p.theme.subText};
-  border: 4px solid ${p => p.theme.background};
+  border: 4px solid ${p => p.theme.tokens.background.primary};
 `;
 
 const StepHeading = styled('h4')<{isActive: boolean}>`

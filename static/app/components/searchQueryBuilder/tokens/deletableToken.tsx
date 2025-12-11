@@ -86,7 +86,7 @@ export function DeletableToken({
 }
 
 const FloatingCloseButton = styled('button')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   outline: none;
   user-select: none;
   padding: 0;

@@ -99,7 +99,8 @@ const SidebarContainer = styled('nav')`
   max-height: calc(100dvh - ${HEADER_HEIGHT}px);
   box-shadow: 1px 0 0 0 ${p => p.theme.tokens.border.primary};
   scrollbar-width: thin;
-  scrollbar-color: ${p => p.theme.tokens.border.primary} ${p => p.theme.background};
+  scrollbar-color: ${p => p.theme.tokens.border.primary}
+    ${p => p.theme.tokens.background.primary};
   display: flex;
   flex-direction: column;
 `;

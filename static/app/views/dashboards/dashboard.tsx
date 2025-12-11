@@ -459,7 +459,7 @@ export default Dashboard;
 // Allow the Add Widget tile to show above widgets when moved
 const AddWidgetWrapper = styled('div')`
   z-index: 5;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const GridLayout = styled(WidthProvider(Responsive))`

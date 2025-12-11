@@ -32,7 +32,7 @@ export const CallTreeTable = styled('div')`
   width: 100%;
   display: flex;
   flex-direction: column;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 
   .${CallTreeTableClassNames.ROW} {
     display: flex;
@@ -211,7 +211,7 @@ export const CallTreeTableHeader = styled('div')`
   > div {
     position: relative;
     border-bottom: 1px solid ${p => p.theme.border};
-    background-color: ${p => p.theme.background};
+    background-color: ${p => p.theme.tokens.background.primary};
     white-space: nowrap;
 
     &:last-child {

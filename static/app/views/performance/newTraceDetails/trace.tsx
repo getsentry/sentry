@@ -784,7 +784,7 @@ const TraceStylingWrapper = styled('div')`
 
   &.WithIndicators {
     &:before {
-      background-color: ${p => p.theme.background};
+      background-color: ${p => p.theme.tokens.background.primary};
       height: 38px;
 
       .TraceScrollbarContainer {
@@ -813,7 +813,7 @@ const TraceStylingWrapper = styled('div')`
     top: 0;
     width: 100%;
     height: 38px;
-    background-color: ${p => p.theme.background};
+    background-color: ${p => p.theme.tokens.background.primary};
     border-bottom: 1px solid ${p => p.theme.border};
     z-index: 10;
   }
@@ -914,8 +914,8 @@ const TraceStylingWrapper = styled('div')`
     position: absolute;
     font-size: 10px;
     font-weight: ${p => p.theme.fontWeight.bold};
+    background-color: ${p => p.theme.tokens.background.primary};
     color: ${p => p.theme.tokens.content.primary};
-    background-color: ${p => p.theme.background};
     border-radius: 100px;
     border: 1px solid ${p => p.theme.border};
     display: inline-block;
@@ -1125,7 +1125,7 @@ const TraceStylingWrapper = styled('div')`
       /* hardcoded until new color scales are added to theme */
       &.missing_instrumentation {
         --pattern-odd: ${p => p.theme.backgroundTertiary};
-        --pattern-even: ${p => p.theme.background};
+        --pattern-even: ${p => p.theme.tokens.background.primary};
       }
 
       &.error,
@@ -1239,7 +1239,7 @@ const TraceStylingWrapper = styled('div')`
       position: absolute;
       top: 50%;
       transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
-      background-color: ${p => p.theme.background};
+      background-color: ${p => p.theme.tokens.background.primary};
       width: 18px !important;
       height: 18px !important;
       border-radius: 50%;
@@ -1548,7 +1548,7 @@ const TraceStylingWrapper = styled('div')`
     border-radius: 99px;
     padding: 0px 4px;
     transition: all 0.15s ease-in-out;
-    background: ${p => p.theme.background};
+    background: ${p => p.theme.tokens.background.primary};
     border: 1.5px solid var(--row-children-button-border-color);
     line-height: 0;
     z-index: 1;
@@ -1575,7 +1575,7 @@ const TraceStylingWrapper = styled('div')`
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background-color: ${p => p.theme.background};
+      background-color: ${p => p.theme.tokens.background.primary};
 
       animation: show 0.1s ease-in-out forwards;
 

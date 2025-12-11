@@ -102,7 +102,7 @@ const StyledLayoutBody = styled('div')<{
   sidebarOpen: boolean;
 }>`
   display: grid;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   grid-template-columns: ${p => (p.sidebarOpen ? 'minmax(100px, 100%) 325px' : '100%')};
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) {

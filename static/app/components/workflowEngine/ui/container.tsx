@@ -7,7 +7,7 @@ export const Container = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   justify-content: flex-start;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.translucentBorder};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1.5)};

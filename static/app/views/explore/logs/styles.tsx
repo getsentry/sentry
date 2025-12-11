@@ -399,7 +399,7 @@ export const LogsSidebarCollapseButton = withChonk(
     ${p =>
       p.sidebarOpen &&
       css`
-        border-left-color: ${p.theme.background};
+        border-left-color: ${p.theme.tokens.background.primary};
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
         margin-left: -13px;
@@ -422,7 +422,7 @@ export const LogsSidebarCollapseButton = withChonk(
         margin-left: -13px;
 
         &::after {
-          border-left-color: ${p.theme.background};
+          border-left-color: ${p.theme.tokens.background.primary};
           border-top-left-radius: 0px;
           border-bottom-left-radius: 0px;
         }

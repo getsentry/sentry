@@ -69,7 +69,7 @@ export function makeMetricAlertCharts(theme: Theme): Array<RenderDescriptor<Char
 
       return {
         ...chartOption,
-        backgroundColor: theme.background,
+        backgroundColor: theme.tokens.background.primary,
         series: transformAreaSeries(chartOption.series),
         xAxis: metricAlertXaxis,
         yAxis: {
@@ -105,7 +105,7 @@ export function makeMetricAlertCharts(theme: Theme): Array<RenderDescriptor<Char
 
       return {
         ...chartOption,
-        backgroundColor: theme.background,
+        backgroundColor: theme.tokens.background.primary,
         series: transformAreaSeries(chartOption.series),
         xAxis: metricAlertXaxis,
         yAxis: {

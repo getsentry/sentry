@@ -196,7 +196,7 @@ export default function AutomationNewSettings() {
 }
 
 const StyledLayoutHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const HeaderInner = styled('div')<{maxWidth?: string}>`

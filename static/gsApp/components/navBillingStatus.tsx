@@ -332,11 +332,11 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
 export default PrimaryNavigationQuotaExceeded;
 
 const Container = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const Header = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.border};
 `;

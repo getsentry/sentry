@@ -157,7 +157,7 @@ const RethinkButtonContainer = styled('div')`
   justify-content: flex-end;
   align-items: center;
   width: 100%;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-radius: 0;
   padding: 0;
   z-index: 1;
@@ -166,7 +166,7 @@ const RethinkButtonContainer = styled('div')`
 const AddEditContainer = styled('div')`
   padding: ${space(1)};
   width: 100%;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 

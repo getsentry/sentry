@@ -121,7 +121,7 @@ export function getGroupReleaseChartMarkers(
       symbolSize: 8,
       itemStyle: {
         color: marker.color,
-        borderColor: theme.background,
+        borderColor: theme.tokens.background.primary,
       },
     })),
   };

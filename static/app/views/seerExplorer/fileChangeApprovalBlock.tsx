@@ -193,7 +193,7 @@ const FileDiffWrapper = styled('div')`
   line-height: 20px;
   vertical-align: middle;
   overflow: hidden;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const FileHeader = styled('div')`

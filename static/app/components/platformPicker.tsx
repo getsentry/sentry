@@ -330,7 +330,7 @@ const ClearButton = styled(Button)`
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.tokens.content.primary};
 `;
 

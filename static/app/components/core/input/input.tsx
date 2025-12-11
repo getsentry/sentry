@@ -55,7 +55,7 @@ const legacyInputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   display: block;
   width: 100%;
   color: ${p.theme.gray400};
-  background: ${p.theme.background};
+  background: ${p.theme.tokens.background.primary};
   border: 1px solid ${p.theme.border};
   border-radius: ${p.theme.radius.md};
   box-shadow: inset ${p.theme.dropShadowMedium};
@@ -83,7 +83,7 @@ const legacyInputStyles = (p: InputStylesProps & {theme: Theme}) => css`
 
   &[disabled],
   &[aria-disabled='true'] {
-    background: ${p.theme.background};
+    background: ${p.theme.tokens.background.primary};
     color: ${p.theme.disabled};
     cursor: not-allowed;
 

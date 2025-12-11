@@ -92,7 +92,7 @@ const SectionData = styled('dd')`
 `;
 
 const ToggleButton = styled('button')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 0;
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};

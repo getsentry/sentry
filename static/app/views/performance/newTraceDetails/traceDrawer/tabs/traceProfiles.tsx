@@ -199,7 +199,7 @@ const ProfilesTableRow = styled('div')`
   }
 
   &:first-child {
-    background-color: ${p => p.theme.background};
+    background-color: ${p => p.theme.tokens.background.primary};
     border-top-left-radius: ${p => p.theme.radius.md};
     border-top-right-radius: ${p => p.theme.radius.md};
   }

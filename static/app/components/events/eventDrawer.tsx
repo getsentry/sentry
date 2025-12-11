@@ -62,7 +62,7 @@ export const EventNavigator = styled('div')`
   align-items: center;
   column-gap: ${space(1)};
   padding: ${space(0.75)} 24px;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   z-index: 2; /* Just above EventStickyControls */
   min-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: ${p => p.theme.translucentBorder} 0 1px;
@@ -76,7 +76,7 @@ export const EventStickyControls = styled('div')`
   top: -${space(2)};
   margin-block: -${space(2)};
   padding-block: ${space(2)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   z-index: 1; /* Just below EventNavigator */
 
   /* Make this full-width inside DrawerBody */

@@ -237,7 +237,7 @@ const RightPanel = styled('div')`
   min-width: ${RIGHT_PANEL_WIDTH}px;
   flex: 1;
   min-height: 0;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   overflow-y: auto;
   overflow-x: hidden;
 `;

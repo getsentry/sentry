@@ -336,7 +336,7 @@ const RepoProvider = styled('div')`
 
 const ExpandedContent = styled('div')`
   padding: 0 ${space(2)} ${space(1)} 40px;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex-direction: column;
   gap: ${space(2)};

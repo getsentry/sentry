@@ -264,7 +264,7 @@ const PriceContainer = styled('div')<{hasFeatures?: boolean}>`
 `;
 
 const StyledRadio = styled(Radio)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const PlanDetails = styled('div')`

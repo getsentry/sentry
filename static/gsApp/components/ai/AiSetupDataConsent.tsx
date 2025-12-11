@@ -314,7 +314,7 @@ const SingleCard = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1.5)};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   padding: ${space(2)} ${space(2)};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};

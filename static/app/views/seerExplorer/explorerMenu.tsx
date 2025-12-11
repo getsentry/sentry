@@ -442,7 +442,7 @@ const MenuPanel = styled('div')<{
 }>`
   position: absolute;
   width: 300px;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};

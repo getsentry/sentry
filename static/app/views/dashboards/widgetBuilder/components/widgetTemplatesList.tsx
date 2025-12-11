@@ -154,8 +154,9 @@ const TemplateCard = styled('div')<{selected: boolean}>`
   gap: ${space(1.5)};
   padding: ${space(2)};
   border: none;
+  background-color: ${p =>
+    p.selected ? p.theme.purple100 : p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
-  background-color: ${p => (p.selected ? p.theme.purple100 : p.theme.background)};
   margin: ${p => (p.selected ? space(2) : space(0.5))} 0px;
 
   cursor: pointer;

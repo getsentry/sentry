@@ -243,7 +243,7 @@ const Suggestions = styled('ul')`
   box-shadow: 0 2px 0 rgba(37, 11, 54, 0.04);
   border: 1px solid ${p => p.theme.border};
   border-radius: 0 0 ${space(0.5)} ${space(0.5)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   top: 100%;
   left: 0;
   z-index: 1002;
@@ -260,7 +260,8 @@ const Suggestion = styled('li')<{active: boolean}>`
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSize.md};
   cursor: pointer;
-  background: ${p => (p.active ? p.theme.backgroundSecondary : p.theme.background)};
+  background: ${p =>
+    p.active ? p.theme.backgroundSecondary : p.theme.tokens.background.primary};
   :hover {
     background: ${p => p.theme.backgroundSecondary};
   }

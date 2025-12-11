@@ -440,7 +440,9 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
   }
   color: ${p => (p.hasErrors ? p.theme.alert.error.color : p.theme.subText)};
   background-color: ${p =>
-    p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.background};
+    p.hasErrors
+      ? p.theme.alert.error.backgroundLight
+      : p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px
     ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
 `;

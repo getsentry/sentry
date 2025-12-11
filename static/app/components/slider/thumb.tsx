@@ -72,7 +72,7 @@ const SliderThumbWrap = styled('div')<{
   border-radius: 50%;
   background: ${p => p.theme.active};
   color: ${p => p.theme.activeText};
-  border: solid 2px ${p => p.theme.background};
+  border: solid 2px ${p => p.theme.tokens.background.primary};
   cursor: pointer;
   transition:
     box-shadow 0.1s,
