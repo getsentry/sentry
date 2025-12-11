@@ -425,7 +425,12 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     if cached_value is not None:
         return cached_value
 
-    has_seat_based_seer = features.has("organizations:seat-based-seer-enabled", organization)
+    try:
+        has_seat_based_seer = features.has("organizations:seat-based-seer-enabled", organization)
+    except Exception:
+        # This flag will throw an error for self hosted Sentry since it lives in getsentry.
+        has_seat_based_seer = False
+
     cache.set(cache_key, has_seat_based_seer, timeout=60 * 60 * 4)  # 4 hours TTL
 
     return has_seat_based_seer
