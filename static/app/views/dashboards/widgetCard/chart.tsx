@@ -18,7 +18,6 @@ import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
-import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -78,16 +77,11 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
-import {PerformanceScoreSubtext} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
-import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
-import {
-  getWebVitalScoresFromTableDataRow,
-  type WebVitalScores,
-} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
-import {type SpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -706,41 +700,12 @@ function DetailsComponent(props: TableComponentProps): React.ReactNode {
 }
 
 function WheelComponent(props: TableComponentProps): React.ReactNode {
-  const {tableResults, loading, selection} = props;
-  const theme = useTheme();
-  const ringSegmentColors = theme.chart.getColorPalette(4).slice() as unknown as string[];
-  const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
-
-  const projectScore = tableResults?.[0]
-    ? getWebVitalScoresFromTableDataRow(
-        tableResults?.[0]?.data?.[0] as unknown as WebVitalScores
-      )
-    : undefined;
-  const score = projectScore?.totalScore;
-  const period = loading ? null : selection.datetime.period;
-  const performanceScoreSubtext =
-    (period &&
-      DEFAULT_RELATIVE_PERIODS[period as keyof typeof DEFAULT_RELATIVE_PERIODS]) ??
-    '';
-
-  if (!defined(projectScore)) {
-    return null;
-  }
-
   return (
-    <React.Fragment>
-      <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
-      <Centered>
-        <PerformanceScoreRingWithTooltips
-          projectScore={projectScore}
-          text={score}
-          width={220}
-          height={200}
-          ringBackgroundColors={ringBackgroundColors}
-          ringSegmentColors={ringSegmentColors}
-        />
-      </Centered>
-    </React.Fragment>
+    <WheelWidgetVisualization
+      tableResults={props.tableResults}
+      loading={props.loading}
+      selection={props.selection}
+    />
   );
 }
 
@@ -875,10 +840,4 @@ const StyledErrorPanel = styled(ErrorPanel)`
 
 const RenderedChartContainer = styled('div')`
   flex: 1;
-`;
-
-const Centered = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
 `;
