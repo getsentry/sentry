@@ -25,8 +25,8 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             self.path,
             {
                 "autofix": {
-                    "enable_root_cause_analysis": True,
-                    "auto_open_prs": True,
+                    "fixes": True,
+                    "pr_creation": True,
                     "project_repo_mapping": {
                         str(self.project1.id): [
                             {
@@ -133,8 +133,8 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             self.path,
             {
                 "autofix": {
-                    "enable_root_cause_analysis": True,
-                    "auto_open_prs": True,
+                    "fixes": True,
+                    "pr_creation": True,
                     "project_repo_mapping": {},
                 },
             },
@@ -154,8 +154,8 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             self.path,
             {
                 "autofix": {
-                    "enable_root_cause_analysis": False,
-                    "auto_open_prs": False,
+                    "fixes": False,
+                    "pr_creation": False,
                     "project_repo_mapping": {},
                 },
             },
@@ -175,7 +175,7 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             self.path,
             {
                 "autofix": {
-                    "enable_root_cause_analysis": True,
+                    "fixes": True,
                 },
             },
         )
@@ -184,7 +184,7 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
         mock_onboarding_update.assert_not_called()
         assert response.json() == {
             "autofix": {
-                "auto_open_prs": ["This field is required."],
+                "pr_creation": ["This field is required."],
                 "project_repo_mapping": ["This field is required."],
             }
         }
@@ -195,8 +195,8 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             self.path,
             {
                 "autofix": {
-                    "enable_root_cause_analysis": True,
-                    "auto_open_prs": True,
+                    "fixes": True,
+                    "pr_creation": True,
                     "project_repo_mapping": {
                         "invalid_project_id": [
                             {
@@ -227,8 +227,8 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             self.path,
             {
                 "autofix": {
-                    "enable_root_cause_analysis": True,
-                    "auto_open_prs": True,
+                    "fixes": True,
+                    "pr_creation": True,
                     "project_repo_mapping": {
                         str(self.project1.id): {
                             "provider": "github",
@@ -258,8 +258,8 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             self.path,
             {
                 "autofix": {
-                    "enable_root_cause_analysis": True,
-                    "auto_open_prs": True,
+                    "fixes": True,
+                    "pr_creation": True,
                     "project_repo_mapping": {
                         str(self.project1.id): [
                             {
@@ -285,8 +285,8 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             self.path,
             {
                 "autofix": {
-                    "enable_root_cause_analysis": True,
-                    "auto_open_prs": True,
+                    "fixes": True,
+                    "pr_creation": True,
                     "project_repo_mapping": {
                         str(self.project1.id): [
                             {

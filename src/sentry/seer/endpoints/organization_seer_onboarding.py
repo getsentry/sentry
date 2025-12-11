@@ -67,8 +67,8 @@ class ProjectRepoMappingField(serializers.Field):
 
 
 class AutofixConfigSerializer(CamelSnakeSerializer):
-    enable_root_cause_analysis = serializers.BooleanField(required=True)
-    auto_open_prs = serializers.BooleanField(required=True)
+    fixes = serializers.BooleanField(required=True)
+    pr_creation = serializers.BooleanField(required=True)
     project_repo_mapping = ProjectRepoMappingField(required=True)
 
 
@@ -94,8 +94,8 @@ class OrganizationSeerOnboardingEndpoint(OrganizationEndpoint):
         data = serializer.validated_data
         autofix_config = data["autofix"]
 
-        is_rca_enabled = autofix_config["enable_root_cause_analysis"]
-        is_auto_open_prs_enabled = autofix_config["auto_open_prs"]
+        is_rca_enabled = autofix_config["fixes"]
+        is_auto_open_prs_enabled = autofix_config["pr_creation"]
         project_repo_mapping = autofix_config["project_repo_mapping"]
 
         # This will raise if any of the projects belong to another organization.
