@@ -6,12 +6,12 @@ import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {Button} from 'sentry/components/core/button';
 import {Text} from 'sentry/components/core/text';
-import {ExplorerArtifactPreviews} from 'sentry/components/events/autofix/artifactPreviews';
-import {ExplorerSeerSectionCtaButton} from 'sentry/components/events/autofix/autofixSidebarCtaButton';
 import {
   getArtifactsFromBlocks,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {ExplorerArtifactPreviews} from 'sentry/components/events/autofix/v2/artifactPreviews';
+import {ExplorerSeerSectionCtaButton} from 'sentry/components/events/autofix/v2/autofixSidebarCtaButton';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {GroupSummaryWithAutofix} from 'sentry/components/group/groupSummaryWithAutofix';
 import Placeholder from 'sentry/components/placeholder';

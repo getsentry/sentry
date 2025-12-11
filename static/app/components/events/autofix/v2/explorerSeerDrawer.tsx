@@ -6,17 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button, ButtonBar} from 'sentry/components/core/button';
-import {
-  CodeChangesCard,
-  ImpactCard,
-  RootCauseCard,
-  SolutionCard,
-  TriageCard,
-} from 'sentry/components/events/autofix/artifactCards';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
-import {ExplorerAutofixStart} from 'sentry/components/events/autofix/autofixStart';
-import {ExplorerStatusCard} from 'sentry/components/events/autofix/autofixStatusCard';
-import {ExplorerNextSteps} from 'sentry/components/events/autofix/nextSteps';
 import {
   hasCodeChanges as checkHasCodeChanges,
   getArtifactsFromBlocks,
@@ -24,6 +14,16 @@ import {
   useExplorerAutofix,
   type AutofixExplorerStep,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {
+  CodeChangesCard,
+  ImpactCard,
+  RootCauseCard,
+  SolutionCard,
+  TriageCard,
+} from 'sentry/components/events/autofix/v2/artifactCards';
+import {ExplorerAutofixStart} from 'sentry/components/events/autofix/v2/autofixStart';
+import {ExplorerStatusCard} from 'sentry/components/events/autofix/v2/autofixStatusCard';
+import {ExplorerNextSteps} from 'sentry/components/events/autofix/v2/nextSteps';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';

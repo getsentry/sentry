@@ -7,7 +7,6 @@ import {Heading} from '@sentry/scraps/text';
 
 import {Button} from 'sentry/components/core/button';
 import {Text} from 'sentry/components/core/text';
-import {FileDiffViewer} from 'sentry/components/events/autofix/fileDiffViewer';
 import type {
   ImpactAssessmentArtifact,
   ImpactItem,
@@ -26,6 +25,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
+import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import type {ExplorerFilePatch, RepoPRState} from 'sentry/views/seerExplorer/types';
 
 type ArtifactData = Record<string, unknown>;

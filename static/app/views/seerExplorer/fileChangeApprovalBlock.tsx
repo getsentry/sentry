@@ -4,8 +4,8 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {FileDiffViewer} from 'sentry/components/events/autofix/fileDiffViewer';
 import type {FilePatch} from 'sentry/components/events/autofix/types';
+import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import type {PendingUserInput} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 
 interface PendingFilePatch {

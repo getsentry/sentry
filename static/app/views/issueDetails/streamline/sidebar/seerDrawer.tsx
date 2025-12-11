@@ -17,6 +17,7 @@ import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox'
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
+import {ExplorerSeerDrawer} from 'sentry/components/events/autofix/v2/explorerSeerDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
@@ -36,7 +37,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import {ExplorerSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/explorerSeerDrawer';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
 
 interface SeerDrawerProps {
