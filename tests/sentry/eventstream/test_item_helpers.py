@@ -22,7 +22,7 @@ class ItemHelpersTest(TestCase):
         )
         return group_event
 
-    def test_encode_attributes_basic(self):
+    def test_encode_attributes_basic(self) -> None:
         event_data = {
             "string_field": "test",
             "int_field": 123,
@@ -42,7 +42,7 @@ class ItemHelpersTest(TestCase):
         assert result["float_field"] == AnyValue(double_value=45.67)
         assert result["bool_field"] == AnyValue(bool_value=True)
 
-    def test_encode_attributes_with_ignore_fields(self):
+    def test_encode_attributes_with_ignore_fields(self) -> None:
         event_data = {
             "keep_field": "value1",
             "ignore_field": "value2",
@@ -60,7 +60,7 @@ class ItemHelpersTest(TestCase):
         assert "another_keep" in result
         assert "ignore_field" not in result
 
-    def test_encode_attributes_with_multiple_ignore_fields(self):
+    def test_encode_attributes_with_multiple_ignore_fields(self) -> None:
         event_data = {
             "field1": "value1",
             "field2": "value2",
@@ -78,7 +78,7 @@ class ItemHelpersTest(TestCase):
         assert "field2" in result
         assert "field3" not in result
 
-    def test_encode_attributes_with_group_id(self):
+    def test_encode_attributes_with_group_id(self) -> None:
         event_data = {"field": "value", "tags": []}
 
         event = self.create_group_event(event_data)
@@ -87,7 +87,7 @@ class ItemHelpersTest(TestCase):
         assert result["group_id"] == AnyValue(int_value=event.group.id)
         assert result["field"] == AnyValue(string_value="value")
 
-    def test_encode_attributes_without_group_id(self):
+    def test_encode_attributes_without_group_id(self) -> None:
         event_data = {"field": "value", "tags": []}
 
         event = Event(
@@ -101,7 +101,7 @@ class ItemHelpersTest(TestCase):
         assert "group_id" not in result
         assert result["field"] == AnyValue(string_value="value")
 
-    def test_encode_attributes_with_tags(self):
+    def test_encode_attributes_with_tags(self) -> None:
         event_data = {
             "field": "value",
             "tags": [
@@ -123,7 +123,7 @@ class ItemHelpersTest(TestCase):
         assert result["tags[release]"] == AnyValue(string_value="1.0.0")
         assert result["tags[level]"] == AnyValue(string_value="error")
 
-    def test_encode_attributes_with_empty_tags(self):
+    def test_encode_attributes_with_empty_tags(self) -> None:
         event_data = {"field": "value", "tags": []}
 
         event = Event(
@@ -138,7 +138,7 @@ class ItemHelpersTest(TestCase):
         # No tags[] keys should be present
         assert not any(key.startswith("tags[") for key in result.keys())
 
-    def test_encode_attributes_with_integer_tag_values(self):
+    def test_encode_attributes_with_integer_tag_values(self) -> None:
         event_data = {
             "field": "value",
             "tags": [
@@ -154,7 +154,7 @@ class ItemHelpersTest(TestCase):
         assert result["tags[string_tag]"] == AnyValue(string_value="value")
         assert result["group_id"] == AnyValue(int_value=event.group.id)
 
-    def test_encode_attributes_empty_event_data(self):
+    def test_encode_attributes_empty_event_data(self) -> None:
         event_data: dict[str, Any] = {"tags": []}
 
         event = Event(
@@ -169,7 +169,7 @@ class ItemHelpersTest(TestCase):
         assert len(result) == 1
         assert result["tags"] == AnyValue(array_value=ArrayValue(values=[]))
 
-    def test_encode_attributes_with_complex_types(self):
+    def test_encode_attributes_with_complex_types(self) -> None:
         event_data = {
             "list_field": [1, 2, 3],
             "dict_field": {"nested": "value"},
@@ -201,7 +201,7 @@ class ItemHelpersTest(TestCase):
             )
         )
 
-    def test_serialize_event_data_as_item_basic(self):
+    def test_serialize_event_data_as_item_basic(self) -> None:
         project = self.create_project()
 
         event_data = {
@@ -226,7 +226,7 @@ class ItemHelpersTest(TestCase):
         # Check that received field is not set (protobuf optional field)
         assert not result.HasField("received")
 
-    def test_serialize_event_data_as_item_with_received(self):
+    def test_serialize_event_data_as_item_with_received(self) -> None:
         project = self.create_project()
 
         event_data = {
@@ -247,7 +247,7 @@ class ItemHelpersTest(TestCase):
         assert result.HasField("received")
         assert result.received.seconds == 1234567900
 
-    def test_serialize_event_data_as_item_with_custom_retention_days(self):
+    def test_serialize_event_data_as_item_with_custom_retention_days(self) -> None:
         project = self.create_project()
 
         event_data = {
@@ -268,7 +268,7 @@ class ItemHelpersTest(TestCase):
 
         assert result.retention_days == 30
 
-    def test_serialize_event_data_as_item_ignores_specified_fields(self):
+    def test_serialize_event_data_as_item_ignores_specified_fields(self) -> None:
         project = self.create_project()
 
         event_data = {
@@ -295,7 +295,7 @@ class ItemHelpersTest(TestCase):
         # tags should be encoded with tags[] prefix
         assert result.attributes["tags[level]"] == AnyValue(string_value="info")
 
-    def test_serialize_event_data_as_item_with_multiple_attributes(self):
+    def test_serialize_event_data_as_item_with_multiple_attributes(self) -> None:
         project = self.create_project()
 
         event_data = {
