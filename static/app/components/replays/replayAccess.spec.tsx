@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 
-import {ReplayAccess, ReplayAccessFallbackAlert} from './ReplayAccess';
+import {ReplayAccess, ReplayAccessFallbackAlert} from './replayAccess';
 
 describe('ReplayAccess', () => {
   const user = UserFixture({id: '1'});
