@@ -23,7 +23,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry import features, quotas, roles
+from sentry import features, options, quotas, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -105,6 +105,13 @@ def sync_prebuilt_dashboards(organization: Organization) -> None:
     """
 
     with transaction.atomic(router.db_for_write(Dashboard)):
+        enabled_prebuilt_dashboard_ids = options.get("dashboards.prebuilt-dashboard-ids")
+        enabled_prebuilt_dashboards = [
+            dashboard
+            for dashboard in PREBUILT_DASHBOARDS
+            if dashboard["prebuilt_id"] in enabled_prebuilt_dashboard_ids
+        ]
+
         saved_prebuilt_dashboards = Dashboard.objects.filter(
             organization=organization,
             prebuilt_id__isnull=False,
@@ -114,7 +121,7 @@ def sync_prebuilt_dashboards(organization: Organization) -> None:
 
         # Create prebuilt dashboards if they don't exist, or update titles if changed
         dashboards_to_update: list[Dashboard] = []
-        for prebuilt_dashboard in PREBUILT_DASHBOARDS:
+        for prebuilt_dashboard in enabled_prebuilt_dashboards:
             prebuilt_id: PrebuiltDashboardId = prebuilt_dashboard["prebuilt_id"]
 
             if prebuilt_id not in saved_prebuilt_dashboard_map:
@@ -134,7 +141,7 @@ def sync_prebuilt_dashboards(organization: Organization) -> None:
             Dashboard.objects.bulk_update(dashboards_to_update, ["title"])
 
         # Delete old prebuilt dashboards if they should no longer exist
-        prebuilt_ids = [d["prebuilt_id"] for d in PREBUILT_DASHBOARDS]
+        prebuilt_ids = [d["prebuilt_id"] for d in enabled_prebuilt_dashboards]
         Dashboard.objects.filter(
             organization=organization,
             prebuilt_id__isnull=False,
