@@ -8,12 +8,14 @@ from urllib.parse import urlparse
 
 from rest_framework.response import Response
 
-from sentry import features, options
-from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, HIDE_AI_FEATURES_DEFAULT
+from sentry import features, options, quotas
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
+from sentry.models.repositorysettings import RepositorySettings
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.utils import jwt
 
 logger = logging.getLogger(__name__)
@@ -89,28 +91,51 @@ def has_seer_and_ai_features_enabled_for_repo(organization: Organization, repo: 
     """
     Check if Seer is enabled and AI features are configured for a repository.
 
+    This function is used as a webhook guard to determine whether to process
+    AI-powered code review/autofix for incoming webhooks.
+
     Returns:
         True if Seer and AI features are enabled for the repository else False
     """
-
-    seer_enabled = get_seer_org_acknowledgement(organization)
-    if not seer_enabled:
+    # Exclude organizations in code-review-beta cohort
+    if features.has("organizations:code-review-beta", organization):
         return False
 
-    repo_enabled = RepositoryProjectPathConfig.objects.filter(
+    # Seer enabled (billing) check
+    has_seer_quota: bool = quotas.backend.check_seer_quota(
+        org_id=organization.id, data_category=DataCategory.SEER_USER
+    )
+    if not has_seer_quota:
+        return False
+
+    # Code review enabled check
+    code_review_enabled = RepositorySettings.objects.filter(
+        repository=repo,
+        enabled_code_review=True,
+    ).exists()
+    if code_review_enabled:
+        return True
+
+    # Autofix automation enabled check
+    # First get projects associated with repo and organization
+    repo_configs = RepositoryProjectPathConfig.objects.filter(
         repository=repo,
         organization_id=organization.id,
-    ).exists()
-    if not repo_enabled:
+    ).values_list("project_id", flat=True)
+
+    if not repo_configs:
         return False
 
-    gen_ai_features = features.has(
-        "organizations:gen-ai-features", organization
-    ) and not organization.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
-
-    ai_code_review_enabled = organization.get_option(
-        "sentry:enable_pr_review_test_generation",
-        ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    # Then check if any project has autofix automation tuning set to not OFF or None
+    autofix_enabled = (
+        ProjectOption.objects.filter(
+            project_id__in=repo_configs,
+            project__status=ObjectStatus.ACTIVE,
+            key="sentry:autofix_automation_tuning",
+        )
+        .exclude(value=AutofixAutomationTuningSettings.OFF.value)
+        .exclude(value__isnull=True)
+        .exists()
     )
 
-    return gen_ai_features or ai_code_review_enabled
+    return autofix_enabled
