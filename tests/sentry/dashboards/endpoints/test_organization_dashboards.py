@@ -24,6 +24,7 @@ from sentry.models.dashboard_widget import (
 from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
@@ -1969,15 +1970,16 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert prebuilt_count == 0
 
         with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
-            response = self.do_request("get", self.url)
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url)
         assert response.status_code == 200
 
         prebuilt_dashboards = Dashboard.objects.filter(
             organization=self.organization, prebuilt_id__isnull=False
         )
-        assert prebuilt_dashboards.count() == len(PREBUILT_DASHBOARDS)
+        assert prebuilt_dashboards.count() == 3
 
-        for prebuilt_dashboard in PREBUILT_DASHBOARDS:
+        for prebuilt_dashboard in PREBUILT_DASHBOARDS[:3]:
             dashboard = prebuilt_dashboards.get(prebuilt_id=prebuilt_dashboard["prebuilt_id"])
             assert dashboard.title == prebuilt_dashboard["title"]
             assert dashboard.organization == self.organization
@@ -1993,23 +1995,25 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     def test_endpoint_does_not_create_duplicate_prebuilt_dashboards_when_exist(self) -> None:
         with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
-            response = self.do_request("get", self.url)
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url)
             assert response.status_code == 200
 
         initial_count = Dashboard.objects.filter(
             organization=self.organization, prebuilt_id__isnull=False
         ).count()
-        assert initial_count == len(PREBUILT_DASHBOARDS)
+        assert initial_count == 3
 
         with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
-            response = self.do_request("get", self.url)
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url)
         assert response.status_code == 200
 
         final_count = Dashboard.objects.filter(
             organization=self.organization, prebuilt_id__isnull=False
         ).count()
         assert final_count == initial_count
-        assert final_count == len(PREBUILT_DASHBOARDS)
+        assert final_count == 3
 
     def test_endpoint_deletes_old_prebuilt_dashboards_not_in_list(self) -> None:
         old_prebuilt_id = 9999  # 9999 is not a valid prebuilt dashboard id
@@ -2022,7 +2026,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert Dashboard.objects.filter(id=old_dashboard.id).exists()
 
         with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
-            response = self.do_request("get", self.url)
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url)
         assert response.status_code == 200
 
         assert not Dashboard.objects.filter(id=old_dashboard.id).exists()
@@ -2030,7 +2035,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         prebuilt_dashboards = Dashboard.objects.filter(
             organization=self.organization, prebuilt_id__isnull=False
         )
-        assert prebuilt_dashboards.count() == len(PREBUILT_DASHBOARDS)
+        assert prebuilt_dashboards.count() == 3
 
     def test_endpoint_does_not_sync_without_feature_flag(self) -> None:
         prebuilt_count = Dashboard.objects.filter(
@@ -2048,9 +2053,10 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     def test_get_with_prebuilt_ids(self) -> None:
         with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
-            response = self.do_request(
-                "get", self.url, {"prebuiltId": [PrebuiltDashboardId.FRONTEND_SESSION_HEALTH]}
-            )
-            assert response.status_code == 200
-            assert len(response.data) == 1
-            assert response.data[0]["prebuiltId"] == PrebuiltDashboardId.FRONTEND_SESSION_HEALTH
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request(
+                    "get", self.url, {"prebuiltId": [PrebuiltDashboardId.FRONTEND_SESSION_HEALTH]}
+                )
+                assert response.status_code == 200
+                assert len(response.data) == 1
+                assert response.data[0]["prebuiltId"] == PrebuiltDashboardId.FRONTEND_SESSION_HEALTH

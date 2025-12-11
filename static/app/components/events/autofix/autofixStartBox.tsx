@@ -187,7 +187,7 @@ const ScaleContainer = styled('div')`
 const Container = styled('div')`
   position: relative;
   width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.background}
     linear-gradient(135deg, ${p => p.theme.pink400}08, ${p => p.theme.pink400}20);
   overflow: visible;
@@ -248,6 +248,6 @@ const StyledButton = styled(Button)`
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   border-left: none;
 `;

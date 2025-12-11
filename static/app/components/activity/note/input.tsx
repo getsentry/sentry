@@ -257,7 +257,7 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
   color: ${p.theme.error};
   margin: -1px;
   border: 1px solid ${p.theme.error};
-  border-radius: ${p.theme.borderRadius};
+  border-radius: ${p.theme.radius.md};
 
     &:before {
       display: block;
@@ -296,7 +296,7 @@ const NoteInputForm = styled('form')<{error?: string}>`
 const NoteInputPanel = styled(TabPanels)`
   ${textStyles}
   border-top: 1px solid ${p => p.theme.border};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
 `;
 
 const Footer = styled('div')`
@@ -308,7 +308,7 @@ const Footer = styled('div')`
 
 const FooterButton = styled(Button)<{error?: boolean}>`
   margin: -1px -1px -1px;
-  border-radius: 0 0 ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md};
 
   ${p =>
     p.error &&

@@ -69,6 +69,7 @@ function setUpTests() {
     'promotion-platform',
     'forced-trial',
     'soft-cap',
+    'grace-period',
     'trial-ending',
     'partner-plan-ending',
     'suspended',
@@ -147,6 +148,24 @@ describe('GSBanner', () => {
     renderGlobalModal();
 
     expect(await screen.findByTestId('modal-usage-exceeded')).toBeInTheDocument();
+  });
+
+  it('renders grace period modal with billing access', async () => {
+    const organization = OrganizationFixture({
+      slug: 'grace-period',
+      access: ['org:billing'],
+    });
+    SubscriptionStore.set(
+      organization.slug,
+      SubscriptionFixture({organization, isGracePeriod: true})
+    );
+
+    render(<GSBanner organization={organization} />, {
+      organization,
+    });
+    renderGlobalModal();
+
+    expect(await screen.findByTestId('modal-grace-period')).toBeInTheDocument();
   });
 
   it('opens the trialEndingModal within 3 days of ending', async () => {

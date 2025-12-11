@@ -695,7 +695,7 @@ const Container = styled(motion.div, {
 })<{isFocused?: boolean}>`
   position: relative;
   width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.background};
   border: 1px dashed ${p => p.theme.border};
   overflow: hidden;
@@ -806,7 +806,7 @@ const Message = styled('div')<{role: CommentThreadMessage['role']}>`
 
 const MessageContent = styled('div')`
   flex-grow: 1;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding-top: ${space(0.5)};
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.tokens.content.primary};

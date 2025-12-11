@@ -160,7 +160,7 @@ const DragIndicator = styled('div')`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   pointer-events: none;
