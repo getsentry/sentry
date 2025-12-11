@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -18,6 +19,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
+from sentry.preprod.eap.constants import PREPROD_NAMESPACE
 from sentry.search.eap.rpc_utils import create_attribute_value
 from sentry.utils import snuba_rpc
 
@@ -251,9 +253,9 @@ def _build_filters(filters: PreprodSizeFilters) -> list[TraceItemFilter]:
         if value is None:
             continue
 
-        # Special case: artifact_id needs to be converted to trace_id format
+        # Special case: artifact_id needs to be converted to trace_id format using UUID5
         if field_name == "artifact_id":
-            trace_id = f"{value:032x}"
+            trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(value)).hex
             result.append(
                 TraceItemFilter(
                     comparison_filter=ComparisonFilter(

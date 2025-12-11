@@ -10,6 +10,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem as EAPTraceItem
 
 from sentry.conf.types.kafka_definition import Topic
+from sentry.preprod.eap.constants import PREPROD_NAMESPACE
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.replays.lib.kafka import EAP_ITEMS_CODEC, eap_producer
 from sentry.search.eap.rpc_utils import anyvalue
@@ -35,16 +36,11 @@ def write_preprod_size_metric_to_eap(
 
     artifact = size_metric.preprod_artifact
 
-    # Generate a unique trace_id for this preprod artifact
+    # Generate a unique trace_id for this preprod artifact using UUID5 with PREPROD_NAMESPACE.
+    # This ensures no collision with other trace types in EAP.
     # Design: Use preprod_artifact_id to group related components of the SAME build
     # (e.g., main app + Watch extension + dynamic features) under one trace.
-    # We don't use git_head_sha because multiple unrelated apps could be uploaded
-    # to the same commit (like a monorepo), and grouping them would be confusing.
-    # Users can still query by git_head_sha as an attribute if needed.
-    #
-    # Format: 32-character hex string (OpenTelemetry trace ID format)
-    # We use the artifact_id as the base, padded to 32 hex characters
-    trace_id = f"{size_metric.preprod_artifact_id:032x}"
+    trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(size_metric.preprod_artifact_id)).hex
 
     # Generate a unique item_id for this specific size metric
     # Convert to 16 bytes in little-endian format (consistent with span item_id format)
@@ -54,6 +50,7 @@ def write_preprod_size_metric_to_eap(
         "preprod_artifact_id": size_metric.preprod_artifact_id,
         "size_metric_id": size_metric.id,
         "metrics_artifact_type": size_metric.metrics_artifact_type,
+        "sub_item_type": "size_metric",
     }
 
     if size_metric.identifier is not None:
