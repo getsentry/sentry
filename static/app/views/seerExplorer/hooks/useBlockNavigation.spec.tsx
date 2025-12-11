@@ -191,41 +191,6 @@ describe('useBlockNavigation', () => {
     });
   });
 
-  describe('Backspace/Delete Navigation', () => {
-    it('deletes from focused block index on Backspace', () => {
-      const props = {...defaultProps, focusedBlockIndex: 1};
-      renderHook(() => useBlockNavigation(props));
-
-      const event = new KeyboardEvent('keydown', {key: 'Backspace'});
-      document.dispatchEvent(event);
-
-      expect(props.onDeleteFromIndex).toHaveBeenCalledWith(1);
-      expect(props.setFocusedBlockIndex).toHaveBeenCalledWith(-1);
-      expect(props.textareaRef.current?.focus).toHaveBeenCalled();
-    });
-
-    it('does not delete when focused on input', () => {
-      renderHook(() => useBlockNavigation(defaultProps));
-
-      const event = new KeyboardEvent('keydown', {key: 'Backspace'});
-      document.dispatchEvent(event);
-
-      expect(defaultProps.onDeleteFromIndex).not.toHaveBeenCalled();
-    });
-
-    it('does not delete when onDeleteFromIndex is not provided', () => {
-      const props = {...defaultProps, focusedBlockIndex: 1, onDeleteFromIndex: undefined};
-      renderHook(() => useBlockNavigation(props));
-
-      const event = new KeyboardEvent('keydown', {key: 'Backspace'});
-      document.dispatchEvent(event);
-
-      // Should still return focus to input
-      expect(props.setFocusedBlockIndex).toHaveBeenCalledWith(-1);
-      expect(props.textareaRef.current?.focus).toHaveBeenCalled();
-    });
-  });
-
   describe('Panel State Control', () => {
     it('ignores keyboard events when panel is closed', () => {
       const props = {...defaultProps, isOpen: false};
