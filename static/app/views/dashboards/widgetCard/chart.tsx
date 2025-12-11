@@ -5,6 +5,8 @@ import type {LegendComponentOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -18,6 +20,7 @@ import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -80,6 +83,12 @@ import {
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import {PerformanceScoreSubtext} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
+import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
+import {
+  getWebVitalScoresFromTableDataRow,
+  type WebVitalScores,
+} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {type SpanResponse} from 'sentry/views/insights/types';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
@@ -206,6 +215,15 @@ function WidgetCardChart(props: WidgetCardChartProps) {
       <TransitionChart loading={loading} reloading={loading}>
         <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
         <DetailsComponent tableResults={tableResults} {...props} />
+      </TransitionChart>
+    );
+  }
+
+  if (widget.displayType === DisplayType.WHEEL) {
+    return (
+      <TransitionChart loading={loading} reloading={loading}>
+        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
+        <WheelComponent tableResults={tableResults} {...props} />
       </TransitionChart>
     );
   }
@@ -687,6 +705,45 @@ function DetailsComponent(props: TableComponentProps): React.ReactNode {
   }
 
   return <DetailsWidgetVisualization span={singleSpan} />;
+}
+
+function WheelComponent(props: TableComponentProps): React.ReactNode {
+  const {tableResults, loading, selection} = props;
+  const theme = useTheme();
+  const ringSegmentColors = theme.chart.getColorPalette(4).slice() as unknown as string[];
+  const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
+
+  const projectScore = tableResults?.[0]?.data?.[0]
+    ? getWebVitalScoresFromTableDataRow(
+        tableResults?.[0]?.data?.[0] as unknown as WebVitalScores
+      )
+    : undefined;
+  const score = projectScore?.totalScore;
+  const period = loading ? null : selection.datetime.period;
+  const performanceScoreSubtext =
+    (period &&
+      DEFAULT_RELATIVE_PERIODS[period as keyof typeof DEFAULT_RELATIVE_PERIODS]) ??
+    '';
+
+  if (!defined(projectScore)) {
+    return null;
+  }
+
+  return (
+    <React.Fragment>
+      <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
+      <Flex justify="center" align="center">
+        <PerformanceScoreRingWithTooltips
+          projectScore={projectScore}
+          text={score}
+          width={220}
+          height={200}
+          ringBackgroundColors={ringBackgroundColors}
+          ringSegmentColors={ringSegmentColors}
+        />
+      </Flex>
+    </React.Fragment>
+  );
 }
 
 function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {
