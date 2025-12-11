@@ -216,16 +216,14 @@ export function ListBox<T extends ObjectLike>({
                 }
 
                 return (
-                  <Fragment key={item.key}>
-                    <ListBoxOption
-                      key={item.key}
-                      {...virtualizer.itemProps(row.index)}
-                      item={item}
-                      listState={listState}
-                      size={size}
-                      showDetails={showDetails}
-                    />
-                  </Fragment>
+                  <ListBoxOption
+                    key={item.key}
+                    {...virtualizer.itemProps(row.index)}
+                    item={item}
+                    listState={listState}
+                    size={size}
+                    showDetails={showDetails}
+                  />
                 );
               })}
 
