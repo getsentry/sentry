@@ -202,20 +202,17 @@ class NotificationDataDtoTest(TestCase):
         assert reconstructed_dto.notification_data.message == original_notification.message
 
     def test_from_dict_with_complex_data_types(self) -> None:
-
         now = timezone.now()
-        serialized = {
-            "source": "data-export-failure",
-            "data": {
-                "error_message": "Export failed",
-                "error_payload": {"export_type": "Issues", "project": [123]},
-                "creation_date": now.isoformat(),
-            },
-        }
-
+        data = DataExportFailure(
+            error_message="Export failed",
+            error_payload={"export_type": "Issues", "project": [123]},
+            creation_date=now,
+        )
+        serialized = NotificationDataDto(notification_data=data).to_dict()
         dto = NotificationDataDto.from_dict(serialized)
 
         assert dto.notification_data.source == "data-export-failure"
         assert isinstance(dto.notification_data, DataExportFailure)
         assert dto.notification_data.error_message == "Export failed"
         assert dto.notification_data.error_payload == {"export_type": "Issues", "project": [123]}
+        assert dto.notification_data.creation_date == now

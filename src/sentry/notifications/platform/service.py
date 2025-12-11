@@ -2,7 +2,8 @@ import logging
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Final
+from datetime import datetime
+from typing import Any, Final, get_type_hints
 
 import sentry_sdk
 
@@ -265,6 +266,16 @@ class NotificationDataDto:
             raise NotificationServiceError("Source is required")
 
         notification_data_cls = notification_data_registry.get(source)
-        notification_fields = data.get("data", {})
+        notification_fields = data.get("data", {}).copy()
+
+        # We're using type hints to know which fields need special conversion
+        type_hints = get_type_hints(notification_data_cls)
+
+        for field_name, value in notification_fields.items():
+            if field_name in type_hints:
+                expected_type = type_hints[field_name]
+                if expected_type == datetime and isinstance(value, str):
+                    notification_fields[field_name] = datetime.fromisoformat(value)
+
         notification_data = notification_data_cls(**notification_fields)
         return cls(notification_data=notification_data)
