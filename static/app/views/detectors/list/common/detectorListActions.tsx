@@ -10,7 +10,10 @@ import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
-import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
+import {
+  makeMonitorCreatePathname,
+  makeMonitorCreateSettingsPathname,
+} from 'sentry/views/detectors/pathnames';
 import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {useCanCreateDetector} from 'sentry/views/detectors/utils/useCanCreateDetector';
 
@@ -52,7 +55,7 @@ export function DetectorListActions({detectorType, children}: DetectorListAction
   const {selection} = usePageFilters();
 
   const createPath = detectorType
-    ? `${makeMonitorCreatePathname(organization.slug)}settings/`
+    ? makeMonitorCreateSettingsPathname(organization.slug)
     : makeMonitorCreatePathname(organization.slug);
   const project = selection.projects.find(pid => pid !== ALL_ACCESS_PROJECTS);
   const createQuery = detectorType ? {project, detectorType} : {project};
