@@ -3,7 +3,6 @@ import {useEAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/s
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {
   useUpdateQueryAtIndex,
   type ReadableExploreQueryParts,
@@ -18,10 +17,6 @@ type Props = {index: number; query: ReadableExploreQueryParts};
 
 export function SearchBarSection({query, index}: Props) {
   const {selection} = usePageFilters();
-  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemTags('number');
-  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemTags('string');
 
   const updateQuerySearch = useUpdateQueryAtIndex(index);
 
@@ -30,10 +25,6 @@ export function SearchBarSection({query, index}: Props) {
     initialQuery: query.query ?? '',
     onSearch: value => updateQuerySearch({query: value}),
     searchSource: 'explore',
-    numberAttributes: numberTags,
-    stringAttributes: stringTags,
-    numberSecondaryAliases,
-    stringSecondaryAliases,
   });
 
   return (
