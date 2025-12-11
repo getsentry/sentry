@@ -55,8 +55,8 @@ export function DataForwarderRow({
           >
             {t('Edit')}
           </LinkButton>
-          <DataForwarderDeleteConfirm dataForwarder={dataForwarder}>
-            <Access access={['org:write']}>
+          <Access access={['org:write']}>
+            <DataForwarderDeleteConfirm dataForwarder={dataForwarder}>
               <Button
                 title={t('Delete Data Forwarder')}
                 aria-label={t('Delete Data Forwarder')}
@@ -64,8 +64,8 @@ export function DataForwarderRow({
                 // Deletions are always permitted, even if you lose the feature.
                 disabled={false}
               />
-            </Access>
-          </DataForwarderDeleteConfirm>
+            </DataForwarderDeleteConfirm>
+          </Access>
         </ButtonBar>
       </Grid>
     </Container>
