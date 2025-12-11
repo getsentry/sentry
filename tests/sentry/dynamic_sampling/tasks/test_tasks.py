@@ -425,13 +425,14 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
             boost_low_volume_transactions()
 
     @with_feature("organizations:dynamic-sampling")
+    @with_feature("organizations:dynamic-sampling-spans")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_transactions_with_blended_sample_rate(
         self, get_blended_sample_rate: MagicMock
     ) -> None:
         """
         Create orgs projects & transactions and then check that the task creates rebalancing data
-        in Redis.
+        in Redis using SpanMRI (with dynamic-sampling-spans feature enabled).
         """
         BLENDED_RATE = 0.25
         get_blended_sample_rate.return_value = BLENDED_RATE
@@ -453,13 +454,14 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
                 assert global_rate == BLENDED_RATE
 
     @with_feature("organizations:dynamic-sampling")
+    @with_feature("organizations:dynamic-sampling-spans")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_transactions_with_sliding_window_org(
         self, get_blended_sample_rate: MagicMock
     ) -> None:
         """
         Create orgs projects & transactions and then check that the task creates rebalancing data
-        in Redis with the sliding window per org enabled.
+        in Redis with the sliding window per org enabled (using SpanMRI).
         """
         BLENDED_RATE = 0.25
         get_blended_sample_rate.return_value = BLENDED_RATE
@@ -504,6 +506,7 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
                         assert global_rate == used_sample_rate
 
     @with_feature("organizations:dynamic-sampling")
+    @with_feature("organizations:dynamic-sampling-spans")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_transactions_partial(
         self, get_blended_sample_rate: MagicMock
@@ -513,7 +516,7 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
         rest get a global rate
 
         Create orgs projects & transactions and then check that the task creates rebalancing data
-        in Redis
+        in Redis (using SpanMRI).
         """
         BLENDED_RATE = 0.25
         get_blended_sample_rate.return_value = BLENDED_RATE

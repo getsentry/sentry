@@ -20,7 +20,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import options, quotas
+from sentry import features, options, quotas
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
@@ -48,7 +48,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -82,6 +82,25 @@ class ProjectTransactionsTotals(ProjectIdentity, total=True):
     total_num_classes: int | float
 
 
+def split_orgs_by_span_mri_feature(org_ids: list[int]) -> tuple[list[int], list[int]]:
+    """
+    Split organizations by whether they have the dynamic-sampling-spans feature enabled.
+
+    Returns a tuple of (span_mri_orgs, transaction_mri_orgs).
+    """
+    span_mri_orgs: list[int] = []
+    transaction_mri_orgs: list[int] = []
+
+    orgs = Organization.objects.filter(id__in=org_ids)
+    for org in orgs:
+        if features.has("organizations:dynamic-sampling-spans", org):
+            span_mri_orgs.append(org.id)
+        else:
+            transaction_mri_orgs.append(org.id)
+
+    return span_mri_orgs, transaction_mri_orgs
+
+
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
     namespace=telemetry_experience_tasks,
@@ -100,26 +119,36 @@ def boost_low_volume_transactions() -> None:
 
     orgs_iterator = GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=Granularity(60))
     for orgs in orgs_iterator:
-        # get the low and high transactions
-        totals_it = FetchProjectTransactionTotals(orgs)
-        small_transactions_it = FetchProjectTransactionVolumes(
-            orgs,
-            large_transactions=False,
-            max_transactions=num_small_trans,
-        )
-        big_transactions_it = FetchProjectTransactionVolumes(
-            orgs,
-            large_transactions=True,
-            max_transactions=num_big_trans,
-        )
+        span_mri_orgs, transaction_mri_orgs = split_orgs_by_span_mri_feature(orgs)
 
-        for project_transactions in transactions_zip(
-            totals_it, big_transactions_it, small_transactions_it
-        ):
-            boost_low_volume_transactions_of_project.apply_async(
-                kwargs={"project_transactions": project_transactions},
-                headers={"sentry-propagate-traces": False},
+        for org_group, use_span_mri in [
+            (span_mri_orgs, True),
+            (transaction_mri_orgs, False),
+        ]:
+            if not org_group:
+                continue
+
+            totals_it = FetchProjectTransactionTotals(org_group, use_span_mri=use_span_mri)
+            small_transactions_it = FetchProjectTransactionVolumes(
+                org_group,
+                large_transactions=False,
+                max_transactions=num_small_trans,
+                use_span_mri=use_span_mri,
             )
+            big_transactions_it = FetchProjectTransactionVolumes(
+                org_group,
+                large_transactions=True,
+                max_transactions=num_big_trans,
+                use_span_mri=use_span_mri,
+            )
+
+            for project_transactions in transactions_zip(
+                totals_it, big_transactions_it, small_transactions_it
+            ):
+                boost_low_volume_transactions_of_project.apply_async(
+                    kwargs={"project_transactions": project_transactions},
+                    headers={"sentry-propagate-traces": False},
+                )
 
 
 @instrumented_task(
@@ -239,10 +268,17 @@ class FetchProjectTransactionTotals:
     project in the given organizations
     """
 
-    def __init__(self, orgs: Sequence[int]):
+    def __init__(self, orgs: Sequence[int], use_span_mri: bool = False):
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
-        self.metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+        if use_span_mri:
+            self.metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+            self.use_case_id = UseCaseID.SPANS
+        else:
+            self.metric_id = indexer.resolve_shared_org(
+                str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
+            )
+            self.use_case_id = UseCaseID.TRANSACTIONS
 
         self.org_ids = list(orgs)
         self.offset = 0
@@ -296,7 +332,7 @@ class FetchProjectTransactionTotals:
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.SPANS.value, "cross_org_query": 1},
+                tenant_ids={"use_case_id": self.use_case_id.value, "cross_org_query": 1},
             )
             data = raw_snql_query(
                 request,
@@ -354,6 +390,7 @@ class FetchProjectTransactionVolumes:
         orgs: list[int],
         large_transactions: bool,
         max_transactions: int,
+        use_span_mri: bool = False,
     ):
         self.large_transactions = large_transactions
         self.max_transactions = max_transactions
@@ -361,7 +398,14 @@ class FetchProjectTransactionVolumes:
         self.offset = 0
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
-        self.metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+        if use_span_mri:
+            self.metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+            self.use_case_id = UseCaseID.SPANS
+        else:
+            self.metric_id = indexer.resolve_shared_org(
+                str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
+            )
+            self.use_case_id = UseCaseID.TRANSACTIONS
         self.has_more_results = True
         self.cache: list[ProjectTransactions] = []
 
@@ -430,7 +474,7 @@ class FetchProjectTransactionVolumes:
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.SPANS.value, "cross_org_query": 1},
+                tenant_ids={"use_case_id": self.use_case_id.value, "cross_org_query": 1},
             )
             data = raw_snql_query(
                 request,
