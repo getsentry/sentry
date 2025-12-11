@@ -15,7 +15,7 @@ export function getIsAiGenerationSpan(genAiOpType: string | undefined) {
 }
 
 export function getHasAiSpansFilter() {
-  return `has:gen_ai.operation.name`;
+  return `has:gen_ai.operation.type`;
 }
 
 export const getAgentRunsFilter = ({negated = false}: {negated?: boolean} = {}) => {
