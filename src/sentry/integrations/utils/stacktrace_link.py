@@ -103,7 +103,9 @@ def get_stacktrace_config(
             result["error"] = "stack_root_mismatch"
             continue
 
-        outcome = get_link(config, src_path, ctx["commit_id"])
+        # Use commit_id if available, otherwise fall back to revision (from symcache)
+        version = ctx["commit_id"] if ctx["commit_id"] else ctx.get("revision")
+        outcome = get_link(config, src_path, version)
         result["iteration_count"] += 1
 
         result["current_config"] = {
