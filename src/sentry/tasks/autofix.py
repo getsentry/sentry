@@ -166,16 +166,15 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     preferences_to_set = []
     projects_by_id = {p.id: p for p in projects}
     for project_id in project_ids:
-        existing_pref = preferences_by_id[str(project_id)] or {}
-
-        # Skip projects that already have an acceptable stopping point configured
-        if existing_pref.get("automated_run_stopping_point") in ("open_pr", "code_changes"):
-            continue
-
-        # Preserve existing repositories if set, otherwise fall back to code mappings
-        repositories = existing_pref.get("repositories")
-        if not repositories:
+        existing_pref = preferences_by_id[str(project_id)]
+        if not existing_pref:
+            # No existing preferences, get repositories from code mappings
             repositories = get_autofix_repos_from_project_code_mappings(projects_by_id[project_id])
+        else:
+            # Skip projects that already have an acceptable stopping point configured
+            if existing_pref.get("automated_run_stopping_point") in ("open_pr", "code_changes"):
+                continue
+            repositories = existing_pref.get("repositories")
 
         # Preserve existing repositories and automation_handoff, only update the stopping point
         preferences_to_set.append(
@@ -184,7 +183,9 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 "project_id": project_id,
                 "repositories": repositories or [],
                 "automated_run_stopping_point": "code_changes",
-                "automation_handoff": existing_pref.get("automation_handoff"),
+                "automation_handoff": (
+                    existing_pref.get("automation_handoff") if existing_pref else None
+                ),
             }
         )
 
