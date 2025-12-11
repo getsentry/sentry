@@ -104,7 +104,7 @@ export function OrgDropdown({
       trigger={props => (
         <OrgDropdownTrigger
           borderless={!theme.isChonk}
-          size={theme.isChonk ? 'xs' : undefined}
+          size="xs"
           width={isMobile ? 32 : 48}
           aria-label={t('Toggle organization menu')}
           {...props}

@@ -623,15 +623,8 @@ function GraphButton({
 }
 
 function SummaryContainer(props: FlexProps) {
-  const theme = useTheme();
   return (
-    <Flex
-      padding="lg xs lg lg"
-      direction="column"
-      gap={theme.isChonk ? 'sm' : 'xs'}
-      radius="md"
-      {...props}
-    />
+    <Flex padding="lg xs lg lg" direction="column" gap="sm" radius="md" {...props} />
   );
 }
 

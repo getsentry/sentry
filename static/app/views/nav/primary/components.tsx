@@ -177,7 +177,6 @@ function SidebarNavLink({
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
   const {layout, activePrimaryNavGroup} = useNavContext();
-  const theme = useTheme();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
@@ -202,7 +201,7 @@ function SidebarNavLink({
     >
       {layout === NavLayout.MOBILE ? (
         <Fragment>
-          {theme.isChonk ? null : <InteractionStateLayer />}
+          {null}
           {children}
           {label}
         </Fragment>
@@ -248,7 +247,6 @@ export function SidebarButton({
   onClick,
   label,
 }: SidebarButtonProps) {
-  const theme = useTheme();
   const organization = useOrganization();
   const {layout} = useNavContext();
   const showLabel = layout === NavLayout.MOBILE;
@@ -268,7 +266,7 @@ export function SidebarButton({
           showLabel ? <SidebarItemIcon layout={layout}>{children}</SidebarItemIcon> : null
         }
       >
-        {theme.isChonk ? null : <InteractionStateLayer />}
+        {null}
         {showLabel ? label : children}
       </NavButton>
     </SidebarItem>
