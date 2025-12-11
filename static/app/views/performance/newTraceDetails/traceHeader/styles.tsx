@@ -33,7 +33,7 @@ const StyledBreak = styled('hr')`
 `;
 
 const StyledPlaceholder = styled(Placeholder)<{_height: number; _width: number}>`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   height: ${p => p._height}px;
   width: ${p => p._width}px;
 `;

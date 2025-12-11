@@ -54,6 +54,7 @@ import {
   renderTraceAsLinkable,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
@@ -61,7 +62,6 @@ import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/tra
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {useSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -241,33 +241,7 @@ function getPrimaryFieldOptions(
   tags?: TagCollection,
   _customMeasurements?: CustomMeasurementCollection
 ): Record<string, FieldValueOption> {
-  const baseFieldOptions = generateFieldOptions({
-    organization,
-    tagKeys: [],
-    fieldKeys: [],
-    aggregations: EAP_AGGREGATIONS,
-  });
-
-  const spanTags = Object.values(tags ?? {}).reduce(
-    function combineTag(acc, tag) {
-      acc[`${tag.kind}:${tag.key}`] = {
-        label: tag.name,
-        value: {
-          kind: FieldValueKind.TAG,
-
-          // We have numeric and string tags which have the same
-          // display name, but one is used for aggregates and the other
-          // is used for grouping.
-          meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
-        },
-      };
-
-      return acc;
-    },
-    {} as Record<string, FieldValueOption>
-  );
-
-  return {...baseFieldOptions, ...spanTags};
+  return combineBaseFieldsWithTags(organization, tags, EAP_AGGREGATIONS);
 }
 
 function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {

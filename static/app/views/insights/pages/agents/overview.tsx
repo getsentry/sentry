@@ -41,6 +41,7 @@ import ToolUsageWidget from 'sentry/views/insights/pages/agents/components/toolC
 import {TracesTable} from 'sentry/views/insights/pages/agents/components/tracesTable';
 import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/useAgentSpanSearchProps';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
+import {getAgentRunsFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
@@ -76,7 +77,7 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
   // If there are not, we show the count/duration of all AI spans
   const agentRunsRequest = useSpans(
     {
-      search: 'span.op:"gen_ai.invoke_agent"',
+      search: getAgentRunsFilter(),
       fields: ['id'],
       limit: 1,
     },

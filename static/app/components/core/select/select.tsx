@@ -203,7 +203,7 @@ const getStylesConfig = ({
       background: theme.tokens.background.primary,
       border: `1px solid ${theme.border}`,
       boxShadow: theme.dropShadowMedium,
-      borderRadius: theme.borderRadius,
+      borderRadius: theme.radius.md,
       transition: 'border 0.1s, box-shadow 0.1s',
       alignItems: 'center',
       ...(state.isFocused && {
@@ -230,7 +230,7 @@ const getStylesConfig = ({
       ...provided,
       zIndex: theme.zIndex.dropdown,
       background: theme.backgroundElevated,
-      borderRadius: theme.borderRadius,
+      borderRadius: theme.radius.md,
       boxShadow: `${theme.dropShadowHeavy}, 0 0 0 1px ${theme.translucentBorder}`,
       width: 'auto',
       minWidth: '100%',
@@ -246,7 +246,7 @@ const getStylesConfig = ({
     option: provided => ({
       ...provided,
       cursor: 'pointer',
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       background: 'transparent',
       padding: 0,
       ':active': {
@@ -289,8 +289,8 @@ const getStylesConfig = ({
     }),
     multiValue: provided => ({
       ...provided,
-      color: theme.textColor,
       backgroundColor: theme.tokens.background.primary,
+      color: theme.tokens.content.primary,
       borderRadius: '2px',
       border: `1px solid ${theme.border}`,
       display: 'flex',
@@ -298,7 +298,7 @@ const getStylesConfig = ({
     }),
     multiValueLabel: provided => ({
       ...provided,
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       padding: '0',
       paddingLeft: space(0.75),
       lineHeight: '1.8',

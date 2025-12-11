@@ -21,7 +21,7 @@ const Panel = styled(
 )`
   background: ${p =>
     p.dashedBorder ? p.theme.backgroundSecondary : p.theme.tokens.background.primary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px
     ${p =>
       p.hideBorder

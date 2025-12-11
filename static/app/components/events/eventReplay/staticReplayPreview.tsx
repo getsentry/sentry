@@ -99,7 +99,7 @@ const PlayerContainer = styled(FluidHeight)`
 
 const StaticPanel = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const CTAOverlay = styled('div')`

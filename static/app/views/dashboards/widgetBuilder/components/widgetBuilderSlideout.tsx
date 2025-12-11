@@ -209,7 +209,6 @@ function WidgetBuilderSlideout({
 
   return (
     <SlideOverPanel
-      open
       position="left"
       data-test-id="widget-slideout"
       transitionProps={animationTransitionSettings}

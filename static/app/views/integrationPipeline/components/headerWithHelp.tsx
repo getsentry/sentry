@@ -31,5 +31,5 @@ const Header = styled('div')`
 const StyledLogoSentry = styled(LogoSentry)`
   width: 130px;
   height: 30px;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;

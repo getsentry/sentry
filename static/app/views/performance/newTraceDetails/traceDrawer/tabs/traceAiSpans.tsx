@@ -143,7 +143,7 @@ const Wrapper = styled('div')`
   flex: 1 1 100%;
   min-height: 0;
   background-color: ${p => p.theme.tokens.background.primary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
 `;
 

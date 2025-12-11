@@ -105,7 +105,7 @@ export default withSubscription(DataConsentBanner, {noLoader: true});
 const DataConsentBannerWrapper = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(2)};
   margin-bottom: ${space(2)};
   grid-column: 1 / -1;
@@ -134,7 +134,7 @@ const StarContainer = styled('div')`
     top: 0;
     width: 600px;
     overflow: hidden;
-    border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+    border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   }
 `;
 
@@ -149,7 +149,7 @@ const IllustrationContainer = styled('div')`
     top: 0;
     width: 600px;
     overflow: hidden;
-    border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+    border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   }
 `;
 

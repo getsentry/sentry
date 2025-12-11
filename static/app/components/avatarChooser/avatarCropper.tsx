@@ -418,7 +418,7 @@ const Mask = styled('div')`
   inset: 0;
   background: rgba(0, 0, 0, 0.25);
   pointer-events: none;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const Cropper = styled('div')`

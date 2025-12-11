@@ -26,6 +26,7 @@ export enum DisplayType {
   BIG_NUMBER = 'big_number',
   DETAILS = 'details',
   TOP_N = 'top_n',
+  WHEEL = 'wheel',
 }
 
 export enum WidgetType {
@@ -37,6 +38,7 @@ export enum WidgetType {
   TRANSACTIONS = 'transaction-like',
   SPANS = 'spans',
   LOGS = 'logs',
+  TRACEMETRICS = 'tracemetrics',
 }
 
 // These only pertain to on-demand warnings at this point in time

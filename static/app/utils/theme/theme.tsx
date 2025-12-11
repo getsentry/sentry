@@ -564,7 +564,6 @@ const commonTheme = {
     },
   },
 
-  borderRadius: '6px',
   fontSize: {
     xs: '11px',
     sm: '12px',
@@ -1098,26 +1097,6 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
           hover: colorScheme.blue600,
           active: colorScheme.blue700,
         },
-        promotion: {
-          default: colorScheme.pink500,
-          hover: colorScheme.pink600,
-          active: colorScheme.pink700,
-        },
-        danger: {
-          default: colorScheme.red500,
-          hover: colorScheme.red600,
-          active: colorScheme.red700,
-        },
-        warning: {
-          default: colorScheme.yellow500,
-          hover: colorScheme.yellow600,
-          active: colorScheme.yellow700,
-        },
-        success: {
-          default: colorScheme.green500,
-          hover: colorScheme.green600,
-          active: colorScheme.green700,
-        },
       },
     },
   };
@@ -1453,11 +1432,6 @@ const generateAliases = (
   formPlaceholder: colors.gray300,
 
   /**
-   *
-   */
-  rowBackground: tokens.background.primary,
-
-  /**
    * Color of lines that flow across the background of the chart to indicate axes levels
    * (This should only be used for yAxis)
    */
@@ -1472,11 +1446,6 @@ const generateAliases = (
    * Color for the 'others' series in topEvent charts
    */
   chartOther: tokens.content.muted,
-
-  /**
-   * Hover color of the drag handle used in the content slider diff view.
-   */
-  diffSliderDragHandleHover: colors.blue500,
 
   /**
    * Default Progressbar color
@@ -1750,15 +1719,6 @@ const lightThemeDefinition = {
   ),
 
   colors: lightColors,
-
-  sidebar: {
-    background: lightAliases.background,
-    scrollbarThumbColor: '#A0A0A0',
-    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
-    gradient: lightAliases.background,
-    border: lightAliases.border,
-    superuser: '#880808',
-  },
 };
 
 /**
@@ -1807,15 +1767,6 @@ export const darkTheme: SentryTheme = {
   ),
 
   colors: darkColors,
-
-  sidebar: {
-    background: darkAliases.background,
-    scrollbarThumbColor: '#A0A0A0',
-    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
-    gradient: darkAliases.background,
-    border: darkAliases.border,
-    superuser: '#880808',
-  },
 };
 
 declare module '@emotion/react' {
