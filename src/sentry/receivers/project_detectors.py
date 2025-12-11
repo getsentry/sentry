@@ -78,12 +78,16 @@ def create_metric_detector_with_owner(project: Project, user=None, user_id=None,
         detector = _ensure_metric_detector(
             project, owner_team_id=owner_team.id if owner_team else None, enabled=enabled
         )
-        logger.info(
-            "create_metric_detector_with_owner.created",
-            extra={"project_id": project.id, "detector_id": detector.id, "enabled": enabled},
-        )
+        if detector:
+            logger.info(
+                "create_metric_detector_with_owner.created",
+                extra={"project_id": project.id, "detector_id": detector.id, "enabled": enabled},
+            )
     except UnableToAcquireLockApiError as e:
         sentry_sdk.capture_exception(e)
+    except Exception:
+        # Seer data send failed - detector was not created, already logged in _ensure_metric_detector
+        pass
 
 
 post_save.connect(

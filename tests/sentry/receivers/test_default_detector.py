@@ -1,5 +1,6 @@
 from unittest import mock
 
+import pytest
 from django.db.models.signals import post_save
 
 from sentry.grouping.grouptype import ErrorGroupType
@@ -75,18 +76,19 @@ class TestEnsureMetricDetector(TestCase):
         assert detector.owner_team_id is None
         assert detector.enabled is True
 
-    def test_send_new_detector_data_failure_does_not_block_creation(self):
-        """Test that detector is still created even if sending data to Seer fails."""
+    @mock.patch(
+        "sentry.workflow_engine.processors.detector.send_new_detector_data",
+        side_effect=Exception("Seer unavailable"),
+    )
+    def test_send_new_detector_data_failure_blocks_creation(self, mock_send):
+        """Test that detector is NOT created if sending data to Seer fails."""
         project = self.create_project()
 
-        with mock.patch(
-            "sentry.workflow_engine.processors.detector.send_new_detector_data",
-            side_effect=Exception("Seer unavailable"),
-        ):
-            detector = _ensure_metric_detector(project)
+        with pytest.raises(Exception, match="Seer unavailable"):
+            _ensure_metric_detector(project)
 
-        assert detector is not None
-        assert Detector.objects.filter(id=detector.id).exists()
+        # Transaction was rolled back, so no detector should exist
+        assert not Detector.objects.filter(project=project, type=MetricIssue.slug).exists()
 
     def test_returns_existing_detector_without_creating_duplicates(self):
         """Test that calling _ensure_metric_detector twice returns the same detector."""

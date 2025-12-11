@@ -117,7 +117,7 @@ def _ensure_detector(project: Project, type: str) -> Detector:
 
 def _ensure_metric_detector(
     project: Project, owner_team_id: int | None = None, enabled: bool = True
-) -> Detector:
+) -> Detector | None:
     """
     Ensure that a default anomaly detection metric monitor exists for a project.
     If the Detector doesn't already exist, we try to acquire a lock to avoid double-creating.
@@ -208,8 +208,12 @@ def _ensure_metric_detector(
 
             try:
                 send_new_detector_data(detector)
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
+            except Exception:
+                logger.exception(
+                    "Failed to send new detector data to Seer, detector not created",
+                    extra={"project_id": project.id, "organization_id": project.organization_id},
+                )
+                raise
 
             return detector
     except UnableToAcquireLock:
