@@ -693,6 +693,7 @@ def _get_recommended_event(
     Our own implementation of Group.get_recommended_event. Requires the return event to fall in the time range and have a non-empty trace.
     Time range defaults to the group's first and last seen times.
     If multiple events are valid, return the one with highest RECOMMENDED ordering.
+    If no events are valid, return the highest recommended event.
     """
     if start is None:
         start = group.first_seen
@@ -717,7 +718,7 @@ def _get_recommended_event(
     else:
         dataset = Dataset.IssuePlatform
 
-    # Get up to 50 events with a recommended ordering.
+    # Get up to 30 events with a recommended ordering.
     events: list[Event] = eventstore.backend.get_events_snql(
         organization_id=organization.id,
         group_id=group.id,
@@ -727,9 +728,9 @@ def _get_recommended_event(
             Condition(Column("project_id"), Op.IN, [group.project.id]),
             Condition(Column("group_id"), Op.IN, [group.id]),
         ],
-        limit=50,
+        limit=30,
         orderby=EventOrdering.RECOMMENDED.value,
-        referrer=Referrer.SEER_RPC,  # TODO:
+        referrer=Referrer.SEER_EXPLORER_TOOLS,
         dataset=dataset,
         tenant_ids={"organization_id": group.project.organization_id},
         inner_limit=1000,
@@ -740,7 +741,7 @@ def _get_recommended_event(
 
     trace_ids = list({e.trace_id for e in events if e.trace_id})
     if len(trace_ids) == 0:
-        return None
+        return events[0].for_group(group)
     elif len(trace_ids) == 1:
         query = f"trace:{trace_ids[0]}"
     else:
@@ -762,7 +763,7 @@ def _get_recommended_event(
     )
 
     if not result or not result.get("data"):
-        return None
+        return events[0].for_group(group)
 
     # Return the first event with a span count greater than 0.
     traces_with_spans: set[str] = set()
