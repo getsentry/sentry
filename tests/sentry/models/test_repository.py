@@ -1,8 +1,9 @@
 from django.core import mail
 
-from sentry.models import OrganizationOption
+from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
-from sentry.models.repository_settings import RepositorySettings
+from sentry.models.repositorysettings import RepositorySettings
 from sentry.plugins.providers.dummy import DummyRepositoryProvider
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -176,7 +177,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
         )
 
         settings = RepositorySettings.objects.get(repository=repo)
-        assert settings.code_review_triggers == []
+        assert settings.code_review_triggers == DEFAULT_CODE_REVIEW_TRIGGERS
 
     def test_settings_not_duplicated_on_update(self):
         """Updating a repository should not create duplicate settings."""

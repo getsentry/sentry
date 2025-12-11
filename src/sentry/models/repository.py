@@ -10,7 +10,7 @@ from django.utils import timezone
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
-from sentry.constants import ObjectStatus
+from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS, ObjectStatus
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -24,8 +24,8 @@ from sentry.db.pending_deletion import (
     rename_on_pending_deletion,
     reset_pending_deletion_field_names,
 )
-from sentry.models import OrganizationOption
-from sentry.models.repository_settings import RepositorySettings
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.repositorysettings import RepositorySettings
 from sentry.organizations.services.organization.service import organization_service
 from sentry.signals import pending_delete
 from sentry.users.services.user import RpcUser
@@ -211,7 +211,7 @@ def handle_auto_enable_code_review(instance: Repository) -> None:
             default=[],
         )
         if not isinstance(triggers, list):
-            triggers = []
+            triggers = DEFAULT_CODE_REVIEW_TRIGGERS
 
         RepositorySettings.objects.get_or_create(
             repository_id=instance.id,
