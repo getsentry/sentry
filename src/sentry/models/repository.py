@@ -208,7 +208,7 @@ def handle_auto_enable_code_review(instance: Repository) -> None:
         triggers = OrganizationOption.objects.get_value(
             organization=instance.organization_id,
             key="sentry:default_code_review_triggers",
-            default=[],
+            default=DEFAULT_CODE_REVIEW_TRIGGERS,
         )
         if not isinstance(triggers, list):
             triggers = DEFAULT_CODE_REVIEW_TRIGGERS
