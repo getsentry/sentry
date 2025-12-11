@@ -14,9 +14,9 @@ export function useMcpSpanSearchProps() {
     parseAsString.withOptions({history: 'replace'})
   );
 
-  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
+  const {tags: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemTags('number');
-  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
+  const {tags: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceItemTags('string');
 
   const hasRawSearchReplacement = organization.features.includes(
@@ -31,8 +31,8 @@ export function useMcpSpanSearchProps() {
         unsetCursor();
       },
       searchSource: 'mcp-monitoring',
-      numberTags,
-      stringTags,
+      numberAttributes,
+      stringAttributes,
       numberSecondaryAliases,
       stringSecondaryAliases,
       replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
@@ -43,18 +43,21 @@ export function useMcpSpanSearchProps() {
     }),
     [
       hasRawSearchReplacement,
+      numberAttributes,
       numberSecondaryAliases,
-      numberTags,
       searchQuery,
       setSearchQuery,
+      stringAttributes,
       stringSecondaryAliases,
-      stringTags,
       unsetCursor,
     ]
   );
 
+  const {searchQueryBuilderProviderProps, traceItemSearchQueryBuilderProps} =
+    useEAPSpanSearchQueryBuilderProps(eapSpanSearchQueryBuilderProps);
+
   return {
-    queryBuilder: eapSpanSearchQueryBuilderProps,
-    provider: useEAPSpanSearchQueryBuilderProps(eapSpanSearchQueryBuilderProps),
+    queryBuilder: traceItemSearchQueryBuilderProps,
+    provider: searchQueryBuilderProviderProps,
   };
 }
