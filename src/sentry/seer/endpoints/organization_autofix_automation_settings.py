@@ -16,12 +16,13 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 OPTION_KEY = "sentry:autofix_automation_tuning"
 
 
-class PutSerializer(serializers.Serializer):
+class SeerAutofixSettingSerializer(serializers.Serializer):
     """Serializer for OrganizationAutofixAutomationSettingsEndpoint.put"""
 
     projectIds = serializers.ListField(
         child=serializers.IntegerField(),
         required=True,
+        min_length=1,
         max_length=1000,
         help_text="List of project IDs to update settings for.",
     )
@@ -36,6 +37,7 @@ class PutSerializer(serializers.Serializer):
 class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
     """Bulk endpoint for managing project autofix automation tuning settings."""
 
+    # TODO update this to coding_workflows after https://github.com/getsentry/sentry/pull/104722 merged
     owner = ApiOwner.ML_AI
 
     publish_status = {
@@ -53,7 +55,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         :auth: required
         """
 
-        serializer = PutSerializer(data=request.data)
+        serializer = SeerAutofixSettingSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
