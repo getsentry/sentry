@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Switch} from 'sentry/components/core/switch';
 import {
@@ -13,12 +14,20 @@ import {
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useProjects from 'sentry/utils/useProjects';
 
 import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {useCodeMappings} from './hooks/useCodeMappings';
-import {MaxWidthPanel, PanelDescription, StepContent} from './common';
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+  MaxWidthPanel,
+  PanelDescription,
+  StepContent,
+} from './common';
 import {RepositoryToProjectConfiguration} from './repositoryToProjectConfiguration';
 
 export function ConfigureRootCauseAnalysisStep() {
@@ -30,7 +39,10 @@ export function ConfigureRootCauseAnalysisStep() {
     selectedRootCauseAnalysisRepositories,
     repositoryProjectMapping,
     changeRepositoryProjectMapping,
+    changeRootCauseAnalysisRepository,
+    addRootCauseAnalysisRepository,
     addRepositoryProjectMappings,
+    repositories,
   } = useSeerOnboardingContext();
 
   const {
@@ -83,6 +95,30 @@ export function ConfigureRootCauseAnalysisStep() {
       changeRepositoryProjectMapping(repoId, index, newValue);
     },
     [changeRepositoryProjectMapping, repositoryProjectMapping]
+  );
+
+  const availableRepositories = useMemo(() => {
+    return (
+      repositories?.filter(
+        repo =>
+          !selectedRootCauseAnalysisRepositories.some(selected => selected.id === repo.id)
+      ) ?? []
+    );
+  }, [repositories, selectedRootCauseAnalysisRepositories]);
+
+  const repositoryOptions = useMemo(() => {
+    return availableRepositories.map(repo => ({
+      value: repo.id,
+      label: repo.name,
+      textValue: repo.name,
+    }));
+  }, [availableRepositories]);
+
+  const handleAddRepository = useCallback(
+    (option: SelectOption<string>) => {
+      addRootCauseAnalysisRepository(option.value);
+    },
+    [addRootCauseAnalysisRepository]
   );
 
   const isFinishDisabled = useMemo(() => {
@@ -138,11 +174,31 @@ export function ConfigureRootCauseAnalysisStep() {
             </Field>
 
             {isProjectsLoaded && !isProjectsFetching ? (
-              <RepositoryToProjectConfiguration
-                isPending={isCodeMappingsLoading}
-                projects={projects}
-                onChange={handleRepositoryProjectMappingsChange}
-              />
+              <Fragment>
+                <RepositoryToProjectConfiguration
+                  isPending={isCodeMappingsLoading}
+                  projects={projects}
+                  onChange={handleRepositoryProjectMappingsChange}
+                  onChangeRepository={changeRootCauseAnalysisRepository}
+                />
+                {availableRepositories.length > 0 && (
+                  <AddRepoRow>
+                    <CompactSelect
+                      size="sm"
+                      searchable
+                      value={undefined}
+                      strategy="fixed"
+                      triggerProps={{
+                        icon: <IconAdd />,
+                        children: t('Add Repository'),
+                      }}
+                      onChange={handleAddRepository}
+                      options={repositoryOptions}
+                      menuTitle={t('Select Repository')}
+                    />
+                  </AddRepoRow>
+                )}
+              </Fragment>
             ) : (
               <Flex direction="column" gap="md" padding="md">
                 {selectedRootCauseAnalysisRepositories.map(repository => (
@@ -172,18 +228,7 @@ export function ConfigureRootCauseAnalysisStep() {
   );
 }
 
-const Field = styled(PanelItem)`
-  align-items: start;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.xl};
-`;
-
-const FieldLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const FieldDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  line-height: 1.4;
+const AddRepoRow = styled(PanelItem)`
+  align-items: center;
+  justify-content: flex-end;
 `;

@@ -21,14 +21,6 @@ UNSUPPORTED_FRAME_FILENAMES = [
     "<anonymous>",
     "<frozen importlib._bootstrap>",
     "[native code]",
-    "O$t",
-    "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
-    # Top level files
-    "README",  # top level file
-    "/gtm.js",  # Rejected because it's a top level file and not because it has a backslash
-    "ssl.py",
-    "initialization.dart",
-    "backburner.js",
 ]
 
 # Files with "http" substring that should be ACCEPTED
@@ -42,7 +34,9 @@ LEGITIMATE_HTTP_FILENAMES = [
 ]
 
 NO_EXTENSION_FRAME_FILENAMES = [
-    "/foo/bar/baz",  # no extension
+    "/foo/bar/baz",
+    "README",
+    "O$t",
 ]
 
 

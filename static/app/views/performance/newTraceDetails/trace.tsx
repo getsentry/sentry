@@ -914,7 +914,7 @@ const TraceStylingWrapper = styled('div')`
     position: absolute;
     font-size: 10px;
     font-weight: ${p => p.theme.fontWeight.bold};
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     background-color: ${p => p.theme.background};
     border-radius: 100px;
     border: 1px solid ${p => p.theme.border};
@@ -1006,7 +1006,7 @@ const TraceStylingWrapper = styled('div')`
       background: repeating-linear-gradient(
           to bottom,
           transparent 0 4px,
-          ${p => p.theme.textColor} 4px 8px
+          ${p => p.theme.tokens.content.primary} 4px 8px
         )
         80%/2px 100% no-repeat;
 

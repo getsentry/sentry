@@ -52,7 +52,7 @@ export default Time;
 
 const Wrapper = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Title = styled('div')`

@@ -1,4 +1,5 @@
 import {createContext, useCallback, useContext, useMemo, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import type {
@@ -12,11 +13,13 @@ import {useIntegrationProvider} from './useIntegrationProvider';
 
 interface SeerOnboardingContextProps {
   addRepositoryProjectMappings: (additionalMappings: Record<string, string[]>) => void;
+  addRootCauseAnalysisRepository: (repoId: string) => void;
   changeRepositoryProjectMapping: (
     repoId: string,
     index: number,
     newValue: string | undefined
   ) => void;
+  changeRootCauseAnalysisRepository: (oldRepoId: string, newRepoId: string) => void;
   installationData: OrganizationIntegration[] | undefined;
   isInstallationPending: boolean;
   isProviderPending: boolean;
@@ -43,8 +46,10 @@ const SeerOnboardingContext = createContext<SeerOnboardingContextProps>({
   selectedRootCauseAnalysisRepositories: [],
   repositoryProjectMapping: {},
   changeRepositoryProjectMapping: () => {},
+  changeRootCauseAnalysisRepository: () => {},
   setCodeReviewRepositories: () => {},
   removeRootCauseAnalysisRepository: () => {},
+  addRootCauseAnalysisRepository: () => {},
   addRepositoryProjectMappings: () => {},
 });
 
@@ -112,6 +117,68 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
     [setRootCauseAnalysisRepositories]
   );
 
+  const changeRootCauseAnalysisRepository = useCallback(
+    (oldRepoId: string, newRepoId: string) => {
+      const newRepo = repositoriesMap[newRepoId];
+      if (!newRepo) {
+        return;
+      }
+
+      let shouldUpdateMappings = false;
+
+      // The updater function below executes synchronously, so shouldUpdateMappings
+      // will be set before we check it. Only the re-render is async.
+      setRootCauseAnalysisRepositories(prev => {
+        // Check if the new repository is already selected using current state
+        const isDuplicate = prev.some(
+          repo => repo.id === newRepoId && repo.id !== oldRepoId
+        );
+        if (isDuplicate) {
+          return prev;
+        }
+
+        // Mark that we should update mappings (executes synchronously)
+        shouldUpdateMappings = true;
+
+        // Replace the old repository with the new one
+        return prev.map(repo => (repo.id === oldRepoId ? newRepo : repo));
+      });
+
+      // Only clear project mappings if the repository was actually changed
+      if (shouldUpdateMappings) {
+        setRepositoryProjectMapping(prev => {
+          const newMappings = {...prev};
+          delete newMappings[oldRepoId];
+          return newMappings;
+        });
+      }
+    },
+    [repositoriesMap]
+  );
+
+  const addRootCauseAnalysisRepository = useCallback(
+    (repoId: string) => {
+      const repo = repositoriesMap[repoId];
+      if (!repo) {
+        Sentry.logger.warn(
+          'SeerOnboarding: Repository not found when adding new repository',
+          {repoId}
+        );
+        return;
+      }
+
+      // Add repository to the list
+      setRootCauseAnalysisRepositories(prev => [...prev, repo]);
+
+      // Initialize empty project mapping
+      setRepositoryProjectMapping(prev => ({
+        ...prev,
+        [repoId]: [],
+      }));
+    },
+    [repositoriesMap]
+  );
+
   const addRepositoryProjectMappings = useCallback(
     (additionalMappings: Record<string, string[]>) => {
       setRepositoryProjectMapping(prev => {
@@ -120,8 +187,8 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
           ...Object.fromEntries(
             Object.entries(additionalMappings)
               .map(([repoId, projects]) => {
-                // Don't overwrite existing mappings
-                if (prev[repoId]) {
+                // Don't overwrite existing mappings that have projects
+                if (prev[repoId] && prev[repoId].length > 0) {
                   return null;
                 }
                 return [repoId, projects];
@@ -184,6 +251,8 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         setCodeReviewRepositories,
         selectedRootCauseAnalysisRepositories,
         removeRootCauseAnalysisRepository,
+        changeRootCauseAnalysisRepository,
+        addRootCauseAnalysisRepository,
         repositoryProjectMapping,
         addRepositoryProjectMappings,
         changeRepositoryProjectMapping,
