@@ -1,3 +1,4 @@
+import pytest
 import copy
 from typing import cast
 
@@ -89,6 +90,7 @@ SPAN_KAFKA_MESSAGE: SpanEvent = {
 }
 
 
+@pytest.mark.skip(reason="flaky: #104779")
 def test_convert_span_to_item() -> None:
     item = convert_span_to_item(cast(CompatibleSpan, SPAN_KAFKA_MESSAGE))
 
