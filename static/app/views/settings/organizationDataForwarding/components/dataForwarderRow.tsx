@@ -7,7 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import Access from 'sentry/components/acl/access';
 import {IconDelete, IconEdit} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -77,7 +77,7 @@ function getDataForwarderProjectText(dataForwarder: DataForwarder) {
   const count = dataForwarder.enrolledProjects.length;
   const projectText =
     count > 0
-      ? t('%s for %s projects', action, count)
+      ? `${t('%s for', action)} ${tn('%s project', '%s projects', count)}`
       : t('Not connected to any projects');
   return dataForwarder.enrollNewProjects
     ? projectText.concat(t(', will auto-enroll new projects'))
