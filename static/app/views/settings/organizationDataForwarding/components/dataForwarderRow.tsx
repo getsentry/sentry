@@ -5,8 +5,9 @@ import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import Access from 'sentry/components/acl/access';
 import {IconDelete, IconEdit} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,7 +17,13 @@ import {
   type DataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
-export function DataForwarderRow({dataForwarder}: {dataForwarder: DataForwarder}) {
+export function DataForwarderRow({
+  dataForwarder,
+  disabled,
+}: {
+  dataForwarder: DataForwarder;
+  disabled: boolean;
+}) {
   const organization = useOrganization();
   return (
     <Container padding="xl" border="muted" radius="md" key={dataForwarder.id}>
@@ -44,16 +51,21 @@ export function DataForwarderRow({dataForwarder}: {dataForwarder: DataForwarder}
             onClick={() => {
               trackAnalytics('data_forwarding.edit_clicked', {organization});
             }}
+            disabled={disabled}
           >
             {t('Edit')}
           </LinkButton>
-          <DataForwarderDeleteConfirm dataForwarder={dataForwarder}>
-            <Button
-              title={t('Delete Data Forwarder')}
-              aria-label={t('Delete Data Forwarder')}
-              icon={<IconDelete />}
-            />
-          </DataForwarderDeleteConfirm>
+          <Access access={['org:write']}>
+            <DataForwarderDeleteConfirm dataForwarder={dataForwarder}>
+              <Button
+                title={t('Delete Data Forwarder')}
+                aria-label={t('Delete Data Forwarder')}
+                icon={<IconDelete />}
+                // Deletions are always permitted, even if you lose the feature.
+                disabled={false}
+              />
+            </DataForwarderDeleteConfirm>
+          </Access>
         </ButtonBar>
       </Grid>
     </Container>
@@ -65,7 +77,7 @@ function getDataForwarderProjectText(dataForwarder: DataForwarder) {
   const count = dataForwarder.enrolledProjects.length;
   const projectText =
     count > 0
-      ? t('%s for %s projects', action, count)
+      ? `${t('%s for', action)} ${tn('%s project', '%s projects', count)}`
       : t('Not connected to any projects');
   return dataForwarder.enrollNewProjects
     ? projectText.concat(t(', will auto-enroll new projects'))
