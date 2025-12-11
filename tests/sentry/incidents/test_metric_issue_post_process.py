@@ -1,7 +1,5 @@
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from sentry.eventstream.types import EventStreamEventType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_consumer import update_status
@@ -10,7 +8,6 @@ from sentry.models.group import Group
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.services import eventstore
 from sentry.tasks.post_process import post_process_group
-from sentry.testutils.helpers.features import Feature
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_condition import Condition
@@ -24,16 +21,6 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
     def setUp(self) -> None:
         super().setUp()
         self.critical_action, self.warning_action = self.create_metric_issue_workflow(self.detector)
-
-    @pytest.fixture(autouse=True)
-    def with_feature_flags(self):
-        with Feature(
-            {
-                "organizations:issue-metric-issue-ingest": True,
-                "organizations:issue-metric-issue-post-process-group": True,
-            }
-        ):
-            yield
 
     def create_metric_issue_workflow(self, detector: Detector):
         # create the canonical workflow for a metric issue

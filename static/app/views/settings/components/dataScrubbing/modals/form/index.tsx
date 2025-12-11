@@ -472,7 +472,7 @@ const SourceGroup = styled('div')<{isExpanded?: boolean}>`
   ${p =>
     p.isExpanded &&
     css`
-      border-radius: ${p.theme.borderRadius};
+      border-radius: ${p.theme.radius.md};
       border: 1px solid ${p.theme.border};
       box-shadow: ${p.theme.dropShadowMedium};
       margin: ${space(2)} 0 ${space(3)} 0;
@@ -502,7 +502,7 @@ const Toggle = styled(Button)`
   color: ${p => p.theme.subText};
   &:hover,
   &:focus {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
   > *:first-child {
     display: grid;

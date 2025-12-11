@@ -182,9 +182,9 @@ const Header = styled(Sticky)`
   grid-template-columns: subgrid;
 
   z-index: 1;
-  background: ${p => p.theme.background};
-  border-top-left-radius: ${p => p.theme.borderRadius};
-  border-top-right-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.tokens.background.primary};
+  border-top-left-radius: ${p => p.theme.radius.md};
+  border-top-right-radius: ${p => p.theme.radius.md};
   box-shadow: 0 1px ${p => p.theme.translucentBorder};
 
   &[data-stuck] {

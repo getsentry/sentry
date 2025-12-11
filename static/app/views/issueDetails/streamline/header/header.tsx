@@ -297,7 +297,7 @@ export default function StreamlinedGroupHeader({
 }
 
 const Header = styled('header')`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
 `;
 
@@ -355,7 +355,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
   position: relative;
   transition: background 0.3s ease-in-out;
-  background: ${p => (p.isComplete ? 'transparent' : p.theme.background)};
+  background: ${p => (p.isComplete ? 'transparent' : p.theme.tokens.background.primary)};
   &:before {
     z-index: -1;
     position: absolute;
@@ -363,7 +363,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     content: '';
     background: linear-gradient(
       to right,
-      ${p => p.theme.background},
+      ${p => p.theme.tokens.background.primary},
       ${p => Color(p.theme.success).lighten(0.5).alpha(0.15).string()}
     );
   }

@@ -218,14 +218,14 @@ const getInputStyles = ({
   ${leadingWidth &&
   css`
     padding-left: calc(
-      ${theme.formPadding[size ?? 'md'].paddingLeft}px * 1.5 + ${leadingWidth}px
+      ${theme.form[size ?? 'md'].paddingLeft}px * 1.5 + ${leadingWidth}px
     );
   `}
 
   ${trailingWidth &&
   css`
     padding-right: calc(
-      ${theme.formPadding[size ?? 'md'].paddingRight}px * 1.5 + ${trailingWidth}px
+      ${theme.form[size ?? 'md'].paddingRight}px * 1.5 + ${trailingWidth}px
     );
   `}
 `;
@@ -249,7 +249,7 @@ const InputLeadingItemsWrap = withChonk(
     size: NonNullable<InputStyleProps['size']>;
     disablePointerEvents?: boolean;
   }>`
-    left: ${p => p.theme.formPadding[p.size].paddingLeft + 1}px;
+    left: ${p => p.theme.form[p.size].paddingLeft + 1}px;
     ${p => p.disablePointerEvents && `pointer-events: none;`}
   `,
   ChonkStyledLeadingItemsWrap
@@ -260,7 +260,7 @@ const InputTrailingItemsWrap = withChonk(
     size: NonNullable<InputStyleProps['size']>;
     disablePointerEvents?: boolean;
   }>`
-    right: ${p => p.theme.formPadding[p.size].paddingRight * 0.75 + 1}px;
+    right: ${p => p.theme.form[p.size].paddingRight * 0.75 + 1}px;
     ${p => p.disablePointerEvents && `pointer-events: none;`}
   `,
   ChonkStyledTrailingItemsWrap

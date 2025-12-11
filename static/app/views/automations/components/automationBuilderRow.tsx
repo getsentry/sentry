@@ -42,7 +42,7 @@ export default function AutomationBuilderRow({
 const RowContainer = styled('div')<{incompatible?: boolean}>`
   display: flex;
   background-color: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px ${p => p.theme.innerBorder} solid;
   border-color: ${p => (p.incompatible ? p.theme.dangerFocus : 'none')};
   position: relative;

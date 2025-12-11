@@ -180,7 +180,7 @@ export function populateChartData(
 
       // below are the dropped outcome cases
       if (['usage_exceeded', 'grace_period'].includes(point.by.reason)) {
-        // combined usage_exceeded and grace_period into over quota
+        // combined usage_exceeded and grace_period into over quota (grace_period kept for historical data)
         if (dateIndex >= overQuota!.data.length) {
           overQuota!.data.push(dataObject);
           return;

@@ -275,7 +275,7 @@ const ValueMultiLineString = styled('pre')`
   border-radius: 4px;
   padding: 2px 4px;
   background-color: transparent;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const ValueStrippedString = styled('span')`

@@ -15,7 +15,6 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import {useUpdateProjectAutomation} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectAutomation';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
 import {
@@ -32,7 +31,8 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {FieldKey} from 'sentry/utils/fields';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
@@ -98,7 +98,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     codeMappingRepos,
   } = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
-  const {mutateAsync: updateProjectAutomation} = useUpdateProjectAutomation(project);
+  const {mutateAsync: updateProjectAutomation} = useUpdateProject(project);
   const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
   const {starredViews: views} = useStarredIssueViews();
 
@@ -671,7 +671,7 @@ const CollapsedSummaryCard = styled('div')`
   cursor: pointer;
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 500;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   transition: box-shadow 0.2s;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   &:hover {
