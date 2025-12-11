@@ -193,9 +193,9 @@ def _add_segment_name(segment: CompatibleSpan, spans: Sequence[CompatibleSpan]) 
         return
 
     for span in spans:
-        if not attribute_value(span, "sentry.segment.name"):
+        if not attribute_value(span, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME):
             span["attributes"] = span.get("attributes") or {}
-            span["attributes"]["sentry.segment.name"] = {  # type: ignore[index]
+            span["attributes"][ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME] = {  # type: ignore[index]
                 "type": "string",
                 "value": segment_name,
             }
@@ -217,9 +217,9 @@ def _create_models(segment: CompatibleSpan, project: Project) -> None:
     Creates the Environment and Release models, along with the necessary
     relationships between them and the Project model.
     """
-    environment_name = attribute_value(segment, "sentry.environment")
-    release_name = attribute_value(segment, "sentry.release")
-    dist_name = attribute_value(segment, "sentry.dist")
+    environment_name = attribute_value(segment, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT)
+    release_name = attribute_value(segment, ATTRIBUTE_NAMES.SENTRY_RELEASE)
+    dist_name = attribute_value(segment, ATTRIBUTE_NAMES.SENTRY_DIST)
     date = to_datetime(segment["end_timestamp"])
 
     environment = Environment.get_or_create(project=project, name=environment_name)
@@ -312,9 +312,9 @@ def _record_signals(
 ) -> None:
     record_generic_event_processed(
         project,
-        platform=attribute_value(segment_span, "sentry.platform"),
-        release=attribute_value(segment_span, "sentry.release"),
-        environment=attribute_value(segment_span, "sentry.environment"),
+        platform=attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_PLATFORM),
+        release=attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_RELEASE),
+        environment=attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT),
     )
 
     # signal expects an event like object with a datetime attribute
