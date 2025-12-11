@@ -84,12 +84,18 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   },
 
   get_issue_details: (args, isLoading) => {
-    const issueId = args.issue_id || '';
-    const selectedEvent = args.selected_event;
+    const issueId = args.issue_id;
+    const selectedEvent = args.selected_event; // "recommended" or event_id
+
+    if (selectedEvent === 'recommended') {
+      return isLoading
+        ? `Inspecting issue ${issueId} and recommended event...`
+        : `Inspected issue ${issueId} and recommended event`;
+    }
     if (selectedEvent) {
       return isLoading
-        ? `Inspecting issue ${issueId} (${selectedEvent} event)...`
-        : `Inspected issue ${issueId} (${selectedEvent} event)`;
+        ? `Inspecting event ${selectedEvent}...`
+        : `Inspected event ${selectedEvent}`;
     }
     return isLoading ? `Inspecting issue ${issueId}...` : `Inspected issue ${issueId}`;
   },
