@@ -396,8 +396,9 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('option', {name: 'p50'}));
 
     // Indicate that the column selection is open, and multiple options are available
-    const option = screen.getByRole('option', {name: 'transaction.duration'});
-    expect(option).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: 'transaction.duration'})
+    ).toBeInTheDocument();
     expect(screen.getAllByRole('option').length).toBeGreaterThan(1);
   });
 
