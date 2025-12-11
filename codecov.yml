@@ -54,7 +54,7 @@ flags:
     # FE uploads 4 coverage reports. This property ensures codecov waits
     # for all reports to be uploaded before creating a GitHub status check.
     # NOTE: If you change this, make sure to change `comment.after_n_builds` below as well.
-    after_n_builds: 4
+    after_n_builds: 8
   backend:
     paths:
       - '**/*.py'
