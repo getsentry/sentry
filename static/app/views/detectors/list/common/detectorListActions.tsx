@@ -51,7 +51,9 @@ export function DetectorListActions({detectorType, children}: DetectorListAction
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const createPath = makeMonitorCreatePathname(organization.slug);
+  const createPath = detectorType
+    ? `${makeMonitorCreatePathname(organization.slug)}settings/`
+    : makeMonitorCreatePathname(organization.slug);
   const project = selection.projects.find(pid => pid !== ALL_ACCESS_PROJECTS);
   const createQuery = detectorType ? {project, detectorType} : {project};
   const canCreateDetector = useCanCreateDetector(detectorType);
