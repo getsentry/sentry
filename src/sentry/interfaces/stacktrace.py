@@ -161,6 +161,7 @@ class Frame(Interface):
             "platform",
             "post_context",
             "pre_context",
+            "revision",
             "source_link",
             "symbol",
             "symbol_addr",
@@ -198,6 +199,7 @@ class Frame(Interface):
                 "lineno": self.lineno,
                 "colno": self.colno,
                 "lock": self.lock,
+                "revision": self.revision or None,
                 "source_link": self.source_link or None,
             }
         )
@@ -233,6 +235,7 @@ class Frame(Interface):
             "trust": self.trust,
             "errors": self.errors,
             "lock": self.lock,
+            "revision": self.revision,
             "sourceLink": source_link,
         }
 
@@ -291,6 +294,7 @@ class Frame(Interface):
             "trust": meta.get("trust"),
             "errors": meta.get("errors"),
             "lock": meta.get("lock"),
+            "revision": meta.get("revision"),
             "sourceLink": meta.get("source_link"),
         }
 

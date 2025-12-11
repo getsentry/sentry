@@ -113,6 +113,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             path="sentry/recent.py",
             ref="master",
             code_mapping=self.code_mapping,
+            revision=None,
             lineno=30,
             commit=CommitInfo(
                 commitId="commit-id-recent",
@@ -127,6 +128,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             path="sentry/recent.py",
             ref="master",
             code_mapping=self.code_mapping,
+            revision=None,
             lineno=30,
             commit=CommitInfo(
                 commitId="commit-id-old",
@@ -141,6 +143,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             path="sentry/models/release.py",
             ref="master",
             code_mapping=self.code_mapping,
+            revision=None,
             lineno=39,
             commit=CommitInfo(
                 commitId="existing-commit",
@@ -155,6 +158,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             path="sentry/not_existing.py",
             ref="master",
             code_mapping=self.code_mapping,
+            revision=None,
             lineno=40,
             commit=CommitInfo(
                 commitId="commit-id",
@@ -413,6 +417,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             path="sentry/external.py",
             ref="master",
             code_mapping=self.code_mapping,
+            revision=None,
             lineno=50,
             commit=CommitInfo(
                 commitId="external-commit-id",
@@ -561,6 +566,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                     ref="master",
                     repo=code_mapping_defined_stack_root.repository,
                     code_mapping=code_mapping_defined_stack_root,
+                    revision=None,
                 )
             ],
             extra={
@@ -952,6 +958,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                     ref="master",
                     repo=self.repo,
                     code_mapping=self.code_mapping,
+                    revision=None,
                 ),
             ],
             extra={
@@ -1015,6 +1022,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             path="sentry/models/release.py",
             ref="master",
             code_mapping=self.code_mapping,
+            revision=None,
             lineno=39,
             commit=CommitInfo(
                 commitId="asdfwreqr",

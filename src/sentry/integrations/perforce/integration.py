@@ -210,6 +210,22 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
 
         return False
 
+    def get_stacktrace_link(
+        self, repo: Repository, filepath: str, default: str, version: str | None
+    ) -> str | None:
+        """
+        Get stacktrace link for Perforce file.
+
+        For Perforce, version represents the file revision number.
+        We append it to the filepath using Perforce's #revision syntax.
+        """
+        # Append version/revision to filepath if provided
+        if version:
+            filepath = f"{filepath}#{version}"
+
+        # Use parent implementation with the modified filepath
+        return self.check_file(repo, filepath, default)
+
     def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
         """
         Check if a file exists in the Perforce depot and return the URL.

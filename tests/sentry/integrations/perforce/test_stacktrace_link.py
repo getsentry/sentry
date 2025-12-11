@@ -109,6 +109,33 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         assert result["error"] is None
         assert result["src_path"] == "game/src/main.cpp#1"
 
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_get_stacktrace_config_with_revision_field(self, mock_check_file):
+        """Test stacktrace link generation using separate revision field from symcache"""
+        mock_check_file.return_value = {"depotFile": "//depot/game/src/main.cpp"}
+        ctx: StacktraceLinkContext = {
+            "file": "depot/game/src/main.cpp",
+            "filename": "depot/game/src/main.cpp",
+            "abs_path": "depot/game/src/main.cpp",
+            "platform": "native",
+            "sdk_name": "sentry.native",
+            "commit_id": None,
+            "group_id": None,
+            "line_no": None,
+            "module": None,
+            "package": None,
+            "revision": "12345",  # Revision from symcache as separate field
+        }
+
+        result = get_stacktrace_config([self.code_mapping], ctx)
+
+        assert result["source_url"] is not None
+        assert isinstance(result["source_url"], str)
+        # Verify revision is included in URL
+        assert "depot/game/src/main.cpp" in result["source_url"]
+        assert "#12345" in result["source_url"] or "12345" in result["source_url"]
+        assert result["error"] is None
+
     def test_get_stacktrace_config_no_matching_code_mapping(self):
         """Test stacktrace link when no code mapping matches"""
         ctx: StacktraceLinkContext = {

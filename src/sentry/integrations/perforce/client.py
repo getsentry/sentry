@@ -507,6 +507,11 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                     # already part of the depot path we get from stacktrace (SourceLineInfo)
                     depot_path = self.build_depot_path(file.repo, file.path, None)
 
+                    # If revision is available from symcache, append it to depot path
+                    # This allows us to get the exact changelist that created this revision
+                    if file.revision:
+                        depot_path = f"{depot_path}#{file.revision}"
+
                     # Use p4 changes -m 1 -l to get most recent change for this file
                     # -m 1: limit to 1 result (most recent)
                     # -l: include full changelist description
@@ -554,6 +559,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                             ref=file.ref,
                             repo=file.repo,
                             code_mapping=file.code_mapping,
+                            revision=file.revision,
                             commit=commit,
                         )
                         blames.append(blame_info)

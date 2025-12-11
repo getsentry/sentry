@@ -370,6 +370,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             ref="master",
             repo=self.repo,
             code_mapping=None,  # type: ignore[arg-type]
+            revision=None,
         )
         self.file_2 = SourceLineInfo(
             path="src/sentry/integrations/github/client_1.py",
@@ -377,6 +378,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             ref="master",
             repo=self.repo,
             code_mapping=None,  # type: ignore[arg-type]
+            revision=None,
         )
         self.file_3 = SourceLineInfo(
             path="src/sentry/integrations/github/client_2.py",
@@ -384,6 +386,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             ref="master",
             repo=self.repo,
             code_mapping=None,  # type: ignore[arg-type]
+            revision=None,
         )
         self.file_4 = SourceLineInfo(
             path="src/sentry/integrations/github/client_3.py",
@@ -391,6 +394,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             ref="master",
             repo=self.repo,
             code_mapping=None,  # type: ignore[arg-type]
+            revision=None,
         )
         self.blame_1 = FileBlameInfo(
             **asdict(self.file_1),

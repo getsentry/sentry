@@ -391,6 +391,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             ref="master",
             repo=repo,
             code_mapping=None,  # type: ignore[arg-type]
+            revision=None,
         )
 
         responses.add(

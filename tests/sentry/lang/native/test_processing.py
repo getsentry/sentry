@@ -13,6 +13,7 @@ import pytest
 
 from sentry.lang.native.processing import (
     ELECTRON_FIRST_MODULE_REWRITE_RULES,
+    _merge_frame,
     _merge_image,
     get_frames_for_symbolication,
     process_native_stacktraces,
@@ -415,3 +416,44 @@ def test_il2cpp_symbolication(mock_symbolicator, default_project) -> None:
         == "/Users/swatinem/Coding/sentry-unity/samples/unity-of-bugs/Assets/Scripts/BugFarmButtons.cs"
     )
     assert frame["lineno"] == 51
+
+
+def test_merge_frame_with_revision() -> None:
+    """Test that _merge_frame correctly extracts and merges the revision field from symbolicator."""
+    new_frame: dict[str, Any] = {}
+    symbolicated = {
+        "function": "main",
+        "abs_path": "//depot/main/src/file.cpp",
+        "filename": "file.cpp",
+        "lineno": 42,
+        "revision": "12345",
+        "source_link": "https://perforce.example.com/file.cpp#12345",
+    }
+
+    _merge_frame(new_frame, symbolicated, platform="native")
+
+    assert new_frame["function"] == "main"
+    assert new_frame["abs_path"] == "//depot/main/src/file.cpp"
+    assert new_frame["filename"] == "file.cpp"
+    assert new_frame["lineno"] == 42
+    assert new_frame["revision"] == "12345"
+    assert new_frame["source_link"] == "https://perforce.example.com/file.cpp#12345"
+
+
+def test_merge_frame_without_revision() -> None:
+    """Test that _merge_frame works correctly when revision field is not present."""
+    new_frame: dict[str, Any] = {}
+    symbolicated = {
+        "function": "main",
+        "abs_path": "/path/to/file.cpp",
+        "filename": "file.cpp",
+        "lineno": 42,
+    }
+
+    _merge_frame(new_frame, symbolicated, platform="native")
+
+    assert new_frame["function"] == "main"
+    assert new_frame["abs_path"] == "/path/to/file.cpp"
+    assert new_frame["filename"] == "file.cpp"
+    assert new_frame["lineno"] == 42
+    assert "revision" not in new_frame

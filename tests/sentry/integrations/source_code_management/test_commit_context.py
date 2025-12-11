@@ -43,7 +43,12 @@ class TestCommitContextIntegrationSLO(TestCase):
             name="example/repo",
         )
         self.source_line = SourceLineInfo(
-            lineno=10, path="src/file.py", ref="main", repo=self.repo, code_mapping=Mock()
+            lineno=10,
+            path="src/file.py",
+            ref="main",
+            repo=self.repo,
+            code_mapping=Mock(),
+            revision=None,
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

@@ -36,6 +36,7 @@ class StacktraceLinkContext(TypedDict):
     module: str | None
     package: str | None
     sdk_name: str | None
+    revision: str | None
 
 
 def generate_context(parameters: QueryDict) -> StacktraceLinkContext:
@@ -51,6 +52,7 @@ def generate_context(parameters: QueryDict) -> StacktraceLinkContext:
         "package": parameters.get("package"),
         "line_no": parameters.get("lineNo"),
         "group_id": parameters.get("groupId"),
+        "revision": parameters.get("revision"),
     }
 
 
