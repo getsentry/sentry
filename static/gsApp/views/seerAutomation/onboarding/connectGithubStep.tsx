@@ -19,7 +19,7 @@ export function ConnectGithubStep() {
           <PanelBody withPadding>
             <p>
               {t(
-                'In order to get the most out of Sentry and use Seer we will need to access your code repositories in GitHub. (We do not currently support Gitlab, Bitbucket, or others)'
+                'In order to get the most out of Sentry and to use Seer, we will need to access your code repositories in GitHub. (We do not currently support Gitlab, Bitbucket, or others) '
               )}
             </p>
             <ActionSection>

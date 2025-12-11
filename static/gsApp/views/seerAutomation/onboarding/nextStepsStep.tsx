@@ -36,9 +36,9 @@ export function NextStepsStep() {
                 )}
               </p>
               <NextStepsList>
-                <li>Do AI Code Review</li>
-                <li>Perform root cause analysis on your issues and propose fixes</li>
-                <li>Make PRs on new issues</li>
+                <li>Review your PRs and catch bugs before you ship them to production</li>
+                <li>Perform root cause analysis on your issues and propose solutions</li>
+                <li>Create PRs to fix issues</li>
               </NextStepsList>
               <Text>
                 {tct(
