@@ -13,12 +13,15 @@ import {
   GuidedSteps,
   useGuidedStepsContext,
 } from 'sentry/components/guidedSteps/guidedSteps';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUpdateOrganization} from 'sentry/utils/useUpdateOrganization';
 
-import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
+import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
+import {useUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useUpdateRepositorySettings';
+
 import {
   Field,
   FieldDescription,
@@ -31,52 +34,132 @@ import {RepositorySelector} from './repositorySelector';
 
 // This is the max # of repos that we will allow to be pre-selected.
 const MAX_REPOSITORIES_TO_PRESELECT = 10;
+const DEFAULT_CODE_REVIEW_TRIGGERS = [
+  'on_command_phrase',
+  'on_new_commit',
+  'on_ready_for_review',
+];
 
 export function ConfigureCodeReviewStep() {
   const organization = useOrganization();
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
-  const {clearRootCauseAnalysisRepositories, selectedCodeReviewRepositories} =
-    useSeerOnboardingContext();
+  const {
+    clearRootCauseAnalysisRepositories,
+    selectedCodeReviewRepositories,
+    unselectedCodeReviewRepositories,
+  } = useSeerOnboardingContext();
+
   const [enableCodeReview, setEnableCodeReview] = useState(
     organization.autoEnableCodeReview ?? true
   );
 
   const {mutate: updateOrganization} = useUpdateOrganization(organization);
 
-  const handleNextStep = useCallback(() => {
-    if (selectedCodeReviewRepositories.length > MAX_REPOSITORIES_TO_PRESELECT) {
-      // When this happens, we clear the pre-populated repositories. Otherwise,
-      // the user will have an overwhelming number of repositories to map.
-      clearRootCauseAnalysisRepositories();
-    }
+  const {mutate: updateRepositorySettings, isPending: isUpdateRepositorySettingsPending} =
+    useUpdateRepositorySettings();
 
-    if (enableCodeReview === organization.autoEnableCodeReview) {
-      // No update needed, proceed to next step
-      setCurrentStep(currentStep + 1);
-    } else {
-      updateOrganization(
-        {
-          autoEnableCodeReview: enableCodeReview,
-        },
-        {
-          onSuccess: () => {
-            // TODO: Save selectedCodeReviewRepositories to backend
-            setCurrentStep(currentStep + 1);
-          },
-          onError: () => {
-            addErrorMessage(t('Failed to enable AI Code Review'));
-          },
+  const handleNextStep = useCallback(() => {
+    const updateOrganizationEnabledCodeReview = () =>
+      new Promise<void>((resolve, reject) => {
+        if (enableCodeReview === organization.autoEnableCodeReview) {
+          // No update needed, just resolve
+          resolve();
+          return;
         }
-      );
-    }
+        updateOrganization(
+          {
+            autoEnableCodeReview: enableCodeReview,
+          },
+          {
+            onSuccess: () => {
+              resolve();
+            },
+            onError: () => {
+              reject(new Error(t('Failed to enable AI Code Review')));
+            },
+          }
+        );
+      });
+    const updateEnabledCodeReview = () =>
+      new Promise<void>((resolve, reject) => {
+        if (!enableCodeReview) {
+          // Nothing to do, just resolve
+          resolve();
+          return;
+        }
+
+        updateRepositorySettings(
+          {
+            codeReviewTriggers: DEFAULT_CODE_REVIEW_TRIGGERS,
+            enabledCodeReview: enableCodeReview,
+            repositoryIds: selectedCodeReviewRepositories.map(repo => repo.id),
+          },
+          {
+            onSuccess: () => {
+              resolve();
+            },
+            onError: () => {
+              reject(new Error(t('Failed to enable AI Code Review')));
+            },
+          }
+        );
+      });
+
+    // This handles the case where we load selected repositories from the server, but the user unselects some of them.
+    // Note: this will also write the preference for repos that previously had no setting on the server, was selected, and then unselected.
+    const updateUnselectedRepositories = () =>
+      new Promise<void>((resolve, reject) => {
+        if (unselectedCodeReviewRepositories.length === 0) {
+          // Nothing to do, just resolve
+          resolve();
+          return;
+        }
+
+        updateRepositorySettings(
+          {
+            codeReviewTriggers: [],
+            enabledCodeReview: false,
+            repositoryIds: unselectedCodeReviewRepositories.map(repo => repo.id),
+          },
+          {
+            onSuccess: () => {
+              resolve();
+            },
+            onError: () => {
+              reject(new Error(t('Failed to disable AI Code Review')));
+            },
+          }
+        );
+      });
+
+    updateEnabledCodeReview();
+
+    // Only the latest call to mutation will resolve, so we only check updateUnselectedRepositories
+    // We will have another promise here, so leaving this Promise.all for now
+    Promise.all([updateUnselectedRepositories(), updateOrganizationEnabledCodeReview()])
+      .then(() => {
+        if (selectedCodeReviewRepositories.length > MAX_REPOSITORIES_TO_PRESELECT) {
+          // When this happens, we clear the pre-populated repositories. Otherwise,
+          // the user will have an overwhelming number of repositories to map.
+          clearRootCauseAnalysisRepositories();
+        }
+        setCurrentStep(currentStep + 1);
+      })
+      .catch(() => {
+        addErrorMessage(
+          t('Failed to update AI Code Review settings, reload and try again')
+        );
+      });
   }, [
     clearRootCauseAnalysisRepositories,
-    selectedCodeReviewRepositories.length,
-    setCurrentStep,
-    currentStep,
+    selectedCodeReviewRepositories,
+    unselectedCodeReviewRepositories,
     enableCodeReview,
     organization.autoEnableCodeReview,
+    currentStep,
+    setCurrentStep,
     updateOrganization,
+    updateRepositorySettings,
   ]);
 
   return (
@@ -119,14 +202,18 @@ export function ConfigureCodeReviewStep() {
         </MaxWidthPanel>
 
         <GuidedSteps.ButtonWrapper>
-          <Button
-            size="md"
-            onClick={handleNextStep}
-            priority="primary"
-            aria-label={t('Next Step')}
-          >
-            {t('Next Step')}
-          </Button>
+          <Flex direction="row" gap="xl" align="center">
+            <Button
+              size="md"
+              disabled={isUpdateRepositorySettingsPending}
+              onClick={handleNextStep}
+              priority="primary"
+              aria-label={t('Next Step')}
+            >
+              {t('Next Step')}
+            </Button>
+            {isUpdateRepositorySettingsPending && <InlineLoadingIndicator size={20} />}
+          </Flex>
         </GuidedSteps.ButtonWrapper>
       </StepContentWithBackground>
     </Fragment>
@@ -136,4 +223,8 @@ export function ConfigureCodeReviewStep() {
 const StepContentWithBackground = styled(StepContent)`
   background: url(${configureCodeReviewImg}) no-repeat 638px 0;
   background-size: 213px 150px;
+`;
+
+const InlineLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
 `;

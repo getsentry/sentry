@@ -91,6 +91,18 @@ export interface RepositoryWithSettings extends Repository {
   enabledCodeReview: boolean;
 }
 /**
+ * Available only when calling API with `expand=settings` query parameter
+ */
+export interface RepositoryWithSettings extends Repository {
+  settings: null | {
+    codeReviewTriggers: Array<
+      'on_command_phrase' | 'on_new_commit' | 'on_ready_for_review'
+    >;
+    enabledCodeReview: boolean;
+  };
+}
+
+/**
  * Integration Repositories from OrganizationIntegrationReposEndpoint
  */
 export type IntegrationRepository = {
