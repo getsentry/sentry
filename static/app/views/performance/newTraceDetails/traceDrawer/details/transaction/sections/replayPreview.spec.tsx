@@ -63,7 +63,6 @@ describe('ReplayPreview', () => {
       }
     );
 
-    expect(screen.queryByText('Session Replay')).not.toBeInTheDocument();
     expect(container).toBeEmptyDOMElement();
   });
 

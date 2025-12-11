@@ -146,11 +146,9 @@ describe('GroupReplays', () => {
         initialRouterConfig,
       });
 
-      await waitFor(() => {
-        expect(
-          screen.getByText("You don't have access to this feature")
-        ).toBeInTheDocument();
-      });
+      expect(
+        await screen.findByText("You don't have access to this feature")
+      ).toBeInTheDocument();
     });
   });
 

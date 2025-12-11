@@ -162,12 +162,13 @@ describe('OrganizationMembershipSettings', () => {
     const organization = OrganizationFixture({
       features: ['invite-members', 'granular-replay-permissions'],
       access: ['org:write'],
+      hasGranularReplayPermissions: true,
     });
     render(getComponent(organization), {organization});
     await waitFor(() => expect(membersRequest).toHaveBeenCalled());
-    expect(
-      screen.getByRole('checkbox', {name: 'Restrict Replay Access'})
-    ).toBeInTheDocument();
+    const checkbox = screen.getByRole('checkbox', {name: 'Restrict Replay Access'});
+    expect(checkbox).toBeInTheDocument();
+    expect(checkbox).toBeEnabled();
   });
 
   it('disables restrict replay access if user does not have org:write access', async () => {
