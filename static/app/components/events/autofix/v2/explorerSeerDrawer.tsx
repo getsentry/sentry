@@ -31,6 +31,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
+import useOrganization from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
@@ -56,6 +57,7 @@ export function ExplorerSeerDrawer({
   event,
   aiConfig,
 }: ExplorerSeerDrawerProps) {
+  const organization = useOrganization();
   const {runState, isLoading, isPolling, startStep, createPR, reset} = useExplorerAutofix(
     group.id
   );
@@ -245,7 +247,13 @@ export function ExplorerSeerDrawer({
           {artifacts.impact_assessment?.data && (
             <ImpactCard data={artifacts.impact_assessment.data} />
           )}
-          {artifacts.triage?.data && <TriageCard data={artifacts.triage.data} />}
+          {artifacts.triage?.data && (
+            <TriageCard
+              data={artifacts.triage.data}
+              group={group}
+              organization={organization}
+            />
+          )}
 
           {/* Code changes from file patches */}
           {filePatches.length > 0 && (
