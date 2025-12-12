@@ -36,7 +36,7 @@ describe('withChonk', () => {
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({
-          options: {...UserFixture().options, prefersChonkUI: false},
+          options: {...UserFixture().options},
         }),
       })
     );
@@ -47,7 +47,7 @@ describe('withChonk', () => {
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({
-          options: {...UserFixture().options, prefersChonkUI: true},
+          options: {...UserFixture().options},
         }),
       })
     );
@@ -73,7 +73,7 @@ describe('withChonk', () => {
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({
-          options: {...UserFixture().options, prefersChonkUI: true},
+          options: {...UserFixture().options},
         }),
       })
     );
