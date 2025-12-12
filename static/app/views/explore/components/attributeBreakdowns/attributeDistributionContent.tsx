@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert/alert';
@@ -32,22 +32,13 @@ export type AttributeDistribution = Array<{
   values: Array<{label: string; value: number}>;
 }>;
 
-type PaginationState = {
-  cursor: string | undefined;
-  page: number;
-};
-
 export function AttributeDistribution() {
   const [searchQuery, setSearchQuery] = useQueryParamState({
     fieldName: 'attributeBreakdownsSearch',
   });
 
-  // Little unconventional, but the /trace-items/stats/ endpoint but recommends fetching
-  // more data than we need to display the current page. We maintain a cursor to fetch the next page,
-  // and a page index to display the current page, from the accumulated data.
-  const [pagination, setPagination] = useState<PaginationState>({
-    cursor: undefined,
-    page: 0,
+  const [cursor, setCursor] = useQueryParamState({
+    fieldName: 'attributeBreakdownsCursor',
   });
 
   const query = useQueryParamsQuery();
@@ -103,7 +94,7 @@ export function AttributeDistribution() {
     isLoading: isAttributeBreakdownsLoading,
     error: attributeBreakdownsError,
   } = useAttributeBreakdowns({
-    cursor: pagination.cursor,
+    cursor,
     substringMatch: debouncedSearchQuery,
   });
 
@@ -116,10 +107,10 @@ export function AttributeDistribution() {
     }
   }, [attributeBreakdownsData, isAttributeBreakdownsLoading, refetchCohortCount]);
 
-  // Reset pagination on any query change
+  // Reset cursor on any query params change
   useEffect(() => {
-    setPagination({cursor: undefined, page: 0});
-  }, [debouncedSearchQuery, selection, query]);
+    setCursor(undefined);
+  }, [debouncedSearchQuery, selection, query, setCursor]);
 
   const parsedLinks = parseLinkHeader(
     getAttributeBreakdownsResponseHeader?.('Link') ?? null
@@ -171,38 +162,23 @@ export function AttributeDistribution() {
         ) : uniqueAttributeDistribution.length > 0 ? (
           <Fragment>
             <AttributeBreakdownsComponent.ChartsGrid>
-              {uniqueAttributeDistribution
-                .slice(
-                  pagination.page * CHARTS_PER_PAGE,
-                  (pagination.page + 1) * CHARTS_PER_PAGE
-                )
-                .map(distribution => (
-                  <Chart
-                    key={distribution.attributeName}
-                    attributeDistribution={distribution}
-                    cohortCount={cohortCount}
-                    theme={theme}
-                  />
-                ))}
+              {uniqueAttributeDistribution.slice(0, CHARTS_PER_PAGE).map(distribution => (
+                <Chart
+                  key={distribution.attributeName}
+                  attributeDistribution={distribution}
+                  cohortCount={cohortCount}
+                  theme={theme}
+                />
+              ))}
             </AttributeBreakdownsComponent.ChartsGrid>
             <AttributeBreakdownsComponent.Pagination
-              isPrevDisabled={pagination.page === 0}
-              isNextDisabled={
-                pagination.page ===
-                Math.ceil(uniqueAttributeDistribution.length / CHARTS_PER_PAGE) - 1
-              }
+              isPrevDisabled={parsedLinks.previous?.results === false}
+              isNextDisabled={parsedLinks.next?.results === false}
               onPrevClick={() => {
-                setPagination({...pagination, page: pagination.page - 1});
+                setCursor(parsedLinks.previous?.cursor);
               }}
               onNextClick={() => {
-                if (parsedLinks.next?.results) {
-                  setPagination({
-                    cursor: parsedLinks.next?.cursor,
-                    page: pagination.page + 1,
-                  });
-                } else {
-                  setPagination({...pagination, page: pagination.page + 1});
-                }
+                setCursor(parsedLinks.next?.cursor);
               }}
             />
           </Fragment>
