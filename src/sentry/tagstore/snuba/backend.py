@@ -723,6 +723,7 @@ class SnubaTagStorage(TagStorage):
         keys: list[str] | None = None,
         value_limit: int = TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids=None,
+        use_subtraction_query: bool = False,
         **kwargs,
     ):
         # Similar to __get_tag_key_and_top_values except we get the top values
@@ -776,6 +777,7 @@ class SnubaTagStorage(TagStorage):
             tenant_ids=tenant_ids,
             start=kwargs.get("start"),
             end=kwargs.get("end"),
+            use_subtraction_query=use_subtraction_query,
         )
         for k, stats in empty_stats_map.items():
             if not stats or stats.get("count", 0) <= 0:
@@ -814,6 +816,29 @@ class SnubaTagStorage(TagStorage):
         return keys_with_counts
 
     def __get_empty_value_stats_map(
+        self,
+        dataset: Dataset,
+        filters: MutableMapping[str, Sequence[Any]],
+        conditions: list,
+        keys_to_check: list[str],
+        tenant_ids: dict[str, int | str] | None,
+        start: datetime | None,
+        end: datetime | None,
+        use_subtraction_query: bool = False,
+    ) -> dict[str, dict[str, Any]]:
+        """Count events with empty/missing tag values for each key."""
+        if not keys_to_check:
+            return {}
+
+        if use_subtraction_query:
+            return self.__get_empty_value_stats_map_subtraction(
+                dataset, filters, conditions, keys_to_check, tenant_ids, start, end
+            )
+        return self.__get_empty_value_stats_map_countif(
+            dataset, filters, conditions, keys_to_check, tenant_ids, start, end
+        )
+
+    def __get_empty_value_stats_map_countif(
         self,
         dataset: Dataset,
         filters: MutableMapping[str, Sequence[Any]],
@@ -862,6 +887,58 @@ class SnubaTagStorage(TagStorage):
                 "count": empty_results.get(aliases["count"], 0),
             }
         return stats_map
+
+    def __get_empty_value_stats_map_subtraction(
+        self,
+        dataset: Dataset,
+        filters: MutableMapping[str, Sequence[Any]],
+        conditions: list,
+        keys_to_check: list[str],
+        tenant_ids: dict[str, int | str] | None,
+        start: datetime | None,
+        end: datetime | None,
+    ) -> dict[str, dict[str, Any]]:
+        """
+        Two-query subtraction: empty_count(k) = total_events - non_empty_events(k).
+
+        Avoids per-key countIf that can exceed ClickHouse query-size limits.
+        """
+        # Don't filter by tags_key so events missing the key count toward total.
+        total_filters = dict(filters)
+        total_filters.pop(self.key_column, None)
+
+        total_events: int | None = snuba.query(
+            dataset=dataset,
+            start=start,
+            end=end,
+            groupby=None,
+            conditions=conditions,
+            filter_keys=total_filters,
+            aggregations=[["count()", "", "count"]],
+            referrer=Referrer.TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES_EMPTY_COUNTS,
+            tenant_ids=tenant_ids,
+        )
+        if total_events is None:
+            return {k: {"count": 0} for k in keys_to_check}
+
+        non_empty_filters = dict(filters)
+        non_empty_filters[self.key_column] = keys_to_check
+
+        non_empty_by_key: dict[str, int] = snuba.query(
+            dataset=dataset,
+            start=start,
+            end=end,
+            groupby=[self.key_column],
+            conditions=conditions + [[self.value_column, "!=", ""]],
+            filter_keys=non_empty_filters,
+            aggregations=[["count()", "", "count"]],
+            referrer=Referrer.TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES_EMPTY_COUNTS,
+            tenant_ids=tenant_ids,
+        )
+
+        return {
+            k: {"count": max(total_events - non_empty_by_key.get(k, 0), 0)} for k in keys_to_check
+        }
 
     def get_release_tags(self, organization_id, project_ids, environment_id, versions):
         filters = {"project_id": project_ids}
