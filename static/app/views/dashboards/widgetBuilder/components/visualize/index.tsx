@@ -871,16 +871,6 @@ function Visualize({error, setError}: VisualizeProps) {
                               fields.length <= 1 || !canDelete || isOnlyFieldOrAggregate
                             }
                             onClick={() => {
-                              if (state.dataset === WidgetType.TRACEMETRICS) {
-                                // Ensure to remove the trace metric that corresponds to the field being deleted
-                                dispatch({
-                                  type: BuilderStateAction.SET_TRACE_METRIC,
-                                  payload:
-                                    state.traceMetrics?.filter(
-                                      (_traceMetric, i) => i !== index
-                                    ) ?? [],
-                                });
-                              }
                               dispatch({
                                 type: updateAction,
                                 payload: fields?.filter((_field, i) => i !== index) ?? [],
