@@ -211,6 +211,10 @@ describe('UsageOverviewTable', () => {
       reserved: UNLIMITED_RESERVED,
       prepaid: UNLIMITED_RESERVED,
     };
+    sub.addOns!.seer = {
+      ...sub.addOns!.seer!,
+      isAvailable: false,
+    };
 
     render(
       <UsageOverviewTable
@@ -241,6 +245,10 @@ describe('UsageOverviewTable', () => {
       ...sub.categories.seerAutofix!,
       reserved: 100,
       prepaid: 100,
+    };
+    sub.addOns!.seer = {
+      ...sub.addOns!.seer!,
+      isAvailable: false,
     };
 
     render(

@@ -15,6 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
+import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {
   AddOnCategory,
@@ -71,7 +72,8 @@ function BilledSeats({
           // volume for the seat category is greater than 0 (info includes reserved
           // and gifted volumes)
           (billedSeats?.length ?? 0) > 0 ||
-          (defined(metricHistory.prepaid) && metricHistory.prepaid > 0)
+          (defined(metricHistory.prepaid) &&
+            (metricHistory.prepaid > 0 || metricHistory.prepaid === UNLIMITED_RESERVED))
         }
       >
         <SimpleTable.Header>
