@@ -72,7 +72,6 @@ def replace_amp(text: str) -> str:
     return re.sub("¬", "&not", text)
 
 
-@pytest.mark.xdist_unsafe
 @no_silo_test
 class EmailTestCase(AcceptanceTestCase):
     def setUp(self) -> None:

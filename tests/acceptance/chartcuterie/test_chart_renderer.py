@@ -4,7 +4,6 @@ from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.helpers.response import close_streaming_response
 
 
-@pytest.mark.xdist_unsafe
 class TestChartRenderer(AcceptanceTestCase):
 
     def test_debug_renders(self) -> None:

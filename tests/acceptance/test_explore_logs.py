@@ -14,7 +14,6 @@ FEATURE_FLAGS = [
 ]
 
 
-@pytest.mark.xdist_unsafe
 @no_silo_test
 class ExploreLogsTest(AcceptanceTestCase, SnubaTestCase, OurLogTestCase):
     viewname = "sentry-api-0-organization-events"

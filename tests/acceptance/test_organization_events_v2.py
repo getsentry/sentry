@@ -154,7 +154,6 @@ def generate_transaction(trace: str | None = None, span: str | None = None) -> A
     return event_data
 
 
-@pytest.mark.xdist_unsafe
 @no_silo_test
 class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self) -> None:
@@ -188,7 +187,6 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.result_path + "?" + all_events_query(tag=[]))
             self.wait_until_loaded()
 
-    @pytest.mark.xdist_unsafe
     @patch("django.utils.timezone.now")
     def test_all_events_query(self, mock_now: MagicMock) -> None:
         now = before_now()
@@ -348,7 +346,6 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
             # header = self.browser.element('[data-test-id="event-header"] div div span')
             # assert event_data["message"] in header.text
 
-    @pytest.mark.xdist_unsafe
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_errors_view(self, mock_now: MagicMock) -> None:
         now = before_now()

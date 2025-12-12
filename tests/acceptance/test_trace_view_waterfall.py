@@ -10,7 +10,6 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 
 
-@pytest.mark.xdist_unsafe
 @no_silo_test
 class TraceViewWaterfallTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
     viewname = "sentry-api-0-organization-trace"
