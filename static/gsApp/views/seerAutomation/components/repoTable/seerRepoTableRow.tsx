@@ -1,4 +1,3 @@
-import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
@@ -47,15 +46,15 @@ export default function SeerRepoTableRow({repository: initialRepository}: Props)
   // do optimistic updates, without re-rendering the entire table.
   // `initialRepository` will become stale at that point, but we'll have fresh data
   // in the cache to override it.
-  const didUpdate = useRef(false);
+  const {mutate: mutateRepositorySettings, data: mutationData} =
+    useBulkUpdateRepositorySettings();
+
   const {data, isError, isPending} = useRepositoryWithSettings({
     repositoryId: initialRepository.id,
     initialData: [initialRepository, undefined, undefined],
-    enabled: didUpdate.current,
+    enabled: Boolean(mutationData),
   });
   const repository = isError || isPending ? initialRepository : data;
-
-  const {mutate: mutateRepositorySettings} = useBulkUpdateRepositorySettings();
 
   return (
     <SimpleTable.Row key={repository.id}>
@@ -138,7 +137,6 @@ export default function SeerRepoTableRow({repository: initialRepository}: Props)
                   addSuccessMessage(t('Code review updated for %s', repository.name));
                 },
                 onSettled: () => {
-                  didUpdate.current = true;
                   queryClient.invalidateQueries({queryKey});
                 },
               }
