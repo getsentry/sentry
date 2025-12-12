@@ -5,6 +5,7 @@ import responses
 from django.utils import timezone
 
 from sentry.eventstream.types import EventStreamEventType
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule
 from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.rules.actions.notify_event_service import NotifyEventServiceAction
@@ -16,11 +17,14 @@ from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from sentry.workflow_engine.typings.notification_action import ActionTarget
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = [requires_snuba]
 
 
-class NotifyEventServiceActionTest(RuleTestCase):
+class NotifyEventServiceActionTest(RuleTestCase, BaseWorkflowTest):
     rule_cls = NotifyEventServiceAction
 
     def test_applies_correctly_for_plugins(self) -> None:
@@ -101,6 +105,28 @@ class NotifyEventServiceActionTest(RuleTestCase):
         webhook.set_option(project=self.project, key="enabled", value=True)
 
         # create ACI objects
+        (
+            self.error_workflow,
+            self.error_detector,
+            self.detector_workflow_error,
+            self.condition_group,
+        ) = self.create_detector_and_workflow(
+            name_prefix="error",
+            workflow_triggers=self.create_data_condition_group(),
+            detector_type=ErrorGroupType.slug,
+        )
+        self.create_workflow_data_condition_group(
+            workflow=self.error_workflow, condition_group=self.condition_group
+        )
+        self.issue_owners_action_config = {
+            "target_type": ActionTarget.ISSUE_OWNERS.value,
+            "target_display": None,
+            "target_identifier": None,
+        }
+        self.issue_stream_detector = self.create_detector(
+            project=self.project,
+            type=IssueStreamGroupType.slug,
+        )
 
         with self.tasks():
             post_process_group(
