@@ -149,7 +149,7 @@ export function ConfigureRootCauseAnalysisStep() {
 
             <Field>
               <Flex direction="column" flex="1" gap="xs">
-                <FieldLabel>{t('Enable Auto Root Cause Analysis Enrollment')}</FieldLabel>
+                <FieldLabel>{t('Enable Root Cause Analysis')}</FieldLabel>
                 <FieldDescription>
                   <Text>
                     {t(

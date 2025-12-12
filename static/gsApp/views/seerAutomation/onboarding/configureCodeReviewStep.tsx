@@ -193,7 +193,7 @@ export function ConfigureCodeReviewStep() {
 
             <Field>
               <Flex direction="column" flex="1" gap="xs">
-                <FieldLabel>{t('Enable Auto Code Review Enrollment')}</FieldLabel>
+                <FieldLabel>{t('Enable Code Review')}</FieldLabel>
                 <FieldDescription>
                   <p>
                     {t(
