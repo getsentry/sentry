@@ -20,7 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useUpdateOrganization} from 'sentry/utils/useUpdateOrganization';
 
 import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
-import {useUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useUpdateRepositorySettings';
+import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 
 import {
   Field,
@@ -58,7 +58,7 @@ export function ConfigureCodeReviewStep() {
     useUpdateOrganization(organization);
 
   const {mutate: updateRepositorySettings, isPending: isUpdateRepositorySettingsPending} =
-    useUpdateRepositorySettings();
+    useBulkUpdateRepositorySettings();
 
   const handleNextStep = useCallback(() => {
     const existingRepostoriesToRemove = unselectedCodeReviewRepositories

@@ -1,3 +1,4 @@
+import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -7,12 +8,12 @@ interface RepositorySettings {
   repositoryIds: string[];
 }
 
-export function useUpdateRepositorySettings() {
+export function useBulkUpdateRepositorySettings() {
   const organization = useOrganization();
 
-  return useMutation({
+  return useMutation<RepositoryWithSettings[], Error, RepositorySettings, unknown>({
     mutationFn: (data: RepositorySettings) => {
-      return fetchMutation<RepositorySettings>({
+      return fetchMutation<RepositoryWithSettings[]>({
         method: 'PUT',
         url: `/organizations/${organization.slug}/repos/settings/`,
         data: {
