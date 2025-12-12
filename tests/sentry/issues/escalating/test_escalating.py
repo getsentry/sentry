@@ -7,10 +7,16 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
+    TraceItemColumnValues,
+    TraceItemTableResponse,
+)
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue
 
 from sentry.issues.escalating.escalating import (
     GroupsCountResponse,
     _start_and_end_dates,
+    get_group_hourly_count_eap,
     get_group_hourly_count_snuba,
     is_escalating,
     query_groups_past_counts,
@@ -354,3 +360,62 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
         # Test cache
         assert cache.get(f"hourly-group-count:{archived_group.project.id}:{archived_group.id}") == 6
+
+
+class TestGetGroupHourlyCountEAP(TestCase):
+    @patch("sentry.issues.escalating.escalating.snuba_rpc.table_rpc")
+    def test_returns_count_from_eap(self, mock_table_rpc):
+        group = self.create_group()
+
+        mock_response = TraceItemTableResponse(
+            column_values=[
+                TraceItemColumnValues(
+                    attribute_name="count",
+                    results=[AttributeValue(val_double=42.0)],
+                )
+            ]
+        )
+        mock_table_rpc.return_value = [mock_response]
+
+        result = get_group_hourly_count_eap(group)
+
+        assert result == 42
+        mock_table_rpc.assert_called_once()
+
+    @patch("sentry.issues.escalating.escalating.snuba_rpc.table_rpc")
+    def test_returns_zero_on_empty_column_values(self, mock_table_rpc):
+        group = self.create_group()
+
+        mock_response = TraceItemTableResponse(column_values=[])
+        mock_table_rpc.return_value = [mock_response]
+
+        result = get_group_hourly_count_eap(group)
+
+        assert result == 0
+
+    @patch("sentry.issues.escalating.escalating.snuba_rpc.table_rpc")
+    def test_returns_zero_on_exception(self, mock_table_rpc):
+        group = self.create_group()
+        mock_table_rpc.side_effect = Exception("RPC failed")
+
+        result = get_group_hourly_count_eap(group)
+
+        assert result == 0
+
+    @patch("sentry.issues.escalating.escalating.EscalatingGroupForecast.fetch_todays_forecast")
+    @patch("sentry.issues.escalating.escalating.get_group_hourly_count_eap")
+    @patch("sentry.issues.escalating.escalating.get_group_hourly_count_snuba")
+    def test_uses_snuba_count_as_source_of_truth(self, mock_snuba, mock_eap, mock_forecast):
+        group = self.create_group()
+
+        mock_snuba.return_value = 100
+        mock_eap.return_value = 5
+        mock_forecast.return_value = 50
+
+        with self.options({"occurrences.eap-reads.enabled": True}):
+            result = is_escalating(group)
+
+        # Should escalate because Snuba count (100) > forecast (50)
+        assert result == (True, 50)
+        mock_snuba.assert_called_once_with(group)
+        mock_eap.assert_called_once_with(group)
