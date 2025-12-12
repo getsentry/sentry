@@ -115,7 +115,6 @@ class ReactMixin:
             "org_context": org_context,
             "react_config": react_config,
             "user_theme": user_theme,
-            "prefers_chonk_ui": True,
         }
 
         # Force a new CSRF token to be generated and set in user's

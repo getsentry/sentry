@@ -304,7 +304,6 @@ class UserDetailsEndpoint(UserEndpoint):
             "defaultIssueEvent": "default_issue_event",
             "clock24Hours": "clock_24_hours",
             "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
-            "prefersChonkUI": "prefers_chonk_ui",
         }
 
         options_result = serializer_options.validated_data

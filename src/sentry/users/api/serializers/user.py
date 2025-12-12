@@ -215,7 +215,6 @@ class UserSerializer(Serializer):
                 "prefersIssueDetailsStreamlinedUI": options.get(
                     "prefers_issue_details_streamlined_ui"
                 ),
-                "prefersChonkUI": options.get("prefers_chonk_ui"),
             }
 
             d["flags"] = {"newsletter_consent_prompt": bool(obj.flags.newsletter_consent_prompt)}
