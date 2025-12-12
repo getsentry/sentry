@@ -81,31 +81,30 @@ class PreprodEAPIntegrationTest(SnubaTestCase):
 
         assert found, f"Data not found in Snuba after {max_attempts} attempts"
 
-        columns = {col.label: idx for idx, col in enumerate(response.columns)}
-        row = response.column_values[0]
+        columns = {cv.attribute_name: idx for idx, cv in enumerate(response.column_values)}
 
-        assert row.results[columns["preprod_artifact_id"]].val_int == artifact.id
-        assert row.results[columns["size_metric_id"]].val_int == size_metric.id
+        assert response.column_values[columns["preprod_artifact_id"]].results[0].val_int == artifact.id
+        assert response.column_values[columns["size_metric_id"]].results[0].val_int == size_metric.id
         assert (
-            row.results[columns["metrics_artifact_type"]].val_int
+            response.column_values[columns["metrics_artifact_type"]].results[0].val_int
             == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
         )
-        assert row.results[columns["max_install_size"]].val_int == 5000
-        assert row.results[columns["max_download_size"]].val_int == 3000
-        assert row.results[columns["min_install_size"]].val_int == 1000
-        assert row.results[columns["min_download_size"]].val_int == 500
+        assert response.column_values[columns["max_install_size"]].results[0].val_int == 5000
+        assert response.column_values[columns["max_download_size"]].results[0].val_int == 3000
+        assert response.column_values[columns["min_install_size"]].results[0].val_int == 1000
+        assert response.column_values[columns["min_download_size"]].results[0].val_int == 500
 
-        assert row.results[columns["app_id"]].val_str == "com.example.integrationtest"
-        assert row.results[columns["app_name"]].val_str == "Integration Test App"
-        assert row.results[columns["build_version"]].val_str == "1.0.0"
-        assert row.results[columns["build_number"]].val_int == 100
+        assert response.column_values[columns["app_id"]].results[0].val_str == "com.example.integrationtest"
+        assert response.column_values[columns["app_name"]].results[0].val_str == "Integration Test App"
+        assert response.column_values[columns["build_version"]].results[0].val_str == "1.0.0"
+        assert response.column_values[columns["build_number"]].results[0].val_int == 100
         assert (
-            row.results[columns["artifact_type"]].val_int == PreprodArtifact.ArtifactType.XCARCHIVE
+            response.column_values[columns["artifact_type"]].results[0].val_int == PreprodArtifact.ArtifactType.XCARCHIVE
         )
 
-        assert row.results[columns["build_configuration_name"]].val_str == "Release"
-        assert row.results[columns["git_head_sha"]].val_str == "abc123def456"
-        assert row.results[columns["git_head_ref"]].val_str == "main"
+        assert response.column_values[columns["build_configuration_name"]].results[0].val_str == "Release"
+        assert response.column_values[columns["git_head_sha"]].results[0].val_str == "abc123def456"
+        assert response.column_values[columns["git_head_ref"]].results[0].val_str == "main"
 
     def test_write_multiple_size_metrics_same_artifact(self):
         artifact = self.create_preprod_artifact(
@@ -123,7 +122,7 @@ class PreprodEAPIntegrationTest(SnubaTestCase):
 
         size_metric_watch = PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.IOS_WATCH_EXTENSION,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
             identifier="com.example.watch",
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             max_install_size=1000,
@@ -155,12 +154,17 @@ class PreprodEAPIntegrationTest(SnubaTestCase):
                 filters=PreprodSizeFilters(app_id="com.example.multitest"),
             )
 
-            found_count = len(response.column_values)
+            if response.column_values:
+                found_count = len(response.column_values[0].results)
             if found_count >= 2:
                 break
 
         assert found_count == 2, f"Expected 2 records, found {found_count}"
 
-        columns = {col.label: idx for idx, col in enumerate(response.columns)}
-        sizes = {row.results[columns["max_install_size"]].val_int for row in response.column_values}
+        columns = {cv.attribute_name: idx for idx, cv in enumerate(response.column_values)}
+        num_rows = len(response.column_values[0].results)
+        sizes = {
+            response.column_values[columns["max_install_size"]].results[row_idx].val_int
+            for row_idx in range(num_rows)
+        }
         assert sizes == {5000, 1000}
