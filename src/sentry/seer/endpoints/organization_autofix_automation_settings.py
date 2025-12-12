@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db import router, transaction
+from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,8 +10,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
+from sentry.api.paginator import OffsetPaginator
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -19,6 +22,24 @@ from sentry.seer.autofix.utils import (
 )
 
 OPTION_KEY = "sentry:autofix_automation_tuning"
+
+
+class SeerAutofixSettingGetSerializer(serializers.Serializer):
+    """Serializer for OrganizationAutofixAutomationSettingsEndpoint.get query params"""
+
+    projectIds = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        allow_null=True,
+        max_length=1000,
+        help_text="Optional list of project IDs to filter by. Maximum 1000 projects.",
+    )
+    query = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Optional search query to filter by project name or slug.",
+    )
 
 
 class SeerAutofixSettingSerializer(serializers.Serializer):
@@ -57,10 +78,85 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.CODING_WORKFLOWS
 
     publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
 
     permission_classes = (OrganizationPermission,)
+
+    def _serialize_projects_with_settings(
+        self, projects: list[Project], organization: Organization
+    ) -> list[dict]:
+        if not projects:
+            return []
+
+        project_ids_list = [project.id for project in projects]
+        tuning_options = ProjectOption.objects.get_value_bulk(projects, OPTION_KEY)
+        seer_preferences = bulk_get_project_preferences(organization.id, project_ids_list)
+
+        results = []
+        for project in projects:
+            tuning_value = tuning_options.get(project) or AutofixAutomationTuningSettings.OFF.value
+            seer_pref = seer_preferences.get(str(project.id), {})
+
+            results.append(
+                {
+                    "projectId": project.id,
+                    "projectSlug": project.slug,
+                    "projectName": project.name,
+                    "projectPlatform": project.platform,
+                    "fixes": tuning_value != AutofixAutomationTuningSettings.OFF.value,
+                    "prCreation": seer_pref.get("automated_run_stopping_point")
+                    == AutofixStoppingPoint.OPEN_PR.value,
+                    "tuning": tuning_value,
+                    "reposCount": len(seer_pref.get("repositories", [])),
+                }
+            )
+        return results
+
+    def get(self, request: Request, organization: Organization) -> Response:
+        """
+        List projects with their autofix automation settings.
+
+        :pparam string organization_id_or_slug: the id or slug of the organization.
+        :qparam list[int] projectIds: Optional list of project IDs to filter by.
+        :qparam string query: Optional search query to filter by project name or slug.
+        :auth: required
+        """
+        serializer = SeerAutofixSettingGetSerializer(
+            data={
+                "projectIds": request.GET.getlist("projectIds") or None,
+                "query": request.GET.get("query"),
+            }
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        data = serializer.validated_data
+        project_ids = data.get("projectIds")
+
+        if project_ids:
+            authorized_projects = self.get_projects(
+                request, organization, project_ids=set(project_ids)
+            )
+            authorized_project_ids = [p.id for p in authorized_projects]
+            queryset = Project.objects.filter(id__in=authorized_project_ids)
+        else:
+            queryset = Project.objects.filter(organization_id=organization.id)
+
+        query = data.get("query")
+        if query:
+            queryset = queryset.filter(Q(name__icontains=query) | Q(slug__icontains=query))
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by="slug",
+            on_results=lambda projects: self._serialize_projects_with_settings(
+                projects, organization
+            ),
+            paginator_cls=OffsetPaginator,
+        )
 
     def put(self, request: Request, organization: Organization) -> Response:
         """
