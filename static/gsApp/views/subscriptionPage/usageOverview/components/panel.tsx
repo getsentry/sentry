@@ -5,18 +5,20 @@ import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconClock, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
-import {OnDemandBudgetMode} from 'getsentry/types';
+import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
 import {
   displayBudgetName,
   getReservedBudgetCategoryForAddOn,
   supportsPayg,
 } from 'getsentry/utils/billing';
+import useSeerOnboardingCheck from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingCheck';
 import BilledSeats from 'getsentry/views/subscriptionPage/usageOverview/components/billedSeats';
 import {
   DataCategoryUsageBreakdownInfo,
@@ -25,8 +27,9 @@ import {
 import UsageCharts from 'getsentry/views/subscriptionPage/usageOverview/components/charts';
 import {
   ProductTrialCta,
+  SetupCta,
   UpgradeCta,
-} from 'getsentry/views/subscriptionPage/usageOverview/components/upgradeOrTrialCta';
+} from 'getsentry/views/subscriptionPage/usageOverview/components/cta';
 import {USAGE_OVERVIEW_PANEL_HEADER_HEIGHT} from 'getsentry/views/subscriptionPage/usageOverview/constants';
 import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
@@ -35,8 +38,10 @@ function PanelHeader({
   selectedProduct,
   subscription,
   isInline,
+  setupRequired,
 }: Pick<BreakdownPanelProps, 'selectedProduct' | 'subscription' | 'isInline'> & {
   panelIsOnlyCta: boolean;
+  setupRequired: boolean;
 }) {
   const {onDemandBudgets: paygBudgets} = subscription;
 
@@ -78,7 +83,7 @@ function PanelHeader({
     </Tag>
   ) : null;
 
-  if (isInline && !status) {
+  if (isInline && !status && !setupRequired) {
     return null;
   }
 
@@ -94,6 +99,11 @@ function PanelHeader({
       <Flex gap="md" align="center" height={USAGE_OVERVIEW_PANEL_HEADER_HEIGHT}>
         {!isInline && <Heading as="h3">{displayName}</Heading>}
         {status}
+        {setupRequired && (
+          <Tag type="warning" icon={<IconWarning />}>
+            {t('Action required')}
+          </Tag>
+        )}
       </Flex>
       {productLink && (
         <LinkButton
@@ -122,6 +132,13 @@ function ProductBreakdownPanel({
     activeProductTrial,
     potentialProductTrial,
   } = useProductBillingMetadata(subscription, selectedProduct);
+  // TODO(billing): if we ever show the setup state for other products, this will need refactoring
+  // maybe a billing hook for setup checks
+  const shouldCheckSetup = selectedProduct === AddOnCategory.SEER && isEnabled;
+  const {data: setupCheck, isLoading: setupCheckLoading} =
+    useSeerOnboardingCheck(shouldCheckSetup);
+  const setupRequired =
+    shouldCheckSetup && !setupCheckLoading && !setupCheck?.isSeerConfigured;
 
   if (!billedCategory) {
     return null;
@@ -181,7 +198,7 @@ function ProductBreakdownPanel({
 
   return (
     <Container
-      height={isEnabled ? undefined : '100%'}
+      height={isEnabled && !setupRequired ? undefined : '100%'}
       border={isInline ? undefined : 'primary'}
       radius={isInline ? undefined : 'md'}
       style={
@@ -197,39 +214,48 @@ function ProductBreakdownPanel({
         subscription={subscription}
         isInline={isInline}
         panelIsOnlyCta={!isEnabled}
+        setupRequired={setupRequired}
       />
-      {potentialProductTrial && (
-        <ProductTrialCta
-          organization={organization}
-          subscription={subscription}
-          selectedProduct={selectedProduct}
-          showBottomBorder={isEnabled}
-          potentialProductTrial={potentialProductTrial}
-        />
-      )}
-      {isEnabled && (
+      {setupCheckLoading ? (
+        <LoadingIndicator />
+      ) : setupRequired ? (
+        <SetupCta organization={organization} selectedProduct={selectedProduct} />
+      ) : (
         <Fragment>
-          {breakdownInfo}
-          <UsageCharts
-            selectedProduct={selectedProduct}
-            usageData={usageData}
-            subscription={subscription}
+          {potentialProductTrial && (
+            <ProductTrialCta
+              organization={organization}
+              subscription={subscription}
+              selectedProduct={selectedProduct}
+              isBanner={isEnabled}
+              potentialProductTrial={potentialProductTrial}
+            />
+          )}
+          {isEnabled && (
+            <Fragment>
+              {breakdownInfo}
+              <UsageCharts
+                selectedProduct={selectedProduct}
+                usageData={usageData}
+                subscription={subscription}
+                organization={organization}
+              />
+            </Fragment>
+          )}
+          {shouldShowUpgradeCta && (
+            <UpgradeCta
+              organization={organization}
+              subscription={subscription}
+              selectedProduct={selectedProduct}
+            />
+          )}
+          <BilledSeats
             organization={organization}
+            selectedProduct={selectedProduct}
+            subscription={subscription}
           />
         </Fragment>
       )}
-      {shouldShowUpgradeCta && (
-        <UpgradeCta
-          organization={organization}
-          subscription={subscription}
-          selectedProduct={selectedProduct}
-        />
-      )}
-      <BilledSeats
-        organization={organization}
-        selectedProduct={selectedProduct}
-        subscription={subscription}
-      />
     </Container>
   );
 }
