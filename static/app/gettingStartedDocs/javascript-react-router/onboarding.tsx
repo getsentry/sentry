@@ -11,31 +11,6 @@ import {t, tct} from 'sentry/locale';
 
 import {getInstallSnippet} from './utils';
 
-const getVerifySnippet = (params: DocsParams) => {
-  const logsCode = params.isLogsSelected
-    ? `
-  // Send a log before throwing the error
-  Sentry.logger.info("User triggered test error", {
-    'action': 'test_loader_error',
-  });`
-    : '';
-  const metricsCode = params.isMetricsSelected
-    ? `
-  // Send a test metric before throwing the error
-  Sentry.metrics.count('test_counter', 1);`
-    : '';
-  return `
-import type { Route } from "./+types/error-page";
-
-export async function loader() {${logsCode}${metricsCode}
-  throw new Error("My first Sentry error!");
-}
-
-export default function ExamplePage() {
-  return <div>Loading this page will throw an error</div>;
-}`;
-};
-
 export const onboarding: OnboardingConfig = {
   introduction: () => (
     <Fragment>
@@ -98,25 +73,39 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: params => [
+  verify: () => [
     {
       type: StepType.VERIFY,
       content: [
         {
           type: 'text',
-          text: t(
-            'Create a route that throws an error to verify that Sentry is working:'
+          text: tct(
+            'Start your development server and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.',
+            {
+              code: <code />,
+            }
           ),
-        },
-        {
-          type: 'code',
-          language: 'tsx',
-          code: getVerifySnippet(params),
         },
         {
           type: 'text',
           text: t(
-            'After opening this route in your browser, you should see the error in your Sentry issue stream.'
+            'Or, trigger a sample error by calling a function that does not exist somewhere in your application.'
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: 'myUndefinedFunction();',
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: t(
+            'If you see an issue in your Sentry Issues, you have successfully set up Sentry with React Router.'
           ),
         },
       ],
