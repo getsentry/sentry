@@ -516,13 +516,14 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
   };
 
   // Create a minimal user object for avatar display
+  const displayEmail = user?.email || member?.email || assigneeEmail;
   const userForAvatar: AvatarUser | undefined =
-    assigneeEmail && user
+    displayEmail && user
       ? {
-          email: assigneeEmail,
-          name: typedData.suggested_assignee?.name || assigneeEmail,
+          email: displayEmail,
+          name: typedData.suggested_assignee?.name || displayEmail,
           id: user.id,
-          username: user.username || assigneeEmail.split('@')[0] || '',
+          username: user.username || displayEmail.split('@')[0] || '',
           ip_address: '',
         }
       : undefined;
