@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 
+import pytest
+
 from sentry.replays.testutils import (
     mock_replay,
     mock_rrweb_div_helloworld,

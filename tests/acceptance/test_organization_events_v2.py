@@ -154,6 +154,7 @@ def generate_transaction(trace: str | None = None, span: str | None = None) -> A
     return event_data
 
 
+@pytest.mark.xdist_unsafe  # mostly unstable timeouts
 @no_silo_test
 class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self) -> None:

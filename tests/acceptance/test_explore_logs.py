@@ -1,6 +1,8 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from fixtures.page_objects.explore_logs import ExploreLogsPage
 from sentry.models.project import Project
 from sentry.testutils.cases import AcceptanceTestCase, OurLogTestCase, SnubaTestCase

@@ -406,7 +406,7 @@ def test_free_text_search(params, query, expected) -> None:
 
 @pytest.mark.parametrize(
     ["column"],
-    [pytest.param(column) for column in chain(SPAN_ID_FIELDS, SPAN_UUID_FIELDS)],
+    [pytest.param(column) for column in sorted(chain(SPAN_ID_FIELDS, SPAN_UUID_FIELDS))],
 )
 @pytest.mark.parametrize(
     ["query", "message"],
@@ -454,9 +454,9 @@ def test_profile_id_column_has(params, column) -> None:
 
 @pytest.mark.parametrize(
     ["column", "query"],
-    [pytest.param(column, "0" * 32, id=column) for column in SPAN_UUID_FIELDS]
-    + [pytest.param(column, "0" * 16, id=column) for column in SPAN_ID_FIELDS]
-    + [pytest.param(column, "0" * 10, id=column) for column in SPAN_ID_FIELDS],
+    [pytest.param(column, "0" * 32, id=column) for column in sorted(SPAN_UUID_FIELDS)]
+    + [pytest.param(column, "0" * 16, id=column) for column in sorted(SPAN_ID_FIELDS)]
+    + [pytest.param(column, "0" * 10, id=column) for column in sorted(SPAN_ID_FIELDS)],
 )
 @pytest.mark.parametrize(
     ["operator"],

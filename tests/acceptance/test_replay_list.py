@@ -1,12 +1,15 @@
 import uuid
 from datetime import datetime, timedelta
 
+import pytest
+
 from sentry.models.project import Project
 from sentry.replays.testutils import mock_replay, mock_replay_viewed
 from sentry.testutils.cases import ReplaysAcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
 FEATURE_NAME = ["organizations:session-replay"]
+
 
 
 @no_silo_test

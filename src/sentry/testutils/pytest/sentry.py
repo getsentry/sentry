@@ -395,13 +395,21 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     keep, discard = [], []
 
     for index, item in enumerate(items):
-        # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
-        # we want to only include items in `accepted` list
-        to_hash = (
-            item.nodeid.rsplit("::", 1)[0].encode()
-            if grouping_strategy == "scope"
-            else item.nodeid.encode()
-        )
+        cls = item.getparent(pytest.Class)
+
+        if cls is not None:
+            # group by generated test class
+            # TODO: acceptance only
+            to_hash = cls.nodeid.encode()
+        else:
+            # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
+            # we want to only include items in `accepted` list
+            to_hash = (
+                item.nodeid.rsplit("::", 1)[0].encode()
+                if grouping_strategy == "scope"
+                else item.nodeid.encode()
+            )
+
         item_to_group = int(sha256(to_hash).hexdigest(), 16)
 
         # Split tests in different groups

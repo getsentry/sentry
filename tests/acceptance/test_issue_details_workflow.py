@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from unittest import mock
 
+import pytest
 from selenium.webdriver.common.by import By
 
 from fixtures.page_objects.issue_details import IssueDetailsPage

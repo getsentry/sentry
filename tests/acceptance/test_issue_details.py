@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
+import pytest
+
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
@@ -8,6 +10,7 @@ from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 now = datetime.now(timezone.utc)
+
 
 
 @no_silo_test

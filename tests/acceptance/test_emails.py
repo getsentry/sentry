@@ -1,6 +1,7 @@
 import re
 from urllib.parse import urlencode
 
+import pytest
 from selenium.webdriver.common.by import By
 
 from sentry.receivers import create_default_projects

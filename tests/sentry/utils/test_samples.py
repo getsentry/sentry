@@ -54,7 +54,7 @@ def test_sample_as_directory_raises_exception(tmp_path) -> None:
 @django_db_all(transaction=True)
 class TestConsoleSamples:
 
-    @pytest.mark.parametrize("platform", list(CONSOLES))
+    @pytest.mark.parametrize("platform", sorted(CONSOLES))
     def test_console_platforms_trigger_screenshot_attachment(
         self, default_project: Project, platform: str
     ):
