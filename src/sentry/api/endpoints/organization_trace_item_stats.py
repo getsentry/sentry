@@ -1,4 +1,6 @@
 import logging
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -13,7 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
 from sentry.api.event_search import translate_escape_sequences
-from sentry.api.serializers import serialize
+from sentry.api.serializers.base import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
@@ -73,6 +75,7 @@ class OrganizationTraceItemsStatsSerializer(serializers.Serializer):
     limit = serializers.IntegerField(
         required=False,
     )
+    spansLimit = serializers.IntegerField(required=False, default=1000, max_value=1000)
 
 
 @region_silo_endpoint
@@ -97,9 +100,6 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
         resolver = SearchResolver(
             params=snuba_params, config=resolver_config, definitions=SPAN_DEFINITIONS
         )
-
-        query_string = serialized.get("query")
-        query_filter, _, _ = resolver.resolve_query(query_string)
 
         substring_match = serialized.get("substringMatch", "")
         value_substring_match = translate_escape_sequences(substring_match)
@@ -127,12 +127,12 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                     params=snuba_params,
                     config=SearchResolverConfig(),
                     offset=0,
-                    limit=1000,
+                    limit=serialized.get("spansLimit", 1000),
                     sampling_mode=snuba_params.sampling_mode,
                     query_string=serialized.get("query", ""),
-                    orderby=["span_id"],
+                    orderby=["-timestamp"],
                     referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC.value,
-                    selected_columns=["span_id"],
+                    selected_columns=["span_id", "timestamp"],
                 )
 
         def run_stats_query_with_span_ids(span_id_filter):
@@ -204,9 +204,29 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                         AttributeKey(name=requested_key, type=AttributeKey.TYPE_STRING)
                     )
 
-            stats_results = run_stats_query_with_error_handling(request_attrs_list)
+            chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
+            for i, attr in enumerate(request_attrs_list):
+                chunked_attributes[i % MAX_THREADS].append(
+                    AttributeKey(name=attr.name, type=AttributeKey.TYPE_STRING)
+                )
 
-            return {"data": stats_results}, len(request_attrs_list)
+            stats_results: dict[str, dict[str, dict]] = defaultdict(lambda: {"data": {}})
+            with ThreadPoolExecutor(
+                thread_name_prefix=__name__,
+                max_workers=MAX_THREADS,
+            ) as query_thread_pool:
+                futures = [
+                    query_thread_pool.submit(run_stats_query_with_error_handling, attributes)
+                    for attributes in chunked_attributes.values()
+                ]
+
+                for future in as_completed(futures):
+                    result = future.result()
+                    for stats in result:
+                        for stats_type, data in stats.items():
+                            stats_results[stats_type]["data"].update(data["data"])
+
+            return {"data": [{k: v} for k, v in stats_results.items()]}, len(request_attrs_list)
 
         return self.paginate(
             request=request,
