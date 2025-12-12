@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -12,6 +12,8 @@ import {
 } from 'sentry/components/events/autofix/types';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
+import {getPrismLanguage} from 'sentry/utils/prism';
+import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 interface FileDiffViewerProps {
   patch: FilePatch;
@@ -32,8 +34,44 @@ interface FileDiffViewerProps {
   useFlexForDeleted?: boolean;
 }
 
-function DiffLineContent({line}: {line: DiffLine}) {
-  return <span>{line.value}</span>;
+function detectLanguageFromPath(filePath: string): string {
+  if (!filePath) {
+    return 'plaintext';
+  }
+  const extension = filePath.split('.').pop()?.toLowerCase();
+  if (!extension) {
+    return 'plaintext';
+  }
+
+  const language = getPrismLanguage(extension);
+  return language || 'plaintext';
+}
+
+function DiffLineContent({line, fileName}: {line: DiffLine; fileName?: string}) {
+  const language = useMemo(
+    () => (fileName ? detectLanguageFromPath(fileName) : 'plaintext'),
+    [fileName]
+  );
+
+  const tokens = usePrismTokens({code: line.value, language});
+
+  return (
+    <SyntaxHighlightedCode>
+      <pre className={`language-${language}`}>
+        <code>
+          {tokens.map((lineTokens, i) => (
+            <Fragment key={i}>
+              {lineTokens.map((token, j) => (
+                <span key={j} className={token.className}>
+                  {token.children}
+                </span>
+              ))}
+            </Fragment>
+          ))}
+        </code>
+      </pre>
+    </SyntaxHighlightedCode>
+  );
 }
 
 function HunkHeader({
@@ -97,7 +135,7 @@ export function FileDiffViewer({
                   <LineNumber lineType={line.line_type}>{line.source_line_no}</LineNumber>
                   <LineNumber lineType={line.line_type}>{line.target_line_no}</LineNumber>
                   <DiffContent lineType={line.line_type}>
-                    <DiffLineContent line={line} />
+                    <DiffLineContent line={line} fileName={patch.path} />
                   </DiffContent>
                 </Fragment>
               ))}
@@ -108,6 +146,18 @@ export function FileDiffViewer({
     </FileDiffWrapper>
   );
 }
+
+const SyntaxHighlightedCode = styled('div')`
+  font-family: ${p => p.theme.text.familyMono};
+  white-space: pre;
+
+  && pre,
+  && code {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+  }
+`;
 
 const FileDiffWrapper = styled('div')<{showBorder?: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
