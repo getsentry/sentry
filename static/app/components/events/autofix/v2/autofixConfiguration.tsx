@@ -43,13 +43,10 @@ export function AutofixConfigureQuota() {
             <Stack align="center">
               <LinkButton
                 priority="primary"
-                // TODO: point to correct product
-                to="/settings/billing/overview/"
+                to="/settings/billing/overview/?product=seer"
+                icon={<IconUpgrade />}
               >
-                <Stack direction="row" gap="sm">
-                  <IconUpgrade />
-                  {t('Try Out Seer Now')}
-                </Stack>
+                {t('Try Out Seer Now')}
               </LinkButton>
             </Stack>
           </Stack>
@@ -90,13 +87,13 @@ export function AutofixConfigureQuota() {
   );
 }
 
-interface AiSetupConfigureSeerProps {
+interface AutofixConfigureSeerProps {
   event: Event;
   group: Group;
   project: Project;
 }
 
-export function AutofixConfigureSeer({event, group, project}: AiSetupConfigureSeerProps) {
+export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSeerProps) {
   const organization = useOrganization();
   const {data, isPending, isError} = useGroupSummary(group, event, project);
 
@@ -178,11 +175,9 @@ export function AutofixConfigureSeer({event, group, project}: AiSetupConfigureSe
               <LinkButton
                 priority="primary"
                 to={`/settings/${organization.slug}/seer/onboarding/`}
+                icon={<IconSeer />}
               >
-                <Stack direction="row" gap="sm">
-                  <IconSeer />
-                  {t('Set Up Seer')}
-                </Stack>
+                {t('Set Up Seer')}
               </LinkButton>
             </Stack>
           </Stack>
