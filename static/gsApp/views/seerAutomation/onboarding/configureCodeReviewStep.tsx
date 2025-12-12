@@ -193,14 +193,11 @@ export function ConfigureCodeReviewStep() {
 
             <Field>
               <Flex direction="column" flex="1" gap="xs">
-                <FieldLabel>{t('Enable Code Review')}</FieldLabel>
+                <FieldLabel>{t('Enable AI Code Review')}</FieldLabel>
                 <FieldDescription>
                   <p>
                     {t(
                       'For all new repositories, Seer will review your PRs and flag potential bugs. '
-                    )}
-                    {t(
-                      'The repositories selected below will have code reviews enabled regardless of this setting.'
                     )}
                   </p>
                 </FieldDescription>

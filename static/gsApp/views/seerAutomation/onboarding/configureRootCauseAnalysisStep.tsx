@@ -155,9 +155,6 @@ export function ConfigureRootCauseAnalysisStep() {
                     {t(
                       'For all new projects, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution. '
                     )}
-                    {t(
-                      'The repositories selected below will have root cause analysis enabled regardless of this setting.'
-                    )}
                   </Text>
                 </FieldDescription>
               </Flex>
