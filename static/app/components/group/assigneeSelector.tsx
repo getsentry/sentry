@@ -95,7 +95,6 @@ export function AssigneeSelector({
         <StyledDropdownButton
           {...props}
           aria-label={t('Modify issue assignee')}
-          borderless
           size="zero"
         >
           <AssigneeBadge
