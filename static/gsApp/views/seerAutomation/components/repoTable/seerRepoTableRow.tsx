@@ -1,3 +1,4 @@
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
@@ -25,19 +26,36 @@ import {useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
-import {useUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useUpdateRepositorySettings';
+import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
+import useRepositoryWithSettings, {
+  getRepositoryWithSettingsQueryKey,
+} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
 
 interface Props {
   repository: RepositoryWithSettings;
 }
 
-export default function SeerRepoTableRow({repository}: Props) {
+export default function SeerRepoTableRow({repository: initialRepository}: Props) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
-  const {mutate: mutateRepositorySettings} = useUpdateRepositorySettings();
+  // We're defaulting to read from the list data, which is passed in as `initialRepository`
+  // But if an update has been made to one record, we're going to enable reading
+  // from `useRepositoryWithSettings` which will have the latest data, letting us
+  // do optimistic updates, without re-rendering the entire table.
+  // `initialRepository` will become stale at that point, but we'll have fresh data
+  // in the cache to override it.
+  const didUpdate = useRef(false);
+  const {data, isError, isPending} = useRepositoryWithSettings({
+    repositoryId: initialRepository.id,
+    initialData: [initialRepository, undefined, undefined],
+    enabled: didUpdate.current,
+  });
+  const repository = isError || isPending ? initialRepository : data;
+
+  const {mutate: mutateRepositorySettings} = useBulkUpdateRepositorySettings();
 
   return (
     <SimpleTable.Row key={repository.id}>
@@ -85,8 +103,21 @@ export default function SeerRepoTableRow({repository}: Props) {
           disabled={!canWrite}
           checked={repository.settings?.enabledCodeReview ?? false}
           onChange={e => {
-            // TODO update the UI with the new value!
-            // See the mess inside of useOrganizationRepositories();
+            const queryKey = getRepositoryWithSettingsQueryKey(
+              organization,
+              repository.id
+            );
+            const optimisticData = {
+              ...repository,
+              settings: {
+                ...repository.settings,
+                enabledCodeReview: e.target.checked,
+              },
+            };
+            queryClient.setQueryData(
+              getRepositoryWithSettingsQueryKey(organization, repository.id),
+              [optimisticData, undefined, undefined]
+            );
             addLoadingMessage(t('Updating code review for %s', repository.name));
             mutateRepositorySettings(
               {
@@ -97,20 +128,17 @@ export default function SeerRepoTableRow({repository}: Props) {
               },
               {
                 onError: () => {
+                  queryClient.setQueryData(queryKey, [repository, undefined, undefined]);
                   addErrorMessage(
                     t('Failed to update code review for %s', repository.name)
                   );
                 },
-                onSuccess: (updatedRepositories: RepositoryWithSettings[]) => {
-                  updatedRepositories.forEach(updatedRepository => {
-                    queryClient.setQueryData(
-                      [
-                        `/organizations/${organization.slug}/repos/${updatedRepository.id}/`,
-                      ],
-                      updatedRepository
-                    );
-                  });
+                onSuccess: () => {
                   addSuccessMessage(t('Code review updated for %s', repository.name));
+                },
+                onSettled: () => {
+                  didUpdate.current = true;
+                  queryClient.invalidateQueries({queryKey});
                 },
               }
             );
