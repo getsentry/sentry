@@ -1,11 +1,11 @@
-import {Fragment, memo, useMemo, type Key} from 'react';
+import {Fragment, memo, useEffect, useEffectEvent, useMemo, type Key} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Grid} from '@sentry/scraps/layout';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
@@ -207,17 +207,36 @@ function SpansTabCrossEventSearchBars() {
   const crossEvents = useQueryParamsCrossEvents();
   const setCrossEvents = useSetQueryParamsCrossEvents();
 
+  // Using an effect event here to make sure we're reading only the latest props and not
+  // firing based off of the cross events changing
+  const fireErrorToast = useEffectEvent(() => {
+    if (defined(crossEvents) && crossEvents.length > MAX_CROSS_EVENT_QUERIES) {
+      addErrorMessage(
+        t(
+          'You can add up to a maximum of %s cross event queries.',
+          MAX_CROSS_EVENT_QUERIES
+        )
+      );
+    }
+  });
+
+  useEffect(() => {
+    fireErrorToast();
+  }, []);
+
   if (!crossEvents || crossEvents.length === 0) {
     return null;
   }
 
-  return crossEvents.slice(0, MAX_CROSS_EVENT_QUERIES).map((crossEvent, index) => {
+  return crossEvents.map((crossEvent, index) => {
     const traceItemType =
       crossEvent.type === 'spans'
         ? TraceItemDataset.SPANS
         : crossEvent.type === 'logs'
           ? TraceItemDataset.LOGS
           : TraceItemDataset.TRACEMETRICS;
+
+    const maxCrossEventQueriesReached = index >= MAX_CROSS_EVENT_QUERIES;
 
     return (
       <Fragment key={`${crossEvent.type}-${index}`}>
@@ -228,6 +247,7 @@ function SpansTabCrossEventSearchBars() {
               menuTitle={t('Dataset')}
               aria-label={t('Modify dataset to cross reference')}
               value={crossEvent.type}
+              disabled={maxCrossEventQueriesReached}
               triggerProps={{
                 prefix: t('with'),
                 ...props,
@@ -250,17 +270,52 @@ function SpansTabCrossEventSearchBars() {
             />
           )}
         </Container>
-        <TraceItemAttributeProvider traceItemType={traceItemType} enabled>
-          <SpansTabCrossEventSearchBar
-            index={index}
-            query={crossEvent.query}
-            type={crossEvent.type}
-          />
-        </TraceItemAttributeProvider>
+        {maxCrossEventQueriesReached ? (
+          <SearchQueryBuilderProvider
+            filterKeys={{}}
+            getTagValues={() => Promise.resolve([])}
+            initialQuery=""
+            searchSource="explore"
+          >
+            <TraceItemSearchQueryBuilder
+              disabled
+              itemType={traceItemType}
+              initialQuery={crossEvent.query}
+              numberAttributes={{}}
+              stringAttributes={{}}
+              numberSecondaryAliases={{}}
+              stringSecondaryAliases={{}}
+              searchSource="explore"
+              getFilterTokenWarning={() => undefined}
+              supportedAggregates={[]}
+              onSearch={() => {}}
+              onChange={() => {
+                return;
+              }}
+            />
+          </SearchQueryBuilderProvider>
+        ) : (
+          <TraceItemAttributeProvider traceItemType={traceItemType} enabled>
+            <SpansTabCrossEventSearchBar
+              index={index}
+              query={crossEvent.query}
+              type={crossEvent.type}
+            />
+          </TraceItemAttributeProvider>
+        )}
         <Button
           icon={<IconDelete />}
           aria-label={t('Remove cross event search for %s', crossEvent.type)}
           onClick={() => {
+            // we add 1 here to the max because the current cross event is being removed
+            if (crossEvents.length > MAX_CROSS_EVENT_QUERIES + 1) {
+              addErrorMessage(
+                t(
+                  'You can add up to a maximum of %s cross event queries.',
+                  MAX_CROSS_EVENT_QUERIES
+                )
+              );
+            }
             setCrossEvents(crossEvents.filter((_, i) => i !== index));
           }}
         />
@@ -414,16 +469,6 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
             {hasCrossEventQueryingFlag ? <CrossEventQueryingDropdown /> : null}
             {hasCrossEvents ? <SpansTabCrossEventSearchBars /> : null}
           </Grid>
-          {hasCrossEvents && crossEvents.length > MAX_CROSS_EVENT_QUERIES ? (
-            <Container paddingTop="md">
-              <Alert type="warning">
-                {t(
-                  'You can add up to a maximum of %s cross event queries.',
-                  MAX_CROSS_EVENT_QUERIES
-                )}
-              </Alert>
-            </Container>
-          ) : null}
           {hasCrossEvents ? null : (
             <ExploreSchemaHintsSection>
               <SchemaHintsList
