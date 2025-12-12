@@ -6,7 +6,6 @@ import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 
 import AiSetupDataConsent from 'getsentry/components/ai/AiSetupDataConsent';
-import AiSetupSeerIssueDetails from 'getsentry/components/ai/aiSetupSeerIssueDetails';
 import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
 import DashboardBanner from 'getsentry/components/dashboardBanner';
 import DataConsentBanner from 'getsentry/components/dataConsentBanner';
@@ -200,7 +199,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:insights-date-range-query-limit-footer': () =>
     InsightsDateRangeQueryLimitFooter,
   'component:ai-setup-data-consent': () => AiSetupDataConsent,
-  'component:ai-setup-seer-issue-details': () => AiSetupSeerIssueDetails,
   'component:codecov-integration-settings-link': () => CodecovSettingsLink,
   'component:continuous-profiling-beta-banner': () => ContinuousProfilingBetaAlertBanner,
   'component:continuous-profiling-beta-sdk-banner': () =>

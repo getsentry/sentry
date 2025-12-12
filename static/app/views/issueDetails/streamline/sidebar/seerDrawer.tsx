@@ -17,6 +17,10 @@ import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox'
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
+import {
+  AutofixConfigureQuota,
+  AutofixConfigureSeer,
+} from 'sentry/components/events/autofix/v2/autofixConfiguration';
 import {ExplorerSeerDrawer} from 'sentry/components/events/autofix/v2/explorerSeerDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
@@ -35,6 +39,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
@@ -77,13 +82,15 @@ function WelcomeScreen({
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
+  const seerOnboardingCheck = useSeerOnboardingCheck();
 
-  const showWelcomeScreen =
-    aiConfig.orgNeedsGenAiAcknowledgement ||
-    (!aiConfig.hasAutofixQuota && organization.features.includes('seer-billing'));
+  const seatBasedSeer = organization.features.includes('seat-based-seer-enabled');
 
   // Handle loading state at the top level
-  if (aiConfig.isAutofixSetupLoading) {
+  if (
+    aiConfig.isAutofixSetupLoading ||
+    (seatBasedSeer && seerOnboardingCheck.isPending)
+  ) {
     return (
       <SeerDrawerContainer className="seer-drawer-container">
         <SeerDrawerHeader>
@@ -113,8 +120,66 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
     );
   }
 
-  // Handle welcome/consent screen at the top level
-  if (showWelcomeScreen) {
+  const noAutofixQuota =
+    !aiConfig.hasAutofixQuota && organization.features.includes('seer-billing');
+
+  if (seatBasedSeer) {
+    if (noAutofixQuota) {
+      return (
+        <SeerDrawerContainer className="seer-drawer-container">
+          <SeerDrawerHeader>
+            <NavigationCrumbs
+              crumbs={[
+                {
+                  label: (
+                    <CrumbContainer>
+                      <ProjectAvatar project={project} />
+                      <ShortId>{group.shortId}</ShortId>
+                    </CrumbContainer>
+                  ),
+                },
+                {label: getShortEventId(event.id)},
+                {label: t('Seer')},
+              ]}
+            />
+          </SeerDrawerHeader>
+          <SeerDrawerBody>
+            <AutofixConfigureQuota />
+          </SeerDrawerBody>
+        </SeerDrawerContainer>
+      );
+    }
+
+    if (!seerOnboardingCheck.data?.isSeerConfigured) {
+      return (
+        <SeerDrawerContainer className="seer-drawer-container">
+          <SeerDrawerHeader>
+            <NavigationCrumbs
+              crumbs={[
+                {
+                  label: (
+                    <CrumbContainer>
+                      <ProjectAvatar project={project} />
+                      <ShortId>{group.shortId}</ShortId>
+                    </CrumbContainer>
+                  ),
+                },
+                {label: getShortEventId(event.id)},
+                {label: t('Seer')},
+              ]}
+            />
+          </SeerDrawerHeader>
+          <SeerDrawerBody>
+            <AutofixConfigureSeer event={event} group={group} project={project} />
+          </SeerDrawerBody>
+        </SeerDrawerContainer>
+      );
+    }
+  } else if (
+    // Handle welcome/consent screen at the top level
+    aiConfig.orgNeedsGenAiAcknowledgement ||
+    noAutofixQuota
+  ) {
     return (
       <SeerDrawerContainer className="seer-drawer-container">
         <SeerDrawerHeader>

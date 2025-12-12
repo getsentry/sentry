@@ -9,9 +9,6 @@ import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SentryRouteObject} from 'sentry/router/types';
 import type {DataCategory} from 'sentry/types/core';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import type {
   useDefaultMaxPickableDays,
   useMaxPickableDays,
@@ -24,6 +21,7 @@ import type {NavigationSection} from 'sentry/views/settings/types';
 import type {Integration, IntegrationProvider} from './integrations';
 import type {RouteContextInterface} from './legacyReactRouter';
 import type {Member, Organization, OrgRole} from './organization';
+import type {Project} from './project';
 import type {User} from './user';
 
 // XXX(epurkhiser): A Note about `_`.
@@ -71,11 +69,6 @@ type RouteHooks = {
  */
 type AiSetupDataConsentProps = {
   groupId: string;
-};
-type AiSetupSeerIssueDetails = {
-  event: Event;
-  group: Group;
-  project: Project;
 };
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
@@ -190,7 +183,6 @@ type DashboardLimitProviderProps = {
  */
 type ComponentHooks = {
   'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
-  'component:ai-setup-seer-issue-details': () => React.ComponentType<AiSetupSeerIssueDetails>;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:continuous-profiling-beta-banner': () => React.ComponentType<ContinuousProfilingBetaAlertBannerProps>;

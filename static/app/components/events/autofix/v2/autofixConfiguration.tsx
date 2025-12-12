@@ -24,30 +24,8 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
-interface AiSetupSeerIssueDetailsProps {
-  event: Event;
-  group: Group;
-  project: Project;
-}
-
-export default function AiSetupSeerIssueDetails({
-  event,
-  group,
-  project,
-}: AiSetupSeerIssueDetailsProps) {
-  const organization = useOrganization();
-  const aiConfig = useAiConfig(group, project);
-
-  if (!aiConfig.hasAutofixQuota && organization.features.includes('seer-billing')) {
-    return <AiSetupSeerConfigureQuota />;
-  }
-
-  return <AiSetupSeerConfiguration event={event} group={group} project={project} />;
-}
-
-function AiSetupSeerConfigureQuota() {
+export function AutofixConfigureQuota() {
   return (
     <Fragment>
       <HeroImage src={seerConfigMainImg} />
@@ -112,17 +90,13 @@ function AiSetupSeerConfigureQuota() {
   );
 }
 
-interface AiSetupSeerConfigurationProps {
+interface AiSetupConfigureSeerProps {
   event: Event;
   group: Group;
   project: Project;
 }
 
-function AiSetupSeerConfiguration({
-  event,
-  group,
-  project,
-}: AiSetupSeerConfigurationProps) {
+export function AutofixConfigureSeer({event, group, project}: AiSetupConfigureSeerProps) {
   const organization = useOrganization();
   const {data, isPending, isError} = useGroupSummary(group, event, project);
 
