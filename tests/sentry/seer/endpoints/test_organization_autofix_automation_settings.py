@@ -439,3 +439,62 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert len(response.data) == 0
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_get_handles_none_seer_preferences(self, mock_bulk_get_preferences):
+        project = self.create_project(organization=self.organization)
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM.value
+        )
+        mock_bulk_get_preferences.return_value = None
+
+        response = self.client.get(self.url, {"projectIds": [project.id]}, format="json")
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["projectId"] == project.id
+        assert response.data[0]["fixes"] is True
+        assert response.data[0]["prCreation"] is False
+        assert response.data[0]["reposCount"] == 0
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_get_handles_none_project_preference_value(self, mock_bulk_get_preferences):
+        project = self.create_project(organization=self.organization)
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM.value
+        )
+        mock_bulk_get_preferences.return_value = {str(project.id): None}
+
+        response = self.client.get(self.url, {"projectIds": [project.id]}, format="json")
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["projectId"] == project.id
+        assert response.data[0]["fixes"] is True
+        assert response.data[0]["prCreation"] is False
+        assert response.data[0]["reposCount"] == 0
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_get_handles_none_repositories_value(self, mock_bulk_get_preferences):
+        project = self.create_project(organization=self.organization)
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM.value
+        )
+        mock_bulk_get_preferences.return_value = {
+            str(project.id): {
+                "automated_run_stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+                "repositories": None,
+            }
+        }
+
+        response = self.client.get(self.url, {"projectIds": [project.id]}, format="json")
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["reposCount"] == 0
