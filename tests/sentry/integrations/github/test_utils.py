@@ -6,6 +6,7 @@ from sentry.integrations.github.utils import (
     parse_github_blob_url,
     should_create_or_increment_contributor_seat,
 )
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.testutils.cases import TestCase
 
 
@@ -22,7 +23,12 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
             provider="integrations:github",
             integration_id=self.integration.id,
         )
-        self.external_identifier = "12345"
+        self.contributor = OrganizationContributors.objects.create(
+            organization=self.organization,
+            integration_id=self.integration.id,
+            external_identifier="12345",
+            alias="testuser",
+        )
 
     def test_returns_false_for_code_review_beta_orgs(self):
         self.create_code_mapping(project=self.project, repo=self.repo)
@@ -30,13 +36,13 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
 
         with self.feature("organizations:code-review-beta"):
             result = should_create_or_increment_contributor_seat(
-                self.organization, self.repo, self.external_identifier
+                self.organization, self.repo, self.contributor
             )
             assert result is False
 
     def test_returns_false_when_no_code_review_or_autofix_enabled(self):
         result = should_create_or_increment_contributor_seat(
-            self.organization, self.repo, self.external_identifier
+            self.organization, self.repo, self.contributor
         )
         assert result is False
 
@@ -49,7 +55,7 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
         self.create_repository_settings(repository=repo_no_integration, enabled_code_review=True)
 
         result = should_create_or_increment_contributor_seat(
-            self.organization, repo_no_integration, self.external_identifier
+            self.organization, repo_no_integration, self.contributor
         )
         assert result is False
 
@@ -58,7 +64,7 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
         self.create_repository_settings(repository=self.repo, enabled_code_review=True)
 
         result = should_create_or_increment_contributor_seat(
-            self.organization, self.repo, self.external_identifier
+            self.organization, self.repo, self.contributor
         )
         assert result is True
         mock_quota.assert_called_once()
@@ -68,7 +74,7 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
         self.create_repository_settings(repository=self.repo, enabled_code_review=True)
 
         result = should_create_or_increment_contributor_seat(
-            self.organization, self.repo, self.external_identifier
+            self.organization, self.repo, self.contributor
         )
         assert result is False
 
@@ -78,7 +84,7 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
         self.project.update_option("sentry:autofix_automation_tuning", "medium")
 
         result = should_create_or_increment_contributor_seat(
-            self.organization, self.repo, self.external_identifier
+            self.organization, self.repo, self.contributor
         )
         assert result is True
 

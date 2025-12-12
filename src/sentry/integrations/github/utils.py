@@ -131,21 +131,8 @@ def _has_code_review_or_autofix_enabled(organization_id: int, repository_id: int
     )
 
 
-def _get_contributor(
-    organization_id: int, integration_id: int, external_identifier: str
-) -> OrganizationContributors | None:
-    """
-    Get the OrganizationContributors record for a contributor if it exists.
-    """
-    return OrganizationContributors.objects.filter(
-        organization_id=organization_id,
-        integration_id=integration_id,
-        external_identifier=external_identifier,
-    ).first()
-
-
 def should_create_or_increment_contributor_seat(
-    organization: Organization, repo: Repository, external_identifier: str
+    organization: Organization, repo: Repository, contributor: OrganizationContributors
 ) -> bool:
     """
     Guard for OrganizationContributor creation/incrementing and seat assignment.
@@ -167,7 +154,6 @@ def should_create_or_increment_contributor_seat(
     if repo.integration_id is None:
         return False
 
-    contributor = _get_contributor(organization.id, repo.integration_id, external_identifier)
     return quotas.backend.check_seer_quota(
         org_id=organization.id,
         data_category=DataCategory.SEER_USER,
