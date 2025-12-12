@@ -233,11 +233,9 @@ function SimilarStackTrace({project}: Props) {
           items={items.similar}
           filteredItems={items.filtered}
           onMerge={handleMerge}
-          orgId={organization.slug}
           project={project}
           groupId={params.groupId}
           pageLinks={items.pageLinks}
-          location={location}
           hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
         />
       )}
@@ -246,11 +244,9 @@ function SimilarStackTrace({project}: Props) {
           items={items.similar.concat(items.filtered)}
           filteredItems={[]}
           onMerge={handleMerge}
-          orgId={organization.slug}
           project={project}
           groupId={params.groupId}
           pageLinks={items.pageLinks}
-          location={location}
           hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
         />
       )}
