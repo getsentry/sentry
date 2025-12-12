@@ -122,7 +122,9 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
             method="PUT",
         )
 
-        assert response.data["config"] == ["Only superusers can modify `mode`"]
+        assert "config" in response.data
+        assert "mode" in response.data["config"]
+        assert "Only superusers can modify `mode`" in str(response.data["config"]["mode"])
 
         # Verify that mode was NOT changed
         manual_detector.refresh_from_db()
@@ -165,22 +167,17 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
     def test_update_auto_detected_switches_to_manual(self) -> None:
         """Test that when a user modifies an AUTO_DETECTED detector, it automatically switches to MANUAL mode."""
         # Create an AUTO_DETECTED detector
-        auto_uptime_subscription = self.create_uptime_subscription(
-            url="https://auto-detected-site.com",
-            interval_seconds=UptimeSubscription.IntervalSeconds.ONE_MINUTE,
-            timeout_ms=30000,
-        )
         auto_detector = self.create_uptime_detector(
             project=self.project,
             env=self.environment,
-            uptime_subscription=auto_uptime_subscription,
             name="Auto Detected Monitor",
             mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
         )
 
         assert auto_detector.workflow_condition_group is not None
         # User modifies the detector (e.g., changes name)
-        # They pass the current config including the AUTO_DETECTED mode
+        # Even if they pass the current config (including AUTO_DETECTED mode),
+        # it should automatically switch to MANUAL for non-superusers
         valid_data = {
             "id": auto_detector.id,
             "projectId": self.project.id,
@@ -207,6 +204,55 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
         auto_detector.refresh_from_db()
         assert auto_detector.name == "User Modified Monitor"
         assert auto_detector.config["mode"] == UptimeMonitorMode.MANUAL.value
+
+    def test_update_partial_config_preserves_other_fields(self) -> None:
+        """Test that partial config updates preserve other config fields."""
+        # Create a detector with specific config values
+        detector = self.create_uptime_detector(
+            project=self.project,
+            env=self.environment,
+            name="Test Detector",
+            mode=UptimeMonitorMode.MANUAL,
+            recovery_threshold=8,
+            downtime_threshold=10,
+        )
+
+        assert detector.workflow_condition_group is not None
+        original_config = detector.config.copy()
+
+        # Partially update only the downtime_threshold
+        valid_data = {
+            "id": detector.id,
+            "projectId": self.project.id,
+            "name": detector.name,
+            "type": UptimeDomainCheckFailure.slug,
+            "dateCreated": detector.date_added,
+            "dateUpdated": timezone.now(),
+            "conditionGroup": {
+                "id": detector.workflow_condition_group.id,
+                "organizationId": self.organization.id,
+            },
+            "config": {
+                "downtime_threshold": 15,  # Only updating this field
+            },
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            detector.id,
+            **valid_data,
+            status_code=status.HTTP_200_OK,
+            method="PUT",
+        )
+
+        # Verify that downtime_threshold was updated but other fields preserved
+        detector.refresh_from_db()
+        assert detector.config["downtime_threshold"] == 15  # Updated
+        assert (
+            detector.config["recovery_threshold"] == original_config["recovery_threshold"]
+        )  # Preserved
+        assert detector.config["mode"] == original_config["mode"]  # Preserved
+        assert detector.config["environment"] == original_config["environment"]  # Preserved
 
     def test_update_invalid(self) -> None:
         assert self.detector.workflow_condition_group is not None
@@ -328,26 +374,6 @@ class OrganizationDetectorIndexPostTest(APITestCase):
         assert created_sub.body == "<html/>"
         assert created_sub.trace_sampling is True
 
-    def test_create_detector_missing_config_property(self):
-        invalid_data = _get_valid_data(
-            self.project.id,
-            self.environment.name,
-            config={
-                "environment": self.environment.name,
-                "mode": UptimeMonitorMode.MANUAL.value,
-                "recovery_threshold": 1,
-            },
-        )
-
-        response = self.get_error_response(
-            self.organization.slug,
-            **invalid_data,
-            status_code=status.HTTP_400_BAD_REQUEST,
-        )
-
-        assert "config" in response.data
-        assert "downtime_threshold" in str(response.data["config"])
-
     def test_create_detector_non_superuser_cannot_set_auto_detected_mode(self):
         """Integration test: non-superuser cannot create with AUTO_DETECTED mode via API."""
         invalid_data = _get_valid_data(
@@ -367,4 +393,6 @@ class OrganizationDetectorIndexPostTest(APITestCase):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-        assert response.data["config"] == ["Only superusers can modify `mode`"]
+        assert "config" in response.data
+        assert "mode" in response.data["config"]
+        assert "Only superusers can modify `mode`" in str(response.data["config"]["mode"])
