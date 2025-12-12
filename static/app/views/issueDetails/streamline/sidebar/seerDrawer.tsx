@@ -17,10 +17,7 @@ import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox'
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
-import {
-  AutofixConfigureQuota,
-  AutofixConfigureSeer,
-} from 'sentry/components/events/autofix/v2/autofixConfiguration';
+import {AutofixConfigureSeer} from 'sentry/components/events/autofix/v2/autofixConfigureSeer';
 import {ExplorerSeerDrawer} from 'sentry/components/events/autofix/v2/explorerSeerDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
@@ -49,6 +46,19 @@ interface SeerDrawerProps {
   group: Group;
   project: Project;
 }
+
+const AiSetupConfiguration = HookOrDefault({
+  hookName: 'component:ai-setup-configuration',
+  defaultComponent: ({
+    event,
+    group,
+    project,
+  }: {
+    event: Event;
+    group: Group;
+    project: Project;
+  }) => <AutofixConfigureSeer event={event} group={group} project={project} />,
+});
 
 const AiSetupDataConsent = HookOrDefault({
   hookName: 'component:ai-setup-data-consent',
@@ -124,7 +134,11 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
     !aiConfig.hasAutofixQuota && organization.features.includes('seer-billing');
 
   if (seatBasedSeer) {
-    if (noAutofixQuota) {
+    if (
+      noAutofixQuota ||
+      !seerOnboardingCheck.data?.isSeerConfigured ||
+      !seerOnboardingCheck.data?.isAutofixEnabled
+    ) {
       return (
         <SeerDrawerContainer className="seer-drawer-container">
           <SeerDrawerHeader>
@@ -144,33 +158,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             />
           </SeerDrawerHeader>
           <SeerDrawerBody>
-            <AutofixConfigureQuota />
-          </SeerDrawerBody>
-        </SeerDrawerContainer>
-      );
-    }
-
-    if (!seerOnboardingCheck.data?.isSeerConfigured) {
-      return (
-        <SeerDrawerContainer className="seer-drawer-container">
-          <SeerDrawerHeader>
-            <NavigationCrumbs
-              crumbs={[
-                {
-                  label: (
-                    <CrumbContainer>
-                      <ProjectAvatar project={project} />
-                      <ShortId>{group.shortId}</ShortId>
-                    </CrumbContainer>
-                  ),
-                },
-                {label: getShortEventId(event.id)},
-                {label: t('Seer')},
-              ]}
-            />
-          </SeerDrawerHeader>
-          <SeerDrawerBody>
-            <AutofixConfigureSeer event={event} group={group} project={project} />
+            <AiSetupConfiguration event={event} group={group} project={project} />
           </SeerDrawerBody>
         </SeerDrawerContainer>
       );
