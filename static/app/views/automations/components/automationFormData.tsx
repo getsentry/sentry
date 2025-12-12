@@ -50,11 +50,10 @@ export const stripActionFields = (action: Action) => {
   const {id: _id, ...actionWithoutId} = action;
 
   // Strip targetDisplay from email action config
-  if (action.type === ActionType.EMAIL && action.config) {
-    const {targetDisplay: _targetDisplay, ...configWithoutTargetDisplay} = action.config;
+  if ([ActionType.EMAIL, ActionType.WEBHOOK].includes(action.type) && action.config) {
     return {
       ...actionWithoutId,
-      config: configWithoutTargetDisplay,
+      config: {...action.config, targetDisplay: null},
     };
   }
 

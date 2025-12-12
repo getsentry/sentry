@@ -17,6 +17,8 @@ describe('automationNameUtils', () => {
         type: ActionType.EMAIL,
         config: {
           targetType: ActionTarget.ISSUE_OWNERS,
+          targetDisplay: null,
+          targetIdentifier: null,
         },
       });
 
@@ -29,6 +31,7 @@ describe('automationNameUtils', () => {
         config: {
           targetType: ActionTarget.TEAM,
           targetDisplay: 'backend',
+          targetIdentifier: 'team-123',
         },
       });
 
@@ -41,6 +44,7 @@ describe('automationNameUtils', () => {
         config: {
           targetType: ActionTarget.USER,
           targetDisplay: 'john@example.com',
+          targetIdentifier: 'user-456',
         },
       });
 
@@ -53,6 +57,7 @@ describe('automationNameUtils', () => {
         config: {
           targetType: ActionTarget.SENTRY_APP,
           targetDisplay: 'My App',
+          targetIdentifier: 'app-789',
         },
       });
 
@@ -65,6 +70,7 @@ describe('automationNameUtils', () => {
         config: {
           targetType: null,
           targetDisplay: 'Custom Webhook',
+          targetIdentifier: 'webhook-123',
         },
       });
 
@@ -90,6 +96,7 @@ describe('automationNameUtils', () => {
           config: {
             targetType: ActionTarget.TEAM,
             targetDisplay: 'backend',
+            targetIdentifier: 'team-123',
           },
         }),
       ];
@@ -105,6 +112,7 @@ describe('automationNameUtils', () => {
           config: {
             targetType: ActionTarget.TEAM,
             targetDisplay: 'backend',
+            targetIdentifier: 'team-123',
           },
         }),
         ActionFixture({
@@ -112,6 +120,7 @@ describe('automationNameUtils', () => {
           config: {
             targetType: ActionTarget.SENTRY_APP,
             targetDisplay: 'Slack',
+            targetIdentifier: 'app-789',
           },
         }),
       ];
@@ -129,6 +138,7 @@ describe('automationNameUtils', () => {
           config: {
             targetType: ActionTarget.TEAM,
             targetDisplay: 'team',
+            targetIdentifier: 'team-123',
           },
         })
       );
@@ -147,6 +157,7 @@ describe('automationNameUtils', () => {
         config: {
           targetType: ActionTarget.USER,
           targetDisplay: longDescription,
+          targetIdentifier: 'user-456',
         },
       });
       const actions = new Array(5).fill(action);
@@ -165,6 +176,7 @@ describe('automationNameUtils', () => {
           config: {
             targetType: ActionTarget.USER,
             targetDisplay: veryLongDescription,
+            targetIdentifier: 'user-456',
           },
         }),
         ActionFixture({
@@ -172,6 +184,7 @@ describe('automationNameUtils', () => {
           config: {
             targetType: ActionTarget.USER,
             targetDisplay: veryLongDescription,
+            targetIdentifier: 'user-789',
           },
         }),
       ];
@@ -189,6 +202,7 @@ describe('automationNameUtils', () => {
           config: {
             targetType: ActionTarget.TEAM,
             targetDisplay: 'team',
+            targetIdentifier: 'team-123',
           },
         })
       );
@@ -211,6 +225,7 @@ describe('automationNameUtils', () => {
                 config: {
                   targetType: ActionTarget.TEAM,
                   targetDisplay: 'backend',
+                  targetIdentifier: 'team-123',
                 },
               }),
             ],
@@ -222,6 +237,7 @@ describe('automationNameUtils', () => {
                 config: {
                   targetType: ActionTarget.SENTRY_APP,
                   targetDisplay: 'Slack',
+                  targetIdentifier: 'app-789',
                 },
               }),
             ],

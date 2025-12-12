@@ -179,7 +179,7 @@ describe('AutomationNewSettings', () => {
                     type: 'slack',
                     config: {
                       targetType: 'specific',
-                      targetIdentifier: '',
+                      targetIdentifier: null,
                       targetDisplay: '#alerts',
                     },
                     integrationId: '1',
@@ -191,6 +191,7 @@ describe('AutomationNewSettings', () => {
                     config: {
                       targetType: 'user',
                       targetIdentifier: '1',
+                      targetDisplay: null,
                     },
                     data: {},
                     status: 'active',

@@ -489,12 +489,12 @@ function getDefaultConfig(actionHandler: ActionHandler): ActionConfig {
     actionHandler.sentryApp?.id ??
     actionHandler.integrations?.[0]?.services?.[0]?.id ??
     actionHandler.services?.[0]?.slug ??
-    '';
+    null;
   const targetDisplay =
     actionHandler.sentryApp?.name ??
     actionHandler.integrations?.[0]?.services?.[0]?.name ??
     actionHandler.services?.[0]?.name ??
-    '';
+    null;
 
   return {
     targetType,

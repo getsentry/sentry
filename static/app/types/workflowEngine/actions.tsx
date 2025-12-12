@@ -20,10 +20,10 @@ export interface TicketCreationAction extends Action {
 }
 
 export interface ActionConfig {
+  targetDisplay: string | null;
+  targetIdentifier: string | null;
   targetType: ActionTarget | null;
   sentryAppIdentifier?: SentryAppIdentifier;
-  targetDisplay?: string;
-  targetIdentifier?: string;
 }
 
 export enum ActionTarget {
