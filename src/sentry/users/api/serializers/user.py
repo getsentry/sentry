@@ -73,7 +73,6 @@ class _UserOptions(TypedDict):
     timezone: str
     clock24Hours: bool
     prefersIssueDetailsStreamlinedUI: bool | None
-    prefersChonkUI: bool | None
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
