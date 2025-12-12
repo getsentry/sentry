@@ -97,22 +97,24 @@ export function SegmentedControl<Value extends string>({
       listSize={collectionList.length}
     >
       <LayoutGroup id={radioGroupProps.id}>
-        {collectionList.map(option => (
-          <Segment
-            {...option.props}
-            key={option.key}
-            nextKey={option.nextKey}
-            prevKey={option.prevKey}
-            value={String(option.key)}
-            isDisabled={option.props.disabled || disabled}
-            state={state}
-            size={size}
-            priority={priority}
-            layoutGroupId={radioGroupProps.id}
-          >
-            {option.rendered}
-          </Segment>
-        ))}
+        {collectionList.map(option => {
+          return (
+            <Segment
+              {...option.props}
+              key={option.key}
+              nextKey={option.nextKey}
+              prevKey={option.prevKey}
+              value={String(option.key)}
+              isDisabled={option.props.disabled || disabled}
+              state={state}
+              size={size}
+              priority={priority}
+              layoutGroupId={radioGroupProps.id}
+            >
+              {option.rendered}
+            </Segment>
+          );
+        })}
       </LayoutGroup>
     </GroupWrap>
   );
