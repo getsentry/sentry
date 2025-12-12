@@ -1780,12 +1780,24 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
                     # Safeguard in case there is no "version" key. However, should not happen
                     resolved_in_activity.update(data={"version": release.version})
 
-            # Record how we compared the two releases
-            follows_semver = follows_semver_versioning_scheme(
-                project_id=group.project.id,
-                org_id=group.organization.id,
-                release_version=release.version,
-            )
+        # Fallback: if we didn't find an activity by ident (e.g., GroupResolution was missing
+        # or activity was created without ident), try to find the most recent resolution activity
+        if resolved_in_activity is None:
+            try:
+                resolved_in_activity = Activity.objects.filter(
+                    group=group,
+                    type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+                ).order_by("-datetime")[0]
+            except IndexError:
+                pass
+
+        # Record how we compared the two releases - compute this regardless of whether
+        # GroupResolution was found, as it only depends on the project and release version
+        follows_semver = follows_semver_versioning_scheme(
+            project_id=group.project.id,
+            org_id=group.organization.id,
+            release_version=release.version,
+        )
 
     if is_regression:
         activity_data: dict[str, str | bool] = {

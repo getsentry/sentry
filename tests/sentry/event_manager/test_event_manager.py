@@ -765,6 +765,65 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert regressed_activity.data["follows_semver"] is True
         assert regressed_activity.data["resolved_in_version"] == "foo@1.0.0"
 
+    @mock.patch("sentry.event_manager.plugin_is_regression")
+    def test_regression_activity_fields_when_group_resolution_missing(
+        self, plugin_is_regression: mock.MagicMock
+    ) -> None:
+        """
+        Issue was marked resolved in 1.0.0 but GroupResolution record is missing
+        (e.g., was deleted or never created due to a bug). A regression occurred in 2.0.0.
+
+        The regression activity should still have `follows_semver` and `resolved_in_version`
+        by falling back to finding the most recent SET_RESOLVED_IN_RELEASE activity.
+        """
+        plugin_is_regression.return_value = True
+
+        # Create a release and a group associated with it
+        old_release = self.create_release(
+            version="foo@1.0.0", date_added=timezone.now() - timedelta(minutes=30)
+        )
+        manager = EventManager(
+            make_event(
+                event_id="a" * 32,
+                checksum="a" * 32,
+                timestamp=time() - 50000,  # need to work around active_at
+                release=old_release.version,
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.group is not None
+        group = event.group
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+
+        # Create a SET_RESOLVED_IN_RELEASE activity WITHOUT a GroupResolution
+        # This simulates the bug where ident is not set or GroupResolution is missing
+        Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+            ident=None,  # No ident linking to a GroupResolution
+            data={"version": "foo@1.0.0"},
+        )
+
+        # Create a regression with a new release
+        manager = EventManager(
+            make_event(event_id="c" * 32, checksum="a" * 32, timestamp=time(), release="foo@2.0.0")
+        )
+        event = manager.save(self.project.id)
+        assert event.group_id == group.id
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+
+        # The regression activity should still have follows_semver and resolved_in_version
+        # even though GroupResolution was missing
+        regressed_activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_REGRESSION.value
+        )
+        assert regressed_activity.data["version"] == "foo@2.0.0"
+        assert regressed_activity.data["follows_semver"] is True
+        assert regressed_activity.data["resolved_in_version"] == "foo@1.0.0"
+
     def test_has_pending_commit_resolution(self) -> None:
         project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
