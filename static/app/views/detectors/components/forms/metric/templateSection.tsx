@@ -14,6 +14,7 @@ import {
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {METRIC_TEMPLATE_OPTIONS} from 'sentry/views/detectors/components/forms/metric/metricTemplateOptions';
+import {sanitizeDetectorQuery} from 'sentry/views/detectors/components/forms/metric/sanitizeDetectorQuery';
 import {useDatasetChoices} from 'sentry/views/detectors/components/forms/metric/useDatasetChoices';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -151,10 +152,13 @@ export function TemplateSection() {
               METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
               uiAggregate
             );
-            // Only set query if template has one and user hasn't customized the filter
-            if (meta.query !== undefined && !currentQuery) {
-              formContext.form?.setValue(METRIC_DETECTOR_FORM_FIELDS.query, meta.query);
-            }
+            const newQuery = currentQuery
+              ? sanitizeDetectorQuery({
+                  dataset: meta.detectorDataset,
+                  query: currentQuery,
+                })
+              : (meta.query ?? '');
+            formContext.form?.setValue(METRIC_DETECTOR_FORM_FIELDS.query, newQuery);
           }}
         />
       </Flex>
