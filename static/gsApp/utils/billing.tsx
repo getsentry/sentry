@@ -640,10 +640,10 @@ export function hasBillingAccess(organization: Organization) {
 }
 
 export function hasAccessToSubscriptionOverview(
-  subscription: Subscription,
+  subscription: Subscription | null,
   organization: Organization
-) {
-  return hasBillingAccess(organization) || subscription.canSelfServe;
+): boolean {
+  return hasBillingAccess(organization) || Boolean(subscription?.canSelfServe);
 }
 
 /**
