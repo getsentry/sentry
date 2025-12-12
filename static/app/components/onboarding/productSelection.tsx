@@ -129,12 +129,6 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
-  'javascript-react-router': [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.SESSION_REPLAY,
-    ProductSolution.LOGS,
-    ProductSolution.METRICS,
-  ],
   'javascript-vue': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
