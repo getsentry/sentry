@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {ClassNames, css, useTheme} from '@emotion/react';
+import {ClassNames, css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ChonkCheckWrap} from '@sentry/scraps/select/select.chonk';
@@ -24,18 +24,13 @@ export function SelectOption(props: Props) {
     innerProps,
     innerRef,
   } = props;
-  const theme = useTheme();
   const {showDividers, size} = selectProps;
   const {value, selectionMode, priority, ...itemProps} = data;
 
   const isMultiple = defined(selectionMode) ? selectionMode === 'multiple' : isMulti;
 
-  // Unless the priority prop is explicitly defined, use 'primary' for
-  // selected items in single-selection menus and 'default' for the rest.
-  // (chonk doesn't need this)
-  const itemPriority =
-    priority ??
-    (theme.isChonk ? 'default' : isSelected && !isMultiple ? 'primary' : 'default');
+  // Unless the priority prop is explicitly defined, use 'default' for all items.
+  const itemPriority = priority ?? 'default';
 
   return (
     <ClassNames>
