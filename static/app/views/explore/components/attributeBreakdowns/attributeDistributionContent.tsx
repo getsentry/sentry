@@ -19,6 +19,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import useAttributeBreakdowns from 'sentry/views/explore/hooks/useAttributeBreakdowns';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
@@ -80,6 +81,8 @@ export function AttributeDistribution() {
         query: {
           ...cohortCountEventView.getEventsAPIPayload(location),
           per_page: 1,
+          disableAggregateExtrapolation: '1',
+          sampling: SAMPLING_MODE.NORMAL,
         },
       },
     ],
