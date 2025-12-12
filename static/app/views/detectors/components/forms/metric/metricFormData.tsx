@@ -157,10 +157,10 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   sensitivity: AlertRuleSensitivity.MEDIUM,
   thresholdType: AlertRuleThresholdType.ABOVE_AND_BELOW,
 
-  dataset: DetectorDataset.SPANS,
-  aggregateFunction: 'avg(span.duration)',
+  dataset: DetectorDataset.ERRORS,
+  aggregateFunction: 'count()',
   interval: 60 * 60, // One hour in seconds
-  query: '',
+  query: 'is:unresolved',
 } satisfies Partial<MetricDetectorFormData>;
 
 /**
@@ -490,7 +490,7 @@ export function metricSavedDetectorToFormData(
 
   const dataset = snubaQuery?.dataset
     ? getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes)
-    : DetectorDataset.SPANS;
+    : DetectorDataset.ERRORS;
 
   const datasetConfig = getDatasetConfig(dataset);
   const anomalyCondition = getAnomalyCondition(detector);
