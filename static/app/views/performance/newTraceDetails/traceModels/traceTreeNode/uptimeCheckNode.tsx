@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {UptimeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/uptime';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -28,6 +29,7 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
     this.isEAPEvent = true;
     this.id = this.value.event_id;
     this.type = 'uptime-check';
+    this.traceItemDataset = TraceItemDataset.UPTIME_RESULTS;
 
     this.parent?.children.push(this);
   }
