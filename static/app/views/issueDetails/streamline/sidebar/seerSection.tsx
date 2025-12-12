@@ -55,9 +55,11 @@ function SeerSectionContent({
   group,
   project,
   event,
+  isExplorerEnabled,
 }: {
   event: Event | undefined;
   group: Group;
+  isExplorerEnabled: boolean;
   project: Project;
 }) {
   const aiConfig = useAiConfig(group, project);
@@ -70,7 +72,7 @@ function SeerSectionContent({
   }
 
   if (aiConfig.hasSummary) {
-    if (aiConfig.hasAutofix) {
+    if (aiConfig.hasAutofix && !isExplorerEnabled) {
       return (
         <Summary>
           <GroupSummaryWithAutofix
@@ -175,7 +177,14 @@ export default function SeerSection({
 
     // Default: show group summary
     if (aiConfig.hasAutofix || aiConfig.hasSummary) {
-      return <SeerSectionContent group={group} project={project} event={event} />;
+      return (
+        <SeerSectionContent
+          group={group}
+          project={project}
+          event={event}
+          isExplorerEnabled={isExplorerEnabled}
+        />
+      );
     }
 
     // Resources only
