@@ -8,7 +8,7 @@ export const inlineCodeStyles = (theme: Theme) => css`
   padding: 0;
   border: none;
 
-  font-family: ${theme.text.familyMono};
+  font-family: ${theme.font.family.mono};
   /**
    * adjust height of x character to 57% of bounding box
    * to match Rubik's x-height (magic number)

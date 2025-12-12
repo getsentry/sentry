@@ -37,7 +37,7 @@ export function getFontSize(
   size: NonNullable<ResponsiveValue<TextProps<any>['size']>>,
   theme: Theme
 ) {
-  return theme.fontSize[size];
+  return theme.font.size[size];
 }
 
 type ResponsiveValue<T> = T extends Responsive<infer U> ? U : T;

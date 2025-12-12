@@ -216,7 +216,7 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
   &[aria-selected='true'] {
     ${p => css`
       color: ${p.theme.purple400};
-      font-weight: ${p.theme.fontWeight.bold};
+      font-weight: ${p.theme.font.weight.medium};
       background-color: ${p.theme.purple100};
     `}
   }
