@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db import router, transaction
+from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -21,6 +22,24 @@ from sentry.seer.autofix.utils import (
 )
 
 OPTION_KEY = "sentry:autofix_automation_tuning"
+
+
+class SeerAutofixSettingGetSerializer(serializers.Serializer):
+    """Serializer for OrganizationAutofixAutomationSettingsEndpoint.get query params"""
+
+    projectIds = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        allow_null=True,
+        max_length=1000,
+        help_text="Optional list of project IDs to filter by. Maximum 1000 projects.",
+    )
+    query = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Optional search query to filter by project name or slug.",
+    )
 
 
 class SeerAutofixSettingSerializer(serializers.Serializer):
@@ -77,21 +96,20 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
         results = []
         for project in projects:
-            project_id_str = str(project.id)
             tuning_value = tuning_options.get(project) or AutofixAutomationTuningSettings.OFF.value
-            seer_pref = seer_preferences.get(project_id_str, {})
-
-            fixes_enabled = tuning_value != AutofixAutomationTuningSettings.OFF.value
-            stopping_point = seer_pref.get("automated_run_stopping_point")
-            pr_creation_enabled = stopping_point == AutofixStoppingPoint.OPEN_PR.value
+            seer_pref = seer_preferences.get(str(project.id), {})
 
             results.append(
                 {
                     "projectId": project.id,
                     "projectSlug": project.slug,
-                    "fixes": fixes_enabled,
-                    "prCreation": pr_creation_enabled,
+                    "projectName": project.name,
+                    "projectPlatform": project.platform,
+                    "fixes": tuning_value != AutofixAutomationTuningSettings.OFF.value,
+                    "prCreation": seer_pref.get("automated_run_stopping_point")
+                    == AutofixStoppingPoint.OPEN_PR.value,
                     "tuning": tuning_value,
+                    "reposCount": len(seer_pref.get("repositories", [])),
                 }
             )
         return results
@@ -102,21 +120,33 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
         :pparam string organization_id_or_slug: the id or slug of the organization.
         :qparam list[int] projectIds: Optional list of project IDs to filter by.
+        :qparam string query: Optional search query to filter by project name or slug.
         :auth: required
         """
-        queryset = Project.objects.filter(organization_id=organization.id)
+        serializer = SeerAutofixSettingGetSerializer(
+            data={
+                "projectIds": request.GET.getlist("projectIds") or None,
+                "query": request.GET.get("query"),
+            }
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-        project_ids_raw = request.GET.getlist("projectIds")
-        if project_ids_raw:
-            try:
-                project_ids = [int(pid) for pid in project_ids_raw]
-            except (ValueError, TypeError):
-                return Response({"projectIds": ["All project IDs must be integers."]}, status=400)
-            if len(project_ids) > 1000:
-                return Response(
-                    {"projectIds": ["Cannot request more than 1000 projects at once."]}, status=400
-                )
-            queryset = queryset.filter(id__in=project_ids)
+        data = serializer.validated_data
+        project_ids = data.get("projectIds")
+
+        if project_ids:
+            authorized_projects = self.get_projects(
+                request, organization, project_ids=set(project_ids)
+            )
+            authorized_project_ids = [p.id for p in authorized_projects]
+            queryset = Project.objects.filter(id__in=authorized_project_ids)
+        else:
+            queryset = Project.objects.filter(organization_id=organization.id)
+
+        query = data.get("query")
+        if query:
+            queryset = queryset.filter(Q(name__icontains=query) | Q(slug__icontains=query))
 
         return self.paginate(
             request=request,

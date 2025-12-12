@@ -222,8 +222,12 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
     )
     def test_get_returns_settings_for_projects(self, mock_bulk_get_preferences):
-        project1 = self.create_project(organization=self.organization)
-        project2 = self.create_project(organization=self.organization)
+        project1 = self.create_project(
+            organization=self.organization, name="Project One", platform="javascript"
+        )
+        project2 = self.create_project(
+            organization=self.organization, name="Project Two", platform="python"
+        )
 
         project1.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM.value
@@ -235,9 +239,11 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         mock_bulk_get_preferences.return_value = {
             str(project1.id): {
                 "automated_run_stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+                "repositories": [{"name": "repo1"}, {"name": "repo2"}],
             },
             str(project2.id): {
                 "automated_run_stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+                "repositories": [],
             },
         }
 
@@ -255,10 +261,16 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         assert result1["prCreation"] is True
         assert result1["tuning"] == AutofixAutomationTuningSettings.MEDIUM.value
         assert result1["projectSlug"] == project1.slug
+        assert result1["projectName"] == "Project One"
+        assert result1["projectPlatform"] == "javascript"
+        assert result1["reposCount"] == 2
 
         assert result2["fixes"] is False
         assert result2["prCreation"] is False
         assert result2["tuning"] == AutofixAutomationTuningSettings.OFF.value
+        assert result2["projectName"] == "Project Two"
+        assert result2["projectPlatform"] == "python"
+        assert result2["reposCount"] == 0
 
     @patch(
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
@@ -298,23 +310,16 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         assert response.status_code == 400
         assert "projectIds" in response.data
 
-    @patch(
-        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
-    )
-    def test_get_filters_to_org_projects_only(self, mock_bulk_get_preferences):
+    def test_get_unauthorized_project_ids_returns_403(self):
         project = self.create_project(organization=self.organization)
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)
-        mock_bulk_get_preferences.return_value = {}
 
-        # Request both projects, but only the one in our org should be returned
         response = self.client.get(
             self.url, {"projectIds": [project.id, other_project.id]}, format="json"
         )
 
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert response.data[0]["projectId"] == project.id
+        assert response.status_code == 403
 
     @patch(
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
@@ -323,8 +328,6 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
         mock_bulk_get_preferences.return_value = {}
-
-        # Pass as repeated query params: ?projectIds=1&projectIds=2
         response = self.client.get(
             f"{self.url}?projectIds={project1.id}&projectIds={project2.id}", format="json"
         )
@@ -354,16 +357,9 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         # Django will reject this with 400 before our code runs due to DATA_UPLOAD_MAX_NUMBER_FIELDS
         assert response.status_code == 400
 
-    @patch(
-        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
-    )
-    def test_get_empty_results_for_nonexistent_project_ids(self, mock_bulk_get_preferences):
-        mock_bulk_get_preferences.return_value = {}
-
+    def test_get_nonexistent_project_ids_returns_403(self):
         response = self.client.get(self.url, {"projectIds": [99999, 99998]}, format="json")
-
-        assert response.status_code == 200
-        assert len(response.data) == 0
+        assert response.status_code == 403
 
     @patch(
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
@@ -402,3 +398,44 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data[0]["fixes"] is True
         assert response.data[0]["prCreation"] is False
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_get_search_by_name(self, mock_bulk_get_preferences):
+        self.create_project(organization=self.organization, name="Frontend App", slug="frontend")
+        self.create_project(organization=self.organization, name="Backend API", slug="backend")
+        self.create_project(organization=self.organization, name="Mobile App", slug="mobile")
+        mock_bulk_get_preferences.return_value = {}
+
+        response = self.client.get(self.url, {"query": "Frontend"}, format="json")
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["projectName"] == "Frontend App"
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_get_search_by_slug(self, mock_bulk_get_preferences):
+        self.create_project(organization=self.organization, name="Frontend App", slug="frontend")
+        self.create_project(organization=self.organization, name="Backend API", slug="backend")
+        mock_bulk_get_preferences.return_value = {}
+
+        response = self.client.get(self.url, {"query": "backend"}, format="json")
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["projectSlug"] == "backend"
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_get_search_no_results(self, mock_bulk_get_preferences):
+        self.create_project(organization=self.organization, name="Frontend App", slug="frontend")
+        mock_bulk_get_preferences.return_value = {}
+
+        response = self.client.get(self.url, {"query": "nonexistent"}, format="json")
+
+        assert response.status_code == 200
+        assert len(response.data) == 0
