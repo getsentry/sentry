@@ -1,10 +1,9 @@
 import logging
 
-import sentry_sdk
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry import options
@@ -27,9 +26,7 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.utils import snuba_rpc
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba_rpc import TraceItemAttributeNamesRequest
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +119,6 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
         )
         attrs_meta.trace_item_type = TraceItemType.TRACE_ITEM_TYPE_SPAN
 
-        attr_type = AttributeKey.Type.TYPE_STRING
         max_attributes = options.get("explore.trace-items.keys.max")
 
         def get_table_results():
@@ -164,26 +160,6 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 )
 
         def data_fn(offset: int, limit: int):
-            # Intersecting attributes filter is a best effort operation, and if is not
-            # possible in under 1 second, returns all attributes. This might result in a
-            # negative user experience if the results in the query filter do not actually
-            # contain these attributes. One suggestion would be to request more in the limit
-            # than actually what's visualized in the page.
-            with handle_query_errors():
-                attrs_request = TraceItemAttributeNamesRequest(
-                    meta=attrs_meta,
-                    limit=limit,
-                    page_token=PageToken(offset=offset),
-                    type=attr_type,
-                    intersecting_attributes_filter=query_filter,
-                    value_substring_match=value_substring_match,
-                )
-
-                attrs_response = snuba_rpc.attribute_names_rpc(attrs_request)
-                sentry_sdk.set_tag(
-                    "num_attrs_with_intersecting_filter", len(attrs_response.attributes)
-                )
-
             table_results = get_table_results()
             if not table_results["data"]:
                 return {"data": []}, 0
