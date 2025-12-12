@@ -78,6 +78,7 @@ interface RelatedIssuesProps {
   aggregate: string;
   end: string;
   eventDateCreated: string | undefined;
+  projectId: string | number;
   query: string;
   start: string;
 }
@@ -107,6 +108,7 @@ function calculateStartOfInterval({
 }
 
 function ContributingIssues({
+  projectId,
   query,
   eventDateCreated,
   aggregate,
@@ -120,6 +122,7 @@ function ContributingIssues({
   }
 
   const queryParams = {
+    project: projectId,
     query: `issue.type:error ${query}`,
     start,
     end,
@@ -321,6 +324,7 @@ function TriggeredConditionDetails({
       </InterimSection>
       {isErrorsDataset && (
         <ContributingIssues
+          projectId={projectId}
           query={issueSearchQuery}
           eventDateCreated={eventDateCreated}
           aggregate={snubaQuery.aggregate}
