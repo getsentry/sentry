@@ -87,7 +87,7 @@ export function TraceUptimeCheckNodeRow(props: TraceRowProps<UptimeCheckNode>) {
           node={props.node}
           virtualized_index={props.virtualized_index}
           manager={props.manager}
-          color={props.node.makeBarColor(props.theme).color}
+          color={props.node.makeBarColor(props.theme)}
           node_space={props.node.space}
           errors={props.node.errors}
           occurrences={props.node.occurrences}
