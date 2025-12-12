@@ -35,7 +35,6 @@ import {
 } from 'sentry/types/breadcrumbs';
 import {EntryType, type Event} from 'sentry/types/event';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 const BREADCRUMB_TITLE_PLACEHOLDER = t('Generic');
 const BREADCRUMB_SUMMARY_COUNT = 5;
@@ -288,14 +287,11 @@ function getBreadcrumbColorConfig(
       return {title: theme.blue400, icon: theme.blue300, iconBorder: theme.blue200};
     case BreadcrumbType.DEBUG:
     default:
-      if (isChonkTheme(theme)) {
-        return {
-          title: theme.tokens.content.primary,
-          icon: theme.tokens.content.muted,
-          iconBorder: theme.tokens.content.muted,
-        };
-      }
-      return {title: theme.gray400, icon: theme.gray300, iconBorder: theme.gray200};
+      return {
+        title: theme.tokens.content.primary,
+        icon: theme.tokens.content.muted,
+        iconBorder: theme.tokens.content.muted,
+      };
   }
 }
 

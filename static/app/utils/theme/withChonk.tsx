@@ -23,24 +23,19 @@ export function withChonk<
     theme?: Theme;
   } & React.RefAttributes<any>,
 >(
-  legacyComponent: React.ComponentType<LegacyProps>,
+  _legacyComponent: React.ComponentType<LegacyProps>,
   chonkComponent: React.ComponentType<ChonkProps>,
   propMapping: ChonkPropMapping<LegacyProps, ChonkProps> = identity
 ) {
   function ChonkSwitch(props: LegacyProps) {
     const theme = useTheme();
 
-    if (isChonkTheme(theme)) {
-      const ChonkComponent: any = chonkComponent;
-      return (
-        <ChonkComponent {...propMapping(props)} ref={props.ref} theme={theme}>
-          {props.children}
-        </ChonkComponent>
-      );
-    }
-
-    const LegacyComponent: any = legacyComponent;
-    return <LegacyComponent {...props}>{props.children}</LegacyComponent>;
+    const ChonkComponent: any = chonkComponent;
+    return (
+      <ChonkComponent {...propMapping(props)} ref={props.ref} theme={theme}>
+        {props.children}
+      </ChonkComponent>
+    );
   }
 
   return styled(ChonkSwitch)``;
@@ -48,8 +43,4 @@ export function withChonk<
 
 function identity<T, U>(props: T): U {
   return props as unknown as U;
-}
-
-export function isChonkTheme(theme: Theme) {
-  return theme.isChonk;
 }

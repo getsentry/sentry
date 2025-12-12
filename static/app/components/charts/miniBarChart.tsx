@@ -9,7 +9,6 @@ import set from 'lodash/set';
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import {BarChart, type BarChartProps, type BarChartSeries} from './barChart';
 
@@ -276,9 +275,7 @@ function MiniBarChart({
   ...props
 }: Props) {
   const theme = useTheme();
-  const xAxisLineColor: string = isChonkTheme(theme)
-    ? theme.tokens.graphics.muted
-    : theme.gray300;
+  const xAxisLineColor: string = theme.tokens.graphics.muted;
 
   const updatedSeries: BarChartSeries[] = useMemo(() => {
     if (!series?.length) {
