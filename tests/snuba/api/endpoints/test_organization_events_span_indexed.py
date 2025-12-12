@@ -5,9 +5,11 @@ from uuid import uuid4
 
 import pytest
 import urllib3
+from django.test import override_settings
 from django.utils.timezone import now
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.insights.models import InsightsStarredSegment
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
@@ -6975,3 +6977,34 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert returned_ids == {span1["span_id"], span2["span_id"]}
 
         assert span3["span_id"] not in returned_ids
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_sent_spans_project_optimization(self):
+        project1 = self.create_project()
+        project2 = self.create_project()
+
+        spans = [
+            self.create_span({"description": "foo"}, project=project1, start_ts=self.ten_mins_ago),
+        ]
+        self.store_spans(spans, is_eap=True)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "id",
+                    "timestamp",
+                    "span.description",
+                ],
+                "dataset": "spans",
+                "project": [project1.id, project2.id],
+            }
+        )
+        assert response.status_code == 200
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "timestamp": mock.ANY,
+                "span.description": "foo",
+                "project.name": project1.slug,
+            }
+        ]

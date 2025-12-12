@@ -1,8 +1,11 @@
 from datetime import datetime, timedelta, timezone
+from unittest.mock import ANY
 from uuid import UUID, uuid4
 
 import pytest
+from django.test import override_settings
 
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import DataCategory
 from sentry.search.eap import constants
 from sentry.testutils.cases import OutcomesSnubaTest
@@ -923,3 +926,47 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         response = self.do_request(request)
         assert response.status_code == 200
         assert response.data["data"] == [{"count(message)": 1}]
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_no_project_sent_logs(self):
+        project1 = self.create_project()
+        project2 = self.create_project()
+
+        request = {
+            "field": ["timestamp", "message"],
+            "project": [project1.id, project2.id],
+            "dataset": self.dataset,
+            "sort": "-timestamp",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == []
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_sent_logs_project_optimization(self):
+        project1 = self.create_project()
+        project2 = self.create_project()
+
+        self.store_ourlogs(
+            [self.create_ourlog({"body": "log"}, project=project1, timestamp=self.ten_mins_ago)]
+        )
+
+        request = {
+            "field": ["timestamp", "message"],
+            "project": [project1.id, project2.id],
+            "dataset": self.dataset,
+            "sort": "-timestamp",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == [
+            {
+                "timestamp": ANY,
+                "timestamp_precise": ANY,
+                "message": "log",
+            }
+        ]

@@ -2,8 +2,11 @@ import logging
 from datetime import timedelta
 
 import sentry_sdk
+from django.conf import settings
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 
+from sentry.conf.types.sentry_config import SentryMode
+from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
@@ -20,6 +23,13 @@ logger = logging.getLogger("sentry.snuba.trace_metrics")
 class TraceMetrics(rpc_dataset_common.RPCBase):
 
     DEFINITIONS = TRACE_METRICS_DEFINITIONS
+
+    @classmethod
+    def filter_project(cls, project: Project) -> bool:
+        # This is only set properly on SAAS
+        if settings.SENTRY_MODE == SentryMode.SAAS:
+            return project.flags.has_trace_metrics
+        return True
 
     @classmethod
     @sentry_sdk.trace

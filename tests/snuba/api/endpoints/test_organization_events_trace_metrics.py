@@ -1,8 +1,10 @@
 from unittest import mock
 
 import pytest
+from django.test import override_settings
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.conf.types.sentry_config import SentryMode
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -476,3 +478,35 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
                 code="parse_error",
             )
         }
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_sent_trace_metrics_project_optimization(self):
+        project1 = self.create_project()
+        project2 = self.create_project()
+
+        trace_metrics = [
+            self.create_trace_metric("foo", 1, "counter", project=project1),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "metric.name",
+                    "metric.type",
+                    "value",
+                ],
+                "dataset": self.dataset,
+                "project": [project1.id, project2.id],
+            }
+        )
+        assert response.status_code == 200
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "metric.name": "foo",
+                "metric.type": "counter",
+                "value": 1,
+                "project.name": project1.slug,
+            }
+        ]
