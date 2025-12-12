@@ -30,16 +30,18 @@ class TypesClass:
         return [(str(v), str(v)) for _, v in cls.TYPES]
 
     @classmethod
-    def get_type_name(cls, num) -> str | None:
+    def get_type_name(cls: type["TypesClass"], num: int) -> str | None:
         for id, name in cls.TYPES:
             if id == num:
                 return name
+        return None
 
     @classmethod
-    def get_id_for_type_name(cls, type_name) -> int | None:
+    def get_id_for_type_name(cls: type["TypesClass"], type_name: str) -> int | None:
         for id, name in cls.TYPES:
             if type_name == name:
                 return id
+        return None
 
 
 class DashboardWidgetTypes(TypesClass):
