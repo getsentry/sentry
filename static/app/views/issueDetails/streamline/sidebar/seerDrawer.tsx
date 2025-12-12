@@ -17,6 +17,7 @@ import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox'
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
+import {ExplorerSeerDrawer} from 'sentry/components/events/autofix/v2/explorerSeerDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
@@ -75,13 +76,102 @@ function WelcomeScreen({
 
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const organization = useOrganization();
+  const aiConfig = useAiConfig(group, project);
+
+  const showWelcomeScreen =
+    aiConfig.orgNeedsGenAiAcknowledgement ||
+    (!aiConfig.hasAutofixQuota && organization.features.includes('seer-billing'));
+
+  // Handle loading state at the top level
+  if (aiConfig.isAutofixSetupLoading) {
+    return (
+      <SeerDrawerContainer className="seer-drawer-container">
+        <SeerDrawerHeader>
+          <NavigationCrumbs
+            crumbs={[
+              {
+                label: (
+                  <CrumbContainer>
+                    <ProjectAvatar project={project} />
+                    <ShortId>{group.shortId}</ShortId>
+                  </CrumbContainer>
+                ),
+              },
+              {label: getShortEventId(event.id)},
+              {label: t('Seer')},
+            ]}
+          />
+        </SeerDrawerHeader>
+        <SeerDrawerBody>
+          <PlaceholderStack data-test-id="ai-setup-loading-indicator">
+            <Placeholder height="10rem" />
+            <Placeholder height="15rem" />
+            <Placeholder height="15rem" />
+          </PlaceholderStack>
+        </SeerDrawerBody>
+      </SeerDrawerContainer>
+    );
+  }
+
+  // Handle welcome/consent screen at the top level
+  if (showWelcomeScreen) {
+    return (
+      <SeerDrawerContainer className="seer-drawer-container">
+        <SeerDrawerHeader>
+          <NavigationCrumbs
+            crumbs={[
+              {
+                label: (
+                  <CrumbContainer>
+                    <ProjectAvatar project={project} />
+                    <ShortId>{group.shortId}</ShortId>
+                  </CrumbContainer>
+                ),
+              },
+              {label: getShortEventId(event.id)},
+              {label: t('Seer')},
+            ]}
+          />
+        </SeerDrawerHeader>
+        <SeerDrawerBody>
+          <WelcomeScreen group={group} project={project} event={event} />
+        </SeerDrawerBody>
+      </SeerDrawerContainer>
+    );
+  }
+
+  // Route to Explorer-based drawer if both feature flags are enabled
+  if (
+    organization.features.includes('seer-explorer') &&
+    organization.features.includes('autofix-on-explorer')
+  ) {
+    return (
+      <ExplorerSeerDrawer
+        group={group}
+        project={project}
+        event={event}
+        aiConfig={aiConfig}
+      />
+    );
+  }
+
+  return (
+    <LegacySeerDrawer group={group} project={project} event={event} aiConfig={aiConfig} />
+  );
+}
+
+interface LegacySeerDrawerProps extends SeerDrawerProps {
+  aiConfig: ReturnType<typeof useAiConfig>;
+}
+
+function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerProps) {
+  const organization = useOrganization();
   const {
     autofixData,
     triggerAutofix,
     reset,
     isPending: autofixDataPending,
   } = useAiAutofix(group, event);
-  const aiConfig = useAiConfig(group, project);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -212,10 +302,6 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
     lastTriggeredAt = lastTriggeredAt + 'Z';
   }
 
-  const showWelcomeScreen =
-    aiConfig.orgNeedsGenAiAcknowledgement ||
-    (!aiConfig.hasAutofixQuota && organization.features.includes('seer-billing'));
-
   return (
     <SeerDrawerContainer className="seer-drawer-container">
       <SeerDrawerHeader>
@@ -233,123 +319,103 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             {label: t('Seer')},
           ]}
         />
-        {!showWelcomeScreen &&
-          !aiConfig.isAutofixSetupLoading &&
-          !aiConfig.orgNeedsGenAiAcknowledgement && (
-            <FeedbackWrapper>
-              <AutofixFeedback />
-            </FeedbackWrapper>
-          )}
+        <FeedbackWrapper>
+          <AutofixFeedback />
+        </FeedbackWrapper>
       </SeerDrawerHeader>
-      {(!showWelcomeScreen || aiConfig.isAutofixSetupLoading) && (
-        <SeerDrawerNavigator>
-          <Flex align="center" gap="md">
-            <Header>{t('Seer')}</Header>
-            <QuestionTooltip
-              isHoverable
-              title={
-                <Flex direction="column" gap="md">
-                  <div>
-                    <AiPrivacyNotice />
-                  </div>
-                  <div>
-                    {tct('Seer can be turned off in [settingsDocs:Settings].', {
-                      settingsDocs: (
-                        <Link
-                          to={{
-                            pathname: `/settings/${organization.slug}/`,
-                            hash: 'hideAiFeatures',
-                          }}
-                        />
-                      ),
-                    })}
-                  </div>
-                </Flex>
-              }
-              size="sm"
-            />
-          </Flex>
-          {!aiConfig.orgNeedsGenAiAcknowledgement && (
-            <ButtonBarWrapper data-test-id="seer-button-bar">
-              <ButtonBar>
-                <Feature features={['organizations:autofix-seer-preferences']}>
-                  <LinkButton
-                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
-                    size="xs"
-                    title={t('Project Settings for Seer')}
-                    aria-label={t('Project Settings for Seer')}
-                    icon={<IconSettings />}
-                  />
-                </Feature>
-                {aiConfig.hasAutofix && (
-                  <Button
-                    size="xs"
-                    onClick={() => {
-                      reset();
-                      aiConfig.refetchAutofixSetup?.();
-                    }}
-                    title={
-                      autofixData?.last_triggered_at
-                        ? tct('Last run at [date]', {
-                            date: <DateTime date={lastTriggeredAt} />,
-                          })
-                        : null
-                    }
-                    disabled={!autofixData}
-                  >
-                    {t('Start Over')}
-                  </Button>
-                )}
-              </ButtonBar>
-            </ButtonBarWrapper>
-          )}
-        </SeerDrawerNavigator>
-      )}
+      <SeerDrawerNavigator>
+        <Flex align="center" gap="md">
+          <Header>{t('Seer')}</Header>
+          <QuestionTooltip
+            isHoverable
+            title={
+              <Flex direction="column" gap="md">
+                <div>
+                  <AiPrivacyNotice />
+                </div>
+                <div>
+                  {tct('Seer can be turned off in [settingsDocs:Settings].', {
+                    settingsDocs: (
+                      <Link
+                        to={{
+                          pathname: `/settings/${organization.slug}/`,
+                          hash: 'hideAiFeatures',
+                        }}
+                      />
+                    ),
+                  })}
+                </div>
+              </Flex>
+            }
+            size="sm"
+          />
+        </Flex>
+        <ButtonBarWrapper data-test-id="seer-button-bar">
+          <ButtonBar>
+            <Feature features={['organizations:autofix-seer-preferences']}>
+              <LinkButton
+                to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                size="xs"
+                title={t('Project Settings for Seer')}
+                aria-label={t('Project Settings for Seer')}
+                icon={<IconSettings />}
+              />
+            </Feature>
+            {aiConfig.hasAutofix && (
+              <Button
+                size="xs"
+                onClick={() => {
+                  reset();
+                  aiConfig.refetchAutofixSetup?.();
+                }}
+                title={
+                  autofixData?.last_triggered_at
+                    ? tct('Last run at [date]', {
+                        date: <DateTime date={lastTriggeredAt} />,
+                      })
+                    : null
+                }
+                disabled={!autofixData}
+              >
+                {t('Start Over')}
+              </Button>
+            )}
+          </ButtonBar>
+        </ButtonBarWrapper>
+      </SeerDrawerNavigator>
 
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
-        {aiConfig.isAutofixSetupLoading ? (
-          <PlaceholderStack data-test-id="ai-setup-loading-indicator">
-            <Placeholder height="10rem" />
-            <Placeholder height="15rem" />
-            <Placeholder height="15rem" />
-          </PlaceholderStack>
-        ) : showWelcomeScreen ? (
-          <WelcomeScreen group={group} project={project} event={event} />
-        ) : (
-          <Fragment>
-            <SeerNotices
-              groupId={group.id}
-              hasGithubIntegration={aiConfig.hasGithubIntegration}
+        <SeerNotices
+          groupId={group.id}
+          hasGithubIntegration={aiConfig.hasGithubIntegration}
+          project={project}
+        />
+        {aiConfig.hasSummary && (
+          <StyledCard>
+            <GroupSummary
+              group={group}
+              event={event}
               project={project}
+              collapsed={!!autofixData}
             />
-            {aiConfig.hasSummary && (
-              <StyledCard>
-                <GroupSummary
-                  group={group}
-                  event={event}
-                  project={project}
-                  collapsed={!!autofixData}
-                />
-              </StyledCard>
-            )}
-            {aiConfig.hasAutofix && (
-              <Fragment>
-                {autofixData ? (
-                  <AutofixSteps
-                    data={autofixData}
-                    groupId={group.id}
-                    runId={autofixData.run_id}
-                    event={event}
-                  />
-                ) : autofixDataPending ? (
-                  <PlaceholderStack>
-                    <Placeholder height="15rem" />
-                    <Placeholder height="15rem" />
-                  </PlaceholderStack>
-                ) : (
-                  <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
-                )}
-              </Fragment>
+          </StyledCard>
+        )}
+        {aiConfig.hasAutofix && (
+          <Fragment>
+            {autofixData ? (
+              <AutofixSteps
+                data={autofixData}
+                groupId={group.id}
+                runId={autofixData.run_id}
+                event={event}
+              />
+            ) : autofixDataPending ? (
+              <PlaceholderStack>
+                <Placeholder height="15rem" />
+                <Placeholder height="15rem" />
+              </PlaceholderStack>
+            ) : (
+              <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
             )}
           </Fragment>
         )}

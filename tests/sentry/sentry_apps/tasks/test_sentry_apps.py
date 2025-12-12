@@ -46,6 +46,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -340,7 +341,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @with_feature("organizations:workflow-engine-trigger-actions")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     def test_send_alert_event_with_additional_payload_legacy_rule_id(
         self, mock_record, safe_urlopen
     ):

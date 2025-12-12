@@ -5,6 +5,7 @@ from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
+from google.protobuf.json_format import MessageToJson
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     AttributeDistributionsRequest,
@@ -31,7 +32,7 @@ from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
 from sentry.snuba.rpc_dataset_common import set_debug_meta
-from sentry.utils import snuba_rpc
+from sentry.utils import json, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
@@ -88,6 +89,7 @@ class Spans(rpc_dataset_common.RPCBase):
         config: SearchResolverConfig,
         sampling_mode: SAMPLING_MODES | None,
         comparison_delta: timedelta | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> SnubaTSResult:
         """Make the query"""
         cls.validate_granularity(params)
@@ -100,6 +102,7 @@ class Spans(rpc_dataset_common.RPCBase):
             groupby=[],
             referrer=referrer,
             sampling_mode=sampling_mode,
+            additional_queries=additional_queries,
         )
 
         """Run the query"""
@@ -150,6 +153,7 @@ class Spans(rpc_dataset_common.RPCBase):
                 groupby=[],
                 referrer=referrer,
                 sampling_mode=sampling_mode,
+                additional_queries=additional_queries,
             )
             comp_rpc_response = snuba_rpc.timeseries_rpc([comp_rpc_request])[0]
 
@@ -268,10 +272,14 @@ class Spans(rpc_dataset_common.RPCBase):
                     break
                 if MAX_TIMEOUT > 0 and time.time() - start_time > MAX_TIMEOUT:
                     # If timeout is not set then logging this is not helpful
-                    rpc_dataset_common.log_rpc_request(
+                    rpc_debug_json = json.loads(MessageToJson(request))
+                    logger.info(
                         "running a trace query timed out while paginating",
-                        request,
-                        logger,
+                        extra={
+                            "rpc_query": rpc_debug_json,
+                            "referrer": request.meta.referrer,
+                            "trace_item_type": request.meta.trace_item_type,
+                        },
                     )
                     break
                 request.page_token.CopyFrom(response.page_token)
