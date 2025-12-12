@@ -723,6 +723,7 @@ class SnubaTagStorage(TagStorage):
         keys: list[str] | None = None,
         value_limit: int = TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids=None,
+        use_subtraction_query: bool = False,
         **kwargs,
     ):
         # Similar to __get_tag_key_and_top_values except we get the top values
@@ -776,6 +777,7 @@ class SnubaTagStorage(TagStorage):
             tenant_ids=tenant_ids,
             start=kwargs.get("start"),
             end=kwargs.get("end"),
+            use_subtraction_query=use_subtraction_query,
         )
         for k, stats in empty_stats_map.items():
             if not stats or stats.get("count", 0) <= 0:
@@ -822,17 +824,76 @@ class SnubaTagStorage(TagStorage):
         tenant_ids: dict[str, int | str] | None,
         start: datetime | None,
         end: datetime | None,
+        use_subtraction_query: bool = False,
+    ) -> dict[str, dict[str, Any]]:
+        """Count events with empty/missing tag values for each key."""
+        if not keys_to_check:
+            return {}
+
+        if use_subtraction_query:
+            return self.__get_empty_value_stats_map_subtraction(
+                dataset, filters, conditions, keys_to_check, tenant_ids, start, end
+            )
+        return self.__get_empty_value_stats_map_countif(
+            dataset, filters, conditions, keys_to_check, tenant_ids, start, end
+        )
+
+    def __get_empty_value_stats_map_countif(
+        self,
+        dataset: Dataset,
+        filters: MutableMapping[str, Sequence[Any]],
+        conditions: list,
+        keys_to_check: list[str],
+        tenant_ids: dict[str, int | str] | None,
+        start: datetime | None,
+        end: datetime | None,
+    ) -> dict[str, dict[str, Any]]:
+        """Original per-key countIf approach (can exceed CH query-size limits for many keys)."""
+        empty_alias_map: dict[str, dict[str, str]] = {}
+        selected_columns_empty: list[list] = []
+        for i, k in enumerate(keys_to_check):
+            cnt_alias = f"cnt_{i}"
+            empty_alias_map[k] = {"count": cnt_alias}
+            tag_expr = self.format_string.format(k)
+            empty_predicate = ["equals", [tag_expr, ""]]
+            selected_columns_empty.append(["countIf", [empty_predicate], cnt_alias])
+
+        empty_filters = dict(filters)
+        if self.key_column in empty_filters:
+            del empty_filters[self.key_column]
+
+        empty_results = snuba.query(
+            dataset=dataset,
+            start=start,
+            end=end,
+            groupby=None,
+            conditions=conditions,
+            filter_keys=empty_filters,
+            aggregations=[],
+            selected_columns=selected_columns_empty,
+            referrer="tagstore._get_tag_keys_and_top_values_empty_counts",
+            tenant_ids=tenant_ids,
+        )
+
+        return {
+            k: {"count": empty_results.get(empty_alias_map[k]["count"], 0)} for k in keys_to_check
+        }
+
+    def __get_empty_value_stats_map_subtraction(
+        self,
+        dataset: Dataset,
+        filters: MutableMapping[str, Sequence[Any]],
+        conditions: list,
+        keys_to_check: list[str],
+        tenant_ids: dict[str, int | str] | None,
+        start: datetime | None,
+        end: datetime | None,
     ) -> dict[str, dict[str, Any]]:
         """
-        Count events with empty/missing tag values for each key.
+        Two-query subtraction approach: empty_count(k) = total_events - non_empty_events(k).
 
-        Missing keys are treated as empty. Computed as:
-            empty_count(k) = total_events - non_empty_events(k)
+        Avoids per-key countIf that can exceed ClickHouse query-size limits.
         """
-        stats_map: dict[str, dict[str, Any]] = {}
-        if not keys_to_check:
-            return stats_map
-
         # Don't filter by tags_key so events missing the key count toward total.
         total_filters = dict(filters)
         total_filters.pop(self.key_column, None)
@@ -864,11 +925,9 @@ class SnubaTagStorage(TagStorage):
             tenant_ids=tenant_ids,
         )
 
-        for k in keys_to_check:
-            non_empty = non_empty_by_key.get(k, 0)
-            stats_map[k] = {"count": max(total_events - non_empty, 0)}
-
-        return stats_map
+        return {
+            k: {"count": max(total_events - non_empty_by_key.get(k, 0), 0)} for k in keys_to_check
+        }
 
     def get_release_tags(self, organization_id, project_ids, environment_id, versions):
         filters = {"project_id": project_ids}
