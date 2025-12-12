@@ -26,8 +26,13 @@ class ImpactItem(BaseModel):
 class SuspectCommit(BaseModel):
     """A commit that may have introduced the issue."""
 
-    sha: str = Field(description="Git commit SHA")
-    description: str = Field(description="Why this commit is suspected")
+    sha: str = Field(description="Git commit SHA (7+ characters)")
+    repo_name: str = Field(description="Full repository name, e.g. 'getsentry/sentry'")
+    message: str = Field(description="Commit message/title")
+    author_name: str = Field(description="Name of the commit author")
+    author_email: str = Field(description="Email of the commit author")
+    committed_date: str = Field(description="Commit date in YYYY-MM-DD format")
+    description: str = Field(description="Why this commit is suspected of causing the issue")
 
 
 class SuggestedAssignee(BaseModel):
