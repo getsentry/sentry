@@ -6,6 +6,7 @@ import seerConfigConnect2 from 'getsentry-images/spot/seer-config-connect-2.svg'
 import seerConfigHand2 from 'getsentry-images/spot/seer-config-hand-2.svg';
 import seerConfigMain from 'getsentry-images/spot/seer-config-main.svg';
 
+import {Alert} from '@sentry/scraps/alert/alert';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer/interactionStateLayer';
 import {Container} from '@sentry/scraps/layout/container';
@@ -20,6 +21,9 @@ import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
+
+import useSubscription from 'getsentry/hooks/useSubscription';
+import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
 
 const BUTTONS = [
   {
@@ -47,6 +51,12 @@ const BUTTONS = [
 export default function SeerAutomationTrial() {
   const navigate = useNavigate();
   const organization = useOrganization();
+  const subscription = useSubscription();
+
+  const canVisitSubscriptionPage = hasAccessToSubscriptionOverview(
+    subscription,
+    organization
+  );
 
   useEffect(() => {
     // If the org is on the old-seer plan then they shouldn't be here on this new settings page
@@ -139,13 +149,21 @@ export default function SeerAutomationTrial() {
             </Grid>
           </Text>
           <Flex align="center" justify="center" paddingTop="lg">
-            <LinkButton
-              to="/settings/billing/overview/?product=seer"
-              priority="primary"
-              icon={<IconUpgrade />}
-            >
-              {t('Try Out Seer Now')}
-            </LinkButton>
+            {canVisitSubscriptionPage ? (
+              <LinkButton
+                to="/settings/billing/overview/?product=seer"
+                priority="primary"
+                icon={<IconUpgrade />}
+              >
+                {t('Try Out Seer Now')}
+              </LinkButton>
+            ) : (
+              <Alert type="warning">
+                {t(
+                  'You need to be a billing member to try out Seer. Please contact your organization owner to upgrade your plan.'
+                )}
+              </Alert>
+            )}
           </Flex>
         </Stack>
       </Container>
