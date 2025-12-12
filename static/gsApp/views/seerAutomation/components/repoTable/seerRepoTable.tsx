@@ -53,10 +53,11 @@ export default function SeerRepoTable() {
   const {mutate: mutateRepositorySettings} = useBulkUpdateRepositorySettings({
     onSuccess: mutations => {
       setMutations(prev => {
-        return mutations.reduce(
-          (map, mutation) => ({...map, [mutation.id]: mutation}),
-          prev
-        );
+        const updated = {...prev};
+        mutations.forEach(mutation => {
+          updated[mutation.id] = mutation;
+        });
+        return updated;
       });
     },
     onSettled: mutations => {
