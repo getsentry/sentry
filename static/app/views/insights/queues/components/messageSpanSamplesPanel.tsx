@@ -8,6 +8,7 @@ import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -48,6 +49,28 @@ import {
 import decodeRetryCount from 'sentry/views/insights/queues/utils/queryParameterDecoders/retryCount';
 import decodeTraceStatus from 'sentry/views/insights/queues/utils/queryParameterDecoders/traceStatus';
 import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
+
+interface MessageSpanSamplesPanelSearchQueryBuilderProps {
+  handleSearch: (query: string) => void;
+  query: string;
+  selection: PageFilters;
+}
+
+function MessageSpanSamplesPanelSearchQueryBuilder({
+  query,
+  selection,
+  handleSearch,
+}: MessageSpanSamplesPanelSearchQueryBuilderProps) {
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    searchSource: `${ModuleName.QUEUE}-sample-panel`,
+    initialQuery: query,
+    onSearch: handleSearch,
+    placeholder: t('Search for span attributes'),
+    projects: selection.projects,
+  });
+
+  return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
+}
 
 export function MessageSpanSamplesPanel() {
   const navigate = useNavigate();
@@ -264,14 +287,6 @@ export function MessageSpanSamplesPanel() {
     };
   }, [samplesPlottable, spanSamplesById, highlightedSpanId]);
 
-  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
-    searchSource: `${ModuleName.QUEUE}-sample-panel`,
-    initialQuery: query.spanSearchQuery,
-    onSearch: handleSearch,
-    placeholder: t('Search for span attributes'),
-    projects: selection.projects,
-  });
-
   return (
     <PageAlertProvider>
       <InsightsSpanTagProvider>
@@ -342,7 +357,11 @@ export function MessageSpanSamplesPanel() {
             </ModuleLayout.Full>
 
             <ModuleLayout.Full>
-              <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+              <MessageSpanSamplesPanelSearchQueryBuilder
+                selection={selection}
+                handleSearch={handleSearch}
+                query={query.spanSearchQuery}
+              />
             </ModuleLayout.Full>
 
             <ModuleLayout.Full>
