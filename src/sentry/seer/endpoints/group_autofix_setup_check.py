@@ -162,9 +162,8 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 # Check if project has repos linked in Seer.
                 seer_repos_linked = has_project_connected_repos(org.id, group.project.id)
             except Exception as e:
-                # Default to True if the API call fails to avoid blocking users
+                # Default to False if we can't check if the project has repos linked in Seer.
                 sentry_sdk.capture_exception(e)
-                seer_repos_linked = True
 
         return Response(
             {

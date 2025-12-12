@@ -287,9 +287,9 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         "sentry.seer.endpoints.group_autofix_setup_check.has_project_connected_repos",
         side_effect=Exception("API error"),
     )
-    def test_seer_repos_linked_defaults_to_true_on_error(self, mock_has_repos: MagicMock) -> None:
+    def test_seer_repos_linked_defaults_to_false_on_error(self, mock_has_repos: MagicMock) -> None:
         """
-        Test that seerReposLinked defaults to True when the API call fails.
+        Test that seerReposLinked defaults to False when the API call fails.
         """
         self._set_seat_based_tier_cache(True)
         # Don't set project repos cache - let the actual function run and raise an exception
@@ -300,7 +300,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
-        assert response.data["seerReposLinked"] is True
+        assert response.data["seerReposLinked"] is False
 
     def test_seer_repos_linked_is_false_when_feature_disabled(self) -> None:
         """
