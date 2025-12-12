@@ -6,12 +6,20 @@ import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = ModalRenderProps &
-  React.ComponentProps<typeof IssueDiff> & {
-    project: Project;
-  };
+interface Props extends ModalRenderProps, React.ComponentProps<typeof IssueDiff> {
+  project: Project;
+}
 
-function DiffModal({Body, CloseButton, project, ...props}: Props) {
+function DiffModal({
+  Body,
+  CloseButton,
+  Header: _Header,
+  Footer: _Footer,
+  closeModal: _closeModal,
+  modalContainerRef: _modalContainerRef,
+  project,
+  ...props
+}: Props) {
   const organization = useOrganization();
   const {data: projectData} = useDetailedProject({
     orgSlug: organization.slug,
