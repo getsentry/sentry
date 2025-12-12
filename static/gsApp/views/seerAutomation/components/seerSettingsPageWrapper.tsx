@@ -14,6 +14,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
+import SeerWizardSetupBanner from 'getsentry/views/seerAutomation/components/seerWizardSetupBanner';
 import SettingsPageTabs from 'getsentry/views/seerAutomation/components/settingsPageTabs';
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
@@ -72,6 +73,8 @@ export default function SeerSettingsPageWrapper({children}: Props) {
       />
 
       <Stack gap="lg">
+        <SeerWizardSetupBanner />
+
         <SettingsPageTabs />
 
         {canWrite ? null : (
