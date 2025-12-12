@@ -567,7 +567,7 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         }
         auth = self._auth_header_for_get(url, params, "test-secret")
 
-        with self.feature({"organizations:code-review-beta": True}):
+        with self.feature({"organizations:code-review-beta": org}):
             resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
 
         assert resp.status_code == 200

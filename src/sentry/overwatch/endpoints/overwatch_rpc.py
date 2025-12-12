@@ -17,7 +17,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS, ObjectStatus
-from sentry.features import has
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -203,7 +202,8 @@ class CodeReviewRepoSettingsEndpoint(Endpoint):
         )
 
         if repo_settings is None:
-            if has("organizations:code-review-beta", organization_id=sentry_org_id):
+            organization = Organization.objects.filter(id=sentry_org_id).first()
+            if organization and features.has("organizations:code-review-beta", organization):
                 return Response(
                     {
                         "enabledCodeReview": True,
