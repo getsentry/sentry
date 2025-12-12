@@ -15,13 +15,11 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {chonkStyled} from 'sentry/utils/theme/theme';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   NAV_PRIMARY_LINK_DATA_ATTRIBUTE,
-  PRIMARY_SIDEBAR_WIDTH,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -352,38 +350,13 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   `}
 `;
 
-const ChonkNavLinkIconContainer = chonkStyled('span')`
+const NavLinkIconContainer = chonkStyled('span')`
   display: flex;
   align-items: center;
   justify-content: center;
   padding: ${space(1)} ${space(1)};
   border-radius: ${p => p.theme.radius.md};
 `;
-
-const NavLinkIconContainer = withChonk(
-  styled('span')`
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 46px;
-    height: 42px;
-    border-radius: ${p => p.theme.radius.md};
-    overflow: hidden;
-
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: currentColor;
-      opacity: 0;
-    }
-  `,
-  ChonkNavLinkIconContainer
-);
 
 const NavLinkLabel = styled('div')`
   display: flex;
@@ -394,7 +367,7 @@ const NavLinkLabel = styled('div')`
   letter-spacing: -0.05em;
 `;
 
-const ChonkNavLink = chonkStyled(Link, {
+const NavLink = chonkStyled(Link, {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
   display: flex;
@@ -470,54 +443,7 @@ const ChonkNavLink = chonkStyled(Link, {
   }
 `;
 
-const StyledNavLink = styled(Link, {
-  shouldForwardProp: prop => prop !== 'isMobile',
-})<{isMobile: boolean}>`
-  ${baseNavItemStyles}
-  position: relative;
-
-  ${p =>
-    !p.isMobile &&
-    css`
-      width: ${PRIMARY_SIDEBAR_WIDTH - 8}px;
-      padding-top: ${space(0.5)};
-      padding-bottom: ${space(1)};
-      gap: ${space(0.5)};
-
-      &:hover,
-      &[aria-selected='true'] {
-        ${NavLinkIconContainer} {
-          &::before {
-            opacity: 0.06;
-          }
-        }
-      }
-
-      &:active {
-        ${NavLinkIconContainer} {
-          &::before {
-            opacity: 0.12;
-          }
-        }
-      }
-
-      &[aria-current='page'] {
-        color: ${p.theme.purple400};
-
-        ${NavLinkIconContainer} {
-          box-shadow: inset 0 0 0 1px ${p.theme.purple100};
-
-          &::before {
-            opacity: 0.09;
-          }
-        }
-      }
-    `}
-`;
-
-const NavLink = withChonk(StyledNavLink, ChonkNavLink);
-
-const ChonkNavButton = styled(Button, {
+const NavButtonStyled = styled(Button, {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
   display: flex;
@@ -558,7 +484,7 @@ const NavButton = styled((p: NavButtonProps) => {
   const theme = useTheme();
   if (theme.isChonk) {
     return (
-      <ChonkNavButton
+      <NavButtonStyled
         {...p}
         aria-label={p['aria-label'] ?? ''}
         size={p.isMobile ? 'zero' : undefined}

@@ -366,6 +366,12 @@ const generateTagTheme = (colors: Colors): TagColors => ({
     color: colors.red500,
   },
 
+  danger: {
+    background: colors.red100,
+    border: colors.red100,
+    color: colors.red500,
+  },
+
   info: {
     background: colors.blue100,
     border: colors.blue100,
@@ -399,6 +405,7 @@ type Tag =
   | 'success'
   | 'error'
   | 'info'
+  | 'danger'
   // @TODO(jonasbadalic): What are white and black tags?
   | 'white'
   | 'black';

@@ -1,28 +1,9 @@
-import type {TagProps} from 'sentry/components/core/badge/tag';
 import {space} from 'sentry/styles/space';
 import type {Theme} from 'sentry/utils/theme';
 import {chonkStyled} from 'sentry/utils/theme/theme';
 import {unreachable} from 'sentry/utils/unreachable';
 
 type TagType = 'default' | 'info' | 'success' | 'warning' | 'danger' | 'promotion';
-
-interface ChonkTagProps extends Omit<TagProps, 'type'> {
-  type?: TagType;
-}
-
-const legacyMapping: Partial<Record<NonNullable<TagProps['type']>, TagType>> = {
-  highlight: 'info',
-  error: 'danger',
-  white: 'default',
-  black: 'default',
-};
-
-export function chonkTagPropMapping(props: TagProps): ChonkTagProps {
-  return {
-    ...props,
-    type: (props.type && legacyMapping[props.type]) ?? (props.type as TagType),
-  };
-}
 
 export const TagPill = chonkStyled('div')<{
   type?: TagType;

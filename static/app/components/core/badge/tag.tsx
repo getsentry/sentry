@@ -5,18 +5,24 @@ import {IconClose} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 
 import * as ChonkTag from './tag.chonk';
 
 type TagType =
   // @TODO(jonasbadalic): "default" is a bad API naming
-  'default' | 'info' | 'success' | 'warning' | 'error' | 'promotion' | 'highlight';
+  'default' | 'info' | 'success' | 'warning' | 'danger' | 'promotion';
 
 /**
  * @deprecated Do not use these tag types
  */
 type DeprecatedTagType = 'white' | 'black';
+
+const legacyMapping: Record<string, TagType> = {
+  highlight: 'info',
+  error: 'danger',
+  white: 'default',
+  black: 'default',
+};
 
 export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
@@ -43,7 +49,12 @@ export function Tag({
   ...props
 }: TagProps) {
   return (
-    <StyledTag type={type} data-test-id="tag-background" ref={ref} {...props}>
+    <StyledTag
+      type={(type && legacyMapping[type]) ?? (type as TagType)}
+      data-test-id="tag-background"
+      ref={ref}
+      {...props}
+    >
       {icon && (
         <IconWrapper>
           <IconDefaultsProvider size="xs">{icon}</IconDefaultsProvider>
@@ -70,28 +81,7 @@ export function Tag({
   );
 }
 
-const TagPill = styled('div')<{
-  type: NonNullable<TagProps['type']>;
-}>`
-  font-size: ${p => p.theme.font.size.sm};
-  background-color: ${p => p.theme.tag[p.type].background};
-  border: solid 1px ${p => p.theme.tag[p.type].border};
-  display: inline-flex;
-  align-items: center;
-  height: 20px;
-  border-radius: 20px;
-  padding: 0 ${space(1)};
-  max-width: 166px;
-
-  color: ${p => p.theme.tag[p.type].color};
-  /* @TODO(jonasbadalic): We need to override button colors because they wrongly default to a blue color... */
-  button,
-  button:hover {
-    color: currentColor;
-  }
-`;
-
-const StyledTag = withChonk(TagPill, ChonkTag.TagPill, ChonkTag.chonkTagPropMapping);
+const StyledTag = ChonkTag.TagPill;
 
 const Text = styled('div')`
   overflow: hidden;

@@ -137,7 +137,7 @@ export function DomainViewHeader({
         </Layout.HeaderActions>
         <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
           {!hideDefaultTabs && (
-            <TabList hideBorder>
+            <TabList>
               {tabList.map(tab => (
                 <TabList.Item {...tab} key={tab.key} />
               ))}

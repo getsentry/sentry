@@ -68,7 +68,7 @@ export const ChonkInnerWrap = chonkStyled('div', {
     border-radius: ${p => p.theme.radius.md};
     box-sizing: border-box;
 
-    font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
+    font-size: ${p => p.theme.form[p.size].fontSize};
 
     &,
     &:hover,
@@ -101,10 +101,7 @@ export const ChonkInnerWrap = chonkStyled('div', {
       `}
   `;
 
-export const ChonkContentWrap = chonkStyled('div')<{
-  isFocused: boolean;
-  size: FormSize;
-}>`
+export const ChonkContentWrap = chonkStyled('div')`
     position: relative;
     width: 100%;
     min-width: 0;
@@ -116,7 +113,6 @@ export const ChonkContentWrap = chonkStyled('div')<{
 
 export const ChonkLeadingItems = chonkStyled('div')<{
   disabled: boolean;
-  size: FormSize;
 }>`
   display: flex;
   gap: ${space(1)};

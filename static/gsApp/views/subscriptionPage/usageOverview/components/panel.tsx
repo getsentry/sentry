@@ -69,7 +69,7 @@ function PanelHeader({
       {tn('Trial - %s day left', 'Trial - %s days left', trialDaysLeft)}
     </Tag>
   ) : usageExceeded ? (
-    <Tag type="error" icon={<IconWarning />}>
+    <Tag type="danger" icon={<IconWarning />}>
       {hasPaygAvailable
         ? tct('[budgetTerm] limit reached', {
             budgetTerm: displayBudgetName(subscription.planDetails, {title: true}),

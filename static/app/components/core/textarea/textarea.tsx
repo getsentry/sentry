@@ -6,7 +6,6 @@ import styled from '@emotion/styled';
 import type {InputStylesProps} from 'sentry/components/core/input';
 import {inputStyles} from 'sentry/components/core/input';
 import {chonkStyled} from 'sentry/utils/theme/theme';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 
 export interface TextAreaProps
   extends Omit<
@@ -61,21 +60,18 @@ const StyledTextArea = styled(TextAreaControl, {
     `}
 `;
 
-export const TextArea = withChonk(
-  StyledTextArea,
-  chonkStyled(StyledTextArea)`
-    /* re-set height to let it be determined by the rows prop */
-    height: unset;
-    /* this calculation reduces padding to account for the line-height, which ensures text is still correctly centered. */
-    ${({theme, size = 'md'}) => `padding-top: calc(
-      (${theme.form[size].height} -
-        (${theme.form[size].fontSize} * ${theme.font.lineHeight.comfortable})
-      ) / 2
-    )`};
-    ${({theme, size = 'md'}) => `padding-bottom: calc(
-      (${theme.form[size].height} -
-        (${theme.form[size].fontSize} * ${theme.font.lineHeight.comfortable})
-      ) / 2
-    )`};
-`
-);
+export const TextArea = chonkStyled(StyledTextArea)`
+  /* re-set height to let it be determined by the rows prop */
+  height: unset;
+  /* this calculation reduces padding to account for the line-height, which ensures text is still correctly centered. */
+  ${({theme, size = 'md'}) => `padding-top: calc(
+    (${theme.form[size].height} -
+      (${theme.form[size].fontSize} * ${theme.text.lineHeightBody})
+    ) / 2
+  )`};
+  ${({theme, size = 'md'}) => `padding-bottom: calc(
+    (${theme.form[size].height} -
+      (${theme.form[size].fontSize} * ${theme.text.lineHeightBody})
+    ) / 2
+  )`};
+`;

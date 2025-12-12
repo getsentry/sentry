@@ -320,7 +320,7 @@ function OffScheduleIndicator({checkIn}: OffScheduleIndicatorProps) {
 
   return (
     <Tooltip skipWrapper title={title}>
-      <Tag type="error">{t('Early')}</Tag>
+      <Tag type="danger">{t('Early')}</Tag>
     </Tooltip>
   );
 }
@@ -405,7 +405,7 @@ function CompletedLateIndicator({checkIn}: TimeoutLateByProps) {
 
   return (
     <Tooltip skipWrapper title={title}>
-      <Tag type="error">
+      <Tag type="danger">
         {t('%s late', <Duration abbreviation seconds={lateBySeconds} />)}
       </Tag>
     </Tooltip>
@@ -423,7 +423,7 @@ function IncompleteTimeoutIndicator() {
 
   return (
     <Tooltip skipWrapper title={title}>
-      <Tag type="error">{t('Incomplete')}</Tag>
+      <Tag type="danger">{t('Incomplete')}</Tag>
     </Tooltip>
   );
 }

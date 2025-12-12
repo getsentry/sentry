@@ -38,7 +38,7 @@ export function hydrateToFlagSeries(rawFlagData: RawFlag[]): FlagSeriesDatapoint
 
 export function getFlagActionLabel(action: string) {
   const labelType =
-    action === 'created' ? 'info' : action === 'deleted' ? 'error' : undefined;
+    action === 'created' ? 'info' : action === 'deleted' ? 'danger' : undefined;
 
   const capitalized = action.charAt(0).toUpperCase() + action.slice(1);
 

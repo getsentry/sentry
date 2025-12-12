@@ -93,7 +93,7 @@ export function SubscriptionCard({subscription, organization}: SubscriptionCardP
           <PaymentDetails>
             {subscription.isPastDue && (
               <div>
-                <Tag type="error">{t('Payment Failed')}</Tag>
+                <Tag type="danger">{t('Payment Failed')}</Tag>
               </div>
             )}
             {renewalText}

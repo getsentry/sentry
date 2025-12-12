@@ -11,7 +11,7 @@ import InteractionStateLayer from 'sentry/components/core/interactionStateLayer'
 import {Link} from 'sentry/components/core/link';
 import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
-import {isChonkTheme, withChonk} from 'sentry/utils/theme/withChonk';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import type {BaseTabProps} from './tab.chonk';
 import {
@@ -239,39 +239,7 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
     `}
 `;
 
-const TabWrap = withChonk(
-  styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
-    overflowing: boolean;
-    selected: boolean;
-  }>`
-    color: ${p => (p.selected ? p.theme.activeText : p.theme.tokens.content.primary)};
-    white-space: nowrap;
-    cursor: pointer;
-
-    &:hover {
-      color: ${p => (p.selected ? p.theme.activeText : p.theme.tokens.content.primary)};
-    }
-
-    &:focus {
-      outline: none;
-    }
-
-    &[aria-disabled],
-    &[aria-disabled]:hover {
-      color: ${p => p.theme.subText};
-      pointer-events: none;
-      cursor: default;
-    }
-
-    ${p =>
-      p.overflowing &&
-      css`
-        opacity: 0;
-        pointer-events: none;
-      `}
-  `,
-  ChonkStyledTabWrap
-);
+const TabWrap = ChonkStyledTabWrap;
 
 const innerWrapStyles = ({
   theme,
@@ -408,39 +376,4 @@ const VariantFocusLayer = styled('div')`
   }
 `;
 
-const TabSelectionIndicator = withChonk(
-  styled('div')<{
-    orientation: Orientation;
-    selected: boolean;
-  }>`
-    position: absolute;
-    border-radius: 2px;
-    pointer-events: none;
-    background: ${p => (p.selected ? p.theme.active : 'transparent')};
-    transition: background 0.1s ease-out;
-
-    li[aria-disabled='true'] & {
-      background: ${p => (p.selected ? p.theme.subText : 'transparent')};
-    }
-
-    ${p =>
-      p.orientation === 'horizontal'
-        ? css`
-            width: calc(100% - ${space(2)});
-            height: 3px;
-
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-          `
-        : css`
-            width: 3px;
-            height: 50%;
-
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-          `};
-  `,
-  ChonkStyledTabSelectionIndicator
-);
+const TabSelectionIndicator = ChonkStyledTabSelectionIndicator;

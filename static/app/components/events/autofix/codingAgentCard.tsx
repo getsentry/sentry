@@ -38,7 +38,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
       case CodingAgentStatus.COMPLETED:
         return 'success';
       case CodingAgentStatus.FAILED:
-        return 'error';
+        return 'danger';
       case CodingAgentStatus.PENDING:
       case CodingAgentStatus.RUNNING:
       default:

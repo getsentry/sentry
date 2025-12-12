@@ -16,7 +16,7 @@ export function getBadgeProperties(
 ): {status: string; tagType: TagProps['type']; tooltip?: string} | undefined {
   if (status === 'resolved') {
     return {
-      tagType: 'highlight',
+      tagType: 'info',
       status: t('Resolved'),
       tooltip: t('This issue was marked as fixed.'),
     };
@@ -24,14 +24,14 @@ export function getBadgeProperties(
   if (status === 'unresolved') {
     if (substatus === GroupSubstatus.REGRESSED) {
       return {
-        tagType: 'highlight',
+        tagType: 'info',
         status: t('Regressed'),
         tooltip: t('This issue was resolved then occurred again.'),
       };
     }
     if (substatus === GroupSubstatus.ESCALATING) {
       return {
-        tagType: 'error',
+        tagType: 'danger',
         status: t('Escalating'),
         tooltip: t('This issue is occurring significantly more often than it used to.'),
       };

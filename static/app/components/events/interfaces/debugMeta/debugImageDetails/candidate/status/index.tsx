@@ -20,7 +20,7 @@ function Status({status, ...props}: Props) {
     case CandidateDownloadStatus.ERROR:
     case CandidateDownloadStatus.MALFORMED: {
       return (
-        <Tag type="error" {...props}>
+        <Tag type="danger" {...props}>
           {t('Failed')}
         </Tag>
       );
@@ -30,7 +30,7 @@ function Status({status, ...props}: Props) {
     }
     case CandidateDownloadStatus.NO_PERMISSION: {
       return (
-        <Tag type="highlight" {...props}>
+        <Tag type="info" {...props}>
           {t('Permissions')}
         </Tag>
       );

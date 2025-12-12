@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
@@ -18,7 +17,7 @@ interface GroupStatusBadgeProps {
  * A styled tag shared between the inbox reason badge and the status badge.
  */
 export function GroupStatusTag({
-  type = 'default',
+  type = 'info',
   fontSize = 'sm',
   tooltip,
   dateAdded,
@@ -50,7 +49,7 @@ const StyledTag = styled(Tag, {
   font-size: ${p => (p.fontSize === 'sm' ? p.theme.fontSize.sm : p.theme.fontSize.md)};
 `;
 
-const Separator = styled('span')<{type: keyof Theme['tag']}>`
+const Separator = styled('span')<{type: NonNullable<TagProps['type']>}>`
   color: ${p => p.theme.tag[p.type].border};
   opacity: 80%;
 `;

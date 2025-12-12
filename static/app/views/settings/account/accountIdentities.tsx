@@ -71,9 +71,7 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
           {identity.category !== UserIdentityCategory.ORG_IDENTITY && (
             <Tag type="default">{identity.isLogin ? t('Sign In') : t('Integration')}</Tag>
           )}
-          {identity.organization && (
-            <Tag type="highlight">{identity.organization.slug}</Tag>
-          )}
+          {identity.organization && <Tag type="info">{identity.organization.slug}</Tag>}
         </TagWrapper>
 
         {identity.status === UserIdentityStatus.CAN_DISCONNECT ? (

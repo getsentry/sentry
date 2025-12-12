@@ -15,7 +15,7 @@ export function TypeBadge({func, kind}: TypeBadgeProps) {
   }
 
   if (kind === FieldKind.MEASUREMENT) {
-    return <Tag type="highlight">{t('number')}</Tag>;
+    return <Tag type="info">{t('number')}</Tag>;
   }
 
   if (kind === FieldKind.TAG) {

@@ -133,7 +133,7 @@ export function getProjectOverrideForm({
             {hasOverrides ? t('Forwarding with Overrides') : t('Forwarding')}
           </CalmTag>
         ) : (
-          <CalmTag type="error">{t('Disabled')}</CalmTag>
+          <CalmTag type="danger">{t('Disabled')}</CalmTag>
         )}
       </Flex>
     ),

@@ -85,7 +85,7 @@ const getEventTypes = memoize((app: SentryApp) => {
 });
 
 function ResponseCode({code}: {code: number}) {
-  let type: TagProps['type'] = 'error';
+  let type: TagProps['type'] = 'danger';
   if (code <= 399 && code >= 300) {
     type = 'warning';
   } else if (code <= 299 && code >= 100) {

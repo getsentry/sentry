@@ -362,7 +362,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           </LogsGraphContainer>
           <LogsTableActionsContainer>
             <Tabs value={tableTab} onChange={setTableTab} size="sm">
-              <TabList hideBorder variant="floating">
+              <TabList variant="floating">
                 <TabList.Item key="logs">{t('Logs')}</TabList.Item>
                 <TabList.Item key="aggregates">{t('Aggregates')}</TabList.Item>
               </TabList>

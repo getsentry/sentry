@@ -318,7 +318,7 @@ export default function CustomerDetails() {
     {name: 'Capacity Limit', level: 'warning', visible: subscription.usageExceeded},
     {
       name: 'Suspended',
-      level: 'error',
+      level: 'danger',
       help: subscription.suspensionReason,
       visible: subscription.isSuspended,
     },

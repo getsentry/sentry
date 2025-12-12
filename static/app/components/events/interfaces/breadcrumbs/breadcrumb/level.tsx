@@ -12,13 +12,13 @@ export function Level({level, searchTerm = ''}: Props) {
   switch (level) {
     case BreadcrumbLevelType.FATAL:
       return (
-        <Tag type="error">
+        <Tag type="danger">
           <Highlight text={searchTerm}>{t('Fatal')}</Highlight>
         </Tag>
       );
     case BreadcrumbLevelType.ERROR:
       return (
-        <Tag type="error">
+        <Tag type="danger">
           <Highlight text={searchTerm}>{t('Error')}</Highlight>
         </Tag>
       );

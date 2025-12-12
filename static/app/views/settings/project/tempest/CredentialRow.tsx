@@ -72,7 +72,7 @@ type StatusTagProps = {
 };
 
 const STATUS_CONFIG = {
-  error: {label: 'Error', type: 'error'},
+  error: {label: 'Error', type: 'danger'},
   success: {label: 'Active', type: 'default'},
   pending: {label: 'Pending', type: 'info'},
   warning: {label: 'Active', type: 'warning'},

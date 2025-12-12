@@ -640,7 +640,7 @@ export function SourceMapsDebuggerModal({
             value={activeTab}
             onChange={setActiveTab}
           >
-            <TabList hideBorder={hideAllTabs}>
+            <TabList>
               <TabList.Item
                 key="debug-ids"
                 textValue={`${t('Debug IDs')} (${

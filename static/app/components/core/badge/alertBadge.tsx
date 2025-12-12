@@ -12,7 +12,6 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 import {ChonkAlertBadgeDiamondBackground} from './alertBadge.chonk';
@@ -102,25 +101,4 @@ const PaddedContainer = styled(Flex)`
   padding: 5px 4px;
 `;
 
-const DiamondBackground = withChonk(
-  styled('div')<AlertBadgeProps>`
-    background-color: ${p =>
-      getDiamondTheme(p.status, p.isIssue, p.isDisabled, p.theme).backgroundColor};
-    width: 26px;
-    height: 26px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 2px;
-    transform: rotate(45deg);
-
-    > svg {
-      width: 13px;
-      height: 13px;
-      transform: rotate(-45deg);
-      color: ${p => p.theme.white};
-    }
-  `,
-  ChonkAlertBadgeDiamondBackground
-);
+const DiamondBackground = ChonkAlertBadgeDiamondBackground;

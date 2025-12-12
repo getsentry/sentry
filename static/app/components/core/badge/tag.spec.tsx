@@ -11,7 +11,7 @@ describe('Tag', () => {
 
   it('with icon', () => {
     render(
-      <Tag icon={<IconFire data-test-id="icon-fire" />} type="error">
+      <Tag icon={<IconFire data-test-id="icon-fire" />} type="danger">
         Error
       </Tag>
     );
@@ -23,7 +23,7 @@ describe('Tag', () => {
     const mockCallback = jest.fn();
 
     render(
-      <Tag type="highlight" onDismiss={mockCallback}>
+      <Tag type="info" onDismiss={mockCallback}>
         Dismissable
       </Tag>
     );

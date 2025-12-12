@@ -182,7 +182,7 @@ export function OwnershipRulesTable({
           return (
             <Fragment key={`${rule.matcher.type}:${rule.matcher.pattern}-${index}`}>
               <RowItem>
-                <Tag type="highlight">{rule.matcher.type}</Tag>
+                <Tag type="info">{rule.matcher.type}</Tag>
               </RowItem>
               <RowRule>{rule.matcher.pattern}</RowRule>
               <RowItem>

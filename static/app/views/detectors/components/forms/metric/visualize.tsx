@@ -54,11 +54,11 @@ function renderTag(kind: FieldValueKind): React.ReactNode {
     case FieldValueKind.CUSTOM_MEASUREMENT:
     case FieldValueKind.MEASUREMENT:
       text = 'field';
-      tagType = 'highlight';
+      tagType = 'info';
       break;
     case FieldValueKind.BREAKDOWN:
       text = 'field';
-      tagType = 'highlight';
+      tagType = 'info';
       break;
     case FieldValueKind.TAG:
       text = 'tag';
@@ -70,7 +70,7 @@ function renderTag(kind: FieldValueKind): React.ReactNode {
       break;
     case FieldValueKind.FIELD:
       text = 'field';
-      tagType = 'highlight';
+      tagType = 'info';
       break;
     case FieldValueKind.EQUATION:
       text = 'equation';

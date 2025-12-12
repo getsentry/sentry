@@ -1,6 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
@@ -21,7 +20,6 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {chonkStyled} from 'sentry/utils/theme/theme';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -283,23 +281,7 @@ function PageWithProviders() {
 export default PageWithProviders;
 
 // TODO: This needs streamlining over the explore pages
-const SidebarCollapseButton = withChonk(
-  styled(Button)<{sidebarOpen: boolean}>`
-    ${p =>
-      p.sidebarOpen &&
-      css`
-        display: none;
-        border-left-color: ${p.theme.tokens.background.primary};
-        border-top-left-radius: 0px;
-        border-bottom-left-radius: 0px;
-        margin-left: -13px;
-      `}
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-      display: block;
-    }
-  `,
-  chonkStyled(Button)<{sidebarOpen: boolean}>`
+const SidebarCollapseButton = chonkStyled(Button)<{sidebarOpen: boolean}>`
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: inline-flex;
@@ -317,5 +299,4 @@ const SidebarCollapseButton = withChonk(
         border-bottom-left-radius: 0px;
       }
     `}
-`
-);
+`;

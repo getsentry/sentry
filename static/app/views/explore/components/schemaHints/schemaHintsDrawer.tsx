@@ -159,7 +159,7 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
       ) : hint.kind === FieldKind.MEASUREMENT || hint.kind === FieldKind.FUNCTION ? (
         <Badge type="success">{t('number')}</Badge>
       ) : (
-        <Badge type="highlight">{t('string')}</Badge>
+        <Badge type="info">{t('string')}</Badge>
       );
 
     return (

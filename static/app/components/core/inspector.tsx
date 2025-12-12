@@ -682,7 +682,7 @@ function ComponentTag({el}: {el: TraceElement}) {
 
   if (isViewComponent(el)) {
     return (
-      <Tag type="highlight">
+      <Tag type="info">
         <Text size="sm" monospace>
           VIEW
         </Text>

@@ -15,13 +15,13 @@ function Status({status}: Props) {
     case ImageStatus.FETCHING_FAILED:
     case ImageStatus.MALFORMED:
     case ImageStatus.TIMEOUT: {
-      return <StyledTag type="error">{t('Error')}</StyledTag>;
+      return <StyledTag type="danger">{t('Error')}</StyledTag>;
     }
     case ImageStatus.UNSUPPORTED: {
-      return <StyledTag type="error">{t('Unsupported')}</StyledTag>;
+      return <StyledTag type="danger">{t('Unsupported')}</StyledTag>;
     }
     case ImageStatus.MISSING: {
-      return <StyledTag type="error">{t('Missing')}</StyledTag>;
+      return <StyledTag type="danger">{t('Missing')}</StyledTag>;
     }
     case ImageStatus.FOUND: {
       return <StyledTag type="success">{t('Ok')}</StyledTag>;

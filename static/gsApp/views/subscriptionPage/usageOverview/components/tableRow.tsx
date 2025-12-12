@@ -272,7 +272,7 @@ function UsageOverviewTableRow({
                 ) : null}
                 <Text textWrap="balance">
                   {isUnlimited ? (
-                    <Tag type="highlight">{t('Unlimited')}</Tag>
+                    <Tag type="info">{t('Unlimited')}</Tag>
                   ) : isPaygOnly || isChildProduct || !formattedPrepaid ? (
                     shouldFormatWithDisplayName ? (
                       formatCategoryQuantityWithDisplayName({

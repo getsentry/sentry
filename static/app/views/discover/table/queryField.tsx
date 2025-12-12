@@ -595,7 +595,7 @@ class _QueryField extends Component<Props> {
       return renderTagOverride(kind, label, meta);
     }
     let text: string;
-    let tagType: 'success' | 'highlight' | 'warning' | undefined = undefined;
+    let tagType: 'success' | 'info' | 'warning' | undefined = undefined;
     switch (kind) {
       case FieldValueKind.FUNCTION:
         text = 'f(x)';
@@ -604,11 +604,11 @@ class _QueryField extends Component<Props> {
       case FieldValueKind.CUSTOM_MEASUREMENT:
       case FieldValueKind.MEASUREMENT:
         text = 'field';
-        tagType = 'highlight';
+        tagType = 'info';
         break;
       case FieldValueKind.BREAKDOWN:
         text = 'field';
-        tagType = 'highlight';
+        tagType = 'info';
         break;
       case FieldValueKind.TAG:
         text = kind;
@@ -620,7 +620,7 @@ class _QueryField extends Component<Props> {
         break;
       case FieldValueKind.FIELD:
         text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
-        tagType = 'highlight';
+        tagType = 'info';
         break;
       default:
         text = kind;

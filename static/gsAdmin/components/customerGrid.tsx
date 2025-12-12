@@ -41,7 +41,7 @@ const getRow = (row: Subscription) => [
         {row.usageExceeded && <Tag type="warning">Capacity Limit</Tag>}
         {row.isSuspended && (
           <Tooltip title={row.suspensionReason}>
-            <Tag type="error">Suspended</Tag>
+            <Tag type="danger">Suspended</Tag>
           </Tooltip>
         )}
       </div>

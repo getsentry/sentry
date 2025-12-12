@@ -89,7 +89,7 @@ function getPrStateBadge(state: PullRequestState): React.ReactNode | null {
     case 'open':
       return <Tag type="success">Open</Tag>;
     case 'closed':
-      return <Tag type="error">Closed</Tag>;
+      return <Tag type="danger">Closed</Tag>;
     case 'merged':
       return <Tag type="info">Merged</Tag>;
     case 'draft':

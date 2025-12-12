@@ -12,8 +12,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {SuggestedOwnerReason} from 'sentry/types/group';
-import type {Theme} from 'sentry/utils/theme';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 
 type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
@@ -157,15 +155,10 @@ const StyledTag = styled(Tag)`
   color: ${p => p.theme.subText};
 `;
 
-const UnassignedTag = withChonk(
-  styled(StyledTag)`
-    border-style: dashed;
-  `,
-  styled(StyledTag)<{theme: Theme}>`
-    border: 1px dashed ${p => p.theme.border};
-    background-color: transparent;
-  `
-);
+const UnassignedTag = styled(StyledTag)`
+  border: 1px dashed ${p => p.theme.border};
+  background-color: transparent;
+`;
 
 const TooltipSubtext = styled('div')`
   color: ${p => p.theme.subText};

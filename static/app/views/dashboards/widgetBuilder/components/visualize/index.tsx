@@ -1016,7 +1016,7 @@ function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
       case 'boolean':
       case 'date':
       case 'string':
-        return <Tag type="highlight">{t('string')}</Tag>;
+        return <Tag type="info">{t('string')}</Tag>;
       case 'duration':
       case 'integer':
       case 'percentage':
@@ -1036,11 +1036,11 @@ function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
     case FieldValueKind.CUSTOM_MEASUREMENT:
     case FieldValueKind.MEASUREMENT:
       text = 'field';
-      tagType = 'highlight';
+      tagType = 'info';
       break;
     case FieldValueKind.BREAKDOWN:
       text = 'field';
-      tagType = 'highlight';
+      tagType = 'info';
       break;
     case FieldValueKind.TAG:
       text = kind;
@@ -1052,7 +1052,7 @@ function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
       break;
     case FieldValueKind.FIELD:
       text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
-      tagType = 'highlight';
+      tagType = 'info';
       break;
     default:
       text = kind;

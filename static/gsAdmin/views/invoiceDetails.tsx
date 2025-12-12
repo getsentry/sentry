@@ -145,7 +145,7 @@ function InvoiceDetails() {
 
   const invoiceStatusTagType: Record<InvoiceStatus, TagType> = {
     [InvoiceStatus.PAID]: 'success',
-    [InvoiceStatus.CLOSED]: 'error',
+    [InvoiceStatus.CLOSED]: 'danger',
     [InvoiceStatus.AWAITING_PAYMENT]: 'warning',
   };
 
@@ -256,7 +256,7 @@ function InvoiceDetails() {
               {row.isPaid ? (
                 <Tag type="success">Paid</Tag>
               ) : (
-                <Tag type="error">{row.failureCode}</Tag>
+                <Tag type="danger">{row.failureCode}</Tag>
               )}
             </td>
             <td style={{textAlign: 'center'}}>

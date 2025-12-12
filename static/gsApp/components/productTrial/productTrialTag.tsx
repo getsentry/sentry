@@ -39,7 +39,7 @@ function ProductTrialTag({trial, type, showTrialEnded = false}: ProductTrialTagP
   }
 
   const daysLeft = -1 * getDaysSinceDate(trial.endDate ?? '');
-  const tagType = type ?? (daysLeft <= 7 ? 'warning' : 'highlight');
+  const tagType = type ?? (daysLeft <= 7 ? 'warning' : 'info');
 
   return (
     <Tag icon={<IconClock />} type={tagType}>

@@ -202,7 +202,6 @@ function TransactionHeader({
 
         return (
           <TabList
-            hideBorder
             outerWrapStyles={{
               gridColumn: '1 / -1',
             }}
@@ -397,7 +396,6 @@ function TransactionHeader({
 
           return (
             <TabList
-              hideBorder
               outerWrapStyles={{
                 gridColumn: '1 / -1',
               }}
