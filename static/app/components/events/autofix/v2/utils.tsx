@@ -10,7 +10,7 @@ import type {Group} from 'sentry/types/group';
 /**
  * Format root cause artifact as markdown.
  */
-export function formatRootCauseArtifactToMarkdown(rootCause: RootCauseArtifact): string {
+function formatRootCauseArtifactToMarkdown(rootCause: RootCauseArtifact): string {
   const parts: string[] = ['# Root Cause of the Issue'];
 
   if (rootCause.one_line_description) {
@@ -37,7 +37,7 @@ export function formatRootCauseArtifactToMarkdown(rootCause: RootCauseArtifact):
 /**
  * Format solution artifact as markdown.
  */
-export function formatSolutionArtifactToMarkdown(solution: SolutionArtifact): string {
+function formatSolutionArtifactToMarkdown(solution: SolutionArtifact): string {
   const parts: string[] = ['# Solution Plan'];
 
   if (solution.one_line_summary) {
@@ -60,7 +60,7 @@ export function formatSolutionArtifactToMarkdown(solution: SolutionArtifact): st
 /**
  * Format impact assessment artifact as markdown.
  */
-export function formatImpactAssessmentArtifactToMarkdown(
+function formatImpactAssessmentArtifactToMarkdown(
   impactAssessment: ImpactAssessmentArtifact
 ): string {
   const parts: string[] = ['# Impact Assessment'];
@@ -98,7 +98,7 @@ export function formatImpactAssessmentArtifactToMarkdown(
 /**
  * Format triage artifact as markdown.
  */
-export function formatTriageArtifactToMarkdown(triage: TriageArtifact): string {
+function formatTriageArtifactToMarkdown(triage: TriageArtifact): string {
   const parts: string[] = ['# Triage'];
 
   if (triage.suspect_commit) {
