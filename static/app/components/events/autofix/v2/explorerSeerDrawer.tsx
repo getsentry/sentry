@@ -3,9 +3,11 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button, ButtonBar} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {
   hasCodeChanges as checkHasCodeChanges,
@@ -24,13 +26,16 @@ import {
 import {ExplorerAutofixStart} from 'sentry/components/events/autofix/v2/autofixStart';
 import {ExplorerStatusCard} from 'sentry/components/events/autofix/v2/autofixStatusCard';
 import {ExplorerNextSteps} from 'sentry/components/events/autofix/v2/nextSteps';
+import {formatArtifactsToMarkdown} from 'sentry/components/events/autofix/v2/utils';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import Placeholder from 'sentry/components/placeholder';
+import {IconAdd, IconCopy, IconSeer, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
@@ -99,6 +104,19 @@ export function ExplorerSeerDrawer({
     }
   }, [runState?.run_id]);
 
+  const {copy} = useCopyToClipboard();
+  const handleCopyMarkdown = useCallback(() => {
+    const markdownText = formatArtifactsToMarkdown(
+      artifacts as Record<string, {data: Record<string, unknown> | null}>,
+      group,
+      event
+    );
+    if (!markdownText.trim()) {
+      return;
+    }
+    copy(markdownText, {successMessage: t('Analysis copied to clipboard.')});
+  }, [artifacts, group, event, copy]);
+
   // Render loading state for explorer-specific loading
   if (isLoading) {
     return (
@@ -148,7 +166,10 @@ export function ExplorerSeerDrawer({
           />
         </SeerDrawerHeader>
         <SeerDrawerNavigator>
-          <Header>{t('Seer')}</Header>
+          <HeaderContainer>
+            <Header>{t('Seer')}</Header>
+            <IconSeer variant="waiting" size="md" />
+          </HeaderContainer>
         </SeerDrawerNavigator>
         <SeerDrawerBody>
           <SeerNotices
@@ -183,7 +204,10 @@ export function ExplorerSeerDrawer({
           />
         </SeerDrawerHeader>
         <SeerDrawerNavigator>
-          <Header>{t('Seer')}</Header>
+          <HeaderContainer>
+            <Header>{t('Seer')}</Header>
+            <IconSeer variant="waiting" size="md" />
+          </HeaderContainer>
         </SeerDrawerNavigator>
         <SeerDrawerBody>
           <SeerNotices
@@ -219,16 +243,46 @@ export function ExplorerSeerDrawer({
         </FeedbackWrapper>
       </SeerDrawerHeader>
       <SeerDrawerNavigator>
-        <Header>{t('Seer')}</Header>
+        <HeaderContainer>
+          <Header>{t('Seer')}</Header>
+          <IconSeer
+            variant={
+              runState.status === 'processing' && isPolling ? 'loading' : 'waiting'
+            }
+            size="md"
+          />
+        </HeaderContainer>
         <ButtonWrapper>
+          {(artifacts.root_cause?.data ||
+            artifacts.solution?.data ||
+            artifacts.impact_assessment?.data ||
+            artifacts.triage?.data) && (
+            <Button
+              size="xs"
+              onClick={handleCopyMarkdown}
+              title={t('Copy analysis as Markdown / LLM prompt')}
+              aria-label={t('Copy analysis as Markdown')}
+              icon={<IconCopy />}
+            />
+          )}
+          <Feature features={['organizations:autofix-seer-preferences']}>
+            <LinkButton
+              to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+              size="xs"
+              title={t('Project Settings for Seer')}
+              aria-label={t('Project Settings for Seer')}
+              icon={<IconSettings />}
+            />
+          </Feature>
           <Button
             size="xs"
             onClick={() => {
               reset();
             }}
-          >
-            {t('Start Over')}
-          </Button>
+            icon={<IconAdd />}
+            aria-label={t('Start a new analysis')}
+            title={t('Start a new analysis')}
+          />
         </ButtonWrapper>
       </SeerDrawerNavigator>
       <SeerDrawerBody>
@@ -268,6 +322,7 @@ export function ExplorerSeerDrawer({
           <ExplorerStatusCard
             status={runState.status}
             loadingBlock={loadingBlock}
+            blocks={blocks}
             onOpenChat={handleOpenChat}
           />
 
@@ -322,6 +377,12 @@ const SeerDrawerBody = styled(DrawerBody)`
   * {
     direction: ltr;
   }
+`;
+
+const HeaderContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
 `;
 
 const Header = styled('h3')`
