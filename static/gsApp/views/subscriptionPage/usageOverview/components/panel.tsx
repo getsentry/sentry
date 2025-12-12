@@ -5,18 +5,20 @@ import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconClock, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
-import {OnDemandBudgetMode} from 'getsentry/types';
+import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
 import {
   displayBudgetName,
   getReservedBudgetCategoryForAddOn,
   supportsPayg,
 } from 'getsentry/utils/billing';
+import useSeerOnboardingCheck from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingCheck';
 import BilledSeats from 'getsentry/views/subscriptionPage/usageOverview/components/billedSeats';
 import {
   DataCategoryUsageBreakdownInfo,
@@ -36,10 +38,10 @@ function PanelHeader({
   selectedProduct,
   subscription,
   isInline,
-  actionRequired,
+  setupRequired,
 }: Pick<BreakdownPanelProps, 'selectedProduct' | 'subscription' | 'isInline'> & {
-  actionRequired: boolean;
   panelIsOnlyCta: boolean;
+  setupRequired: boolean;
 }) {
   const {onDemandBudgets: paygBudgets} = subscription;
 
@@ -81,7 +83,7 @@ function PanelHeader({
     </Tag>
   ) : null;
 
-  if (isInline && !status && !actionRequired) {
+  if (isInline && !status && !setupRequired) {
     return null;
   }
 
@@ -97,7 +99,7 @@ function PanelHeader({
       <Flex gap="md" align="center" height={USAGE_OVERVIEW_PANEL_HEADER_HEIGHT}>
         {!isInline && <Heading as="h3">{displayName}</Heading>}
         {status}
-        {actionRequired && (
+        {setupRequired && (
           <Tag type="warning" icon={<IconWarning />}>
             {t('Action required')}
           </Tag>
@@ -130,6 +132,12 @@ function ProductBreakdownPanel({
     activeProductTrial,
     potentialProductTrial,
   } = useProductBillingMetadata(subscription, selectedProduct);
+  // TODO(billing): if we ever show the setup state for other products, this will need refactoring
+  // maybe a billing hook for setup checks
+  const shouldCheckSetup = selectedProduct === AddOnCategory.SEER && isEnabled;
+  const {data: setupCheck, isLoading: setUpCheckLoading} =
+    useSeerOnboardingCheck(shouldCheckSetup);
+  const setupRequired = shouldCheckSetup && !setupCheck?.isSeerConfigured;
 
   if (!billedCategory) {
     return null;
@@ -186,11 +194,10 @@ function ProductBreakdownPanel({
   }
 
   const shouldShowUpgradeCta = !potentialProductTrial && !isEnabled;
-  const actionRequired = organization.features.includes('needs-seer-setup'); // TODO(isabella): replace with the real check
 
   return (
     <Container
-      height={isEnabled && !actionRequired ? undefined : '100%'}
+      height={isEnabled && !setupRequired ? undefined : '100%'}
       border={isInline ? undefined : 'primary'}
       radius={isInline ? undefined : 'md'}
       style={
@@ -206,9 +213,11 @@ function ProductBreakdownPanel({
         subscription={subscription}
         isInline={isInline}
         panelIsOnlyCta={!isEnabled}
-        actionRequired={actionRequired}
+        setupRequired={setupRequired}
       />
-      {actionRequired ? (
+      {setUpCheckLoading ? (
+        <LoadingIndicator />
+      ) : setupRequired ? (
         <SetupCta organization={organization} selectedProduct={selectedProduct} />
       ) : (
         <Fragment>
@@ -217,7 +226,7 @@ function ProductBreakdownPanel({
               organization={organization}
               subscription={subscription}
               selectedProduct={selectedProduct}
-              showBottomBorder={isEnabled}
+              isBanner={isEnabled}
               potentialProductTrial={potentialProductTrial}
             />
           )}
