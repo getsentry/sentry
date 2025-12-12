@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from django.contrib.postgres.fields.array import ArrayField
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models.signals import pre_delete
 from django.utils import timezone
 
@@ -31,8 +30,6 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.signals import pending_delete
 from sentry.users.services.user import RpcUser
 from sentry.utils.email import MessageBuilder
-
-_default_logger = logging.getLogger(__name__)
 
 
 @region_silo_model
@@ -154,16 +151,10 @@ class Repository(Model):
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         is_new = self.pk is None
-        super().save(*args, **kwargs)
-        if is_new:
-            try:
+        with transaction.atomic(router.db_for_write(Repository)):
+            super().save(*args, **kwargs)
+            if is_new:
                 self._handle_auto_enable_code_review()
-            except Exception:
-                _default_logger.exception(
-                    "Failed to auto-enable code review on repository creation",
-                    extra={"repository_id": self.id},
-                )
-            pass
 
     def _handle_auto_enable_code_review(self) -> None:
         """

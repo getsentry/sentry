@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 from django.core import mail
 
 from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS
@@ -189,7 +190,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
 
         assert RepositorySettings.objects.filter(repository=repo).count() == 1
 
-    def test_repository_saved_even_if_auto_enable_fails(self):
+    def test_transaction_rollback_on_auto_enable_failure(self):
         org = self.create_organization()
 
         OrganizationOption.objects.set_value(
@@ -198,17 +199,43 @@ class RepositoryCodeReviewSettingsTest(TestCase):
             value=True,
         )
 
+        initial_repo_count = Repository.objects.filter(organization_id=org.id).count()
+
         with patch.object(
             Repository,
             "_handle_auto_enable_code_review",
             side_effect=Exception("Test exception"),
         ):
-            repo = Repository.objects.create(
-                organization_id=org.id,
-                name="test-repo",
-                provider="integrations:github",
-            )
+            with pytest.raises(Exception, match="Test exception"):
+                Repository.objects.create(
+                    organization_id=org.id,
+                    name="test-repo",
+                    provider="integrations:github",
+                )
 
-        # Repository should still be saved
+        # Neither Repository nor RepositorySettings should be saved due to transaction rollback
+        assert Repository.objects.filter(organization_id=org.id).count() == initial_repo_count
+        assert not RepositorySettings.objects.filter(repository__organization_id=org.id).exists()
+
+    def test_both_repository_and_settings_saved_atomically(self):
+        org = self.create_organization()
+
+        OrganizationOption.objects.set_value(
+            organization=org,
+            key="sentry:auto_enable_code_review",
+            value=True,
+        )
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name="test-repo",
+            provider="integrations:github",
+        )
+
+        # Both should exist
         assert Repository.objects.filter(id=repo.id).exists()
-        assert repo.name == "test-repo"
+        assert RepositorySettings.objects.filter(repository=repo).exists()
+
+        # Verify the settings are correct
+        settings = RepositorySettings.objects.get(repository=repo)
+        assert settings.enabled_code_review is True
