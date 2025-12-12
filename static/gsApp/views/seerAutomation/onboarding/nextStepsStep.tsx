@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import nextStepsImg from 'sentry-images/spot/seer-config-error.svg';
+
 import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -25,7 +27,7 @@ export function NextStepsStep() {
 
   return (
     <Fragment>
-      <StepContent>
+      <StepContentWithBackground>
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
@@ -84,15 +86,20 @@ export function NextStepsStep() {
           <LinkButton
             priority="primary"
             size="md"
-            to={`/organizations/${organization.slug}/issues/`}
+            to={`/settings/${organization.slug}/seer/`}
           >
             {t('Finish')}
           </LinkButton>
         </ActionSection>
-      </StepContent>
+      </StepContentWithBackground>
     </Fragment>
   );
 }
+
+const StepContentWithBackground = styled(StepContent)`
+  background: url(${nextStepsImg}) no-repeat 638px 0;
+  background-size: 192px 168px;
+`;
 
 const NextStepsList = styled('ul')`
   margin: ${p => p.theme.space.xl} 0;

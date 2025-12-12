@@ -95,7 +95,7 @@ function getToolStatus(
     let hasFailure = false;
 
     toolLinks.forEach(link => {
-      if (link?.params?.empty_results === true) {
+      if (link?.params?.empty_results === true || link?.params?.is_error === true) {
         hasFailure = true;
       } else if (link !== null) {
         hasSuccess = true;
@@ -164,6 +164,11 @@ function BlockComponent({
     const mappedLinks = (block.tool_links || [])
       .map((link, idx) => {
         if (!link) {
+          return null;
+        }
+
+        // Don't show links for tools that returned errors, but do show for empty results
+        if (link.params?.is_error === true) {
           return null;
         }
 
@@ -383,7 +388,7 @@ function BlockComponent({
                               </ToolCallText>
                               <ToolCallLinkIcon size="xs" isHighlighted={isHighlighted} />
                               <EnterKeyHint isVisible={isHighlighted}>
-                                Enter ⏎
+                                enter ⏎
                               </EnterKeyHint>
                             </ToolCallLink>
                           ) : (
@@ -608,6 +613,7 @@ const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
   margin-left: ${p => p.theme.space.xs};
   visibility: ${p => (p.isVisible ? 'visible' : 'hidden')};
   font-family: ${p => p.theme.text.familyMono};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const ToolCallLinkIcon = styled(IconLink)<{isHighlighted?: boolean}>`
