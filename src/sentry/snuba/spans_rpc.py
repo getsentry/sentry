@@ -297,6 +297,7 @@ class Spans(rpc_dataset_common.RPCBase):
         config: SearchResolverConfig,
         search_resolver: SearchResolver | None = None,
         attributes: list[AttributeKey] | None = None,
+        max_buckets: int = 75,
     ) -> list[dict[str, Any]]:
         search_resolver = search_resolver or cls.get_resolver(params, config)
         stats_filter, _, _ = search_resolver.resolve_query(query_string)
@@ -317,7 +318,7 @@ class Spans(rpc_dataset_common.RPCBase):
             stats_request.stats_types.append(
                 StatsType(
                     attribute_distributions=AttributeDistributionsRequest(
-                        max_buckets=75,
+                        max_buckets=max_buckets,
                         attributes=attributes,
                     )
                 )
