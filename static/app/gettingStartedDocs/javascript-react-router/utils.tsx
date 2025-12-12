@@ -2,6 +2,11 @@ import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import {getFeedbackConfigOptions} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getReplayConfigOptions} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 
+export function getInstallSnippet({isSelfHosted, organization, project}: DocsParams) {
+  const urlParam = isSelfHosted ? '' : '--saas';
+  return `npx @sentry/wizard@latest -i reactRouter ${urlParam} --org ${organization.slug} --project ${project.slug}`;
+}
+
 export function getClientSetupSnippet(params: DocsParams) {
   const logsSnippet = params.isLogsSelected
     ? `

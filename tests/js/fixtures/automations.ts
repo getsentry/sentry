@@ -65,6 +65,7 @@ export function ActionFixture(params: Partial<Action> = {}): Action {
     config: {
       targetType: ActionTarget.SPECIFIC,
       targetIdentifier: 'C123456',
+      targetDisplay: null,
     },
     integrationId: 'integration-1',
     data: {},
