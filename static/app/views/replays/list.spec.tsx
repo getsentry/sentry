@@ -1,7 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {
@@ -52,7 +54,10 @@ function getMockOrganizationFixture({features}: {features: string[]}) {
 
 describe('ReplayList', () => {
   let mockFetchReplayListRequest: jest.Mock;
+  const user = UserFixture({id: '1'});
+
   beforeEach(() => {
+    ConfigStore.set('user', user);
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState({
       projects: [],
@@ -182,5 +187,31 @@ describe('ReplayList', () => {
     await waitFor(() => expect(screen.queryAllByTestId('replay-table')).toHaveLength(1));
 
     expect(mockFetchReplayListRequest).toHaveBeenCalled();
+  });
+
+  it('should show access denied when user does not have granular replay permissions', async () => {
+    const mockOrg = OrganizationFixture({
+      features: [...AM2_FEATURES, 'granular-replay-permissions'],
+      hasGranularReplayPermissions: true,
+      replayAccessMembers: [999], // User ID 1 is not in this list
+    });
+    mockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
+      fetching: false,
+      hasSentOneReplay: true,
+    });
+    mockUseProjectSdkNeedsUpdate.mockReturnValue({
+      isError: false,
+      isFetching: false,
+      needsUpdate: false,
+    });
+
+    render(<ListPage />, {
+      organization: mockOrg,
+    });
+
+    expect(
+      await screen.findByText("You don't have access to this feature")
+    ).toBeInTheDocument();
+    expect(mockFetchReplayListRequest).not.toHaveBeenCalled();
   });
 });

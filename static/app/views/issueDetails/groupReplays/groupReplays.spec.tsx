@@ -5,10 +5,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayListFixture} from 'sentry-fixture/replayList';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
@@ -76,6 +78,7 @@ type InitializeOrgProps = {
 
 describe('GroupReplays', () => {
   const mockGroup = GroupFixture();
+  const user = UserFixture({id: '1'});
 
   const initialRouterConfig = {
     route: '/organizations/:orgId/issues/:groupId/replays/',
@@ -100,6 +103,7 @@ describe('GroupReplays', () => {
   }
 
   beforeEach(() => {
+    ConfigStore.set('user', user);
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${mockGroup.id}/`,
       body: mockGroup,
@@ -126,6 +130,24 @@ describe('GroupReplays', () => {
 
       expect(
         screen.getByText("You don't have access to this feature")
+      ).toBeInTheDocument();
+    });
+
+    it('should show access denied when user does not have granular replay permissions', async () => {
+      const {organization} = init({
+        organizationProps: {
+          features: ['session-replay', 'granular-replay-permissions'],
+          hasGranularReplayPermissions: true,
+          replayAccessMembers: [999], // User ID 1 is not in this list
+        },
+      });
+      render(<GroupReplays />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByText("You don't have access to this feature")
       ).toBeInTheDocument();
     });
   });

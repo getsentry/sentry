@@ -57,7 +57,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
       location,
       disabled: !access.has('org:write'),
     }),
-    [access, location, organization]
+    [access, location, organization.features]
   );
 
   const generalForms = useMemo(() => {
