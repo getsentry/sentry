@@ -602,7 +602,11 @@ export function buildToolLinkUrl(
     case 'get_issue_details': {
       const {event_id, issue_id} = toolLink.params;
 
-      return {pathname: `/issues/${issue_id}/events/${event_id}/`};
+      if (event_id && issue_id) {
+        return {pathname: `/issues/${issue_id}/events/${event_id}/`};
+      }
+
+      return null;
     }
     case 'get_replay_details': {
       const {replay_id} = toolLink.params;
