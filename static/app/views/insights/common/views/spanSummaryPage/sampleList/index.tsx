@@ -6,6 +6,7 @@ import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/span
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -35,6 +36,30 @@ import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanFields;
+
+interface SampleListSearchQueryBuilderProps {
+  handleSearch: (query: string) => void;
+  moduleName: ModuleName;
+  query: string;
+  selection: PageFilters;
+}
+
+function SampleListSearchQueryBuilder({
+  query,
+  handleSearch,
+  selection,
+  moduleName,
+}: SampleListSearchQueryBuilderProps) {
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects: selection.projects,
+    initialQuery: query,
+    onSearch: handleSearch,
+    placeholder: t('Search for span attributes'),
+    searchSource: `${moduleName}-sample-panel`,
+  });
+
+  return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
+}
 
 type Props = {
   groupId: string;
@@ -144,14 +169,6 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
 
   const handleMouseLeaveSample = useCallback(() => setHighlightedSpanId(undefined), []);
 
-  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
-    projects: selection.projects,
-    initialQuery: spanSearchQuery ?? '',
-    onSearch: handleSearch,
-    placeholder: t('Search for span attributes'),
-    searchSource: `${moduleName}-sample-panel`,
-  });
-
   return (
     <PageAlertProvider>
       <InsightsSpanTagProvider>
@@ -187,7 +204,12 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
           />
 
           <StyledSearchBar>
-            <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+            <SampleListSearchQueryBuilder
+              query={spanSearchQuery ?? ''}
+              moduleName={moduleName}
+              selection={selection}
+              handleSearch={handleSearch}
+            />
           </StyledSearchBar>
 
           <SampleTable
