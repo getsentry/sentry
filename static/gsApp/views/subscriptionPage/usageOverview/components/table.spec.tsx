@@ -179,7 +179,6 @@ describe('UsageOverviewTable', () => {
   });
 
   it('renders table based on add-on state', async () => {
-    organization.features.push('seer-user-billing');
     const subWithSeer = SubscriptionWithLegacySeerFixture({organization});
     SubscriptionStore.set(organization.slug, subWithSeer);
     render(
@@ -194,7 +193,6 @@ describe('UsageOverviewTable', () => {
 
     await screen.findByRole('columnheader', {name: 'Feature'});
 
-    // Org has Seer user flag but did not buy Seer add on, only legacy add-on
     expect(screen.getAllByRole('cell', {name: 'Seer'})).toHaveLength(1);
     expect(screen.getByRole('cell', {name: 'Issue Fixes'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Issue Scans'})).toBeInTheDocument();
@@ -211,7 +209,11 @@ describe('UsageOverviewTable', () => {
       reserved: UNLIMITED_RESERVED,
       prepaid: UNLIMITED_RESERVED,
     };
-
+    sub.addOns!.seer = {
+      ...sub.addOns!.seer!,
+      isAvailable: false,
+    };
+    SubscriptionStore.set(organization.slug, sub);
     render(
       <UsageOverviewTable
         subscription={sub}
@@ -242,7 +244,10 @@ describe('UsageOverviewTable', () => {
       reserved: 100,
       prepaid: 100,
     };
-
+    sub.addOns!.seer = {
+      ...sub.addOns!.seer!,
+      isAvailable: false,
+    };
     render(
       <UsageOverviewTable
         subscription={sub}
