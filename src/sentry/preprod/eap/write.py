@@ -45,9 +45,11 @@ def write_preprod_size_metric_to_eap(
     attributes: dict[str, Any] = {
         "preprod_artifact_id": size_metric.preprod_artifact_id,
         "size_metric_id": size_metric.id,
-        "metrics_artifact_type": size_metric.metrics_artifact_type,
         "sub_item_type": "size_metric",
     }
+
+    if size_metric.metrics_artifact_type is not None:
+        attributes["metrics_artifact_type"] = size_metric.metrics_artifact_type
 
     if size_metric.identifier is not None:
         attributes["identifier"] = size_metric.identifier
