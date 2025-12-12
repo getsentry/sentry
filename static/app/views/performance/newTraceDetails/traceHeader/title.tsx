@@ -11,28 +11,21 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {
-  isTraceItemDetailsResponse,
-  type RepresentativeTraceEvent,
-} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
+import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {findSpanAttributeValue} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface TitleProps {
-  representativeEvent: RepresentativeTraceEvent;
+  representativeEvent: TraceTree.RepresentativeTraceEvent | null;
   rootEventResults: TraceRootEventQueryResults;
-  tree: TraceTree;
 }
 
-function getTitle(
-  tree: TraceTree,
-  representativeEvent: RepresentativeTraceEvent
-): {
+function getTitle(representativeEvent: TraceTree.RepresentativeTraceEvent | null): {
   title: string;
   subtitle?: string;
 } | null {
-  const {event} = representativeEvent;
+  const event = representativeEvent?.event;
   if (!event) {
     return null;
   }
@@ -45,8 +38,7 @@ function getTitle(
     };
   }
 
-  const node = tree.root.findChild(n => n.value === event);
-  return node?.traceHeaderTitle ?? null;
+  return event.traceHeaderTitle ?? null;
 }
 
 function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>) {
@@ -91,8 +83,8 @@ const ReplayButton = styled(LinkButton)`
   text-decoration-style: dotted;
 `;
 
-export function Title({representativeEvent, rootEventResults, tree}: TitleProps) {
-  const traceTitle = getTitle(tree, representativeEvent);
+export function Title({representativeEvent, rootEventResults}: TitleProps) {
+  const traceTitle = getTitle(representativeEvent);
 
   return (
     <div>

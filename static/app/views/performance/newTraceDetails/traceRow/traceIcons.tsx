@@ -1,7 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import clamp from 'lodash/clamp';
 
-import {isEAPError} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
@@ -24,7 +23,8 @@ export function TraceErrorIcons(props: ErrorIconsProps) {
   return (
     <Fragment>
       {errors.map((error, i) => {
-        const timestamp = isEAPError(error) ? error.start_timestamp : error.timestamp;
+        const timestamp =
+          'start_timestamp' in error ? error.start_timestamp : error.timestamp;
         // Clamp the error timestamp to the span's timestamp
         const left = props.manager.computeRelativeLeftPositionFromOrigin(
           clamp(
