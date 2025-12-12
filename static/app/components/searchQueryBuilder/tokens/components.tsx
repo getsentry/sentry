@@ -42,7 +42,7 @@ const StyledFilterWrapper = styled(Container)<{state: 'invalid' | 'warning' | 'v
   :focus,
   &[aria-selected='true'] {
     background-color: ${p => p.theme.gray100};
-    border-color: ${p => (p.theme.isChonk ? p.theme.tokens.border.accent : undefined)};
+    border-color: ${p => p.theme.tokens.border.accent};
     outline: none;
   }
 

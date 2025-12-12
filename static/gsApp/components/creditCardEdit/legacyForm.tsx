@@ -221,7 +221,6 @@ function CreditCardFormInner({
             <CardElement
               options={{
                 style: stripeElementStyles,
-                ...(theme.isChonk ? undefined : {hidePostalCode: false}),
               }}
               onReady={() => setLoading(false)}
             />
@@ -282,7 +281,7 @@ function CreditCardFormInner({
 const FormControl = styled(Input.withComponent('div'))`
   /* Allow stripe form element to fill whatever height it needs to based
    * on the config that we are providing it with. */
-  height: ${p => (p.theme.isChonk ? 'auto' : undefined)};
+  height: auto;
 `;
 
 const fieldCss = css`
@@ -305,7 +304,7 @@ const Info = styled('div')`
 const FinePrint = styled('div')`
   margin-top: ${space(1)};
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => (p.theme.isChonk ? p.theme.tokens.content.muted : p.theme.gray300)};
+  color: ${p => p.theme.tokens.content.muted};
 `;
 
 const CreditCardInfoWrapper = styled('div')<{isLoading?: boolean}>`

@@ -217,7 +217,7 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
             <Tooltip title={t('Table left')} skipWrapper>
               <StyledButton
                 // @ts-expect-error transparent is not a valid priority in legacy UI
-                priority={theme.isChonk ? 'transparent' : undefined}
+                priority="transparent"
                 active={flamegraphPreferences.layout === 'table left'}
                 onClick={onTableLeftClick}
                 title={t('Table left')}
@@ -229,7 +229,7 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
             <Tooltip title={t('Table bottom')} skipWrapper>
               <StyledButton
                 // @ts-expect-error transparent is not a valid priority in legacy UI
-                priority={theme.isChonk ? 'transparent' : undefined}
+                priority="transparent"
                 active={flamegraphPreferences.layout === 'table bottom'}
                 onClick={onTableBottomClick}
                 title={t('Table bottom')}
@@ -241,7 +241,7 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
             <Tooltip title={t('Table right')} skipWrapper>
               <StyledButton
                 // @ts-expect-error transparent is not a valid priority in legacy UI
-                priority={theme.isChonk ? 'transparent' : undefined}
+                priority="transparent"
                 active={flamegraphPreferences.layout === 'table right'}
                 onClick={onTableRightClick}
                 title={t('Table right')}

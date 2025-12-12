@@ -1,5 +1,5 @@
 import {Fragment, useRef, useState} from 'react';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
@@ -338,8 +338,7 @@ const Container = styled('div')`
 Alert.Container = Container;
 
 function AlertButton(props: DistributedOmit<ButtonProps, 'size'>) {
-  const theme = useTheme();
-  return <Button {...props} size={theme.isChonk ? 'zero' : 'sm'} />;
+  return <Button {...props} size="zero" />;
 }
 
 Alert.Button = AlertButton;

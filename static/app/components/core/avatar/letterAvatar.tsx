@@ -1,5 +1,4 @@
 import type React from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
 
@@ -21,7 +20,6 @@ interface LetterAvatarProps
  * the svg, etc) will also need to be changed there.
  */
 export function LetterAvatar({displayName, ref, ...props}: LetterAvatarProps) {
-  const theme = useTheme();
   return (
     <LetterAvatarComponent ref={ref} viewBox="0 0 120 120" {...props}>
       <rect x="0" y="0" width="120" height="120" rx="15" ry="15" />
@@ -29,7 +27,7 @@ export function LetterAvatar({displayName, ref, ...props}: LetterAvatarProps) {
         x="50%"
         y="50%"
         fontSize="65"
-        fontWeight={theme.isChonk ? 'bold' : 'inherit'}
+        fontWeight="bold"
         style={{dominantBaseline: 'central'}}
         textAnchor="middle"
       >

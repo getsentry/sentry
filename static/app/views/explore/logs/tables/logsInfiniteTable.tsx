@@ -1,6 +1,5 @@
 import type {CSSProperties, RefObject} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Virtualizer} from '@tanstack/react-virtual';
 import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
@@ -110,7 +109,6 @@ export function LogsInfiniteTable({
   embeddedOptions,
   additionalData,
 }: LogsTableProps) {
-  const theme = useTheme();
   const fields = useQueryParamsFields();
   const search = useQueryParamsSearch();
   const autoRefresh = useLogsAutoRefreshEnabled();
@@ -411,8 +409,8 @@ export function LogsInfiniteTable({
   const tableStaticCSS = useMemo(() => {
     return {
       '.log-table-row-chevron-button': {
-        width: theme.isChonk ? '24px' : '18px',
-        height: theme.isChonk ? '24px' : '18px',
+        width: '24px',
+        height: '24px',
         padding: `${space(0.5)} ${space(0.75)}`,
         marginRight: '4px',
         display: 'flex',
@@ -420,7 +418,7 @@ export function LogsInfiniteTable({
         justifyContent: 'center',
       },
     };
-  }, [theme.isChonk]);
+  }, []);
 
   // For replay context, render empty states outside the table for proper centering
   if (hasReplay && (isPending || isError || isEmpty)) {

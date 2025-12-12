@@ -738,7 +738,7 @@ const RadioMarker = styled(Container)<{isSelected: boolean}>`
 `;
 
 const InnerContainer = styled(Flex)`
-  border-bottom: ${p => (p.theme.isChonk ? '3px' : '1px')} solid ${p => p.theme.border};
+  border-bottom: 3px solid ${p => p.theme.border};
   overflow: hidden;
 `;
 

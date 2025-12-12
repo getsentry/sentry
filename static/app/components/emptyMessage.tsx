@@ -26,9 +26,7 @@ function EmptyMessage({title, icon, children, action, size, ...props}: Props) {
         >
           {icon && (
             <IconDefaultsProvider size="xl">
-              <Container color={theme.isChonk ? theme.gray400 : theme.gray200}>
-                {icon}
-              </Container>
+              <Container color={theme.gray400}>{icon}</Container>
             </IconDefaultsProvider>
           )}
           {title && (

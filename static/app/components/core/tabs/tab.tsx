@@ -1,5 +1,4 @@
-import {Fragment} from 'react';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
@@ -7,7 +6,6 @@ import {useObjectRef} from '@react-aria/utils';
 import type {TabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
@@ -88,23 +86,6 @@ function BaseTab({
   variant = 'flat',
   as = 'li',
 }: BaseTabProps) {
-  const theme = useTheme();
-  if (variant === 'floating' && !theme.isChonk) {
-    return (
-      <FloatingTabWrap
-        {...tabProps}
-        hidden={hidden}
-        overflowing={overflowing}
-        ref={ref}
-        as={as}
-      >
-        <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
-        <VariantFocusLayer />
-        {children}
-      </FloatingTabWrap>
-    );
-  }
-
   return (
     <TabWrap
       {...tabProps}
@@ -122,19 +103,6 @@ function BaseTab({
         selected={isSelected}
         size={size}
       >
-        {!theme.isChonk && (
-          <Fragment>
-            <StyledInteractionStateLayer
-              orientation={orientation}
-              higherOpacity={isSelected}
-            />
-            <FocusLayer
-              orientation={orientation}
-              variant={variant}
-              selected={isSelected}
-            />
-          </Fragment>
-        )}
         {children}
         {variant === 'flat' ? (
           <TabSelectionIndicator orientation={orientation} selected={isSelected} />
@@ -210,34 +178,6 @@ export function Tab({
     </BaseTab>
   );
 }
-const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
-  overflowing: boolean;
-}>`
-  &[aria-selected='true'] {
-    ${p => css`
-      color: ${p.theme.purple400};
-      font-weight: ${p.theme.font.weight.medium};
-      background-color: ${p.theme.purple100};
-    `}
-  }
-  &[aria-selected='false'] {
-    border-top: 1px solid transparent;
-  }
-  color: ${p => p.theme.subText};
-  border-radius: 6px;
-  padding: ${space(0.5)} ${space(1)};
-  transform: translateY(1px);
-  cursor: pointer;
-  &:focus {
-    outline: none;
-  }
-  ${p =>
-    p.overflowing &&
-    css`
-      opacity: 0;
-      pointer-events: none;
-    `}
-`;
 
 const TabWrap = withChonk(
   styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
@@ -340,72 +280,6 @@ const TabInnerWrap = styled('span')<{
           theme: p.theme,
         })
       : innerWrapStyles(p)}
-`;
-
-const StyledInteractionStateLayer = styled(InteractionStateLayer)<{
-  orientation: Orientation;
-}>`
-  position: absolute;
-  width: auto;
-  height: auto;
-  transform: none;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: ${p => (p.orientation === 'horizontal' ? space(0.75) : 0)};
-`;
-
-const VariantStyledInteractionStateLayer = styled(InteractionStateLayer)`
-  position: absolute;
-  width: auto;
-  height: auto;
-  transform: none;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-`;
-
-const FocusLayer = styled('div')<{
-  orientation: Orientation;
-  selected: boolean;
-  variant: BaseTabProps['variant'];
-}>`
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: ${p => (p.orientation === 'horizontal' ? space(0.75) : 0)};
-
-  pointer-events: none;
-  border-radius: inherit;
-  z-index: 0;
-  transition: box-shadow 0.1s ease-out;
-
-  li:focus-visible & {
-    box-shadow:
-      ${p => p.theme.focusBorder} 0 0 0 1px,
-      inset ${p => p.theme.focusBorder} 0 0 0 1px;
-  }
-`;
-
-const VariantFocusLayer = styled('div')`
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-
-  pointer-events: none;
-  border-radius: inherit;
-  z-index: 0;
-  transition: box-shadow 0.1s ease-out;
-
-  li:focus-visible & {
-    box-shadow:
-      ${p => p.theme.focusBorder} 0 0 0 1px,
-      inset ${p => p.theme.focusBorder} 0 0 0 1px;
-  }
 `;
 
 const TabSelectionIndicator = withChonk(

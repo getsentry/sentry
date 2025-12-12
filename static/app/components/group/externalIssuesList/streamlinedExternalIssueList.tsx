@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
@@ -67,7 +66,6 @@ export function StreamlinedExternalIssueList({
   project,
 }: ExternalIssueListProps) {
   const organization = useOrganization();
-  const theme = useTheme();
   const {isLoading, integrations, linkedIssues} = useGroupExternalIssues({
     group,
     event,
@@ -133,7 +131,7 @@ export function StreamlinedExternalIssueList({
             const sharedButtonProps: ButtonProps = {
               size: 'zero',
               icon: integration.displayIcon,
-              priority: theme.isChonk ? 'transparent' : undefined,
+              priority: 'transparent',
               children: <IssueActionName>{integration.displayName}</IssueActionName>,
             };
 
@@ -218,7 +216,7 @@ const LinkedIssue = styled(LinkButton)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  border: ${p => (p.theme.isChonk ? 'none' : '1px solid ' + p.theme.border)};
+  border: none;
   border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
 `;

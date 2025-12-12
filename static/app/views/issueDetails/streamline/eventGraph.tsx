@@ -452,7 +452,7 @@ export function EventGraph({
     data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
-    inactiveColor: theme.isChonk ? theme.tokens.content.muted : theme.gray200,
+    inactiveColor: theme.tokens.content.muted,
   });
 
   const onLegendSelectChanged = useMemo(
@@ -601,8 +601,7 @@ function GraphButton({
   label: string;
   count?: string;
 } & Partial<ButtonProps>) {
-  const theme = useTheme();
-  const textVariant = theme.isChonk ? undefined : props.disabled ? 'accent' : 'muted';
+  const textVariant = undefined;
 
   return (
     <CalloutButton
@@ -623,15 +622,8 @@ function GraphButton({
 }
 
 function SummaryContainer(props: FlexProps) {
-  const theme = useTheme();
   return (
-    <Flex
-      padding="lg xs lg lg"
-      direction="column"
-      gap={theme.isChonk ? 'sm' : 'xs'}
-      radius="md"
-      {...props}
-    />
+    <Flex padding="lg xs lg lg" direction="column" gap="sm" radius="md" {...props} />
   );
 }
 

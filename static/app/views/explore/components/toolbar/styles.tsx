@@ -1,4 +1,3 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -13,7 +12,7 @@ export const ToolbarHeader = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: ${p => (p.theme.isChonk ? p.theme.space.sm : p.theme.space.xs)};
+  margin-bottom: ${p => p.theme.space.sm};
 `;
 
 export const ToolbarLabel = styled('h6')<{disabled?: boolean}>`
@@ -42,11 +41,7 @@ export const ToolbarRow = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  ${p =>
-    p.theme.isChonk &&
-    css`
-      align-items: center;
-    `};
+  align-items: center;
   gap: ${space(1)};
 
   :not(:last-child) {

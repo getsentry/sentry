@@ -125,7 +125,7 @@ function GroupStatusChart({
               showXAxisLine
               hideZeros={hideZeros}
               markLineLabelSide="right"
-              barOpacity={theme.isChonk ? 1 : 0.4}
+              barOpacity={1}
               height={showMarkLine ? 36 : height}
               isGroupedByDate
               showTimeInTooltip

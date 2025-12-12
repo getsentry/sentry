@@ -1,6 +1,5 @@
 import type {MouseEventHandler} from 'react';
 import {memo, useCallback, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -49,7 +48,6 @@ interface FlamegraphDrawerProps {
 const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerProps) {
   const params = useParams();
   const orgSlug = useOrganization().slug;
-  const theme = useTheme();
   const flamegraphPreferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
@@ -211,7 +209,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           <ProfilingDetailsListItem margin="none">
             <ExportProfileButton
               size="zero"
-              priority={theme.isChonk ? 'transparent' : undefined}
+              priority="transparent"
               eventId={params.eventId}
               projectId={params.projectId}
               orgId={orgSlug}
@@ -224,7 +222,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           <LayoutSelectionContainer>
             <Tooltip title={t('Table left')} skipWrapper>
               <StyledButton
-                priority={theme.isChonk ? 'transparent' : undefined}
+                priority="transparent"
                 active={flamegraphPreferences.layout === 'table left'}
                 onClick={onTableLeftClick}
                 title={t('Table left')}
@@ -235,7 +233,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             </Tooltip>
             <Tooltip title={t('Table bottom')} skipWrapper>
               <StyledButton
-                priority={theme.isChonk ? 'transparent' : undefined}
+                priority="transparent"
                 active={flamegraphPreferences.layout === 'table bottom'}
                 onClick={onTableBottomClick}
                 title={t('Table bottom')}
@@ -246,7 +244,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             </Tooltip>
             <Tooltip title={t('Table right')} skipWrapper>
               <StyledButton
-                priority={theme.isChonk ? 'transparent' : undefined}
+                priority="transparent"
                 active={flamegraphPreferences.layout === 'table right'}
                 onClick={onTableRightClick}
                 title={t('Table right')}
