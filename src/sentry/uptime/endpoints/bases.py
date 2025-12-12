@@ -26,7 +26,7 @@ class ProjectUptimeAlertEndpoint(ProjectEndpoint):
         project = kwargs["project"]
 
         try:
-            kwargs["uptime_detector"] = Detector.objects.get(
+            kwargs["uptime_detector"] = Detector.objects.with_type_filters().get(
                 project=project,
                 id=uptime_detector_id,
                 type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,

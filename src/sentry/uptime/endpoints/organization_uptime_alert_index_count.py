@@ -39,7 +39,7 @@ class OrganizationUptimeAlertIndexCountEndpoint(OrganizationEndpoint):
                 }
             )
 
-        queryset = Detector.objects.filter(
+        queryset = Detector.objects.with_type_filters().filter(
             status=ObjectStatus.ACTIVE,
             type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
             project__organization_id=organization.id,
