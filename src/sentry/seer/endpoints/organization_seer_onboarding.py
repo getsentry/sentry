@@ -44,11 +44,9 @@ class ProjectRepoMappingField(serializers.Field):
         for project_id_str, repos_data in data.items():
             try:
                 project_id = int(project_id_str)
+                if project_id <= 0:
+                    raise ValueError
             except (ValueError, TypeError):
-                raise serializers.ValidationError(
-                    f"Invalid project ID: {project_id_str}. Must be a positive integer."
-                )
-            if project_id <= 0:
                 raise serializers.ValidationError(
                     f"Invalid project ID: {project_id_str}. Must be a positive integer."
                 )
@@ -78,7 +76,7 @@ class AutofixConfigSerializer(CamelSnakeSerializer):
     project_repo_mapping = ProjectRepoMappingField(required=True)
 
 
-class SeerOnboardingSerializer(serializers.Serializer):
+class SeerOnboardingSerializer(CamelSnakeSerializer):
     autofix = AutofixConfigSerializer(required=True)
 
 

@@ -26,33 +26,33 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             {
                 "autofix": {
                     "fixes": True,
-                    "pr_creation": True,
-                    "project_repo_mapping": {
+                    "prCreation": True,
+                    "projectRepoMapping": {
                         str(self.project1.id): [
                             {
                                 "provider": "github",
                                 "owner": "sentry",
                                 "name": "sentry",
-                                "external_id": "1234567890",
-                                "organization_id": "1234567890",
-                                "integration_id": "1234567890",
-                                "branch_name": "my-branch",
-                                "branch_overrides": [
+                                "externalId": "1234567890",
+                                "organizationId": "1234567890",
+                                "integrationId": "1234567890",
+                                "branchName": "my-branch",
+                                "branchOverrides": [
                                     {
-                                        "tag_name": "my-tag",
-                                        "tag_value": "my-value",
-                                        "branch_name": "my-branch",
+                                        "tagName": "my-tag",
+                                        "tagValue": "my-value",
+                                        "branchName": "my-branch",
                                     }
                                 ],
                                 "instructions": "my-instructions",
-                                "base_commit_sha": "1234567890",
-                                "provider_raw": "github",
+                                "baseCommitSha": "1234567890",
+                                "providerRaw": "github",
                             },
                             {
                                 "provider": "github-enterprise",
                                 "owner": "sentry-test",
                                 "name": "sentry-test",
-                                "external_id": "0987654321",
+                                "externalId": "0987654321",
                             },
                         ],
                         str(self.project2.id): [
@@ -60,7 +60,7 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
                                 "provider": "github",
                                 "owner": "sentry",
                                 "name": "sentry",
-                                "external_id": "1029384756",
+                                "externalId": "1029384756",
                             },
                         ],
                     },
@@ -134,8 +134,8 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             {
                 "autofix": {
                     "fixes": True,
-                    "pr_creation": True,
-                    "project_repo_mapping": {},
+                    "prCreation": True,
+                    "projectRepoMapping": {},
                 },
             },
         )
@@ -155,8 +155,8 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             {
                 "autofix": {
                     "fixes": False,
-                    "pr_creation": False,
-                    "project_repo_mapping": {},
+                    "prCreation": False,
+                    "projectRepoMapping": {},
                 },
             },
         )
@@ -184,8 +184,8 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
         mock_onboarding_update.assert_not_called()
         assert response.json() == {
             "autofix": {
-                "pr_creation": ["This field is required."],
-                "project_repo_mapping": ["This field is required."],
+                "prCreation": ["This field is required."],
+                "projectRepoMapping": ["This field is required."],
             }
         }
 
@@ -196,14 +196,14 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             {
                 "autofix": {
                     "fixes": True,
-                    "pr_creation": True,
-                    "project_repo_mapping": {
+                    "prCreation": True,
+                    "projectRepoMapping": {
                         "invalid_project_id": [
                             {
                                 "provider": "github",
                                 "owner": "sentry",
                                 "name": "sentry",
-                                "external_id": "1234567890",
+                                "externalId": "1234567890",
                             },
                         ],
                     },
@@ -215,7 +215,7 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
         mock_onboarding_update.assert_not_called()
         assert response.json() == {
             "autofix": {
-                "project_repo_mapping": [
+                "projectRepoMapping": [
                     "Invalid project ID: invalid_project_id. Must be a positive integer."
                 ]
             }
@@ -228,13 +228,13 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             {
                 "autofix": {
                     "fixes": True,
-                    "pr_creation": True,
-                    "project_repo_mapping": {
+                    "prCreation": True,
+                    "projectRepoMapping": {
                         str(self.project1.id): {
                             "provider": "github",
                             "owner": "sentry",
                             "name": "sentry",
-                            "external_id": "1234567890",
+                            "externalId": "1234567890",
                         }
                     },
                 },
@@ -245,7 +245,7 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
         mock_onboarding_update.assert_not_called()
         assert response.json() == {
             "autofix": {
-                "project_repo_mapping": [
+                "projectRepoMapping": [
                     f"Expected a list of repositories for project {self.project1.id}"
                 ],
             }
@@ -259,14 +259,14 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             {
                 "autofix": {
                     "fixes": True,
-                    "pr_creation": True,
-                    "project_repo_mapping": {
+                    "prCreation": True,
+                    "projectRepoMapping": {
                         str(self.project1.id): [
                             {
                                 "provider": "github",
                                 "owner": "sentry",
                                 "name": "sentry",
-                                "external_id": "1234567890",
+                                "externalId": "1234567890",
                             },
                         ],
                     },
@@ -286,14 +286,14 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             {
                 "autofix": {
                     "fixes": True,
-                    "pr_creation": True,
-                    "project_repo_mapping": {
+                    "prCreation": True,
+                    "projectRepoMapping": {
                         str(self.project1.id): [
                             {
                                 "provider": "github",
                                 "owner": "sentry",
                                 "name": "sentry",
-                                "external_id": "1234567890",
+                                "externalId": "1234567890",
                             },
                         ],
                         str(other_project.id): [
@@ -301,7 +301,7 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
                                 "provider": "github",
                                 "owner": "sentry",
                                 "name": "sentry",
-                                "external_id": "1234567890",
+                                "externalId": "1234567890",
                             },
                         ],
                     },
@@ -320,14 +320,14 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
             {
                 "autofix": {
                     "fixes": True,
-                    "pr_creation": True,
-                    "project_repo_mapping": {
+                    "prCreation": True,
+                    "projectRepoMapping": {
                         "-1": [
                             {
                                 "provider": "github",
                                 "owner": "sentry",
                                 "name": "sentry",
-                                "external_id": "1234567890",
+                                "externalId": "1234567890",
                             },
                         ],
                     },
@@ -339,6 +339,6 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
         mock_onboarding_update.assert_not_called()
         assert response.json() == {
             "autofix": {
-                "project_repo_mapping": ["Invalid project ID: -1. Must be a positive integer."]
+                "projectRepoMapping": ["Invalid project ID: -1. Must be a positive integer."]
             }
         }
