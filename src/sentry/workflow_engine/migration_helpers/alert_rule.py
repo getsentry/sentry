@@ -456,7 +456,11 @@ def update_data_source_for_detector(alert_rule: AlertRule, detector: Detector) -
         )
         return
 
-    current_subscription = QuerySubscription.objects.filter(snuba_query=snuba_query.id).first()
+    current_subscription = (
+        QuerySubscription.objects.filter(snuba_query=snuba_query.id)
+        .exclude(status=QuerySubscription.Status.DELETING.value)
+        .first()
+    )
     if not current_subscription:
         logger.error(
             "No QuerySubscription found for AlertRule's SnubaQuery",
