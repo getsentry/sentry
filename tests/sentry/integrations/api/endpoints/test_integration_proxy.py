@@ -21,7 +21,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.metrics.base import Tags
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
+from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiTimeoutError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
@@ -533,6 +533,47 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             failure_type=IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR,
             count=1,
             mock_metrics=mock_metrics,
+        )
+        self.assert_metric_count(
+            metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
+            count=0,
+            mock_metrics=mock_metrics,
+        )
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    @patch.object(metrics, "incr")
+    def test_handles_api_error(
+        self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
+        signature_path = f"/{self.proxy_path}"
+        headers = self.create_request_headers(
+            signature_path=signature_path, integration_id=self.org_integration.id
+        )
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client.request = MagicMock(
+            side_effect=lambda *args, **kwargs: self.raise_exception(ApiError, "Bad Gateway", 502)
+        )
+        mock_get_client.return_value = mock_client
+
+        proxy_response = self.client.get(self.path, **headers)
+
+        assert proxy_response.status_code == 502
+        assert proxy_response.data == {"detail": "Bad Gateway"}
+
+        self.assert_metric_count(
+            metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
+            count=1,
+            mock_metrics=mock_metrics,
+            kwargs_to_match={"sample_rate": 1.0, "tags": None},
+        )
+        self.assert_failure_metric_count(
+            failure_type=IntegrationProxyFailureMetricType.HOST_RESPONSE_ERROR,
+            count=1,
+            mock_metrics=mock_metrics,
+            tags={"status": "502"},
         )
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
