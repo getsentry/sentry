@@ -20,6 +20,12 @@ import {parseAsSort} from 'sentry/utils/queryString';
 import SeerRepoTableHeader from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableHeader';
 import SeerRepoTableRow from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableRow';
 
+const SUPPORTED_PROVIDERS = [
+  'github',
+  'integrations:github',
+  'integrations:github_enterprise',
+];
+
 export default function SeerRepoTable() {
   const {
     data: repositories,
@@ -31,7 +37,9 @@ export default function SeerRepoTable() {
   const supportedRepositories = useMemo(
     () =>
       // TODO(ryan953): Is there another field to use here?
-      repositories.filter(repository => repository.provider.name === 'GitHub'),
+      repositories.filter(repository =>
+        SUPPORTED_PROVIDERS.includes(repository.provider.id)
+      ),
     [repositories]
   );
 
