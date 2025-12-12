@@ -414,7 +414,7 @@ class TestGetGroupHourlyCountEAP(TestCase):
         mock_eap.return_value = 5
         mock_forecast.return_value = 50
 
-        with self.options({"occurrences.eap-reads.enabled": True}):
+        with self.options({"eap.occurrences.should_double_read": True}):
             result = is_escalating(group)
 
         # Should escalate because Snuba count (100) > forecast (50)
