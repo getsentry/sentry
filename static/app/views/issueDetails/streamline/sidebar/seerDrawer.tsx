@@ -134,10 +134,26 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
     !aiConfig.hasAutofixQuota && organization.features.includes('seer-billing');
 
   if (seatBasedSeer) {
+    // No easy way to add a hook for only configuring quotas.
+    // So the condition here captures all the possible cases
+    // that requires some kind of configuration change.
+    //
+    // Instead, we bundle all the configuration into 1 hook.
+    //
+    // If the hook is not defined, we always direct them to
+    // the seer configs.
+    //
+    // If the hook is defined, the hook will render a different
+    // component as needed to configure quotas.
     if (
+      // needs to configure quota
       noAutofixQuota ||
-      !seerOnboardingCheck.data?.isSeerConfigured ||
-      !seerOnboardingCheck.data?.isAutofixEnabled
+      // needs to configure repos
+      !aiConfig.seerReposLinked ||
+      // needs to enable autofix
+      !seerOnboardingCheck.data?.isAutofixEnabled ||
+      // catch all, ensure seer is configured
+      !seerOnboardingCheck.data?.isSeerConfigured
     ) {
       return (
         <SeerDrawerContainer className="seer-drawer-container">
