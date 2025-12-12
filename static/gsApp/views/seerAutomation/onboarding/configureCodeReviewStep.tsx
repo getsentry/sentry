@@ -86,6 +86,7 @@ export function ConfigureCodeReviewStep() {
         );
       });
 
+    // Turn on code review for the selected repositories.
     const updateEnabledCodeReview = () =>
       new Promise<void>((resolve, reject) => {
         if (selectedCodeReviewRepositories.length === 0) {
@@ -96,7 +97,7 @@ export function ConfigureCodeReviewStep() {
         updateRepositorySettings(
           {
             codeReviewTriggers: DEFAULT_CODE_REVIEW_TRIGGERS,
-            enabledCodeReview: enableCodeReview,
+            enabledCodeReview: true,
             repositoryIds: selectedCodeReviewRepositories.map(repo => repo.id),
           },
           {
