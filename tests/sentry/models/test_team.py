@@ -1,3 +1,4 @@
+from django.db import connection
 from django.test import override_settings
 
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
@@ -60,8 +61,21 @@ class TeamTest(TestCase):
     def test_without_snowflake(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT last_value FROM sentry_team_id_seq")
+            id_before = cursor.fetchone()[0]
+
         team = self.create_team(organization=org)
-        assert team.id < 1_000_000_000
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT last_value FROM sentry_team_id_seq")
+            id_after = cursor.fetchone()[0]
+
+        # When snowflake is disabled, the ID should advance by exactly 1
+        # (Tests that we used regular auto-increment, not snowflake generation)
+        assert id_after == id_before + 1
+        assert team.id == id_after
         assert Team.objects.filter(id=team.id).exists()
 
 
