@@ -155,15 +155,15 @@ class OptimizableImageFile(BaseModel):
 
     # Minification savings (optimizing current format)
     minify_savings: int
-    minified_size: int | None
+    minified_size: int | None = None
 
     # HEIC conversion savings (converting to HEIC format)
     conversion_savings: int
-    heic_size: int | None
+    heic_size: int | None = None
 
     # Asset catalog specific fields
-    idiom: str | None
-    colorspace: str | None
+    idiom: str | None = None
+    colorspace: str | None = None
 
     @property
     def potential_savings(self) -> int:

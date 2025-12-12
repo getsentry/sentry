@@ -31,31 +31,39 @@ from sentry.preprod.size_analysis.insight_models import (
 
 
 class AndroidInsightResults(BaseModel):
-    duplicate_files: DuplicateFilesInsightResult | None
-    webp_optimization: WebPOptimizationInsightResult | None
-    large_images: LargeImageFileInsightResult | None
-    large_videos: LargeVideoFileInsightResult | None
-    large_audio: LargeAudioFileInsightResult | None
-    hermes_debug_info: HermesDebugInfoInsightResult | None
-    multiple_native_library_archs: MultipleNativeLibraryArchInsightResult | None
+    duplicate_files: DuplicateFilesInsightResult | None = None
+    webp_optimization: WebPOptimizationInsightResult | None = None
+    large_images: LargeImageFileInsightResult | None = None
+    large_videos: LargeVideoFileInsightResult | None = None
+    large_audio: LargeAudioFileInsightResult | None = None
+    hermes_debug_info: HermesDebugInfoInsightResult | None = None
+    multiple_native_library_archs: MultipleNativeLibraryArchInsightResult | None = None
 
 
 class AppleInsightResults(BaseModel):
-    duplicate_files: DuplicateFilesInsightResult | None
-    large_images: LargeImageFileInsightResult | None
-    large_audios: LargeAudioFileInsightResult | None
-    large_videos: LargeVideoFileInsightResult | None
-    strip_binary: StripBinaryInsightResult | None
-    localized_strings_minify: LocalizedStringCommentsInsightResult | None
-    small_files: SmallFilesInsightResult | None
-    loose_images: LooseImagesInsightResult | None
-    hermes_debug_info: HermesDebugInfoInsightResult | None
-    image_optimization: ImageOptimizationInsightResult | None
-    main_binary_exported_symbols: MainBinaryExportMetadataResult | None
-    unnecessary_files: UnnecessaryFilesInsightResult | None
-    audio_compression: AudioCompressionInsightResult | None
-    video_compression: VideoCompressionInsightResult | None
-    alternate_icons_optimization: ImageOptimizationInsightResult | None
+    duplicate_files: DuplicateFilesInsightResult | None = None
+    large_images: LargeImageFileInsightResult | None = None
+    large_audios: LargeAudioFileInsightResult | None = None
+    large_videos: LargeVideoFileInsightResult | None = None
+    strip_binary: StripBinaryInsightResult | None = None
+    localized_strings_minify: LocalizedStringCommentsInsightResult | None = None
+    small_files: SmallFilesInsightResult | None = None
+    loose_images: LooseImagesInsightResult | None = None
+    hermes_debug_info: HermesDebugInfoInsightResult | None = None
+    image_optimization: ImageOptimizationInsightResult | None = None
+    main_binary_exported_symbols: MainBinaryExportMetadataResult | None = None
+    unnecessary_files: UnnecessaryFilesInsightResult | None = None
+    audio_compression: AudioCompressionInsightResult | None = None
+    video_compression: VideoCompressionInsightResult | None = None
+    alternate_icons_optimization: ImageOptimizationInsightResult | None = None
+
+
+class TreemapElementMisc(BaseModel):
+    """Miscellaneous metadata for treemap elements."""
+
+    model_config = ConfigDict(frozen=True)
+
+    scale: int | None = None
 
 
 class TreemapElement(BaseModel):
@@ -64,11 +72,12 @@ class TreemapElement(BaseModel):
 
     name: str
     size: int
-    path: str | None
+    path: str | None = None
     is_dir: bool
-    type: str | None
+    type: str | None = None
     """ Some files (like zip files) are not directories but have children. """
     children: list[TreemapElement]
+    misc: TreemapElementMisc | None = None
 
 
 class TreemapResults(BaseModel):
@@ -125,7 +134,7 @@ class SizeAnalysisResults(BaseModel):
     download_size: int
     install_size: int
     treemap: TreemapResults | None = None
-    insights: AndroidInsightResults | AppleInsightResults | None
+    insights: AndroidInsightResults | AppleInsightResults | None = None
     analysis_version: str | None = None
     file_analysis: FileAnalysis | None = None
     app_components: list[AppComponent] | None = None
@@ -145,17 +154,17 @@ class DiffType(str, Enum):
 
 class DiffItem(BaseModel):
     size_diff: int
-    head_size: int | None
-    base_size: int | None
+    head_size: int | None = None
+    base_size: int | None = None
     path: str
-    item_type: str | None
+    item_type: str | None = None
     type: DiffType
-    diff_items: list[DiffItem] | None
+    diff_items: list[DiffItem] | None = None
 
 
 class SizeMetricDiffItem(BaseModel):
     metrics_artifact_type: PreprodArtifactSizeMetrics.MetricsArtifactType
-    identifier: str | None
+    identifier: str | None = None
     head_install_size: int
     head_download_size: int
     base_install_size: int
@@ -181,5 +190,5 @@ class ComparisonResults(BaseModel):
     insight_diff_items: list[InsightDiffItem]
     size_metric_diff_item: SizeMetricDiffItem
     skipped_diff_item_comparison: bool
-    head_analysis_version: str | None
-    base_analysis_version: str | None
+    head_analysis_version: str | None = None
+    base_analysis_version: str | None = None
