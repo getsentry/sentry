@@ -20,6 +20,7 @@ interface SeerOnboardingContextProps {
     newValue: string | undefined
   ) => void;
   changeRootCauseAnalysisRepository: (oldRepoId: string, newRepoId: string) => void;
+  clearRootCauseAnalysisRepositories: () => void;
   installationData: OrganizationIntegration[] | undefined;
   isInstallationPending: boolean;
   isProviderPending: boolean;
@@ -47,6 +48,7 @@ const SeerOnboardingContext = createContext<SeerOnboardingContextProps>({
   repositoryProjectMapping: {},
   changeRepositoryProjectMapping: () => {},
   changeRootCauseAnalysisRepository: () => {},
+  clearRootCauseAnalysisRepositories: () => {},
   setCodeReviewRepositories: () => {},
   removeRootCauseAnalysisRepository: () => {},
   addRootCauseAnalysisRepository: () => {},
@@ -156,6 +158,11 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
     [repositoriesMap]
   );
 
+  const clearRootCauseAnalysisRepositories = useCallback(() => {
+    setRootCauseAnalysisRepositories([]);
+    setRepositoryProjectMapping({});
+  }, [setRootCauseAnalysisRepositories, setRepositoryProjectMapping]);
+
   const addRootCauseAnalysisRepository = useCallback(
     (repoId: string) => {
       const repo = repositoriesMap[repoId];
@@ -256,6 +263,7 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         repositoryProjectMapping,
         addRepositoryProjectMappings,
         changeRepositoryProjectMapping,
+        clearRootCauseAnalysisRepositories,
       }}
     >
       {children}
