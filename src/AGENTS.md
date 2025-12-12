@@ -198,6 +198,61 @@ def send_email(user_id: int, subject: str, body: str) -> None:
 5. Implement pagination with `cursor`
 6. Use `GET` for read, `POST` for create, `PUT` for update
 
+## Security Guidelines
+
+### Preventing Indirect Object References (IDOR)
+
+**Indirect Object Reference** vulnerabilities occur when an attacker can access resources they shouldn't by manipulating IDs passed in requests. This is one of the most critical security issues in multi-tenant applications like Sentry.
+
+**Core Principle: Always Scope Queries by Organization/Project**
+
+When querying resources, ALWAYS include `organization_id` and/or `project_id` in your query filters. Never trust user-supplied IDs alone.
+
+```python
+# WRONG: Vulnerable to IDOR - user can access any resource by guessing IDs
+resource = Resource.objects.get(id=request.data["resource_id"])
+
+# RIGHT: Properly scoped to organization
+resource = Resource.objects.get(
+    id=request.data["resource_id"],
+    organization_id=organization.id
+)
+
+# RIGHT: Properly scoped to project
+resource = Resource.objects.get(
+    id=request.data["resource_id"],
+    project_id=project.id
+)
+```
+
+**Project ID Handling: Use `self.get_projects()`**
+
+When project IDs are passed in the request (query string or body), NEVER directly access or trust `request.data["project_id"]` or `request.GET["project_id"]`. Instead, use the endpoint's `self.get_projects()` method which performs proper permission checks.
+
+```python
+# WRONG: Direct access bypasses permission checks
+project_ids = request.data.get("project_id")
+projects = Project.objects.filter(id__in=project_ids)
+
+# RIGHT: Use self.get_projects() which validates permissions
+projects = self.get_projects(
+    request=request,
+    organization=organization,
+    project_ids=request.data.get("project_id")
+)
+```
+
+### Exception Handling
+
+- Avoid blanket exception handling (`except Exception:` or bare `except:`)
+- Only catch specific exceptions when you have a meaningful way to handle them
+- We have global exception handlers in tasks and endpoints that automatically log errors and report them to Sentry
+- Let exceptions bubble up unless you need to:
+  - Add context to the error
+  - Perform cleanup operations
+  - Convert one exception type to another with additional information
+  - Recover from expected error conditions
+
 ## Common Patterns
 
 ### Feature Flags
