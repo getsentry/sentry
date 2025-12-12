@@ -122,12 +122,10 @@ class GetAnomalyThresholdDataFromSeerTest(BaseWorkflowTest):
 
         assert result == []
 
-    @patch("sentry.seer.anomaly_detection.get_anomaly_data.features.has")
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.make_signed_seer_api_request")
-    def test_adjusts_timestamps_when_feature_flag_enabled(
-        self, mock_request: MagicMock, mock_feature: MagicMock
+    def test_adjusts_timestamps_for_data_after_detector_creation(
+        self, mock_request: MagicMock
     ) -> None:
-        mock_feature.return_value = True
         detector_created_ts = self.subscription.date_added.timestamp()
         # Timestamp after detector creation
         future_timestamp = detector_created_ts + 1000
@@ -145,26 +143,3 @@ class GetAnomalyThresholdDataFromSeerTest(BaseWorkflowTest):
         assert len(result) == 1
         # Timestamp should be adjusted by time_window (default 60 seconds)
         assert result[0]["timestamp"] == future_timestamp - self.snuba_query.time_window
-
-    @patch("sentry.seer.anomaly_detection.get_anomaly_data.features.has")
-    @patch("sentry.seer.anomaly_detection.get_anomaly_data.make_signed_seer_api_request")
-    def test_does_not_adjust_timestamps_when_feature_flag_disabled(
-        self, mock_request: MagicMock, mock_feature: MagicMock
-    ) -> None:
-        mock_feature.return_value = False
-        detector_created_ts = self.subscription.date_added.timestamp()
-        future_timestamp = detector_created_ts + 1000
-
-        mock_request.return_value = self._mock_response(
-            200,
-            f'{{"success": true, "data": [{{"external_alert_id": 24, "timestamp": {future_timestamp}, "value": 0, "yhat_lower": 10.5, "yhat_upper": 20.5}}]}}'.encode(),
-        )
-
-        result = get_anomaly_threshold_data_from_seer(
-            subscription=self.subscription, start=1.0, end=2.0
-        )
-
-        assert result is not None
-        assert len(result) == 1
-        # Timestamp should NOT be adjusted
-        assert result[0]["timestamp"] == future_timestamp
