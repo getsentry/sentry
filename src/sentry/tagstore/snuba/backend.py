@@ -823,44 +823,51 @@ class SnubaTagStorage(TagStorage):
         start: datetime | None,
         end: datetime | None,
     ) -> dict[str, dict[str, Any]]:
+        """
+        Count events with empty/missing tag values for each key.
+
+        Missing keys are treated as empty. Computed as:
+            empty_count(k) = total_events - non_empty_events(k)
+        """
         stats_map: dict[str, dict[str, Any]] = {}
         if not keys_to_check:
             return stats_map
 
-        empty_alias_map: dict[str, dict[str, str]] = {}
-        selected_columns_empty: list[list] = []
-        for i, k in enumerate(keys_to_check):
-            cnt_alias = f"cnt_{i}"
-            empty_alias_map[k] = {"count": cnt_alias}
-            tag_expr = self.format_string.format(k)
-            empty_predicate = ["equals", [tag_expr, ""]]
-            selected_columns_empty.append(["countIf", [empty_predicate], cnt_alias])
+        # Don't filter by tags_key so events missing the key count toward total.
+        total_filters = dict(filters)
+        total_filters.pop(self.key_column, None)
 
-        empty_filters = dict(filters)
-        if self.key_column in empty_filters:
-            # For empty-value stats, do not restrict by tags_key; events that
-            # store an empty value may omit the key entirely. Removing this
-            # filter ensures those events are counted.
-            del empty_filters[self.key_column]
-
-        empty_results = snuba.query(
+        total_events: int = snuba.query(
             dataset=dataset,
             start=start,
             end=end,
             groupby=None,
             conditions=conditions,
-            filter_keys=empty_filters,
-            aggregations=[],
-            selected_columns=selected_columns_empty,
+            filter_keys=total_filters,
+            aggregations=[["count()", "", "count"]],
+            referrer="tagstore._get_tag_keys_and_top_values_empty_counts",
+            tenant_ids=tenant_ids,
+        )
+
+        non_empty_filters = dict(filters)
+        non_empty_filters[self.key_column] = keys_to_check
+
+        non_empty_by_key: dict[str, int] = snuba.query(
+            dataset=dataset,
+            start=start,
+            end=end,
+            groupby=[self.key_column],
+            conditions=conditions + [[self.value_column, "!=", ""]],
+            filter_keys=non_empty_filters,
+            aggregations=[["count()", "", "count"]],
             referrer="tagstore._get_tag_keys_and_top_values_empty_counts",
             tenant_ids=tenant_ids,
         )
 
         for k in keys_to_check:
-            aliases = empty_alias_map[k]
-            stats_map[k] = {
-                "count": empty_results.get(aliases["count"], 0),
-            }
+            non_empty = non_empty_by_key.get(k, 0)
+            stats_map[k] = {"count": max(total_events - non_empty, 0)}
+
         return stats_map
 
     def get_release_tags(self, organization_id, project_ids, environment_id, versions):
