@@ -466,4 +466,5 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
 
 const TraceIdButton = styled(Button)`
   font-weight: normal;
+  padding: 0;
 `;
