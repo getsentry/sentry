@@ -3,13 +3,14 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Mapping, MutableMapping, Sequence
+from concurrent.futures import Future
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.types import BrokerValue
 from arroyo.types import Topic as ArroyoTopic
 from confluent_kafka import KafkaError
-from confluent_kafka import Message as KafkaMessage
 from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
@@ -53,12 +54,14 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         return self.__producers[topic]
 
-    def delivery_callback(self, error: KafkaError | None, message: KafkaMessage) -> None:
+    def delivery_callback(self, error: KafkaError | None, value: bytes) -> None:
         now = int(time.time())
         if error is not None:
             if self.error_last_logged_time is None or now > self.error_last_logged_time + 60:
                 self.error_last_logged_time = now
-                logger.error("Could not publish message (error: %s): %r", error, message)
+                logger.error(
+                    "Could not publish message (error: %s): %s", error, value.decode("utf-8")
+                )
 
     def _get_headers_for_insert(
         self,
@@ -192,7 +195,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         real_topic = get_topic_definition(topic)["real_topic_name"]
 
         try:
-            producer.produce(
+            produce_future: Future[BrokerValue[KafkaPayload]] = producer.produce(
                 destination=ArroyoTopic(real_topic),
                 payload=KafkaPayload(
                     key=str(project_id).encode("utf-8") if not skip_semantic_partitioning else None,
@@ -201,10 +204,11 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     ),
                     headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
                 ),
-            ).add_done_callback(
+            )
+            produce_future.add_done_callback(
                 lambda future: self.delivery_callback(
                     future.exception() if future.exception() is not None else None,
-                    future.result().payload.message if future.exception() is None else None,
+                    future.result().payload.value if future.exception() is None else None,
                 )
             )
         except Exception as error:
