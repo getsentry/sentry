@@ -4,12 +4,10 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import type {Measurement} from 'sentry/types/event';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {isBrowserRequestNode} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {
-  isBrowserRequestNode,
-  isEAPSpanNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceEAPSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceEAPSpanRow';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';

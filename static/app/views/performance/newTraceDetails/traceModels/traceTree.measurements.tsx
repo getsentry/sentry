@@ -1,6 +1,5 @@
 import type {Measurement} from 'sentry/types/event';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
-import {isStandaloneSpanMeasurementNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
 import type {TraceTree} from './traceTree';
@@ -167,4 +166,17 @@ export function collectTraceMeasurements(
   }
 
   return indicators;
+}
+
+function isStandaloneSpanMeasurementNode(node: BaseNode): boolean {
+  if (node.value && 'op' in node.value && node.value.op) {
+    if (
+      node.value.op.startsWith('ui.webvital.') ||
+      node.value.op.startsWith('ui.interaction.')
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
