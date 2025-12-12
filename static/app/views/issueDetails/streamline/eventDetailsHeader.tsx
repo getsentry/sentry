@@ -95,7 +95,6 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     return null;
   }
 
-  const FilterBar = PageFilterBar;
   const searchBarEnabled = issueTypeConfig.header.filterBar.searchBar?.enabled !== false;
 
   return (
@@ -122,7 +121,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                 columns={{xs: '1fr', md: 'auto minmax(100px, 1fr) auto'}}
                 rows={`minmax(${theme.form.md.height}, auto)`}
               >
-                <FilterBar>
+                <PageFilterBar>
                   <EnvironmentSelector group={group} event={event} project={project} />
                   <TimeRangeSelector
                     menuTitle={t('Filter Time Range')}
@@ -174,7 +173,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                       },
                     }}
                   />
-                </FilterBar>
+                </PageFilterBar>
                 {searchBarEnabled && (
                   <EventSearch
                     group={group}

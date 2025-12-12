@@ -127,7 +127,7 @@ export function SidebarMenu({
       position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
       minMenuWidth={200}
-      trigger={(props, _isOpen) => {
+      trigger={props => {
         return (
           <SidebarItem
             label={label}
@@ -196,7 +196,6 @@ function SidebarNavLink({
     >
       {layout === NavLayout.MOBILE ? (
         <Fragment>
-          {null}
           {children}
           {label}
         </Fragment>
