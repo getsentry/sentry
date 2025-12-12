@@ -19,7 +19,6 @@ from sentry.overwatch_webhooks.webhook_publisher import OverwatchWebhookPublishe
 from sentry.types.region import get_region_by_name
 from sentry.utils import metrics
 
-# TODO: Double check that this includes all of the events you care about.
 GITHUB_EVENTS_TO_FORWARD_OVERWATCH = {
     GithubWebhookType.INSTALLATION,
     GithubWebhookType.INSTALLATION_REPOSITORIES,

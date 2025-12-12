@@ -38,6 +38,7 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -54,6 +55,7 @@ from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
 from .tasks.codecov_account_unlink import codecov_account_unlink
 from .types import IssueEvenntWebhookActionType
+from .utils import should_create_or_increment_contributor_seat
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -767,6 +769,26 @@ class PullRequestEventWebhook(GitHubWebhook):
             )
 
             if created:
+                # Track AI contributor if eligible
+                contributor, _ = OrganizationContributors.objects.get_or_create(
+                    organization_id=organization.id,
+                    integration_id=repo.integration_id,
+                    external_identifier=user["id"],
+                    defaults={
+                        "alias": user["login"],
+                    },
+                )
+
+                if should_create_or_increment_contributor_seat(organization, repo, contributor):
+                    metrics.incr(
+                        "github.webhook.organization_contributor.should_create",
+                        sample_rate=1.0,
+                        tags={
+                            "organization_id": organization.id,
+                            "repository_id": repo.id,
+                        },
+                    )
+
                 metrics.incr(
                     "github.webhook.pull_request.created",
                     sample_rate=1.0,
