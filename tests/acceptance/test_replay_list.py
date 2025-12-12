@@ -11,6 +11,7 @@ from sentry.testutils.silo import no_silo_test
 FEATURE_NAME = ["organizations:session-replay"]
 
 
+@pytest.mark.xdist_unsafe
 @no_silo_test
 class ReplayListTest(ReplaysAcceptanceTestCase):
     def setUp(self) -> None:
@@ -102,7 +103,6 @@ class ReplayListTest(ReplaysAcceptanceTestCase):
             assert replay_ids[1][:8] in rows[2].text
             assert replay_ids[2][:8] in rows[3].text
 
-    @pytest.mark.xdist_unsafe
     def test_archived(self) -> None:
         seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
         seq2_timestamp = datetime.now() - timedelta(minutes=10, seconds=35)

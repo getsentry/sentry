@@ -137,6 +137,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
+    @pytest.mark.xdist_unsafe
     def test_merge_issues(self, mock_now: MagicMock) -> None:
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
@@ -160,6 +161,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
+    @pytest.mark.xdist_unsafe
     def test_inbox_results(self, mock_now: MagicMock) -> None:
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()

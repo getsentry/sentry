@@ -1,6 +1,8 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from fixtures.page_objects.explore_logs import ExploreLogsPage
 from sentry.models.project import Project
 from sentry.testutils.cases import AcceptanceTestCase, OurLogTestCase, SnubaTestCase
@@ -45,6 +47,7 @@ class ExploreLogsTest(AcceptanceTestCase, SnubaTestCase, OurLogTestCase):
         self.dismiss_assistant()
 
     @patch("django.utils.timezone.now")
+    @pytest.mark.xdist_unsafe
     def test_opening_log_row_shows_attributes(self, mock_now: MagicMock) -> None:
         mock_now.return_value = self.start
 

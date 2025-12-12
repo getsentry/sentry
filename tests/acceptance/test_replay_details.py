@@ -16,6 +16,7 @@ from sentry.testutils.silo import no_silo_test
 FEATURE_NAME = ["organizations:session-replay", "organizations:performance-view"]
 
 
+@pytest.mark.xdist_unsafe
 @no_silo_test
 class ReplayDetailsTest(ReplaysAcceptanceTestCase):
     def setUp(self) -> None:
@@ -82,7 +83,6 @@ class ReplayDetailsTest(ReplaysAcceptanceTestCase):
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
-    @pytest.mark.xdist_unsafe
     def test_console_tab(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
@@ -91,7 +91,6 @@ class ReplayDetailsTest(ReplaysAcceptanceTestCase):
             self.browser.click('[data-test-id="replay-details-console-btn"]')
             self.browser.wait_until_test_id("replay-details-console-tab")
 
-    @pytest.mark.xdist_unsafe
     def test_network_tab(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
@@ -100,7 +99,6 @@ class ReplayDetailsTest(ReplaysAcceptanceTestCase):
             self.browser.click('[data-test-id="replay-details-network-btn"]')
             self.browser.wait_until_test_id("replay-details-network-tab")
 
-    @pytest.mark.xdist_unsafe
     def test_memory_tab(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
@@ -109,7 +107,6 @@ class ReplayDetailsTest(ReplaysAcceptanceTestCase):
             self.browser.click('[data-test-id="replay-details-memory-btn"]')
             self.browser.wait_until_test_id("replay-details-memory-tab")
 
-    @pytest.mark.xdist_unsafe
     def test_errors_tab(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
@@ -118,7 +115,6 @@ class ReplayDetailsTest(ReplaysAcceptanceTestCase):
             self.browser.click('[data-test-id="replay-details-errors-btn"]')
             self.browser.wait_until_test_id("replay-details-errors-tab")
 
-    @pytest.mark.xdist_unsafe
     def test_trace_tab(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
