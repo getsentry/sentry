@@ -385,12 +385,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       occurrence => occurrence.event_id === id
     );
 
-    return (
-      this.id === id ||
-      this.transactionId === id ||
-      hasMatchingErrors ||
-      hasMatchingOccurrences
-    );
+    return this.id === id || hasMatchingErrors || hasMatchingOccurrences;
   }
 
   invalidate() {
