@@ -2,6 +2,7 @@ from unittest import mock
 from unittest.mock import MagicMock, Mock, patch
 
 import orjson
+from django.utils import timezone
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
@@ -26,7 +27,9 @@ class GetAnomalyDataFromSeerTest(ProcessUpdateBaseClass, BaseWorkflowTest):
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_nan_aggregation_value(self, mock_logger, mock_seer_request):
+    def test_seer_call_nan_aggregation_value(
+        self, mock_logger: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
         seer_return_value: DetectAnomaliesResponse = {
             "success": True,
             "timeseries": [
@@ -41,11 +44,12 @@ class GetAnomalyDataFromSeerTest(ProcessUpdateBaseClass, BaseWorkflowTest):
             ],
         }
         dynamic_detector, data_condition, query_subscription = self.create_dynamic_metric_detector()
+        # XXX: ignoring typing because the whole point is that we got a value we didn't expect
         ad_update = AnomalyDetectionUpdate(
-            value=float("nan"),
+            value=float("nan"),  # type: ignore[typeddict-item]
             source_id=query_subscription.id,
             subscription_id=query_subscription.id,
-            timestamp=1.0,
+            timestamp=timezone.now(),
         )
 
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
