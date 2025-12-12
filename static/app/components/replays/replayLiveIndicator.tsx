@@ -1,6 +1,10 @@
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -37,8 +41,6 @@ export const LiveIndicator = styled('div')`
   width: 8px;
   position: relative;
   border-radius: 50%;
-  margin-left: ${p => p.theme.space.sm};
-  margin-right: ${p => p.theme.space.sm};
 
   @media (prefers-reduced-motion: reduce) {
     &:before {
@@ -58,3 +60,16 @@ export const LiveIndicator = styled('div')`
     left: -6px;
   }
 `;
+
+export function LiveBadge() {
+  return (
+    <Flex align="center" gap="xs">
+      <Text bold variant="success" data-test-id="live-badge">
+        {t('LIVE')}
+      </Text>
+      <Tooltip title={LIVE_TOOLTIP_MESSAGE} underlineColor="success" showUnderline>
+        <LiveIndicator />
+      </Tooltip>
+    </Flex>
+  );
+}
