@@ -49,7 +49,6 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["options"]["stacktraceOrder"] == int(StacktraceOrder.DEFAULT)
         assert not resp.data["options"]["clock24Hours"]
         assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
-        assert not resp.data["options"]["prefersChonkUI"]
 
     def test_superuser_simple(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
@@ -120,7 +119,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "clock24Hours": True,
                 "extra": True,
                 "prefersIssueDetailsStreamlinedUI": True,
-                "prefersChonkUI": True,
             },
         )
 
