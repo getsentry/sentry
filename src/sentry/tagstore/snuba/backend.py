@@ -848,7 +848,10 @@ class SnubaTagStorage(TagStorage):
         start: datetime | None,
         end: datetime | None,
     ) -> dict[str, dict[str, Any]]:
-        """Original per-key countIf approach (can exceed CH query-size limits for many keys)."""
+        stats_map: dict[str, dict[str, Any]] = {}
+        if not keys_to_check:
+            return stats_map
+
         empty_alias_map: dict[str, dict[str, str]] = {}
         selected_columns_empty: list[list] = []
         for i, k in enumerate(keys_to_check):
@@ -860,6 +863,9 @@ class SnubaTagStorage(TagStorage):
 
         empty_filters = dict(filters)
         if self.key_column in empty_filters:
+            # For empty-value stats, do not restrict by tags_key; events that
+            # store an empty value may omit the key entirely. Removing this
+            # filter ensures those events are counted.
             del empty_filters[self.key_column]
 
         empty_results = snuba.query(
@@ -871,13 +877,16 @@ class SnubaTagStorage(TagStorage):
             filter_keys=empty_filters,
             aggregations=[],
             selected_columns=selected_columns_empty,
-            referrer="tagstore._get_tag_keys_and_top_values_empty_counts",
+            referrer=Referrer.TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES_EMPTY_COUNTS,
             tenant_ids=tenant_ids,
         )
 
-        return {
-            k: {"count": empty_results.get(empty_alias_map[k]["count"], 0)} for k in keys_to_check
-        }
+        for k in keys_to_check:
+            aliases = empty_alias_map[k]
+            stats_map[k] = {
+                "count": empty_results.get(aliases["count"], 0),
+            }
+        return stats_map
 
     def __get_empty_value_stats_map_subtraction(
         self,
@@ -906,7 +915,7 @@ class SnubaTagStorage(TagStorage):
             conditions=conditions,
             filter_keys=total_filters,
             aggregations=[["count()", "", "count"]],
-            referrer="tagstore._get_tag_keys_and_top_values_empty_counts",
+            referrer=Referrer.TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES_EMPTY_COUNTS,
             tenant_ids=tenant_ids,
         )
 
@@ -921,7 +930,7 @@ class SnubaTagStorage(TagStorage):
             conditions=conditions + [[self.value_column, "!=", ""]],
             filter_keys=non_empty_filters,
             aggregations=[["count()", "", "count"]],
-            referrer="tagstore._get_tag_keys_and_top_values_empty_counts",
+            referrer=Referrer.TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES_EMPTY_COUNTS,
             tenant_ids=tenant_ids,
         )
 
