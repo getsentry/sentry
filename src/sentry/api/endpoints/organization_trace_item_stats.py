@@ -53,7 +53,7 @@ class TraceItemStatsPaginator:
 
         offset = cursor.offset if cursor is not None else 0
         # Request 1 more than limit so we can tell if there is another page
-        data = self.data_fn(offset=offset, limit=limit + 1)
+        data = self.data_fn(offset=offset, limit=limit)
         has_more = data[1] >= limit + 1
 
         return CursorResult(
@@ -145,6 +145,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                     config=resolver_config,
                     search_resolver=resolver,
                     max_buckets=1,
+                    skip_translate_internal_to_public_alias=True,
                 )
 
         def run_stats_query_with_error_handling(attributes):
@@ -173,36 +174,32 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
             except (IndexError, KeyError):
                 return {"data": []}, 0
 
-            sanitized_keys = []
+            sanitized_keys = set()
             for key in attr_keys:
                 if key in SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS:
                     continue
 
+                internal_name = key
+                if key in SPAN_ATTRIBUTE_DEFINITIONS:
+                    internal_name = SPAN_ATTRIBUTE_DEFINITIONS[key].internal_name
+
                 if value_substring_match:
                     if value_substring_match in key:
-                        sanitized_keys.append(key)
+                        sanitized_keys.add(internal_name)
                     continue
 
-                sanitized_keys.append(key)
+                sanitized_keys.add(internal_name)
 
-            sanitized_keys = sanitized_keys[offset : offset + limit]
+            sanitized_keys = list(sanitized_keys)[offset : offset + limit]
 
             if not sanitized_keys:
                 return {"data": []}, 0
 
             request_attrs_list = []
             for requested_key in sanitized_keys:
-                if requested_key in SPAN_ATTRIBUTE_DEFINITIONS:
-                    request_attrs_list.append(
-                        AttributeKey(
-                            name=SPAN_ATTRIBUTE_DEFINITIONS[requested_key].internal_name,
-                            type=AttributeKey.TYPE_STRING,
-                        )
-                    )
-                else:
-                    request_attrs_list.append(
-                        AttributeKey(name=requested_key, type=AttributeKey.TYPE_STRING)
-                    )
+                request_attrs_list.append(
+                    AttributeKey(name=requested_key, type=AttributeKey.TYPE_STRING)
+                )
 
             chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
             for i, attr in enumerate(request_attrs_list):
