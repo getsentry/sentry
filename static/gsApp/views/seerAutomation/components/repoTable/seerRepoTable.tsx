@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
@@ -14,11 +14,14 @@ import {t} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {parseAsSort} from 'sentry/utils/queryString';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import SeerRepoTableHeader from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableHeader';
 import SeerRepoTableRow from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableRow';
+import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
+import {getRepositoryWithSettingsQueryKey} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
 
 const SUPPORTED_PROVIDERS = [
   'github',
@@ -27,21 +30,44 @@ const SUPPORTED_PROVIDERS = [
 ];
 
 export default function SeerRepoTable() {
+  const queryClient = useQueryClient();
+  const organization = useOrganization();
   const {
-    data: repositories,
-    isFetching,
+    data: repositoriesWithSettings,
     error,
-    // Depends on https://github.com/getsentry/sentry/pull/104713/changes
+    isFetching,
   } = useOrganizationRepositoriesWithSettings();
 
   const supportedRepositories = useMemo(
     () =>
-      // TODO(ryan953): Is there another field to use here?
-      repositories.filter(repository =>
+      repositoriesWithSettings.filter(repository =>
         SUPPORTED_PROVIDERS.includes(repository.provider.id)
       ),
-    [repositories]
+    [repositoriesWithSettings]
   );
+
+  const [mutationData, setMutations] = useState<Record<string, RepositoryWithSettings>>(
+    {}
+  );
+
+  const {mutate: mutateRepositorySettings} = useBulkUpdateRepositorySettings({
+    onSuccess: mutations => {
+      setMutations(prev => {
+        const updated = {...prev};
+        mutations.forEach(mutation => {
+          updated[mutation.id] = mutation;
+        });
+        return updated;
+      });
+    },
+    onSettled: mutations => {
+      (mutations ?? []).forEach(mutation => {
+        queryClient.invalidateQueries({
+          queryKey: getRepositoryWithSettingsQueryKey(organization, mutation.id),
+        });
+      });
+    },
+  });
 
   const [searchTerm, setSearchTerm] = useQueryState(
     'query',
@@ -90,8 +116,9 @@ export default function SeerRepoTable() {
   if (isFetching) {
     return (
       <RepoTable
+        mutateRepositorySettings={mutateRepositorySettings}
         onSortClick={setSort}
-        repositories={repositories}
+        repositories={filteredRepositories}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         sort={sort}
@@ -106,8 +133,9 @@ export default function SeerRepoTable() {
   if (error) {
     return (
       <RepoTable
+        mutateRepositorySettings={mutateRepositorySettings}
         onSortClick={setSort}
-        repositories={repositories}
+        repositories={filteredRepositories}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         sort={sort}
@@ -126,6 +154,7 @@ export default function SeerRepoTable() {
       queryKey={queryKey}
     >
       <RepoTable
+        mutateRepositorySettings={mutateRepositorySettings}
         onSortClick={setSort}
         repositories={filteredRepositories}
         searchTerm={searchTerm}
@@ -133,7 +162,12 @@ export default function SeerRepoTable() {
         sort={sort}
       >
         {filteredRepositories.map(repository => (
-          <SeerRepoTableRow key={repository.id} repository={repository} />
+          <SeerRepoTableRow
+            key={repository.id}
+            mutateRepositorySettings={mutateRepositorySettings}
+            mutationData={mutationData}
+            repository={repository}
+          />
         ))}
       </RepoTable>
     </ListItemCheckboxProvider>
@@ -142,6 +176,7 @@ export default function SeerRepoTable() {
 
 function RepoTable({
   children,
+  mutateRepositorySettings,
   onSortClick,
   repositories,
   searchTerm,
@@ -149,6 +184,7 @@ function RepoTable({
   sort,
 }: {
   children: React.ReactNode;
+  mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
   onSortClick: (sort: Sort) => void;
   repositories: RepositoryWithSettings[];
   searchTerm: string;
@@ -175,8 +211,9 @@ function RepoTable({
 
       <SimpleTableWithColumns>
         <SeerRepoTableHeader
-          repositories={repositories}
+          mutateRepositorySettings={mutateRepositorySettings}
           onSortClick={onSortClick}
+          repositories={repositories}
           sort={sort}
         />
         {children}
