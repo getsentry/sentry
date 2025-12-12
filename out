@@ -1,0 +1,728 @@
+relay-1  | 2025-11-21T01:47:24.646987Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:47:27.647894Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:47:30.650519Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:47:33.652865Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:47:36.655300Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:47:39.656376Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:47:42.661024Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:47:45.661737Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:47:48.662791Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:47:49.435348Z  INFO relay_server::services::upstream: registering with upstream descriptor=http://host.docker.internal:8001/
+relay-1  | 2025-11-21T01:47:49.485587Z ERROR relay_server::services::upstream: authentication encountered error error=could not send request to upstream error.sources=[error sending request for url (http://host.docker.internal:8001/api/0/relays/register/challenge/), client error (Connect), tcp connect error, Connection refused (os error 111)] tags.attempts=15
+relay-1  | 2025-11-21T01:47:50.509461Z  INFO relay_system::controller: SIGTERM received, stopping in 0s
+relay-1  | 2025-11-21T01:47:50.509528Z  INFO relay_server::services::metrics::aggregator: Shutting down metrics aggregator default
+relay-1  | 2025-11-21T01:47:50.509539Z  INFO relay_server::services::server: Shutting down HTTP server
+relay-1  | 2025-11-21T01:47:50.509693Z  INFO relay_server::services::outcome_aggregator: outcome aggregator stopped
+relay-1  | 2025-11-21T01:47:50.586673Z  INFO relay_server: relay shutdown complete
+relay-1  | 2025-11-21T01:48:13.831922Z  INFO relay::setup: launching relay from config folder /etc/relay
+relay-1  | 2025-11-21T01:48:13.831977Z  INFO relay::setup:   relay mode: managed
+relay-1  | 2025-11-21T01:48:13.831987Z  INFO relay::setup:   relay id: 88888888-4444-4444-8444-cccccccccccc
+relay-1  | 2025-11-21T01:48:13.831994Z  INFO relay::setup:   public key: SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8
+relay-1  | 2025-11-21T01:48:13.832003Z  INFO relay::setup:   log level: info
+relay-1  | 2025-11-21T01:48:13.832137Z  INFO relay_server: relay server starting
+relay-1  | 2025-11-21T01:48:13.836758Z  INFO relay_server::services::outcome: Configured to emit outcomes via kafka
+relay-1  | 2025-11-21T01:48:13.839687Z  INFO relay_server::services::outcome: OutcomeProducer started.
+relay-1  | 2025-11-21T01:48:13.839733Z  INFO relay_server::services::outcome_aggregator: outcome aggregator started
+relay-1  | 2025-11-21T01:48:13.839743Z  INFO relay_server::services::global_config: global config service starting
+relay-1  | 2025-11-21T01:48:13.839746Z  INFO relay_server::services::global_config: requesting global config from upstream
+relay-1  | 2025-11-21T01:48:13.839780Z  INFO relay_server::services::projects::source::upstream: project upstream cache started
+relay-1  | 2025-11-21T01:48:13.839968Z  INFO relay_server::services::upstream: registering with upstream descriptor=http://host.docker.internal:8001/
+relay-1  | 2025-11-21T01:48:13.844180Z  INFO relay_server::services::upstream: registering with upstream descriptor=http://host.docker.internal:8001/
+relay-1  | 2025-11-21T01:48:13.869694Z  INFO relay_server::service: starting 1 store workers
+relay-1  | 2025-11-21T01:48:13.871048Z  INFO relay_server::service: starting 3 envelope processing workers
+relay-1  | 2025-11-21T01:48:13.871338Z  INFO relay_server::services::store: store forwarder started
+relay-1  | 2025-11-21T01:48:13.871404Z  INFO relay_server::services::buffer: EnvelopeBufferService 0: starting
+relay-1  | 2025-11-21T01:48:13.872167Z  INFO relay_server::services::metrics::router: metrics router started
+relay-1  | 2025-11-21T01:48:13.872288Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:48:13.872401Z  INFO relay_server::services::relays: key cache started
+relay-1  | 2025-11-21T01:48:13.872539Z  INFO relay_server::services::server: spawning http server
+relay-1  | 2025-11-21T01:48:13.872555Z  INFO relay_server::services::server:   listening on http://0.0.0.0:7899/
+relay-1  | 2025-11-21T01:48:14.849610Z  INFO relay_server::services::upstream: registering with upstream descriptor=http://host.docker.internal:8001/
+relay-1  | 2025-11-21T01:48:14.851344Z ERROR relay_server::services::upstream: authentication encountered error error=could not send request to upstream error.sources=[error sending request for url (http://host.docker.internal:8001/api/0/relays/register/challenge/), client error (Connect), tcp connect error, Connection refused (os error 111)] tags.attempts=2
+relay-1  | 2025-11-21T01:48:16.352677Z  INFO relay_server::services::upstream: registering with upstream descriptor=http://host.docker.internal:8001/
+relay-1  | 2025-11-21T01:48:16.354464Z ERROR relay_server::services::upstream: authentication encountered error error=could not send request to upstream error.sources=[error sending request for url (http://host.docker.internal:8001/api/0/relays/register/challenge/), client error (Connect), tcp connect error, Connection refused (os error 111)] tags.attempts=3
+relay-1  | 2025-11-21T01:48:16.873592Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:48:18.607330Z  INFO relay_server::services::upstream: registering with upstream descriptor=http://host.docker.internal:8001/
+relay-1  | 2025-11-21T01:48:18.609240Z ERROR relay_server::services::upstream: authentication encountered error error=could not send request to upstream error.sources=[error sending request for url (http://host.docker.internal:8001/api/0/relays/register/challenge/), client error (Connect), tcp connect error, Connection refused (os error 111)] tags.attempts=4
+relay-1  | 2025-11-21T01:48:19.874439Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:48:21.985667Z  INFO relay_server::services::upstream: registering with upstream descriptor=http://host.docker.internal:8001/
+relay-1  | 2025-11-21T01:48:21.989482Z ERROR relay_server::services::upstream: authentication encountered error error=could not send request to upstream error.sources=[error sending request for url (http://host.docker.internal:8001/api/0/relays/register/challenge/), client error (Connect), tcp connect error, Connection refused (os error 111)] tags.attempts=5
+relay-1  | 2025-11-21T01:48:22.876189Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:48:25.879235Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:48:27.053089Z  INFO relay_server::services::upstream: registering with upstream descriptor=http://host.docker.internal:8001/
+relay-1  | 2025-11-21T01:48:27.056895Z ERROR relay_server::services::upstream: authentication encountered error error=could not send request to upstream error.sources=[error sending request for url (http://host.docker.internal:8001/api/0/relays/register/challenge/), client error (Connect), tcp connect error, Connection refused (os error 111)] tags.attempts=6
+relay-1  | 2025-11-21T01:48:28.881489Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:48:31.883114Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:48:34.651955Z  INFO relay_server::services::upstream: registering with upstream descriptor=http://host.docker.internal:8001/
+relay-1  | 2025-11-21T01:48:34.653669Z ERROR relay_server::services::upstream: authentication encountered error error=could not send request to upstream error.sources=[error sending request for url (http://host.docker.internal:8001/api/0/relays/register/challenge/), client error (Connect), tcp connect error, Connection refused (os error 111)] tags.attempts=7
+relay-1  | 2025-11-21T01:48:34.884105Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:48:37.884755Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:48:40.886258Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:48:43.888928Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:48:46.046134Z  INFO relay_server::services::upstream: registering with upstream descriptor=http://host.docker.internal:8001/
+relay-1  | 2025-11-21T01:48:46.048078Z ERROR relay_server::services::upstream: authentication encountered error error=could not send request to upstream error.sources=[error sending request for url (http://host.docker.internal:8001/api/0/relays/register/challenge/), client error (Connect), tcp connect error, Connection refused (os error 111)] tags.attempts=8
+relay-1  | 2025-11-21T01:48:46.890525Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:48:49.892299Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:48:52.894794Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:48:55.895618Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:48:58.896669Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:01.898186Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:03.135672Z  INFO relay_server::services::upstream: registering with upstream descriptor=http://host.docker.internal:8001/
+relay-1  | 2025-11-21T01:49:04.906587Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:07.908310Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:08.137879Z ERROR relay_server::services::upstream: authentication encountered error error=could not send request to upstream error.sources=[error sending request for url (http://host.docker.internal:8001/api/0/relays/register/challenge/), operation timed out] tags.attempts=9
+relay-1  | 2025-11-21T01:49:10.910112Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:13.912312Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:16.913491Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:19.914873Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:22.916475Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:25.917931Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:28.919599Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:31.921028Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:33.767688Z  INFO relay_server::services::upstream: registering with upstream descriptor=http://host.docker.internal:8001/
+relay-1  | 2025-11-21T01:49:33.949215Z ERROR relay_server::services::upstream: authentication encountered error error=could not send request to upstream error.sources=[error sending request for url (http://host.docker.internal:8001/api/0/relays/register/response/), client error (SendRequest), connection closed before message completed] tags.attempts=10
+relay-1  | 2025-11-21T01:49:34.921534Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:37.923568Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:40.925599Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:43.927039Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:46.928433Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:49.929982Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:52.931551Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:55.932949Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:49:58.936117Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:50:01.937670Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:50:04.938614Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:50:07.939815Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:50:10.941963Z ERROR relay_server::services::health_check: Health check probe 'auth' failed
+relay-1  | 2025-11-21T01:50:12.393616Z  INFO relay_server::services::upstream: registering with upstream descriptor=http://host.docker.internal:8001/
+relay-1  | 2025-11-21T01:50:12.769929Z  INFO relay_server::services::upstream: relay successfully registered with upstream
+relay-1  | 2025-11-21T01:50:12.770399Z ERROR relay_server::services::global_config: failed to fetch global config from upstream error=could not send request to upstream error.sources=[error sending request for url (http://host.docker.internal:8001/api/0/relays/projectconfigs/?version=3), client error (SendRequest), connection closed before message completed]
+relay-1  | 2025-11-21T01:50:22.965703Z  INFO relay_server::services::global_config: received global config from upstream
+
+redis-1  | 1:M 21 Nov 2025 02:09:07.036 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 02:09:07.058 * Background saving started by pid 14309
+redis-1  | 14309:C 21 Nov 2025 02:09:07.069 * DB saved on disk
+redis-1  | 14309:C 21 Nov 2025 02:09:07.078 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 02:09:07.186 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 02:25:49.007 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 02:25:49.017 * Background saving started by pid 14342
+redis-1  | 14342:C 21 Nov 2025 02:25:49.027 * DB saved on disk
+redis-1  | 14342:C 21 Nov 2025 02:25:49.037 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 02:25:49.117 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 02:41:18.075 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 02:41:18.907 * Background saving started by pid 14391
+redis-1  | 14391:C 21 Nov 2025 02:41:18.915 * DB saved on disk
+redis-1  | 14391:C 21 Nov 2025 02:41:18.923 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 02:41:19.007 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 02:47:51.010 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 02:47:51.024 * Background saving started by pid 14424
+redis-1  | 14424:C 21 Nov 2025 02:47:51.034 * DB saved on disk
+redis-1  | 14424:C 21 Nov 2025 02:47:51.043 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 02:47:51.125 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 02:48:52.066 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 02:48:52.084 * Background saving started by pid 14521
+redis-1  | 14521:C 21 Nov 2025 02:48:52.094 * DB saved on disk
+redis-1  | 14521:C 21 Nov 2025 02:48:52.102 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 02:48:52.185 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 02:49:53.066 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 02:49:53.075 * Background saving started by pid 14617
+redis-1  | 14617:C 21 Nov 2025 02:49:53.083 * DB saved on disk
+redis-1  | 14617:C 21 Nov 2025 02:49:53.093 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 02:49:53.175 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 02:50:54.033 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 02:50:54.039 * Background saving started by pid 14722
+redis-1  | 14722:C 21 Nov 2025 02:50:54.048 * DB saved on disk
+redis-1  | 14722:C 21 Nov 2025 02:50:54.058 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 02:50:54.139 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 02:51:55.013 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 02:51:55.018 * Background saving started by pid 14819
+redis-1  | 14819:C 21 Nov 2025 02:51:55.026 * DB saved on disk
+redis-1  | 14819:C 21 Nov 2025 02:51:55.039 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 02:51:55.119 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 02:52:56.081 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 02:52:56.087 * Background saving started by pid 14915
+redis-1  | 14915:C 21 Nov 2025 02:52:56.095 * DB saved on disk
+redis-1  | 14915:C 21 Nov 2025 02:52:56.106 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 02:52:56.188 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 02:53:57.070 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 02:53:57.076 * Background saving started by pid 15012
+redis-1  | 15012:C 21 Nov 2025 02:53:57.084 * DB saved on disk
+redis-1  | 15012:C 21 Nov 2025 02:53:57.093 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 02:53:57.177 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 02:54:58.032 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 02:54:58.038 * Background saving started by pid 15108
+redis-1  | 15108:C 21 Nov 2025 02:54:58.045 * DB saved on disk
+redis-1  | 15108:C 21 Nov 2025 02:54:58.054 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 02:54:58.139 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 02:55:59.027 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 02:55:59.059 * Background saving started by pid 15204
+redis-1  | 15204:C 21 Nov 2025 02:55:59.070 * DB saved on disk
+redis-1  | 15204:C 21 Nov 2025 02:55:59.078 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 02:55:59.160 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 02:57:00.002 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 02:57:00.010 * Background saving started by pid 15300
+redis-1  | 15300:C 21 Nov 2025 02:57:00.019 * DB saved on disk
+redis-1  | 15300:C 21 Nov 2025 02:57:00.027 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 02:57:00.110 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 02:58:01.098 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 02:58:01.167 * Background saving started by pid 15396
+redis-1  | 15396:C 21 Nov 2025 02:58:01.179 * DB saved on disk
+redis-1  | 15396:C 21 Nov 2025 02:58:01.187 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 02:58:01.267 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 02:59:02.086 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 02:59:02.103 * Background saving started by pid 15500
+redis-1  | 15500:C 21 Nov 2025 02:59:02.117 * DB saved on disk
+redis-1  | 15500:C 21 Nov 2025 02:59:02.130 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 02:59:02.204 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 03:00:03.022 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 03:00:03.029 * Background saving started by pid 15597
+redis-1  | 15597:C 21 Nov 2025 03:00:03.037 * DB saved on disk
+redis-1  | 15597:C 21 Nov 2025 03:00:03.046 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 03:00:03.130 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 03:01:04.094 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 03:01:04.153 * Background saving started by pid 15695
+redis-1  | 15695:C 21 Nov 2025 03:01:04.164 * DB saved on disk
+redis-1  | 15695:C 21 Nov 2025 03:01:04.172 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 03:01:04.253 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 03:02:05.024 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 03:02:05.033 * Background saving started by pid 15792
+redis-1  | 15792:C 21 Nov 2025 03:02:05.044 * DB saved on disk
+redis-1  | 15792:C 21 Nov 2025 03:02:05.052 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 03:02:05.135 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 03:03:06.094 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 03:03:06.112 * Background saving started by pid 15889
+redis-1  | 15889:C 21 Nov 2025 03:03:06.123 * DB saved on disk
+redis-1  | 15889:C 21 Nov 2025 03:03:06.132 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 03:03:06.212 * Background saving terminated with success
+redis-1  | 1:M 21 Nov 2025 03:04:07.036 * 20 changes in 60 seconds. Saving...
+redis-1  | 1:M 21 Nov 2025 03:04:07.073 * Background saving started by pid 15985
+redis-1  | 15985:C 21 Nov 2025 03:04:07.084 * DB saved on disk
+redis-1  | 15985:C 21 Nov 2025 03:04:07.092 * RDB: 0 MB of memory used by copy-on-write
+redis-1  | 1:M 21 Nov 2025 03:04:07.174 * Background saving terminated with success
+
+kafka-1  | uid=1000(appuser) gid=1000(appuser) groups=1000(appuser)
+kafka-1  | ===> Configuring ...
+kafka-1  | Running in KRaft mode...
+
+objectstore-1  | 2025-11-21T03:00:37.117025Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:00:37.117047Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:00:42.181227Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:00:42.181250Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:00:47.265224Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:00:47.265244Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:00:52.330720Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:00:52.330748Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:00:57.390292Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:00:57.390312Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:01:02.458094Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:01:02.458116Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:01:07.527035Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:01:07.527063Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:01:12.583508Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:01:12.583552Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:01:17.644054Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:01:17.644077Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:01:22.709346Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:01:22.709376Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:01:27.770355Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:01:27.770389Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:01:32.839051Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:01:32.839074Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:01:37.902648Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:01:37.902669Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:01:42.991340Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:01:42.991360Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:01:48.058930Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:01:48.058954Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:01:53.142124Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:01:53.142148Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:01:58.227077Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:01:58.227101Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:02:03.319581Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:02:03.319601Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:02:08.398819Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:02:08.398841Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:02:13.468490Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:02:13.468511Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:02:19.119616Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:02:19.119640Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:02:24.191558Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:02:24.191582Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:02:29.262274Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:02:29.262326Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:02:34.351419Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:02:34.351450Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:02:39.436892Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:02:39.436916Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:02:44.537196Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:02:44.537224Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:02:49.607366Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:02:49.607391Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:02:54.691868Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:02:54.691890Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:02:59.776159Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:02:59.776186Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:03:04.853484Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:03:04.853509Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:03:09.917151Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:03:09.917171Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:03:14.978316Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:03:14.978340Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:03:20.045916Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:03:20.045955Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:03:25.124759Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:03:25.124783Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:03:30.203909Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:03:30.203935Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:03:35.278737Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:03:35.278758Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:03:40.344587Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:03:40.344608Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:03:45.414000Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:03:45.414051Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:03:50.476252Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:03:50.476273Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:03:55.545677Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:03:55.545706Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:04:00.615879Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:04:00.615944Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:04:05.686708Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:04:05.686752Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:04:10.767968Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:04:10.767994Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:04:15.851064Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:04:15.851091Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:04:20.916248Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:04:20.916269Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:04:25.989036Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:04:25.989089Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:04:31.057310Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:04:31.057333Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:04:36.124788Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:04:36.124814Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:04:41.210941Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:04:41.210968Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+objectstore-1  | 2025-11-21T03:04:46.288406Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_request: started processing request
+objectstore-1  | 2025-11-21T03:04:46.288477Z DEBUG request{method=GET uri=/health version=HTTP/1.1 client_addr=127.0.0.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
+
+taskbroker-1  | taskbroker starting
+taskbroker-1  | version: 8b3f53d348ee2efd45a4bf8386ce0bd6ca85c35a
+taskbroker-1  | [2m2025-11-20T22:14:03.070200Z[0m [32m INFO[0m [2mtaskbroker::kafka::admin[0m[2m:[0m Creating topic "taskworker" with 1 partitions if it does not already exists
+
+clickhouse-1  | Processing configuration file '/etc/clickhouse-server/config.xml'.
+clickhouse-1  | Merging configuration file '/etc/clickhouse-server/config.d/docker_related_config.xml'.
+clickhouse-1  | Merging configuration file '/etc/clickhouse-server/config.d/sentry.xml'.
+clickhouse-1  | Logging trace to /var/log/clickhouse-server/clickhouse-server.log
+clickhouse-1  | Logging errors to /var/log/clickhouse-server/clickhouse-server.err.log
+snuba-1       | 03:03:58 api                                           | 172.18.0.1 - - [21/Nov/2025:03:03:58 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:03:59 api                                           | 172.18.0.1 - - [21/Nov/2025:03:03:59 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:00 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:00 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:01 api                                           | 127.0.0.1 - - [21/Nov/2025:03:04:01 +0000] "GET /health_envoy HTTP/1.1" 200 72 "-" "curl/7.88.1"
+snuba-1       | 03:04:02 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:02 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:03 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:03 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:03 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:03 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:04 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:04 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:06 api                                           | 127.0.0.1 - - [21/Nov/2025:03:04:06 +0000] "GET /health_envoy HTTP/1.1" 200 72 "-" "curl/7.88.1"
+snuba-1       | 03:04:11 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:11 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:11 api                                           | 127.0.0.1 - - [21/Nov/2025:03:04:11 +0000] "GET /health_envoy HTTP/1.1" 200 72 "-" "curl/7.88.1"
+snuba-1       | 03:04:11 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:11 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:12 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:12 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:15 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:15 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:16 api                                           | 127.0.0.1 - - [21/Nov/2025:03:04:16 +0000] "GET /health_envoy HTTP/1.1" 200 72 "-" "curl/7.88.1"
+snuba-1       | 03:04:19 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:19 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:20 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:19 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:22 api                                           | 127.0.0.1 - - [21/Nov/2025:03:04:22 +0000] "GET /health_envoy HTTP/1.1" 200 72 "-" "curl/7.88.1"
+snuba-1       | 03:04:23 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:23 +0000] "POST /tests/entities/group_attributes/insert HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:24 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:24 +0000] "POST /tests/events/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:24 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:24 +0000] "POST /tests/entities/eap_items/insert_bytes HTTP/1.1" 200 66 "-" "python-requests/2.32.4"
+snuba-1       | 03:04:24 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:24 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:25 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:25 +0000] "POST /events/snql HTTP/1.1" 200 2580 "tagstore.get_groups_user_counts" "python-urllib3/2.2.2"
+snuba-1       | 03:04:26 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:25 +0000] "POST /events/snql HTTP/1.1" 200 2576 "group.unhandled-flag" "python-urllib3/2.2.2"
+snuba-1       | 03:04:27 api                                           | 127.0.0.1 - - [21/Nov/2025:03:04:27 +0000] "GET /health_envoy HTTP/1.1" 200 72 "-" "curl/7.88.1"
+snuba-1       | 03:04:28 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:28 +0000] "POST /events/snql HTTP/1.1" 200 2580 "tagstore.get_groups_user_counts" "python-urllib3/2.2.2"
+snuba-1       | 03:04:28 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:28 +0000] "POST /events/snql HTTP/1.1" 200 2576 "group.unhandled-flag" "python-urllib3/2.2.2"
+snuba-1       | 03:04:29 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:28 +0000] "POST /events/snql HTTP/1.1" 200 2659 "tsdb-modelid:4" "python-urllib3/2.2.2"
+snuba-1       | 03:04:30 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:30 +0000] "POST /events/snql HTTP/1.1" 200 2860 "Group.get_helpful" "python-urllib3/2.2.2"
+snuba-1       | 03:04:30 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:30 +0000] "POST /events/snql HTTP/1.1" 200 2842 "serializers.GroupSerializerSnuba._execute_error_seen_stats_query" "python-urllib3/2.2.2"
+snuba-1       | 03:04:30 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:30 +0000] "POST /events/snql HTTP/1.1" 200 2576 "group.unhandled-flag" "python-urllib3/2.2.2"
+snuba-1       | 03:04:30 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:30 +0000] "POST /discover/snql HTTP/1.1" 200 2559 "eventstore.get_next_or_prev_event_id" "python-urllib3/2.2.2"
+snuba-1       | 03:04:30 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:30 +0000] "POST /discover/snql HTTP/1.1" 200 2559 "eventstore.get_next_or_prev_event_id" "python-urllib3/2.2.2"
+snuba-1       | 03:04:31 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:30 +0000] "POST /events/snql HTTP/1.1" 200 2659 "tsdb-modelid:4" "python-urllib3/2.2.2"
+snuba-1       | 03:04:31 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:31 +0000] "POST /events/snql HTTP/1.1" 200 2643 "tsdb-modelid:4" "python-urllib3/2.2.2"
+snuba-1       | 03:04:31 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:31 +0000] "POST /events/snql HTTP/1.1" 200 2884 "eventstore.backend.get_event_by_id_nodestore" "python-urllib3/2.2.2"
+snuba-1       | 03:04:31 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:31 +0000] "POST /search_issues/snql HTTP/1.1" 200 2329 "api.issues.issue_events" "python-urllib3/2.2.2"
+snuba-1       | 03:04:31 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:31 +0000] "POST /discover/snql HTTP/1.1" 200 3317 "api.issues.issue_events" "python-urllib3/2.2.2"
+snuba-1       | 03:04:31 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:31 +0000] "POST /events/snql HTTP/1.1" 200 2884 "eventstore.backend.get_event_by_id_nodestore" "python-urllib3/2.2.2"
+snuba-1       | 03:04:31 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:31 +0000] "POST /events/snql HTTP/1.1" 200 2815 "tagstore.__get_tag_keys" "python-urllib3/2.2.2"
+snuba-1       | 03:04:31 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:31 +0000] "POST /events/snql HTTP/1.1" 200 2883 "eventstore.backend.get_event_by_id_nodestore" "python-urllib3/2.2.2"
+snuba-1       | 03:04:31 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:31 +0000] "POST /rpc/EndpointTraceItemTable/v1 HTTP/1.1" 200 129 "tagstore._get_tag_keys_and_top_values" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /rpc/EndpointTraceItemAttributeNames/v1 HTTP/1.1" 200 418 "tagstore._get_tag_keys_and_top_values" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /events/snql HTTP/1.1" 200 2887 "eventstore.backend.get_event_by_id_nodestore" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /events/snql HTTP/1.1" 200 3743 "tagstore._get_tag_keys_and_top_values" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 127.0.0.1 - - [21/Nov/2025:03:04:32 +0000] "GET /health_envoy HTTP/1.1" 200 72 "-" "curl/7.88.1"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /events/snql HTTP/1.1" 200 2896 "tagstore._get_tag_keys_and_top_values_empty_counts" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /events/snql HTTP/1.1" 200 2885 "eventstore.backend.get_event_by_id_nodestore" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /events/snql HTTP/1.1" 200 2883 "eventstore.backend.get_event_by_id_nodestore" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /events/snql HTTP/1.1" 200 2814 "tagstore.__get_tag_keys" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /rpc/EndpointTraceItemTable/v1 HTTP/1.1" 200 129 "tagstore._get_tag_keys_and_top_values" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /rpc/EndpointTraceItemAttributeNames/v1 HTTP/1.1" 200 418 "tagstore._get_tag_keys_and_top_values" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /events/snql HTTP/1.1" 200 3742 "tagstore._get_tag_keys_and_top_values" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:32 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:32 +0000] "POST /events/snql HTTP/1.1" 200 2865 "tagstore._get_tag_keys_and_top_values_empty_counts" "python-urllib3/2.2.2"
+snuba-1       | 03:04:33 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:33 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:33 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:33 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:33 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:33 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:33 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:33 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:33 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:33 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:33 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:33 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:33 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:33 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:33 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:33 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:33 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:33 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:33 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:33 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:34 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:34 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:34 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:34 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:34 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:34 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:34 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:34 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:34 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:34 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:34 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:34 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:34 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:34 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:34 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:34 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:34 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:34 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:34 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:34 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:34 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:34 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:35 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:35 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:35 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:35 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:35 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:35 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:35 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:35 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:35 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:35 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:35 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:35 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:35 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:35 +0000] "POST /tests/search_issues/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:35 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:35 +0000] "POST /tests/entities/eap_items/insert_bytes HTTP/1.1" 200 66 "-" "python-requests/2.32.4"
+snuba-1       | 03:04:35 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:35 +0000] "POST /events/snql HTTP/1.1" 200 2814 "tagstore.__get_tag_keys" "python-urllib3/2.2.2"
+snuba-1       | 03:04:35 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:35 +0000] "POST /rpc/EndpointTraceItemTable/v1 HTTP/1.1" 200 129 "tagstore._get_tag_keys_and_top_values" "python-urllib3/2.2.2"
+snuba-1       | 03:04:35 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:35 +0000] "POST /rpc/EndpointTraceItemAttributeNames/v1 HTTP/1.1" 200 418 "tagstore._get_tag_keys_and_top_values" "python-urllib3/2.2.2"
+snuba-1       | 03:04:35 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:35 +0000] "POST /events/snql HTTP/1.1" 200 3742 "tagstore._get_tag_keys_and_top_values" "python-urllib3/2.2.2"
+snuba-1       | 03:04:35 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:35 +0000] "POST /events/snql HTTP/1.1" 200 2895 "tagstore._get_tag_keys_and_top_values_empty_counts" "python-urllib3/2.2.2"
+snuba-1       | 03:04:36 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:36 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:37 api                                           | 127.0.0.1 - - [21/Nov/2025:03:04:37 +0000] "GET /health_envoy HTTP/1.1" 200 72 "-" "curl/7.88.1"
+snuba-1       | 03:04:38 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:38 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:40 api                                           | 172.18.0.1 - - [21/Nov/2025:03:04:40 +0000] "POST /tests/transactions/eventstream HTTP/1.1" 200 66 "-" "python-urllib3/2.2.2"
+snuba-1       | 03:04:42 api                                           | 127.0.0.1 - - [21/Nov/2025:03:04:42 +0000] "GET /health_envoy HTTP/1.1" 200 72 "-" "curl/7.88.1"
+snuba-1       | 03:04:47 api                                           | 127.0.0.1 - - [21/Nov/2025:03:04:47 +0000] "GET /health_envoy HTTP/1.1" 200 72 "-" "curl/7.88.1"
+
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+spotlight-1  | 🔎 [Spotlight] Shutting down server gracefully...
+spotlight-1  | 🔎 [Spotlight] Checking if we are already running on port 8969
+spotlight-1  | 🔎 [Spotlight] Sidecar listening on 8969
+spotlight-1  | 🔎 [Spotlight] You can open: http://localhost:8969 to see the Spotlight overlay directly
+postgres-1   | 2025-11-20 22:08:49.766 UTC [1170] FATAL:  the database system is shutting down
+postgres-1   | 2025-11-20 22:08:54.807 UTC [1177] FATAL:  the database system is shutting down
+postgres-1   | 2025-11-20 22:08:55.823 UTC [26] LOG:  using stale statistics instead of current ones because stats collector is not responding
+postgres-1   | 2025-11-20 22:08:55.826 UTC [23] LOG:  shutting down
+postgres-1   | 2025-11-20 22:08:55.836 UTC [27] LOG:  could not write temporary statistics file "pg_stat/db_16384.tmp": No space left on device
+postgres-1   | 2025-11-20 22:08:55.845 UTC [1] LOG:  database system is shut down
+postgres-1   |
+postgres-1   | PostgreSQL Database directory appears to contain a database; Skipping initialization
+postgres-1   |
+postgres-1   | 2025-11-20 22:15:28.248 UTC [1] LOG:  starting PostgreSQL 14.11 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 13.2.1_git20231014) 13.2.1 20231014, 64-bit
+postgres-1   | 2025-11-20 22:15:28.248 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+postgres-1   | 2025-11-20 22:15:28.248 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+postgres-1   | 2025-11-20 22:15:28.250 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+postgres-1   | 2025-11-20 22:15:28.256 UTC [22] LOG:  database system was shut down at 2025-11-20 22:08:55 UTC
+postgres-1   | 2025-11-20 22:15:28.265 UTC [1] LOG:  database system is ready to accept connections
+postgres-1   | 2025-11-20 23:38:00.569 UTC [4737] ERROR:  relation "sentry_option" does not exist at character 149
+postgres-1   | 2025-11-20 23:38:00.569 UTC [4737] STATEMENT:  SELECT "sentry_option"."id", "sentry_option"."key", "sentry_option"."last_updated", "sentry_option"."last_updated_by", "sentry_option"."value" FROM "sentry_option" WHERE "sentry_option"."key" = 'github.apps-install-url' LIMIT 21
+postgres-1   | 2025-11-20 23:38:00.758 UTC [4737] ERROR:  relation "sentry_option" does not exist at character 149
+postgres-1   | 2025-11-20 23:38:00.758 UTC [4737] STATEMENT:  SELECT "sentry_option"."id", "sentry_option"."key", "sentry_option"."last_updated", "sentry_option"."last_updated_by", "sentry_option"."value" FROM "sentry_option" WHERE "sentry_option"."key" = 'msteams.app-id' LIMIT 21
+postgres-1   | 2025-11-20 23:38:00.767 UTC [4737] ERROR:  relation "sentry_option" does not exist at character 149
+postgres-1   | 2025-11-20 23:38:00.767 UTC [4737] STATEMENT:  SELECT "sentry_option"."id", "sentry_option"."key", "sentry_option"."last_updated", "sentry_option"."last_updated_by", "sentry_option"."value" FROM "sentry_option" WHERE "sentry_option"."key" = 'discord.application-id' LIMIT 21
+postgres-1   | 2025-11-20 23:38:00.768 UTC [4737] ERROR:  relation "sentry_option" does not exist at character 149
+postgres-1   | 2025-11-20 23:38:00.768 UTC [4737] STATEMENT:  SELECT "sentry_option"."id", "sentry_option"."key", "sentry_option"."last_updated", "sentry_option"."last_updated_by", "sentry_option"."value" FROM "sentry_option" WHERE "sentry_option"."key" = 'discord.public-key' LIMIT 21
+postgres-1   | 2025-11-20 23:38:00.769 UTC [4737] ERROR:  relation "sentry_option" does not exist at character 149
+postgres-1   | 2025-11-20 23:38:00.769 UTC [4737] STATEMENT:  SELECT "sentry_option"."id", "sentry_option"."key", "sentry_option"."last_updated", "sentry_option"."last_updated_by", "sentry_option"."value" FROM "sentry_option" WHERE "sentry_option"."key" = 'discord.bot-token' LIMIT 21
+postgres-1   | 2025-11-20 23:38:00.770 UTC [4737] ERROR:  relation "sentry_option" does not exist at character 149
+postgres-1   | 2025-11-20 23:38:00.770 UTC [4737] STATEMENT:  SELECT "sentry_option"."id", "sentry_option"."key", "sentry_option"."last_updated", "sentry_option"."last_updated_by", "sentry_option"."value" FROM "sentry_option" WHERE "sentry_option"."key" = 'discord.client-secret' LIMIT 21
+postgres-1   | 2025-11-20 23:38:00.771 UTC [4737] ERROR:  relation "sentry_option" does not exist at character 149
+postgres-1   | 2025-11-20 23:38:00.771 UTC [4737] STATEMENT:  SELECT "sentry_option"."id", "sentry_option"."key", "sentry_option"."last_updated", "sentry_option"."last_updated_by", "sentry_option"."value" FROM "sentry_option" WHERE "sentry_option"."key" = 'sdk_http2_experiment.enabled' LIMIT 21
+postgres-1   | 2025-11-20 23:38:17.548 UTC [4777] FATAL:  terminating autovacuum process due to administrator command
+postgres-1   | 2025-11-21 01:17:46.964 UTC [1] LOG:  received fast shutdown request
+postgres-1   | 2025-11-21 01:17:46.965 UTC [1] LOG:  aborting any active transactions
+postgres-1   | 2025-11-21 01:17:46.969 UTC [1] LOG:  background worker "logical replication launcher" (PID 28) exited with exit code 1
+postgres-1   | 2025-11-21 01:17:47.050 UTC [23] LOG:  shutting down
+postgres-1   | 2025-11-21 01:17:47.062 UTC [1] LOG:  database system is shut down
+postgres-1   |
+postgres-1   | PostgreSQL Database directory appears to contain a database; Skipping initialization
+postgres-1   |
+postgres-1   | 2025-11-21 01:21:51.171 UTC [1] LOG:  starting PostgreSQL 14.11 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 13.2.1_git20231014) 13.2.1 20231014, 64-bit
+postgres-1   | 2025-11-21 01:21:51.171 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+postgres-1   | 2025-11-21 01:21:51.171 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+postgres-1   | 2025-11-21 01:21:51.172 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+postgres-1   | 2025-11-21 01:21:51.175 UTC [22] LOG:  database system was shut down at 2025-11-21 01:17:47 UTC
+postgres-1   | 2025-11-21 01:21:51.181 UTC [1] LOG:  database system is ready to accept connections
+postgres-1   | 2025-11-21 01:29:21.411 UTC [1] LOG:  received fast shutdown request
+postgres-1   | 2025-11-21 01:29:21.412 UTC [1] LOG:  aborting any active transactions
+postgres-1   | 2025-11-21 01:29:21.415 UTC [1] LOG:  background worker "logical replication launcher" (PID 28) exited with exit code 1
+postgres-1   | 2025-11-21 01:29:21.416 UTC [23] LOG:  shutting down
+postgres-1   | 2025-11-21 01:29:21.440 UTC [1] LOG:  database system is shut down
+postgres-1   |
+postgres-1   | PostgreSQL Database directory appears to contain a database; Skipping initialization
+postgres-1   |
+postgres-1   | 2025-11-21 01:30:03.837 UTC [1] LOG:  starting PostgreSQL 14.11 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 13.2.1_git20231014) 13.2.1 20231014, 64-bit
+postgres-1   | 2025-11-21 01:30:03.837 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+postgres-1   | 2025-11-21 01:30:03.837 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+postgres-1   | 2025-11-21 01:30:03.840 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+postgres-1   | 2025-11-21 01:30:03.849 UTC [22] LOG:  database system was shut down at 2025-11-21 01:29:21 UTC
+postgres-1   | 2025-11-21 01:30:03.856 UTC [1] LOG:  database system is ready to accept connections
+postgres-1   | 2025-11-21 01:34:14.420 UTC [1] LOG:  received fast shutdown request
+postgres-1   | 2025-11-21 01:34:14.421 UTC [1] LOG:  aborting any active transactions
+postgres-1   | 2025-11-21 01:34:14.423 UTC [1] LOG:  background worker "logical replication launcher" (PID 28) exited with exit code 1
+postgres-1   | 2025-11-21 01:34:14.424 UTC [23] LOG:  shutting down
+postgres-1   | 2025-11-21 01:34:14.501 UTC [1] LOG:  database system is shut down
+postgres-1   |
+postgres-1   | PostgreSQL Database directory appears to contain a database; Skipping initialization
+postgres-1   |
+postgres-1   | 2025-11-21 01:35:03.110 UTC [1] LOG:  starting PostgreSQL 14.11 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 13.2.1_git20231014) 13.2.1 20231014, 64-bit
+postgres-1   | 2025-11-21 01:35:03.110 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+postgres-1   | 2025-11-21 01:35:03.110 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+postgres-1   | 2025-11-21 01:35:03.112 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+postgres-1   | 2025-11-21 01:35:03.115 UTC [21] LOG:  database system was shut down at 2025-11-21 01:34:14 UTC
+postgres-1   | 2025-11-21 01:35:03.122 UTC [1] LOG:  database system is ready to accept connections
+postgres-1   | 2025-11-21 01:41:19.218 UTC [1] LOG:  received fast shutdown request
+postgres-1   | 2025-11-21 01:41:19.219 UTC [1] LOG:  aborting any active transactions
+postgres-1   | 2025-11-21 01:41:19.221 UTC [1] LOG:  background worker "logical replication launcher" (PID 27) exited with exit code 1
+postgres-1   | 2025-11-21 01:41:19.222 UTC [22] LOG:  shutting down
+postgres-1   | 2025-11-21 01:41:19.232 UTC [1] LOG:  database system is shut down
+postgres-1   |
+postgres-1   | PostgreSQL Database directory appears to contain a database; Skipping initialization
+postgres-1   |
+postgres-1   | 2025-11-21 01:41:57.481 UTC [1] LOG:  starting PostgreSQL 14.11 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 13.2.1_git20231014) 13.2.1 20231014, 64-bit
+postgres-1   | 2025-11-21 01:41:57.481 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+postgres-1   | 2025-11-21 01:41:57.481 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+postgres-1   | 2025-11-21 01:41:57.484 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+postgres-1   | 2025-11-21 01:41:57.494 UTC [22] LOG:  database system was shut down at 2025-11-21 01:41:19 UTC
+postgres-1   | 2025-11-21 01:41:57.499 UTC [1] LOG:  database system is ready to accept connections
+postgres-1   | 2025-11-21 01:47:50.523 UTC [1] LOG:  received fast shutdown request
+postgres-1   | 2025-11-21 01:47:50.525 UTC [1] LOG:  aborting any active transactions
+postgres-1   | 2025-11-21 01:47:50.527 UTC [1] LOG:  background worker "logical replication launcher" (PID 28) exited with exit code 1
+postgres-1   | 2025-11-21 01:47:50.531 UTC [23] LOG:  shutting down
+postgres-1   | 2025-11-21 01:47:50.541 UTC [1] LOG:  database system is shut down
+postgres-1   |
+postgres-1   | PostgreSQL Database directory appears to contain a database; Skipping initialization
+postgres-1   |
+postgres-1   | 2025-11-21 01:48:13.889 UTC [1] LOG:  starting PostgreSQL 14.11 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 13.2.1_git20231014) 13.2.1 20231014, 64-bit
+postgres-1   | 2025-11-21 01:48:13.889 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+postgres-1   | 2025-11-21 01:48:13.889 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+postgres-1   | 2025-11-21 01:48:13.891 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+postgres-1   | 2025-11-21 01:48:13.895 UTC [21] LOG:  database system was shut down at 2025-11-21 01:47:50 UTC
+postgres-1   | 2025-11-21 01:48:13.903 UTC [1] LOG:  database system is ready to accept connections
+
+=== Logs for supervisor program: taskworker ===
+nt_to_items in bad event type with type: EventStreamEventType.Transaction
+03:04:35 [INFO] sentry.options_store: sentry_options_store.cache_miss (key='performance.event-tracker.sample-rate.transactions' cache_configured=True)
+03:04:35 [WARNING] sentry.eventstream.snuba: entering into insert
+03:04:35 [WARNING] sentry.eventstream.snuba: _forward_event_to_items entry
+03:04:35 [WARNING] sentry.eventstream.snuba: _forward_event_to_items in bad event type with type: EventStreamEventType.Transaction
+03:04:35 [WARNING] sentry.eventstream.snuba: entering into insert
+03:04:35 [WARNING] sentry.eventstream.snuba: _forward_event_to_items entry
+03:04:35 [INFO] sentry.eventstream.snuba: Entering into _send_item...
+03:04:35 [INFO] sentry.eventstream.snuba: Successfully inserted occurrence!
+03:04:36 [WARNING] sentry.eventstream.snuba: entering into insert
+03:04:36 [WARNING] sentry.eventstream.snuba: _forward_event_to_items entry
+03:04:36 [WARNING] sentry.eventstream.snuba: _forward_event_to_items in bad event type with type: EventStreamEventType.Transaction
+03:04:38 [WARNING] sentry.eventstream.snuba: entering into insert
+03:04:38 [WARNING] sentry.eventstream.snuba: _forward_event_to_items entry
+03:04:38 [WARNING] sentry.eventstream.snuba: _forward_event_to_items in bad event type with type: EventStreamEventType.Transaction
+03:04:40 [WARNING] sentry.eventstream.snuba: entering into insert
+03:04:40 [WARNING] sentry.eventstream.snuba: _forward_event_to_items entry
+03:04:40 [WARNING] sentry.eventstream.snuba: _forward_event_to_items in bad event type with type: EventStreamEventType.Transaction
+
+
+=== Logs for supervisor program: post-process-forwarder-transactions ===
+cess_forwarder.post_process_forwarder: Starting multithreaded post process forwarder
+02:25:58 [INFO] arroyo.backends.kafka.consumer: Paused partitions after assignment: set()
+02:41:10 [INFO] arroyo.processing.processor: Partitions to revoke: [Partition(topic=Topic(name='transactions'), index=0)]
+02:41:10 [INFO] arroyo.processing.processor: Closing <arroyo.processing.strategies.run_task_in_threads.RunTaskInThreads object at 0x12ffd39d0>...
+02:41:10 [INFO] arroyo.processing.processor: Member id: None
+02:41:10 [INFO] arroyo.processing.processor: Waiting for <arroyo.processing.strategies.run_task_in_threads.RunTaskInThreads object at 0x12ffd39d0> to exit...
+02:41:10 [INFO] arroyo.processing.processor: <arroyo.processing.strategies.run_task_in_threads.RunTaskInThreads object at 0x12ffd39d0> exited successfully
+02:41:10 [INFO] arroyo.processing.processor: Partition revocation complete.
+02:41:10 [INFO] arroyo.backends.kafka.consumer: Paused partitions after revocation: set()
+02:41:10 [INFO] arroyo.backends.kafka.consumer: Paused partitions after revocation: set()
+02:47:49 [INFO] arroyo.backends.kafka.consumer: Paused partitions after assignment: set()
+02:47:51 [INFO] arroyo.processing.processor: New partitions assigned: {Partition(topic=Topic(name='transactions'), index=0): 0}
+02:47:51 [INFO] arroyo.processing.processor: Member id: 'rdkafka-bd54602a-d392-45bd-9bc9-eb7a315b9ed7'
+02:47:51 [INFO] sentry.post_process_forwarder.post_process_forwarder: Starting multithreaded post process forwarder
+02:47:51 [INFO] arroyo.backends.kafka.consumer: Paused partitions after assignment: set()
+
+
+=== Logs for supervisor program: post-process-forwarder-issue-platform ===
+_forwarder.post_process_forwarder: Starting multithreaded post process forwarder
+02:25:58 [INFO] arroyo.backends.kafka.consumer: Paused partitions after assignment: set()
+02:41:10 [INFO] arroyo.processing.processor: Partitions to revoke: [Partition(topic=Topic(name='generic-events'), index=0)]
+02:41:10 [INFO] arroyo.processing.processor: Closing <arroyo.processing.strategies.run_task_in_threads.RunTaskInThreads object at 0x13edd3890>...
+02:41:10 [INFO] arroyo.processing.processor: Member id: None
+02:41:10 [INFO] arroyo.processing.processor: Waiting for <arroyo.processing.strategies.run_task_in_threads.RunTaskInThreads object at 0x13edd3890> to exit...
+02:41:10 [INFO] arroyo.processing.processor: <arroyo.processing.strategies.run_task_in_threads.RunTaskInThreads object at 0x13edd3890> exited successfully
+02:41:10 [INFO] arroyo.processing.processor: Partition revocation complete.
+02:41:10 [INFO] arroyo.backends.kafka.consumer: Paused partitions after revocation: set()
+02:41:10 [INFO] arroyo.backends.kafka.consumer: Paused partitions after revocation: set()
+02:47:49 [INFO] arroyo.backends.kafka.consumer: Paused partitions after assignment: set()
+02:47:51 [INFO] arroyo.processing.processor: New partitions assigned: {Partition(topic=Topic(name='generic-events'), index=0): 0}
+02:47:51 [INFO] arroyo.processing.processor: Member id: 'rdkafka-92b4ffdd-7c4f-4896-89b8-5c70670d71fc'
+02:47:51 [INFO] sentry.post_process_forwarder.post_process_forwarder: Starting multithreaded post process forwarder
+02:47:51 [INFO] arroyo.backends.kafka.consumer: Paused partitions after assignment: set()
+
+
+=== Logs for supervisor program: ingest-attachments ===
+ted successfully
+02:09:06 [INFO] arroyo.processing.processor: Partition revocation complete.
+02:09:06 [INFO] arroyo.backends.kafka.consumer: Paused partitions after revocation: set()
+02:25:58 [INFO] arroyo.processing.processor: New partitions assigned: {Partition(topic=Topic(name='ingest-attachments'), index=0): 0}
+02:25:58 [INFO] arroyo.processing.processor: Member id: 'rdkafka-6b02d157-c597-4b03-a632-d072835c8b34'
+02:25:58 [INFO] arroyo.backends.kafka.consumer: Paused partitions after assignment: set()
+02:41:10 [INFO] arroyo.processing.processor: Partitions to revoke: [Partition(topic=Topic(name='ingest-attachments'), index=0)]
+02:41:10 [INFO] arroyo.processing.processor: Closing <arroyo.processing.strategies.guard.StrategyGuard object at 0x11e401750>...
+02:41:10 [INFO] arroyo.processing.processor: Member id: None
+02:41:10 [INFO] arroyo.processing.processor: Waiting for <arroyo.processing.strategies.guard.StrategyGuard object at 0x11e401750> to exit...
+02:41:10 [INFO] arroyo.processing.processor: <arroyo.processing.strategies.guard.StrategyGuard object at 0x11e401750> exited successfully
+02:41:10 [INFO] arroyo.processing.processor: Partition revocation complete.
+02:41:10 [INFO] arroyo.backends.kafka.consumer: Paused partitions after revocation: set()
+02:47:51 [INFO] arroyo.processing.processor: New partitions assigned: {Partition(topic=Topic(name='ingest-attachments'), index=0): 0}
+02:47:51 [INFO] arroyo.processing.processor: Member id: 'rdkafka-4a1e74ed-3cab-4488-bed1-c866ef90958f'
+02:47:51 [INFO] arroyo.backends.kafka.consumer: Paused partitions after assignment: set()
+
+
+=== Logs for supervisor program: ingest-events ===
+revocation: set()
+02:09:07 [WARNING] arroyo.backends.kafka.consumer: Commit failed: KafkaError{code=UNKNOWN_MEMBER_ID,val=25,str="Broker: Unknown member"}. Partitions: ['ingest-events:0']
+02:25:58 [INFO] arroyo.processing.processor: New partitions assigned: {Partition(topic=Topic(name='ingest-events'), index=0): 267272}
+02:25:58 [INFO] arroyo.processing.processor: Member id: 'rdkafka-81392f86-d7ae-4a01-8a82-275d55c96282'
+02:25:58 [INFO] arroyo.backends.kafka.consumer: Paused partitions after assignment: set()
+02:41:10 [INFO] arroyo.processing.processor: Partitions to revoke: [Partition(topic=Topic(name='ingest-events'), index=0)]
+02:41:10 [INFO] arroyo.processing.processor: Closing <arroyo.processing.strategies.guard.StrategyGuard object at 0x13e683890>...
+02:41:10 [INFO] arroyo.processing.processor: Member id: None
+02:41:10 [INFO] arroyo.processing.processor: Waiting for <arroyo.processing.strategies.guard.StrategyGuard object at 0x13e683890> to exit...
+02:41:10 [INFO] arroyo.processing.processor: <arroyo.processing.strategies.guard.StrategyGuard object at 0x13e683890> exited successfully
+02:41:10 [INFO] arroyo.processing.processor: Partition revocation complete.
+02:41:10 [INFO] arroyo.backends.kafka.consumer: Paused partitions after revocation: set()
+02:47:51 [INFO] arroyo.processing.processor: New partitions assigned: {Partition(topic=Topic(name='ingest-events'), index=0): 267272}
+02:47:51 [INFO] arroyo.processing.processor: Member id: 'rdkafka-071b12aa-e35c-48e8-95b9-1f63c7609f91'
+02:47:51 [INFO] arroyo.backends.kafka.consumer: Paused partitions after assignment: set()
+
+
+=== Logs for supervisor program: ingest-transactions ===
+5:58 [INFO] arroyo.processing.processor: New partitions assigned: {Partition(topic=Topic(name='ingest-transactions'), index=0): 67894}
+02:25:58 [INFO] arroyo.processing.processor: Member id: 'rdkafka-c6598575-009c-4465-99c6-95a2e45e7542'
+02:25:58 [INFO] arroyo.backends.kafka.consumer: Paused partitions after assignment: set()
+02:41:10 [INFO] arroyo.processing.processor: Partitions to revoke: [Partition(topic=Topic(name='ingest-transactions'), index=0)]
+02:41:10 [INFO] arroyo.processing.processor: Closing <arroyo.processing.strategies.guard.StrategyGuard object at 0x12a10c950>...
+02:41:10 [INFO] arroyo.processing.processor: Member id: None
+02:41:10 [INFO] arroyo.processing.processor: Waiting for <arroyo.processing.strategies.guard.StrategyGuard object at 0x12a10c950> to exit...
+02:41:10 [INFO] arroyo.processing.processor: <arroyo.processing.strategies.guard.StrategyGuard object at 0x12a10c950> exited successfully
+02:41:10 [INFO] arroyo.processing.processor: Partition revocation complete.
+02:41:10 [INFO] arroyo.backends.kafka.consumer: Paused partitions after revocation: set()
+02:41:11 [WARNING] arroyo.backends.kafka.consumer: Commit failed: KafkaError{code=UNKNOWN_MEMBER_ID,val=25,str="Broker: Unknown member"}. Partitions: ['ingest-transactions:0']
+02:47:51 [INFO] arroyo.processing.processor: New partitions assigned: {Partition(topic=Topic(name='ingest-transactions'), index=0): 67898}
+02:47:51 [INFO] arroyo.processing.processor: Member id: 'rdkafka-2203cd3f-2944-49d3-b42c-c8d325069d8f'
+02:47:51 [INFO] arroyo.backends.kafka.consumer: Paused partitions after assignment: set()
+
+
+=== Logs for supervisor program: post-process-forwarder-errors ===
+try.post_process_forwarder.post_process_forwarder: Starting multithreaded post process forwarder
+02:25:58 [INFO] arroyo.backends.kafka.consumer: Paused partitions after assignment: set()
+02:41:10 [INFO] arroyo.processing.processor: Partitions to revoke: [Partition(topic=Topic(name='events'), index=0)]
+02:41:10 [INFO] arroyo.processing.processor: Closing <arroyo.processing.strategies.run_task_in_threads.RunTaskInThreads object at 0x12dad3890>...
+02:41:10 [INFO] arroyo.processing.processor: Member id: None
+02:41:10 [INFO] arroyo.processing.processor: Waiting for <arroyo.processing.strategies.run_task_in_threads.RunTaskInThreads object at 0x12dad3890> to exit...
+02:41:10 [INFO] arroyo.processing.processor: <arroyo.processing.strategies.run_task_in_threads.RunTaskInThreads object at 0x12dad3890> exited successfully
+02:41:10 [INFO] arroyo.processing.processor: Partition revocation complete.
+02:41:10 [INFO] arroyo.backends.kafka.consumer: Paused partitions after revocation: set()
+02:41:10 [INFO] arroyo.backends.kafka.consumer: Paused partitions after revocation: set()
+02:47:50 [INFO] arroyo.backends.kafka.consumer: Paused partitions after assignment: set()
+02:47:51 [INFO] arroyo.processing.processor: New partitions assigned: {Partition(topic=Topic(name='events'), index=0): 0}
+02:47:51 [INFO] arroyo.processing.processor: Member id: 'rdkafka-a8a1b8dd-8646-4cb3-a467-493d13c1b8f2'
+02:47:51 [INFO] sentry.post_process_forwarder.post_process_forwarder: Starting multithreaded post process forwarder
+02:47:51 [INFO] arroyo.backends.kafka.consumer: Paused partitions after assignment: set()
