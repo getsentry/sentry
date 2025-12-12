@@ -349,6 +349,7 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
             # assert event_data["message"] in header.text
 
     @patch("django.utils.timezone.now")
+    @pytest.mark.xdist_unsafe
     def test_event_detail_view_from_errors_view(self, mock_now: MagicMock) -> None:
         now = before_now()
         mock_now.return_value = now

@@ -5,6 +5,8 @@ from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry import options
 from sentry.issues.grouptype import (
@@ -97,6 +99,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
         assert Group.objects.count() == 1
 
     @patch("django.utils.timezone.now")
+    @pytest.mark.xdist_unsafe
     def test_n_one_api_call_performance_issue(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now(minutes=5)
         event_data = self.create_sample_event(

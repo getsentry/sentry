@@ -45,6 +45,7 @@ class TraceViewFromExploreTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase)
 
     @patch("django.utils.timezone.now")
     @pytest.mark.skip(reason="This test is flaky and needs to be fixed")
+    @pytest.mark.xdist_unsafe
     def test_navigation(self, mock_now: MagicMock) -> None:
         mock_now.return_value = self.start
 

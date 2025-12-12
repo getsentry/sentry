@@ -69,6 +69,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         assert res.status_code == 200, res
         assert res.data["status"] == "ignored"
 
+    @pytest.mark.xdist_unsafe
     def test_bookmark(self) -> None:
         event = self.create_sample_event(platform="python")
         assert event.group is not None
