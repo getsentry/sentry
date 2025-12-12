@@ -68,7 +68,7 @@ class TreemapElementMisc(BaseModel):
 
 class TreemapElement(BaseModel):
 
-    model_config = ConfigDict(frozen=True, exclude_none=True)
+    model_config = ConfigDict(frozen=True)
 
     name: str
     size: int

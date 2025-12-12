@@ -57,7 +57,7 @@ export interface TreemapResults {
   root: TreemapElement;
 }
 
-export interface TreemapElementMisc {
+interface TreemapElementMisc {
   scale?: number;
 }
 
