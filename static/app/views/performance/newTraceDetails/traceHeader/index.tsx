@@ -16,7 +16,6 @@ import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleU
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {getRepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import Highlights from 'sentry/views/performance/newTraceDetails/traceHeader/highlights';
 import {PlaceHolder} from 'sentry/views/performance/newTraceDetails/traceHeader/placeholder';
 import Projects from 'sentry/views/performance/newTraceDetails/traceHeader/projects';
@@ -64,12 +63,12 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     return <PlaceHolder organization={props.organization} traceSlug={props.traceSlug} />;
   }
 
-  const rep = getRepresentativeTraceEvent(props.tree, props.logs);
+  const rep = props.tree.findRepresentativeTraceNode({logs: props.logs});
   const project = projects.find(p => {
     const id =
-      rep.event && OurLogKnownFieldKey.PROJECT_ID in rep.event
+      rep?.event && OurLogKnownFieldKey.PROJECT_ID in rep.event
         ? rep.event[OurLogKnownFieldKey.PROJECT_ID]
-        : rep.event?.project_id;
+        : rep?.event?.projectId;
     return p.id === String(id);
   });
 
@@ -92,11 +91,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
           </ButtonBar>
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.HeaderRow>
-          <Title
-            representativeEvent={rep}
-            rootEventResults={props.rootEventResults}
-            tree={props.tree}
-          />
+          <Title representativeEvent={rep} rootEventResults={props.rootEventResults} />
           <Meta
             organization={props.organization}
             tree={props.tree}

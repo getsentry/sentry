@@ -2,12 +2,12 @@ import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
+import type {Measurement} from 'sentry/types/event';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+import {isBrowserRequestNode} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {
-  isBrowserRequestNode,
-  isEAPSpanNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceEAPSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceEAPSpanRow';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
@@ -40,6 +40,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
 
     this.id = value.event_id;
     this.type = 'span';
+    this.traceItemDataset = TraceItemDataset.SPANS;
 
     this.searchPriority = this.value.is_transaction ? 1 : 2;
     this.isEAPEvent = true;
@@ -94,6 +95,22 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     return this.op + (this.description ? ' - ' + this.description : '');
   }
 
+  get measurements(): Record<string, Measurement> | undefined {
+    if (!this.value.measurements) {
+      return undefined;
+    }
+
+    const result: Record<string, Measurement> = {};
+    for (const key in this.value.measurements) {
+      const value = this.value.measurements[key];
+      if (typeof value === 'number') {
+        const normalizedKey = key.replace('measurements.', '');
+        result[normalizedKey] = {value};
+      }
+    }
+    return result;
+  }
+
   get profileId(): string | undefined {
     const profileId = super.profileId;
 
@@ -119,13 +136,11 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   get transactionId(): string | undefined {
-    const transactionId = super.transactionId;
-
-    if (transactionId) {
-      return transactionId;
-    }
-
-    return this.findClosestParentTransaction()?.transactionId;
+    // If the node represents a transaction, we use the transaction_id attached to the node,
+    // otherwise we use the transaction_id of the closest parent transaction.
+    return this.value.is_transaction
+      ? this.value.transaction_id
+      : this.findClosestParentTransaction()?.transactionId;
   }
 
   get traceHeaderTitle(): {
@@ -298,6 +313,13 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       this.value.name?.includes(query) ||
       this.id === query
     );
+  }
+
+  matchById(id: string): boolean {
+    const superMatch = super.matchById(id);
+
+    // Match by transaction_id if the node represents a transaction, otherwise use the super match.
+    return superMatch || (this.value.is_transaction ? id === this.transactionId : false);
   }
 
   resolveValueFromSearchKey(key: string): any | null {
