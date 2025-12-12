@@ -155,9 +155,11 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
             org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
         )
 
-        seer_repos_linked = None
-        if is_seer_seat_based_tier_enabled(org):
+        seer_repos_linked = False
+        # Check if org has github integration and is on seat-based tier.
+        if integration_check is None and is_seer_seat_based_tier_enabled(org):
             try:
+                # Check if project has repos linked in Seer.
                 seer_repos_linked = has_project_connected_repos(org.id, group.project.id)
             except Exception as e:
                 # Default to True if the API call fails to avoid blocking users

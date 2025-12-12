@@ -302,9 +302,9 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data["seerReposLinked"] is True
 
-    def test_seer_repos_linked_is_none_when_feature_disabled(self) -> None:
+    def test_seer_repos_linked_is_false_when_feature_disabled(self) -> None:
         """
-        Test that seerReposLinked is None when seat-based tier is not enabled.
+        Test that seerReposLinked is False when seat-based tier is not enabled.
         """
         self._set_seat_based_tier_cache(False)
 
@@ -314,7 +314,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
-        assert response.data["seerReposLinked"] is None
+        assert response.data["seerReposLinked"] is False
 
 
 class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
@@ -343,6 +343,8 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
             "ok": False,
             "reason": "integration_missing",
         }
+        # seerReposLinked should be False when integration is missing
+        assert response.data["seerReposLinked"] is False
 
     @patch(
         "sentry.seer.endpoints.group_autofix_setup_check.get_repos_and_access",
