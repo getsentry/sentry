@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import configureCodeReviewImg from 'sentry-images/spot/seer-config-check.svg';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
@@ -47,7 +46,6 @@ export function ConfigureCodeReviewStep() {
     clearRootCauseAnalysisRepositories,
     selectedCodeReviewRepositories,
     unselectedCodeReviewRepositories,
-    setCodeReviewRepositories,
   } = useSeerOnboardingContext();
 
   const [enableCodeReview, setEnableCodeReview] = useState(
@@ -88,6 +86,7 @@ export function ConfigureCodeReviewStep() {
         );
       });
 
+    // Turn on code review for the selected repositories.
     const updateEnabledCodeReview = () =>
       new Promise<void>((resolve, reject) => {
         if (selectedCodeReviewRepositories.length === 0) {
@@ -98,7 +97,7 @@ export function ConfigureCodeReviewStep() {
         updateRepositorySettings(
           {
             codeReviewTriggers: DEFAULT_CODE_REVIEW_TRIGGERS,
-            enabledCodeReview: enableCodeReview,
+            enabledCodeReview: true,
             repositoryIds: selectedCodeReviewRepositories.map(repo => repo.id),
           },
           {
@@ -173,15 +172,8 @@ export function ConfigureCodeReviewStep() {
   const handleChangeCodeReview = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setEnableCodeReview(e.target.checked);
-
-      // Unselect selected repositories if code review is disabled
-      if (!e.target.checked) {
-        setCodeReviewRepositories(
-          Object.fromEntries(selectedCodeReviewRepositories.map(repo => [repo.id, false]))
-        );
-      }
     },
-    [setEnableCodeReview, setCodeReviewRepositories, selectedCodeReviewRepositories]
+    [setEnableCodeReview]
   );
 
   return (
@@ -201,11 +193,13 @@ export function ConfigureCodeReviewStep() {
 
             <Field>
               <Flex direction="column" flex="1" gap="xs">
-                <FieldLabel>{t('AI Code Review')}</FieldLabel>
+                <FieldLabel>{t('Enable AI Code Review')}</FieldLabel>
                 <FieldDescription>
-                  {t(
-                    'For all repos below, AND for all newly connected repos, Seer will review your PRs and flag potential bugs.'
-                  )}
+                  <p>
+                    {t(
+                      'For all new repositories, Seer will review your PRs and flag potential bugs. '
+                    )}
+                  </p>
                 </FieldDescription>
               </Flex>
               <Switch
@@ -214,12 +208,7 @@ export function ConfigureCodeReviewStep() {
                 onChange={handleChangeCodeReview}
               />
             </Field>
-            {enableCodeReview ? null : (
-              <Alert type="info">
-                {t('AI Code Review needs to be enabled in order to select repositories.')}
-              </Alert>
-            )}
-            <RepositorySelector disabled={!enableCodeReview} />
+            <RepositorySelector />
           </PanelBody>
         </MaxWidthPanel>
 
