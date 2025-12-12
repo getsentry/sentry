@@ -28,7 +28,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
-import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
@@ -39,6 +38,7 @@ import {
   ErrorCell,
   NumberPlaceholder,
 } from 'sentry/views/insights/pages/agents/utils/cells';
+import {getExploreUrlWithProjectSelection} from 'sentry/views/insights/pages/agents/utils/getExploreUrlWithProjectSelection';
 import {
   getAgentRunsFilter,
   getHasAiSpansFilter,
@@ -312,7 +312,7 @@ const BodyCell = memo(function BodyCell({
       return (
         <ErrorCell
           value={dataRow.errors}
-          target={getExploreUrl({
+          target={getExploreUrlWithProjectSelection({
             query: `${query} span.status:internal_error trace:[${dataRow.traceId}]`,
             organization,
             selection,
