@@ -2,17 +2,8 @@ from collections.abc import Callable
 from typing import Any
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
-    AndFilter,
-    OrFilter,
-    TraceItemFilter,
-)
-from sentry_protos.snuba.v1.trace_item_pb2 import (
-    AnyValue,
-    ArrayValue,
-    KeyValue,
-    KeyValueList,
-)
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue, KeyValue, KeyValueList
 
 from sentry.db.models.fields.bounded import I64_MAX
 
