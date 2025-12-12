@@ -81,7 +81,7 @@ export default function SeerProjectTableRow({project}: Props) {
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Link to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}>
-          <ProjectBadge project={project} avatarSize={16} />
+          <ProjectBadge disableLink project={project} avatarSize={16} />
         </Link>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
