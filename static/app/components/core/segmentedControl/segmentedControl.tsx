@@ -253,12 +253,17 @@ const GroupWrap = withChonk(
     display: inline-grid;
     grid-auto-flow: column;
     background: ${p =>
-      p.priority === 'primary' ? p.theme.background : p.theme.backgroundTertiary};
+      p.priority === 'primary'
+        ? p.theme.tokens.background.primary
+        : p.theme.backgroundTertiary};
     border: solid 1px ${p => p.theme.border};
     border-radius: ${p => p.theme.radius.md};
     min-width: 0;
 
-    ${p => p.theme.form[p.size]}
+    font-size: ${p => p.theme.form[p.size].fontSize};
+    height: ${p => p.theme.form[p.size].height};
+    line-height: ${p => p.theme.form[p.size].lineHeight};
+    min-height: ${p => p.theme.form[p.size].minHeight};
   `,
   ChonkStyledGroupWrap
 );

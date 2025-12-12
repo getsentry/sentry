@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 
 export const Card = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   border: 1px ${p => 'solid ' + p.theme.border};
   box-shadow: ${p => p.theme.dropShadowMedium};

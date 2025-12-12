@@ -89,7 +89,8 @@ const NoOrganizationSidebar = styled('div')`
   padding: ${space(1.5)} 0 ${space(1)} 0;
   border-right: 1px solid
     ${p => (p.theme.isChonk ? p.theme.border : p.theme.translucentGray200)};
-  background: ${p => (p.theme.isChonk ? p.theme.background : p.theme.surface300)};
+  background: ${p =>
+    p.theme.isChonk ? p.theme.tokens.background.primary : p.theme.surface300};
   display: flex;
   align-items: center;
   flex-direction: column;

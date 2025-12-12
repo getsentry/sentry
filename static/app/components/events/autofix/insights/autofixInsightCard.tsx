@@ -328,7 +328,7 @@ const InsightContainer = styled('div')<{expanded?: boolean}>`
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   margin-bottom: 0;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px dashed ${p => p.theme.border};
   border-color: ${p => (p.expanded ? p.theme.border : 'transparent')};
 

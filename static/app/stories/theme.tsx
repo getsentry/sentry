@@ -51,7 +51,7 @@ const Background = styled('div')`
   display: flex;
   gap: ${p => p.theme.space.md};
   flex-direction: column;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.radius.md};

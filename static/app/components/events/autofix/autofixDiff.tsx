@@ -696,7 +696,7 @@ const FileDiffWrapper = styled('div')<{integratedStyle?: boolean}>`
   border-color: ${p => (p.integratedStyle ? 'transparent' : p.theme.border)};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const FileHeader = styled('div')`
@@ -818,7 +818,7 @@ const ActionButton = styled(Button)<{isHovered: boolean}>`
   margin-left: ${space(0.5)};
   font-family: ${p => p.theme.text.family};
   background-color: ${p =>
-    p.isHovered ? p.theme.button.default.background : p.theme.background};
+    p.isHovered ? p.theme.button.default.background : p.theme.tokens.background.primary};
   color: ${p => (p.isHovered ? p.theme.pink400 : p.theme.tokens.content.primary)};
   transition:
     background-color 0.2s ease-in-out,
