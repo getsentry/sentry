@@ -40,6 +40,7 @@ from sentry.integrations.slack.analytics import (
 )
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.routing import decode_action_id
+from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -475,6 +476,13 @@ class SlackActionEndpoint(Endpoint):
                         MessagingInteractionType.ARCHIVE_DIALOG, group, request
                     ).capture():
                         _ArchiveDialog().open_dialog(slack_request, group)
+                    defer_attachment_update = True
+                elif action.name == SlackAction.SEER_AUTOFIX_START:
+                    with self.record_event(
+                        MessagingInteractionType.SEER_AUTOFIX_START, group, request
+                    ).capture():
+                        # TODO(leander): Implement this...
+                        pass
                     defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)
