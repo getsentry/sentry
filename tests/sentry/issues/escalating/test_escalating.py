@@ -11,7 +11,7 @@ import pytest
 from sentry.issues.escalating.escalating import (
     GroupsCountResponse,
     _start_and_end_dates,
-    get_group_hourly_count,
+    get_group_hourly_count_snuba,
     is_escalating,
     query_groups_past_counts,
 )
@@ -306,7 +306,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         assert group is not None
 
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
-        assert get_group_hourly_count(group) == 1
+        assert get_group_hourly_count_snuba(group) == 1
 
     @freeze_time(TIME_YESTERDAY)
     def test_is_forecast_out_of_range(self) -> None:

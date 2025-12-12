@@ -4,12 +4,24 @@ This is later used for generating group forecasts for determining when a group m
 
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
 from django.db.models.signals import post_save
+from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column as EAPColumn
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableRequest
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeAggregation,
+    AttributeKey,
+    AttributeValue,
+)
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function as EAPFunction
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 from snuba_sdk import (
     Column,
     Condition,
@@ -38,10 +50,13 @@ from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.utils import metrics, snuba_rpc
 from sentry.utils.cache import cache
 from sentry.utils.snuba import raw_snql_query
 
 __all__ = ["query_groups_past_counts", "parse_groups_past_counts"]
+
+logger = logging.getLogger(__name__)
 
 REFERRER = "sentry.issues.escalating"
 # The amount of data needed to generate a group forecast
@@ -244,7 +259,7 @@ def _extract_organization_and_project_and_group_ids(
     return group_ids_by_organization
 
 
-def get_group_hourly_count(group: Group) -> int:
+def get_group_hourly_count_snuba(group: Group) -> int:
     """Return the number of events a group has had today in the last hour"""
     key = f"hourly-group-count:{group.project.id}:{group.id}"
     hourly_count = cache.get(key)
@@ -277,6 +292,78 @@ def get_group_hourly_count(group: Group) -> int:
             raw_snql_query(request, referrer=IS_ESCALATING_REFERRER)["data"][0]["count()"]
         )
         cache.set(key, hourly_count, GROUP_HOURLY_COUNT_TTL)
+
+    return int(hourly_count)
+
+
+# TODO: probably some stuff to abstract out into EAP utils between here and src/sentry/eventstream/eap.py (and likely other read paths as well)
+def get_group_hourly_count_eap(group: Group, referrer: str = "issues.escalating") -> int:
+    """Return the number of events a group has had today in the last hour"""
+    key = f"hourly-group-count-eap:{group.project.id}:{group.id}"
+    hourly_count = cache.get(key)
+
+    if hourly_count is None:
+        now = datetime.now()
+        end_timestamp = Timestamp()
+        end_timestamp.FromDatetime(now)
+
+        current_hour = now.replace(minute=0, second=0, microsecond=0)
+        start_timestamp = Timestamp()
+        start_timestamp.FromDatetime(current_hour)
+
+        count_column = EAPColumn(
+            aggregation=AttributeAggregation(
+                aggregate=EAPFunction.FUNCTION_COUNT,
+                key=AttributeKey(name="group_id", type=AttributeKey.TYPE_INT),
+            ),
+            label="count",
+        )
+
+        group_id_filter = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="group_id", type=AttributeKey.TYPE_INT),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_int=group.id),
+            )
+        )
+
+        request = TraceItemTableRequest(
+            meta=RequestMeta(
+                organization_id=group.project.organization.id,
+                project_ids=[group.project.id],
+                cogs_category="issues",
+                referrer=referrer,
+                start_timestamp=start_timestamp,
+                end_timestamp=end_timestamp,
+                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,
+            ),
+            columns=[count_column],
+            filter=group_id_filter,
+            limit=1,
+        )
+
+        try:
+            responses = snuba_rpc.table_rpc([request])
+            if responses and responses[0].column_values:
+                results = responses[0].column_values[0].results
+                if results:
+                    hourly_count = int(results[0].val_double)
+                else:
+                    hourly_count = 0
+            else:
+                hourly_count = 0
+        except Exception:
+            logger.exception(
+                "Fetching a group hourly count from EAP failed",
+                extra={
+                    "group_id": group.id,
+                    "project_id": group.project.id,
+                },
+            )
+            hourly_count = 0
+
+        cache.set(key, hourly_count, GROUP_HOURLY_COUNT_TTL)
+
     return int(hourly_count)
 
 
@@ -284,7 +371,17 @@ def is_escalating(group: Group) -> tuple[bool, int | None]:
     """
     Return whether the group is escalating and the daily forecast if it exists.
     """
-    group_hourly_count = get_group_hourly_count(group)
+    old_count = get_group_hourly_count_snuba(group)
+    new_count = get_group_hourly_count_eap(group)
+    if old_count != new_count:
+        metrics.incr(
+            "issues.escalating.eap_mismatch",
+            sample_rate=1.0,
+        )
+
+    # Continue using the old count as the source of truth
+    group_hourly_count = old_count
+
     forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)
     # Check if current event occurrence is greater than forecast for today's date
     if forecast_today and group_hourly_count > forecast_today:
