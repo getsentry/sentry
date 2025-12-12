@@ -90,6 +90,8 @@ function mapAggregationTypeToValueTypeAndUnit(aggregationType: AggregationOutput
   valueUnit: TimeSeries['meta']['valueUnit'];
 } {
   switch (aggregationType) {
+    case 'score':
+      return {valueType: 'score', valueUnit: null};
     case 'percentage':
       return {valueType: 'percentage', valueUnit: null};
     case 'integer':

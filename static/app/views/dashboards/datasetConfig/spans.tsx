@@ -58,8 +58,11 @@ import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/u
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {isMultiSeriesEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
+import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
+import {transformPerformanceScoreBreakdownSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
@@ -223,7 +226,7 @@ export const SpansConfig: DatasetConfig<
   },
   getSeriesRequest,
   transformTable: transformEventsResponseToTable,
-  transformSeries: transformEventsResponseToSeries,
+  transformSeries,
   filterAggregateParams,
   getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
     if (field === 'id') {
@@ -425,4 +428,19 @@ function renderEventInTraceView(
       <Container>{getShortEventId(spanId)}</Container>
     </Link>
   );
+}
+
+function transformSeries(
+  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
+  widgetQuery: WidgetQuery
+) {
+  let eventsStats = data;
+  // Kind of a hack, but performance score breakdown charts need a special transformation to display correctly.
+  if (
+    isMultiSeriesEventsStats(eventsStats) &&
+    isPerformanceScoreBreakdownChart(widgetQuery)
+  ) {
+    eventsStats = transformPerformanceScoreBreakdownSeries(eventsStats);
+  }
+  return transformEventsResponseToSeries(eventsStats, widgetQuery);
 }
