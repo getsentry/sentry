@@ -161,6 +161,7 @@ export function RepositorySelector({disabled = false}: {disabled?: boolean}) {
                           buttonProps={{
                             buttonText: t('Manage your GitHub integration'),
                             priority: 'link',
+                            style: {padding: 0},
                           }}
                         />
                       ),

@@ -69,7 +69,7 @@ export default function SeerRepoTableRow({repository}: Props) {
       <SimpleTable.RowCell justify="end">
         <Switch
           disabled={!canWrite}
-          checked={repository.enabledCodeReview}
+          checked={repository.settings?.enabledCodeReview ?? false}
           onChange={() => {
             // TODO: Implement code review
           }}
