@@ -26,8 +26,6 @@ import UnitTypeItem from 'getsentry/views/amCheckout/components/unitTypeItem';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
-const ATTACHMENT_DIGITS = 2;
-
 function renderHovercardBody() {
   return (
     <Fragment>
@@ -138,12 +136,8 @@ function VolumeSliders({
           const price = utils.displayPrice({cents: eventBucket.price});
           const unitPrice = utils.displayUnitPrice({
             cents: eventBucket.unitPrice || 0,
-            ...(category === DataCategory.ATTACHMENTS
-              ? {
-                  minDigits: ATTACHMENT_DIGITS,
-                  maxDigits: ATTACHMENT_DIGITS,
-                }
-              : {}),
+            minDigits: categoryInfo?.formatting.priceFormatting.minFractionDigits,
+            maxDigits: categoryInfo?.formatting.priceFormatting.maxFractionDigits,
           });
 
           const sliderId = `slider-${category}`;

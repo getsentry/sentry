@@ -131,9 +131,8 @@ function AllocationForm({
   }, [allocationVolume, costPerItem]);
 
   const metricUnit = useMemo(() => {
-    return selectedMetric === DataCategory.ATTACHMENTS
-      ? BigNumUnits.KILO_BYTES
-      : BigNumUnits.NUMBERS;
+    const categoryInfo = getCategoryInfoFromPlural(selectedMetric);
+    return categoryInfo?.formatting.bigNumUnit ?? BigNumUnits.NUMBERS;
   }, [selectedMetric]);
 
   useEffect(() => {

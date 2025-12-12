@@ -19,8 +19,8 @@ describe('DATA_CATEGORY_INFO', () => {
         expect(formatting.unitType).toBe('bytes');
         expect(formatting.reservedMultiplier).toBe(10 ** 9); // GIGABYTE
         expect(formatting.bigNumUnit).toBe(1);
-        expect(formatting.priceFormatting.minIntegerDigits).toBe(2);
-        expect(formatting.priceFormatting.maxIntegerDigits).toBe(2);
+        expect(formatting.priceFormatting.minFractionDigits).toBe(2);
+        expect(formatting.priceFormatting.maxFractionDigits).toBe(2);
       }
     });
 
@@ -45,8 +45,8 @@ describe('DATA_CATEGORY_INFO', () => {
         expect(formatting.unitType).toBe('durationHours');
         expect(formatting.reservedMultiplier).toBe(3_600_000); // MILLISECONDS_IN_HOUR
         expect(formatting.bigNumUnit).toBe(0);
-        expect(formatting.priceFormatting.minIntegerDigits).toBe(5);
-        expect(formatting.priceFormatting.maxIntegerDigits).toBe(7);
+        expect(formatting.priceFormatting.minFractionDigits).toBe(5);
+        expect(formatting.priceFormatting.maxFractionDigits).toBe(7);
         expect(formatting.projectedAbbreviated).toBe(true);
       }
     });
@@ -65,8 +65,8 @@ describe('DATA_CATEGORY_INFO', () => {
         expect(formatting.unitType).toBe('count');
         expect(formatting.reservedMultiplier).toBe(1);
         expect(formatting.bigNumUnit).toBe(0);
-        expect(formatting.priceFormatting.minIntegerDigits).toBe(5);
-        expect(formatting.priceFormatting.maxIntegerDigits).toBe(7);
+        expect(formatting.priceFormatting.minFractionDigits).toBe(5);
+        expect(formatting.priceFormatting.maxFractionDigits).toBe(7);
         expect(formatting.projectedAbbreviated).toBe(true);
       }
     });

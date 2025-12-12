@@ -69,9 +69,8 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
   const hasOrgWritePerms = hasPermissions(organization, 'org:write');
   const canViewSpendAllocation = hasBillingPerms || hasOrgWritePerms;
   const metricUnit = useMemo(() => {
-    return selectedMetric === DataCategory.ATTACHMENTS
-      ? BigNumUnits.KILO_BYTES
-      : BigNumUnits.NUMBERS;
+    const categoryInfo = getCategoryInfoFromPlural(selectedMetric);
+    return categoryInfo?.formatting.bigNumUnit ?? BigNumUnits.NUMBERS;
   }, [selectedMetric]);
 
   const supportedCategories = planDetails.categories.filter(
