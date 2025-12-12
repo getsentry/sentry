@@ -20,10 +20,7 @@ export function MetricSelectRow({
 }) {
   const {state, dispatch} = useWidgetBuilderContext();
 
-  const traceMetric =
-    field.kind === 'function' && field.function[2] && field.function[3]
-      ? {name: field.function[2], type: field.function[3]}
-      : (state.traceMetric ?? {name: '', type: ''});
+  const traceMetric = state.traceMetric ?? {name: '', type: ''};
 
   return (
     <Flex gap="0" width="100%" minWidth="0">
@@ -32,7 +29,7 @@ export function MetricSelectRow({
           traceMetric={traceMetric}
           onChange={option => {
             if (field.kind === 'function') {
-              const newTraceMetric = cloneDeep(state.traceMetric) ?? {name: '', type: ''};
+              const newTraceMetric = cloneDeep(traceMetric);
               newTraceMetric.name = option.name;
               newTraceMetric.type = option.type;
               dispatch({
