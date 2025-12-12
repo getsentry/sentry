@@ -170,6 +170,27 @@ class OrganizationSeerOnboardingEndpointTest(APITestCase):
         )
 
     @patch("sentry.seer.endpoints.organization_seer_onboarding.onboarding_seer_settings_update")
+    def test_post_pr_creation_enabled_with_fixes_disabled_fails(
+        self, mock_onboarding_update
+    ) -> None:
+        response = self.client.post(
+            self.path,
+            {
+                "autofix": {
+                    "fixes": False,
+                    "prCreation": True,
+                    "projectRepoMapping": {},
+                },
+            },
+        )
+
+        assert response.status_code == 400
+        mock_onboarding_update.assert_not_called()
+        assert response.json() == {
+            "autofix": {"prCreation": ["PR creation cannot be enabled when fixes is disabled."]}
+        }
+
+    @patch("sentry.seer.endpoints.organization_seer_onboarding.onboarding_seer_settings_update")
     def test_post_missing_required_fields(self, mock_onboarding_update) -> None:
         response = self.client.post(
             self.path,

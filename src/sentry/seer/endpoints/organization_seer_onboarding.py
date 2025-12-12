@@ -75,6 +75,14 @@ class AutofixConfigSerializer(CamelSnakeSerializer):
     pr_creation = serializers.BooleanField(required=True)
     project_repo_mapping = ProjectRepoMappingField(required=True)
 
+    def validate(self, data):
+        # If fixes is disabled, pr_creation must also be disabled
+        if not data.get("fixes") and data.get("pr_creation"):
+            raise serializers.ValidationError(
+                {"pr_creation": "PR creation cannot be enabled when fixes is disabled."}
+            )
+        return data
+
 
 class SeerOnboardingSerializer(CamelSnakeSerializer):
     autofix = AutofixConfigSerializer(required=True)
