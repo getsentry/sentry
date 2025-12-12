@@ -57,12 +57,17 @@ export interface TreemapResults {
   root: TreemapElement;
 }
 
+export interface TreemapElementMisc {
+  scale?: number;
+}
+
 export interface TreemapElement {
   children: TreemapElement[];
   is_dir: boolean;
   name: string;
   size: number;
   type: TreemapType;
+  misc?: TreemapElementMisc;
   path?: string;
 }
 

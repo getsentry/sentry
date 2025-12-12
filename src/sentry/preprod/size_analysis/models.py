@@ -58,9 +58,17 @@ class AppleInsightResults(BaseModel):
     alternate_icons_optimization: ImageOptimizationInsightResult | None
 
 
-class TreemapElement(BaseModel):
+class TreemapElementMisc(BaseModel):
+    """Miscellaneous metadata for treemap elements."""
 
     model_config = ConfigDict(frozen=True)
+
+    scale: int | None
+
+
+class TreemapElement(BaseModel):
+
+    model_config = ConfigDict(frozen=True, exclude_none=True)
 
     name: str
     size: int
@@ -69,6 +77,7 @@ class TreemapElement(BaseModel):
     type: str | None
     """ Some files (like zip files) are not directories but have children. """
     children: list[TreemapElement]
+    misc: TreemapElementMisc | None
 
 
 class TreemapResults(BaseModel):
