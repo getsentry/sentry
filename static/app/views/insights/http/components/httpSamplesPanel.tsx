@@ -9,6 +9,7 @@ import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -59,6 +60,28 @@ import {
   type SpanQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+
+interface HTTPSamplesPanelSearchQueryBuilderProps {
+  handleSearch: (query: string) => void;
+  query: string;
+  selection: PageFilters;
+}
+
+function HTTPSamplesPanelSearchQueryBuilder({
+  query,
+  selection,
+  handleSearch,
+}: HTTPSamplesPanelSearchQueryBuilderProps) {
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects: selection.projects,
+    initialQuery: query,
+    onSearch: handleSearch,
+    placeholder: t('Search for span attributes'),
+    searchSource: `${ModuleName.HTTP}-sample-panel`,
+  });
+
+  return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
+}
 
 export function HTTPSamplesPanel() {
   const navigate = useNavigate();
@@ -335,14 +358,6 @@ export function HTTPSamplesPanel() {
     };
   }, [samplesPlottable, spanSamplesById, highlightedSpanId]);
 
-  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
-    projects: selection.projects,
-    initialQuery: query.spanSearchQuery,
-    onSearch: handleSearch,
-    placeholder: t('Search for span attributes'),
-    searchSource: `${ModuleName.HTTP}-sample-panel`,
-  });
-
   return (
     <PageAlertProvider>
       <InsightsSpanTagProvider>
@@ -465,7 +480,11 @@ export function HTTPSamplesPanel() {
             )}
 
             <ModuleLayout.Full>
-              <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+              <HTTPSamplesPanelSearchQueryBuilder
+                query={query.spanSearchQuery}
+                selection={selection}
+                handleSearch={handleSearch}
+              />
             </ModuleLayout.Full>
 
             {query.panel === 'duration' && (
