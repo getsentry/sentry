@@ -323,6 +323,16 @@ export function getToolsStringFromBlock(block: Block): string[] {
       // Use custom formatter with tool link params for metadata like rejection status
       const args = parseToolArgs(tool.args);
       tools.push(formatter(args, isLoading, toolLink?.params));
+    } else if (tool.function.startsWith('artifact_write_')) {
+      // Handle artifact_write_<artifact_name> tools
+      const artifactName = tool.function
+        .replace('artifact_write_', '')
+        .replace(/_/g, ' ');
+      tools.push(
+        isLoading
+          ? `Submitting ${artifactName} artifact...`
+          : `Submitted ${artifactName} artifact`
+      );
     } else {
       // Fall back to generic message
       const verb = isLoading ? 'Using' : 'Used';
