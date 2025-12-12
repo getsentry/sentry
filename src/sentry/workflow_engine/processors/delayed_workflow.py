@@ -576,7 +576,9 @@ def get_groups_to_fire(
             if not when_result.triggered:
                 # If we're not triggering, all action-y if conditions need to be treated
                 # as tainted or not based on the when condition result.
-                if_cond_count = len(event_key.if_dcg_ids) + len(event_key.passing_dcg_ids)
+                if_conds = event_key.if_dcg_ids | event_key.passing_dcg_ids
+                # Limit to those we can access to be consistent with the if conditions evaluation.
+                if_cond_count = len(if_conds & data_condition_group_mapping.keys())
                 if when_result.is_tainted():
                     tainted += if_cond_count
                 else:
