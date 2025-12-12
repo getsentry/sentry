@@ -71,6 +71,15 @@ const hasAnalyticsDebug = () => localStorage.getItem('DEBUG_ANALYTICS_GETSENTRY'
 
 const getCustomReferrer = () => {
   try {
+    // pull the referrer from local storage.
+    if (
+      localStorage.getItem('customReferrer') &&
+      typeof localStorage.getItem('customReferrer') === 'string'
+    ) {
+      const referrer = localStorage.getItem('customReferrer');
+      localStorage.removeItem('customReferrer');
+      return referrer;
+    }
     // pull the referrer from the query parameter of the page
     const {referrer} = qs.parse(window.location.search) || {};
     if (referrer && typeof referrer === 'string') {

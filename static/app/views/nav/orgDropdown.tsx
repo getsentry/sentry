@@ -16,7 +16,9 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import localStorage from 'sentry/utils/localStorage';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -61,6 +63,7 @@ export function OrgDropdown({
 
   const config = useLegacyStore(ConfigStore);
   const organization = useOrganization();
+  const navigate = useNavigate();
 
   // It's possible we do not have an org in context (e.g. RouteNotFound)
   // Otherwise, we should have the full org
@@ -144,7 +147,10 @@ export function OrgDropdown({
             {
               key: 'projects',
               label: t('Projects'),
-              to: makeProjectsPathname({path: '/', organization}),
+              onAction: () => {
+                localStorage.setItem('customReferrer', 'org-dropdown');
+                navigate(makeProjectsPathname({path: '/', organization}));
+              },
               hidden: hideOrgLinks,
             },
             {
