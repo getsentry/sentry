@@ -54,7 +54,7 @@ from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
 from .tasks.codecov_account_unlink import codecov_account_unlink
 from .types import IssueEvenntWebhookActionType
-from .utils import has_seer_and_ai_features_enabled_for_repo
+from .utils import should_create_or_increment_contributor_seat
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -769,7 +769,7 @@ class PullRequestEventWebhook(GitHubWebhook):
 
             if created:
                 # Track AI contributor if eligible
-                if has_seer_and_ai_features_enabled_for_repo(organization, repo):
+                if should_create_or_increment_contributor_seat(organization, repo, user["id"]):
                     metrics.incr(
                         "github.webhook.organization_contributor.should_create",
                         sample_rate=1.0,
