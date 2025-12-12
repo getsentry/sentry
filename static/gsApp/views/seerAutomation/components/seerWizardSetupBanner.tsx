@@ -25,9 +25,13 @@ export default function SeerWizardSetupBanner() {
   const config = useLegacyStore(ConfigStore);
   const invertedTheme = config.theme === 'dark' ? lightTheme : darkTheme;
 
-  const {data, isFetched} = useSeerOnboardingCheck();
+  const {data, isFetched, isError} = useSeerOnboardingCheck();
 
-  if (!isFetched || data?.isSeerConfigured) {
+  if (!isFetched || isError) {
+    return null;
+  }
+
+  if (data?.isSeerConfigured) {
     return null;
   }
 
