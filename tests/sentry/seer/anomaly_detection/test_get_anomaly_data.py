@@ -1,11 +1,72 @@
+from unittest import mock
 from unittest.mock import MagicMock, Mock, patch
 
+import orjson
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
-from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_threshold_data_from_seer
+from sentry.incidents.handlers.condition.anomaly_detection_handler import AnomalyDetectionUpdate
+from sentry.incidents.subscription_processor import SubscriptionProcessor
+from sentry.seer.anomaly_detection.get_anomaly_data import (
+    get_anomaly_data_from_seer,
+    get_anomaly_threshold_data_from_seer,
+)
+from sentry.seer.anomaly_detection.types import AnomalyType, DataSourceType, DetectAnomaliesResponse
 from sentry.snuba.models import QuerySubscription
+from sentry.testutils.helpers.features import with_feature
+from tests.sentry.incidents.subscription_processor.test_subscription_processor_base import (
+    ProcessUpdateBaseClass,
+)
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
+
+
+class GetAnomalyDataFromSeerTest(ProcessUpdateBaseClass, BaseWorkflowTest):
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    def test_seer_call_nan_aggregation_value(self, mock_logger, mock_seer_request):
+        seer_return_value: DetectAnomaliesResponse = {
+            "success": True,
+            "timeseries": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.9,
+                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
+                    },
+                    "timestamp": 1,
+                    "value": 10,
+                }
+            ],
+        }
+        dynamic_detector, data_condition, query_subscription = self.create_dynamic_metric_detector()
+        ad_update = AnomalyDetectionUpdate(
+            value=float("nan"),
+            source_id=query_subscription.id,
+            subscription_id=query_subscription.id,
+            timestamp=1.0,
+        )
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        processor = SubscriptionProcessor(query_subscription)
+        processor.detector = dynamic_detector
+        result = get_anomaly_data_from_seer(
+            sensitivity=data_condition.comparison.get("sensitivity"),
+            seasonality=data_condition.comparison.get("seasonality"),
+            threshold_type=data_condition.comparison.get("threshold_type"),
+            subscription=query_subscription,
+            subscription_update=ad_update,
+        )
+
+        mock_logger.error.assert_called_with(
+            "Invalid aggregation value",
+            extra={
+                "source_id": ad_update.get("source_id"),
+                "source_type": DataSourceType.SNUBA_QUERY_SUBSCRIPTION,
+            },
+        )
+        assert result is None
 
 
 class GetAnomalyThresholdDataFromSeerTest(BaseWorkflowTest):

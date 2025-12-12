@@ -14,6 +14,11 @@ from sentry.incidents.subscription_processor import (
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.seer.anomaly_detection.types import (
+    AnomalyDetectionSeasonality,
+    AnomalyDetectionSensitivity,
+    AnomalyDetectionThresholdType,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
@@ -127,6 +132,53 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
     @cached_property
     def metric_detector(self):
         return self.create_detector_data_source_and_data_conditions()
+
+    def create_dynamic_metric_detector(self):
+        detector = self.create_detector(
+            project=self.project,
+            workflow_condition_group=self.create_data_condition_group(),
+            type=MetricIssue.slug,
+            created_by_id=self.user.id,
+            config={"detection_type": "dynamic", "comparison_delta": None},
+        )
+        self.create_detector_state(detector=detector)
+        with self.tasks():
+            snuba_query = create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="",
+                aggregate="count()",
+                time_window=timedelta(minutes=1),
+                resolution=timedelta(minutes=1),
+                environment=self.environment,
+                event_types=[
+                    SnubaQueryEventType.EventType.ERROR,
+                    SnubaQueryEventType.EventType.DEFAULT,
+                ],
+            )
+            query_subscription = create_snuba_subscription(
+                project=detector.project,
+                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                snuba_query=snuba_query,
+            )
+        data_source = self.create_data_source(
+            organization=self.organization,
+            source_id=str(query_subscription.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+        self.create_data_source_detector(data_source, detector)
+
+        data_condition = self.create_data_condition(
+            type=Condition.ANOMALY_DETECTION,
+            comparison={
+                "sensitivity": AnomalyDetectionSensitivity.LOW,
+                "seasonality": AnomalyDetectionSeasonality.AUTO,
+                "threshold_type": AnomalyDetectionThresholdType.ABOVE,
+            },
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=detector.workflow_condition_group,
+        )
+        return detector, data_condition, query_subscription
 
     @cached_property
     def critical_threshold(self):
