@@ -39,9 +39,11 @@ export function useSubmitSeerOnboarding() {
           },
         }),
         data: {
-          fixes: data.fixes,
-          pr_creation: data.pr_creation,
-          project_repo_mapping: data.project_repo_mapping,
+          autofix: {
+            fixes: data.fixes,
+            pr_creation: data.pr_creation,
+            project_repo_mapping: data.project_repo_mapping,
+          },
         },
       });
     },
