@@ -9,7 +9,6 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import {isEAPError} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
@@ -1714,7 +1713,7 @@ function getIconTimestamps(
   }
 
   for (const err of node.errors) {
-    const timestamp = isEAPError(err) ? err.start_timestamp : err.timestamp;
+    const timestamp = 'start_timestamp' in err ? err.start_timestamp : err.timestamp;
     if (typeof timestamp === 'number') {
       min_icon_timestamp = Math.min(min_icon_timestamp, timestamp * 1e3 - icon_width);
       max_icon_timestamp = Math.max(max_icon_timestamp, timestamp * 1e3 + icon_width);
