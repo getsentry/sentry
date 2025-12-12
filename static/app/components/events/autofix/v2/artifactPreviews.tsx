@@ -1,6 +1,7 @@
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {getArtifactIcon} from 'sentry/components/events/autofix/v2/artifactCards';
 import {t} from 'sentry/locale';
 import type {Artifact} from 'sentry/views/seerExplorer/types';
 
@@ -87,10 +88,20 @@ export function ExplorerArtifactPreviews({artifacts}: ArtifactPreviewProps) {
           return (
             <Container key={key} padding="md" radius="md" border="primary">
               <Flex direction="column" gap="md">
-                <Text bold ellipsis>
-                  {title}
-                </Text>
-                {description && <Text size="md">{description}</Text>}
+                <Flex align="center" gap="md">
+                  {getArtifactIcon(
+                    key as 'root_cause' | 'solution' | 'impact_assessment' | 'triage',
+                    'sm'
+                  )}
+                  <Text bold ellipsis>
+                    {title}
+                  </Text>
+                </Flex>
+                {description && (
+                  <Text size="md" wordBreak="break-word">
+                    {description}
+                  </Text>
+                )}
               </Flex>
             </Container>
           );

@@ -1,10 +1,13 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
+import {assignToActor} from 'sentry/actionCreators/group';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {Text} from 'sentry/components/core/text';
 import type {
@@ -15,6 +18,14 @@ import type {
   TriageArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
+  AssigneeSelector,
+  useHandleAssigneeChange,
+} from 'sentry/components/group/assigneeSelector';
+import {Timeline} from 'sentry/components/timeline';
+import {
+  IconCheckmark,
+  IconChevron,
+  IconCircle,
   IconCode,
   IconFatal,
   IconFire,
@@ -24,11 +35,44 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Group} from 'sentry/types/group';
+import type {Member, Organization} from 'sentry/types/organization';
+import type {AvatarUser} from 'sentry/types/user';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import type {ExplorerFilePatch, RepoPRState} from 'sentry/views/seerExplorer/types';
 
 type ArtifactData = Record<string, unknown>;
+
+/**
+ * Get the colored icon for an artifact type.
+ * Shared utility for consistent icon styling across artifact displays.
+ */
+export function getArtifactIcon(
+  artifactType:
+    | 'root_cause'
+    | 'solution'
+    | 'impact_assessment'
+    | 'triage'
+    | 'code_changes',
+  size: 'xs' | 'sm' | 'md' | 'lg' = 'md'
+): React.ReactNode {
+  switch (artifactType) {
+    case 'root_cause':
+      return <IconFocus size={size} color="pink400" />;
+    case 'solution':
+      return <IconFix size={size} color="success" />;
+    case 'impact_assessment':
+      return <IconFire size={size} color="error" />;
+    case 'triage':
+      return <IconUser size={size} color="blue400" />;
+    case 'code_changes':
+      return <IconCode size={size} color="blue400" />;
+    default:
+      return null;
+  }
+}
 
 interface CardProps {
   children: React.ReactNode;
@@ -179,7 +223,7 @@ function TreeRowWithDescription({
         <TreeKeyTrunk spacerCount={spacerCount + 1}>
           <TreeSpacer spacerCount={spacerCount + 1} hasStem={false} />
           <TreeBranchIcon />
-          <TreeValue>{description}</TreeValue>
+          <SolutionTreeValue>{description}</SolutionTreeValue>
         </TreeKeyTrunk>
       </TreeRow>
     </Fragment>
@@ -196,6 +240,10 @@ function ImpactTreeRow({
   impact: ImpactItem;
   spacerCount?: number;
 }) {
+  // Only low-rated items are collapsible
+  const isCollapsible = impact.rating === 'low';
+  const [isExpanded, setIsExpanded] = useState(!isCollapsible);
+
   const getSeverityIcon = () => {
     if (impact.rating === 'high') {
       return <IconFatal size="xs" color="error" />;
@@ -203,13 +251,41 @@ function ImpactTreeRow({
     if (impact.rating === 'medium') {
       return <IconWarning size="xs" color="warning" />;
     }
+    if (impact.rating === 'low') {
+      return <IconCheckmark size="xs" color="success" />;
+    }
     return null;
+  };
+
+  const hasSubItems = impact.impact_description || impact.evidence;
+  const showSubItems = !isCollapsible || isExpanded;
+
+  const handleToggle = () => {
+    if (isCollapsible) {
+      setIsExpanded(!isExpanded);
+    }
   };
 
   return (
     <Fragment>
       {/* Label as key */}
-      <TreeRow>
+      <TreeRow
+        as={isCollapsible ? 'div' : undefined}
+        onClick={isCollapsible ? handleToggle : undefined}
+        role={isCollapsible ? 'button' : undefined}
+        tabIndex={isCollapsible ? 0 : undefined}
+        onKeyDown={
+          isCollapsible
+            ? e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleToggle();
+                }
+              }
+            : undefined
+        }
+        $isClickable={isCollapsible}
+      >
         <TreeKeyTrunk spacerCount={spacerCount}>
           {spacerCount > 0 && (
             <Fragment>
@@ -218,6 +294,9 @@ function ImpactTreeRow({
             </Fragment>
           )}
           <ImpactTreeKeyContainer>
+            {isCollapsible && hasSubItems && (
+              <IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />
+            )}
             <ImpactTreeKey>{impact.label}</ImpactTreeKey>
             {getSeverityIcon()}
           </ImpactTreeKeyContainer>
@@ -225,16 +304,18 @@ function ImpactTreeRow({
       </TreeRow>
 
       {/* Description as value */}
-      <TreeRow>
-        <TreeKeyTrunk spacerCount={spacerCount + 1}>
-          <TreeSpacer spacerCount={spacerCount + 1} hasStem={false} />
-          <TreeBranchIcon />
-          <TreeValue>{impact.impact_description}</TreeValue>
-        </TreeKeyTrunk>
-      </TreeRow>
+      {showSubItems && (
+        <TreeRow>
+          <TreeKeyTrunk spacerCount={spacerCount + 1}>
+            <TreeSpacer spacerCount={spacerCount + 1} hasStem={false} />
+            <TreeBranchIcon />
+            <TreeValue>{impact.impact_description}</TreeValue>
+          </TreeKeyTrunk>
+        </TreeRow>
+      )}
 
       {/* Evidence as sub-value */}
-      {impact.evidence && (
+      {showSubItems && impact.evidence && (
         <TreeRow>
           <TreeKeyTrunk spacerCount={spacerCount + 2}>
             <TreeSpacer spacerCount={spacerCount + 2} hasStem={false} />
@@ -255,9 +336,19 @@ function ImpactTree({impacts}: {impacts: ImpactItem[]}) {
     return null;
   }
 
+  // Sort impacts by rating: high > medium > low
+  const sortedImpacts = [...impacts].sort((a, b) => {
+    const ratingOrder: Record<'high' | 'medium' | 'low', number> = {
+      high: 0,
+      medium: 1,
+      low: 2,
+    };
+    return ratingOrder[a.rating] - ratingOrder[b.rating];
+  });
+
   return (
     <TreeContainer columnCount={0}>
-      {impacts.map((impact, index) => (
+      {sortedImpacts.map((impact, index) => (
         <ImpactTreeRow key={index} impact={impact} spacerCount={0} />
       ))}
     </TreeContainer>
@@ -271,7 +362,7 @@ export function RootCauseCard({data}: {data: ArtifactData}) {
   const typedData = data as unknown as RootCauseArtifact;
 
   return (
-    <ArtifactCard title={t('Root Cause')} icon={<IconFocus size="md" color="pink400" />}>
+    <ArtifactCard title={t('Root Cause')} icon={getArtifactIcon('root_cause')}>
       <Text>{typedData.one_line_description}</Text>
 
       {typedData.five_whys.length > 0 && <FiveWhysTree whys={typedData.five_whys} />}
@@ -281,13 +372,15 @@ export function RootCauseCard({data}: {data: ArtifactData}) {
           <Text size="md" variant="muted">
             {t('Reproduction Steps')}
           </Text>
-          <Flex direction="column" gap="sm">
+          <Timeline.Container>
             {typedData.reproduction_steps.map((step, index) => (
-              <Container key={index}>
-                <Text>{`${index + 1}. ${step}`}</Text>
-              </Container>
+              <DenseTimelineItem
+                key={index}
+                icon={<IconCircle size="xs" color="pink400" />}
+                title={<NonBoldTitle size="sm">{step}</NonBoldTitle>}
+              />
             ))}
-          </Flex>
+          </Timeline.Container>
         </Flex>
       )}
     </ArtifactCard>
@@ -323,7 +416,7 @@ export function SolutionCard({data}: {data: ArtifactData}) {
   const typedData = data as unknown as SolutionArtifact;
 
   return (
-    <ArtifactCard title={t('Solution')} icon={<IconFix size="md" color="success" />}>
+    <ArtifactCard title={t('Solution')} icon={getArtifactIcon('solution')}>
       <Text>{typedData.one_line_summary}</Text>
 
       {typedData.steps.length > 0 && <SolutionTree steps={typedData.steps} />}
@@ -338,7 +431,7 @@ export function ImpactCard({data}: {data: ArtifactData}) {
   const typedData = data as unknown as ImpactAssessmentArtifact;
 
   return (
-    <ArtifactCard title={t('Impact')} icon={<IconFire size="md" color="error" />}>
+    <ArtifactCard title={t('Impact')} icon={getArtifactIcon('impact_assessment')}>
       <Text>{typedData.one_line_description}</Text>
 
       {typedData.impacts.length > 0 && <ImpactTree impacts={typedData.impacts} />}
@@ -346,33 +439,111 @@ export function ImpactCard({data}: {data: ArtifactData}) {
   );
 }
 
+interface TriageCardProps {
+  data: ArtifactData;
+  group: Group;
+  organization: Organization;
+}
+
 /**
  * Triage artifact card.
- * TODO: show actual suspect commit card and user avatar
  */
-export function TriageCard({data}: {data: ArtifactData}) {
+export function TriageCard({data, group, organization}: TriageCardProps) {
   const typedData = data as unknown as TriageArtifact;
   const hasSuspect = typedData.suspect_commit;
   const hasAssignee = typedData.suggested_assignee;
+  const [isAssigning, setIsAssigning] = useState(false);
+
+  // Use the standard assignee selector hook for fallback
+  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
+    group,
+    organization,
+  });
+
+  // Look up member by email first, then by name if email doesn't match
+  const assigneeEmail = typedData.suggested_assignee?.email;
+  const assigneeName = typedData.suggested_assignee?.name;
+
+  // Try matching by email first
+  const {data: memberDataByEmail} = useApiQuery<Member[]>(
+    assigneeEmail
+      ? [
+          `/organizations/${organization.slug}/members/`,
+          {query: {query: `email:${assigneeEmail}`}},
+        ]
+      : [''],
+    {
+      enabled: !!assigneeEmail,
+      staleTime: 0,
+    }
+  );
+
+  // If no email match, try matching by name
+  const shouldTryNameMatch = assigneeName && !memberDataByEmail?.length;
+  const {data: memberDataByName} = useApiQuery<Member[]>(
+    shouldTryNameMatch
+      ? [`/organizations/${organization.slug}/members/`, {query: {query: assigneeName}}]
+      : [''],
+    {
+      enabled: !!shouldTryNameMatch,
+      staleTime: 0,
+    }
+  );
+
+  const member = memberDataByEmail?.[0] || memberDataByName?.[0];
+  const user = member?.user;
+
+  const handleAssign = async () => {
+    if (!user) {
+      addErrorMessage(t('Unable to find user to assign'));
+      return;
+    }
+
+    setIsAssigning(true);
+    try {
+      await assignToActor({
+        id: group.id,
+        orgSlug: organization.slug,
+        actor: {id: String(user.id), type: 'user'},
+        assignedBy: 'suggested_assignee',
+      });
+      addSuccessMessage(t('Issue assigned successfully'));
+    } catch (error) {
+      addErrorMessage(t('Failed to assign issue'));
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  // Create a minimal user object for avatar display
+  const userForAvatar: AvatarUser | undefined =
+    assigneeEmail && user
+      ? {
+          email: assigneeEmail,
+          name: typedData.suggested_assignee?.name || assigneeEmail,
+          id: user.id,
+          username: user.username || assigneeEmail.split('@')[0] || '',
+          ip_address: '',
+        }
+      : undefined;
+
+  const hasMatch = !!user;
 
   if (!hasSuspect && !hasAssignee) {
     return (
-      <ArtifactCard title={t('Triage')} icon={<IconUser size="md" color="blue400" />}>
+      <ArtifactCard title={t('Triage')} icon={getArtifactIcon('triage')}>
         <Text variant="muted">{t('No triage information available.')}</Text>
       </ArtifactCard>
     );
   }
 
   return (
-    <ArtifactCard title={t('Triage')} icon={<IconUser size="md" color="blue400" />}>
+    <ArtifactCard title={t('Triage')} icon={getArtifactIcon('triage')}>
       {hasSuspect && (
         <Flex direction="column" gap="sm">
-          <Text size="md" bold variant="muted">
-            {t('Suspect Commit')}
-          </Text>
-          <Container padding="md" background="secondary" radius="md">
+          <Container padding="md">
             <Flex direction="column" gap="sm">
-              <code>{typedData.suspect_commit?.sha}</code>
+              <Text monospace>{typedData.suspect_commit?.sha}</Text>
               {typedData.suspect_commit?.description && (
                 <Text variant="muted">{typedData.suspect_commit.description}</Text>
               )}
@@ -383,20 +554,38 @@ export function TriageCard({data}: {data: ArtifactData}) {
 
       {hasAssignee && (
         <Flex direction="column" gap="sm">
-          <Text size="md" bold variant="muted">
-            {t('Suggested Assignee')}
-          </Text>
-          <Container padding="md" background="secondary" radius="md">
-            <Flex direction="column" gap="sm">
-              <Text bold>{typedData.suggested_assignee?.name}</Text>
-              <Text variant="muted" size="sm">
-                {typedData.suggested_assignee?.email}
-              </Text>
+          <Container radius="md">
+            <Flex direction="column" gap="md">
+              <Flex align="center" gap="sm">
+                {hasMatch && userForAvatar ? (
+                  <UserAvatar user={userForAvatar} size={24} gravatar />
+                ) : (
+                  <IconUser size="md" color="gray400" />
+                )}
+                <Flex direction="column" gap="xs">
+                  <Text bold>{typedData.suggested_assignee?.name}</Text>
+                </Flex>
+              </Flex>
+
               {typedData.suggested_assignee?.why && (
-                <Text variant="muted" size="sm" italic>
-                  {typedData.suggested_assignee.why}
-                </Text>
+                <Container paddingLeft="3xl">
+                  <Text>{typedData.suggested_assignee.why}</Text>
+                </Container>
               )}
+              <Flex justify="end">
+                {hasMatch ? (
+                  <Button size="sm" onClick={handleAssign} disabled={isAssigning}>
+                    {isAssigning ? t('Assigning...') : t('Assign Issue')}
+                  </Button>
+                ) : (
+                  <AssigneeSelector
+                    group={group}
+                    assigneeLoading={assigneeLoading}
+                    handleAssigneeChange={handleAssigneeChange}
+                    showLabel
+                  />
+                )}
+              </Flex>
             </Flex>
           </Container>
         </Flex>
@@ -470,7 +659,7 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
   }
 
   return (
-    <ArtifactCard title={t('Code Changes')} icon={<IconCode size="md" color="blue400" />}>
+    <ArtifactCard title={t('Code Changes')} icon={getArtifactIcon('code_changes')}>
       {Array.from(patchesByRepo.entries()).map(([repoName, repoPatches]) => {
         const prState = prStates?.[repoName];
         const hasPR = prState?.pr_url;
@@ -514,7 +703,7 @@ const TreeContainer = styled('div')<{columnCount: number}>`
   white-space: normal;
 `;
 
-const TreeRow = styled('div')`
+const TreeRow = styled('div')<{$isClickable?: boolean}>`
   border-radius: ${p => p.theme.space.xs};
   padding-left: ${p => p.theme.space.md};
   position: relative;
@@ -528,6 +717,15 @@ const TreeRow = styled('div')`
   }
   color: ${p => p.theme.subText};
   background-color: ${p => p.theme.background};
+  ${p =>
+    p.$isClickable &&
+    `
+    cursor: pointer;
+
+    &:hover {
+      background-color: ${p.theme.hover};
+    }
+  `}
 `;
 
 const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
@@ -584,6 +782,10 @@ const TreeSubValue = styled(TreeValue)`
   color: ${p => p.theme.subText};
 `;
 
+const SolutionTreeValue = styled(TreeValue)`
+  color: ${p => p.theme.subText};
+`;
+
 const RepoName = styled('span')`
   color: ${p => p.theme.subText};
 `;
@@ -617,4 +819,12 @@ const DiffViewContainer = styled('div')`
 
 const AnimatedCard = styled(motion.div)`
   transform-origin: top center;
+`;
+
+const NonBoldTitle = styled(Text)`
+  font-weight: ${p => p.theme.fontWeight.normal};
+`;
+
+const DenseTimelineItem = styled(Timeline.Item)`
+  margin: 0;
 `;
