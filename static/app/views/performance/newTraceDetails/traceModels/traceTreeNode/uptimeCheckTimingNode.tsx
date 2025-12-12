@@ -5,7 +5,7 @@ import {UptimeTimingDetails} from 'sentry/views/performance/newTraceDetails/trac
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
-import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceSpanRow';
+import {TraceUptimeCheckTimingNodeRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceUptimeCheckTimingNode';
 
 import {BaseNode} from './baseNode';
 
@@ -33,7 +33,7 @@ export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming>
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
     return (
-      <TraceSpanRow
+      <TraceUptimeCheckTimingNodeRow
         {...props}
         // Won't need this cast once we use BaseNode type for props.node
         node={this}

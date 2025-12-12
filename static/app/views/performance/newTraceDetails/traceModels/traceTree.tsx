@@ -6,6 +6,8 @@ import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import type {Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {
   TraceError as TraceErrorType,
   TraceFullDetailed,
@@ -14,18 +16,15 @@ import type {
 } from 'sentry/views/performance/newTraceDetails/traceApi/types';
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import {isTraceSplitResult} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {
   isEAPError,
   isEAPSpan,
-  isJavascriptSDKEvent,
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
-  isRootEvent,
   isSiblingAutogroupedNode,
   isTraceError,
-  isTraceSplitResult,
   isUptimeCheck,
-  shouldAddMissingInstrumentationSpan,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {
   collectTraceMeasurements,
@@ -218,11 +217,6 @@ export declare namespace TraceTree {
 
   type Trace = TraceSplitResults<Transaction> | EAPTrace;
 
-  // Represents events that we get from the trace endpoints and render an
-  // individual row for in the trace waterfall, on load. This excludes spans as
-  // they are rendered on-demand as the user zooms in.
-  type TraceEvent = Transaction | TraceError | EAPSpan | EAPError | UptimeCheck;
-
   type TraceError = TraceErrorType;
   type TraceErrorIssue = TraceError | EAPError;
 
@@ -230,6 +224,11 @@ export declare namespace TraceTree {
   type TraceOccurrence = TracePerformanceIssue | EAPOccurrence;
 
   type TraceIssue = TraceErrorIssue | TraceOccurrence;
+
+  type RepresentativeTraceEvent = {
+    dataset: TraceItemDataset | null;
+    event: BaseNode | OurLogsResponseItem | null;
+  };
 
   type Profile = {profile_id: string} | {profiler_id: string};
   type Project = {
@@ -523,7 +522,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
             tree,
             c,
             c.space[0],
-            c.value.measurements,
+            c.measurements,
             tree.vitals,
             tree.vital_types
           )
@@ -678,7 +677,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
             tree,
             node,
             baseTraceNode.space[0],
-            node.value.measurements,
+            node.measurements,
             this.vitals,
             this.vital_types
           )
@@ -806,7 +805,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       while (
         tail &&
         tail.children.length === 1 &&
-        (tail.children[0]!.canAutogroup || tail.children[0]!.canAutogroup) &&
+        tail.children[0]!.canAutogroup &&
         // skip `op: default` spans as `default` is added to op-less spans:
         tail.children[0]!.op !== 'default' &&
         tail.children[0]!.op === head.op
@@ -828,6 +827,18 @@ export class TraceTree extends TraceTreeEventDispatcher {
         continue;
       }
 
+      if (!node.parent) {
+        throw new Error('Parent node is missing, this should be unreachable code');
+      }
+
+      // Check for direct visible children first, this helps respect the expanded state of the node in concern.
+      const children = node.parent.children;
+
+      const index = children.indexOf(node);
+      if (index === -1) {
+        throw new Error('Node is not a child of its parent');
+      }
+
       const autoGroupedNode = new ParentAutogroupNode(
         node.parent,
         {
@@ -845,21 +856,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
       );
 
       autogroupCount++;
-
-      if (!node.parent) {
-        throw new Error('Parent node is missing, this should be unreachable code');
-      }
-
-      // Check for direct visible children first, this helps respect the expanded state of the node in concern.
-      const children =
-        node.parent.directVisibleChildren.length > 0
-          ? node.parent.directVisibleChildren
-          : node.parent.children;
-
-      const index = children.indexOf(node);
-      if (index === -1) {
-        throw new Error('Node is not a child of its parent');
-      }
       children[index] = autoGroupedNode;
 
       autoGroupedNode.head.parent = autoGroupedNode;
@@ -1326,6 +1322,64 @@ export class TraceTree extends TraceTreeEventDispatcher {
     throw new Error('Not a valid trace');
   }
 
+  findRepresentativeTraceNode({logs}: {logs: OurLogsResponseItem[] | undefined}): {
+    dataset: TraceItemDataset | null;
+    event: BaseNode | OurLogsResponseItem | null;
+  } | null {
+    const hasLogs = logs && logs.length > 0;
+    if (this.type === 'empty' && hasLogs) {
+      return {
+        event: logs[0]!,
+        dataset: TraceItemDataset.LOGS,
+      };
+    }
+
+    const traceNode = this.root.children[0];
+
+    if (this.type !== 'trace' || !traceNode) {
+      return null;
+    }
+
+    let preferredRootEvent: BaseNode | null = null;
+    let firstRootEvent: BaseNode | null = null;
+    let candidateEvent: BaseNode | null = null;
+    let firstEvent: BaseNode | null = null;
+
+    for (const node of traceNode.children) {
+      if (isRootEvent(node.value)) {
+        if (!firstRootEvent) {
+          firstRootEvent = node;
+        }
+
+        if (hasPreferredOp(node)) {
+          preferredRootEvent = node;
+          break;
+        }
+        // Otherwise we keep looking for a root eap transaction. If we don't find one, we use other roots, like standalone spans.
+        continue;
+      } else if (
+        // If we haven't found a root transaction, but we found a candidate transaction
+        // with an op that we care about, we can use it for the title. We keep looking for
+        // a root.
+        !candidateEvent &&
+        hasPreferredOp(node)
+      ) {
+        candidateEvent = node;
+        continue;
+      } else if (!firstEvent) {
+        // If we haven't found a root or candidate transaction, we can use the first transaction
+        // in the trace for the title.
+        firstEvent = node;
+      }
+    }
+
+    const event = preferredRootEvent ?? firstRootEvent ?? candidateEvent ?? firstEvent;
+    return {
+      event,
+      dataset: event?.traceItemDataset ?? null,
+    };
+  }
+
   fetchAdditionalTraces(options: {
     api: Client;
     filters: any;
@@ -1485,4 +1539,63 @@ function traceQueueIterator(
       oIdx++;
     }
   }
+}
+
+const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation', 'ui.load'];
+
+/**
+ * Prefer "special" root events over generic root events when generating a title
+ * for the waterfall view. Picking these improves contextual navigation for linked
+ * traces, resulting in more meaningful waterfall titles.
+ */
+function hasPreferredOp(node: BaseNode): boolean {
+  const op = node.op;
+  return !!op && CANDIDATE_TRACE_TITLE_OPS.includes(op);
+}
+
+function shouldAddMissingInstrumentationSpan(sdk: string | undefined): boolean {
+  if (!sdk) {
+    return true;
+  }
+  if (sdk.length < 'sentry.javascript.'.length) {
+    return true;
+  }
+
+  switch (sdk.toLowerCase()) {
+    case 'sentry.javascript.browser':
+    case 'sentry.javascript.react':
+    case 'sentry.javascript.gatsby':
+    case 'sentry.javascript.ember':
+    case 'sentry.javascript.vue':
+    case 'sentry.javascript.angular':
+    case 'sentry.javascript.angular-ivy':
+    case 'sentry.javascript.nextjs':
+    case 'sentry.javascript.nuxt':
+    case 'sentry.javascript.electron':
+    case 'sentry.javascript.remix':
+    case 'sentry.javascript.svelte':
+    case 'sentry.javascript.sveltekit':
+    case 'sentry.javascript.react-native':
+    case 'sentry.javascript.astro':
+      return false;
+    case undefined:
+      return true;
+    default:
+      return true;
+  }
+}
+
+function isJavascriptSDKEvent(value: TraceTree.NodeValue): boolean {
+  return (
+    !!value &&
+    'sdk_name' in value &&
+    /javascript|angular|astro|backbone|ember|gatsby|nextjs|react|remix|svelte|vue/.test(
+      value.sdk_name
+    )
+  );
+}
+
+function isRootEvent(value: TraceTree.NodeValue): boolean {
+  // Root events has no parent_span_id
+  return !!value && 'parent_span_id' in value && value.parent_span_id === null;
 }

@@ -6,15 +6,14 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
-import type {RepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
-  isEAPError,
-  isTraceError,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 type MetaDataProps = {
@@ -52,21 +51,23 @@ interface MetaProps {
   logs: OurLogsResponseItem[] | undefined;
   meta: TraceMetaQueryResults['data'];
   organization: Organization;
-  representativeEvent: RepresentativeTraceEvent;
+  representativeEvent: TraceTree.RepresentativeTraceEvent | null;
   tree: TraceTree;
 }
 
-function getRootDuration(event: TraceTree.TraceEvent | null) {
-  if (!event || isEAPError(event) || isTraceError(event)) {
+function getRootDuration(node: BaseNode | null) {
+  if (!node) {
     return '\u2014';
   }
 
-  return getDuration(
-    ('timestamp' in event ? event.timestamp : event.end_timestamp) -
-      event.start_timestamp,
-    2,
-    true
-  );
+  const startTimestamp = node.startTimestamp;
+  const endTimestamp = node.endTimestamp;
+
+  if (!startTimestamp || !endTimestamp) {
+    return '\u2014';
+  }
+
+  return getDuration(endTimestamp - startTimestamp, 2, true);
 }
 
 export function Meta(props: MetaProps) {
@@ -87,6 +88,8 @@ export function Meta(props: MetaProps) {
 
   const hasSpans = spansCount > 0;
   const hasLogs = (props.logs?.length ?? 0) > 0;
+
+  const repEvent = props.representativeEvent?.event;
 
   return (
     <MetaWrapper>
@@ -120,9 +123,13 @@ export function Meta(props: MetaProps) {
         <MetaSection
           headingText={t('Root Duration')}
           rightAlignBody
-          bodyText={getRootDuration(
-            props.representativeEvent.event as TraceTree.TraceEvent
-          )}
+          bodyText={
+            repEvent
+              ? OurLogKnownFieldKey.PROJECT_ID in repEvent
+                ? '\u2014' // Logs don't have a duration
+                : getRootDuration(repEvent)
+              : '\u2014'
+          }
         />
       ) : hasLogs ? (
         <MetaSection

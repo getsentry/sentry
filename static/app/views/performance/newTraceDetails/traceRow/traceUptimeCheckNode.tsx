@@ -1,9 +1,9 @@
 import React from 'react';
-import {PlatformIcon} from 'platformicons';
 
+import {IconSentry} from 'sentry/icons';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
+import type {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
 import {TraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
 import {
   maybeFocusTraceRow,
@@ -13,15 +13,10 @@ import {
   type TraceRowProps,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
-export function TraceSpanRow(props: TraceRowProps<SpanNode>) {
+export function TraceUptimeCheckNodeRow(props: TraceRowProps<UptimeCheckNode>) {
   const spanId = props.node.id;
 
-  const icon = (
-    <PlatformIcon platform={props.projects[props.node.projectSlug ?? ''] ?? 'default'} />
-  );
-
-  const isPrefetch =
-    props.node.value.data && !!props.node.value.data['http.request.prefetch'];
+  const icon = <IconSentry size="xs" />;
 
   return (
     <div
@@ -76,7 +71,6 @@ export function TraceSpanRow(props: TraceRowProps<SpanNode>) {
               </React.Fragment>
             )}
             <span className="TraceDescription" title={props.node.description}>
-              {isPrefetch ? '(prefetch) ' : ''}
               {props.node.description
                 ? ellipsize(props.node.description, 100)
                 : (spanId ?? 'unknown')}
@@ -93,7 +87,7 @@ export function TraceSpanRow(props: TraceRowProps<SpanNode>) {
           node={props.node}
           virtualized_index={props.virtualized_index}
           manager={props.manager}
-          color={props.node.makeBarColor(props.theme)}
+          color={props.node.makeBarColor(props.theme).color}
           node_space={props.node.space}
           errors={props.node.errors}
           occurrences={props.node.occurrences}

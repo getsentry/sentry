@@ -726,7 +726,7 @@ describe('BaseNode', () => {
         title: 'Trace Header Title',
         subtitle: 'GET /api/users',
       });
-      expect(node.makeBarColor(ThemeFixture())).toBe(ThemeFixture().blue300);
+      expect(node.makeBarColor(ThemeFixture())).toEqual(ThemeFixture().blue300);
       expect(node.printNode()).toBe('Print Node(test-id)');
       expect(node.analyticsName()).toBe('test');
 

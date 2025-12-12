@@ -3,11 +3,12 @@ import type {Theme} from '@emotion/react';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {UptimeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/uptime';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
-import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceSpanRow';
+import {TraceUptimeCheckNodeRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceUptimeCheckNode';
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {UptimeCheckTimingNode} from './uptimeCheckTimingNode';
@@ -28,6 +29,7 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
     this.isEAPEvent = true;
     this.id = this.value.event_id;
     this.type = 'uptime-check';
+    this.traceItemDataset = TraceItemDataset.UPTIME_RESULTS;
 
     this.parent?.children.push(this);
   }
@@ -140,7 +142,7 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    return <TraceSpanRow {...props} node={this} />;
+    return <TraceUptimeCheckNodeRow {...props} node={this} />;
   }
 
   renderDetails<NodeType extends BaseNode>(

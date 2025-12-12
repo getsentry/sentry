@@ -71,7 +71,6 @@ import {traceAnalytics} from './traceAnalytics';
 import {TracePreferencesDropdown} from './tracePreferencesDropdown';
 import {TraceResetZoomButton} from './traceResetZoomButton';
 import type {TraceReducer, TraceReducerState} from './traceState';
-import {traceNodeAdjacentAnalyticsProperties} from './traceTreeAnalytics';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
@@ -338,7 +337,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         type: node.analyticsName(),
         project_platform:
           projects.find(p => p.slug === node.projectSlug)?.platform || 'other',
-        ...traceNodeAdjacentAnalyticsProperties(node),
       });
 
       if (traceStateRef.current.preferences.drawer.minimized) {

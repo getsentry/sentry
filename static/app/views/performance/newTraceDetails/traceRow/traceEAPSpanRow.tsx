@@ -3,7 +3,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {TraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
 import {
   maybeFocusTraceRow,
@@ -13,15 +13,14 @@ import {
   type TraceRowProps,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
-export function TraceSpanRow(props: TraceRowProps<SpanNode>) {
+export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
   const spanId = props.node.id;
+
+  const childrenCount = getChildrenCount(props.node);
 
   const icon = (
     <PlatformIcon platform={props.projects[props.node.projectSlug ?? ''] ?? 'default'} />
   );
-
-  const isPrefetch =
-    props.node.value.data && !!props.node.value.data['http.request.prefetch'];
 
   return (
     <div
@@ -61,9 +60,7 @@ export function TraceSpanRow(props: TraceRowProps<SpanNode>) {
                   props.node.canFetchChildren ? props.onZoomIn(e) : props.onExpand(e)
                 }
               >
-                {props.node.children.length > 0
-                  ? TRACE_COUNT_FORMATTER.format(props.node.children.length)
-                  : null}
+                {childrenCount > 0 ? TRACE_COUNT_FORMATTER.format(childrenCount) : null}
               </TraceChildrenButton>
             ) : null}
           </div>
@@ -76,7 +73,6 @@ export function TraceSpanRow(props: TraceRowProps<SpanNode>) {
               </React.Fragment>
             )}
             <span className="TraceDescription" title={props.node.description}>
-              {isPrefetch ? '(prefetch) ' : ''}
               {props.node.description
                 ? ellipsize(props.node.description, 100)
                 : (spanId ?? 'unknown')}
@@ -93,7 +89,7 @@ export function TraceSpanRow(props: TraceRowProps<SpanNode>) {
           node={props.node}
           virtualized_index={props.virtualized_index}
           manager={props.manager}
-          color={props.node.makeBarColor(props.theme)}
+          color={props.node.makeBarColor(props.theme).color}
           node_space={props.node.space}
           errors={props.node.errors}
           occurrences={props.node.occurrences}
@@ -108,4 +104,12 @@ export function TraceSpanRow(props: TraceRowProps<SpanNode>) {
       </div>
     </div>
   );
+}
+
+function getChildrenCount(node: EapSpanNode) {
+  if (node.value.is_transaction && !node.expanded) {
+    return node.children.length - node.directVisibleChildren.length;
+  }
+
+  return node.children.length;
 }
