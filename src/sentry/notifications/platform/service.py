@@ -29,6 +29,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import notifications_tasks
 from sentry.utils.options import sample_modulo
+from sentry.utils.registry import NoRegistrationExistsError
 
 logger = logging.getLogger(__name__)
 
@@ -134,9 +135,9 @@ class NotificationService[T: NotificationData]:
 
         for target in targets:
             serialized_target = NotificationTargetDto(target=target)
-            serialzied_data = NotificationDataDto(notification_data=self.data).to_dict()
+            serialized_data = NotificationDataDto(notification_data=self.data).to_dict()
             notify_target_async.delay(
-                data=serialzied_data,
+                data=serialized_data,
                 nested_target=serialized_target.to_dict(),
             )
 
@@ -205,7 +206,15 @@ def notify_target_async(
     NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
             using this method directly to prevent unwanted noise associated with your notifications.
     """
-    notification_data_dto = NotificationDataDto.from_dict(data)
+    try:
+        notification_data_dto = NotificationDataDto.from_dict(data)
+    except (NotificationServiceError, NoRegistrationExistsError) as e:
+        logger.warning(
+            "notifications.platform.notify_target_async.deserialize_error",
+            extra={"error": e, "data": data, "nested_target": nested_target},
+        )
+        return
+
     notification_data = notification_data_dto.notification_data
 
     lifecycle_metric = NotificationEventLifecycleMetric(
