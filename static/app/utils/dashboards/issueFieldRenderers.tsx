@@ -190,7 +190,7 @@ const issuesCountRenderer = (
             <Divider />
             <StyledContent>
               {t('Since issue began')}
-              <WrappedCount value={lifetimeCount} />
+              <WrappedCount value={lifetimeCount} showCappedIndicator />
             </StyledContent>
           </div>
         }
@@ -277,9 +277,9 @@ const SecondaryCount = styled(Count)`
   }
 `;
 
-const WrappedCount = styled(({value, ...p}: any) => (
+const WrappedCount = styled(({value, showCappedIndicator, ...p}: any) => (
   <div {...p}>
-    <Count value={value} />
+    <Count value={value} showCappedIndicator={showCappedIndicator} />
   </div>
 ))`
   text-align: right;

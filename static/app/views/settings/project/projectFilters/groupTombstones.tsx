@@ -67,7 +67,11 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
           )}
         </RightAlignedColumn>
         <RightAlignedColumn>
-          {defined(data.timesSeen) ? <Count value={data.timesSeen} /> : '-'}
+          {defined(data.timesSeen) ? (
+            <Count value={data.timesSeen} showCappedIndicator />
+          ) : (
+            '-'
+          )}
         </RightAlignedColumn>
         <CenteredAlignedColumn>
           {actor ? (

@@ -262,7 +262,7 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
                   <div className="count">
                     <h6 className="nav-header">{t('Events')}</h6>
                     <Link disabled={disableActions} to={eventRoute}>
-                      <Count className="count" value={group.count} />
+                      <Count className="count" value={group.count} showCappedIndicator />
                     </Link>
                   </div>
                 </GuideAnchor>
@@ -275,7 +275,7 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
                       disabled={disableActions}
                       to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
                     >
-                      <Count className="count" value={userCount} />
+                      <Count className="count" value={userCount} showCappedIndicator />
                     </Link>
                   )}
                 </div>

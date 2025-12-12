@@ -211,8 +211,16 @@ export default function StreamlinedGroupHeader({
           />
           {issueTypeConfig.eventAndUserCounts.enabled && (
             <Fragment>
-              <StatCount value={eventCount} aria-label={t('Event count')} />
-              <StatCount value={userCount} aria-label={t('User count')} />
+              <StatCount
+                value={eventCount}
+                aria-label={t('Event count')}
+                showCappedIndicator
+              />
+              <StatCount
+                value={userCount}
+                aria-label={t('User count')}
+                showCappedIndicator
+              />
             </Fragment>
           )}
           <Flex gap="md" align="center">

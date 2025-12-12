@@ -539,7 +539,7 @@ function StreamGroup({
             {group.lifetime && (
               <Fragment>
                 <div>{t('Since issue began')}</div>
-                <Count value={group.lifetime.count} />
+                <Count value={group.lifetime.count} showCappedIndicator />
               </Fragment>
             )}
           </CountTooltipContent>
@@ -579,7 +579,7 @@ function StreamGroup({
           {group.lifetime && (
             <Fragment>
               <div>{t('Since issue began')}</div>
-              <Count value={group.lifetime.userCount} />
+              <Count value={group.lifetime.userCount} showCappedIndicator />
             </Fragment>
           )}
         </CountTooltipContent>
