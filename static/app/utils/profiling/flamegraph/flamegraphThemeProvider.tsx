@@ -6,8 +6,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
-  makeDarkChonkFlamegraphTheme,
-  makeLightChonkFlamegraphTheme,
+  makeDarkFlamegraphTheme,
+  makeLightFlamegraphTheme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 
 export const FlamegraphThemeContext = createContext<FlamegraphTheme | null>(null);
@@ -39,8 +39,8 @@ function FlamegraphThemeProvider(
   const activeFlamegraphTheme = useMemo(() => {
     const flamegraphTheme =
       colorMode === 'light'
-        ? makeLightChonkFlamegraphTheme(theme)
-        : makeDarkChonkFlamegraphTheme(theme);
+        ? makeLightFlamegraphTheme(theme)
+        : makeDarkFlamegraphTheme(theme);
 
     if (!mutation) {
       return flamegraphTheme;

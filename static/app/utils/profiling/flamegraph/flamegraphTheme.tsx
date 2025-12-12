@@ -171,7 +171,7 @@ const SPAN_LCH_LIGHT = {
   L_d: 0.15,
 };
 
-export const makeLightChonkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
+export const makeLightFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
   const chartColors = theme.chart.getColorPalette(12);
 
   return {
@@ -263,7 +263,7 @@ const SPANS_LCH_DARK = {
   L_d: 0.2,
 };
 
-export const makeDarkChonkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
+export const makeDarkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
   const chartColors = theme.chart.getColorPalette(12);
   return {
     LCH: LCH_DARK,
