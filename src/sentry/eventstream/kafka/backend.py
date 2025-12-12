@@ -6,11 +6,10 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
 from confluent_kafka import KafkaError
 from confluent_kafka import Message as KafkaMessage
-from confluent_kafka import Producer
 from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
@@ -38,17 +37,18 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.topic = Topic.EVENTS
         self.transactions_topic = Topic.TRANSACTIONS
         self.issue_platform_topic = Topic.EVENTSTREAM_GENERIC
-        self.__producers: MutableMapping[Topic, Producer] = {}
+        self.__producers: MutableMapping[Topic, KafkaProducer] = {}
         self.error_last_logged_time: int | None = None
 
     def get_transactions_topic(self, project_id: int) -> Topic:
         return self.transactions_topic
 
-    def get_producer(self, topic: Topic) -> Producer:
+    def get_producer(self, topic: Topic) -> KafkaProducer:
         if topic not in self.__producers:
             self.__producers[topic] = get_arroyo_producer(
                 name="sentry.eventstream.kafka",
                 topic=topic,
+                use_simple_futures=False,
             )
 
         return self.__producers[topic]
@@ -193,7 +193,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         try:
             producer.produce(
-                ArroyoTopic(real_topic),
+                destination=ArroyoTopic(real_topic),
                 payload=KafkaPayload(
                     key=str(project_id).encode("utf-8") if not skip_semantic_partitioning else None,
                     value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data).encode(
@@ -204,7 +204,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             ).add_done_callback(
                 lambda future: self.delivery_callback(
                     future.exception() if future.exception() is not None else None,
-                    future.result().message,
+                    future.result().payload.message if future.exception() is None else None,
                 )
             )
         except Exception as error:
@@ -223,8 +223,10 @@ class KafkaEventStream(SnubaProtocolEventStream):
         real_topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
         try:
             producer.produce(
-                ArroyoTopic(real_topic),
-                KafkaPayload(key=None, value=EAP_ITEMS_CODEC.encode(trace_item), headers=[]),
+                destination=ArroyoTopic(real_topic),
+                payload=KafkaPayload(
+                    key=None, value=EAP_ITEMS_CODEC.encode(trace_item), headers=[]
+                ),
             )
         except Exception as error:
             logger.exception("Could not publish trace items: %s", error)
