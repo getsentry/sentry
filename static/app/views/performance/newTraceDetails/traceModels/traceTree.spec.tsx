@@ -81,16 +81,6 @@ const traceWithEventId = makeTrace({
   ],
 });
 
-const traceWithVitals = makeTrace({
-  transactions: [
-    makeTransaction({
-      start_timestamp: start,
-      timestamp: start + 2,
-      measurements: {ttfb: {value: 0, unit: 'millisecond'}},
-    }),
-  ],
-});
-
 const traceWithOrphanError = makeTrace({
   transactions: [
     makeTransaction({
@@ -406,9 +396,37 @@ describe('TraceTree', () => {
 
   describe('indicators', () => {
     it('measurements are converted to indicators', () => {
-      const tree = TraceTree.FromTrace(traceWithVitals, traceOptions);
+      const measurementValue = 1;
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: start,
+              timestamp: start + 2,
+              measurements: {ttfb: {value: measurementValue, unit: 'millisecond'}},
+            }),
+          ],
+        }),
+        traceOptions
+      );
       expect(tree.indicators).toHaveLength(1);
-      expect(tree.indicators[0]!.start).toBe(start * 1e3);
+      expect(tree.indicators[0]!.start).toBe(start * 1e3 + measurementValue);
+    });
+
+    it('zero measurements are not converted to indicators', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: start,
+              timestamp: start + 2,
+              measurements: {ttfb: {value: 0, unit: 'millisecond'}},
+            }),
+          ],
+        }),
+        traceOptions
+      );
+      expect(tree.indicators).toHaveLength(0);
     });
 
     it('sorts indicators by start', () => {
