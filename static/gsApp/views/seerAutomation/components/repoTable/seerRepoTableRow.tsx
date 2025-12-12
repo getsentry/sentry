@@ -110,6 +110,7 @@ export default function SeerRepoTableRow({repository: initialRepository}: Props)
             const optimisticData = {
               ...repository,
               settings: {
+                codeReviewTriggers: DEFAULT_CODE_REVIEW_TRIGGERS,
                 ...repository.settings,
                 enabledCodeReview: e.target.checked,
               },
