@@ -86,7 +86,7 @@ export function NextStepsStep() {
           <LinkButton
             priority="primary"
             size="md"
-            to={`/organizations/${organization.slug}/issues/`}
+            to={`/settings/${organization.slug}/seer/`}
           >
             {t('Finish')}
           </LinkButton>
