@@ -852,7 +852,7 @@ class SnubaTagStorage(TagStorage):
             filter_keys=empty_filters,
             aggregations=[],
             selected_columns=selected_columns_empty,
-            referrer="tagstore._get_tag_keys_and_top_values_empty_counts",
+            referrer=Referrer.TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES_EMPTY_COUNTS,
             tenant_ids=tenant_ids,
         )
 

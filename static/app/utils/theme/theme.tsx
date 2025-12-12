@@ -15,6 +15,7 @@ import {spring, type Transition} from 'framer-motion';
 
 import {color} from 'sentry/utils/theme/scraps/color';
 import {breakpoints, radius, size, space} from 'sentry/utils/theme/scraps/size';
+import {typography} from 'sentry/utils/theme/scraps/typography';
 
 type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
 
@@ -308,17 +309,24 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   },
 });
 
-const generateLevelTheme = (colors: Colors): LevelColors => ({
-  sample: colors.blue400,
-  info: colors.blue400,
-  warning: colors.yellow400,
-  // Hardcoded legacy color (orange400). We no longer use orange anywhere
-  // else in the app (except for the chart palette). This needs to be harcoded
-  // here because existing users may still associate orange with the "error" level.
-  error: '#FF7738',
-  fatal: colors.red400,
-  default: colors.gray400,
-  unknown: colors.gray200,
+const generateLevelTheme = (
+  tokens: ReturnType<typeof generateChonkTokens>,
+  mode: 'light' | 'dark'
+): LevelColors => ({
+  sample: tokens.graphics.accent,
+  info: tokens.graphics.accent,
+  // BAD: accessing named colors is forbidden
+  // but necessary to differente from orange
+  warning: color.categorical[mode].yellow,
+  // BAD: hardcoded legacy color! We no longer use orange in the main UI,
+  // but do have it in the chart palette. This needs to be harcoded
+  // because existing users still associate orange with the "error" level.
+  error: color.categorical[mode].orange,
+  fatal: tokens.graphics.danger,
+  // BAD: should be `tokens.dataviz.semantic.neutral` once available
+  default: color.neutral[mode][mode === 'light' ? 'opaque800' : 'opaque900'],
+  // BAD: should be `tokens.dataviz.semantic.other` once available
+  unknown: color.neutral[mode][mode === 'light' ? 'opaque400' : 'opaque800'],
 });
 
 const generateTagTheme = (colors: Colors): TagColors => ({
@@ -462,6 +470,20 @@ const iconSizes: Record<Size, string> = {
   '2xl': '72px',
 } as const;
 
+const legacyTypography = {
+  fontSize: typography.font.size,
+  fontWeight: {
+    normal: typography.font.weight.regular,
+    bold: typography.font.weight.medium,
+  },
+  text: {
+    family: typography.font.family.sans,
+    familyMono: typography.font.family.mono,
+    lineHeightHeading: typography.font.lineHeight.default,
+    lineHeightBody: typography.font.lineHeight.comfortable,
+  },
+} as const;
+
 /**
  * Values shared between light and dark theme
  */
@@ -543,26 +565,9 @@ const commonTheme = {
     },
   },
 
-  fontSize: {
-    xs: '11px',
-    sm: '12px',
-    md: '14px',
-    lg: '16px',
-    xl: '18px',
-    '2xl': '20px',
-  } satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>,
-
-  fontWeight: {
-    normal: 400 as const,
-    bold: 600 as const,
-  },
-
-  text: {
-    family: "'Rubik', 'Avenir Next', sans-serif",
-    familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
-    lineHeightHeading: 1.2,
-    lineHeightBody: 1.4,
-  },
+  borderRadius: '6px',
+  ...legacyTypography,
+  ...typography,
 };
 
 export type Color = keyof ReturnType<typeof deprecatedColorMappings>;
@@ -1434,15 +1439,6 @@ const generateAliases = (
   },
 });
 
-const fontSize = {
-  xs: '11px' as const,
-  sm: '12px' as const,
-  md: '14px' as const,
-  lg: '16px' as const,
-  xl: '20px' as const,
-  '2xl': '24px' as const,
-} satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>;
-
 const lightTokens = generateChonkTokens(lightColors);
 const darkTokens = generateChonkTokens(darkColors);
 
@@ -1636,7 +1632,7 @@ const lightThemeDefinition = {
   type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-  fontSize,
+
   ...formTheme,
   ...deprecatedColorMappings(lightColors),
   ...lightAliases,
@@ -1654,7 +1650,7 @@ const lightThemeDefinition = {
   alert: generateAlertTheme(lightColors, lightAliases),
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
-  level: generateLevelTheme(lightColors),
+  level: generateLevelTheme(lightTokens, 'light'),
 
   chart: {
     neutral: modifyColor(lightColors.gray400).lighten(0.8).toString(),
@@ -1687,7 +1683,7 @@ export const darkTheme: SentryTheme = {
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-  fontSize,
+
   ...formTheme,
   ...deprecatedColorMappings(darkColors),
   ...darkAliases,
@@ -1705,7 +1701,7 @@ export const darkTheme: SentryTheme = {
   alert: generateAlertTheme(darkColors, darkAliases),
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
-  level: generateLevelTheme(darkColors),
+  level: generateLevelTheme(darkTokens, 'dark'),
 
   chart: {
     neutral: modifyColor(darkColors.gray400).darken(0.35).toString(),

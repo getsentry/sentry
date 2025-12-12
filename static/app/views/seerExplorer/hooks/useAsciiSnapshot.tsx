@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback} from 'react';
 import * as echarts from 'echarts/core';
 
 import {formatAbbreviatedNumberWithDynamicPrecision} from 'sentry/utils/formatters';
@@ -10,27 +10,6 @@ import {prettifyAggregation} from 'sentry/views/explore/utils';
  * Elements within any ancestor marked with `data-seer-explorer-root` are excluded.
  */
 function useAsciiSnapshot() {
-  const mousePosRef = useRef<{inWindow: boolean; x: number; y: number} | null>(null);
-
-  useEffect(() => {
-    const handleMove = (e: MouseEvent) => {
-      mousePosRef.current = {x: e.clientX, y: e.clientY, inWindow: true};
-    };
-    const handleLeave = () => {
-      if (mousePosRef.current) {
-        mousePosRef.current.inWindow = false;
-      } else {
-        mousePosRef.current = {x: 0, y: 0, inWindow: false};
-      }
-    };
-    window.addEventListener('mousemove', handleMove, {passive: true});
-    window.addEventListener('mouseleave', handleLeave, {passive: true});
-    return () => {
-      window.removeEventListener('mousemove', handleMove as EventListener);
-      window.removeEventListener('mouseleave', handleLeave as EventListener);
-    };
-  }, []);
-
   const capture = useCallback(() => {
     if (typeof document === 'undefined' || typeof window === 'undefined') {
       return '';
@@ -747,23 +726,6 @@ function useAsciiSnapshot() {
         }
       }
       node = walker.nextNode();
-    }
-
-    // Overlay the user's mouse cursor marker if within the viewport
-    const cursorLabel = '[USER CURSOR]';
-    const pos = mousePosRef.current;
-    if (pos?.inWindow) {
-      const within = !(
-        pos.x <= 0 ||
-        pos.y <= 0 ||
-        pos.x >= viewportWidth ||
-        pos.y >= viewportHeight
-      );
-      if (within) {
-        const rowIdx = Math.min(rows - 1, Math.max(0, Math.floor(pos.y / cellHeightPx)));
-        const colIdx = Math.max(0, Math.floor((pos.x - leftShiftPx) / cellWidthPx));
-        writeOverlay(rowIdx, colIdx, cursorLabel);
-      }
     }
 
     // Top line: full URL of the current page
