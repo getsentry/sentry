@@ -962,11 +962,3 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         ).capture():
             event_handler(event)
         return HttpResponse(status=204)
-
-        with IntegrationWebhookEvent(
-            interaction_type=event_handler.event_type,
-            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            provider_key=event_handler.provider,
-        ).capture():
-            event_handler(event)
-        return HttpResponse(status=204)
