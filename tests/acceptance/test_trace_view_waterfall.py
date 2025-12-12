@@ -1,6 +1,8 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from fixtures.page_objects.trace_view import TraceViewWaterfallPage
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase, TraceTestCase
@@ -39,6 +41,7 @@ class TraceViewWaterfallTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
         self.dismiss_assistant()
 
     @patch("django.utils.timezone.now")
+    @pytest.mark.xdist_unsafe
     def test_trace_view_waterfall_loads(self, mock_now: MagicMock) -> None:
         mock_now.return_value = self.start
 

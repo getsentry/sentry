@@ -1,3 +1,5 @@
+import pytest
+
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
@@ -29,6 +31,7 @@ class IssueTagValuesTest(AcceptanceTestCase, SnubaTestCase):
         event_data["tags"] = {"url": "http://example.org/path?key=value"}
         return self.store_event(data=event_data, project_id=self.project.id)
 
+    @pytest.mark.xdist_unsafe
     def test_user_tag(self) -> None:
         self.page.visit_tag_values(self.org.slug, self.event.group_id, "user")
         assert self.browser.element_exists_by_test_id("group-tag-mail")

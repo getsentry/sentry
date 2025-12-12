@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
+import pytest
+
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
@@ -113,6 +115,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         assert event.group is not None
         self.page.visit_issue(self.org.slug, event.group.id)
 
+    @pytest.mark.xdist_unsafe
     def test_aspnetcore_event(self) -> None:
         event = self.create_sample_event(default="aspnetcore", platform="csharp")
         assert event.group is not None
@@ -146,6 +149,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         assert event.group is not None
         self.page.visit_issue(self.org.slug, event.group.id)
 
+    @pytest.mark.xdist_unsafe
     def test_empty_stacktrace(self) -> None:
         event = self.create_sample_event(platform="empty-stacktrace")
         assert event.group is not None
@@ -165,12 +169,14 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.resolve_issue()
 
+    @pytest.mark.xdist_unsafe
     def test_archived(self) -> None:
         event = self.create_sample_event(platform="python")
         assert event.group is not None
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.archive_issue()
 
+    @pytest.mark.xdist_unsafe
     def test_exception_and_no_threads_event(self) -> None:
         event = self.create_sample_event(platform="exceptions-and-no-threads")
         assert event.group is not None

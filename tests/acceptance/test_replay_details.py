@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 
+import pytest
+
 from sentry.replays.testutils import (
     mock_replay,
     mock_rrweb_div_helloworld,
@@ -88,6 +90,7 @@ class ReplayDetailsTest(ReplaysAcceptanceTestCase):
             self.browser.click('[data-test-id="replay-details-console-btn"]')
             self.browser.wait_until_test_id("replay-details-console-tab")
 
+    @pytest.mark.xdist_unsafe
     def test_network_tab(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
@@ -96,6 +99,7 @@ class ReplayDetailsTest(ReplaysAcceptanceTestCase):
             self.browser.click('[data-test-id="replay-details-network-btn"]')
             self.browser.wait_until_test_id("replay-details-network-tab")
 
+    @pytest.mark.xdist_unsafe
     def test_memory_tab(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)

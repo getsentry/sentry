@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from unittest import mock
 
+import pytest
 from selenium.webdriver.common.by import By
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
@@ -45,6 +46,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         return event
 
     @mock.patch("sentry.api.helpers.group_index.update.update_group_open_period")
+    @pytest.mark.xdist_unsafe
     def test_resolve_basic(self, mock_update_open_period: mock.MagicMock) -> None:
         event = self.create_sample_event(platform="python")
         assert event.group is not None
