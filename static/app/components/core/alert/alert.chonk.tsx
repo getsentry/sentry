@@ -1,8 +1,9 @@
 import type {SerializedStyles} from '@emotion/react';
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import type {AlertProps} from 'sentry/components/core/alert';
-import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme';
+import {type useChonkTheme} from 'sentry/utils/theme/theme';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -22,7 +23,7 @@ interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
   theme?: ReturnType<typeof useChonkTheme>;
 }
 
-export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
+export const AlertPanel = styled('div')<ChonkAlertProps>`
   position: relative;
   display: grid;
   grid-template-columns: ${p => getAlertGridLayout(p)};
@@ -131,7 +132,7 @@ function generateAlertBackground(
   `;
 }
 
-export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
+export const TrailingItems = styled('div')<ChonkAlertProps>`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
@@ -158,13 +159,13 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
   }
 `;
 
-export const Message = chonkStyled('div')`
+export const Message = styled('div')`
   line-height: ${p => p.theme.font.lineHeight.comfortable};
   place-content: center;
   padding-block: ${p => p.theme.space.xs};
 `;
 
-export const IconWrapper = chonkStyled('div')<{type: AlertProps['type']}>`
+export const IconWrapper = styled('div')<{type: AlertProps['type']}>`
   position: absolute;
   top: ${p => p.theme.space.lg};
   left: ${p => p.theme.space.lg};
@@ -173,16 +174,21 @@ export const IconWrapper = chonkStyled('div')<{type: AlertProps['type']}>`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${p => (['info', 'error'].includes(p.type) ? p.theme.colors.white : p.type === 'muted' ? p.theme.tokens.content.primary : p.theme.colors.black)};
+  color: ${p =>
+    ['info', 'error'].includes(p.type)
+      ? p.theme.colors.white
+      : p.type === 'muted'
+        ? p.theme.tokens.content.primary
+        : p.theme.colors.black};
 `;
 
-export const ExpandIconWrap = chonkStyled('div')`
+export const ExpandIconWrap = styled('div')`
   display: flex;
   align-items: center;
   align-self: flex-start;
 `;
 
-export const ExpandContainer = chonkStyled('div')<{
+export const ExpandContainer = styled('div')<{
   showIcon: boolean;
   showTrailingItems: boolean;
 }>`
