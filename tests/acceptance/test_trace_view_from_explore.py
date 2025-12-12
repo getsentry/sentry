@@ -1,7 +1,7 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
-import pytest
+from django.db import connections
 
 from fixtures.page_objects.explore_spans import ExploreSpansPage
 from fixtures.page_objects.trace_view import TraceViewWaterfallPage
@@ -43,8 +43,14 @@ class TraceViewFromExploreTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase)
         self.trace_view_page = TraceViewWaterfallPage(self.browser, self.client)
         self.dismiss_assistant(which="tour.explore.spans")
 
+    def tearDown(self) -> None:
+        super().tearDown()
+        # Close all database connections to prevent
+        # databases being accessed by other tests
+        for connection in connections.all():
+            connection.close()
+
     @patch("django.utils.timezone.now")
-    @pytest.mark.skip(reason="This test is flaky and needs to be fixed")
     def test_navigation(self, mock_now: MagicMock) -> None:
         mock_now.return_value = self.start
 
