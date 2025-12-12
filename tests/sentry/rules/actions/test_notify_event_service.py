@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import responses
 from django.utils import timezone
+from requests.exceptions import HTTPError
 
 from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
@@ -19,6 +20,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -46,6 +48,8 @@ class NotifyEventServiceActionTest(RuleTestCase, BaseWorkflowTest):
         assert plugin.should_notify.call_count == 1
         assert results[0].callback is plugin.rule_notify
 
+
+class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
     @responses.activate
     def test_applies_correctly_for_legacy_webhooks(self) -> None:
         self.event = self.get_event()
@@ -151,8 +155,55 @@ class NotifyEventServiceActionTest(RuleTestCase, BaseWorkflowTest):
         assert payload["message"] == "こんにちは"
         assert payload["event"]["id"] == self.event.event_id
         assert payload["event"]["event_id"] == self.event.event_id
-        assert payload["triggering_rules"] == ["error detector"]
+        assert payload["triggering_rules"] == ["error_detector"]
 
+    @responses.activate
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    @with_feature("organizations:workflow-engine-ui-links")
+    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
+    @patch("sentry.plugins.sentry_webhooks.plugin.WebHooksPlugin.notify_users")
+    def test_error_for_legacy_webhooks_aci(self, mock_notify_users):
+        event = self.get_event()
+        webhook = WebHooksPlugin()
+        responses.add(method=responses.POST, url="http://my-fake-webhook.io", json={}, status=408)
+        mock_notify_users.side_effect = HTTPError("didn't work")
+        webhook.set_option(project=self.project, key="urls", value="http://my-fake-webhook.io")
+        webhook.set_option(project=self.project, key="enabled", value=True)
+
+        rule = Rule.objects.create(
+            label="bad stuff happening",
+            project=self.event.project,
+            data={
+                "conditions": [
+                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+                ],
+                "actions": [
+                    {
+                        "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                        "service": "webhooks",
+                        "uuid": uuid4().hex,
+                    }
+                ],
+            },
+        )
+        # dual write the rule to replicate current reality
+        IssueAlertMigrator(rule, self.user.id).run()
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=self.event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        assert len(responses.calls) == 0
+
+
+class NotifyEventServiceSentryAppActionTest(NotifyEventServiceActionTest):
     def test_applies_correctly_for_sentry_apps(self) -> None:
         event = self.get_event()
 
