@@ -50,29 +50,35 @@ class NotifyEventServiceActionTest(RuleTestCase, BaseWorkflowTest):
 
 
 class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
+    def setUp(self):
+        self.event = self.get_event()
+        self.webhook = WebHooksPlugin()
+        self.webhook.set_option(
+            project=self.event.project, key="urls", value="http://my-fake-webhook.io"
+        )
+        self.webhook.set_option(project=self.event.project, key="enabled", value=True)
+
+        self.rule_webhook_data = {
+            "conditions": [
+                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+            ],
+            "actions": [
+                {
+                    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                    "service": "webhooks",
+                    "uuid": uuid4().hex,
+                }
+            ],
+        }
+
     @responses.activate
     def test_applies_correctly_for_legacy_webhooks(self) -> None:
-        self.event = self.get_event()
-        webhook = WebHooksPlugin()
         responses.add(responses.POST, "http://my-fake-webhook.io")
-        webhook.set_option(project=self.project, key="urls", value="http://my-fake-webhook.io")
-        webhook.set_option(project=self.project, key="enabled", value=True)
 
         rule = Rule.objects.create(
             label="bad stuff happening",
             project=self.event.project,
-            data={
-                "conditions": [
-                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-                ],
-                "actions": [
-                    {
-                        "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                        "service": "webhooks",
-                        "uuid": uuid4().hex,
-                    }
-                ],
-            },
+            data=self.rule_webhook_data,
         )
 
         with self.tasks():
@@ -82,7 +88,7 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(self.event),
                 group_id=self.event.group_id,
-                project_id=self.project.id,
+                project_id=self.event.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
 
@@ -100,11 +106,7 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
     @with_feature("organizations:workflow-engine-ui-links")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_applies_correctly_for_legacy_webhooks_aci(self):
-        event = self.get_event()
-        webhook = WebHooksPlugin()
         responses.add(responses.POST, "http://my-fake-webhook.io")
-        webhook.set_option(project=self.project, key="urls", value="http://my-fake-webhook.io")
-        webhook.set_option(project=self.project, key="enabled", value=True)
 
         (
             error_workflow,
@@ -142,9 +144,9 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
+                cache_key=write_event_to_cache(self.event),
                 group_id=self.event.group_id,
-                project_id=self.project.id,
+                project_id=self.event.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
 
@@ -162,29 +164,13 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
     @with_feature("organizations:workflow-engine-ui-links")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     @patch("sentry.plugins.sentry_webhooks.plugin.WebHooksPlugin.notify_users")
-    def test_error_for_legacy_webhooks_aci(self, mock_notify_users):
-        event = self.get_event()
-        webhook = WebHooksPlugin()
+    def test_error_for_legacy_webhooks_dual_write_aci(self, mock_notify_users):
         responses.add(method=responses.POST, url="http://my-fake-webhook.io", json={}, status=408)
         mock_notify_users.side_effect = HTTPError("didn't work")
-        webhook.set_option(project=self.project, key="urls", value="http://my-fake-webhook.io")
-        webhook.set_option(project=self.project, key="enabled", value=True)
-
         rule = Rule.objects.create(
             label="bad stuff happening",
             project=self.event.project,
-            data={
-                "conditions": [
-                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-                ],
-                "actions": [
-                    {
-                        "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                        "service": "webhooks",
-                        "uuid": uuid4().hex,
-                    }
-                ],
-            },
+            data=self.rule_webhook_data,
         )
         # dual write the rule to replicate current reality
         IssueAlertMigrator(rule, self.user.id).run()
@@ -194,9 +180,9 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
+                cache_key=write_event_to_cache(self.event),
                 group_id=self.event.group_id,
-                project_id=self.project.id,
+                project_id=self.event.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
 
