@@ -3685,16 +3685,25 @@ register(
 # Will not use or display the EAP data to the user; rather, will just compare the
 # data from each source and log whether they match.
 register(
-    "eap.occurrences.should_double_read",
+    "rollouts.occurrences_on_eap.should_eval_experimental",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Controls whether a callsite should not query EAP at all.
+# Useful if a particular callsite becomes a problem.
+register(
+    "rollouts.occurrences_on_eap.eval_callsite_blocklist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Controls whether a callsite should use EAP data instead of Snuba data.
 # Callsites should only be added after they're known to be safe.
 register(
-    "eap.occurrences.callsites_using_eap_data_allowlist",
+    "rollouts.occurrences_on_eap.use_experimental_data_callsite_allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
