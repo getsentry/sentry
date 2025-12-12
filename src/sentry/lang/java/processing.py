@@ -182,6 +182,11 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     stacktrace_infos = find_stacktraces_in_data(data)
     stacktraces = [
         {
+            **(
+                {"exception": {"type": sinfo.exception_type, "module": sinfo.exception_module}}
+                if sinfo.get_exception()
+                else {}
+            ),
             "frames": [
                 _normalize_frame(frame, index)
                 for index, frame in enumerate(sinfo.stacktrace.get("frames") or ())

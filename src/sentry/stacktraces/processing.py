@@ -28,6 +28,8 @@ class StacktraceInfo(NamedTuple):
     container: dict[str, Any]
     platforms: set[str]
     is_exception: bool
+    exception_type: str | None
+    exception_module: str | None
 
     def __hash__(self) -> int:
         return id(self)
@@ -37,6 +39,14 @@ class StacktraceInfo(NamedTuple):
 
     def __ne__(self, other: object) -> bool:
         return self is not other
+
+    def get_exception(self) -> str | None:
+        """Returns the fully qualified exception name (module.type) or None if not an exception."""
+        if self.exception_type is None:
+            return None
+        if self.exception_module:
+            return f"{self.exception_module}.{self.exception_type}"
+        return self.exception_type
 
     def get_frames(self) -> Sequence[dict[str, Any]]:
         return _safe_get_frames(self.stacktrace)
@@ -213,6 +223,10 @@ def find_stacktraces_in_data(
         container: Any = None,
         # Whether or not the container is from `exception.values`
         is_exception: bool = False,
+        # The exception type (e.g., "ValueError") if this stacktrace belongs to an exception
+        exception_type: str | None = None,
+        # The exception module (e.g., "__builtins__") if this stacktrace belongs to an exception
+        exception_module: str | None = None,
         # Prevent skipping empty/null stacktraces from `exception.values` (other empty/null
         # stacktraces are always skipped)
         include_empty_exceptions: bool = False,
@@ -232,6 +246,8 @@ def find_stacktraces_in_data(
                 container=container,
                 platforms=platforms,
                 is_exception=is_exception,
+                exception_type=exception_type,
+                exception_module=exception_module,
             )
         )
 
@@ -241,6 +257,8 @@ def find_stacktraces_in_data(
             exc.get("stacktrace"),
             container=exc,
             is_exception=True,
+            exception_type=exc.get("type"),
+            exception_module=exc.get("module"),
             include_empty_exceptions=include_empty_exceptions,
         )
 
