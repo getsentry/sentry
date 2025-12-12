@@ -907,7 +907,7 @@ class SnubaTagStorage(TagStorage):
         total_filters = dict(filters)
         total_filters.pop(self.key_column, None)
 
-        total_events: int = snuba.query(
+        total_events: int | None = snuba.query(
             dataset=dataset,
             start=start,
             end=end,
@@ -918,6 +918,8 @@ class SnubaTagStorage(TagStorage):
             referrer=Referrer.TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES_EMPTY_COUNTS,
             tenant_ids=tenant_ids,
         )
+        if total_events is None:
+            return {k: {"count": 0} for k in keys_to_check}
 
         non_empty_filters = dict(filters)
         non_empty_filters[self.key_column] = keys_to_check
