@@ -233,9 +233,11 @@ export function SizeCompareItemDiffTable({
                 {capitalize(diffItem.item_type ?? '')}
               </SimpleTable.RowCell>
               <SimpleTable.RowCell>
-                {diffItem.head_size
+                {typeof diffItem.head_size === 'number'
                   ? formatBytesBase10(diffItem.head_size)
-                  : formatBytesBase10(diffItem.base_size!)}
+                  : typeof diffItem.base_size === 'number'
+                    ? formatBytesBase10(diffItem.base_size)
+                    : '-'}
               </SimpleTable.RowCell>
               <DiffTableChangeAmountCell changeType={diffItem.type}>
                 {diffItem.size_diff > 0 ? '+' : '-'}
