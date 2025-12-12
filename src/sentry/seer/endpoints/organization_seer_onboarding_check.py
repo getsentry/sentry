@@ -66,7 +66,7 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.ML_AI
+    owner = ApiOwner.CODING_WORKFLOWS
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
