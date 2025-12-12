@@ -92,12 +92,12 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
         project_ids_list = [project.id for project in projects]
         tuning_options = ProjectOption.objects.get_value_bulk(projects, OPTION_KEY)
-        seer_preferences = bulk_get_project_preferences(organization.id, project_ids_list)
+        seer_preferences = bulk_get_project_preferences(organization.id, project_ids_list) or {}
 
         results = []
         for project in projects:
             tuning_value = tuning_options.get(project) or AutofixAutomationTuningSettings.OFF.value
-            seer_pref = seer_preferences.get(str(project.id), {})
+            seer_pref = seer_preferences.get(str(project.id)) or {}
 
             results.append(
                 {
@@ -109,7 +109,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                     "prCreation": seer_pref.get("automated_run_stopping_point")
                     == AutofixStoppingPoint.OPEN_PR.value,
                     "tuning": tuning_value,
-                    "reposCount": len(seer_pref.get("repositories", [])),
+                    "reposCount": len(seer_pref.get("repositories") or []),
                 }
             )
         return results
