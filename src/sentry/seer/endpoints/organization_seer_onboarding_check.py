@@ -16,6 +16,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -55,7 +56,7 @@ def is_autofix_enabled(organization_id: int) -> bool:
             project__status=ObjectStatus.ACTIVE,
             key="sentry:autofix_automation_tuning",
         )
-        .exclude(value="off")
+        .exclude(value=AutofixAutomationTuningSettings.OFF.value)
         .exclude(value__isnull=True)
         .exists()
     )
