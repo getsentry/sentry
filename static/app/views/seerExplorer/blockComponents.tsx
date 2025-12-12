@@ -383,7 +383,7 @@ function BlockComponent({
                               </ToolCallText>
                               <ToolCallLinkIcon size="xs" isHighlighted={isHighlighted} />
                               <EnterKeyHint isVisible={isHighlighted}>
-                                Enter ⏎
+                                enter ⏎
                               </EnterKeyHint>
                             </ToolCallLink>
                           ) : (
@@ -608,6 +608,7 @@ const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
   margin-left: ${p => p.theme.space.xs};
   visibility: ${p => (p.isVisible ? 'visible' : 'hidden')};
   font-family: ${p => p.theme.text.familyMono};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const ToolCallLinkIcon = styled(IconLink)<{isHighlighted?: boolean}>`
