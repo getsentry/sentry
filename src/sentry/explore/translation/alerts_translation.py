@@ -69,7 +69,8 @@ def _get_old_query_info(snuba_query: SnubaQuery):
 
 def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
     query_subscription_qs = QuerySubscription.objects.filter(
-        snuba_query_id=snuba_query.id, status=QuerySubscription.Status.ACTIVE.value
+        snuba_query_id=snuba_query.id,
+        status__in=[QuerySubscription.Status.ACTIVE.value, QuerySubscription.Status.UPDATING.value],
     )
     query_subscription = query_subscription_qs.first()
 
