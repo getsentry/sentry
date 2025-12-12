@@ -1,15 +1,18 @@
 import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import IssueDiff from 'sentry/components/issueDiff';
+import {IssueDiff} from 'sentry/components/issueDiff';
+import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = ModalRenderProps & React.ComponentProps<typeof IssueDiff>;
+type Props = ModalRenderProps &
+  React.ComponentProps<typeof IssueDiff> & {
+    project: Project;
+  };
 
-function DiffModal({className, Body, CloseButton, ...props}: Props) {
+function DiffModal({Body, CloseButton, project, ...props}: Props) {
   const organization = useOrganization();
-  const {project} = props;
   const {data: projectData} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
@@ -23,8 +26,6 @@ function DiffModal({className, Body, CloseButton, ...props}: Props) {
     <Body>
       <CloseButton />
       <IssueDiff
-        className={className}
-        organization={organization}
         hasSimilarityEmbeddingsProjectFeature={similarityEmbeddingsProjectFeature}
         {...props}
       />
