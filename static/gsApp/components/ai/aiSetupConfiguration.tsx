@@ -27,7 +27,8 @@ import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
-import {hasBillingAccess} from 'getsentry/utils/billing';
+import useSubscription from 'getsentry/hooks/useSubscription';
+import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
 
 interface AiSetupConfigurationProps {
   event: Event;
@@ -52,6 +53,7 @@ export default function AiSetupConfiguration({
 
 function AutofixConfigureQuota() {
   const organization = useOrganization();
+  const subscription = useSubscription();
   return (
     <Fragment>
       <HeroImage src={seerConfigMainImg} />
@@ -67,7 +69,7 @@ function AutofixConfigureQuota() {
               )}
             </Text>
             <Stack align="center">
-              {hasBillingAccess(organization) ? (
+              {hasAccessToSubscriptionOverview(subscription, organization) ? (
                 <LinkButton
                   to="/settings/billing/overview/?product=seer"
                   priority="primary"
