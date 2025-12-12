@@ -372,12 +372,14 @@ def is_escalating(group: Group) -> tuple[bool, int | None]:
     Return whether the group is escalating and the daily forecast if it exists.
     """
     old_count = get_group_hourly_count_snuba(group)
-    new_count = get_group_hourly_count_eap(group)
-    if old_count != new_count:
-        metrics.incr(
-            "issues.escalating.eap_mismatch",
-            sample_rate=1.0,
-        )
+
+    if options.get("occurrences.eap-reads.enabled"):
+        new_count = get_group_hourly_count_eap(group)
+        if old_count != new_count:
+            metrics.incr(
+                "issues.escalating.eap_mismatch",
+                sample_rate=1.0,
+            )
 
     # Continue using the old count as the source of truth
     group_hourly_count = old_count

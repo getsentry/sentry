@@ -3681,6 +3681,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Controls whether reads of occurrences from EAP are enabled.
+# This should be controlled on a region-by-region basis.
+register(
+    "occurrences.eap-reads.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswich for LLM issue detection
 register(
     "issue-detection.llm-detection.enabled",
