@@ -18,6 +18,7 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUpdateOrganization} from 'sentry/utils/useUpdateOrganization';
 
+import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {
   Field,
   FieldDescription,
@@ -28,10 +29,14 @@ import {
 } from './common';
 import {RepositorySelector} from './repositorySelector';
 
+// This is the max # of repos that we will allow to be pre-selected.
+const MAX_REPOSITORIES_TO_PRESELECT = 10;
+
 export function ConfigureCodeReviewStep() {
   const organization = useOrganization();
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
-
+  const {clearRootCauseAnalysisRepositories, selectedCodeReviewRepositories} =
+    useSeerOnboardingContext();
   const [enableCodeReview, setEnableCodeReview] = useState(
     organization.autoEnableCodeReview ?? true
   );
@@ -39,6 +44,12 @@ export function ConfigureCodeReviewStep() {
   const {mutate: updateOrganization} = useUpdateOrganization(organization);
 
   const handleNextStep = useCallback(() => {
+    if (selectedCodeReviewRepositories.length > MAX_REPOSITORIES_TO_PRESELECT) {
+      // When this happens, we clear the pre-populated repositories. Otherwise,
+      // the user will have an overwhelming number of repositories to map.
+      clearRootCauseAnalysisRepositories();
+    }
+
     if (enableCodeReview === organization.autoEnableCodeReview) {
       // No update needed, proceed to next step
       setCurrentStep(currentStep + 1);
@@ -59,6 +70,8 @@ export function ConfigureCodeReviewStep() {
       );
     }
   }, [
+    clearRootCauseAnalysisRepositories,
+    selectedCodeReviewRepositories.length,
     setCurrentStep,
     currentStep,
     enableCodeReview,
