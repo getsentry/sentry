@@ -541,20 +541,6 @@ class _ConditionEvaluationStats:
     tainted: int
     untainted: int
 
-    def report(self) -> None:
-        metrics.incr(
-            "workflow_engine.delayed_workflow.workflow_if_conditions_evaluated",
-            amount=self.tainted,
-            tags={"tainted": True},
-            sample_rate=1.0,
-        )
-        metrics.incr(
-            "workflow_engine.delayed_workflow.workflow_if_conditions_evaluated",
-            amount=self.untainted,
-            tags={"tainted": False},
-            sample_rate=1.0,
-        )
-
 
 @sentry_sdk.trace
 def get_groups_to_fire(
@@ -890,7 +876,18 @@ def process_delayed_workflows(
         condition_group_results,
         dcg_to_slow_conditions,
     )
-    trigger_stats.report()
+    metrics.incr(
+        "workflow_engine.delayed_workflow.workflow_if_conditions_evaluated",
+        amount=trigger_stats.tainted,
+        tags={"tainted": True},
+        sample_rate=1.0,
+    )
+    metrics.incr(
+        "workflow_engine.delayed_workflow.workflow_if_conditions_evaluated",
+        amount=trigger_stats.untainted,
+        tags={"tainted": False},
+        sample_rate=1.0,
+    )
     logger.debug(
         "delayed_workflow.groups_to_fire",
         extra={
