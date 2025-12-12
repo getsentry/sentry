@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
@@ -15,14 +15,12 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {parseAsSort} from 'sentry/utils/queryString';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 import ProjectTableHeader from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableHeader';
 import SeerProjectTableRow from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableRow';
 
 export default function SeerProjectTable() {
-  const organization = useOrganization();
   const {projects, fetching, fetchError} = useProjects();
 
   const [searchTerm, setSearchTerm] = useQueryState(
@@ -35,7 +33,7 @@ export default function SeerProjectTable() {
     parseAsSort.withDefault({field: 'project', kind: 'asc'})
   );
 
-  const queryKey: ApiQueryKey = ['seer-projects', {query: {query: searchTerm}}];
+  const queryKey: ApiQueryKey = ['seer-projects', {query: {query: searchTerm, sort}}];
 
   const sortedProjects = useMemo(() => {
     return projects.toSorted((a, b) => {
@@ -102,29 +100,23 @@ export default function SeerProjectTable() {
   }
 
   return (
-    <Fragment>
-      <ListItemCheckboxProvider
-        hits={filteredProjects.length}
-        knownIds={filteredProjects.map(project => project.id)}
-        queryKey={queryKey}
+    <ListItemCheckboxProvider
+      hits={filteredProjects.length}
+      knownIds={filteredProjects.map(project => project.id)}
+      queryKey={queryKey}
+    >
+      <ProjectTable
+        projects={filteredProjects}
+        onSortClick={setSort}
+        sort={sort}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
       >
-        <ProjectTable
-          projects={filteredProjects}
-          onSortClick={setSort}
-          sort={sort}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-        >
-          {filteredProjects.map(project => (
-            <SeerProjectTableRow
-              key={project.id}
-              project={project}
-              organization={organization}
-            />
-          ))}
-        </ProjectTable>
-      </ListItemCheckboxProvider>
-    </Fragment>
+        {filteredProjects.map(project => (
+          <SeerProjectTableRow key={project.id} project={project} />
+        ))}
+      </ProjectTable>
+    </ListItemCheckboxProvider>
   );
 }
 
