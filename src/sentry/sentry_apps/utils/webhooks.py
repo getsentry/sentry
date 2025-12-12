@@ -47,6 +47,10 @@ class SeerActionType(SentryAppActionType):
     SOLUTION_COMPLETED = "solution_completed"
     CODING_STARTED = "coding_started"
     CODING_COMPLETED = "coding_completed"
+    TRIAGE_STARTED = "triage_started"
+    TRIAGE_COMPLETED = "triage_completed"
+    IMPACT_ASSESSMENT_STARTED = "impact_assessment_started"
+    IMPACT_ASSESSMENT_COMPLETED = "impact_assessment_completed"
     PR_CREATED = "pr_created"
 
 
