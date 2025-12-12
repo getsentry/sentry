@@ -64,7 +64,7 @@ const legacyInputStyles = (p: InputStylesProps & {theme: Theme}) => css`
     border 0.1s,
     box-shadow 0.1s;
 
-  ${p.monospace ? `font-family: ${p.theme.text.familyMono};` : ''}
+  ${p.monospace ? `font-family: ${p.theme.font.family.mono};` : ''}
   ${p.readOnly ? 'cursor: default;' : ''}
 
   font-size: ${p.theme.form[p.size ?? 'md'].fontSize};
