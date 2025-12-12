@@ -16,7 +16,14 @@ from sentry.testutils.helpers.github import GitHubWebhookTestCase
 class CheckRunEventWebhookTest(GitHubWebhookTestCase):
     def _send_check_run_event(self, event_data: bytes | str) -> Response:
         """Helper to send check_run event."""
-        self.create_github_integration()
+        integration = self.create_github_integration()
+        # Create a repository that matches the fixture's repository.id (35129377)
+        self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="35129377",
+            integration_id=integration.id,
+        )
         response = self.send_github_webhook_event("check_run", event_data)
         assert response.status_code == 204
         return response
