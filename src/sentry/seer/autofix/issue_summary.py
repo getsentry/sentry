@@ -18,6 +18,7 @@ from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autofix
+from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     FixabilityScoreThresholds,
@@ -169,13 +170,24 @@ def _trigger_autofix_task(
         else:
             user = AnonymousUser()
 
-        trigger_autofix(
-            group=group,
-            event_id=event_id,
-            user=user,
-            auto_run_source=auto_run_source,
-            stopping_point=stopping_point,
-        )
+        # Route to explorer-based autofix if both feature flags are enabled
+        if features.has("organizations:seer-explorer", group.organization) and features.has(
+            "organizations:autofix-on-explorer", group.organization
+        ):
+            trigger_autofix_explorer(
+                group=group,
+                step=AutofixStep.ROOT_CAUSE,
+                run_id=None,
+                stopping_point=stopping_point,
+            )
+        else:
+            trigger_autofix(
+                group=group,
+                event_id=event_id,
+                user=user,
+                auto_run_source=auto_run_source,
+                stopping_point=stopping_point,
+            )
 
 
 def _get_event(

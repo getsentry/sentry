@@ -9,6 +9,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -29,6 +30,11 @@ from sentry.models.group import Group
 from sentry.models.repository import Repository
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix import trigger_autofix
+from sentry.seer.autofix.autofix_agent import (
+    AutofixStep,
+    get_autofix_explorer_state,
+    trigger_autofix_explorer,
+)
 from sentry.seer.autofix.types import AutofixPostResponse, AutofixStateResponse
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_autofix_state
 from sentry.seer.models import SeerPermissionError
@@ -56,6 +62,21 @@ class AutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         choices=["root_cause", "solution", "code_changes", "open_pr"],
         help_text="Where the issue fix process should stop. If not provided, will run to root cause.",
+    )
+
+
+class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
+    """Serializer for Explorer-based autofix requests."""
+
+    step = serializers.ChoiceField(
+        required=False,
+        choices=["root_cause", "solution", "code_changes", "impact_assessment", "triage"],
+        default="root_cause",
+        help_text="Which autofix step to run.",
+    )
+    run_id = serializers.IntegerField(
+        required=False,
+        help_text="Existing run ID to continue. If not provided, starts a new run.",
     )
 
 
@@ -112,6 +133,35 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         The process runs asynchronously, and you can get the state using the GET endpoint.
         """
+        # Route based on feature flags - requires both seer-explorer and autofix-on-explorer
+        if features.has(
+            "organizations:seer-explorer", group.organization, actor=request.user
+        ) and features.has(
+            "organizations:autofix-on-explorer", group.organization, actor=request.user
+        ):
+            return self._post_explorer(request, group)
+        return self._post_legacy(request, group)
+
+    def _post_explorer(self, request: Request, group: Group) -> Response:
+        """Handle POST for Explorer-based autofix."""
+        serializer = ExplorerAutofixRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        data = serializer.validated_data
+
+        try:
+            run_id = trigger_autofix_explorer(
+                group=group,
+                step=AutofixStep(data.get("step", "root_cause")),
+                run_id=data.get("run_id"),
+            )
+            return Response({"run_id": run_id}, status=202)
+        except SeerPermissionError as e:
+            raise PermissionDenied(str(e))
+
+    def _post_legacy(self, request: Request, group: Group) -> Response:
+        """Handle POST for legacy autofix."""
         serializer = AutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -159,7 +209,45 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         This endpoint although documented is still experimental and the payload may change in the future.
         """
+        # Route based on feature flags - requires both seer-explorer and autofix-on-explorer
+        if features.has(
+            "organizations:seer-explorer", group.organization, actor=request.user
+        ) and features.has(
+            "organizations:autofix-on-explorer", group.organization, actor=request.user
+        ):
+            return self._get_explorer(request, group)
+        return self._get_legacy(request, group)
 
+    def _get_explorer(self, request: Request, group: Group) -> Response:
+        """Handle GET for Explorer-based autofix."""
+        try:
+            state = get_autofix_explorer_state(group.organization, group.id)
+        except SeerPermissionError as e:
+            raise PermissionDenied(str(e))
+
+        if state is None:
+            return Response({"autofix": None})
+
+        # Return the Explorer state directly - frontend will handle the format
+        return Response(
+            {
+                "autofix": {
+                    "run_id": state.run_id,
+                    "status": state.status,
+                    "blocks": [block.dict() for block in state.blocks],
+                    "updated_at": state.updated_at,
+                    "pending_user_input": (
+                        state.pending_user_input.dict() if state.pending_user_input else None
+                    ),
+                    "repo_pr_states": {
+                        repo: pr_state.dict() for repo, pr_state in state.repo_pr_states.items()
+                    },
+                }
+            }
+        )
+
+    def _get_legacy(self, request: Request, group: Group) -> Response:
+        """Handle GET for legacy autofix."""
         access_check_cache_key = f"autofix_access_check:{group.id}"
         access_check_cache_value = cache.get(access_check_cache_key)
 
