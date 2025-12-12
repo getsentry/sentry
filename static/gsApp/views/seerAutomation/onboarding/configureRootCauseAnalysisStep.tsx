@@ -302,7 +302,7 @@ export function ConfigureRootCauseAnalysisStep() {
           size="md"
           onClick={handleNextStep}
           priority={isFinishDisabled ? 'default' : 'primary'}
-          disabled={isFinishDisabled}
+          disabled={isSubmitOnboardingPending || isFinishDisabled}
           aria-label={t('Last Step')}
         >
           {t('Last Step')}
