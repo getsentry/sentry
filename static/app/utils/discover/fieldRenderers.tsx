@@ -920,6 +920,18 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       );
     },
   },
+  'opportunity_score(measurements.score.total)': {
+    sortField: 'opportunity_score(measurements.score.total)',
+    renderFunc: data => {
+      const score = data['opportunity_score(measurements.score.total)'];
+      if (typeof score !== 'number') {
+        return <Container>{emptyValue}</Container>;
+      }
+      return (
+        <RightAlignedContainer>{Math.round(score * 10000) / 100}</RightAlignedContainer>
+      );
+    },
+  },
   'browser.name': {
     sortField: 'browser.name',
     renderFunc: data => {
