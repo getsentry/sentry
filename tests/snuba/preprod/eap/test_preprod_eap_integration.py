@@ -83,8 +83,12 @@ class PreprodEAPIntegrationTest(SnubaTestCase):
 
         columns = {cv.attribute_name: idx for idx, cv in enumerate(response.column_values)}
 
-        assert response.column_values[columns["preprod_artifact_id"]].results[0].val_int == artifact.id
-        assert response.column_values[columns["size_metric_id"]].results[0].val_int == size_metric.id
+        assert (
+            response.column_values[columns["preprod_artifact_id"]].results[0].val_int == artifact.id
+        )
+        assert (
+            response.column_values[columns["size_metric_id"]].results[0].val_int == size_metric.id
+        )
         assert (
             response.column_values[columns["metrics_artifact_type"]].results[0].val_int
             == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
@@ -94,15 +98,24 @@ class PreprodEAPIntegrationTest(SnubaTestCase):
         assert response.column_values[columns["min_install_size"]].results[0].val_int == 1000
         assert response.column_values[columns["min_download_size"]].results[0].val_int == 500
 
-        assert response.column_values[columns["app_id"]].results[0].val_str == "com.example.integrationtest"
-        assert response.column_values[columns["app_name"]].results[0].val_str == "Integration Test App"
+        assert (
+            response.column_values[columns["app_id"]].results[0].val_str
+            == "com.example.integrationtest"
+        )
+        assert (
+            response.column_values[columns["app_name"]].results[0].val_str == "Integration Test App"
+        )
         assert response.column_values[columns["build_version"]].results[0].val_str == "1.0.0"
         assert response.column_values[columns["build_number"]].results[0].val_int == 100
         assert (
-            response.column_values[columns["artifact_type"]].results[0].val_int == PreprodArtifact.ArtifactType.XCARCHIVE
+            response.column_values[columns["artifact_type"]].results[0].val_int
+            == PreprodArtifact.ArtifactType.XCARCHIVE
         )
 
-        assert response.column_values[columns["build_configuration_name"]].results[0].val_str == "Release"
+        assert (
+            response.column_values[columns["build_configuration_name"]].results[0].val_str
+            == "Release"
+        )
         assert response.column_values[columns["git_head_sha"]].results[0].val_str == "abc123def456"
         assert response.column_values[columns["git_head_ref"]].results[0].val_str == "main"
 
