@@ -5,6 +5,7 @@ from collections.abc import Callable
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
+from django.utils import timezone
 from pydantic import BaseModel
 
 from sentry.seer.autofix.artifact_schemas import (
@@ -179,6 +180,8 @@ def trigger_autofix_explorer(
             artifact_key=step.value if config.artifact_schema else None,
             artifact_schema=config.artifact_schema,
         )
+
+    group.update(seer_autofix_last_triggered=timezone.now())
 
     # Send "started" webhook after we have the run_id
     webhook_action_type = get_step_webhook_action_type(step, is_completed=False)
