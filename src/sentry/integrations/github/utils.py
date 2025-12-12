@@ -88,22 +88,22 @@ def parse_github_blob_url(repo_url: str, source_url: str) -> tuple[str, str]:
     return branch, remainder.lstrip("/")
 
 
-def _is_code_review_enabled_for_repo(repo: Repository) -> bool:
+def _is_code_review_enabled_for_repo(repository_id: int) -> bool:
     """Check if code review is explicitly enabled for this repository."""
     return RepositorySettings.objects.filter(
-        repository=repo,
+        repository_id=repository_id,
         enabled_code_review=True,
     ).exists()
 
 
-def _is_autofix_enabled_for_repo(organization: Organization, repo: Repository) -> bool:
+def _is_autofix_enabled_for_repo(organization_id: int, repository_id: int) -> bool:
     """
     Check if autofix automation is enabled (not "off") for any project
     associated with this repository via code mappings.
     """
     repo_configs = RepositoryProjectPathConfig.objects.filter(
-        repository=repo,
-        organization_id=organization.id,
+        repository_id=repository_id,
+        organization_id=organization_id,
     ).values_list("project_id", flat=True)
 
     if not repo_configs:
@@ -121,30 +121,27 @@ def _is_autofix_enabled_for_repo(organization: Organization, repo: Repository) -
     )
 
 
-def _has_code_review_or_autofix_enabled(organization: Organization, repo: Repository) -> bool:
+def _has_code_review_or_autofix_enabled(organization_id: int, repository_id: int) -> bool:
     """
     Check if either code review is enabled for the repo OR autofix automation
     is enabled for any linked project.
     """
-    return _is_code_review_enabled_for_repo(repo) or _is_autofix_enabled_for_repo(
-        organization, repo
+    return _is_code_review_enabled_for_repo(repository_id) or _is_autofix_enabled_for_repo(
+        organization_id, repository_id
     )
 
 
-def _contributor_has_seat(
-    organization: Organization, repo: Repository, external_identifier: str
-) -> bool:
+def _get_contributor(
+    organization_id: int, integration_id: int, external_identifier: str
+) -> OrganizationContributors | None:
     """
-    Check if a contributor already has a seat (OrganizationContributors record exists).
+    Get the OrganizationContributors record for a contributor if it exists.
     """
-    if repo.integration_id is None:
-        return False
-
     return OrganizationContributors.objects.filter(
-        organization=organization,
-        integration_id=repo.integration_id,
+        organization_id=organization_id,
+        integration_id=integration_id,
         external_identifier=external_identifier,
-    ).exists()
+    ).first()
 
 
 def should_create_or_increment_contributor_seat(
@@ -159,58 +156,51 @@ def should_create_or_increment_contributor_seat(
     Logic:
     1. Exclude organizations in code-review-beta cohort (they use a different flow)
     2. Require code review OR autofix to be enabled for the repo
-    3. If contributor already has a seat, allow (even if quota exhausted)
-    4. If no existing seat, require Seer quota to be available
-
-    Args:
-        organization: The organization to check
-        repo: The repository from the webhook
-        external_identifier: The GitHub user identifier (e.g., GitHub user ID)
-
-    Returns:
-        True if we should create/increment the contributor seat
+    3. Check Seer quota (returns True if contributor has seat OR quota available)
     """
     if features.has("organizations:code-review-beta", organization):
         return False
 
-    if not _has_code_review_or_autofix_enabled(organization, repo):
+    if not _has_code_review_or_autofix_enabled(organization.id, repo.id):
         return False
 
-    if _contributor_has_seat(organization, repo, external_identifier):
-        return True
+    if repo.integration_id is None:
+        return False
 
-    has_seer_quota: bool = quotas.backend.check_seer_quota(
-        org_id=organization.id, data_category=DataCategory.SEER_USER
+    contributor = _get_contributor(organization.id, repo.integration_id, external_identifier)
+    return quotas.backend.check_seer_quota(
+        org_id=organization.id,
+        data_category=DataCategory.SEER_USER,
+        seat_object=contributor,
     )
-    return has_seer_quota
 
 
-def should_forward_to_overwatch(
-    organization: Organization, repo: Repository, external_identifier: str
+def is_eligible_for_overwatch_forwarding(
+    organization: Organization,
+    integration_id: int,
+    repository_id: int | None,
+    external_identifier: str,
 ) -> bool:
     """
     Guard for forwarding webhooks to Overwatch for AI code review.
 
+    Takes an Organization object (needed for feature flag check) but uses
+    IDs for repository and integration to avoid needing full model objects.
+
     Determines if we should forward a webhook to Overwatch based on:
-    1. Organization is NOT in code-review-beta cohort
-    2. Repository has code review explicitly enabled (not autofix)
-    3. Contributor already has an assigned seat
-
-    Args:
-        organization: The organization to check
-        repo: The repository from the webhook
-        external_identifier: The GitHub user identifier (e.g., GitHub user ID)
-
-    Returns:
-        True if we should forward the webhook to Overwatch
+    1. Organization IS in code-review-beta cohort (always forward), OR
+    2. Repository has code review explicitly enabled
+    3. Contributor has a seat
     """
     if features.has("organizations:code-review-beta", organization):
         return True
 
-    if not _is_code_review_enabled_for_repo(repo):
+    # Non-beta orgs require a valid repository
+    if repository_id is None:
         return False
 
-    if not _contributor_has_seat(organization, repo, external_identifier):
+    if not _is_code_review_enabled_for_repo(repository_id):
         return False
 
-    return True
+    contributor = _get_contributor(organization.id, integration_id, external_identifier)
+    return contributor is not None

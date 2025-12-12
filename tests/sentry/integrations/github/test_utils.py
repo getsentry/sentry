@@ -3,13 +3,15 @@ from unittest.mock import patch
 import pytest
 
 from sentry.integrations.github.utils import (
-    has_seer_and_ai_features_enabled_for_repo,
+    is_eligible_for_overwatch_forwarding,
     parse_github_blob_url,
+    should_create_or_increment_contributor_seat,
 )
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.testutils.cases import TestCase
 
 
-class HasSeerAndAiFeaturesEnabledForRepoTest(TestCase):
+class ShouldCreateOrIncrementContributorSeatTest(TestCase):
     def setUp(self):
         super().setUp()
         self.integration = self.create_integration(
@@ -22,65 +24,146 @@ class HasSeerAndAiFeaturesEnabledForRepoTest(TestCase):
             provider="integrations:github",
             integration_id=self.integration.id,
         )
+        self.external_identifier = "12345"
 
-    @patch(
-        "sentry.integrations.github.utils.get_seer_org_acknowledgement",
-        return_value=False,
-    )
-    def test_returns_false_when_seer_not_acknowledged(self, mock_seer_ack):
-        result = has_seer_and_ai_features_enabled_for_repo(self.organization, self.repo)
-        assert result is False
-
-    @patch(
-        "sentry.integrations.github.utils.get_seer_org_acknowledgement",
-        return_value=True,
-    )
-    def test_returns_false_when_no_code_mappings(self, mock_seer_ack):
-        result = has_seer_and_ai_features_enabled_for_repo(self.organization, self.repo)
-        assert result is False
-
-    @patch(
-        "sentry.integrations.github.utils.get_seer_org_acknowledgement",
-        return_value=True,
-    )
-    def test_returns_false_when_ai_features_disabled(self, mock_seer_ack):
+    def test_returns_false_for_code_review_beta_orgs(self):
         self.create_code_mapping(project=self.project, repo=self.repo)
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
 
-        result = has_seer_and_ai_features_enabled_for_repo(self.organization, self.repo)
-        assert result is False
-
-    @patch(
-        "sentry.integrations.github.utils.get_seer_org_acknowledgement",
-        return_value=True,
-    )
-    def test_returns_true_when_gen_ai_features_enabled(self, mock_seer_ack):
-        self.create_code_mapping(project=self.project, repo=self.repo)
-
-        with self.feature("organizations:gen-ai-features"):
-            result = has_seer_and_ai_features_enabled_for_repo(self.organization, self.repo)
-            assert result is True
-
-    @patch(
-        "sentry.integrations.github.utils.get_seer_org_acknowledgement",
-        return_value=True,
-    )
-    def test_returns_false_when_gen_ai_features_enabled_but_hidden(self, mock_seer_ack):
-        self.create_code_mapping(project=self.project, repo=self.repo)
-        self.organization.update_option("sentry:hide_ai_features", True)
-
-        with self.feature("organizations:gen-ai-features"):
-            result = has_seer_and_ai_features_enabled_for_repo(self.organization, self.repo)
+        with self.feature("organizations:code-review-beta"):
+            result = should_create_or_increment_contributor_seat(
+                self.organization, self.repo, self.external_identifier
+            )
             assert result is False
 
-    @patch(
-        "sentry.integrations.github.utils.get_seer_org_acknowledgement",
-        return_value=True,
-    )
-    def test_returns_true_when_ai_code_review_enabled(self, mock_seer_ack):
-        self.create_code_mapping(project=self.project, repo=self.repo)
-        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+    def test_returns_false_when_no_code_review_or_autofix_enabled(self):
+        result = should_create_or_increment_contributor_seat(
+            self.organization, self.repo, self.external_identifier
+        )
+        assert result is False
 
-        result = has_seer_and_ai_features_enabled_for_repo(self.organization, self.repo)
+    def test_returns_false_when_repo_has_no_integration_id(self):
+        repo_no_integration = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            integration_id=None,
+        )
+        self.create_repository_settings(repository=repo_no_integration, enabled_code_review=True)
+
+        result = should_create_or_increment_contributor_seat(
+            self.organization, repo_no_integration, self.external_identifier
+        )
+        assert result is False
+
+    @patch("sentry.integrations.github.utils.quotas.backend.check_seer_quota", return_value=True)
+    def test_returns_true_when_code_review_enabled_and_quota_available(self, mock_quota):
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+
+        result = should_create_or_increment_contributor_seat(
+            self.organization, self.repo, self.external_identifier
+        )
+        assert result is True
+        mock_quota.assert_called_once()
+
+    @patch("sentry.integrations.github.utils.quotas.backend.check_seer_quota", return_value=False)
+    def test_returns_false_when_quota_not_available(self, mock_quota):
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+
+        result = should_create_or_increment_contributor_seat(
+            self.organization, self.repo, self.external_identifier
+        )
+        assert result is False
+
+    @patch("sentry.integrations.github.utils.quotas.backend.check_seer_quota", return_value=True)
+    def test_returns_true_when_autofix_enabled(self, mock_quota):
+        self.create_code_mapping(project=self.project, repo=self.repo)
+        self.project.update_option("sentry:autofix_automation_tuning", "medium")
+
+        result = should_create_or_increment_contributor_seat(
+            self.organization, self.repo, self.external_identifier
+        )
+        assert result is True
+
+
+class IsEligibleForOverwatchForwardingTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github:1",
+        )
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+        )
+        self.external_identifier = "12345"
+
+    def test_returns_true_for_code_review_beta_orgs(self):
+        with self.feature("organizations:code-review-beta"):
+            result = is_eligible_for_overwatch_forwarding(
+                organization=self.organization,
+                integration_id=self.integration.id,
+                repository_id=self.repo.id,
+                external_identifier=self.external_identifier,
+            )
+            assert result is True
+
+    def test_returns_true_for_beta_orgs_even_without_repo(self):
+        with self.feature("organizations:code-review-beta"):
+            result = is_eligible_for_overwatch_forwarding(
+                organization=self.organization,
+                integration_id=self.integration.id,
+                repository_id=None,
+                external_identifier=self.external_identifier,
+            )
+            assert result is True
+
+    def test_returns_false_when_repository_id_is_none(self):
+        result = is_eligible_for_overwatch_forwarding(
+            organization=self.organization,
+            integration_id=self.integration.id,
+            repository_id=None,
+            external_identifier=self.external_identifier,
+        )
+        assert result is False
+
+    def test_returns_false_when_code_review_not_enabled(self):
+        result = is_eligible_for_overwatch_forwarding(
+            organization=self.organization,
+            integration_id=self.integration.id,
+            repository_id=self.repo.id,
+            external_identifier=self.external_identifier,
+        )
+        assert result is False
+
+    def test_returns_false_when_contributor_has_no_seat(self):
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+
+        result = is_eligible_for_overwatch_forwarding(
+            organization=self.organization,
+            integration_id=self.integration.id,
+            repository_id=self.repo.id,
+            external_identifier=self.external_identifier,
+        )
+        assert result is False
+
+    def test_returns_true_when_code_review_enabled_and_contributor_has_seat(self):
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+
+        OrganizationContributors.objects.create(
+            organization=self.organization,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+        )
+
+        result = is_eligible_for_overwatch_forwarding(
+            organization=self.organization,
+            integration_id=self.integration.id,
+            repository_id=self.repo.id,
+            external_identifier=self.external_identifier,
+        )
         assert result is True
 
 
