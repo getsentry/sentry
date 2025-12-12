@@ -111,7 +111,7 @@ function confidenceMessage({
         ? t('%s matches', <Count value={sampleCount} />)
         : t('%s match', <Count value={sampleCount} />);
 
-    const totalSpansCount = rawSpanCounts.highAccuracy.count ? (
+    const totalSpansCount = defined(rawSpanCounts.highAccuracy.count) ? (
       rawSpanCounts.highAccuracy.count > 1 ? (
         t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
       ) : (
@@ -146,7 +146,7 @@ function confidenceMessage({
           ? t('%s samples', <Count value={sampleCount} />)
           : t('%s sample', <Count value={sampleCount} />);
 
-      const totalSpansCount = rawSpanCounts.highAccuracy.count ? (
+      const totalSpansCount = defined(rawSpanCounts.highAccuracy.count) ? (
         rawSpanCounts.highAccuracy.count > 1 ? (
           t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
         ) : (
@@ -219,7 +219,7 @@ function confidenceMessage({
         ? t('%s matches', <Count value={sampleCount} />)
         : t('%s match', <Count value={sampleCount} />);
 
-    const scannedSpansCount = rawSpanCounts.normal.count ? (
+    const scannedSpansCount = defined(rawSpanCounts.normal.count) ? (
       rawSpanCounts.normal.count > 1 ? (
         t('%s samples', <Count value={rawSpanCounts.normal.count} />)
       ) : (
@@ -229,7 +229,7 @@ function confidenceMessage({
       <Placeholder width={40} />
     );
 
-    const totalSpansCount = rawSpanCounts.highAccuracy.count ? (
+    const totalSpansCount = defined(rawSpanCounts.highAccuracy.count) ? (
       rawSpanCounts.highAccuracy.count > 1 ? (
         t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
       ) : (
@@ -273,7 +273,7 @@ function confidenceMessage({
       ? t('%s matches', <Count value={sampleCount} />)
       : t('%s match', <Count value={sampleCount} />);
 
-  const totalSpansCount = rawSpanCounts.highAccuracy.count ? (
+  const totalSpansCount = defined(rawSpanCounts.highAccuracy.count) ? (
     rawSpanCounts.highAccuracy.count > 1 ? (
       t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
     ) : (
