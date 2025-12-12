@@ -14,11 +14,12 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
-from sentry.workflow_engine.typings.notification_action import ActionTarget
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = [requires_snuba]
@@ -53,7 +54,8 @@ class NotifyEventServiceActionTest(RuleTestCase, BaseWorkflowTest):
         webhook.set_option(project=self.project, key="urls", value="http://my-fake-webhook.io")
         webhook.set_option(project=self.project, key="enabled", value=True)
 
-        Rule.objects.create(
+        rule = Rule.objects.create(
+            label="bad stuff happening",
             project=self.event.project,
             data={
                 "conditions": [
@@ -69,10 +71,6 @@ class NotifyEventServiceActionTest(RuleTestCase, BaseWorkflowTest):
             },
         )
 
-        # results = list(rule.after(event=event))
-        # assert len(results) == 1
-        # webhook.rule_notify(event=event, futures=results)
-
         with self.tasks():
             post_process_group(
                 is_new=True,
@@ -84,9 +82,6 @@ class NotifyEventServiceActionTest(RuleTestCase, BaseWorkflowTest):
                 eventstream_type=EventStreamEventType.Error.value,
             )
 
-        # futures = [RuleFuture(rule, {})]
-        # webhook.rule_notify(self.event, futures)
-
         assert len(responses.calls) == 1
 
         payload = json.loads(responses.calls[0].request.body)
@@ -94,36 +89,46 @@ class NotifyEventServiceActionTest(RuleTestCase, BaseWorkflowTest):
         assert payload["message"] == "こんにちは"
         assert payload["event"]["id"] == self.event.event_id
         assert payload["event"]["event_id"] == self.event.event_id
-        # assert payload["triggering_rules"] == ['Send a notification via {service}']
+        assert payload["triggering_rules"] == [rule.label]
 
     @responses.activate
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    @with_feature("organizations:workflow-engine-ui-links")
+    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_applies_correctly_for_legacy_webhooks_aci(self):
-        self.event = self.get_event()
+        event = self.get_event()
         webhook = WebHooksPlugin()
         responses.add(responses.POST, "http://my-fake-webhook.io")
         webhook.set_option(project=self.project, key="urls", value="http://my-fake-webhook.io")
         webhook.set_option(project=self.project, key="enabled", value=True)
 
-        # create ACI objects
         (
-            self.error_workflow,
-            self.error_detector,
-            self.detector_workflow_error,
-            self.condition_group,
+            error_workflow,
+            error_detector,
+            detector_workflow_error,
+            condition_group,
         ) = self.create_detector_and_workflow(
             name_prefix="error",
             workflow_triggers=self.create_data_condition_group(),
             detector_type=ErrorGroupType.slug,
         )
         self.create_workflow_data_condition_group(
-            workflow=self.error_workflow, condition_group=self.condition_group
+            workflow=error_workflow, condition_group=condition_group
         )
-        self.issue_owners_action_config = {
-            "target_type": ActionTarget.ISSUE_OWNERS.value,
-            "target_display": None,
-            "target_identifier": None,
-        }
-        self.issue_stream_detector = self.create_detector(
+        # create webhook action
+        action = self.create_action(
+            config={
+                "target_type": None,
+                "target_display": None,
+                "target_identifier": "webhooks",
+            },
+            type="webhook",
+            data={},
+        )
+        self.create_data_condition_group_action(condition_group=condition_group, action=action)
+
+        # create issue stream detector
+        self.create_detector(
             project=self.project,
             type=IssueStreamGroupType.slug,
         )
@@ -133,7 +138,7 @@ class NotifyEventServiceActionTest(RuleTestCase, BaseWorkflowTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
+                cache_key=write_event_to_cache(event),
                 group_id=self.event.group_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
@@ -146,7 +151,7 @@ class NotifyEventServiceActionTest(RuleTestCase, BaseWorkflowTest):
         assert payload["message"] == "こんにちは"
         assert payload["event"]["id"] == self.event.event_id
         assert payload["event"]["event_id"] == self.event.event_id
-        # assert payload["triggering_rules"] == ['Send a notification via {service}']
+        assert payload["triggering_rules"] == ["error detector"]
 
     def test_applies_correctly_for_sentry_apps(self) -> None:
         event = self.get_event()
