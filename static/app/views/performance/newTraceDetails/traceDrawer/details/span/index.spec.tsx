@@ -63,12 +63,6 @@ describe('SpanNodeDetails', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      body: {data: []},
-    });
-
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/logs/`,
       method: 'GET',
       body: {data: []},
