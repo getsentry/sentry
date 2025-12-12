@@ -125,10 +125,7 @@ function SeerCta({action, footerText}: {action: React.ReactNode; footerText?: st
         height="100%"
       >
         <Container>
-          <Image
-            src={seerConfigMainImg}
-            alt={t('Find and fix issues anywhere with Seer AI debugger')}
-          />
+          <Image src={seerConfigMainImg} alt="" />
         </Container>
         <Flex direction="column" gap="md">
           <Text align="center" size="xl" bold>
@@ -358,7 +355,7 @@ function SetupCta({
     <Cta
       isBanner={false}
       image={seerConfigSeerImg}
-      imageAlt={t('Get started with Seer')}
+      imageAlt=""
       title={t('Get started with Seer')}
       subtitle={t(
         'Finish connecting to Github, configure your repositories and projects, and start getting the most out of Seer.'
