@@ -1,5 +1,5 @@
+import {isTraceSplitResult} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {isTraceSplitResult} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceRootRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceRootNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
@@ -21,7 +21,7 @@ export class TraceNode extends BaseNode<TraceTree.Trace> {
     this.canShowDetails = false;
     this.id = 'root';
     this.type = 'trace';
-
+    this.isEAPEvent = !isTraceSplitResult(this.value);
     this.parent?.children.push(this);
   }
 
