@@ -10,6 +10,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 
 
+@pytest.mark.xdist_unsafe
 @no_silo_test
 class TraceViewWaterfallTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
     viewname = "sentry-api-0-organization-trace"
@@ -41,7 +42,6 @@ class TraceViewWaterfallTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
         self.dismiss_assistant()
 
     @patch("django.utils.timezone.now")
-
     def test_trace_view_waterfall_loads(self, mock_now: MagicMock) -> None:
         mock_now.return_value = self.start
 

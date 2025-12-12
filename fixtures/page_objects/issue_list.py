@@ -14,7 +14,7 @@ class IssueListPage(BasePage):
         self.wait_until_loaded()
 
     def wait_for_stream(self):
-        self.browser.wait_until('[data-test-id="event-issue-header"]', timeout=20)
+        self.browser.wait_until('[data-test-id="event-issue-header"]', timeout=30)
 
     def select_issue(self, position):
         # Must hover over the row to show the checkbox

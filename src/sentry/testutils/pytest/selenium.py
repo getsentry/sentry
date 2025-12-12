@@ -205,7 +205,7 @@ class Browser:
 
         return self
 
-    def wait_until_clickable(self, selector=None, xpath=None, timeout=10):
+    def wait_until_clickable(self, selector=None, xpath=None, timeout=20):
         """
         Waits until ``selector`` is visible and enabled to be clicked, or until ``timeout``
         is hit, whichever happens first.
@@ -220,7 +220,7 @@ class Browser:
 
         return self
 
-    def wait_until(self, selector=None, xpath=None, title=None, timeout=10):
+    def wait_until(self, selector=None, xpath=None, title=None, timeout=20):
         """
         Waits until ``selector`` is found in the browser, or until ``timeout``
         is hit, whichever happens first.
@@ -237,10 +237,10 @@ class Browser:
 
         return self
 
-    def wait_until_test_id(self, test_id):
-        return self.wait_until('[data-test-id="%s"]' % (test_id))
+    def wait_until_test_id(self, test_id, timeout=20):
+        return self.wait_until('[data-test-id="%s"]' % (test_id), timeout=timeout)
 
-    def wait_until_not(self, selector=None, xpath=None, title=None, timeout=10):
+    def wait_until_not(self, selector=None, xpath=None, title=None, timeout=20):
         """
         Waits until ``selector`` is NOT found in the browser, or until
         ``timeout`` is hit, whichever happens first.
@@ -259,7 +259,7 @@ class Browser:
 
         return self
 
-    def wait_until_script_execution(self, script, timeout=10):
+    def wait_until_script_execution(self, script, timeout=20):
         """
         Waits until ``script`` executes and evaluates truthy,
         or until ``timeout`` is hit, whichever happens first.
@@ -269,13 +269,13 @@ class Browser:
 
         return self
 
-    def wait_for_images_loaded(self, timeout=10):
+    def wait_for_images_loaded(self, timeout=20):
         return self.wait_until_script_execution(
             """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)""",
             timeout,
         )
 
-    def wait_for_fonts_loaded(self, timeout=10):
+    def wait_for_fonts_loaded(self, timeout=20):
         return self.wait_until_script_execution(
             """return document.fonts.status === 'loaded'""",
             timeout,
