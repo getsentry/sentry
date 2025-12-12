@@ -899,7 +899,7 @@ class SnubaTagStorage(TagStorage):
         end: datetime | None,
     ) -> dict[str, dict[str, Any]]:
         """
-        Two-query subtraction approach: empty_count(k) = total_events - non_empty_events(k).
+        Two-query subtraction: empty_count(k) = total_events - non_empty_events(k).
 
         Avoids per-key countIf that can exceed ClickHouse query-size limits.
         """
