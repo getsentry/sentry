@@ -1035,9 +1035,14 @@ class PullRequestEventWebhook(APITestCase):
             name="baxterthehacker/public-repo",
         )
 
-        self._create_integration_and_send_pull_request_opened_event()
+        integration = self._create_integration_and_send_pull_request_opened_event()
 
-        assert OrganizationContributors.objects.count() == 0
+        contributor = OrganizationContributors.objects.get(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_identifier="6752317",
+        )
+        assert contributor.num_actions == 0
         mock_assign_seat.delay.assert_not_called()
 
     @patch("sentry.integrations.github.webhook.assign_seat_to_organization_contributor")
@@ -1068,9 +1073,9 @@ class PullRequestEventWebhook(APITestCase):
         assert contributor.num_actions == 1
         mock_assign_seat.delay.assert_not_called()
 
-    @patch("sentry.integrations.github.webhook.should_create_or_increment_contributor_seat")
+    @patch("sentry.integrations.github.webhook.assign_seat_to_organization_contributor")
     @patch(
-        "sentry.integrations.github.webhook.has_seer_and_ai_features_enabled_for_repo",
+        "sentry.integrations.github.webhook.should_create_or_increment_contributor_seat",
         return_value=True,
     )
     def test_seat_assignment_triggered_when_contributor_becomes_active(
