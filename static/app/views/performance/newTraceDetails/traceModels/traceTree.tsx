@@ -16,18 +16,15 @@ import type {
 } from 'sentry/views/performance/newTraceDetails/traceApi/types';
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import {isTraceSplitResult} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {
   isEAPError,
   isEAPSpan,
-  isJavascriptSDKEvent,
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
-  isRootEvent,
   isSiblingAutogroupedNode,
   isTraceError,
-  isTraceSplitResult,
   isUptimeCheck,
-  shouldAddMissingInstrumentationSpan,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {
   collectTraceMeasurements,
@@ -1554,4 +1551,51 @@ const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation', 'ui.load'];
 function hasPreferredOp(node: BaseNode): boolean {
   const op = node.op;
   return !!op && CANDIDATE_TRACE_TITLE_OPS.includes(op);
+}
+
+function shouldAddMissingInstrumentationSpan(sdk: string | undefined): boolean {
+  if (!sdk) {
+    return true;
+  }
+  if (sdk.length < 'sentry.javascript.'.length) {
+    return true;
+  }
+
+  switch (sdk.toLowerCase()) {
+    case 'sentry.javascript.browser':
+    case 'sentry.javascript.react':
+    case 'sentry.javascript.gatsby':
+    case 'sentry.javascript.ember':
+    case 'sentry.javascript.vue':
+    case 'sentry.javascript.angular':
+    case 'sentry.javascript.angular-ivy':
+    case 'sentry.javascript.nextjs':
+    case 'sentry.javascript.nuxt':
+    case 'sentry.javascript.electron':
+    case 'sentry.javascript.remix':
+    case 'sentry.javascript.svelte':
+    case 'sentry.javascript.sveltekit':
+    case 'sentry.javascript.react-native':
+    case 'sentry.javascript.astro':
+      return false;
+    case undefined:
+      return true;
+    default:
+      return true;
+  }
+}
+
+function isJavascriptSDKEvent(value: TraceTree.NodeValue): boolean {
+  return (
+    !!value &&
+    'sdk_name' in value &&
+    /javascript|angular|astro|backbone|ember|gatsby|nextjs|react|remix|svelte|vue/.test(
+      value.sdk_name
+    )
+  );
+}
+
+function isRootEvent(value: TraceTree.NodeValue): boolean {
+  // Root events has no parent_span_id
+  return !!value && 'parent_span_id' in value && value.parent_span_id === null;
 }

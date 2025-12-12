@@ -333,10 +333,25 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       : undefined;
   }
 
-  get measurements(): Record<string, number> | Record<string, Measurement> | undefined {
-    return this.value && 'measurements' in this.value
-      ? this.value.measurements
-      : undefined;
+  private _isValidMeasurements(
+    measurements: Record<string, any>
+  ): measurements is Record<string, Measurement> {
+    return Object.values(measurements).every(
+      m => m && 'value' in m && typeof m.value === 'number'
+    );
+  }
+
+  get measurements(): Record<string, Measurement> | undefined {
+    if (
+      this.value &&
+      'measurements' in this.value &&
+      this.value.measurements &&
+      this._isValidMeasurements(this.value.measurements)
+    ) {
+      return this.value.measurements;
+    }
+
+    return undefined;
   }
 
   get attributes(): Record<string, string | number | boolean> | undefined {
@@ -370,12 +385,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       occurrence => occurrence.event_id === id
     );
 
-    return (
-      this.id === id ||
-      this.transactionId === id ||
-      hasMatchingErrors ||
-      hasMatchingOccurrences
-    );
+    return this.id === id || hasMatchingErrors || hasMatchingOccurrences;
   }
 
   invalidate() {
