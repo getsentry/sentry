@@ -34,13 +34,13 @@ export function ChonkBadge(props: ChonkBadgeProps) {
 const StyledChonkBadge = chonkStyled('span')<ChonkBadgeProps>`
   ${p => ({...makeChonkBadgeTheme(p, p.theme)})};
   border-radius: ${p => p.theme.radius.sm};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   display: inline-flex;
   align-items: center;
   line-height: initial;
   height: 20px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.medium};
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.xs};
 `;
 

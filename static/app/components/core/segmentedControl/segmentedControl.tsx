@@ -291,7 +291,7 @@ const SegmentWrap = withChonk(
     min-width: 0;
 
     padding: ${p => segmentedWrapPadding[p.size]};
-    font-weight: ${p => p.theme.fontWeight.normal};
+    font-weight: ${p => p.theme.font.weight.regular};
 
     ${p =>
       !p.isDisabled &&
@@ -478,7 +478,7 @@ const VisibleLabel = withChonk(
     font-weight: ${p => (p.isSelected ? 600 : 400)};
     letter-spacing: ${p => (p.isSelected ? '-0.015em' : 'inherit')};
     text-align: center;
-    line-height: ${p => p.theme.text.lineHeightBody};
+    line-height: ${p => p.theme.font.lineHeight.comfortable};
     ${getTextColor}
   `,
   ChonkStyledVisibleLabel

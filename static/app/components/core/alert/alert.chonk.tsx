@@ -137,7 +137,7 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
   grid-auto-columns: max-content;
   grid-template-rows: 100%;
   gap: ${p => p.theme.space.md};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   grid-row: 2;
   grid-column: 1 / -1;
   justify-items: start;
@@ -159,7 +159,7 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
 `;
 
 export const Message = chonkStyled('div')`
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
   place-content: center;
   padding-block: ${p => p.theme.space.xs};
 `;

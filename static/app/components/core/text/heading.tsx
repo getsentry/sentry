@@ -51,8 +51,8 @@ export const Heading = styled(
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
   text-wrap: ${p => p.textWrap ?? undefined};
 
-  font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-family: ${p => p.theme.font.family[p.monospace ? 'mono' : 'sans']};
+  font-weight: ${p => p.theme.font.weight.medium};
   font-variant-numeric: ${p =>
     [
       p.tabular ? 'tabular-nums' : undefined,
