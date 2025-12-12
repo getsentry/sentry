@@ -208,6 +208,9 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
 
             sanitized_keys = sanitized_keys[offset : offset + limit]
 
+            if not sanitized_keys:
+                return {"data": []}, 0
+
             request_attrs_list = []
             for requested_key in sanitized_keys:
                 if requested_key in SPAN_ATTRIBUTE_DEFINITIONS:
