@@ -135,9 +135,10 @@ function ProductBreakdownPanel({
   // TODO(billing): if we ever show the setup state for other products, this will need refactoring
   // maybe a billing hook for setup checks
   const shouldCheckSetup = selectedProduct === AddOnCategory.SEER && isEnabled;
-  const {data: setupCheck, isLoading: setUpCheckLoading} =
+  const {data: setupCheck, isLoading: setupCheckLoading} =
     useSeerOnboardingCheck(shouldCheckSetup);
-  const setupRequired = shouldCheckSetup && !setupCheck?.isSeerConfigured;
+  const setupRequired =
+    shouldCheckSetup && !setupCheckLoading && !setupCheck?.isSeerConfigured;
 
   if (!billedCategory) {
     return null;
@@ -215,7 +216,7 @@ function ProductBreakdownPanel({
         panelIsOnlyCta={!isEnabled}
         setupRequired={setupRequired}
       />
-      {setUpCheckLoading ? (
+      {setupCheckLoading ? (
         <LoadingIndicator />
       ) : setupRequired ? (
         <SetupCta organization={organization} selectedProduct={selectedProduct} />
