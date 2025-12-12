@@ -7,6 +7,7 @@ import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/span
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -34,6 +35,30 @@ import {
   type SpanQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+
+interface SpanSamplesPanelContainerSearchQueryBuilderProps {
+  handleSearch: (query: string) => void;
+  moduleName: ModuleName;
+  query: string;
+  selection: PageFilters;
+}
+
+function SpanSamplesPanelContainerSearchQueryBuilder({
+  handleSearch,
+  moduleName,
+  query,
+  selection,
+}: SpanSamplesPanelContainerSearchQueryBuilderProps) {
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    searchSource: `${moduleName}-sample-panel`,
+    initialQuery: query,
+    onSearch: handleSearch,
+    placeholder: t('Search for span attributes'),
+    projects: selection.projects,
+  });
+
+  return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
+}
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanFields;
 
@@ -153,14 +178,6 @@ export function SpanSamplesContainer({
 
   const handleMouseLeaveSample = useCallback(() => setHighlightedSpanId(undefined), []);
 
-  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
-    searchSource: `${moduleName}-sample-panel`,
-    initialQuery: searchQuery ?? '',
-    onSearch: handleSearch,
-    placeholder: t('Search for span attributes'),
-    projects: selection.projects,
-  });
-
   return (
     <Fragment>
       <InsightsSpanTagProvider>
@@ -216,7 +233,12 @@ export function SpanSamplesContainer({
         />
 
         <StyledSearchBar>
-          <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+          <SpanSamplesPanelContainerSearchQueryBuilder
+            query={searchQuery ?? ''}
+            moduleName={moduleName}
+            selection={selection}
+            handleSearch={handleSearch}
+          />
         </StyledSearchBar>
 
         <SampleTable

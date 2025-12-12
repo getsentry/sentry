@@ -6,6 +6,7 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -38,6 +39,28 @@ import {
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import type {SpanQueryFilters, SpanResponse} from 'sentry/views/insights/types';
 import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
+
+interface CacheSamplePanelSearchQueryBuilderProps {
+  handleSearch: (query: string) => void;
+  query: string;
+  selection: PageFilters;
+}
+
+function CacheSamplePanelSearchQueryBuilder({
+  query,
+  selection,
+  handleSearch,
+}: CacheSamplePanelSearchQueryBuilderProps) {
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects: selection.projects,
+    initialQuery: query,
+    onSearch: handleSearch,
+    placeholder: t('Search for span attributes'),
+    searchSource: `${ModuleName.CACHE}-sample-panel`,
+  });
+
+  return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
+}
 
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
 export function CacheSamplePanel() {
@@ -266,14 +289,6 @@ export function CacheSamplePanel() {
     };
   }, [samplesPlottable, spanSamplesById, highlightedSpanId]);
 
-  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
-    searchSource: `${ModuleName.CACHE}-sample-panel`,
-    initialQuery: query.spanSearchQuery,
-    onSearch: handleSearch,
-    placeholder: t('Search for span attributes'),
-    projects: selection.projects,
-  });
-
   return (
     <PageAlertProvider>
       <InsightsSpanTagProvider>
@@ -347,7 +362,11 @@ export function CacheSamplePanel() {
             </ModuleLayout.Half>
 
             <ModuleLayout.Full>
-              <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+              <CacheSamplePanelSearchQueryBuilder
+                query={query.spanSearchQuery}
+                selection={selection}
+                handleSearch={handleSearch}
+              />
             </ModuleLayout.Full>
 
             <Fragment>
