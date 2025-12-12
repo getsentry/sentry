@@ -110,6 +110,36 @@ export function ExplorerStatusCard({
 
   const displayText = displayBlock ? getDisplayText(displayBlock) : t('Analyzing...');
 
+  // Find the most recent block with todos (stop at user messages)
+  let latestTodoBlock: Block | undefined;
+  if (blocks && blocks.length > 0) {
+    for (let i = blocks.length - 1; i >= 0; i--) {
+      const block = blocks[i];
+      if (!block) {
+        continue;
+      }
+      // Stop searching if we encounter a user message
+      if (block.message?.role === 'user') {
+        break;
+      }
+      if (block.todos && block.todos.length > 0) {
+        latestTodoBlock = block;
+        break;
+      }
+    }
+  }
+
+  // Check loadingBlock if we haven't found anything yet and it's not a user message
+  if (!latestTodoBlock && loadingBlock && loadingBlock.message?.role !== 'user') {
+    if (loadingBlock.todos && loadingBlock.todos.length > 0) {
+      latestTodoBlock = loadingBlock;
+    }
+  }
+
+  const todos = latestTodoBlock?.todos ?? [];
+  const totalTodos = todos.length;
+  const completedTodos = todos.filter(todo => todo.status === 'completed').length;
+
   return (
     <Container padding="xl" border="primary" radius="md" background="primary">
       <Flex direction="column" gap="xl">
@@ -122,10 +152,15 @@ export function ExplorerStatusCard({
           </Flex>
         </Container>
         {onOpenChat && (
-          <Flex gap="md">
+          <Flex align="center" justify="between">
             <Button size="md" onClick={onOpenChat} priority="primary" icon={<IconChat />}>
               {t('Open Chat')}
             </Button>
+            {totalTodos > 0 && (
+              <Text variant="muted">
+                {`${completedTodos}/${totalTodos} ${t('todos completed')}`}
+              </Text>
+            )}
           </Flex>
         )}
       </Flex>

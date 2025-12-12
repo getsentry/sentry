@@ -33,6 +33,7 @@ import {IconAdd, IconCopy, IconSeer, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -47,6 +48,83 @@ interface ExplorerSeerDrawerProps {
   event: Event;
   group: Group;
   project: Project;
+}
+
+/**
+ * Common breadcrumbs for the drawer header.
+ */
+const drawerBreadcrumbs = (group: Group, event: Event, project: Project) => [
+  {
+    label: (
+      <CrumbContainer>
+        <ProjectAvatar project={project} />
+        <ShortId>{group.shortId}</ShortId>
+      </CrumbContainer>
+    ),
+  },
+  {label: getShortEventId(event.id)},
+  {label: t('Seer')},
+];
+
+interface DrawerNavigatorProps {
+  iconVariant: 'loading' | 'waiting';
+  organization: Organization;
+  project: Project;
+  copyButtonDisabled?: boolean;
+  onCopyMarkdown?: () => void;
+  onReset?: () => void;
+  showCopyButton?: boolean;
+}
+
+/**
+ * Common navigator section with header and buttons.
+ */
+function DrawerNavigator({
+  iconVariant,
+  organization,
+  project,
+  copyButtonDisabled = false,
+  onCopyMarkdown,
+  onReset,
+  showCopyButton = false,
+}: DrawerNavigatorProps) {
+  return (
+    <SeerDrawerNavigator>
+      <HeaderContainer>
+        <Header>{t('Seer')}</Header>
+        <IconSeer variant={iconVariant} size="md" />
+      </HeaderContainer>
+      <ButtonWrapper>
+        {showCopyButton && (
+          <Button
+            size="xs"
+            onClick={onCopyMarkdown}
+            title={t('Copy analysis as Markdown / LLM prompt')}
+            aria-label={t('Copy analysis as Markdown')}
+            icon={<IconCopy />}
+            disabled={copyButtonDisabled}
+          />
+        )}
+        <Feature features={['organizations:autofix-seer-preferences']}>
+          <LinkButton
+            to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+            size="xs"
+            title={t('Project Settings for Seer')}
+            aria-label={t('Project Settings for Seer')}
+            icon={<IconSettings />}
+          />
+        </Feature>
+        <Button
+          size="xs"
+          onClick={onReset}
+          icon={<IconAdd />}
+          aria-label={t('Start a new analysis')}
+          title={t('Start a new analysis')}
+          disabled={!onReset}
+        />
+      </ButtonWrapper>
+    </SeerDrawerNavigator>
+  );
 }
 
 /**
@@ -117,25 +195,23 @@ export function ExplorerSeerDrawer({
     copy(markdownText, {successMessage: t('Analysis copied to clipboard.')});
   }, [artifacts, group, event, copy]);
 
+  const breadcrumbs = useMemo(
+    () => drawerBreadcrumbs(group, event, project),
+    [group, event, project]
+  );
+
+  const hasArtifacts =
+    !!artifacts.root_cause?.data ||
+    !!artifacts.solution?.data ||
+    !!artifacts.impact_assessment?.data ||
+    !!artifacts.triage?.data;
+
   // Render loading state for explorer-specific loading
   if (isLoading) {
     return (
       <DrawerContainer>
         <SeerDrawerHeader>
-          <NavigationCrumbs
-            crumbs={[
-              {
-                label: (
-                  <CrumbContainer>
-                    <ProjectAvatar project={project} />
-                    <ShortId>{group.shortId}</ShortId>
-                  </CrumbContainer>
-                ),
-              },
-              {label: getShortEventId(event.id)},
-              {label: t('Seer')},
-            ]}
-          />
+          <NavigationCrumbs crumbs={breadcrumbs} />
         </SeerDrawerHeader>
         <PlaceholderStack>
           <Placeholder height="10rem" />
@@ -150,27 +226,17 @@ export function ExplorerSeerDrawer({
     return (
       <DrawerContainer>
         <SeerDrawerHeader>
-          <NavigationCrumbs
-            crumbs={[
-              {
-                label: (
-                  <CrumbContainer>
-                    <ProjectAvatar project={project} />
-                    <ShortId>{group.shortId}</ShortId>
-                  </CrumbContainer>
-                ),
-              },
-              {label: getShortEventId(event.id)},
-              {label: t('Seer')},
-            ]}
-          />
+          <NavigationCrumbs crumbs={breadcrumbs} />
         </SeerDrawerHeader>
-        <SeerDrawerNavigator>
-          <HeaderContainer>
-            <Header>{t('Seer')}</Header>
-            <IconSeer variant="waiting" size="md" />
-          </HeaderContainer>
-        </SeerDrawerNavigator>
+        <DrawerNavigator
+          iconVariant="waiting"
+          showCopyButton
+          copyButtonDisabled
+          onCopyMarkdown={handleCopyMarkdown}
+          onReset={undefined}
+          organization={organization}
+          project={project}
+        />
         <SeerDrawerBody>
           <SeerNotices
             groupId={group.id}
@@ -188,27 +254,17 @@ export function ExplorerSeerDrawer({
     return (
       <DrawerContainer>
         <SeerDrawerHeader>
-          <NavigationCrumbs
-            crumbs={[
-              {
-                label: (
-                  <CrumbContainer>
-                    <ProjectAvatar project={project} />
-                    <ShortId>{group.shortId}</ShortId>
-                  </CrumbContainer>
-                ),
-              },
-              {label: getShortEventId(event.id)},
-              {label: t('Seer')},
-            ]}
-          />
+          <NavigationCrumbs crumbs={breadcrumbs} />
         </SeerDrawerHeader>
-        <SeerDrawerNavigator>
-          <HeaderContainer>
-            <Header>{t('Seer')}</Header>
-            <IconSeer variant="waiting" size="md" />
-          </HeaderContainer>
-        </SeerDrawerNavigator>
+        <DrawerNavigator
+          iconVariant="waiting"
+          showCopyButton
+          copyButtonDisabled
+          onCopyMarkdown={handleCopyMarkdown}
+          onReset={undefined}
+          organization={organization}
+          project={project}
+        />
         <SeerDrawerBody>
           <SeerNotices
             groupId={group.id}
@@ -224,67 +280,22 @@ export function ExplorerSeerDrawer({
   return (
     <DrawerContainer>
       <SeerDrawerHeader>
-        <NavigationCrumbs
-          crumbs={[
-            {
-              label: (
-                <CrumbContainer>
-                  <ProjectAvatar project={project} />
-                  <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
-              ),
-            },
-            {label: getShortEventId(event.id)},
-            {label: t('Seer')},
-          ]}
-        />
+        <NavigationCrumbs crumbs={breadcrumbs} />
         <FeedbackWrapper>
           <AutofixFeedback />
         </FeedbackWrapper>
       </SeerDrawerHeader>
-      <SeerDrawerNavigator>
-        <HeaderContainer>
-          <Header>{t('Seer')}</Header>
-          <IconSeer
-            variant={
-              runState.status === 'processing' && isPolling ? 'loading' : 'waiting'
-            }
-            size="md"
-          />
-        </HeaderContainer>
-        <ButtonWrapper>
-          {(artifacts.root_cause?.data ||
-            artifacts.solution?.data ||
-            artifacts.impact_assessment?.data ||
-            artifacts.triage?.data) && (
-            <Button
-              size="xs"
-              onClick={handleCopyMarkdown}
-              title={t('Copy analysis as Markdown / LLM prompt')}
-              aria-label={t('Copy analysis as Markdown')}
-              icon={<IconCopy />}
-            />
-          )}
-          <Feature features={['organizations:autofix-seer-preferences']}>
-            <LinkButton
-              to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
-              size="xs"
-              title={t('Project Settings for Seer')}
-              aria-label={t('Project Settings for Seer')}
-              icon={<IconSettings />}
-            />
-          </Feature>
-          <Button
-            size="xs"
-            onClick={() => {
-              reset();
-            }}
-            icon={<IconAdd />}
-            aria-label={t('Start a new analysis')}
-            title={t('Start a new analysis')}
-          />
-        </ButtonWrapper>
-      </SeerDrawerNavigator>
+      <DrawerNavigator
+        iconVariant={
+          runState.status === 'processing' && isPolling ? 'loading' : 'waiting'
+        }
+        showCopyButton={hasArtifacts}
+        copyButtonDisabled={false}
+        onCopyMarkdown={handleCopyMarkdown}
+        onReset={() => reset()}
+        organization={organization}
+        project={project}
+      />
       <SeerDrawerBody>
         <SeerNotices
           groupId={group.id}
