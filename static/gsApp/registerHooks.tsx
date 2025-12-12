@@ -82,6 +82,7 @@ import {
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
 import ReplaySettingsAlert from './components/replaySettingsAlert';
 import useButtonTracking from './hooks/useButtonTracking';
+import {useFilterCategoryFields} from './hooks/useFilterCategoryFields';
 import useGetMaxRetentionDays from './hooks/useGetMaxRetentionDays';
 import {useDefaultMaxPickableDays, useMaxPickableDays} from './hooks/useMaxPickableDays';
 import useRouteActivatedHook from './hooks/useRouteActivatedHook';
@@ -235,6 +236,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'react-hook:route-activated': useRouteActivatedHook,
   'react-hook:use-button-tracking': useButtonTracking,
   'react-hook:use-default-max-pickable-days': useDefaultMaxPickableDays,
+  'react-hook:use-filter-category-fields': useFilterCategoryFields,
   'react-hook:use-max-pickable-days': useMaxPickableDays,
   'react-hook:use-get-max-retention-days': useGetMaxRetentionDays,
   'react-hook:use-metric-detector-limit': useMetricDetectorLimit,
