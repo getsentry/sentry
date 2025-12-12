@@ -173,34 +173,3 @@ def should_create_or_increment_contributor_seat(
         data_category=DataCategory.SEER_USER,
         seat_object=contributor,
     )
-
-
-def is_eligible_for_overwatch_forwarding(
-    organization: Organization,
-    integration_id: int,
-    repository_id: int | None,
-    external_identifier: str,
-) -> bool:
-    """
-    Guard for forwarding webhooks to Overwatch for AI code review.
-
-    Takes an Organization object (needed for feature flag check) but uses
-    IDs for repository and integration to avoid needing full model objects.
-
-    Determines if we should forward a webhook to Overwatch based on:
-    1. Organization IS in code-review-beta cohort (always forward), OR
-    2. Repository has code review explicitly enabled
-    3. Contributor has a seat
-    """
-    if features.has("organizations:code-review-beta", organization):
-        return True
-
-    # Non-beta orgs require a valid repository
-    if repository_id is None:
-        return False
-
-    if not _is_code_review_enabled_for_repo(repository_id):
-        return False
-
-    contributor = _get_contributor(organization.id, integration_id, external_identifier)
-    return contributor is not None

@@ -6,7 +6,6 @@ from typing import Any
 
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.integrations.github.utils import is_eligible_for_overwatch_forwarding
 from sentry.integrations.github.webhook_types import (
     GITHUB_INSTALLATION_TARGET_ID_HEADER,
     GITHUB_WEBHOOK_TYPE_HEADER_KEY,
@@ -14,9 +13,7 @@ from sentry.integrations.github.webhook_types import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.repository import Repository
 from sentry.overwatch_webhooks.types import OrganizationSummary, WebhookDetails
 from sentry.overwatch_webhooks.webhook_publisher import OverwatchWebhookPublisher
 from sentry.types.region import get_region_by_name
@@ -29,13 +26,6 @@ GITHUB_EVENTS_TO_FORWARD_OVERWATCH = {
     GithubWebhookType.PULL_REQUEST,
     GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT,
     GithubWebhookType.PULL_REQUEST_REVIEW,
-}
-
-# Events that should be forwarded without seat/eligibility checks.
-# These are not related to code review and should be forwarded to all orgs.
-GITHUB_EVENTS_SKIP_ELIGIBILITY_CHECK = {
-    GithubWebhookType.INSTALLATION,
-    GithubWebhookType.INSTALLATION_REPOSITORIES,
 }
 
 
@@ -59,78 +49,16 @@ class OverwatchGithubWebhookForwarder:
     def __init__(self, integration: Integration):
         self.integration = integration
 
-    def _is_forwardable_event_type(self, headers: Mapping[str, str]) -> bool:
-        """Check if the event type is one we should forward to Overwatch."""
+    def should_forward_to_overwatch(self, headers: Mapping[str, str]) -> bool:
         event_type = headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY)
         verbose_log(
-            "overwatch.debug.is_forwardable_event_type.checked",
+            "overwatch.debug.should_forward_to_overwatch.checked",
             extra={
                 "event_type": event_type,
                 "should_forward": event_type in GITHUB_EVENTS_TO_FORWARD_OVERWATCH,
             },
         )
         return event_type in GITHUB_EVENTS_TO_FORWARD_OVERWATCH
-
-    def _get_pull_request_author_id(self, event: Mapping[str, Any]) -> str | None:
-        """
-        Extract the pull request author's external identifier from the webhook event.
-
-        We specifically want the PR author (not the commenter/reviewer) because
-        that's whose seat we need to check for billing purposes.
-        """
-        if "pull_request" not in event:
-            return None
-
-        user = event["pull_request"].get("user", {})
-        if user_id := user.get("id"):
-            return str(user_id)
-
-        return None
-
-    def _filter_eligible_org_summaries(
-        self,
-        org_summaries: list[OrganizationSummary],
-        event: Mapping[str, Any],
-    ) -> list[OrganizationSummary]:
-        """Filter org_summaries to only include orgs eligible for Overwatch forwarding."""
-        repo_external_id = event.get("repository", {}).get("id")
-        external_identifier = self._get_pull_request_author_id(event)
-
-        if not repo_external_id or not external_identifier:
-            return []
-
-        eligible_summaries: list[OrganizationSummary] = []
-        org_ids = [summary.id for summary in org_summaries]
-
-        # Batch fetch organizations (needed for feature flag check)
-        orgs_by_id = {org.id: org for org in Organization.objects.filter(id__in=org_ids)}
-
-        # Batch fetch repository IDs (we only need id and organization_id)
-        repos_by_org: dict[int, int] = {
-            repo["organization_id"]: repo["id"]
-            for repo in Repository.objects.filter(
-                organization_id__in=org_ids,
-                external_id=str(repo_external_id),
-                provider=f"integrations:{self.integration.provider}",
-            ).values("id", "organization_id")
-        }
-
-        for summary in org_summaries:
-            org = orgs_by_id.get(summary.id)
-            if not org:
-                continue
-
-            repo_id = repos_by_org.get(summary.id)
-
-            if is_eligible_for_overwatch_forwarding(
-                organization=org,
-                integration_id=summary.github_integration_id,
-                repository_id=repo_id,
-                external_identifier=external_identifier,
-            ):
-                eligible_summaries.append(summary)
-
-        return eligible_summaries
 
     def _get_org_summaries_by_region_for_integration(
         self, integration: Integration
@@ -208,12 +136,12 @@ class OverwatchGithubWebhookForwarder:
                 },
             )
 
-            if not orgs_by_region or not self._is_forwardable_event_type(headers):
+            if not orgs_by_region or not self.should_forward_to_overwatch(headers):
                 verbose_log(
                     "overwatch.debug.skipped_forwarding",
                     extra={
                         "orgs_by_region_empty": not orgs_by_region,
-                        "event_in_forward_list": self._is_forwardable_event_type(headers),
+                        "event_in_forward_list": self.should_forward_to_overwatch(headers),
                     },
                 )
                 return
@@ -231,19 +159,6 @@ class OverwatchGithubWebhookForwarder:
                 )
                 if region_name not in enabled_regions:
                     continue
-
-                # Check if this event type should skip eligibility filtering
-                event_type = headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY)
-                if event_type in GITHUB_EVENTS_SKIP_ELIGIBILITY_CHECK:
-                    # Installation events are forwarded to all orgs without seat checks
-                    eligible_org_summaries = org_summaries
-                else:
-                    # Filter to only orgs eligible for Overwatch forwarding
-                    eligible_org_summaries = self._filter_eligible_org_summaries(
-                        org_summaries, event
-                    )
-                    if not eligible_org_summaries:
-                        continue
 
                 raw_app_id = headers.get(
                     GITHUB_INSTALLATION_TARGET_ID_HEADER,
@@ -266,7 +181,7 @@ class OverwatchGithubWebhookForwarder:
                 formatted_headers = {k: v for k, v in headers.items()}
 
                 webhook_detail = WebhookDetails(
-                    organizations=eligible_org_summaries,
+                    organizations=org_summaries,
                     webhook_body=dict(event),
                     webhook_headers=formatted_headers,
                     integration_provider=self.integration.provider,

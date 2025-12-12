@@ -3,11 +3,9 @@ from unittest.mock import patch
 import pytest
 
 from sentry.integrations.github.utils import (
-    is_eligible_for_overwatch_forwarding,
     parse_github_blob_url,
     should_create_or_increment_contributor_seat,
 )
-from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.testutils.cases import TestCase
 
 
@@ -81,88 +79,6 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
 
         result = should_create_or_increment_contributor_seat(
             self.organization, self.repo, self.external_identifier
-        )
-        assert result is True
-
-
-class IsEligibleForOverwatchForwardingTest(TestCase):
-    def setUp(self):
-        super().setUp()
-        self.integration = self.create_integration(
-            organization=self.organization,
-            provider="github",
-            external_id="github:1",
-        )
-        self.repo = self.create_repo(
-            project=self.project,
-            provider="integrations:github",
-            integration_id=self.integration.id,
-        )
-        self.external_identifier = "12345"
-
-    def test_returns_true_for_code_review_beta_orgs(self):
-        with self.feature("organizations:code-review-beta"):
-            result = is_eligible_for_overwatch_forwarding(
-                organization=self.organization,
-                integration_id=self.integration.id,
-                repository_id=self.repo.id,
-                external_identifier=self.external_identifier,
-            )
-            assert result is True
-
-    def test_returns_true_for_beta_orgs_even_without_repo(self):
-        with self.feature("organizations:code-review-beta"):
-            result = is_eligible_for_overwatch_forwarding(
-                organization=self.organization,
-                integration_id=self.integration.id,
-                repository_id=None,
-                external_identifier=self.external_identifier,
-            )
-            assert result is True
-
-    def test_returns_false_when_repository_id_is_none(self):
-        result = is_eligible_for_overwatch_forwarding(
-            organization=self.organization,
-            integration_id=self.integration.id,
-            repository_id=None,
-            external_identifier=self.external_identifier,
-        )
-        assert result is False
-
-    def test_returns_false_when_code_review_not_enabled(self):
-        result = is_eligible_for_overwatch_forwarding(
-            organization=self.organization,
-            integration_id=self.integration.id,
-            repository_id=self.repo.id,
-            external_identifier=self.external_identifier,
-        )
-        assert result is False
-
-    def test_returns_false_when_contributor_has_no_seat(self):
-        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
-
-        result = is_eligible_for_overwatch_forwarding(
-            organization=self.organization,
-            integration_id=self.integration.id,
-            repository_id=self.repo.id,
-            external_identifier=self.external_identifier,
-        )
-        assert result is False
-
-    def test_returns_true_when_code_review_enabled_and_contributor_has_seat(self):
-        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
-
-        OrganizationContributors.objects.create(
-            organization=self.organization,
-            integration_id=self.integration.id,
-            external_identifier=self.external_identifier,
-        )
-
-        result = is_eligible_for_overwatch_forwarding(
-            organization=self.organization,
-            integration_id=self.integration.id,
-            repository_id=self.repo.id,
-            external_identifier=self.external_identifier,
         )
         assert result is True
 
