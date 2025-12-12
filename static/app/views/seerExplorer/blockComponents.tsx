@@ -95,7 +95,7 @@ function getToolStatus(
     let hasFailure = false;
 
     toolLinks.forEach(link => {
-      if (link?.params?.empty_results === true) {
+      if (link?.params?.empty_results === true || link?.params?.is_error === true) {
         hasFailure = true;
       } else if (link !== null) {
         hasSuccess = true;
@@ -164,6 +164,11 @@ function BlockComponent({
     const mappedLinks = (block.tool_links || [])
       .map((link, idx) => {
         if (!link) {
+          return null;
+        }
+
+        // Don't show links for tools that returned errors, but do show for empty results
+        if (link.params?.is_error === true) {
           return null;
         }
 
