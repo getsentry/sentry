@@ -5,7 +5,7 @@ from sentry.testutils.helpers.response import close_streaming_response
 
 
 class TestChartRenderer(AcceptanceTestCase):
-    @pytest.mark.xdist_unsafe
+    
     def test_debug_renders(self) -> None:
         options = {
             "chart-rendering.enabled": True,

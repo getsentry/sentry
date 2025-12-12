@@ -46,7 +46,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         return event
 
     @mock.patch("sentry.api.helpers.group_index.update.update_group_open_period")
-    @pytest.mark.xdist_unsafe
+    
     def test_resolve_basic(self, mock_update_open_period: mock.MagicMock) -> None:
         event = self.create_sample_event(platform="python")
         assert event.group is not None
@@ -69,7 +69,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         assert res.status_code == 200, res
         assert res.data["status"] == "ignored"
 
-    @pytest.mark.xdist_unsafe
+    
     def test_bookmark(self) -> None:
         event = self.create_sample_event(platform="python")
         assert event.group is not None
@@ -81,7 +81,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         assert res.status_code == 200, res
         assert res.data["isBookmarked"]
 
-    @pytest.mark.xdist_unsafe
+    
     def test_assign_issue(self) -> None:
         event = self.create_sample_event(platform="python")
         assert event.group is not None

@@ -47,7 +47,7 @@ class ExploreLogsTest(AcceptanceTestCase, SnubaTestCase, OurLogTestCase):
         self.dismiss_assistant()
 
     @patch("django.utils.timezone.now")
-    @pytest.mark.xdist_unsafe
+    
     def test_opening_log_row_shows_attributes(self, mock_now: MagicMock) -> None:
         mock_now.return_value = self.start
 

@@ -20,7 +20,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = pytest.mark.sentry_metrics
 
 
-@pytest.mark.xdist_unsafe
+
 class TestSlackImageBlockBuilder(
     MetricsEnhancedPerformanceTestCase,
     ProfilesSnubaTestCase,

@@ -225,7 +225,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
 
     @patch("django.utils.timezone.now")
-    @pytest.mark.xdist_unsafe
+    
     def test_issues_list_to_details_and_back_with_all_projects(self, mock_now: MagicMock) -> None:
         """
         User should be able to visit issues list with no project in URL and list issues

@@ -12,7 +12,7 @@ from sentry.utils.samples import load_data
 now = datetime.now(timezone.utc)
 
 
-@pytest.mark.xdist_unsafe
+
 @no_silo_test
 class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self) -> None:

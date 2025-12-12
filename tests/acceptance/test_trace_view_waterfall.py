@@ -41,7 +41,7 @@ class TraceViewWaterfallTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
         self.dismiss_assistant()
 
     @patch("django.utils.timezone.now")
-    @pytest.mark.xdist_unsafe
+    
     def test_trace_view_waterfall_loads(self, mock_now: MagicMock) -> None:
         mock_now.return_value = self.start
 

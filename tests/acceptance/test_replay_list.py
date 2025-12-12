@@ -11,7 +11,7 @@ from sentry.testutils.silo import no_silo_test
 FEATURE_NAME = ["organizations:session-replay"]
 
 
-@pytest.mark.xdist_unsafe
+
 @no_silo_test
 class ReplayListTest(ReplaysAcceptanceTestCase):
     def setUp(self) -> None:

@@ -69,7 +69,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_until_loaded()
 
     @patch("django.utils.timezone.now")
-    @pytest.mark.xdist_unsafe
+    
     def test_view_details_from_summary(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now()
 
