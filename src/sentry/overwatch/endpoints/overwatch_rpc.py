@@ -23,7 +23,9 @@ from sentry.constants import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import RepositorySettings
 from sentry.prevent.models import PreventAIConfiguration
 from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT, PREVENT_AI_CONFIG_DEFAULT_V1
 from sentry.silo.base import SiloMode
@@ -216,3 +218,98 @@ class PreventPrReviewSentryOrgEndpoint(Endpoint):
                 ]
             }
         )
+
+
+def _is_eligible_for_code_review(
+    organization: Organization, repository_id: int, integration_id: int, external_identifier: str
+) -> bool:
+    """
+    Check if a PR author is eligible for Overwatch code review forwarding.
+
+    Returns True if:
+    1. Organization IS in code-review-beta cohort (always forward), OR
+    2. Repository has code review explicitly enabled AND contributor has a seat
+    """
+    if features.has("organizations:code-review-beta", organization):
+        return True
+
+    # Check if code review is enabled for this repository
+    code_review_enabled = RepositorySettings.objects.filter(
+        repository_id=repository_id,
+        enabled_code_review=True,
+    ).exists()
+
+    if not code_review_enabled:
+        return False
+
+    # Check if contributor has a seat (num_actions >= 2 means they've been counted before)
+    # Or at least they should have assuming upstream task for assigning billing seat was working.
+    contributor_has_seat = OrganizationContributors.objects.filter(
+        organization_id=organization.id,
+        integration_id=integration_id,
+        external_identifier=external_identifier,
+        num_actions__gte=2,
+    ).exists()
+
+    return contributor_has_seat
+
+
+@region_silo_endpoint
+class PreventPrReviewEligibilityEndpoint(Endpoint):
+    """
+    Check if a PR author is eligible for Overwatch code review forwarding.
+
+    GET /prevent/pr-review/eligibility?repoId={repoId}&prAuthorId={prAuthorId}
+
+    Returns true if the PR author is eligible for code review in any organization.
+    """
+
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
+    owner = ApiOwner.CODECOV
+    authentication_classes = (OverwatchRpcSignatureAuthentication,)
+    permission_classes = ()
+    enforce_rate_limit = False
+
+    def get(self, request: Request) -> Response:
+        if not request.auth or not isinstance(
+            request.successful_authenticator, OverwatchRpcSignatureAuthentication
+        ):
+            raise PermissionDenied
+
+        repo_id = request.GET.get("repoId")
+        pr_author_id = request.GET.get("prAuthorId")
+
+        if not repo_id:
+            raise ParseError("Missing required query parameter: repoId")
+        if not pr_author_id:
+            raise ParseError("Missing required query parameter: prAuthorId")
+
+        repositories = Repository.objects.filter(
+            external_id=repo_id,
+            provider__in=["integrations:github", "integrations:github_enterprise"],
+            status=ObjectStatus.ACTIVE,
+        )
+
+        if not repositories.exists():
+            return Response(data={"is_eligible": False})
+
+        org_ids = repositories.values_list("organization_id", flat=True)
+        organizations = {org.id: org for org in Organization.objects.filter(id__in=org_ids)}
+
+        # Just need a single org to be eligible
+        for repo in repositories:
+            org = organizations.get(repo.organization_id)
+            if not org or repo.integration_id is None:
+                continue
+
+            if _is_eligible_for_code_review(
+                organization=org,
+                repository_id=repo.id,
+                integration_id=repo.integration_id,
+                external_identifier=pr_author_id,
+            ):
+                return Response(data={"is_eligible": True})
+
+        return Response(data={"is_eligible": False})

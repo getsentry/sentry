@@ -437,6 +437,7 @@ from sentry.notifications.api.endpoints.user_notification_settings_providers imp
 from sentry.notifications.platform.api.endpoints import urls as notification_platform_urls
 from sentry.objectstore.endpoints.organization import OrganizationObjectstoreEndpoint
 from sentry.overwatch.endpoints.overwatch_rpc import (
+    PreventPrReviewEligibilityEndpoint,
     PreventPrReviewResolvedConfigsEndpoint,
     PreventPrReviewSentryOrgEndpoint,
 )
@@ -3523,6 +3524,11 @@ INTERNAL_URLS = [
         r"^prevent/pr-review/configs/resolved/$",
         PreventPrReviewResolvedConfigsEndpoint.as_view(),
         name="sentry-api-0-prevent-pr-review-configs-resolved",
+    ),
+    re_path(
+        r"^prevent/pr-review/eligibility/$",
+        PreventPrReviewEligibilityEndpoint.as_view(),
+        name="sentry-api-0-prevent-pr-review-eligibility",
     ),
     re_path(
         r"^prevent/pr-review/github/sentry-org/$",
