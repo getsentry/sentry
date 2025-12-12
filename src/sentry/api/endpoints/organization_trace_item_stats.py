@@ -195,8 +195,9 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 if key in SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS:
                     continue
 
-                if substring_match and substring_match in key:
-                    sanitized_keys.append(key)
+                if substring_match:
+                    if substring_match in key:
+                        sanitized_keys.append(key)
                     continue
 
                 sanitized_keys.append(key)
