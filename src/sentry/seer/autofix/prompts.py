@@ -76,14 +76,15 @@ def impact_assessment_prompt(*, short_id: str, title: str, culprit: str) -> str:
 
         Steps:
         1. Fetch the issue details to understand the error and its frequency
-        2. Examine what functionality is affected
-        3. Consider user-facing impact, data integrity, and system stability
-        4. Identify which components or services are impacted
+        2. Understand upstream and downstream dependencies
+        3. Check for relevant metrics, performance data, and connected issues
+        4. Consider affected functionality, user-facing impact, data integrity, and system stability
 
         When you have assessed the impact, generate the impact_assessment artifact with:
         - one_line_description: A concise summary of the overall impact in under 30 words
         - impacts: List of specific impacts, each with:
           - label: What is impacted (e.g., "User Authentication", "Payment Flow")
+          - rating: Severity of the impact. High is an urgent incident, medium is a significant but non-urgent problem, low is a minor issue or no impact at all.
           - impact_description: One line describing the impact
           - evidence: Evidence or reasoning for this assessment
         """
