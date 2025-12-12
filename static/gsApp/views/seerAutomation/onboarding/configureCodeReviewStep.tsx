@@ -1,4 +1,7 @@
 import {Fragment, useCallback, useState} from 'react';
+import styled from '@emotion/styled';
+
+import configureCodeReviewImg from 'sentry-images/spot/seer-config-check.svg';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -65,7 +68,7 @@ export function ConfigureCodeReviewStep() {
 
   return (
     <Fragment>
-      <StepContent>
+      <StepContentWithBackground>
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
@@ -112,7 +115,12 @@ export function ConfigureCodeReviewStep() {
             {t('Next Step')}
           </Button>
         </GuidedSteps.ButtonWrapper>
-      </StepContent>
+      </StepContentWithBackground>
     </Fragment>
   );
 }
+
+const StepContentWithBackground = styled(StepContent)`
+  background: url(${configureCodeReviewImg}) no-repeat 638px 0;
+  background-size: 213px 150px;
+`;
