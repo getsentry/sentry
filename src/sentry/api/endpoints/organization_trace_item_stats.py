@@ -189,7 +189,11 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
             span_id_list = ",".join(span_ids)
 
             preflight_stats = run_stats_query_with_span_ids(f"id:[{span_id_list}]")
-            attr_keys = list(preflight_stats[0]["attribute_distributions"]["data"].keys())
+            try:
+                attr_keys = list(preflight_stats[0]["attribute_distributions"]["data"].keys())
+            except (IndexError, KeyError):
+                return {"data": []}, 0
+
             sanitized_keys = []
             for key in attr_keys:
                 if key in SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS:
