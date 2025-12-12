@@ -308,17 +308,24 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   },
 });
 
-const generateLevelTheme = (colors: Colors): LevelColors => ({
-  sample: colors.blue400,
-  info: colors.blue400,
-  warning: colors.yellow400,
-  // Hardcoded legacy color (orange400). We no longer use orange anywhere
-  // else in the app (except for the chart palette). This needs to be harcoded
-  // here because existing users may still associate orange with the "error" level.
-  error: '#FF7738',
-  fatal: colors.red400,
-  default: colors.gray400,
-  unknown: colors.gray200,
+const generateLevelTheme = (
+  tokens: ReturnType<typeof generateChonkTokens>,
+  mode: 'light' | 'dark'
+): LevelColors => ({
+  sample: tokens.graphics.accent,
+  info: tokens.graphics.accent,
+  // BAD: accessing named colors is forbidden
+  // but necessary to differente from orange
+  warning: color.categorical[mode].yellow,
+  // BAD: hardcoded legacy color! We no longer use orange in the main UI,
+  // but do have it in the chart palette. This needs to be harcoded
+  // because existing users still associate orange with the "error" level.
+  error: color.categorical[mode].orange,
+  fatal: tokens.graphics.danger,
+  // BAD: should be `tokens.dataviz.semantic.neutral` once available
+  default: color.neutral[mode][mode === 'light' ? 'opaque800' : 'opaque900'],
+  // BAD: should be `tokens.dataviz.semantic.other` once available
+  unknown: color.neutral[mode][mode === 'light' ? 'opaque400' : 'opaque800'],
 });
 
 const generateTagTheme = (colors: Colors): TagColors => ({
@@ -1654,7 +1661,7 @@ const lightThemeDefinition = {
   alert: generateAlertTheme(lightColors, lightAliases),
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
-  level: generateLevelTheme(lightColors),
+  level: generateLevelTheme(lightTokens, 'light'),
 
   chart: {
     neutral: modifyColor(lightColors.gray400).lighten(0.8).toString(),
@@ -1705,7 +1712,7 @@ export const darkTheme: SentryTheme = {
   alert: generateAlertTheme(darkColors, darkAliases),
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
-  level: generateLevelTheme(darkColors),
+  level: generateLevelTheme(darkTokens, 'dark'),
 
   chart: {
     neutral: modifyColor(darkColors.gray400).darken(0.35).toString(),
