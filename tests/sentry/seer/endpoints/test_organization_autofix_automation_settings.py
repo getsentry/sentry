@@ -217,3 +217,188 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
 
         assert response.status_code == 403
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_get_returns_settings_for_projects(self, mock_bulk_get_preferences):
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+
+        project1.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM.value
+        )
+        project2.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF.value
+        )
+
+        mock_bulk_get_preferences.return_value = {
+            str(project1.id): {
+                "automated_run_stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+            },
+            str(project2.id): {
+                "automated_run_stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+            },
+        }
+
+        response = self.client.get(
+            self.url, {"projectIds": [project1.id, project2.id]}, format="json"
+        )
+
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+        result1 = next(r for r in response.data if r["projectId"] == project1.id)
+        result2 = next(r for r in response.data if r["projectId"] == project2.id)
+
+        assert result1["fixes"] is True
+        assert result1["prCreation"] is True
+        assert result1["tuning"] == AutofixAutomationTuningSettings.MEDIUM.value
+        assert result1["projectSlug"] == project1.slug
+
+        assert result2["fixes"] is False
+        assert result2["prCreation"] is False
+        assert result2["tuning"] == AutofixAutomationTuningSettings.OFF.value
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_get_returns_defaults_for_projects_without_settings(self, mock_bulk_get_preferences):
+        project = self.create_project(organization=self.organization)
+        mock_bulk_get_preferences.return_value = {}
+
+        response = self.client.get(self.url, {"projectIds": [project.id]}, format="json")
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["projectId"] == project.id
+        assert response.data[0]["fixes"] is False
+        assert response.data[0]["prCreation"] is False
+        assert response.data[0]["tuning"] == AutofixAutomationTuningSettings.OFF.value
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_get_all_projects_when_no_project_ids(self, mock_bulk_get_preferences):
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+        mock_bulk_get_preferences.return_value = {}
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200
+
+        project_ids = [r["projectId"] for r in response.data]
+        assert project1.id in project_ids
+        assert project2.id in project_ids
+
+    def test_get_invalid_project_ids(self):
+        response = self.client.get(self.url, {"projectIds": ["not-an-int"]}, format="json")
+
+        assert response.status_code == 400
+        assert "projectIds" in response.data
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_get_filters_to_org_projects_only(self, mock_bulk_get_preferences):
+        project = self.create_project(organization=self.organization)
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        mock_bulk_get_preferences.return_value = {}
+
+        # Request both projects, but only the one in our org should be returned
+        response = self.client.get(
+            self.url, {"projectIds": [project.id, other_project.id]}, format="json"
+        )
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["projectId"] == project.id
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_get_multiple_project_ids_query_params(self, mock_bulk_get_preferences):
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+        mock_bulk_get_preferences.return_value = {}
+
+        # Pass as repeated query params: ?projectIds=1&projectIds=2
+        response = self.client.get(
+            f"{self.url}?projectIds={project1.id}&projectIds={project2.id}", format="json"
+        )
+
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_get_pagination(self, mock_bulk_get_preferences):
+        for i in range(5):
+            self.create_project(organization=self.organization, slug=f"project-{i}")
+        mock_bulk_get_preferences.return_value = {}
+
+        response = self.client.get(self.url, {"per_page": 2}, format="json")
+
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert "Link" in response
+
+    def test_get_too_many_project_ids(self):
+        project_ids = list(range(1, 1002))
+        query_string = "&".join([f"projectIds={pid}" for pid in project_ids])
+        response = self.client.get(f"{self.url}?{query_string}", format="json")
+
+        # Django will reject this with 400 before our code runs due to DATA_UPLOAD_MAX_NUMBER_FIELDS
+        assert response.status_code == 400
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_get_empty_results_for_nonexistent_project_ids(self, mock_bulk_get_preferences):
+        mock_bulk_get_preferences.return_value = {}
+
+        response = self.client.get(self.url, {"projectIds": [99999, 99998]}, format="json")
+
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_get_pr_creation_false_when_stopping_point_is_code_changes(
+        self, mock_bulk_get_preferences
+    ):
+        project = self.create_project(organization=self.organization)
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM.value
+        )
+        mock_bulk_get_preferences.return_value = {
+            str(project.id): {
+                "automated_run_stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+            },
+        }
+
+        response = self.client.get(self.url, {"projectIds": [project.id]}, format="json")
+
+        assert response.status_code == 200
+        assert response.data[0]["fixes"] is True
+        assert response.data[0]["prCreation"] is False
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_get_pr_creation_false_when_no_seer_preference(self, mock_bulk_get_preferences):
+        project = self.create_project(organization=self.organization)
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM.value
+        )
+        mock_bulk_get_preferences.return_value = {}
+
+        response = self.client.get(self.url, {"projectIds": [project.id]}, format="json")
+
+        assert response.status_code == 200
+        assert response.data[0]["fixes"] is True
+        assert response.data[0]["prCreation"] is False

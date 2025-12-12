@@ -9,8 +9,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
+from sentry.api.paginator import OffsetPaginator
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -57,10 +59,74 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.CODING_WORKFLOWS
 
     publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
 
     permission_classes = (OrganizationPermission,)
+
+    def _serialize_projects_with_settings(
+        self, projects: list[Project], organization: Organization
+    ) -> list[dict]:
+        if not projects:
+            return []
+
+        project_ids_list = [project.id for project in projects]
+        tuning_options = ProjectOption.objects.get_value_bulk(projects, OPTION_KEY)
+        seer_preferences = bulk_get_project_preferences(organization.id, project_ids_list)
+
+        results = []
+        for project in projects:
+            project_id_str = str(project.id)
+            tuning_value = tuning_options.get(project) or AutofixAutomationTuningSettings.OFF.value
+            seer_pref = seer_preferences.get(project_id_str, {})
+
+            fixes_enabled = tuning_value != AutofixAutomationTuningSettings.OFF.value
+            stopping_point = seer_pref.get("automated_run_stopping_point")
+            pr_creation_enabled = stopping_point == AutofixStoppingPoint.OPEN_PR.value
+
+            results.append(
+                {
+                    "projectId": project.id,
+                    "projectSlug": project.slug,
+                    "fixes": fixes_enabled,
+                    "prCreation": pr_creation_enabled,
+                    "tuning": tuning_value,
+                }
+            )
+        return results
+
+    def get(self, request: Request, organization: Organization) -> Response:
+        """
+        List projects with their autofix automation settings.
+
+        :pparam string organization_id_or_slug: the id or slug of the organization.
+        :qparam list[int] projectIds: Optional list of project IDs to filter by.
+        :auth: required
+        """
+        queryset = Project.objects.filter(organization_id=organization.id)
+
+        project_ids_raw = request.GET.getlist("projectIds")
+        if project_ids_raw:
+            try:
+                project_ids = [int(pid) for pid in project_ids_raw]
+            except (ValueError, TypeError):
+                return Response({"projectIds": ["All project IDs must be integers."]}, status=400)
+            if len(project_ids) > 1000:
+                return Response(
+                    {"projectIds": ["Cannot request more than 1000 projects at once."]}, status=400
+                )
+            queryset = queryset.filter(id__in=project_ids)
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by="slug",
+            on_results=lambda projects: self._serialize_projects_with_settings(
+                projects, organization
+            ),
+            paginator_cls=OffsetPaginator,
+        )
 
     def put(self, request: Request, organization: Organization) -> Response:
         """
