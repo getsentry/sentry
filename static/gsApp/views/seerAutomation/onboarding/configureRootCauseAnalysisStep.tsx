@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import configureRootCauseAnalysisImg from 'sentry-images/spot/seer-config-connect-2.svg';
+
 import {Button} from '@sentry/scraps/button';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -133,23 +135,23 @@ export function ConfigureRootCauseAnalysisStep() {
 
   return (
     <Fragment>
-      <StepContent>
+      <StepContentWithBackground>
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
               <p>
                 {t(
-                  'Pair your projects with your repositories to enable Seer to analyze your codebase.'
+                  'Pair your projects with your repositories to make sure Seer can analyze your codebase.'
                 )}
               </p>
             </PanelDescription>
 
             <Field>
               <Flex direction="column" flex="1" gap="xs">
-                <FieldLabel>{t('Propose Fixes For Root Cause Analysis')}</FieldLabel>
+                <FieldLabel>{t('Enable Root Cause Analysis')}</FieldLabel>
                 <FieldDescription>
                   {t(
-                    'For all projects below, Seer will automatically analyze highly actionable issues, and create a root cause analysis and proposed solution without a user needing to prompt it.'
+                    'For all projects below AND newly added projects, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution.'
                   )}
                 </FieldDescription>
               </Flex>
@@ -163,7 +165,9 @@ export function ConfigureRootCauseAnalysisStep() {
               <Flex direction="column" flex="1" gap="xs">
                 <FieldLabel>{t('Automatic PR Creation')}</FieldLabel>
                 <FieldDescription>
-                  {t('For all projects below, Seer will be able to make a pull request.')}
+                  {t(
+                    'For all projects below AND newly added projects, Seer will be able to create a pull request.'
+                  )}
                 </FieldDescription>
               </Flex>
               <Switch
@@ -208,7 +212,7 @@ export function ConfigureRootCauseAnalysisStep() {
             )}
           </PanelBody>
         </MaxWidthPanel>
-      </StepContent>
+      </StepContentWithBackground>
 
       <GuidedSteps.ButtonWrapper>
         <Button size="md" onClick={handlePreviousStep} aria-label={t('Previous Step')}>
@@ -227,6 +231,11 @@ export function ConfigureRootCauseAnalysisStep() {
     </Fragment>
   );
 }
+
+const StepContentWithBackground = styled(StepContent)`
+  background: url(${configureRootCauseAnalysisImg}) no-repeat 638px 0;
+  background-size: 200px 256px;
+`;
 
 const AddRepoRow = styled(PanelItem)`
   align-items: center;

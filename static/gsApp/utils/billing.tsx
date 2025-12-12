@@ -40,11 +40,7 @@ import type {
   ProductTrial,
   Subscription,
 } from 'getsentry/types';
-import {
-  getCategoryInfoFromPlural,
-  isByteCategory,
-  isContinuousProfiling,
-} from 'getsentry/utils/dataCategory';
+import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
@@ -156,7 +152,11 @@ export function formatReservedWithUnits(
   if (isReservedBudget) {
     return displayPriceWithCents({cents: reservedQuantity ?? 0});
   }
-  if (!isByteCategory(dataCategory)) {
+
+  const categoryInfo = getCategoryInfoFromPlural(dataCategory);
+  const unitType = categoryInfo?.formatting.unitType ?? 'count';
+
+  if (unitType !== 'bytes') {
     return formatReservedNumberToString(reservedQuantity, options);
   }
 
@@ -193,7 +193,10 @@ export function formatUsageWithUnits(
   dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
-  if (isByteCategory(dataCategory)) {
+  const categoryInfo = getCategoryInfoFromPlural(dataCategory);
+  const unitType = categoryInfo?.formatting.unitType ?? 'count';
+
+  if (unitType === 'bytes') {
     if (options.useUnitScaling) {
       return formatByteUnits(usageQuantity);
     }
@@ -203,7 +206,7 @@ export function formatUsageWithUnits(
       ? `${displayNumber(usageGb)} GB`
       : `${usageGb.toLocaleString(undefined, {maximumFractionDigits: 2})} GB`;
   }
-  if (isContinuousProfiling(dataCategory)) {
+  if (unitType === 'durationHours') {
     const usageProfileHours = usageQuantity / MILLISECONDS_IN_HOUR;
     if (usageProfileHours === 0) {
       return '0';
@@ -221,10 +224,13 @@ export function convertUsageToReservedUnit(
   usage: number,
   category: DataCategory | string
 ): number {
-  if (isByteCategory(category)) {
+  const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+  const unitType = categoryInfo?.formatting.unitType ?? 'count';
+
+  if (unitType === 'bytes') {
     return usage / GIGABYTE;
   }
-  if (isContinuousProfiling(category)) {
+  if (unitType === 'durationHours') {
     return usage / MILLISECONDS_IN_HOUR;
   }
   return usage;

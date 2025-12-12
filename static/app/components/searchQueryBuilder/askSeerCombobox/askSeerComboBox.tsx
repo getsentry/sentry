@@ -509,8 +509,8 @@ const Wrapper = styled(Input.withComponent('div'))<{isDropdownOpen: boolean}>`
   font-size: ${p => p.theme.fontSize.md};
   cursor: text;
 
-  border-bottom-left-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.borderRadius)};
-  border-bottom-right-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.borderRadius)};
+  border-bottom-left-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.radius.md)};
+  border-bottom-right-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.radius.md)};
 `;
 
 const PositionedSearchIconContainer = styled('div')`
@@ -577,7 +577,7 @@ const SeerFooter = styled('div')`
   justify-content: flex-end;
   padding: ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const SeerContent = styled('div')`

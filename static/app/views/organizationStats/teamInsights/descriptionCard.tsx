@@ -24,7 +24,7 @@ export default DescriptionCard;
 
 const Wrapper = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   display: flex;
   margin-bottom: ${space(3)};
   flex-direction: column;

@@ -263,7 +263,7 @@ const LegendItem = styled('div')<{isActive: boolean}>`
   gap: ${p => p.theme.space.xs};
   cursor: pointer;
   padding: ${p => p.theme.space.xs};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   opacity: ${p => (p.isActive ? 1 : 0.4)};
   flex-shrink: 0;
   transition:
@@ -310,7 +310,7 @@ const MoreDropdown = styled('div')`
   margin-top: 2px;
   background: ${p => p.theme.backgroundElevated};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   padding: ${p => p.theme.space.xs};
   display: flex;
