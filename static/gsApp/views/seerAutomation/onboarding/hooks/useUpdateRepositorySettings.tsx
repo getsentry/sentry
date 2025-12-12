@@ -12,7 +12,7 @@ export function useUpdateRepositorySettings() {
 
   return useMutation({
     mutationFn: (data: RepositorySettings) => {
-      return fetchMutation<RepositorySettings>({
+      return fetchMutation<RepositorySettings[]>({
         method: 'PUT',
         url: `/organizations/${organization.slug}/repos/settings/`,
         data: {

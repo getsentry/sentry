@@ -5,25 +5,39 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link/link';
 import {Switch} from '@sentry/scraps/switch/switch';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {ProjectList} from 'sentry/components/projectList';
 import getRepoStatusLabel from 'sentry/components/repositories/getRepoStatusLabel';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconOpen} from 'sentry/icons/iconOpen';
-import {RepositoryStatus, type RepositoryWithSettings} from 'sentry/types/integrations';
+import {t} from 'sentry/locale';
+import {
+  DEFAULT_CODE_REVIEW_TRIGGERS,
+  RepositoryStatus,
+  type RepositoryWithSettings,
+} from 'sentry/types/integrations';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useUpdateRepositorySettings';
 
 interface Props {
   repository: RepositoryWithSettings;
 }
 
 export default function SeerRepoTableRow({repository}: Props) {
+  const queryClient = useQueryClient();
   const organization = useOrganization();
-
   const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
+
+  const {mutate: mutateRepositorySettings} = useUpdateRepositorySettings();
 
   return (
     <SimpleTable.Row key={repository.id}>
@@ -70,8 +84,36 @@ export default function SeerRepoTableRow({repository}: Props) {
         <Switch
           disabled={!canWrite}
           checked={repository.settings?.enabledCodeReview ?? false}
-          onChange={() => {
-            // TODO: Implement code review
+          onChange={e => {
+            // TODO update the UI with the new value!
+            // See the mess inside of useOrganizationRepositories();
+            addLoadingMessage(t('Updating code review for %s', repository.name));
+            mutateRepositorySettings(
+              {
+                codeReviewTriggers:
+                  repository.settings?.codeReviewTriggers || DEFAULT_CODE_REVIEW_TRIGGERS,
+                enabledCodeReview: e.target.checked,
+                repositoryIds: [repository.id],
+              },
+              {
+                onError: () => {
+                  addErrorMessage(
+                    t('Failed to update code review for %s', repository.name)
+                  );
+                },
+                onSuccess: (updatedRepositories: RepositoryWithSettings[]) => {
+                  updatedRepositories.forEach(updatedRepository => {
+                    queryClient.setQueryData(
+                      [
+                        `/organizations/${organization.slug}/repos/${updatedRepository.id}/`,
+                      ],
+                      updatedRepository
+                    );
+                  });
+                  addSuccessMessage(t('Code review updated for %s', repository.name));
+                },
+              }
+            );
           }}
         />
       </SimpleTable.RowCell>
