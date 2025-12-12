@@ -701,13 +701,12 @@ function TabPinButton(props: {
   pinned: boolean;
   onClick?: (e: React.MouseEvent<HTMLElement>) => void;
 }) {
-  const theme = useTheme();
   return (
     <StyledButton
       data-test-id="trace-drawer-tab-pin-button"
       size="zero"
       onClick={props.onClick}
-      priority={theme.isChonk ? 'transparent' : 'default'}
+      priority="transparent"
       aria-label={props.pinned ? t('Unpin Tab') : t('Pin Tab')}
       icon={<StyledIconPin size="xs" isSolid={props.pinned} />}
     />
