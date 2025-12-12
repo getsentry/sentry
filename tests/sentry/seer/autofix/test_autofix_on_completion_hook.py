@@ -1,3 +1,4 @@
+from typing import TypedDict
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.autofix.autofix_agent import AutofixStep
@@ -211,7 +212,13 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         state = MagicMock()
         run_id = 123
 
-        test_cases = [
+        class TestCaseDict(TypedDict):
+            artifact_key: str
+            artifact_data: dict
+            expected_event: SeerActionType
+            expected_payload_key: str
+
+        test_cases: list[TestCaseDict] = [
             {
                 "artifact_key": "root_cause",
                 "artifact_data": {"cause": "test"},
