@@ -211,7 +211,7 @@ export function DetectorLink({detector, className, openInNewTab}: DetectorLinkPr
 
   const detectorName =
     detector.type === 'issue_stream'
-      ? t('All Issues in %s', project?.name || 'project')
+      ? t('All Issues in %s', project?.slug || 'project')
       : detector.name;
 
   const detectorLink =
