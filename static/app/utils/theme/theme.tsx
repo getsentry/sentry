@@ -8,7 +8,7 @@
  * - Theme type exports
  */
 import type {CSSProperties} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import modifyColor from 'color';
 import {spring, type Transition} from 'framer-motion';
@@ -1734,4 +1734,3 @@ export type StrictCSSObject = {
 // tkdodo: kept for backwards compatibility, to be deleted
 
 export const chonkStyled = styled;
-export const useChonkTheme = useTheme;
