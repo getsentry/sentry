@@ -13,6 +13,7 @@ from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
@@ -87,37 +88,19 @@ def parse_github_blob_url(repo_url: str, source_url: str) -> tuple[str, str]:
     return branch, remainder.lstrip("/")
 
 
-def has_seer_and_ai_features_enabled_for_repo(organization: Organization, repo: Repository) -> bool:
-    """
-    Check if Seer is enabled and AI features are configured for a repository.
-
-    This function is used as a webhook guard to determine whether to process
-    AI-powered code review/autofix for incoming webhooks.
-
-    Returns:
-        True if Seer and AI features are enabled for the repository else False
-    """
-    # Exclude organizations in code-review-beta cohort
-    if features.has("organizations:code-review-beta", organization):
-        return False
-
-    # Seer enabled (billing) check
-    has_seer_quota: bool = quotas.backend.check_seer_quota(
-        org_id=organization.id, data_category=DataCategory.SEER_USER
-    )
-    if not has_seer_quota:
-        return False
-
-    # Code review enabled check
-    code_review_enabled = RepositorySettings.objects.filter(
+def _is_code_review_enabled_for_repo(repo: Repository) -> bool:
+    """Check if code review is explicitly enabled for this repository."""
+    return RepositorySettings.objects.filter(
         repository=repo,
         enabled_code_review=True,
     ).exists()
-    if code_review_enabled:
-        return True
 
-    # Autofix automation enabled check
-    # First get projects associated with repo and organization
+
+def _is_autofix_enabled_for_repo(organization: Organization, repo: Repository) -> bool:
+    """
+    Check if autofix automation is enabled (not "off") for any project
+    associated with this repository via code mappings.
+    """
     repo_configs = RepositoryProjectPathConfig.objects.filter(
         repository=repo,
         organization_id=organization.id,
@@ -126,8 +109,7 @@ def has_seer_and_ai_features_enabled_for_repo(organization: Organization, repo: 
     if not repo_configs:
         return False
 
-    # Then check if any project has autofix automation tuning set to not OFF or None
-    autofix_enabled = (
+    return (
         ProjectOption.objects.filter(
             project_id__in=repo_configs,
             project__status=ObjectStatus.ACTIVE,
@@ -138,4 +120,97 @@ def has_seer_and_ai_features_enabled_for_repo(organization: Organization, repo: 
         .exists()
     )
 
-    return autofix_enabled
+
+def _has_code_review_or_autofix_enabled(organization: Organization, repo: Repository) -> bool:
+    """
+    Check if either code review is enabled for the repo OR autofix automation
+    is enabled for any linked project.
+    """
+    return _is_code_review_enabled_for_repo(repo) or _is_autofix_enabled_for_repo(
+        organization, repo
+    )
+
+
+def _contributor_has_seat(
+    organization: Organization, repo: Repository, external_identifier: str
+) -> bool:
+    """
+    Check if a contributor already has a seat (OrganizationContributors record exists).
+    """
+    if repo.integration_id is None:
+        return False
+
+    return OrganizationContributors.objects.filter(
+        organization=organization,
+        integration_id=repo.integration_id,
+        external_identifier=external_identifier,
+    ).exists()
+
+
+def should_create_or_increment_contributor_seat(
+    organization: Organization, repo: Repository, external_identifier: str
+) -> bool:
+    """
+    Guard for OrganizationContributor creation/incrementing and seat assignment.
+
+    Determines if we should create or increment an OrganizationContributor record
+    and potentially assign a new seat.
+
+    Logic:
+    1. Exclude organizations in code-review-beta cohort (they use a different flow)
+    2. Require code review OR autofix to be enabled for the repo
+    3. If contributor already has a seat, allow (even if quota exhausted)
+    4. If no existing seat, require Seer quota to be available
+
+    Args:
+        organization: The organization to check
+        repo: The repository from the webhook
+        external_identifier: The GitHub user identifier (e.g., GitHub user ID)
+
+    Returns:
+        True if we should create/increment the contributor seat
+    """
+    if features.has("organizations:code-review-beta", organization):
+        return False
+
+    if not _has_code_review_or_autofix_enabled(organization, repo):
+        return False
+
+    if _contributor_has_seat(organization, repo, external_identifier):
+        return True
+
+    has_seer_quota: bool = quotas.backend.check_seer_quota(
+        org_id=organization.id, data_category=DataCategory.SEER_USER
+    )
+    return has_seer_quota
+
+
+def should_forward_to_overwatch(
+    organization: Organization, repo: Repository, external_identifier: str
+) -> bool:
+    """
+    Guard for forwarding webhooks to Overwatch for AI code review.
+
+    Determines if we should forward a webhook to Overwatch based on:
+    1. Organization is NOT in code-review-beta cohort
+    2. Repository has code review explicitly enabled (not autofix)
+    3. Contributor already has an assigned seat
+
+    Args:
+        organization: The organization to check
+        repo: The repository from the webhook
+        external_identifier: The GitHub user identifier (e.g., GitHub user ID)
+
+    Returns:
+        True if we should forward the webhook to Overwatch
+    """
+    if features.has("organizations:code-review-beta", organization):
+        return True
+
+    if not _is_code_review_enabled_for_repo(repo):
+        return False
+
+    if not _contributor_has_seat(organization, repo, external_identifier):
+        return False
+
+    return True
