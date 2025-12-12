@@ -185,6 +185,9 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 )
 
             table_results = get_table_results()
+            if not table_results["data"]:
+                return {"data": []}, 0
+
             span_ids = [row["span_id"] for row in table_results["data"]]
             span_id_list = ",".join(span_ids)
 
@@ -199,8 +202,8 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 if key in SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS:
                     continue
 
-                if substring_match:
-                    if substring_match in key:
+                if value_substring_match:
+                    if value_substring_match in key:
                         sanitized_keys.append(key)
                     continue
 
