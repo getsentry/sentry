@@ -28,6 +28,7 @@ export const METRIC_TEMPLATE_OPTIONS: TemplateOption[] = [
     label: t('Users Experiencing Errors'),
     detectorDataset: DetectorDataset.ERRORS,
     aggregate: 'count_unique(user)',
+    query: 'is:unresolved',
   },
   {
     key: 'trace_item_throughput',
