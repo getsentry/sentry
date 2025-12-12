@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from sentry.constants import ObjectStatus
+from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS, ObjectStatus
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.prevent.models import PreventAIConfiguration
 from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT, PREVENT_AI_CONFIG_DEFAULT_V1
@@ -551,6 +551,30 @@ class TestCodeReviewRepoSettingsEndpoint(APITestCase):
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
         assert resp.data == {"enabledCodeReview": False, "codeReviewTriggers": []}
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_returns_enabled_with_default_triggers_when_code_review_beta_flag(self):
+        org = self.create_organization()
+
+        url = reverse("sentry-api-0-code-review-repo-settings")
+        params = {
+            "sentryOrgId": str(org.id),
+            "externalRepoId": "nonexistent-repo-id",
+            "provider": "integrations:github",
+        }
+        auth = self._auth_header_for_get(url, params, "test-secret")
+
+        with self.feature({"organizations:code-review-beta": org}):
+            resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+
+        assert resp.status_code == 200
+        assert resp.data == {
+            "enabledCodeReview": True,
+            "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS,
+        }
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
