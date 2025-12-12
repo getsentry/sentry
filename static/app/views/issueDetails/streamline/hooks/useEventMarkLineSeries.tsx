@@ -51,7 +51,7 @@ export function useCurrentEventMarklineSeries({
     const markLine = MarkLine({
       animation: false,
       lineStyle: {
-        color: theme.isChonk ? theme.tokens.graphics.promotion : theme.pink200,
+        color: theme.tokens.graphics.promotion,
         type: 'solid',
       },
       label: {

@@ -1,5 +1,4 @@
 import {useEffect, type ReactNode} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -10,7 +9,6 @@ import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -135,13 +133,4 @@ const TabContainer = styled('div')`
   flex-direction: column;
   flex-wrap: nowrap;
   min-width: 0;
-
-  ${p =>
-    p.theme.isChonk
-      ? ''
-      : css`
-          padding-inline: ${space(1)};
-          border-bottom: 1px solid ${p.theme.border};
-          margin-bottom: -1px;
-        `}
 `;

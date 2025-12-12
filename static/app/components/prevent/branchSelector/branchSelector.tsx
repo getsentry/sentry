@@ -195,8 +195,5 @@ const ResetButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
   padding: 0 ${space(0.5)};
-  margin: ${p =>
-    p.theme.isChonk
-      ? `-${space(0.5)} -${space(0.5)}`
-      : `-${space(0.25)} -${space(0.25)}`};
+  margin: -${space(0.5)} -${space(0.5)};
 `;

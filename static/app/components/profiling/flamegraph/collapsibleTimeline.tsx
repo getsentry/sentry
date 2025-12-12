@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -18,7 +17,6 @@ interface CollapsibleTimelineProps {
   title: string;
 }
 function CollapsibleTimeline(props: CollapsibleTimelineProps) {
-  const theme = useTheme();
   const flamegraphTheme = useFlamegraphTheme();
   return (
     <Fragment>
@@ -29,7 +27,7 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
       >
         <CollapsibleTimelineLabel>{props.title}</CollapsibleTimelineLabel>
         <StyledButton
-          priority={theme.isChonk ? 'transparent' : undefined}
+          priority="transparent"
           onClick={props.open ? props.onClose : props.onOpen}
           aria-label={props.open ? t('Expand') : t('Collapse')}
           aria-expanded={props.open}

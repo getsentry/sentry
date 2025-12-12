@@ -50,6 +50,6 @@ function identity<T, U>(props: T): U {
   return props as unknown as U;
 }
 
-export function isChonkTheme(theme: Theme) {
-  return theme.isChonk;
+export function isChonkTheme(_theme: Theme) {
+  return true;
 }

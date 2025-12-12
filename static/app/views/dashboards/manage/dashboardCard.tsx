@@ -206,7 +206,7 @@ const ContextMenuWrapper = styled('div')`
   right: ${space(2)};
   bottom: ${space(1)};
   display: flex;
-  ${p => (p.theme.isChonk ? `gap: ${space(0.5)};` : '')}
+  gap: ${space(0.5)};
 `;
 
 const StyledButton = styled(Button)`

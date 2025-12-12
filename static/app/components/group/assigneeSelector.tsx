@@ -1,4 +1,3 @@
-import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
@@ -82,8 +81,6 @@ export function AssigneeSelector({
   additionalMenuFooterItems,
   showLabel = false,
 }: AssigneeSelectorProps) {
-  const theme = useTheme();
-
   return (
     <AssigneeSelectorDropdown
       group={group}
@@ -98,7 +95,6 @@ export function AssigneeSelector({
         <StyledDropdownButton
           {...props}
           aria-label={t('Modify issue assignee')}
-          borderless={!theme.isChonk}
           size="zero"
         >
           <AssigneeBadge
@@ -128,12 +124,7 @@ const StyledDropdownButton = styled(Button)`
   border-radius: 20px;
   box-shadow: none;
 
-  ${p =>
-    // Chonk tags have a smaller border radius, so we need make sure it matches.
-    p.theme.isChonk &&
-    css`
-      > span > div {
-        border-radius: 20px;
-      }
-    `}
+  > span > div {
+    border-radius: 20px;
+  }
 `;

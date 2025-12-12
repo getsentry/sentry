@@ -208,7 +208,7 @@ const NavTabsBadge = styled(Badge)`
 `;
 
 const BadgeWrapper = styled('div')`
-  margin-left: ${p => (p.theme.isChonk ? 0 : p.theme.space.sm)};
+  margin-left: 0;
 `;
 
 export default ReleaseHeader;

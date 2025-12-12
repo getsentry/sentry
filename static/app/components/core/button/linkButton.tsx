@@ -7,10 +7,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 // eslint-disable-next-line boundaries/element-types
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
-import {
-  DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
-  DO_NOT_USE_getButtonStyles as getButtonStyles,
-} from './styles';
+import {DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES} from './styles';
 import {DO_NOT_USE_getChonkButtonStyles as getChonkButtonStyles} from './styles.chonk';
 import type {
   DO_NOT_USE_CommonButtonProps as CommonButtonProps,
@@ -96,7 +93,7 @@ const StyledLinkButton = styled(
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<LinkButtonProps>`
-  ${p => (p.theme.isChonk ? getChonkLinkButtonStyles(p) : getButtonStyles(p as any))}
+  ${p => getChonkLinkButtonStyles(p)}
 `;
 
 const getChonkLinkButtonStyles = (p: LinkButtonProps) => {
