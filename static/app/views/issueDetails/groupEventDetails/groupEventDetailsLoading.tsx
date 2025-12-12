@@ -53,8 +53,8 @@ export function GroupEventDetailsLoading() {
 const LoadingGroupContent = styled('div')`
   min-height: 90vh;
   border: 1px solid ${p => p.theme.translucentBorder};
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const LoadingHeader = styled('div')`

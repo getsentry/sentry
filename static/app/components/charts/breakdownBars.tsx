@@ -78,7 +78,7 @@ const BarContainer = styled('div')<{cursor: 'pointer' | 'default'}>`
 
 const Label = styled('span')`
   position: relative;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   z-index: 2;
   font-size: ${p => p.theme.fontSize.sm};
 `;

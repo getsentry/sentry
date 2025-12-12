@@ -1,6 +1,5 @@
 import {Children} from 'react';
-import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
@@ -30,7 +29,7 @@ export default PageFilterBar;
 const pageFilterBarStyles = (p: {theme: Theme; condensed?: boolean}) => css`
   display: flex;
   position: relative;
-  border-radius: ${p.theme.borderRadius};
+  border-radius: ${p.theme.radius.md};
   height: ${p.theme.form.md.height};
 
   ${p.condensed &&
@@ -48,7 +47,7 @@ const pageFilterBarStyles = (p: {theme: Theme; condensed?: boolean}) => css`
     right: 0;
     pointer-events: none;
     box-shadow: inset 0 0 0 1px ${p.theme.border};
-    border-radius: ${p.theme.borderRadius};
+    border-radius: ${p.theme.radius.md};
   }
 
   & [role='button'] {
@@ -124,7 +123,7 @@ const getChildTransforms = (count: number) => {
 
 const chonkPageFilterBarStyles = (p: {
   listSize: number;
-  theme: DO_NOT_USE_ChonkTheme;
+  theme: Theme;
   condensed?: boolean;
 }) => css`
   /* No idea what this is supposed to style, but I am afraid to remove it */

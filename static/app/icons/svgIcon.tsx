@@ -52,16 +52,21 @@ export function useResolvedIconColor(
     return 'currentColor';
   }
 
-  // Chonk changes the color of the icon to gray300 to differ. We will remap
-  // the color to subText for the time being and remove this when the old theme
-  // aliases are removed.
-  let normalizedColor = providedColor;
-  if (theme.isChonk && providedColor === 'gray300') {
-    normalizedColor = 'subText';
-  }
+  // Remap gray300 to subText since we no longer support the old theme
+  const normalizedColor = providedColor === 'gray300' ? 'subText' : providedColor;
   const resolvedColor = theme[normalizedColor];
   if (typeof resolvedColor === 'string') {
     return resolvedColor;
   }
   return normalizedColor;
 }
+
+export type SVGIconDirection = 'up' | 'right' | 'down' | 'left';
+const ICON_DIRECTION_TO_ROTATION_ANGLE = {
+  up: 0,
+  right: 90,
+  down: 180,
+  left: 270,
+} as const;
+
+SvgIcon.ICON_DIRECTION_TO_ROTATION_ANGLE = ICON_DIRECTION_TO_ROTATION_ANGLE;

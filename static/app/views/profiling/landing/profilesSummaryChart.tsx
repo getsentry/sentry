@@ -195,12 +195,12 @@ export function ProfilesSummaryChart({
 
 const ProfilesChartTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.fontWeight.bold};
   padding: ${space(0.25)} ${space(1)};
 `;
 
 const ProfilesChartContainer = styled('div')`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   border-bottom: 1px solid ${p => p.theme.border};
 `;

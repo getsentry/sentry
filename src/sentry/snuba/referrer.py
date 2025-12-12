@@ -109,8 +109,9 @@ class Referrer(StrEnum):
     API_GROUP_HASHES = "api.group-hashes"
 
     # ** Explore **
-    API_EXPLORE_SPANS_STATS = "api.explore.spans-stats"
     API_EXPLORE_SPANS_TIMESERIES = "api.explore.spans-timeseries"
+    API_EXPLORE_OURLOGS_TIMESERIES = "api.explore.ourlogs-timeseries"
+    API_EXPLORE_TRACEMETRICS_TIMESERIES = "api.explore.tracemetrics-timeseries"
     API_EXPLORE_SPANS_AGGREGATES_TABLE = "api.explore.spans-aggregates-table"
     API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
     API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
@@ -793,6 +794,8 @@ class Referrer(StrEnum):
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_QUERY = "search.snuba.group_attributes_search.query"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"
     SEER_RPC = "seer.rpc"
+    SEER_EXPLORER_INDEX = "seer.explorer_index"
+    SEER_EXPLORER_TOOLS = "seer.explorer_tools"
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
     )
@@ -841,6 +844,9 @@ class Referrer(StrEnum):
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
     TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore.__get_tag_key_and_top_values"
     TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES = "tagstore._get_tag_keys_and_top_values"
+    TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES_EMPTY_COUNTS = (
+        "tagstore._get_tag_keys_and_top_values_empty_counts"
+    )
     TAGSTORE__GET_TAG_KEYS = "tagstore.__get_tag_keys"
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"

@@ -154,7 +154,7 @@ const CopyContainer = styled('div')`
   display: inline-flex;
   align-items: stretch;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.backgroundSecondary};
   max-width: 25rem;
   min-width: 0;
@@ -164,7 +164,7 @@ const CopyContainer = styled('div')`
 
 const CopyButton = styled(Button)`
   border: none;
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   border-right: 1px solid ${p => p.theme.border};
   height: auto;
   flex-shrink: 0;
@@ -414,7 +414,7 @@ export function AutofixChanges({
 const PreviewContent = styled('div')`
   display: flex;
   flex-direction: column;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   margin-top: ${space(2)};
 `;
 
@@ -426,10 +426,10 @@ const PrefixText = styled('span')``;
 
 const ChangesContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${p => p.theme.space.xl};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const Content = styled('div')`
@@ -460,7 +460,7 @@ const MarkdownAlert = styled(MarkedText)`
   border: 1px solid ${p => p.theme.alert.warning.border};
   background-color: ${p => p.theme.alert.warning.backgroundLight};
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.alert.warning.color};
 `;
 

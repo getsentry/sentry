@@ -7,7 +7,7 @@ import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 export default Storybook.story('Radio', (story, APIReference) => {
-  APIReference(documentation.props.Radio);
+  APIReference(documentation.props?.Radio);
 
   story('Default', () => {
     return (

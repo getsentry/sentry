@@ -182,9 +182,9 @@ export function DO_NOT_USE_getButtonStyles(
   return css`
     position: relative;
     display: inline-block;
-    border-radius: ${p.theme.borderRadius};
+    border-radius: ${p.theme.radius.md};
     text-transform: none;
-    font-weight: ${p.theme.fontWeight.bold};
+    font-weight: ${p.theme.font.weight.medium};
     cursor: ${p.disabled ? 'not-allowed' : p.busy ? 'wait' : 'pointer'};
     opacity: ${(p.busy || p.disabled) && '0.65'};
 

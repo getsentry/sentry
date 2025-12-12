@@ -4,9 +4,11 @@ from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.marketo_client import MarketoClient
 
 
+@control_silo_test
 class EmailCaptureTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()

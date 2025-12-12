@@ -980,6 +980,7 @@ class PullRequestEventWebhook(APITestCase):
             external_id="35129377",
             provider="integrations:github",
             name="baxterthehacker/public-repo",
+            integration_id=integration.id,
         )
 
         response = self.client.post(
@@ -1019,11 +1020,13 @@ class PullRequestEventWebhook(APITestCase):
 
     @patch("sentry.integrations.github.webhook.assign_seat_to_organization_contributor")
     @patch(
-        "sentry.integrations.github.webhook.has_seer_and_ai_features_enabled_for_repo",
+        "sentry.integrations.github.webhook.should_create_or_increment_contributor_seat",
         return_value=False,
     )
     def test_no_contributor_tracking_when_feature_disabled(
-        self, mock_has_seer_features: MagicMock, mock_assign_seat: MagicMock
+        self,
+        mock_should_create_or_increment_contributor_seat: MagicMock,
+        mock_assign_seat: MagicMock,
     ) -> None:
         Repository.objects.create(
             organization_id=self.project.organization.id,
@@ -1039,11 +1042,13 @@ class PullRequestEventWebhook(APITestCase):
 
     @patch("sentry.integrations.github.webhook.assign_seat_to_organization_contributor")
     @patch(
-        "sentry.integrations.github.webhook.has_seer_and_ai_features_enabled_for_repo",
+        "sentry.integrations.github.webhook.should_create_or_increment_contributor_seat",
         return_value=True,
     )
     def test_seat_assignment_not_triggered_when_contributor_becomes_inactive(
-        self, mock_has_seer_features: MagicMock, mock_assign_seat: MagicMock
+        self,
+        mock_should_create_or_increment_contributor_seat: MagicMock,
+        mock_assign_seat: MagicMock,
     ) -> None:
         Repository.objects.create(
             organization_id=self.project.organization.id,
@@ -1057,19 +1062,21 @@ class PullRequestEventWebhook(APITestCase):
         contributor = OrganizationContributors.objects.get(
             organization_id=self.organization.id,
             integration_id=integration.id,
-            external_identifier="github:baxterthehacker",
+            external_identifier="6752317",
         )
 
         assert contributor.num_actions == 1
         mock_assign_seat.delay.assert_not_called()
 
-    @patch("sentry.integrations.github.webhook.assign_seat_to_organization_contributor")
+    @patch("sentry.integrations.github.webhook.should_create_or_increment_contributor_seat")
     @patch(
         "sentry.integrations.github.webhook.has_seer_and_ai_features_enabled_for_repo",
         return_value=True,
     )
     def test_seat_assignment_triggered_when_contributor_becomes_active(
-        self, mock_has_seer_features: MagicMock, mock_assign_seat: MagicMock
+        self,
+        mock_should_create_or_increment_contributor_seat: MagicMock,
+        mock_assign_seat: MagicMock,
     ) -> None:
         Repository.objects.create(
             organization_id=self.project.organization.id,
@@ -1091,7 +1098,7 @@ class PullRequestEventWebhook(APITestCase):
         contributor = OrganizationContributors.objects.create(
             organization_id=self.organization.id,
             integration_id=integration.id,
-            external_identifier="github:baxterthehacker",
+            external_identifier="6752317",
             num_actions=1,
         )
 
@@ -1111,11 +1118,13 @@ class PullRequestEventWebhook(APITestCase):
 
     @patch("sentry.integrations.github.webhook.assign_seat_to_organization_contributor")
     @patch(
-        "sentry.integrations.github.webhook.has_seer_and_ai_features_enabled_for_repo",
+        "sentry.integrations.github.webhook.should_create_or_increment_contributor_seat",
         return_value=True,
     )
     def test_seat_assignment_not_triggered_for_bot_contributor(
-        self, mock_has_seer_features: MagicMock, mock_assign_seat: MagicMock
+        self,
+        mock_should_create_or_increment_contributor_seat: MagicMock,
+        mock_assign_seat: MagicMock,
     ) -> None:
         Repository.objects.create(
             organization_id=self.project.organization.id,
@@ -1137,7 +1146,7 @@ class PullRequestEventWebhook(APITestCase):
         contributor = OrganizationContributors.objects.create(
             organization_id=self.organization.id,
             integration_id=integration.id,
-            external_identifier="github:baxterthehacker",
+            external_identifier="6752317",
             num_actions=1,
         )
 
@@ -1161,11 +1170,13 @@ class PullRequestEventWebhook(APITestCase):
 
     @patch("sentry.integrations.github.webhook.assign_seat_to_organization_contributor")
     @patch(
-        "sentry.integrations.github.webhook.has_seer_and_ai_features_enabled_for_repo",
+        "sentry.integrations.github.webhook.should_create_or_increment_contributor_seat",
         return_value=True,
     )
     def test_seat_assignment_not_triggered_for_non_member_contributor(
-        self, mock_has_seer_features: MagicMock, mock_assign_seat: MagicMock
+        self,
+        mock_should_create_or_increment_contributor_seat: MagicMock,
+        mock_assign_seat: MagicMock,
     ) -> None:
         Repository.objects.create(
             organization_id=self.project.organization.id,
@@ -1187,7 +1198,7 @@ class PullRequestEventWebhook(APITestCase):
         contributor = OrganizationContributors.objects.create(
             organization_id=self.organization.id,
             integration_id=integration.id,
-            external_identifier="github:baxterthehacker",
+            external_identifier="6752317",
             num_actions=1,
         )
 

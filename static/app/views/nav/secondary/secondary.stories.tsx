@@ -88,5 +88,5 @@ const Container = styled(NegativeSpaceContainer)`
 const StyledSecondaryNav = styled(SecondaryNav)`
   height: 500px;
   width: 300px;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;

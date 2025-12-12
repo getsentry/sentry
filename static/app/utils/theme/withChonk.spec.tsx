@@ -1,5 +1,4 @@
 import {createRef} from 'react';
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -10,6 +9,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
+import type {Theme} from 'sentry/utils/theme';
 
 import {withChonk} from './withChonk';
 
@@ -17,7 +17,7 @@ function LegacyComponent() {
   const theme = useTheme();
   return <div>Legacy: {theme.isChonk ? 'true' : 'false'}</div>;
 }
-function ChonkComponent({theme}: {theme: DO_NOT_USE_ChonkTheme}) {
+function ChonkComponent({theme}: {theme: Theme}) {
   return <div>Chonk: {theme.isChonk ? 'true' : 'false'}</div>;
 }
 
@@ -26,12 +26,7 @@ function LegacyComponentWithRef({ref}: {ref?: React.Ref<HTMLDivElement>}) {
   return <div ref={ref}>Legacy: {theme.isChonk ? 'true' : 'false'}</div>;
 }
 
-function ChonkComponentWithRef({
-  ref,
-}: {
-  theme: DO_NOT_USE_ChonkTheme;
-  ref?: React.Ref<HTMLDivElement>;
-}) {
+function ChonkComponentWithRef({ref}: {theme: Theme; ref?: React.Ref<HTMLDivElement>}) {
   const theme = useTheme();
   return <div ref={ref}>Chonk: {theme.isChonk ? 'true' : 'false'}</div>;
 }

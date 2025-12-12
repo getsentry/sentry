@@ -216,7 +216,7 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
   &[aria-selected='true'] {
     ${p => css`
       color: ${p.theme.purple400};
-      font-weight: ${p.theme.fontWeight.bold};
+      font-weight: ${p.theme.font.weight.medium};
       background-color: ${p.theme.purple100};
     `}
   }
@@ -244,12 +244,12 @@ const TabWrap = withChonk(
     overflowing: boolean;
     selected: boolean;
   }>`
-    color: ${p => (p.selected ? p.theme.activeText : p.theme.textColor)};
+    color: ${p => (p.selected ? p.theme.activeText : p.theme.tokens.content.primary)};
     white-space: nowrap;
     cursor: pointer;
 
     &:hover {
-      color: ${p => (p.selected ? p.theme.activeText : p.theme.headingColor)};
+      color: ${p => (p.selected ? p.theme.activeText : p.theme.tokens.content.primary)};
     }
 
     &:focus {
@@ -286,7 +286,7 @@ const innerWrapStyles = ({
   height: calc(
     ${theme.form.sm.height} + ${orientation === 'horizontal' ? space(0.75) : '0px'}
   );
-  border-radius: ${theme.borderRadius};
+  border-radius: ${theme.radius.md};
   transform: translateY(1px);
 
   ${orientation === 'horizontal'

@@ -25,6 +25,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.github.utils import should_create_or_increment_contributor_seat
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -61,7 +62,6 @@ from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
 from .tasks.codecov_account_unlink import codecov_account_unlink
 from .types import IssueEvenntWebhookActionType
-from .utils import has_seer_and_ai_features_enabled_for_repo
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -473,7 +473,7 @@ class PushEventWebhook(GitHubWebhook):
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
 
-                    file_changes = []
+                    file_changes: list[CommitFileChange] = []
 
                     for fname in commit["added"]:
                         languages.add(get_file_language(fname))
@@ -792,7 +792,16 @@ class PullRequestEventWebhook(GitHubWebhook):
 
             if created:
                 # Track AI contributor if eligible
-                if has_seer_and_ai_features_enabled_for_repo(organization, repo):
+                contributor, _ = OrganizationContributors.objects.get_or_create(
+                    organization_id=organization.id,
+                    integration_id=integration.id,
+                    external_identifier=user["id"],
+                    defaults={
+                        "alias": user["login"],
+                    },
+                )
+
+                if should_create_or_increment_contributor_seat(organization, repo, contributor):
                     metrics.incr(
                         "github.webhook.organization_contributor.should_create",
                         sample_rate=1.0,
@@ -808,7 +817,10 @@ class PullRequestEventWebhook(GitHubWebhook):
                         ) = OrganizationContributors.objects.select_for_update().get_or_create(
                             organization_id=organization.id,
                             integration_id=integration.id,
-                            external_identifier=self.get_external_id(user["login"]),
+                            external_identifier=user["id"],
+                            defaults={
+                                "alias": user["login"],
+                            },
                         )
                         contributor.num_actions += 1
                         contributor.date_updated = django_timezone.now()
@@ -942,6 +954,14 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             return HttpResponse(status=400)
 
         event_handler = handler()
+
+        with IntegrationWebhookEvent(
+            interaction_type=event_handler.event_type,
+            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            provider_key=event_handler.provider,
+        ).capture():
+            event_handler(event)
+        return HttpResponse(status=204)
 
         with IntegrationWebhookEvent(
             interaction_type=event_handler.event_type,

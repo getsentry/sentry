@@ -65,7 +65,6 @@ describe('SpansTabContent', () => {
         'gen-ai-features',
         'gen-ai-explore-traces',
         'gen-ai-explore-traces-consent-ui',
-        'search-query-builder-case-insensitivity',
         'traces-page-cross-event-querying',
       ],
     },
@@ -634,7 +633,7 @@ describe('SpansTabContent', () => {
       ).toBeInTheDocument();
     });
 
-    it('displays the cross event query limit alert', () => {
+    it('renders disabled cross event search bar when the limit is reached', () => {
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
         organization,
         additionalWrapper: Wrapper,
@@ -652,9 +651,10 @@ describe('SpansTabContent', () => {
         },
       });
 
-      expect(
-        screen.getByText('You can add up to a maximum of 2 cross event queries.')
-      ).toBeInTheDocument();
+      expect(screen.getAllByTestId('search-query-builder').pop()).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 });

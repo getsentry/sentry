@@ -8,7 +8,6 @@ import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {makePreventPathname} from 'sentry/views/prevent/pathnames';
 import {
-  COVERAGE_BASE_URL,
   PREVENT_AI_BASE_URL,
   TESTS_BASE_URL,
   TOKENS_BASE_URL,
@@ -16,10 +15,6 @@ import {
 
 function PreventSecondaryNav() {
   const organization = useOrganization();
-  const coveragePathname = makePreventPathname({
-    organization,
-    path: `/${COVERAGE_BASE_URL}/`,
-  });
   const testsPathname = makePreventPathname({
     organization,
     path: `/${TESTS_BASE_URL}/`,
@@ -40,14 +35,6 @@ function PreventSecondaryNav() {
       </SecondaryNav.Header>
       <SecondaryNav.Body>
         <SecondaryNav.Section id="prevent-main">
-          <Feature features={['codecov-ui']}>
-            <SecondaryNav.Item
-              to={`${coveragePathname}commits/`}
-              activeTo={coveragePathname}
-            >
-              {t('Coverage')}
-            </SecondaryNav.Item>
-          </Feature>
           <Feature features={['prevent-test-analytics']}>
             <SecondaryNav.Item to={testsPathname} activeTo={testsPathname}>
               {t('Tests')}

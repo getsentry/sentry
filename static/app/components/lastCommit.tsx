@@ -93,9 +93,9 @@ const Meta = styled('div')`
 `;
 
 const StyledCommitLink = styled(CommitLink)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   &:hover {
-    color: ${p => p.theme.textColor};
-    text-decoration: underline dotted ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
+    text-decoration: underline dotted ${p => p.theme.tokens.content.primary};
   }
 `;
