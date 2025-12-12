@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+import orjson
 import responses
 from django.conf import settings
 from rest_framework.response import Response
@@ -9,8 +10,7 @@ from fixtures.github import (
     CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
 )
 from sentry.testutils.helpers.features import with_feature
-
-from .testutils import GitHubWebhookTestCase
+from sentry.testutils.helpers.github import GitHubWebhookTestCase
 
 
 class CheckRunEventWebhookTest(GitHubWebhookTestCase):
@@ -30,13 +30,13 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
         assert mock_event_handler.called
 
     @responses.activate
-    @with_feature("organizations:gen-ai-features")
+    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
     def test_check_run_rerequested_forwards_to_seer(self) -> None:
-        """Test that rerequested check_run events forward to Seer."""
+        """Test that rerequested check_run events forward original_run_id to Seer."""
         # Mock the Seer API endpoint
         responses.add(
             responses.POST,
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/github",
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/rerun",
             json={"success": True},
             status=200,
         )
@@ -47,23 +47,18 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
         assert len(responses.calls) == 1
         request = responses.calls[0].request
 
-        # Verify request body contains expected data
-        import orjson
-
+        # Verify request body contains original_run_id extracted from external_id
         body = orjson.loads(request.body)
-        assert body["action"] == "rerequested"
-        assert "check_run" in body
-        assert "external_id" in body["check_run"]
-        assert "html_url" in body["check_run"]
+        assert body == {"original_run_id": 4663713}
 
     @responses.activate
-    @with_feature("organizations:gen-ai-features")
+    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
     def test_check_run_completed_is_skipped(self) -> None:
         """Test that completed check_run events are skipped (not handled)."""
         # Mock the Seer API endpoint (should NOT be called)
         responses.add(
             responses.POST,
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/github",
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/rerun",
             json={"success": True},
             status=200,
         )
@@ -74,13 +69,13 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
         assert len(responses.calls) == 0
 
     @responses.activate
-    @with_feature("organizations:gen-ai-features")
+    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
     def test_check_run_handles_seer_error_gracefully(self) -> None:
         """Test that Seer API errors are caught and logged without failing the webhook."""
         # Mock Seer API to return an error
         responses.add(
             responses.POST,
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/github",
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/rerun",
             json={"error": "Internal server error"},
             status=500,
         )

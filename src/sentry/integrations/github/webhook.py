@@ -810,9 +810,9 @@ class CheckRunEventWebhook(GitHubWebhook):
             return
 
         # XXX: Add support for registering functions to call
-        from sentry.seer.error_prediction.webhooks import forward_github_event_for_error_prediction
+        from sentry.seer.error_prediction.webhooks import handle_github_check_run_event
 
-        forward_github_event_for_error_prediction(organization=organization, event=event)
+        handle_github_check_run_event(organization=organization, event=event)
 
 
 @all_silo_endpoint
