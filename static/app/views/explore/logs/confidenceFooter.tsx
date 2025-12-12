@@ -100,7 +100,7 @@ function ConfidenceMessage({
         ? t('%s matches', <Count value={sampleCount} />)
         : t('%s match', <Count value={sampleCount} />);
 
-    const totalLogsCount = rawLogCounts.highAccuracy.count ? (
+    const totalLogsCount = defined(rawLogCounts.highAccuracy.count) ? (
       rawLogCounts.highAccuracy.count > 1 ? (
         t('%s logs', <Count value={rawLogCounts.highAccuracy.count} />)
       ) : (
@@ -140,7 +140,7 @@ function ConfidenceMessage({
           ? t('%s samples', <Count value={sampleCount} />)
           : t('%s sample', <Count value={sampleCount} />);
 
-      const totalLogsCount = rawLogCounts.highAccuracy.count ? (
+      const totalLogsCount = defined(rawLogCounts.highAccuracy.count) ? (
         rawLogCounts.highAccuracy.count > 1 ? (
           t('%s logs', <Count value={rawLogCounts.highAccuracy.count} />)
         ) : (
@@ -213,7 +213,7 @@ function ConfidenceMessage({
         ? t('%s matches', <Count value={sampleCount} />)
         : t('%s match', <Count value={sampleCount} />);
 
-    const scannedLogsCount = rawLogCounts.normal.count ? (
+    const scannedLogsCount = defined(rawLogCounts.normal.count) ? (
       rawLogCounts.normal.count > 1 ? (
         t('%s samples', <Count value={rawLogCounts.normal.count} />)
       ) : (
@@ -223,7 +223,7 @@ function ConfidenceMessage({
       <Placeholder width={40} />
     );
 
-    const totalLogsCount = rawLogCounts.highAccuracy.count ? (
+    const totalLogsCount = defined(rawLogCounts.highAccuracy.count) ? (
       rawLogCounts.highAccuracy.count > 1 ? (
         t('%s logs', <Count value={rawLogCounts.highAccuracy.count} />)
       ) : (
@@ -267,7 +267,7 @@ function ConfidenceMessage({
       ? t('%s matches', <Count value={sampleCount} />)
       : t('%s match', <Count value={sampleCount} />);
 
-  const totalLogsCount = rawLogCounts.highAccuracy.count ? (
+  const totalLogsCount = defined(rawLogCounts.highAccuracy.count) ? (
     rawLogCounts.highAccuracy.count > 1 ? (
       t('%s logs', <Count value={rawLogCounts.highAccuracy.count} />)
     ) : (
