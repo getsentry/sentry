@@ -28,14 +28,15 @@ class ReconnectingMemcache(BaseCache):
         if it has reached the `reconnect_age`.
         """
         age = time.time() - self._last_reconnect_at
-        if not self._backend:
-            self._backend = PyMemcacheCache(self._server, self._params)
-            self._last_reconnect_at = time.time()
-
-        if age >= self._reconnect_age:
+        if age >= self._reconnect_age and self._backend:
             # Close the underlying cache connection if we haven't done that recently.
             metrics.incr("cache.memcache.reconnect")
             self._backend.close()
+            self._backend = None
+
+        if not self._backend:
+            self._backend = PyMemcacheCache(self._server, self._params)
+            self._last_reconnect_at = time.time()
 
         return self._backend
 
@@ -43,7 +44,7 @@ class ReconnectingMemcache(BaseCache):
         return self._get_backend().add(key, value, timeout=timeout, version=version)
 
     def get(self, key, default=None, version=None):
-        return self._get_backend().get(key, version=version)
+        return self._get_backend().get(key, default=default, version=version)
 
     def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
         return self._get_backend().set(key, value, timeout=timeout, version=version)
