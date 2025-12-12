@@ -13,6 +13,7 @@ from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 
+@pytest.mark.xdist_unsafe
 @no_silo_test
 class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self) -> None:
@@ -46,7 +47,6 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         return event
 
     @mock.patch("sentry.api.helpers.group_index.update.update_group_open_period")
-    
     def test_resolve_basic(self, mock_update_open_period: mock.MagicMock) -> None:
         event = self.create_sample_event(platform="python")
         assert event.group is not None
@@ -58,6 +58,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         assert res.status_code == 200, res
         assert res.data["status"] == "resolved"
 
+    @pytest.mark.xdist_unsafe
     def test_archive_basic(self) -> None:
         event = self.create_sample_event(platform="python")
         assert event.group is not None
@@ -69,7 +70,6 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         assert res.status_code == 200, res
         assert res.data["status"] == "ignored"
 
-    
     def test_bookmark(self) -> None:
         event = self.create_sample_event(platform="python")
         assert event.group is not None
@@ -81,7 +81,6 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         assert res.status_code == 200, res
         assert res.data["isBookmarked"]
 
-    
     def test_assign_issue(self) -> None:
         event = self.create_sample_event(platform="python")
         assert event.group is not None

@@ -65,7 +65,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.wait_until_test_id("empty-state")
 
     @patch("django.utils.timezone.now")
-    
+
     def test_with_results(self, mock_now: MagicMock) -> None:
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
@@ -137,7 +137,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
-    
+
     def test_merge_issues(self, mock_now: MagicMock) -> None:
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
@@ -161,7 +161,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
-    
+
     def test_inbox_results(self, mock_now: MagicMock) -> None:
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()

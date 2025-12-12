@@ -95,7 +95,7 @@ jobs:
 
       - name: Run acceptance test
         run: |
-          python3 -b -m pytest -m "not xdist_unsafe" -n3 tests/acceptance
+          python3 -b -m pytest -m "not xdist_unsafe" -n3 --dist=loadscope tests/acceptance
 
   acceptance-serial:
     name: acceptance-serial

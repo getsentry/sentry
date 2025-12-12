@@ -14,6 +14,7 @@ FEATURE_FLAGS = [
 ]
 
 
+@pytest.mark.xdist_unsafe
 @no_silo_test
 class ExploreLogsTest(AcceptanceTestCase, SnubaTestCase, OurLogTestCase):
     viewname = "sentry-api-0-organization-events"
@@ -47,7 +48,6 @@ class ExploreLogsTest(AcceptanceTestCase, SnubaTestCase, OurLogTestCase):
         self.dismiss_assistant()
 
     @patch("django.utils.timezone.now")
-    
     def test_opening_log_row_shows_attributes(self, mock_now: MagicMock) -> None:
         mock_now.return_value = self.start
 

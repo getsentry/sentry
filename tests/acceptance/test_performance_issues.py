@@ -99,7 +99,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
         assert Group.objects.count() == 1
 
     @patch("django.utils.timezone.now")
-    
+
     def test_n_one_api_call_performance_issue(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now(minutes=5)
         event_data = self.create_sample_event(

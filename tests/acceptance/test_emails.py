@@ -1,6 +1,7 @@
 import re
 from urllib.parse import urlencode
 
+import pytest
 from selenium.webdriver.common.by import By
 
 from sentry.receivers import create_default_projects
@@ -71,6 +72,7 @@ def replace_amp(text: str) -> str:
     return re.sub("¬", "&not", text)
 
 
+@pytest.mark.xdist_unsafe
 @no_silo_test
 class EmailTestCase(AcceptanceTestCase):
     def setUp(self) -> None:
