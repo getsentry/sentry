@@ -2,10 +2,19 @@ import datetime
 import time
 import uuid
 from typing import TypedDict
+from unittest import mock
+
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
+    TraceItemColumnValues,
+    TraceItemTableResponse,
+)
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue
 
 from sentry.issues.suspect_flags import (
+    _query_error_counts_eap,
     get_suspect_flag_scores,
     query_baseline_set,
+    query_error_counts,
     query_selection_set,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -142,3 +151,99 @@ class SnubaTest(TestCase, SnubaTestCase):
                 "is_filtered": True,
             },
         ]
+
+
+class QueryErrorCountsTest(TestCase):
+    @mock.patch("sentry.issues.suspect_flags.snuba_rpc.table_rpc")
+    def test_returns_count_from_eap(self, mock_table_rpc: mock.MagicMock) -> None:
+        mock_response = TraceItemTableResponse(
+            column_values=[
+                TraceItemColumnValues(
+                    attribute_name="count",
+                    results=[AttributeValue(val_double=42.0)],
+                )
+            ]
+        )
+        mock_table_rpc.return_value = [mock_response]
+
+        start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
+        end = datetime.datetime.now(tz=datetime.UTC)
+
+        result = _query_error_counts_eap(
+            organization_id=1,
+            project_id=1,
+            start=start,
+            end=end,
+            environments=[],
+            group_id=123,
+        )
+
+        assert result == 42
+        mock_table_rpc.assert_called_once()
+
+    @mock.patch("sentry.issues.suspect_flags.snuba_rpc.table_rpc")
+    def test_eap_returns_zero_on_empty_response(self, mock_table_rpc: mock.MagicMock) -> None:
+        mock_response = TraceItemTableResponse(column_values=[])
+        mock_table_rpc.return_value = [mock_response]
+
+        start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
+        end = datetime.datetime.now(tz=datetime.UTC)
+
+        result = _query_error_counts_eap(
+            organization_id=1,
+            project_id=1,
+            start=start,
+            end=end,
+            environments=[],
+            group_id=123,
+        )
+
+        assert result == 0
+
+    @mock.patch("sentry.issues.suspect_flags.snuba_rpc.table_rpc")
+    def test_eap_returns_zero_on_exception(self, mock_table_rpc: mock.MagicMock) -> None:
+        mock_table_rpc.side_effect = Exception("RPC failed")
+
+        start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
+        end = datetime.datetime.now(tz=datetime.UTC)
+
+        result = _query_error_counts_eap(
+            organization_id=1,
+            project_id=1,
+            start=start,
+            end=end,
+            environments=[],
+            group_id=123,
+        )
+
+        assert result == 0
+
+    @mock.patch("sentry.issues.suspect_flags.validate_read")
+    @mock.patch("sentry.issues.suspect_flags._query_error_counts_eap")
+    @mock.patch("sentry.issues.suspect_flags._query_error_counts_snuba")
+    def test_uses_snuba_as_source_of_truth(
+        self,
+        mock_snuba: mock.MagicMock,
+        mock_eap: mock.MagicMock,
+        mock_validate: mock.MagicMock,
+    ) -> None:
+        mock_snuba.return_value = 100
+        mock_eap.return_value = 50
+
+        start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
+        end = datetime.datetime.now(tz=datetime.UTC)
+
+        with self.options({"eap.occurrences.should_double_read": True}):
+            result = query_error_counts(
+                organization_id=1,
+                project_id=1,
+                start=start,
+                end=end,
+                environments=[],
+                group_id=123,
+            )
+
+        assert result == 100
+        mock_snuba.assert_called_once()
+        mock_eap.assert_called_once()
+        mock_validate.assert_called_once_with(100, 50, "issues.suspect_flags.query_error_counts")
