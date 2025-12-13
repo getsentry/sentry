@@ -13,26 +13,6 @@ from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger, RepositorySettings
 
 
-def _get_enabled_code_review_value(
-    updated_value: bool | None, existing_setting: RepositorySettings | None
-) -> bool:
-    if updated_value is not None:
-        return updated_value
-    if existing_setting:
-        return existing_setting.enabled_code_review
-    return False
-
-
-def _get_code_review_triggers_value(
-    updated_value: list[str] | None, existing_setting: RepositorySettings | None
-) -> list[str]:
-    if updated_value is not None:
-        return updated_value
-    if existing_setting:
-        return existing_setting.code_review_triggers
-    return []
-
-
 class RepositorySettingsSerializer(serializers.Serializer):
     repositoryIds = serializers.ListField(
         child=serializers.IntegerField(),
@@ -112,17 +92,14 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
 
         settings_to_upsert = []
         for repo in repositories:
-            existing_setting = existing_settings.get(repo.id)
-            new_setting = RepositorySettings(
-                repository=repo,
-                enabled_code_review=_get_enabled_code_review_value(
-                    updated_enabled_code_review, existing_setting
-                ),
-                code_review_triggers=_get_code_review_triggers_value(
-                    updated_code_review_triggers, existing_setting
-                ),
-            )
-            settings_to_upsert.append(new_setting)
+            setting = existing_settings.get(repo.id) or RepositorySettings(repository=repo)
+
+            if updated_enabled_code_review is not None:
+                setting.enabled_code_review = updated_enabled_code_review
+            if updated_code_review_triggers is not None:
+                setting.code_review_triggers = updated_code_review_triggers
+
+            settings_to_upsert.append(setting)
 
         RepositorySettings.objects.bulk_create(
             settings_to_upsert,
