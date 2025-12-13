@@ -19,6 +19,7 @@ export interface AutofixSetupResponse {
     ok: boolean;
     reason: string | null;
   };
+  seerReposLinked: boolean;
   setupAcknowledgement: {
     orgHasAcknowledged: boolean;
     userHasAcknowledged: boolean;
@@ -63,5 +64,6 @@ export function useAutofixSetup(
     ),
     canCreatePullRequests: Boolean(queryData.data?.githubWriteIntegration?.ok),
     hasAutofixQuota: Boolean(queryData.data?.billing?.hasAutofixQuota),
+    seerReposLinked: Boolean(queryData.data?.seerReposLinked),
   };
 }
