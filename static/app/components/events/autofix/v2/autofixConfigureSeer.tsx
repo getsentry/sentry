@@ -151,7 +151,7 @@ export const ImageContainer = styled('div')<{
 
 const AngledImageContainer = styled('div')`
   position: absolute;
-  right: -70px;
+  right: -50px;
   width: 250px;
   height: 120px;
   transform: rotate(45deg); /* Rotates the image 45 degrees clockwise */
