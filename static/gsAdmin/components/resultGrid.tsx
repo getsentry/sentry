@@ -198,6 +198,7 @@ interface ResultGridProps extends WithRouterProps {
 
 export type State = {
   cursor: string;
+  endpoint: string;
   error: boolean;
   filters: Location['query'];
   loading: boolean;
@@ -210,6 +211,11 @@ export type State = {
 
 const extractQuery = (query: Location['query'][string], defaultVal = '') =>
   (Array.isArray(query) ? query[0] : query) ?? defaultVal;
+
+const extractEndpoint = (endpoint: string, region?: Region) =>
+  endpoint.includes('$cell_id') && !!region
+    ? endpoint.replace('$cell_id', region.name)
+    : endpoint;
 
 class ResultGrid extends Component<ResultGridProps, State> {
   static defaultProps: Partial<ResultGridProps> = {
@@ -238,18 +244,23 @@ class ResultGrid extends Component<ResultGridProps, State> {
     const queryParams = this.props.location?.query ?? {};
     const {cursor, query, sortBy, regionUrl} = queryParams;
 
+    const region = this.props.isRegional
+      ? regionUrl
+        ? ConfigStore.get('regions').find((r: any) => r.url === extractQuery(regionUrl))
+        : ConfigStore.get('regions')[0]
+      : undefined;
+
+    const endpoint = extractEndpoint(this.props.endpoint, region);
+
     this.state = {
       rows: [],
+      endpoint,
       loading: true,
       error: false,
       pageLinks: null,
       cursor: extractQuery(cursor),
       query: extractQuery(query),
-      region: this.props.isRegional
-        ? regionUrl
-          ? ConfigStore.get('regions').find((r: any) => r.url === extractQuery(regionUrl))
-          : ConfigStore.get('regions')[0]
-        : undefined,
+      region,
       sortBy: extractQuery(sortBy, this.props.defaultSort),
       filters: Object.assign({}, queryParams),
     };
@@ -305,7 +316,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
       cursor: this.state.cursor,
     };
 
-    this.props.api.request(this.props.endpoint, {
+    this.props.api.request(this.state.endpoint, {
       method: this.props.method,
       host: this.state.region ? this.state.region.url : undefined,
       data: queryParams,
@@ -473,9 +484,12 @@ class ResultGrid extends Component<ResultGridProps, State> {
                 if (region === undefined) {
                   return;
                 }
+
+                const endpoint = extractEndpoint(this.props.endpoint, region);
                 this.setState(
                   {
                     region,
+                    endpoint,
                   },
                   this.fetchData
                 );
