@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {motion, type MotionNodeAnimationOptions} from 'framer-motion';
+import {motion} from 'framer-motion';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
@@ -21,6 +21,10 @@ import type {
   SuspectCommit,
   TriageArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {
+  cardAnimationProps,
+  StyledMarkedText,
+} from 'sentry/components/events/autofix/v2/utils';
 import {
   AssigneeSelector,
   useHandleAssigneeChange,
@@ -46,11 +50,10 @@ import type {Commit} from 'sentry/types/integrations';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import testableTransition from 'sentry/utils/testableTransition';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import type {ExplorerFilePatch, RepoPRState} from 'sentry/views/seerExplorer/types';
 
-type ArtifactData = Record<string, unknown>;
+export type ArtifactData = Record<string, unknown>;
 
 /**
  * Get the colored icon for an artifact type.
@@ -87,30 +90,9 @@ interface CardProps {
   icon?: React.ReactNode;
 }
 
-const cardAnimationProps: MotionNodeAnimationOptions = {
-  exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
-  initial: {opacity: 0, height: 0, scale: 0.8},
-  animate: {opacity: 1, height: 'auto', scale: 1},
-  transition: testableTransition({
-    duration: 0.1,
-    height: {
-      type: 'spring',
-      bounce: 0.2,
-    },
-    scale: {
-      type: 'spring',
-      bounce: 0.2,
-    },
-    y: {
-      type: 'tween',
-      ease: 'easeOut',
-    },
-  }),
-};
-
 function ArtifactCard({title, icon, children}: CardProps) {
   return (
-    <AnimatedCard {...cardAnimationProps} initial={false}>
+    <AnimatedCard {...cardAnimationProps}>
       <Container border="primary" radius="md" background="primary" padding="md">
         <Flex align="center" justify="between" padding="md">
           <Flex align="center" gap="md">
@@ -155,7 +137,9 @@ function WhyTreeRow({
               <TreeBranchIcon />
             </Fragment>
           )}
-          <TreeKey>{why}</TreeKey>
+          <TreeKey as="div">
+            <StyledMarkedText text={why} inline as="span" />
+          </TreeKey>
         </TreeKeyTrunk>
       </TreeRow>
       {hasChild && nextWhy !== undefined && (
@@ -219,7 +203,9 @@ function TreeRowWithDescription({
             </Fragment>
           )}
           <ImpactTreeKeyContainer>
-            <ImpactTreeKey>{title}</ImpactTreeKey>
+            <ImpactTreeKey as="div">
+              <StyledMarkedText text={title} inline as="span" />
+            </ImpactTreeKey>
             {showIcon && icon}
           </ImpactTreeKeyContainer>
         </TreeKeyTrunk>
@@ -230,7 +216,9 @@ function TreeRowWithDescription({
         <TreeKeyTrunk spacerCount={spacerCount + 1}>
           <TreeSpacer spacerCount={spacerCount + 1} hasStem={false} />
           <TreeBranchIcon />
-          <SolutionTreeValue>{description}</SolutionTreeValue>
+          <SolutionTreeValue as="div">
+            <StyledMarkedText text={description} inline as="span" />
+          </SolutionTreeValue>
         </TreeKeyTrunk>
       </TreeRow>
     </Fragment>
@@ -304,7 +292,9 @@ function ImpactTreeRow({
             {isCollapsible && hasSubItems && (
               <IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />
             )}
-            <ImpactTreeKey>{impact.label}</ImpactTreeKey>
+            <ImpactTreeKey as="div">
+              <StyledMarkedText text={impact.label} inline as="span" />
+            </ImpactTreeKey>
             {getSeverityIcon()}
           </ImpactTreeKeyContainer>
         </TreeKeyTrunk>
@@ -316,7 +306,9 @@ function ImpactTreeRow({
           <TreeKeyTrunk spacerCount={spacerCount + 1}>
             <TreeSpacer spacerCount={spacerCount + 1} hasStem={false} />
             <TreeBranchIcon />
-            <TreeValue>{impact.impact_description}</TreeValue>
+            <TreeValue as="div">
+              <StyledMarkedText text={impact.impact_description} inline as="span" />
+            </TreeValue>
           </TreeKeyTrunk>
         </TreeRow>
       )}
@@ -327,7 +319,9 @@ function ImpactTreeRow({
           <TreeKeyTrunk spacerCount={spacerCount + 2}>
             <TreeSpacer spacerCount={spacerCount + 2} hasStem={false} />
             <TreeBranchIcon />
-            <TreeSubValue>{impact.evidence}</TreeSubValue>
+            <TreeSubValue as="div">
+              <StyledMarkedText text={impact.evidence} inline as="span" />
+            </TreeSubValue>
           </TreeKeyTrunk>
         </TreeRow>
       )}
@@ -370,21 +364,27 @@ export function RootCauseCard({data}: {data: ArtifactData}) {
 
   return (
     <ArtifactCard title={t('Root Cause')} icon={getArtifactIcon('root_cause')}>
-      <Text size="lg">{typedData.one_line_description}</Text>
+      <Text size="lg" as="div">
+        <StyledMarkedText text={typedData.one_line_description} inline as="span" />
+      </Text>
 
       {typedData.five_whys.length > 0 && <FiveWhysTree whys={typedData.five_whys} />}
 
       {typedData.reproduction_steps && typedData.reproduction_steps.length > 0 && (
         <Flex direction="column" gap="sm">
-          <Text size="md" variant="muted">
+          <Text size="sm" bold>
             {t('Reproduction Steps')}
           </Text>
           <Timeline.Container>
             {typedData.reproduction_steps.map((step, index) => (
               <DenseTimelineItem
                 key={index}
-                icon={<IconCircle size="xs" color="pink400" />}
-                title={<NonBoldTitle size="sm">{step}</NonBoldTitle>}
+                icon={<IconCircle size="xs" />}
+                title={
+                  <NonBoldTitle size="sm" as="div">
+                    <StyledMarkedText text={step} inline as="span" />
+                  </NonBoldTitle>
+                }
               />
             ))}
           </Timeline.Container>
@@ -424,7 +424,9 @@ export function SolutionCard({data}: {data: ArtifactData}) {
 
   return (
     <ArtifactCard title={t('Solution')} icon={getArtifactIcon('solution')}>
-      <Text size="lg">{typedData.one_line_summary}</Text>
+      <Text size="lg" as="div">
+        <StyledMarkedText text={typedData.one_line_summary} inline as="span" />
+      </Text>
 
       {typedData.steps.length > 0 && <SolutionTree steps={typedData.steps} />}
     </ArtifactCard>
@@ -439,7 +441,9 @@ export function ImpactCard({data}: {data: ArtifactData}) {
 
   return (
     <ArtifactCard title={t('Impact')} icon={getArtifactIcon('impact_assessment')}>
-      <Text size="lg">{typedData.one_line_description}</Text>
+      <Text size="lg" as="div">
+        <StyledMarkedText text={typedData.one_line_description} inline as="span" />
+      </Text>
 
       {typedData.impacts.length > 0 && <ImpactTree impacts={typedData.impacts} />}
     </ArtifactCard>
@@ -600,22 +604,23 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
     <ArtifactCard title={t('Triage')} icon={getArtifactIcon('triage')}>
       <Flex direction="column" gap="sm">
         {hasSuspect && commit && (
-          <Flex direction="column" gap="sm">
-            <Text variant="muted">{t('Suspect Commit')}</Text>
-            <Container padding="md" paddingBottom="0">
-              <Flex direction="column" gap="xl">
-                <SuspectCommitPanel>
-                  <CommitRow commit={commit} />
-                  {typedData.suspect_commit?.description && (
-                    <Container padding="lg" paddingTop="0">
-                      <Text size="sm" density="compressed">
-                        {typedData.suspect_commit.description}
-                      </Text>
-                    </Container>
-                  )}
-                </SuspectCommitPanel>
-              </Flex>
-            </Container>
+          <Flex direction="column" gap="lg">
+            <Flex direction="column" gap="xl">
+              <SuspectCommitPanel>
+                <CommitRow commit={commit} />
+                {typedData.suspect_commit?.description && (
+                  <Container padding="lg" paddingTop="0">
+                    <Text size="sm" as="div" variant="muted">
+                      <StyledMarkedText
+                        text={typedData.suspect_commit.description}
+                        inline
+                        as="span"
+                      />
+                    </Text>
+                  </Container>
+                )}
+              </SuspectCommitPanel>
+            </Flex>
           </Flex>
         )}
 
@@ -626,9 +631,8 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
         )}
 
         {hasAssignee && (
-          <Flex direction="column" gap="md">
-            <Text variant="muted">{t('Suggested Assignee')}</Text>
-            <Container padding="md">
+          <Flex direction="column" gap="lg">
+            <Container>
               <Flex direction="column" gap="xl">
                 <SuspectCommitPanel>
                   <Container padding="md" paddingTop="0" paddingBottom="0">
@@ -643,12 +647,34 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
                           <Text size="lg">{typedData.suggested_assignee?.name}</Text>
                         </Flex>
                       </Flex>
+                    </Flex>
 
+                    {typedData.suggested_assignee?.why && (
+                      <Container
+                        padding="md"
+                        paddingTop="lg"
+                        paddingBottom="lg"
+                        paddingLeft="xs"
+                      >
+                        <Text size="sm" as="div" variant="muted">
+                          <StyledMarkedText
+                            text={typedData.suggested_assignee.why}
+                            inline
+                            as="span"
+                          />
+                        </Text>
+                      </Container>
+                    )}
+
+                    <Flex justify="end">
                       {hasAssigneeMatch ? (
                         <Button size="xs" onClick={handleAssign} disabled={isAssigning}>
                           {isAssigning
                             ? t('Assigning...')
-                            : t('Assign to %s', typedData.suggested_assignee?.name)}
+                            : t(
+                                'Assign to %s',
+                                typedData.suggested_assignee?.name.split(' ')[0]
+                              )}
                         </Button>
                       ) : (
                         <AssigneeSelector
@@ -659,12 +685,6 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
                         />
                       )}
                     </Flex>
-
-                    {typedData.suggested_assignee?.why && (
-                      <Container padding="md" paddingTop="lg" paddingLeft="xs">
-                        <Text size="sm">{typedData.suggested_assignee.why}</Text>
-                      </Container>
-                    )}
 
                     <Flex justify="end" />
                   </Container>
@@ -913,6 +933,7 @@ const AnimatedCard = styled(motion.div)`
 
 const NonBoldTitle = styled(Text)`
   font-weight: ${p => p.theme.fontWeight.normal};
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const DenseTimelineItem = styled(Timeline.Item)`

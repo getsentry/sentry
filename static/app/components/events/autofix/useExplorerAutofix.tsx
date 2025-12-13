@@ -202,6 +202,40 @@ export function getArtifactsFromBlocks(blocks: Block[]): Record<string, Artifact
 }
 
 /**
+ * Get the ordered list of artifact keys based on their first appearance in blocks.
+ * Returns keys sorted by the index of the first block where each artifact appeared.
+ */
+export function getOrderedArtifactKeys(
+  blocks: Block[],
+  artifacts: Record<string, Artifact>
+): string[] {
+  // Map artifact key to the index of the first block where it appeared
+  const firstAppearanceIndex: Record<string, number> = {};
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    if (block?.artifacts) {
+      for (const artifact of block.artifacts) {
+        // Only record the first appearance
+        if (!(artifact.key in firstAppearanceIndex)) {
+          firstAppearanceIndex[artifact.key] = i;
+        }
+      }
+    }
+  }
+
+  // Get all artifact keys that exist in artifacts
+  const artifactKeys = Object.keys(artifacts).filter(key => key in firstAppearanceIndex);
+
+  // Sort by first appearance index
+  return artifactKeys.sort((a, b) => {
+    const indexA = firstAppearanceIndex[a] ?? Infinity;
+    const indexB = firstAppearanceIndex[b] ?? Infinity;
+    return indexA - indexB;
+  });
+}
+
+/**
  * Extract file patches from Explorer blocks.
  */
 export function getFilePatchesFromBlocks(blocks: Block[]): ExplorerFilePatch[] {
