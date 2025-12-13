@@ -51,7 +51,6 @@ from sentry.seer.explorer.index_data import (
 from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
-    get_issue_and_event_details,
     get_issue_and_event_details_v2,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
@@ -100,7 +99,6 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "get_trace_waterfall": rpc_get_trace_waterfall,
     "get_repository_definition": get_repository_definition,
     "execute_timeseries_query": map_org_id_param(execute_timeseries_query),
-    "get_issue_and_event_details": get_issue_and_event_details,
     "get_issue_and_event_details_v2": get_issue_and_event_details_v2,
     "get_profile_flamegraph": rpc_get_profile_flamegraph,
     "get_replay_metadata": get_replay_metadata,
