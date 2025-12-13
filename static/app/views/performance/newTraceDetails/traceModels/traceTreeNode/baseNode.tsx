@@ -2,11 +2,13 @@ import type {Theme} from '@emotion/react';
 
 import type {Client} from 'sentry/api';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import type {Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import type {TraceItemDataset} from 'sentry/views/explore/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
-  isEAPTransactionNode,
+  isEAPSpanNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -92,11 +94,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   occurrences = new Set<TraceTree.TraceOccurrence>();
 
   /**
-   * The profiles associated with the node.
-   */
-  profiles = new Set<TraceTree.Profile>();
-
-  /**
    * The space associated with the node. The first value is the start timestamp in milliseconds,
    * the second value is the duration in milliseconds.
    */
@@ -126,6 +123,11 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
    * Whether the node is an EAP event.
    */
   isEAPEvent = false;
+
+  /**
+   * The dataset used to fetch the details for the item. If not provided we fetch from nodestore.
+   */
+  traceItemDataset: TraceItemDataset | null = null;
 
   /**
    * The priority of the node in when we find multiple nodes matching the same search query.
@@ -174,21 +176,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       if ('occurrences' in value && Array.isArray(value.occurrences)) {
         value.occurrences.forEach(occurence => this.occurrences.add(occurence));
       }
-
-      if (
-        'profile_id' in value &&
-        typeof value.profile_id === 'string' &&
-        value.profile_id.trim() !== ''
-      ) {
-        this.profiles.add({profile_id: value.profile_id});
-      }
-      if (
-        'profiler_id' in value &&
-        typeof value.profiler_id === 'string' &&
-        value.profiler_id.trim() !== ''
-      ) {
-        this.profiles.add({profiler_id: value.profiler_id});
-      }
     }
   }
 
@@ -199,6 +186,18 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   get projectSlug(): string | undefined {
     return this.value && 'project_slug' in this.value
       ? this.value.project_slug
+      : undefined;
+  }
+
+  get profileId(): string | undefined {
+    return this.value && 'profile_id' in this.value
+      ? this.value.profile_id?.trim() || undefined
+      : undefined;
+  }
+
+  get profilerId(): string | undefined {
+    return this.value && 'profiler_id' in this.value
+      ? this.value.profiler_id?.trim() || undefined
       : undefined;
   }
 
@@ -264,6 +263,10 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return this.errors.size > 0;
   }
 
+  get hasProfiles(): boolean {
+    return !!(this.profileId || this.profilerId);
+  }
+
   get hasOccurrences(): boolean {
     return this.occurrences.size > 0;
   }
@@ -324,20 +327,37 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return `${this.type}-${this.id}`;
   }
 
-  get transactionId(): string | null {
-    const parentTransaction = this.findParentTransaction();
+  get transactionId(): string | undefined {
+    return this.value && 'transaction_id' in this.value
+      ? this.value.transaction_id
+      : undefined;
+  }
 
-    if (parentTransaction) {
-      return parentTransaction.transactionId;
+  private _isValidMeasurements(
+    measurements: Record<string, any>
+  ): measurements is Record<string, Measurement> {
+    return Object.values(measurements).every(
+      m => m && 'value' in m && typeof m.value === 'number'
+    );
+  }
+
+  get measurements(): Record<string, Measurement> | undefined {
+    if (
+      this.value &&
+      'measurements' in this.value &&
+      this.value.measurements &&
+      this._isValidMeasurements(this.value.measurements)
+    ) {
+      return this.value.measurements;
     }
 
-    const parentEapTransaction = this.findParentEapTransaction();
+    return undefined;
+  }
 
-    if (parentEapTransaction) {
-      return parentEapTransaction.transactionId;
-    }
-
-    return null;
+  get attributes(): Record<string, string | number | boolean> | undefined {
+    return this.value && 'additional_attributes' in this.value
+      ? this.value.additional_attributes
+      : undefined;
   }
 
   isRootNodeChild(): boolean {
@@ -365,12 +385,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       occurrence => occurrence.event_id === id
     );
 
-    return (
-      this.id === id ||
-      this.transactionId === id ||
-      hasMatchingErrors ||
-      hasMatchingOccurrences
-    );
+    return this.id === id || hasMatchingErrors || hasMatchingOccurrences;
   }
 
   invalidate() {
@@ -453,12 +468,26 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return null;
   }
 
-  findParentTransaction(): TransactionNode | null {
+  findClosestParentTransaction(): TransactionNode | EapSpanNode | null {
+    const nodeStoreTransaction = this.findParentNodeStoreTransaction();
+    if (nodeStoreTransaction) {
+      return nodeStoreTransaction;
+    }
+
+    const eapTransaction = this.findParentEapTransaction();
+    if (eapTransaction) {
+      return eapTransaction;
+    }
+
+    return null;
+  }
+
+  findParentNodeStoreTransaction(): TransactionNode | null {
     return this.findParent<TransactionNode>(p => isTransactionNode(p));
   }
 
   findParentEapTransaction(): EapSpanNode | null {
-    return this.findParent<EapSpanNode>(p => isEAPTransactionNode(p));
+    return this.findParent<EapSpanNode>(p => isEAPSpanNode(p) && p.value.is_transaction);
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {
@@ -484,6 +513,10 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     this.invalidate();
     this.forEachChild(child => child.invalidate());
     return true;
+  }
+
+  makeBarTextColor(inside: boolean, theme: Theme): string {
+    return inside ? 'white' : theme.subText;
   }
 
   /**
@@ -561,4 +594,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   ): React.ReactNode;
 
   abstract matchWithFreeText(key: string): boolean;
+
+  abstract resolveValueFromSearchKey(key: string): any | null;
 }

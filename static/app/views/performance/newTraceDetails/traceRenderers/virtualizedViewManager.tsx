@@ -9,10 +9,6 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import {
-  isEAPError,
-  isMissingInstrumentationNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
@@ -54,6 +50,7 @@ type VerticalIndicator = {
 export type ViewManagerScrollAnchor = 'top' | 'center if outside' | 'center';
 
 export class VirtualizedViewManager {
+  theme: Theme;
   row_measurer: TraceRowWidthMeasurer<BaseNode> = new TraceRowWidthMeasurer();
   indicator_label_measurer: TraceRowWidthMeasurer<TraceTree['indicators'][0]> =
     new TraceRowWidthMeasurer();
@@ -153,6 +150,7 @@ export class VirtualizedViewManager {
         translate: [0, 0],
       },
     };
+    this.theme = theme;
 
     this.text_measurer = new TraceTextMeasurer(theme);
 
@@ -1449,12 +1447,12 @@ export class VirtualizedViewManager {
   }
 
   drawSpanText(span_text: this['span_text'][0], node: BaseNode | undefined) {
-    if (!span_text) {
+    if (!span_text || !node) {
       return;
     }
 
     const [inside, text_transform] = this.computeSpanTextPlacement(
-      node!,
+      node,
       span_text.space,
       span_text.text
     );
@@ -1465,8 +1463,7 @@ export class VirtualizedViewManager {
 
     // We don't color the text white for missing instrumentation nodes
     // as the text will be invisible on the light background.
-    span_text.ref.style.color =
-      inside && node && !isMissingInstrumentationNode(node) ? 'white' : '';
+    span_text.ref.style.color = node.makeBarTextColor(!!inside, this.theme);
     span_text.ref.style.transform = `translateX(${text_transform}px)`;
   }
 
@@ -1716,7 +1713,7 @@ function getIconTimestamps(
   }
 
   for (const err of node.errors) {
-    const timestamp = isEAPError(err) ? err.start_timestamp : err.timestamp;
+    const timestamp = 'start_timestamp' in err ? err.start_timestamp : err.timestamp;
     if (typeof timestamp === 'number') {
       min_icon_timestamp = Math.min(min_icon_timestamp, timestamp * 1e3 - icon_width);
       max_icon_timestamp = Math.max(max_icon_timestamp, timestamp * 1e3 + icon_width);

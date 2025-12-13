@@ -23,7 +23,6 @@ import {
   type SectionCardKeyValueList,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
-import {isSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
@@ -77,11 +76,12 @@ function getSpanAggregateMeasurements(node: SpanNode) {
 
   let sum = 0;
   node.forEachChild(n => {
-    if (
-      isSpanNode(n) &&
-      typeof n?.value?.measurements?.ai_total_tokens_used?.value === 'number'
-    ) {
-      sum += n.value.measurements.ai_total_tokens_used.value;
+    const tokens =
+      typeof n.measurements?.ai_total_tokens_used === 'number'
+        ? n.measurements?.ai_total_tokens_used
+        : (n.measurements?.ai_total_tokens_used?.value ?? 0);
+    if (tokens) {
+      sum += tokens;
     }
   });
   return [

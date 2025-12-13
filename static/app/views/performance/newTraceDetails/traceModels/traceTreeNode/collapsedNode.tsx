@@ -56,4 +56,8 @@ export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
   matchWithFreeText(_key: string): boolean {
     return false;
   }
+
+  resolveValueFromSearchKey(_key: string): any | null {
+    return null;
+  }
 }

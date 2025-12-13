@@ -28,7 +28,6 @@ describe('RootNode', () => {
       expect(rootNode.expanded).toBe(true);
       expect(rootNode.errors).toBeInstanceOf(Set);
       expect(rootNode.occurrences).toBeInstanceOf(Set);
-      expect(rootNode.profiles).toBeInstanceOf(Set);
       expect(rootNode.canShowDetails).toBe(false);
     });
   });

@@ -9,12 +9,13 @@ import {
   isSiblingAutogroupedNode,
   isSpanNode,
   isTransactionNode,
-  isUptimeCheckNode,
-  isUptimeCheckTimingNode,
 } from './../traceGuards';
+import type {BaseNode} from './traceTreeNode/baseNode';
 import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
 import type {ParentAutogroupNode} from './traceTreeNode/parentAutogroupNode';
 import type {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
+import type {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
+import type {UptimeCheckTimingNode} from './traceTreeNode/uptimeCheckTimingNode';
 import {TraceShape, TraceTree} from './traceTree';
 import {
   assertEAPSpanNode,
@@ -76,16 +77,6 @@ const traceWithEventId = makeTrace({
           project_slug: 'project',
         }),
       ],
-    }),
-  ],
-});
-
-const traceWithVitals = makeTrace({
-  transactions: [
-    makeTransaction({
-      start_timestamp: start,
-      timestamp: start + 2,
-      measurements: {ttfb: {value: 0, unit: 'millisecond'}},
     }),
   ],
 });
@@ -261,7 +252,7 @@ describe('TraceTree', () => {
         }),
         traceOptions
       );
-      expect(tree.root.children[0]!.children[0]!.profiles.size).toBe(1);
+      expect(tree.root.children[0]!.children[0]!.profileId).toBe('profile-id');
     });
 
     it('adds continuous profile to node', () => {
@@ -276,7 +267,7 @@ describe('TraceTree', () => {
         }),
         traceOptions
       );
-      expect(tree.root.children[0]!.children[0]!.profiles.size).toBe(1);
+      expect(tree.root.children[0]!.children[0]!.profilerId).toBe('profile-id');
     });
   });
 
@@ -405,9 +396,37 @@ describe('TraceTree', () => {
 
   describe('indicators', () => {
     it('measurements are converted to indicators', () => {
-      const tree = TraceTree.FromTrace(traceWithVitals, traceOptions);
+      const measurementValue = 1;
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: start,
+              timestamp: start + 2,
+              measurements: {ttfb: {value: measurementValue, unit: 'millisecond'}},
+            }),
+          ],
+        }),
+        traceOptions
+      );
       expect(tree.indicators).toHaveLength(1);
-      expect(tree.indicators[0]!.start).toBe(start * 1e3);
+      expect(tree.indicators[0]!.start).toBe(start * 1e3 + measurementValue);
+    });
+
+    it('zero measurements are not converted to indicators', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: start,
+              timestamp: start + 2,
+              measurements: {ttfb: {value: 0, unit: 'millisecond'}},
+            }),
+          ],
+        }),
+        traceOptions
+      );
+      expect(tree.indicators).toHaveLength(0);
     });
 
     it('sorts indicators by start', () => {
@@ -2043,6 +2062,22 @@ describe('TraceTree', () => {
   });
 
   describe('uptime check integration', () => {
+    function isUptimeCheckTimingNode(node: BaseNode): node is UptimeCheckTimingNode {
+      return !!(
+        node.value &&
+        'event_type' in node.value &&
+        node.value.event_type === 'uptime_check_timing'
+      );
+    }
+
+    function isUptimeCheckNode(node: BaseNode): node is UptimeCheckNode {
+      return !!(
+        node.value &&
+        'event_type' in node.value &&
+        node.value.event_type === 'uptime_check'
+      );
+    }
+
     it('automatically creates timing nodes when uptime check node is created', () => {
       const uptimeCheck = makeUptimeCheck({
         additional_attributes: {

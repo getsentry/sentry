@@ -36,8 +36,8 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
   );
 
   const onProfileLinkClick = useCallback(
-    (profile: TraceTree.Profile) => {
-      if ('profiler_id' in profile) {
+    (type: 'continuous' | 'transaction') => {
+      if (type === 'continuous') {
         traceAnalytics.trackViewContinuousProfile(organization);
       } else {
         traceAnalytics.trackViewTransactionProfile(organization);
@@ -54,9 +54,10 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
       </ProfilesTableRow>
 
       {profiles.map((node, index) => {
-        const profile = Array.from(node.profiles)?.[0];
+        const profileId = node.profileId;
+        const profilerId = node.profilerId;
 
-        if (!profile) {
+        if (!profileId && !profilerId) {
           return null;
         }
 
@@ -66,25 +67,23 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
             }
           : {};
 
-        const link =
-          'profiler_id' in profile
-            ? generateContinuousProfileFlamechartRouteWithQuery({
-                organization,
-                profilerId: profile.profiler_id,
-                start: new Date(node.space[0]).toISOString(),
-                end: new Date(node.space[0] + node.space[1]).toISOString(),
-                projectSlug: node.projectSlug ?? '',
-                query,
-              })
-            : generateProfileFlamechartRouteWithQuery({
-                organization,
-                projectSlug: node.projectSlug ?? '',
-                profileId: profile.profile_id,
-                query,
-              });
+        const link = profilerId
+          ? generateContinuousProfileFlamechartRouteWithQuery({
+              organization,
+              profilerId,
+              start: new Date(node.space[0]).toISOString(),
+              end: new Date(node.space[0] + node.space[1]).toISOString(),
+              projectSlug: node.projectSlug ?? '',
+              query,
+            })
+          : generateProfileFlamechartRouteWithQuery({
+              organization,
+              projectSlug: node.projectSlug ?? '',
+              profileId: profileId!,
+              query,
+            });
 
-        const profileOrProfilerId =
-          'profiler_id' in profile ? profile.profiler_id : profile.profile_id;
+        const profileOrProfilerId = profilerId || profileId;
 
         const event = (
           <Fragment>
@@ -103,8 +102,13 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
           <ProfilesTableRow key={index}>
             <div>{event}</div>
             <div>
-              <Link to={link} onClick={() => onProfileLinkClick(profile)}>
-                {profileOrProfilerId.substring(0, 8)}
+              <Link
+                to={link}
+                onClick={() =>
+                  onProfileLinkClick(profilerId ? 'continuous' : 'transaction')
+                }
+              >
+                {profileOrProfilerId!.substring(0, 8)}
               </Link>
             </div>
           </ProfilesTableRow>
