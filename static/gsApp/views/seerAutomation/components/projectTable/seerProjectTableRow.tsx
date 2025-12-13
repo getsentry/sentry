@@ -26,20 +26,26 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
+  autofixSettings: ReturnType<typeof useAllAutofixAutomationSettings>['data'] | undefined;
+  isFetchingSettings: boolean;
   project: Project;
 }
 
-export default function SeerProjectTableRow({project}: Props) {
+export default function SeerProjectTableRow({
+  project,
+  autofixSettings,
+  isFetchingSettings,
+}: Props) {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
-  const {data: detailedProject, isPending: isLoadingDetailedProject} = useDetailedProject(
-    {
-      orgSlug: organization.slug,
-      projectSlug: project.slug,
-    }
-  );
+  // const {data: detailedProject, isPending: isLoadingDetailedProject} = useDetailedProject(
+  //   {
+  //     orgSlug: organization.slug,
+  //     projectSlug: project.slug,
+  //   }
+  // );
 
   const {
     preference,
@@ -53,8 +59,7 @@ export default function SeerProjectTableRow({project}: Props) {
   // We used to support multiple sensitivity values for Auto-Fix. Now we only support 'off' and 'medium'.
   // If any other value is set, we treat it as 'medium'.
   const hasAutoFixEnabled =
-    detailedProject?.autofixAutomationTuning !== undefined &&
-    detailedProject?.autofixAutomationTuning !== 'off';
+    autofixSettings?.tuning !== undefined && autofixSettings?.tuning !== 'off';
 
   // We used to have multiple stopping points for PR Creation.
   // `code_changes` means seer will output code changes, and you can copy and paste them into a new branch.

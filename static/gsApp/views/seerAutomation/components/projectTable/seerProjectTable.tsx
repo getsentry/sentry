@@ -5,6 +5,7 @@ import {debounce, parseAsString, useQueryState} from 'nuqs';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 import {Stack} from '@sentry/scraps/layout/stack';
 
+import useAllAutofixAutomationSettings from 'sentry/components/events/autofix/preferences/hooks/useAllAutofixAutomationSettings';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -13,7 +14,7 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {type ApiQueryKey} from 'sentry/utils/queryClient';
 import {parseAsSort} from 'sentry/utils/queryString';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -22,6 +23,15 @@ import SeerProjectTableRow from 'getsentry/views/seerAutomation/components/proje
 
 export default function SeerProjectTable() {
   const {projects, fetching, fetchError} = useProjects();
+
+  const {pages: autofixAutomationSettings, isFetching: isFetchingSettings} =
+    useAllAutofixAutomationSettings();
+
+  const autofixSettingsByProjectId = useMemo(() => {
+    return new Map(
+      autofixAutomationSettings.map(setting => [setting.projectId, setting])
+    );
+  }, [autofixAutomationSettings]);
 
   const [searchTerm, setSearchTerm] = useQueryState(
     'query',
@@ -113,7 +123,12 @@ export default function SeerProjectTable() {
         setSearchTerm={setSearchTerm}
       >
         {filteredProjects.map(project => (
-          <SeerProjectTableRow key={project.id} project={project} />
+          <SeerProjectTableRow
+            key={project.id}
+            project={project}
+            isFetchingSettings={isFetchingSettings}
+            autofixSettings={autofixSettingsByProjectId.get(project.id)}
+          />
         ))}
       </ProjectTable>
     </ListItemCheckboxProvider>
