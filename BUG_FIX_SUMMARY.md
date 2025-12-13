@@ -72,10 +72,11 @@ Hey Mark! Great work on fixing the organization_id string comparison bug in ae9d
 ### Key Takeaways for Future Work:
 
 1. **Always scope by organization:** Whenever you query a resource using a user-supplied ID, always include `organization_id` in the filter:
+
    ```python
    # ❌ Vulnerable
    Project.objects.filter(id=project_id).exists()
-   
+
    # ✅ Secure
    Project.objects.filter(id=project_id, organization_id=org_id).exists()
    ```
