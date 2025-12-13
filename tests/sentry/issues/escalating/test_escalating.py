@@ -421,3 +421,30 @@ class TestGetGroupHourlyCountEAP(TestCase):
         assert result == (True, 50)
         mock_snuba.assert_called_once_with(group)
         mock_eap.assert_called_once_with(group)
+
+    @patch("sentry.issues.escalating.escalating.EscalatingGroupForecast.fetch_todays_forecast")
+    @patch("sentry.issues.escalating.escalating.get_group_hourly_count_eap")
+    @patch("sentry.issues.escalating.escalating.get_group_hourly_count_snuba")
+    def test_uses_eap_count_as_source_of_truth(
+        self, mock_snuba: mock.MagicMock, mock_eap: mock.MagicMock, mock_forecast: mock.MagicMock
+    ) -> None:
+        group = self.create_group()
+
+        mock_snuba.return_value = 100
+        mock_eap.return_value = 5
+        mock_forecast.return_value = 50
+
+        with self.options(
+            {
+                "eap.occurrences.should_double_read": True,
+                "eap.occurrences.callsites_using_eap_data_allowlist": [
+                    "issues.escalating.is_escalating"
+                ],
+            }
+        ):
+            result = is_escalating(group)
+
+        # Shouldn't escalate because EAP count (5) < forecast (50)
+        assert result == (False, None)
+        mock_snuba.assert_called_once_with(group)
+        mock_eap.assert_called_once_with(group)
