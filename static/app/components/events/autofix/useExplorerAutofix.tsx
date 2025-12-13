@@ -59,8 +59,13 @@ export interface ImpactAssessmentArtifact {
   one_line_description: string;
 }
 
-interface SuspectCommit {
+export interface SuspectCommit {
+  author_email: string;
+  author_name: string;
+  committed_date: string;
   description: string;
+  message: string;
+  repo_name: string;
   sha: string;
 }
 

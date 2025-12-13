@@ -1,26 +1,31 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Container, Flex} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 import {Heading} from '@sentry/scraps/text';
 
 import {assignToActor} from 'sentry/actionCreators/group';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {CommitRow} from 'sentry/components/commitRow';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {Text} from 'sentry/components/core/text';
+import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import type {
   ImpactAssessmentArtifact,
   ImpactItem,
   RootCauseArtifact,
   SolutionArtifact,
+  SuspectCommit,
   TriageArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
+import Panel from 'sentry/components/panels/panel';
 import {Timeline} from 'sentry/components/timeline';
 import {
   IconCheckmark,
@@ -31,11 +36,13 @@ import {
   IconFire,
   IconFix,
   IconFocus,
+  IconGroup,
   IconUser,
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import type {Commit} from 'sentry/types/integrations';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -66,7 +73,7 @@ export function getArtifactIcon(
     case 'impact_assessment':
       return <IconFire size={size} color="error" />;
     case 'triage':
-      return <IconUser size={size} color="blue400" />;
+      return <IconGroup size={size} color="blue400" />;
     case 'code_changes':
       return <IconCode size={size} color="blue400" />;
     default:
@@ -363,7 +370,7 @@ export function RootCauseCard({data}: {data: ArtifactData}) {
 
   return (
     <ArtifactCard title={t('Root Cause')} icon={getArtifactIcon('root_cause')}>
-      <Text>{typedData.one_line_description}</Text>
+      <Text size="lg">{typedData.one_line_description}</Text>
 
       {typedData.five_whys.length > 0 && <FiveWhysTree whys={typedData.five_whys} />}
 
@@ -417,7 +424,7 @@ export function SolutionCard({data}: {data: ArtifactData}) {
 
   return (
     <ArtifactCard title={t('Solution')} icon={getArtifactIcon('solution')}>
-      <Text>{typedData.one_line_summary}</Text>
+      <Text size="lg">{typedData.one_line_summary}</Text>
 
       {typedData.steps.length > 0 && <SolutionTree steps={typedData.steps} />}
     </ArtifactCard>
@@ -432,7 +439,7 @@ export function ImpactCard({data}: {data: ArtifactData}) {
 
   return (
     <ArtifactCard title={t('Impact')} icon={getArtifactIcon('impact_assessment')}>
-      <Text>{typedData.one_line_description}</Text>
+      <Text size="lg">{typedData.one_line_description}</Text>
 
       {typedData.impacts.length > 0 && <ImpactTree impacts={typedData.impacts} />}
     </ArtifactCard>
@@ -446,43 +453,28 @@ interface TriageCardProps {
 }
 
 /**
- * Triage artifact card.
+ * Hook to look up a Sentry member by email, falling back to name.
  */
-export function TriageCard({data, group, organization}: TriageCardProps) {
-  const typedData = data as unknown as TriageArtifact;
-  const hasSuspect = typedData.suspect_commit;
-  const hasAssignee = typedData.suggested_assignee;
-  const [isAssigning, setIsAssigning] = useState(false);
-
-  // Use the standard assignee selector hook for fallback
-  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
-    group,
-    organization,
-  });
-
-  // Look up member by email first, then by name if email doesn't match
-  const assigneeEmail = typedData.suggested_assignee?.email;
-  const assigneeName = typedData.suggested_assignee?.name;
-
+function useMemberLookup(organization: Organization, email?: string, name?: string) {
   // Try matching by email first
   const {data: memberDataByEmail} = useApiQuery<Member[]>(
-    assigneeEmail
+    email
       ? [
           `/organizations/${organization.slug}/members/`,
-          {query: {query: `email:${assigneeEmail}`}},
+          {query: {query: `email:${email}`}},
         ]
       : [''],
     {
-      enabled: !!assigneeEmail,
+      enabled: !!email,
       staleTime: 0,
     }
   );
 
   // If no email match, try matching by name
-  const shouldTryNameMatch = assigneeName && !memberDataByEmail?.length;
+  const shouldTryNameMatch = name && !memberDataByEmail?.length;
   const {data: memberDataByName} = useApiQuery<Member[]>(
     shouldTryNameMatch
-      ? [`/organizations/${organization.slug}/members/`, {query: {query: assigneeName}}]
+      ? [`/organizations/${organization.slug}/members/`, {query: {query: name}}]
       : [''],
     {
       enabled: !!shouldTryNameMatch,
@@ -491,10 +483,77 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
   );
 
   const member = memberDataByEmail?.[0] || memberDataByName?.[0];
-  const user = member?.user;
+  return member?.user;
+}
+
+/**
+ * Build a Commit object from suspect commit data for use with CommitRow.
+ */
+function useSuspectCommitData(
+  suspectCommit: SuspectCommit | null | undefined,
+  organization: Organization
+): Commit | null {
+  const {data: repositories} = useOrganizationRepositories();
+
+  // Look up commit author in Sentry members
+  const authorUser = useMemberLookup(
+    organization,
+    suspectCommit?.author_email,
+    suspectCommit?.author_name
+  );
+
+  return useMemo((): Commit | null => {
+    if (!suspectCommit) {
+      return null;
+    }
+
+    // Find matching repository by name
+    const repository = repositories?.find(repo => repo.name === suspectCommit.repo_name);
+
+    // Build author - use Sentry user if matched, otherwise create a minimal author object
+    // CommitRow only uses name/email/id with optional chaining, so this is safe
+    const author =
+      authorUser ??
+      ({
+        name: suspectCommit.author_name,
+        email: suspectCommit.author_email,
+      } as Commit['author']);
+
+    return {
+      id: suspectCommit.sha,
+      message: suspectCommit.message,
+      dateCreated: suspectCommit.committed_date,
+      releases: [],
+      author,
+      repository,
+    };
+  }, [suspectCommit, repositories, authorUser]);
+}
+
+/**
+ * Triage artifact card.
+ */
+export function TriageCard({data, group, organization}: TriageCardProps) {
+  const typedData = data as unknown as TriageArtifact;
+  const hasSuspect = typedData.suspect_commit;
+  const hasAssignee = typedData.suggested_assignee;
+  const [isAssigning, setIsAssigning] = useState(false);
+
+  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
+    group,
+    organization,
+  });
+
+  const commit = useSuspectCommitData(typedData.suspect_commit, organization);
+
+  const assigneeUser = useMemberLookup(
+    organization,
+    typedData.suggested_assignee?.email,
+    typedData.suggested_assignee?.name
+  );
 
   const handleAssign = async () => {
-    if (!user) {
+    if (!assigneeUser) {
       addErrorMessage(t('Unable to find user to assign'));
       return;
     }
@@ -504,7 +563,7 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
       await assignToActor({
         id: group.id,
         orgSlug: organization.slug,
-        actor: {id: String(user.id), type: 'user'},
+        actor: {id: String(assigneeUser.id), type: 'user'},
         assignedBy: 'suggested_assignee',
       });
       addSuccessMessage(t('Issue assigned successfully'));
@@ -516,19 +575,18 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
   };
 
   // Create a minimal user object for avatar display
-  const displayEmail = user?.email || member?.email || assigneeEmail;
-  const userForAvatar: AvatarUser | undefined =
-    displayEmail && user
-      ? {
-          email: displayEmail,
-          name: typedData.suggested_assignee?.name || displayEmail,
-          id: user.id,
-          username: user.username || displayEmail.split('@')[0] || '',
-          ip_address: '',
-        }
-      : undefined;
+  // Use the email from Sentry's member data (assigneeUser.email) instead of the AI-suggested email
+  const userForAvatar: AvatarUser | undefined = assigneeUser
+    ? {
+        email: assigneeUser.email,
+        name: typedData.suggested_assignee?.name || assigneeUser.email,
+        id: assigneeUser.id,
+        username: assigneeUser.username || assigneeUser.email.split('@')[0] || '',
+        ip_address: '',
+      }
+    : undefined;
 
-  const hasMatch = !!user;
+  const hasAssigneeMatch = !!assigneeUser;
 
   if (!hasSuspect && !hasAssignee) {
     return (
@@ -540,60 +598,89 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
 
   return (
     <ArtifactCard title={t('Triage')} icon={getArtifactIcon('triage')}>
-      {hasSuspect && (
-        <Flex direction="column" gap="sm">
-          <Container padding="md">
-            <Flex direction="column" gap="sm">
-              <Text monospace>{typedData.suspect_commit?.sha}</Text>
-              {typedData.suspect_commit?.description && (
-                <Text variant="muted">{typedData.suspect_commit.description}</Text>
-              )}
-            </Flex>
-          </Container>
-        </Flex>
-      )}
-
-      {hasAssignee && (
-        <Flex direction="column" gap="sm">
-          <Container radius="md">
-            <Flex direction="column" gap="md">
-              <Flex align="center" gap="sm">
-                {hasMatch && userForAvatar ? (
-                  <UserAvatar user={userForAvatar} size={24} gravatar />
-                ) : (
-                  <IconUser size="md" color="gray400" />
-                )}
-                <Flex direction="column" gap="xs">
-                  <Text bold>{typedData.suggested_assignee?.name}</Text>
-                </Flex>
+      <Flex direction="column" gap="sm">
+        {hasSuspect && commit && (
+          <Flex direction="column" gap="sm">
+            <Text variant="muted">{t('Suspect Commit')}</Text>
+            <Container padding="md" paddingBottom="0">
+              <Flex direction="column" gap="xl">
+                <SuspectCommitPanel>
+                  <CommitRow commit={commit} />
+                  {typedData.suspect_commit?.description && (
+                    <Container padding="lg" paddingTop="0">
+                      <Text size="sm" density="compressed">
+                        {typedData.suspect_commit.description}
+                      </Text>
+                    </Container>
+                  )}
+                </SuspectCommitPanel>
               </Flex>
+            </Container>
+          </Flex>
+        )}
 
-              {typedData.suggested_assignee?.why && (
-                <Container paddingLeft="3xl">
-                  <Text>{typedData.suggested_assignee.why}</Text>
-                </Container>
-              )}
-              <Flex justify="end">
-                {hasMatch ? (
-                  <Button size="sm" onClick={handleAssign} disabled={isAssigning}>
-                    {isAssigning ? t('Assigning...') : t('Assign Issue')}
-                  </Button>
-                ) : (
-                  <AssigneeSelector
-                    group={group}
-                    assigneeLoading={assigneeLoading}
-                    handleAssigneeChange={handleAssigneeChange}
-                    showLabel
-                  />
-                )}
+        <Container paddingBottom="lg">
+          <Separator orientation="horizontal" border="primary" />
+        </Container>
+
+        {hasAssignee && (
+          <Flex direction="column" gap="md">
+            <Text variant="muted">{t('Suggested Assignee')}</Text>
+            <Container padding="md">
+              <Flex direction="column" gap="xl">
+                <SuspectCommitPanel>
+                  <Container padding="md" paddingTop="0" paddingBottom="0">
+                    <Flex justify="between">
+                      <Flex align="center" gap="md" paddingLeft="xs">
+                        {hasAssigneeMatch && userForAvatar ? (
+                          <UserAvatar user={userForAvatar} size={24} gravatar />
+                        ) : (
+                          <IconUser size="md" color="gray400" />
+                        )}
+                        <Flex direction="column" gap="xs">
+                          <Text size="lg">{typedData.suggested_assignee?.name}</Text>
+                        </Flex>
+                      </Flex>
+
+                      {hasAssigneeMatch ? (
+                        <Button size="xs" onClick={handleAssign} disabled={isAssigning}>
+                          {isAssigning
+                            ? t('Assigning...')
+                            : t('Assign to %s', typedData.suggested_assignee?.name)}
+                        </Button>
+                      ) : (
+                        <AssigneeSelector
+                          group={group}
+                          assigneeLoading={assigneeLoading}
+                          handleAssigneeChange={handleAssigneeChange}
+                          showLabel
+                        />
+                      )}
+                    </Flex>
+
+                    {typedData.suggested_assignee?.why && (
+                      <Container padding="md" paddingTop="lg" paddingLeft="xs">
+                        <Text size="sm">{typedData.suggested_assignee.why}</Text>
+                      </Container>
+                    )}
+
+                    <Flex justify="end" />
+                  </Container>
+                </SuspectCommitPanel>
               </Flex>
-            </Flex>
-          </Container>
-        </Flex>
-      )}
+            </Container>
+          </Flex>
+        )}
+      </Flex>
     </ArtifactCard>
   );
 }
+
+const SuspectCommitPanel = styled(Panel)`
+  line-height: 1.2;
+  border: none;
+  margin: 0;
+`;
 
 interface CodeChangesCardProps {
   patches: ExplorerFilePatch[];

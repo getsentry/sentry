@@ -308,7 +308,6 @@ export function ExplorerSeerDrawer({
           {artifacts.root_cause?.data && (
             <RootCauseCard data={artifacts.root_cause.data} />
           )}
-          {artifacts.solution?.data && <SolutionCard data={artifacts.solution.data} />}
           {artifacts.impact_assessment?.data && (
             <ImpactCard data={artifacts.impact_assessment.data} />
           )}
@@ -319,6 +318,7 @@ export function ExplorerSeerDrawer({
               organization={organization}
             />
           )}
+          {artifacts.solution?.data && <SolutionCard data={artifacts.solution.data} />}
 
           {/* Code changes from file patches */}
           {filePatches.length > 0 && (
