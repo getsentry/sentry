@@ -619,9 +619,11 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
           </Flex>
         )}
 
-        <Container paddingBottom="lg">
-          <Separator orientation="horizontal" border="primary" />
-        </Container>
+        {hasSuspect && hasAssignee && (
+          <Container paddingBottom="lg">
+            <Separator orientation="horizontal" border="primary" />
+          </Container>
+        )}
 
         {hasAssignee && (
           <Flex direction="column" gap="md">
