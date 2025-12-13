@@ -29,7 +29,7 @@ Added proper authorization check by scoping the project query to the current org
 
 ```python
 if "project_id" in required_fields:
-    # Verify project exists and belongs to the organization
+    # SECURITY: Verify project exists AND belongs to the organization
     if not Project.objects.filter(
         id=fields["project_id"], organization_id=request.organization.id
     ).exists():
@@ -46,6 +46,7 @@ if "project_id" in required_fields:
 
 - Line 95-101: Added `organization_id=request.organization.id` filter to project existence check
 - Changed error message to be more accurate: "Project does not belong to this organization"
+- Added detailed comment explaining the security concern
 
 ### 2. Added test to prevent regression
 
@@ -63,6 +64,32 @@ This follows the security guidelines in AGENTS.md:
 > When querying resources, ALWAYS include `organization_id` and/or `project_id` in your query filters. Never trust user-supplied IDs alone.
 
 Mark Story fixed a similar issue with organization_id string comparison in the same file, but missed this project validation issue. This is a common pattern to watch for throughout the codebase.
+
+## Advice for @markstory
+
+Hey Mark! Great work on fixing the organization_id string comparison bug in ae9d7c01c30. While reviewing this endpoint, I noticed a related security issue with the project_id validation.
+
+### Key Takeaways for Future Work:
+
+1. **Always scope by organization:** Whenever you query a resource using a user-supplied ID, always include `organization_id` in the filter:
+   ```python
+   # ❌ Vulnerable
+   Project.objects.filter(id=project_id).exists()
+   
+   # ✅ Secure
+   Project.objects.filter(id=project_id, organization_id=org_id).exists()
+   ```
+
+2. **Don't use `self.get_projects()` when you can:** The endpoint has `self.get_projects()` available which already validates permissions, but since you're getting `project_id` from request data rather than query params, the manual validation is fine—just needs the org scope.
+
+3. **IDOR checklist:** When writing endpoints that accept resource IDs:
+   - [ ] Does the resource belong to the user's organization?
+   - [ ] Does the user have the right permissions for this resource?
+   - [ ] Could a malicious user guess/enumerate IDs from other orgs?
+
+4. **Test for authorization failures:** When adding tests, always include at least one test that tries to access a resource from a different organization. This catches these bugs early.
+
+The pattern you established with the organization_id string comparison was great—this just extends that security thinking to the project relationship as well!
 
 ## Test the Fix
 

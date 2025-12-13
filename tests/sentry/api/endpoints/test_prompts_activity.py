@@ -274,7 +274,18 @@ class PromptsActivityTest(APITestCase):
         assert "snoozed_ts" in resp.data["features"]["alert_stream"]
 
     def test_project_from_different_organization(self) -> None:
-        """Test that users cannot dismiss prompts for projects in other organizations."""
+        """
+        Test that users cannot dismiss prompts for projects in other organizations.
+        
+        This is a regression test for an IDOR vulnerability where the endpoint only
+        checked if a project existed, but didn't verify it belonged to the user's org.
+        
+        @markstory - When adding similar endpoints in the future, always remember to scope
+        queries by organization_id. The pattern should be:
+            Project.objects.filter(id=project_id, organization_id=org_id)
+        not just:
+            Project.objects.filter(id=project_id)
+        """
         other_org = self.create_organization(name="other_org")
         other_project = self.create_project(organization=other_org, name="other_project")
 

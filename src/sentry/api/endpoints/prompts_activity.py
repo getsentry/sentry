@@ -92,7 +92,12 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
         # if project_id or organization_id in required fields make sure they exist
         # if NOT in required fields, insert dummy value so dups aren't recorded
         if "project_id" in required_fields:
-            # Verify project exists and belongs to the organization
+            # SECURITY: Verify project exists AND belongs to the organization.
+            # This prevents IDOR (Indirect Object Reference) vulnerabilities where a malicious
+            # user could specify a project_id from a different organization.
+            # @markstory - Similar to the organization_id string comparison fix you made in
+            # ae9d7c01c30, we need to scope ALL resource queries by organization to prevent
+            # unauthorized access. See AGENTS.md security guidelines for more context.
             if not Project.objects.filter(
                 id=fields["project_id"], organization_id=request.organization.id
             ).exists():
