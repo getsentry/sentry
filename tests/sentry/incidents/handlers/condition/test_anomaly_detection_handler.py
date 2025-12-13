@@ -15,7 +15,7 @@ from sentry.seer.anomaly_detection.types import (
 )
 from sentry.snuba.subscriptions import create_snuba_subscription
 from sentry.workflow_engine.models import Condition, DataPacket
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import ConditionError, DetectorPriorityLevel
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -30,6 +30,8 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         (self.workflow, self.detector, self.detector_workflow, self.workflow_triggers) = (
             self.create_detector_and_workflow()
         )
+        self.detector.update(config={"detection_type": "dynamic", "comparison_delta": None})
+        self.detector.save()
 
         packet = AnomalyDetectionUpdate(
             subscription_id=str(self.subscription.id),
@@ -64,12 +66,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             condition_result=DetectorPriorityLevel.HIGH,
             condition_group=self.workflow_triggers,
         )
-
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    def test_passes(self, mock_seer_request: mock.MagicMock) -> None:
-        seer_return_value: DetectAnomaliesResponse = {
+        self.high_confidence_seer_response: DetectAnomaliesResponse = {
             "success": True,
             "timeseries": [
                 {
@@ -82,6 +79,12 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
                 }
             ],
         }
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    def test_passes(self, mock_seer_request: mock.MagicMock) -> None:
+        seer_return_value = self.high_confidence_seer_response
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         assert (
             self.dc.evaluate_value(self.data_packet.packet.values)
@@ -108,6 +111,43 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         assert (
             self.dc.evaluate_value(self.data_packet.packet.values) == DetectorPriorityLevel.OK.value
+        )
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    def test_seer_call_nan_aggregation_value(
+        self, mock_logger: mock.MagicMock, mock_seer_request: mock.MagicMock
+    ) -> None:
+        seer_return_value = self.high_confidence_seer_response
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        packet = AnomalyDetectionUpdate(
+            subscription_id=str(self.subscription.id),
+            values={
+                "value": float("nan"),
+                "source_id": str(self.subscription.id),
+                "subscription_id": str(self.subscription.id),
+                "timestamp": datetime.now(UTC),
+            },
+            timestamp=datetime.now(UTC),
+            entity="test-entity",
+        )
+        data_packet = DataPacket[AnomalyDetectionUpdate](
+            source_id=str(packet.subscription_id),
+            packet=packet,
+        )
+
+        assert self.dc.evaluate_value(data_packet.packet.values) == ConditionError(
+            msg="Error during Seer data evaluation process."
+        )
+        mock_logger.error.assert_called_with(
+            "Invalid aggregation value",
+            extra={
+                "source_id": self.subscription.id,
+                "source_type": DataSourceType.SNUBA_QUERY_SUBSCRIPTION,
+            },
         )
 
     @mock.patch(
