@@ -13,6 +13,26 @@ from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger, RepositorySettings
 
 
+def _get_enabled_code_review_value(
+    updated_value: bool | None, existing_setting: RepositorySettings | None
+) -> bool:
+    if updated_value is not None:
+        return updated_value
+    if existing_setting:
+        return existing_setting.enabled_code_review
+    return False
+
+
+def _get_code_review_triggers_value(
+    updated_value: list[str] | None, existing_setting: RepositorySettings | None
+) -> list[str]:
+    if updated_value is not None:
+        return updated_value
+    if existing_setting:
+        return existing_setting.code_review_triggers
+    return []
+
+
 class RepositorySettingsSerializer(serializers.Serializer):
     repositoryIds = serializers.ListField(
         child=serializers.IntegerField(),
@@ -21,21 +41,19 @@ class RepositorySettingsSerializer(serializers.Serializer):
         help_text="List of repository IDs to update settings for. Maximum 1000 repositories.",
     )
     enabledCodeReview = serializers.BooleanField(
-        required=True,
+        required=False,
         help_text="Whether code review is enabled for these repositories",
     )
     codeReviewTriggers = serializers.ListField(
         child=serializers.ChoiceField(choices=[trigger.value for trigger in CodeReviewTrigger]),
-        required=True,
+        required=False,
         help_text="List of triggers for code review",
     )
 
     def validate(self, data):
-        if data.get("enabledCodeReview") and not data.get("codeReviewTriggers"):
+        if "enabledCodeReview" not in data and "codeReviewTriggers" not in data:
             raise serializers.ValidationError(
-                {
-                    "codeReviewTriggers": "At least one trigger is required when code review is enabled."
-                }
+                "At least one of 'enabledCodeReview' or 'codeReviewTriggers' must be provided."
             )
         return data
 
@@ -64,8 +82,15 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
 
         data = serializer.validated_data
         repository_ids = data["repositoryIds"]
-        enabled_code_review = data["enabledCodeReview"]
-        code_review_triggers = data["codeReviewTriggers"]
+
+        enabled_code_review = data.get("enabledCodeReview")
+        code_review_triggers = data.get("codeReviewTriggers")
+
+        update_fields = []
+        if enabled_code_review is not None:
+            update_fields.append("enabled_code_review")
+        if code_review_triggers is not None:
+            update_fields.append("code_review_triggers")
 
         repositories = Repository.objects.filter(
             id__in=repository_ids,
@@ -78,20 +103,31 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
                 status=400,
             )
 
-        settings_to_upsert = [
-            RepositorySettings(
-                repository=repo,
-                enabled_code_review=enabled_code_review,
-                code_review_triggers=code_review_triggers,
+        existing_settings = {
+            setting.repository_id: setting
+            for setting in RepositorySettings.objects.filter(repository_id__in=repository_ids)
+        }
+
+        settings_to_upsert = []
+        for repo in repositories:
+            existing_setting = existing_settings.get(repo.id)
+            settings_to_upsert.append(
+                RepositorySettings(
+                    repository=repo,
+                    enabled_code_review=_get_enabled_code_review_value(
+                        enabled_code_review, existing_setting
+                    ),
+                    code_review_triggers=_get_code_review_triggers_value(
+                        code_review_triggers, existing_setting
+                    ),
+                )
             )
-            for repo in repositories
-        ]
 
         RepositorySettings.objects.bulk_create(
             settings_to_upsert,
             update_conflicts=True,
             unique_fields=["repository"],
-            update_fields=["enabled_code_review", "code_review_triggers"],
+            update_fields=update_fields,
         )
 
         return Response(
