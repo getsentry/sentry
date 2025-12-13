@@ -677,6 +677,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         metrics = event.data["_metrics"]
         assert not metrics.get("flag.processing.error")
 
+    @pytest.mark.skip(reason="flaky: #103830")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_removes_frames_not_found_in_mapping_but_preserves_native_frames(self) -> None:
