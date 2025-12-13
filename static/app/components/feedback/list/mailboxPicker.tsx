@@ -1,5 +1,3 @@
-import {useTheme} from '@emotion/react';
-
 import {Badge} from 'sentry/components/core/badge';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
@@ -21,7 +19,6 @@ interface Props {
 export default function MailboxPicker({onChange, value}: Props) {
   const organization = useOrganization();
   const {data} = useMailboxCounts({organization});
-  const theme = useTheme();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
   const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
@@ -98,7 +95,7 @@ export default function MailboxPicker({onChange, value}: Props) {
           return (
             <SegmentedControl.Item key={mailbox.key} aria-label={mailbox.label}>
               <Tooltip disabled={!count} title={title}>
-                <Flex align="center" gap={theme.isChonk ? 'sm' : '0'}>
+                <Flex align="center" gap="sm">
                   {mailbox.tooltip ? (
                     <Tooltip isHoverable title={mailbox.tooltip}>
                       {mailbox.label}
