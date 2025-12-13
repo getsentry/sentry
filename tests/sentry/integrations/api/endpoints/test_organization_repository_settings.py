@@ -197,7 +197,6 @@ class OrganizationRepositorySettingsTest(APITestCase):
         )
 
         assert response.status_code == 400, response.content
-        assert "non_field_errors" in response.data
         assert (
             "At least one of 'enabledCodeReview' or 'codeReviewTriggers' must be provided."
             in response.data["non_field_errors"]
