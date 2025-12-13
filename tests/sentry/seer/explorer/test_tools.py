@@ -18,6 +18,7 @@ from sentry.seer.explorer.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
     execute_table_query,
     execute_timeseries_query,
+    execute_trace_table_query,
     get_issue_and_event_details,
     get_issue_and_event_details_v2,
     get_issue_and_event_response,
@@ -799,6 +800,90 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         # Should not find the trace since it's beyond the 90-day limit
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
         assert result is None
+
+
+class TestTracesQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.organization)
+        self.login_as(user=self.user)
+        self.features = {
+            "organizations:performance-trace-explorer": True,
+            "organizations:visibility-explore-view": True,
+        }
+
+    @patch("sentry.seer.explorer.tools.client")
+    def test_trace_table_basic(self, wrapped_client: Mock) -> None:
+        """Basic integration test for execute_trace_table_query RPC. This is a passthrough to the OrganizationTracesEndpoint, which is tested more extensively."""
+        wrapped_client.get.side_effect = client.get
+
+        with self.feature(self.features):
+            trace_id = uuid.uuid4().hex
+            other_trace_id = uuid.uuid4().hex
+            db_only_trace_id = uuid.uuid4().hex
+
+            spans = [
+                self.create_span(
+                    {
+                        "description": "root span",
+                        "sentry_tags": {"transaction": "api/users", "op": "pageload"},
+                        "trace_id": trace_id,
+                        "is_segment": True,
+                    },
+                    start_ts=before_now(minutes=5),
+                    duration=120,
+                ),
+                self.create_span(
+                    {
+                        "description": "db call",
+                        "sentry_tags": {"transaction": "api/users", "op": "db"},
+                        "trace_id": trace_id,
+                        "parent_span_id": None,
+                    },
+                    start_ts=before_now(minutes=4),
+                    duration=80,
+                ),
+                self.create_span(
+                    {
+                        "description": "unrelated trace",
+                        "sentry_tags": {"transaction": "api/other", "op": "pageload"},
+                        "trace_id": other_trace_id,
+                        "is_segment": True,
+                    },
+                    start_ts=before_now(minutes=3),
+                    duration=50,
+                ),
+                self.create_span(
+                    {
+                        "description": "db-only trace",
+                        "sentry_tags": {"transaction": "api/db", "op": "db"},
+                        "trace_id": db_only_trace_id,
+                        "is_segment": True,
+                    },
+                    start_ts=before_now(minutes=2),
+                    duration=40,
+                ),
+            ]
+
+            self.store_spans(spans, is_eap=True)
+
+            result = execute_trace_table_query(
+                organization_id=self.organization.id,
+                per_page=5,
+                query="span.op:pageload",
+                project_ids=[self.project.id],
+            )
+
+            assert result is not None
+            assert "data" in result
+            returned_ids = {row["trace"] for row in result["data"]}
+            assert returned_ids == {trace_id, other_trace_id}
+
+            assert (
+                wrapped_client.get.call_args.kwargs["path"]
+                == f"/organizations/{self.organization.slug}/traces/"
+            )
 
 
 class _Project(BaseModel):
