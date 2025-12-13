@@ -3,13 +3,14 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Mapping, MutableMapping, Sequence
+from concurrent.futures import Future
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from arroyo.backends.kafka import build_kafka_producer_configuration
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.types import BrokerValue
+from arroyo.types import Topic as ArroyoTopic
 from confluent_kafka import KafkaError
-from confluent_kafka import Message as KafkaMessage
-from confluent_kafka import Producer
 from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
@@ -20,8 +21,8 @@ from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtoco
 from sentry.eventstream.types import EventStreamEventType
 from sentry.killswitches import killswitch_matches_context
 from sentry.utils import json
-from sentry.utils.confluent_producer import get_confluent_producer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.arroyo_producer import get_arroyo_producer
+from sentry.utils.kafka_config import get_topic_definition
 
 EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
 
@@ -37,30 +38,30 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.topic = Topic.EVENTS
         self.transactions_topic = Topic.TRANSACTIONS
         self.issue_platform_topic = Topic.EVENTSTREAM_GENERIC
-        self.__producers: MutableMapping[Topic, Producer] = {}
+        self.__producers: MutableMapping[Topic, KafkaProducer] = {}
         self.error_last_logged_time: int | None = None
 
     def get_transactions_topic(self, project_id: int) -> Topic:
         return self.transactions_topic
 
-    def get_producer(self, topic: Topic) -> Producer:
+    def get_producer(self, topic: Topic) -> KafkaProducer:
         if topic not in self.__producers:
-            cluster_name = get_topic_definition(topic)["cluster"]
-            cluster_options = get_kafka_producer_cluster_options(cluster_name)
-            cluster_options["client.id"] = "sentry.eventstream.kafka"
-            # XXX(markus): We should use `sentry.utils.arroyo_producer.get_arroyo_producer`.
-            self.__producers[topic] = get_confluent_producer(
-                build_kafka_producer_configuration(default_config=cluster_options)
+            self.__producers[topic] = get_arroyo_producer(
+                name="sentry.eventstream.kafka",
+                topic=topic,
+                use_simple_futures=False,
             )
 
         return self.__producers[topic]
 
-    def delivery_callback(self, error: KafkaError | None, message: KafkaMessage) -> None:
+    def delivery_callback(self, error: KafkaError | None, value: bytes) -> None:
         now = int(time.time())
         if error is not None:
             if self.error_last_logged_time is None or now > self.error_last_logged_time + 60:
                 self.error_last_logged_time = now
-                logger.error("Could not publish message (error: %s): %r", error, message)
+                logger.error(
+                    "Could not publish message (error: %s): %s", error, value.decode("utf-8")
+                )
 
     def _get_headers_for_insert(
         self,
@@ -189,29 +190,26 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         producer = self.get_producer(topic)
 
-        # Polling the producer is required to ensure callbacks are fired. This
-        # means that the latency between a message being delivered (or failing
-        # to be delivered) and the corresponding callback being fired is
-        # roughly the same as the duration of time that passes between publish
-        # calls. If this ends up being too high, the publisher should be moved
-        # into a background thread that can poll more frequently without
-        # interfering with request handling. (This does `poll` does not act as
-        # a heartbeat for the purposes of any sort of session expiration.)
-        # Note that this call to poll() is *only* dealing with earlier
-        # asynchronous produce() calls from the same process.
-        producer.poll(0.0)
-
         assert isinstance(extra_data, tuple)
 
         real_topic = get_topic_definition(topic)["real_topic_name"]
 
         try:
-            producer.produce(
-                topic=real_topic,
-                key=str(project_id).encode("utf-8") if not skip_semantic_partitioning else None,
-                value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
-                on_delivery=self.delivery_callback,
-                headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
+            produce_future: Future[BrokerValue[KafkaPayload]] = producer.produce(
+                destination=ArroyoTopic(real_topic),
+                payload=KafkaPayload(
+                    key=str(project_id).encode("utf-8") if not skip_semantic_partitioning else None,
+                    value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data).encode(
+                        "utf-8"
+                    ),
+                    headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
+                ),
+            )
+            produce_future.add_done_callback(
+                lambda future: self.delivery_callback(
+                    future.exception() if future.exception() is not None else None,
+                    future.result().payload.value if future.exception() is None else None,
+                )
             )
         except Exception as error:
             logger.exception("Could not publish message: %s", error)
@@ -229,8 +227,10 @@ class KafkaEventStream(SnubaProtocolEventStream):
         real_topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
         try:
             producer.produce(
-                topic=real_topic,
-                value=EAP_ITEMS_CODEC.encode(trace_item),
+                destination=ArroyoTopic(real_topic),
+                payload=KafkaPayload(
+                    key=None, value=EAP_ITEMS_CODEC.encode(trace_item), headers=[]
+                ),
             )
         except Exception as error:
             logger.exception("Could not publish trace items: %s", error)
