@@ -7,12 +7,10 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {getStylingSliceName} from 'sentry/views/explore/tables/tracesTable/utils';
+import {isBrowserRequestNode} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TransactionNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {
-  isBrowserRequestNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 import {TraceTransactionRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceTransactionRow';
@@ -461,6 +459,30 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     this._spanPromises.set(key, promise);
 
     return promise.then(() => newBounds);
+  }
+
+  resolveValueFromSearchKey(key: string): any | null {
+    if (
+      [
+        'duration',
+        // 'transaction.duration', <-- this is an actual key
+        'transaction.total_time',
+      ].includes(key)
+    ) {
+      return this.space[1];
+    }
+
+    // @TODO perf optimization opportunity
+    // Entity check should be preprocessed per token, not once per token per node we are evaluating, however since
+    // we are searching <10k nodes in p99 percent of the time and the search is non blocking, we are likely fine
+    // and can be optimized later.
+    const [maybeEntity, ...rest] = key.split('.');
+    if (maybeEntity === 'transaction') {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      return this.value[rest.join('.')];
+    }
+
+    return null;
   }
 }
 

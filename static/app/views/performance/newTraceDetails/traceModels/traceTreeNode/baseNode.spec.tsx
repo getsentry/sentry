@@ -67,6 +67,10 @@ class TestNode extends BaseNode {
   matchWithFreeText(key: string): boolean {
     return this.description?.includes(key) || this.op?.includes(key) || false;
   }
+
+  resolveValueFromSearchKey(_key: string): any | null {
+    return null;
+  }
 }
 
 const createMockExtra = (
@@ -722,7 +726,7 @@ describe('BaseNode', () => {
         title: 'Trace Header Title',
         subtitle: 'GET /api/users',
       });
-      expect(node.makeBarColor(ThemeFixture())).toBe(ThemeFixture().blue300);
+      expect(node.makeBarColor(ThemeFixture())).toEqual(ThemeFixture().blue300);
       expect(node.printNode()).toBe('Print Node(test-id)');
       expect(node.analyticsName()).toBe('test');
 

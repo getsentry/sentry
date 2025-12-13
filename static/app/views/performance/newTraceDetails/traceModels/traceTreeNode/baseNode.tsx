@@ -2,11 +2,13 @@ import type {Theme} from '@emotion/react';
 
 import type {Client} from 'sentry/api';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import type {Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import type {TraceItemDataset} from 'sentry/views/explore/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
-  isEAPTransactionNode,
+  isEAPSpanNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -121,6 +123,11 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
    * Whether the node is an EAP event.
    */
   isEAPEvent = false;
+
+  /**
+   * The dataset used to fetch the details for the item. If not provided we fetch from nodestore.
+   */
+  traceItemDataset: TraceItemDataset | null = null;
 
   /**
    * The priority of the node in when we find multiple nodes matching the same search query.
@@ -326,6 +333,33 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       : undefined;
   }
 
+  private _isValidMeasurements(
+    measurements: Record<string, any>
+  ): measurements is Record<string, Measurement> {
+    return Object.values(measurements).every(
+      m => m && 'value' in m && typeof m.value === 'number'
+    );
+  }
+
+  get measurements(): Record<string, Measurement> | undefined {
+    if (
+      this.value &&
+      'measurements' in this.value &&
+      this.value.measurements &&
+      this._isValidMeasurements(this.value.measurements)
+    ) {
+      return this.value.measurements;
+    }
+
+    return undefined;
+  }
+
+  get attributes(): Record<string, string | number | boolean> | undefined {
+    return this.value && 'additional_attributes' in this.value
+      ? this.value.additional_attributes
+      : undefined;
+  }
+
   isRootNodeChild(): boolean {
     return this.parent?.value === null;
   }
@@ -351,12 +385,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       occurrence => occurrence.event_id === id
     );
 
-    return (
-      this.id === id ||
-      this.transactionId === id ||
-      hasMatchingErrors ||
-      hasMatchingOccurrences
-    );
+    return this.id === id || hasMatchingErrors || hasMatchingOccurrences;
   }
 
   invalidate() {
@@ -458,7 +487,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   }
 
   findParentEapTransaction(): EapSpanNode | null {
-    return this.findParent<EapSpanNode>(p => isEAPTransactionNode(p));
+    return this.findParent<EapSpanNode>(p => isEAPSpanNode(p) && p.value.is_transaction);
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {
@@ -484,6 +513,10 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     this.invalidate();
     this.forEachChild(child => child.invalidate());
     return true;
+  }
+
+  makeBarTextColor(inside: boolean, theme: Theme): string {
+    return inside ? 'white' : theme.subText;
   }
 
   /**
@@ -561,4 +594,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   ): React.ReactNode;
 
   abstract matchWithFreeText(key: string): boolean;
+
+  abstract resolveValueFromSearchKey(key: string): any | null;
 }

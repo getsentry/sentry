@@ -24,7 +24,6 @@ import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/u
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import {Trace} from './trace';
-import {traceNodeAdjacentAnalyticsProperties} from './traceTreeAnalytics';
 import type {TraceWaterfallProps} from './traceWaterfall';
 import {TraceGrid} from './traceWaterfall';
 import {TraceWaterfallState} from './traceWaterfallState';
@@ -87,7 +86,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         type: node.analyticsName(),
         project_platform:
           projects.find(p => p.slug === node.projectSlug)?.platform || 'other',
-        ...traceNodeAdjacentAnalyticsProperties(node),
       });
 
       traceDispatch({

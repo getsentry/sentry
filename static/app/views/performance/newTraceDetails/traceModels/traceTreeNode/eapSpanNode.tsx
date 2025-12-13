@@ -2,17 +2,15 @@ import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
+import type {Measurement} from 'sentry/types/event';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+import {isBrowserRequestNode} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {
-  isBrowserRequestNode,
-  isEAPSpan,
-  isEAPSpanNode,
-  isEAPTransaction,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceEAPSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceEAPSpanRow';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
-import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceSpanRow';
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {traceChronologicalSort} from './utils';
@@ -35,13 +33,14 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     // For eap transactions, on load we only display the embedded transactions children.
     // Mimics the behavior of non-eap traces, enabling a less noisy/summarized view of the trace
     const parentNode = value.is_transaction
-      ? (parent?.findParent(p => isEAPTransaction(p.value)) ?? parent)
+      ? (parent?.findParent(p => isEAPSpanNode(p) && p.value.is_transaction) ?? parent)
       : parent;
 
     super(parentNode, value, extra);
 
     this.id = value.event_id;
     this.type = 'span';
+    this.traceItemDataset = TraceItemDataset.SPANS;
 
     this.searchPriority = this.value.is_transaction ? 1 : 2;
     this.isEAPEvent = true;
@@ -96,6 +95,22 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     return this.op + (this.description ? ' - ' + this.description : '');
   }
 
+  get measurements(): Record<string, Measurement> | undefined {
+    if (!this.value.measurements) {
+      return undefined;
+    }
+
+    const result: Record<string, Measurement> = {};
+    for (const key in this.value.measurements) {
+      const value = this.value.measurements[key];
+      if (typeof value === 'number') {
+        const normalizedKey = key.replace('measurements.', '');
+        result[normalizedKey] = {value};
+      }
+    }
+    return result;
+  }
+
   get profileId(): string | undefined {
     const profileId = super.profileId;
 
@@ -121,13 +136,11 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   get transactionId(): string | undefined {
-    const transactionId = super.transactionId;
-
-    if (transactionId) {
-      return transactionId;
-    }
-
-    return this.findClosestParentTransaction()?.transactionId;
+    // If the node represents a transaction, we use the transaction_id attached to the node,
+    // otherwise we use the transaction_id of the closest parent transaction.
+    return this.value.is_transaction
+      ? this.value.transaction_id
+      : this.findClosestParentTransaction()?.transactionId;
   }
 
   get traceHeaderTitle(): {
@@ -141,10 +154,12 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   get directVisibleChildren(): Array<BaseNode<TraceTree.NodeValue>> {
-    if (isEAPTransaction(this.value) && !this.expanded) {
+    if (this.value.is_transaction && !this.expanded) {
       // For collapsed eap-transactions we still render the embedded eap-transactions as visible children.
       // Mimics the behavior of non-eap traces, enabling a less noisy/summarized view of the trace
-      return this.children.filter(child => isEAPTransaction(child.value));
+      return this.children.filter(
+        child => isEAPSpanNode(child) && child.value.is_transaction
+      );
     }
 
     return super.directVisibleChildren;
@@ -181,14 +196,14 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       // the eap-spans (by their parent_span_id) that were previously hidden. Note that this only impacts the
       // direct eap-transaction children of the targetted eap-transaction node.
       if (this.value.is_transaction) {
-        const eapTransactions = this.children.filter(c =>
-          isEAPTransaction(c.value)
+        const eapTransactions = this.children.filter(
+          c => isEAPSpanNode(c) && c.value.is_transaction
         ) as EapSpanNode[];
 
         for (const txn of eapTransactions) {
           // Find the eap-span that is the parent of the transaction
           const newParent = this.findChild(n => {
-            if (isEAPSpan(n.value)) {
+            if (isEAPSpanNode(n)) {
               return n.value.event_id === txn.value.parent_span_id;
             }
             return false;
@@ -282,7 +297,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<T>
   ): React.ReactNode {
-    return <TraceSpanRow {...props} node={this} />;
+    return <TraceEAPSpanRow {...props} node={this} />;
   }
 
   renderDetails<T extends BaseNode>(
@@ -298,5 +313,31 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       this.value.name?.includes(query) ||
       this.id === query
     );
+  }
+
+  matchById(id: string): boolean {
+    const superMatch = super.matchById(id);
+
+    // Match by transaction_id if the node represents a transaction, otherwise use the super match.
+    return superMatch || (this.value.is_transaction ? id === this.transactionId : false);
+  }
+
+  resolveValueFromSearchKey(key: string): any | null {
+    // @TODO Abdullah Khan: Add EAPSpanNode support for exclusive_time
+    if (['duration', 'span.duration', 'span.total_time'].includes(key)) {
+      return this.space[1];
+    }
+
+    // @TODO perf optimization opportunity
+    // Entity check should be preprocessed per token, not once per token per node we are evaluating, however since
+    // we are searching <10k nodes in p99 percent of the time and the search is non blocking, we are likely fine
+    // and can be optimized later.
+    const [maybeEntity, ...rest] = key.split('.');
+    if (maybeEntity === 'span') {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      return this.value[rest.join('.')];
+    }
+
+    return null;
   }
 }
