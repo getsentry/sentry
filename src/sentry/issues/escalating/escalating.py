@@ -11,17 +11,6 @@ from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
 from django.db.models.signals import post_save
-from google.protobuf.timestamp_pb2 import Timestamp
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column as EAPColumn
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableRequest
-from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
-    AttributeAggregation,
-    AttributeKey,
-    AttributeValue,
-)
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function as EAPFunction
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 from snuba_sdk import (
     Column,
     Condition,
@@ -45,6 +34,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInboxReason, InboxReasonDetails, add_group_to_inbox
+from sentry.search.eap.occurrences.query import count_occurrences
 from sentry.search.eap.occurrences.rollout_utils import should_double_read_from_eap, validate_read
 from sentry.services.eventstore.models import GroupEvent
 from sentry.signals import issue_escalating
@@ -52,7 +42,6 @@ from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.referrer import Referrer
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
-from sentry.utils import snuba_rpc
 from sentry.utils.cache import cache
 from sentry.utils.snuba import raw_snql_query
 
@@ -308,60 +297,16 @@ def get_group_hourly_count_eap(group: Group) -> int:
 
     if hourly_count is None:
         now = datetime.now()
-        end_timestamp = Timestamp()
-        end_timestamp.FromDatetime(now)
-
         current_hour = now.replace(minute=0, second=0, microsecond=0)
-        start_timestamp = Timestamp()
-        start_timestamp.FromDatetime(current_hour)
 
-        count_column = EAPColumn(
-            aggregation=AttributeAggregation(
-                aggregate=EAPFunction.FUNCTION_COUNT,
-                key=AttributeKey(name="group_id", type=AttributeKey.TYPE_INT),
-            ),
-            label="count",
+        hourly_count = count_occurrences(
+            organization_id=group.project.organization.id,
+            project_ids=[group.project.id],
+            start=current_hour,
+            end=now,
+            referrer=Referrer.IS_ESCALATING_GROUP.value,
+            group_id=group.id,
         )
-
-        group_id_filter = TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="group_id", type=AttributeKey.TYPE_INT),
-                op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_int=group.id),
-            )
-        )
-
-        request = TraceItemTableRequest(
-            meta=RequestMeta(
-                organization_id=group.project.organization.id,
-                project_ids=[group.project.id],
-                cogs_category="issues",
-                referrer=Referrer.IS_ESCALATING_GROUP.value,
-                start_timestamp=start_timestamp,
-                end_timestamp=end_timestamp,
-                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,
-            ),
-            columns=[count_column],
-            filter=group_id_filter,
-            limit=1,
-        )
-
-        try:
-            hourly_count = 0
-            responses = snuba_rpc.table_rpc([request])
-            if responses and responses[0].column_values:
-                results = responses[0].column_values[0].results
-                if results:
-                    hourly_count = int(results[0].val_double)
-        except Exception:
-            logger.exception(
-                "Fetching a group hourly count from EAP failed",
-                extra={
-                    "group_id": group.id,
-                    "project_id": group.project.id,
-                },
-            )
-            hourly_count = 0
 
         cache.set(key, hourly_count, GROUP_HOURLY_COUNT_TTL)
 

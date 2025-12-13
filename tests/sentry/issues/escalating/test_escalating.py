@@ -363,7 +363,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
 
 class TestGetGroupHourlyCountEAP(TestCase):
-    @patch("sentry.issues.escalating.escalating.snuba_rpc.table_rpc")
+    @patch("sentry.search.eap.occurrences.query.snuba_rpc.table_rpc")
     def test_returns_count_from_eap(self, mock_table_rpc: mock.MagicMock) -> None:
         group = self.create_group()
 
@@ -382,7 +382,7 @@ class TestGetGroupHourlyCountEAP(TestCase):
         assert result == 42
         mock_table_rpc.assert_called_once()
 
-    @patch("sentry.issues.escalating.escalating.snuba_rpc.table_rpc")
+    @patch("sentry.search.eap.occurrences.query.snuba_rpc.table_rpc")
     def test_returns_zero_on_empty_column_values(self, mock_table_rpc: mock.MagicMock) -> None:
         group = self.create_group()
 
@@ -393,7 +393,7 @@ class TestGetGroupHourlyCountEAP(TestCase):
 
         assert result == 0
 
-    @patch("sentry.issues.escalating.escalating.snuba_rpc.table_rpc")
+    @patch("sentry.search.eap.occurrences.query.snuba_rpc.table_rpc")
     def test_returns_zero_on_exception(self, mock_table_rpc: mock.MagicMock) -> None:
         group = self.create_group()
         mock_table_rpc.side_effect = Exception("RPC failed")
