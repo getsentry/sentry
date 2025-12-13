@@ -4,7 +4,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ColorOrAlias} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 export interface OverlayArrowProps extends React.ComponentPropsWithRef<'div'> {
@@ -67,19 +66,25 @@ function ChonkOverlayArrow({
   );
 }
 
-const ChonkWrap = chonkStyled('div')<{
+const ChonkWrap = styled('div')<{
   dimensions: number;
   placement?: PopperProps<any>['placement'];
 }>`
   width: ${p => p.dimensions}px;
-  height: ${p => (p.placement?.startsWith('left') || p.placement?.startsWith('right') ? p.dimensions : p.dimensions * sizeRatio)}px;
+  height: ${p =>
+    p.placement?.startsWith('left') || p.placement?.startsWith('right')
+      ? p.dimensions
+      : p.dimensions * sizeRatio}px;
   position: absolute;
   transform-origin: center;
 
   ${p =>
     p.placement?.startsWith('top') && `top: 100%; left: 50%; transform: rotate(0deg);`}
-  ${p => p.placement?.startsWith('bottom') && `bottom: 100%; left: 50%; transform: rotate(180deg);`}
-  ${p => p.placement?.startsWith('left') && `left: 100%; top: 50%; transform: rotate(-90deg);`}
+  ${p =>
+    p.placement?.startsWith('bottom') &&
+    `bottom: 100%; left: 50%; transform: rotate(180deg);`}
+  ${p =>
+    p.placement?.startsWith('left') && `left: 100%; top: 50%; transform: rotate(-90deg);`}
   ${p =>
     p.placement?.startsWith('right') &&
     `right: 100%; top: 50%; transform: rotate(90deg);`}

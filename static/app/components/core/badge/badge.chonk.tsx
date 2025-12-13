@@ -1,4 +1,6 @@
-import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme';
+import styled from '@emotion/styled';
+
+import {type useChonkTheme} from 'sentry/utils/theme/theme';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -31,7 +33,7 @@ export function ChonkBadge(props: ChonkBadgeProps) {
   return <StyledChonkBadge {...props} />;
 }
 
-const StyledChonkBadge = chonkStyled('span')<ChonkBadgeProps>`
+const StyledChonkBadge = styled('span')<ChonkBadgeProps>`
   ${p => ({...makeChonkBadgeTheme(p, p.theme)})};
   border-radius: ${p => p.theme.radius.sm};
   font-size: ${p => p.theme.font.size.sm};
