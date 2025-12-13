@@ -1,11 +1,33 @@
+import logging
 from datetime import datetime
 from typing import NamedTuple
 
 import sentry_sdk
+from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column as EAPColumn
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableRequest
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeAggregation,
+    AttributeKey,
+    AttributeValue,
+)
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function as EAPFunction
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import StrArray
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    AndFilter,
+    ComparisonFilter,
+    TraceItemFilter,
+)
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
+from sentry.search.eap.occurrences.rollout_utils import should_double_read_from_eap, validate_read
 from sentry.seer.workflows.compare import KeyedValueCount, keyed_kl_score
+from sentry.snuba.referrer import Referrer
+from sentry.utils import snuba_rpc
 from sentry.utils.snuba import raw_snql_query
+
+logger = logging.getLogger(__name__)
 
 
 class Score(NamedTuple):
@@ -121,7 +143,7 @@ def query_baseline_set(
 
     response = raw_snql_query(
         snuba_request,
-        referrer="issues.suspect_tags.query_baseline_set",
+        referrer=Referrer.ISSUES_SUSPECT_TAGS_QUERY_BASELINE_SET.value,
         use_cache=True,
     )
 
@@ -197,7 +219,7 @@ def query_selection_set(
 
     response = raw_snql_query(
         snuba_request,
-        referrer="issues.suspect_tags.query_selection_set",
+        referrer=Referrer.ISSUES_SUSPECT_TAGS_QUERY_SELECTION_SET.value,
         use_cache=True,
     )
 
@@ -207,8 +229,7 @@ def query_selection_set(
     ]
 
 
-@sentry_sdk.trace
-def query_error_counts(
+def _query_error_counts_snuba(
     organization_id: int,
     project_id: int,
     start: datetime,
@@ -216,20 +237,7 @@ def query_error_counts(
     environments: list[str],
     group_id: int | None,
 ) -> int:
-    """
-    Query for the number of errors for a given project optionally associated witha a group_id.
-
-    SQL:
-        SELECT count()
-        FROM errors_dist
-        WHERE (
-            project_id = {project_id} AND
-            timestamp >= {start} AND
-            timestamp < {end} AND
-            environment IN environments AND
-            group_id = {group_id}
-        )
-    """
+    """Snuba implementation of query_error_counts."""
     where = []
     if group_id is not None:
         where.append(Condition(Column("group_id"), Op.EQ, group_id))
@@ -259,8 +267,130 @@ def query_error_counts(
 
     response = raw_snql_query(
         snuba_request,
-        referrer="issues.suspect_tags.query_error_counts",
+        referrer=Referrer.ISSUES_SUSPECT_TAGS_QUERY_ERROR_COUNTS.value,
         use_cache=True,
     )
 
     return int(response["data"][0]["count"])
+
+
+def _query_error_counts_eap(
+    organization_id: int,
+    project_id: int,
+    start: datetime,
+    end: datetime,
+    environments: list[str],
+    group_id: int | None,
+) -> int:
+    """EAP implementation of query_error_counts."""
+    start_timestamp = Timestamp()
+    start_timestamp.FromDatetime(start)
+    end_timestamp = Timestamp()
+    end_timestamp.FromDatetime(end)
+
+    count_column = EAPColumn(
+        aggregation=AttributeAggregation(
+            aggregate=EAPFunction.FUNCTION_COUNT,
+            key=AttributeKey(name="group_id", type=AttributeKey.TYPE_INT),
+        ),
+        label="count",
+    )
+
+    filters: list[TraceItemFilter] = []
+
+    if group_id is not None:
+        group_id_filter = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="group_id", type=AttributeKey.TYPE_INT),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_int=group_id),
+            )
+        )
+        filters.append(group_id_filter)
+
+    if environments:
+        environment_filter = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="environment", type=AttributeKey.TYPE_STRING),
+                op=ComparisonFilter.OP_IN,
+                value=AttributeValue(val_str_array=StrArray(values=environments)),
+            )
+        )
+        filters.append(environment_filter)
+
+    item_filter = None
+    if len(filters) == 1:
+        item_filter = filters[0]
+    elif len(filters) > 1:
+        item_filter = TraceItemFilter(and_filter=AndFilter(filters=filters))
+
+    request = TraceItemTableRequest(
+        meta=RequestMeta(
+            organization_id=organization_id,
+            project_ids=[project_id],
+            cogs_category="issues",
+            referrer=Referrer.ISSUES_SUSPECT_TAGS_QUERY_ERROR_COUNTS.value,
+            start_timestamp=start_timestamp,
+            end_timestamp=end_timestamp,
+            trace_item_type=TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,
+        ),
+        columns=[count_column],
+        filter=item_filter,
+        limit=1,
+    )
+
+    try:
+        count = 0
+        responses = snuba_rpc.table_rpc([request])
+        if responses and responses[0].column_values:
+            results = responses[0].column_values[0].results
+            if results:
+                count = int(results[0].val_double)
+    except Exception:
+        logger.exception(
+            "Fetching error counts from EAP failed",
+            extra={
+                "organization_id": organization_id,
+                "project_id": project_id,
+                "group_id": group_id,
+            },
+        )
+        count = 0
+
+    return count
+
+
+@sentry_sdk.trace
+def query_error_counts(
+    organization_id: int,
+    project_id: int,
+    start: datetime,
+    end: datetime,
+    environments: list[str],
+    group_id: int | None,
+) -> int:
+    """
+    Query for the number of errors for a given project optionally associated with a group_id.
+
+    SQL:
+        SELECT count()
+        FROM errors_dist
+        WHERE (
+            project_id = {project_id} AND
+            timestamp >= {start} AND
+            timestamp < {end} AND
+            environment IN environments AND
+            group_id = {group_id}
+        )
+    """
+    snuba_count = _query_error_counts_snuba(
+        organization_id, project_id, start, end, environments, group_id
+    )
+
+    if should_double_read_from_eap():
+        eap_count = _query_error_counts_eap(
+            organization_id, project_id, start, end, environments, group_id
+        )
+        validate_read(snuba_count, eap_count, "issues.suspect_tags.query_error_counts")
+
+    return snuba_count
