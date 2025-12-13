@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
-from sentry.api.release_search import FINALIZED_KEY
+from sentry.api.release_search import FINALIZED_KEY, RELEASE_CREATED_KEY
 from sentry.api.serializers.rest_framework.release import ReleaseHeadCommitSerializer
 from sentry.auth import access
 from sentry.constants import BAD_RELEASE_CHARS, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
@@ -1096,6 +1096,45 @@ class OrganizationReleasesStatsTest(APITestCase):
             release_2.version,
             release_1.version,
         ]
+
+    def test_release_created_filter(self) -> None:
+        self.login_as(user=self.user)
+
+        now = timezone.now()
+        one_day_ago = now - timedelta(days=1)
+        one_week_ago = now - timedelta(days=7)
+        two_weeks_ago = now - timedelta(days=14)
+
+        release_1 = self.create_release(version="release-1", date_added=two_weeks_ago)
+        release_2 = self.create_release(version="release-2", date_added=one_week_ago)
+        release_3 = self.create_release(version="release-3", date_added=one_day_ago)
+        release_4 = self.create_release(version="release-4", date_added=now)
+
+        # Test relative date filter: releases created in the last 3 days
+        response = self.get_success_response(
+            self.organization.slug, query=f"{RELEASE_CREATED_KEY}:-3d"
+        )
+        assert [r["version"] for r in response.data] == [
+            release_4.version,
+            release_3.version,
+        ]
+
+        # Test comparison operator: releases created after a specific date
+        formatted_date = one_week_ago.strftime("%Y-%m-%dT%H:%M:%S")
+        response = self.get_success_response(
+            self.organization.slug, query=f"{RELEASE_CREATED_KEY}:>={formatted_date}"
+        )
+        assert [r["version"] for r in response.data] == [
+            release_4.version,
+            release_3.version,
+            release_2.version,
+        ]
+
+        # Test comparison operator: releases created before a specific date
+        response = self.get_success_response(
+            self.organization.slug, query=f"{RELEASE_CREATED_KEY}:<{formatted_date}"
+        )
+        assert [r["version"] for r in response.data] == [release_1.version]
 
     def test_release_stage_filter(self) -> None:
         self.login_as(user=self.user)
