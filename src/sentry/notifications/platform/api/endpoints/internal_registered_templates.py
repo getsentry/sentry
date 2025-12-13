@@ -31,6 +31,8 @@ class InternalRegisteredTemplatesEndpoint(Endpoint):
         response: dict[str, list[dict[str, Any]]] = defaultdict(list)
         for source, template_cls in template_registry.registrations.items():
             template = template_cls()
+            if template.hide_from_debugger:
+                continue
             response[template.category.value].append(
                 serialize_template(template=template, source=source)
             )
