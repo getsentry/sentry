@@ -1001,6 +1001,107 @@ class TestGetIssueAndEventDetailsV2(
         )
 
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_ie_details_from_issue_id_no_valid_events(
+        self,
+        mock_get_tags,
+    ):
+        """Test an event is still returned when no events have a trace/spans."""
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+
+        # Create events with shared stacktrace (should have same group)
+        events: list[Event] = []
+        for i in range(3):
+            data = load_data("python", timestamp=before_now(minutes=5 - i))
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            event = self.store_event(data=data, project_id=self.project.id)
+            events.append(event)
+
+        group = events[0].group
+        assert isinstance(group, Group)
+
+        for issue_id_param in [group.qualified_short_id, str(group.id)]:
+            result = get_issue_and_event_details_v2(
+                organization_id=self.organization.id, issue_id=issue_id_param, include_issue=True
+            )
+
+            assert result is not None
+            assert result["project_id"] == self.project.id
+            assert result["project_slug"] == self.project.slug
+
+            # Validate issues fields
+            assert result["tags_overview"] == mock_get_tags.return_value
+            _validate_event_timeseries(result["event_timeseries"], expected_total=3)
+            assert isinstance(result["issue"], dict)
+            _IssueMetadata.parse_obj(result["issue"])
+
+            # Check any event is returned with right structure.
+            assert "event_id" in result
+            assert "event_trace_id" in result
+
+            event_dict = result["event"]
+            assert isinstance(event_dict, dict)
+            _SentryEventData.parse_obj(event_dict)
+            assert result["event_id"] == event_dict["id"]
+
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_ie_details_from_issue_id_single_event(
+        self,
+        mock_get_tags,
+    ):
+        """Test non-empty result for an issue with a single event."""
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+
+        # Mock spans.
+        event0_trace_id = uuid.uuid4().hex
+        span0 = self.create_span(
+            {
+                "description": "SELECT * FROM users WHERE id = ?",
+                "trace_id": event0_trace_id,
+            },
+            start_ts=before_now(minutes=10),
+            duration=100,
+        )
+        self.store_spans([span0], is_eap=True)
+
+        # Create one event.
+        data = load_data("python", timestamp=before_now(minutes=10))
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        data["contexts"] = data.get("contexts", {})
+        data["contexts"]["trace"] = {
+            "trace_id": event0_trace_id,
+            "span_id": "1" + uuid.uuid4().hex[:15],
+        }
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+        assert isinstance(group, Group)
+
+        for issue_id_param in [group.qualified_short_id, str(group.id)]:
+            result = get_issue_and_event_details_v2(
+                organization_id=self.organization.id,
+                issue_id=issue_id_param,
+                include_issue=True,
+            )
+
+            assert result is not None
+            assert result["project_id"] == self.project.id
+            assert result["project_slug"] == self.project.slug
+
+            # Validate issues fields
+            assert result["tags_overview"] == mock_get_tags.return_value
+            _validate_event_timeseries(result["event_timeseries"], expected_total=1)
+            assert isinstance(result["issue"], dict)
+            _IssueMetadata.parse_obj(result["issue"])
+
+            # Check any event is returned with right structure.
+            assert "event_id" in result
+            assert "event_trace_id" in result
+
+            event_dict = result["event"]
+            assert isinstance(event_dict, dict)
+            _SentryEventData.parse_obj(event_dict)
+            assert result["event_id"] == event_dict["id"]
+
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     def _test_get_ie_details_from_event_id(
         self,
         mock_get_tags,
