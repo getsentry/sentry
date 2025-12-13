@@ -33,6 +33,7 @@ from sentry.integrations.utils.metrics import (
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, ApiUnauthorized
 from sentry.users.models.identity import Identity
+from sentry.utils.hashlib import sha256_text
 from sentry.utils.http import absolute_uri
 
 from .base import Provider
@@ -42,6 +43,14 @@ __all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
 ERR_TOKEN_RETRIEVAL = "Failed to retrieve token from the upstream service."
+
+
+def _summarize_token_value(name: str, value: str | None) -> dict[str, Any]:
+    summary: dict[str, Any] = {f"{name}_present": value is not None}
+    if value:
+        summary[f"{name}_length"] = len(value)
+        summary[f"{name}_sha256"] = sha256_text(value).hexdigest()
+    return summary
 
 
 def _redirect_url(pipeline: IdentityPipeline) -> str:
@@ -365,12 +374,12 @@ class OAuth2CallbackView:
                 )
                 return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
 
-            if state != pipeline.fetch_state("state"):
+            expected_state = pipeline.fetch_state("state")
+            if state != expected_state:
                 extra = {
                     "error": "invalid_state",
-                    "state": state,
-                    "pipeline_state": pipeline.fetch_state("state"),
-                    "code": code,
+                    **_summarize_token_value("state", state),
+                    **_summarize_token_value("pipeline_state", expected_state),
                 }
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE, extra=extra
