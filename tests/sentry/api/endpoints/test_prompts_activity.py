@@ -274,22 +274,9 @@ class PromptsActivityTest(APITestCase):
         assert "snoozed_ts" in resp.data["features"]["alert_stream"]
 
     def test_project_from_different_organization(self) -> None:
-        """
-        Test that users cannot dismiss prompts for projects in other organizations.
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
 
-        This is a regression test for an IDOR vulnerability where the endpoint only
-        checked if a project existed, but didn't verify it belonged to the user's org.
-
-        @markstory - When adding similar endpoints in the future, always remember to scope
-        queries by organization_id. The pattern should be:
-            Project.objects.filter(id=project_id, organization_id=org_id)
-        not just:
-            Project.objects.filter(id=project_id)
-        """
-        other_org = self.create_organization(name="other_org")
-        other_project = self.create_project(organization=other_org, name="other_project")
-
-        # Try to dismiss a prompt using a project from a different organization
         resp = self.client.put(
             self.path,
             {
@@ -300,6 +287,5 @@ class PromptsActivityTest(APITestCase):
             },
         )
 
-        # Should fail because project doesn't belong to the organization
         assert resp.status_code == 400
         assert resp.data["detail"] == "Project does not belong to this organization"
