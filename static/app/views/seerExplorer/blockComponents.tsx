@@ -2,6 +2,8 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {inlineCodeStyles} from '@sentry/scraps/code/inlineCode';
+
 import {Button} from 'sentry/components/core/button';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
@@ -521,6 +523,10 @@ const BlockContent = styled(MarkedText)`
   word-wrap: break-word;
   padding-bottom: 0;
   margin-bottom: -${space(1)};
+
+  code:not(pre code) {
+    ${p => inlineCodeStyles(p.theme)};
+  }
 
   p,
   li,
