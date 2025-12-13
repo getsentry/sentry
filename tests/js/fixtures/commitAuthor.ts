@@ -39,7 +39,6 @@ export function CommitAuthorFixture(params: Partial<User> = {}): User {
       avatarType: 'gravatar',
       theme: 'light',
       prefersIssueDetailsStreamlinedUI: false,
-      prefersChonkUI: false,
     },
     permissions: new Set(),
     canReset2fa: false,
