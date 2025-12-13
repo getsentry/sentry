@@ -136,7 +136,7 @@ class SeerExplorerClient:
             state = client.push_changes(run_id)
 
             # Get PR info for each repo
-            for repo_name in state.get_file_patches_by_repo().keys():
+            for repo_name in state.get_diffs_by_repo().keys():
                 pr_state = state.get_pr_state(repo_name)
                 if pr_state and pr_state.pr_url:
                     print(f"PR created: {pr_state.pr_url}")
