@@ -1,8 +1,70 @@
 from django.urls import reverse
 
+from sentry.integrations.api.endpoints.organization_repository_settings import (
+    _get_code_review_triggers_value,
+    _get_enabled_code_review_value,
+)
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger, RepositorySettings
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
+
+
+class GetEnabledCodeReviewValueTest(TestCase):
+    def test_default(self) -> None:
+        result = _get_enabled_code_review_value(None, None)
+        assert result is False
+
+    def test_updated_value(self) -> None:
+        result = _get_enabled_code_review_value(True, None)
+        assert result is True
+
+        result = _get_enabled_code_review_value(False, None)
+        assert result is False
+
+    def test_existing_setting(self) -> None:
+        result = _get_enabled_code_review_value(None, RepositorySettings(enabled_code_review=True))
+        assert result is True
+
+        result = _get_enabled_code_review_value(None, RepositorySettings(enabled_code_review=False))
+        assert result is False
+
+    def test_mixed(self):
+        result = _get_enabled_code_review_value(True, RepositorySettings(enabled_code_review=False))
+        assert result is True
+
+        result = _get_enabled_code_review_value(False, RepositorySettings(enabled_code_review=True))
+        assert result is False
+
+
+class GetCodeReviewTriggersValueTest(TestCase):
+    def test_default(self) -> None:
+        result = _get_code_review_triggers_value(None, None)
+        assert result == []
+
+    def test_updated_value(self) -> None:
+        result = _get_code_review_triggers_value(["on_new_commit", "on_ready_for_review"], None)
+        assert result == ["on_new_commit", "on_ready_for_review"]
+
+    def test_existing_setting(self) -> None:
+        result = _get_code_review_triggers_value(
+            None, RepositorySettings(code_review_triggers=["on_new_commit", "on_ready_for_review"])
+        )
+        assert result == ["on_new_commit", "on_ready_for_review"]
+
+    def test_empty_updated_value(self) -> None:
+        result = _get_code_review_triggers_value([], None)
+        assert result == []
+
+    def test_empty_existing_setting(self) -> None:
+        result = _get_code_review_triggers_value(None, RepositorySettings(code_review_triggers=[]))
+        assert result == []
+
+    def test_mixed(self):
+        result = _get_code_review_triggers_value(
+            ["on_new_commit", "on_ready_for_review"],
+            RepositorySettings(code_review_triggers=["on_command_phrase"]),
+        )
+        assert result == ["on_new_commit", "on_ready_for_review"]
 
 
 class OrganizationRepositorySettingsTest(APITestCase):
