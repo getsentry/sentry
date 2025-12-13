@@ -685,8 +685,6 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
                         />
                       )}
                     </Flex>
-
-                    <Flex justify="end" />
                   </Container>
                 </SuspectCommitPanel>
               </Flex>

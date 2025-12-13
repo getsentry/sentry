@@ -119,7 +119,7 @@ function DrawerNavigator({
           size="xs"
           onClick={onReset}
           icon={<IconAdd />}
-          aria-label={t('Start a new  from scratch')}
+          aria-label={t('Start a new analysis from scratch')}
           title={t('Start a new analysis from scratch')}
           disabled={!onReset}
         />
