@@ -83,13 +83,13 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
         data = serializer.validated_data
         repository_ids = data["repositoryIds"]
 
-        enabled_code_review = data.get("enabledCodeReview")
-        code_review_triggers = data.get("codeReviewTriggers")
+        updated_enabled_code_review = data.get("enabledCodeReview")
+        updated_code_review_triggers = data.get("codeReviewTriggers")
 
         update_fields = []
-        if enabled_code_review is not None:
+        if updated_enabled_code_review is not None:
             update_fields.append("enabled_code_review")
-        if code_review_triggers is not None:
+        if updated_code_review_triggers is not None:
             update_fields.append("code_review_triggers")
 
         repositories = Repository.objects.filter(
@@ -115,10 +115,10 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
                 RepositorySettings(
                     repository=repo,
                     enabled_code_review=_get_enabled_code_review_value(
-                        enabled_code_review, existing_setting
+                        updated_enabled_code_review, existing_setting
                     ),
                     code_review_triggers=_get_code_review_triggers_value(
-                        code_review_triggers, existing_setting
+                        updated_code_review_triggers, existing_setting
                     ),
                 )
             )
