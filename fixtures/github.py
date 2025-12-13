@@ -946,6 +946,7 @@ PULL_REQUEST_OPENED_EVENT_EXAMPLE = b"""{
     "state": "open",
     "locked": false,
     "title": "Update the README with new information",
+    "author_association": "MEMBER",
     "user": {
       "login": "baxterthehacker",
       "id": 6752317,
@@ -1362,6 +1363,7 @@ PULL_REQUEST_EDITED_EVENT_EXAMPLE = b"""{
     "state": "open",
     "locked": false,
     "title": "new edited title",
+    "author_association": "MEMBER",
     "user": {
       "login": "baxterthehacker",
       "id": 6752317,
@@ -1778,6 +1780,7 @@ PULL_REQUEST_CLOSED_EVENT_EXAMPLE = b"""{
     "state": "open",
     "locked": false,
     "title": "new closed title",
+    "author_association": "MEMBER",
     "user": {
       "login": "baxterthehacker",
       "id": 6752317,
