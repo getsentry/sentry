@@ -198,6 +198,7 @@ export function getArtifactsFromBlocks(blocks: Block[]): Record<string, Artifact
 
 /**
  * Extract file patches from Explorer blocks.
+ * Returns all incremental patches (used for approval flow).
  */
 export function getFilePatchesFromBlocks(blocks: Block[]): ExplorerFilePatch[] {
   const patches: ExplorerFilePatch[] = [];
@@ -211,6 +212,25 @@ export function getFilePatchesFromBlocks(blocks: Block[]): ExplorerFilePatch[] {
   }
 
   return patches;
+}
+
+/**
+ * Extract merged file patches from Explorer blocks.
+ * Returns the latest merged patch (original → current) for each file.
+ */
+export function getMergedFilePatchesFromBlocks(blocks: Block[]): ExplorerFilePatch[] {
+  const mergedByFile = new Map<string, ExplorerFilePatch>();
+
+  for (const block of blocks) {
+    if (block.merged_file_patches) {
+      for (const patch of block.merged_file_patches) {
+        const key = `${patch.repo_name}:${patch.patch.path}`;
+        mergedByFile.set(key, patch);
+      }
+    }
+  }
+
+  return Array.from(mergedByFile.values());
 }
 
 /**
