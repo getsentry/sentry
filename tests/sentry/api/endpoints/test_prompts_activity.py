@@ -93,6 +93,7 @@ class PromptsActivityTest(APITestCase):
             },
         )
         assert resp.status_code == 400
+        assert resp.data["detail"] == "Project does not belong to this organization"
 
     def test_dismiss(self) -> None:
         data = {
@@ -271,3 +272,23 @@ class PromptsActivityTest(APITestCase):
         assert resp.status_code == 200
         assert "dismissed_ts" in resp.data["features"]["releases"]
         assert "snoozed_ts" in resp.data["features"]["alert_stream"]
+
+    def test_project_from_different_organization(self) -> None:
+        """Test that users cannot dismiss prompts for projects in other organizations."""
+        other_org = self.create_organization(name="other_org")
+        other_project = self.create_project(organization=other_org, name="other_project")
+
+        # Try to dismiss a prompt using a project from a different organization
+        resp = self.client.put(
+            self.path,
+            {
+                "organization_id": self.org.id,
+                "project_id": other_project.id,
+                "feature": "releases",
+                "status": "dismissed",
+            },
+        )
+
+        # Should fail because project doesn't belong to the organization
+        assert resp.status_code == 400
+        assert resp.data["detail"] == "Project does not belong to this organization"
