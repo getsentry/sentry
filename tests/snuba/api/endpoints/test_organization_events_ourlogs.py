@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from unittest.mock import ANY
+from unittest.mock import ANY, patch
 from uuid import UUID, uuid4
 
 import pytest
@@ -13,6 +13,7 @@ from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.cursors import Cursor
 from sentry.utils.outcomes import Outcome
+from sentry.utils.snuba_rpc import table_rpc
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -945,7 +946,8 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.data["data"] == []
 
     @override_settings(SENTRY_MODE=SentryMode.SAAS)
-    def test_sent_logs_project_optimization(self):
+    @patch("sentry.utils.snuba_rpc.table_rpc", wraps=table_rpc)
+    def test_sent_logs_project_optimization(self, mock_table_rpc):
         project1 = self.create_project()
         project2 = self.create_project()
 
@@ -970,3 +972,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "message": "log",
             }
         ]
+
+        mock_table_rpc.assert_called_once()
+        assert mock_table_rpc.call_args.args[0][0].meta.project_ids == [project1.id]

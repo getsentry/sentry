@@ -5,7 +5,6 @@ from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
-from django.conf import settings
 from google.protobuf.json_format import MessageToJson
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
@@ -17,7 +16,6 @@ from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry import options
-from sentry.conf.types.sentry_config import SentryMode
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING, SUPPORTED_STATS_TYPES
@@ -46,10 +44,7 @@ class Spans(rpc_dataset_common.RPCBase):
 
     @classmethod
     def filter_project(cls, project: Project) -> bool:
-        # This is only set properly on SAAS
-        if settings.SENTRY_MODE == SentryMode.SAAS:
-            return project.flags.has_transactions
-        return True
+        return project.flags.has_transactions
 
     @classmethod
     @sentry_sdk.trace

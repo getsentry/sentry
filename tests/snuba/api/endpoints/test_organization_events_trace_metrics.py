@@ -5,6 +5,7 @@ from django.test import override_settings
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.conf.types.sentry_config import SentryMode
+from sentry.utils.snuba_rpc import table_rpc
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -480,7 +481,30 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         }
 
     @override_settings(SENTRY_MODE=SentryMode.SAAS)
-    def test_sent_trace_metrics_project_optimization(self):
+    def test_no_project_sent_trace_metrics(self):
+        project1 = self.create_project()
+        project2 = self.create_project()
+
+        request = {
+            "field": [
+                "timestamp",
+                "metric.name",
+                "metric.type",
+                "value",
+            ],
+            "project": [project1.id, project2.id],
+            "dataset": self.dataset,
+            "sort": "-timestamp",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == []
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    @mock.patch("sentry.utils.snuba_rpc.table_rpc", wraps=table_rpc)
+    def test_sent_trace_metrics_project_optimization(self, mock_table_rpc):
         project1 = self.create_project()
         project2 = self.create_project()
 
@@ -492,6 +516,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         response = self.do_request(
             {
                 "field": [
+                    "timestamp",
                     "metric.name",
                     "metric.type",
                     "value",
@@ -504,9 +529,13 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert response.data["data"] == [
             {
                 "id": mock.ANY,
+                "timestamp": mock.ANY,
                 "metric.name": "foo",
                 "metric.type": "counter",
                 "value": 1,
                 "project.name": project1.slug,
             }
         ]
+
+        mock_table_rpc.assert_called_once()
+        assert mock_table_rpc.call_args.args[0][0].meta.project_ids == [project1.id]

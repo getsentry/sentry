@@ -62,9 +62,8 @@ from sentry.search.eap.types import (
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key
-from sentry.utils import json
+from sentry.utils import json, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
-from sentry.utils.snuba_rpc import table_rpc, timeseries_rpc
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
@@ -349,7 +348,7 @@ class RPCBase:
         table_request = cls.get_table_rpc_request(query)
         rpc_request = table_request.rpc_request
         try:
-            rpc_response = table_rpc([rpc_request])[0]
+            rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
         except Exception as e:
             # add the rpc to the error so we can include it in the response
             if debug:
@@ -395,7 +394,7 @@ class RPCBase:
                 names.add(query.name)
         prepared_queries = {query.name: cls.get_table_rpc_request(query) for query in queries}
         """Run the query"""
-        responses = table_rpc([query.rpc_request for query in prepared_queries.values()])
+        responses = snuba_rpc.table_rpc([query.rpc_request for query in prepared_queries.values()])
         results = {
             name: cls.process_table_response(response, request)
             for (name, request), response in zip(prepared_queries.items(), responses)
@@ -556,7 +555,7 @@ class RPCBase:
     @classmethod
     def _run_timeseries_rpc(cls, debug: bool, rpc_request: TimeSeriesRequest) -> TimeSeriesResponse:
         try:
-            return timeseries_rpc([rpc_request])[0]
+            return snuba_rpc.timeseries_rpc([rpc_request])[0]
         except Exception as e:
             # add the rpc to the error so we can include it in the response
             if debug:
@@ -831,7 +830,7 @@ class RPCBase:
 
         """Run the query"""
         try:
-            timeseries_rpc_response = timeseries_rpc(requests)
+            timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests)
             rpc_response = timeseries_rpc_response[0]
             if len(timeseries_rpc_response) > 1:
                 other_response = timeseries_rpc_response[1]

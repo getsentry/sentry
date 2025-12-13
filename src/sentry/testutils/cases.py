@@ -3525,7 +3525,7 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
 
         # assumes the trace metric will be stored,
         # so mark the project has sent a trace metric
-        if not project.flags.has_logs:
+        if not project.flags.has_trace_metrics:
             project.flags.has_trace_metrics = True
             project.save()
 
