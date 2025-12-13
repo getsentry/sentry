@@ -1,5 +1,9 @@
+import {useCallback, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {fetchDataQuery} from 'sentry/utils/queryClient';
 import {
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
@@ -17,6 +21,14 @@ type ToolFormatter = (
   isLoading: boolean,
   toolLinkParams?: Record<string, any> | null
 ) => string;
+
+export const makeSeerExplorerQueryKey = (
+  orgSlug: string,
+  runId?: number
+): ApiQueryKey => [
+  `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
+  {},
+];
 
 /**
  * Registry of custom tool formatters.
@@ -685,4 +697,50 @@ export function buildToolLinkUrl(
     default:
       return null;
   }
+}
+
+export function useCopySessionDataToClipboard({
+  orgSlug,
+  runId,
+  enabled,
+}: {
+  enabled: boolean;
+  orgSlug: string;
+  runId?: number;
+}) {
+  const queryClient = useQueryClient();
+  const [isCopying, setIsCopying] = useState(false);
+  const [isError, setIsError] = useState(false);
+
+  const copySessionToClipboard = useCallback(async () => {
+    if (!enabled || !orgSlug || !runId) {
+      return;
+    }
+
+    setIsCopying(true);
+    setIsError(false);
+
+    try {
+      const queryKey = makeSeerExplorerQueryKey(orgSlug || '', runId || undefined);
+
+      // Fetch the raw untyped JSON.
+      const apiResult = await queryClient.fetchQuery({
+        queryKey,
+        queryFn: fetchDataQuery<unknown>,
+      });
+      const payload = apiResult?.[0];
+
+      if (payload === null || payload === undefined) {
+        throw new Error('No payload found');
+      }
+
+      await navigator.clipboard.writeText(JSON.stringify(payload, null, 4));
+    } catch (err) {
+      setIsError(true);
+    } finally {
+      setIsCopying(false);
+    }
+  }, [enabled, orgSlug, queryClient, runId]);
+
+  return {copySessionToClipboard, isCopying, isError};
 }

@@ -9,6 +9,7 @@ import {
   IconAdd,
   IconClose,
   IconContract,
+  IconCopy,
   IconExpand,
   IconMegaphone,
   IconSeer,
@@ -21,9 +22,12 @@ import {toggleSeerExplorerPanel} from 'sentry/views/seerExplorer/utils';
 
 interface TopBarProps {
   blocks: Block[];
+  isCopySessionEnabled: boolean;
+  isCopyingSession: boolean;
   isEmptyState: boolean;
   isPolling: boolean;
   isSessionHistoryOpen: boolean;
+  onCopySessionClick: () => void;
   onCreatePR: (repoName?: string) => void;
   onFeedbackClick: () => void;
   onNewChatClick: () => void;
@@ -46,10 +50,13 @@ function TopBar({
   onNewChatClick,
   onPRWidgetClick,
   onSessionHistoryClick,
+  onCopySessionClick,
   onSizeToggleClick,
   panelSize,
   prWidgetButtonRef,
   repoPRStates,
+  isCopySessionEnabled,
+  isCopyingSession,
   sessionHistoryButtonRef,
 }: TopBarProps) {
   // Check if there are any file patches
@@ -89,6 +96,15 @@ function TopBar({
             aria-expanded={isSessionHistoryOpen}
           />
         </SessionHistoryButtonWrapper>
+        <Button
+          icon={<IconCopy />}
+          onClick={onCopySessionClick}
+          priority="transparent"
+          size="sm"
+          aria-label={t('Copy conversation to clipboard')}
+          title={t('Copy conversation to clipboard')}
+          disabled={!isCopySessionEnabled || isCopyingSession}
+        />
       </Flex>
       <AnimatePresence initial={false}>
         {!isEmptyState && (
