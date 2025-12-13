@@ -92,12 +92,14 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
         if updated_code_review_triggers is not None:
             update_fields.append("code_review_triggers")
 
-        repositories = Repository.objects.filter(
-            id__in=repository_ids,
-            organization_id=organization.id,
+        repositories = list(
+            Repository.objects.filter(
+                id__in=repository_ids,
+                organization_id=organization.id,
+            )
         )
 
-        if repositories.count() != len(repository_ids):
+        if len(repositories) != len(repository_ids):
             return Response(
                 {"detail": "One or more repositories were not found in this organization."},
                 status=400,
@@ -131,7 +133,7 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
 
         return Response(
             serialize(
-                list(repositories),
+                repositories,
                 request.user,
                 RepositorySerializer(expand=["settings"]),
             ),

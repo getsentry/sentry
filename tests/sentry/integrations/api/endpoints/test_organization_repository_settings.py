@@ -28,7 +28,7 @@ class GetEnabledCodeReviewValueTest(TestCase):
         result = _get_enabled_code_review_value(None, RepositorySettings(enabled_code_review=False))
         assert result is False
 
-    def test_mixed(self):
+    def test_mixed(self) -> None:
         result = _get_enabled_code_review_value(True, RepositorySettings(enabled_code_review=False))
         assert result is True
 
@@ -59,7 +59,7 @@ class GetCodeReviewTriggersValueTest(TestCase):
         result = _get_code_review_triggers_value(None, RepositorySettings(code_review_triggers=[]))
         assert result == []
 
-    def test_mixed(self):
+    def test_mixed(self) -> None:
         result = _get_code_review_triggers_value(
             ["on_new_commit", "on_ready_for_review"],
             RepositorySettings(code_review_triggers=["on_command_phrase"]),
