@@ -698,7 +698,7 @@ def _get_recommended_event(
     if start is None:
         start = group.first_seen
     if end is None:
-        end = group.last_seen
+        end = group.last_seen + timedelta(seconds=5)
 
     expired, _ = outside_retention_with_modified_start(start, end, organization)
     if expired:
@@ -852,8 +852,8 @@ def get_issue_and_event_details_v2(
 
     if bool(issue_id) == bool(event_id):
         raise BadRequest("Either issue_id or event_id must be provided, but not both.")
-    if bool(start) != bool(end):
-        raise BadRequest("start and end must be provided together.")
+
+    validate_date_params(None, start, end, allow_none=True)
 
     organization = Organization.objects.get(id=organization_id)
 
@@ -878,8 +878,8 @@ def get_issue_and_event_details_v2(
         else:
             group = Group.objects.by_qualified_short_id(organization_id, issue_id)
 
-        start_dt = datetime.fromisoformat(start) if start else group.first_seen
-        end_dt = datetime.fromisoformat(end) if end else group.last_seen
+        start_dt = datetime.fromisoformat(start) if start else None
+        end_dt = datetime.fromisoformat(end) if end else None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
     else:
