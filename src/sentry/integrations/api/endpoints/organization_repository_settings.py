@@ -111,17 +111,16 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
         settings_to_upsert = []
         for repo in repositories:
             existing_setting = existing_settings.get(repo.id)
-            settings_to_upsert.append(
-                RepositorySettings(
-                    repository=repo,
-                    enabled_code_review=_get_enabled_code_review_value(
-                        updated_enabled_code_review, existing_setting
-                    ),
-                    code_review_triggers=_get_code_review_triggers_value(
-                        updated_code_review_triggers, existing_setting
-                    ),
-                )
+            new_setting = RepositorySettings(
+                repository=repo,
+                enabled_code_review=_get_enabled_code_review_value(
+                    updated_enabled_code_review, existing_setting
+                ),
+                code_review_triggers=_get_code_review_triggers_value(
+                    updated_code_review_triggers, existing_setting
+                ),
             )
+            settings_to_upsert.append(new_setting)
 
         RepositorySettings.objects.bulk_create(
             settings_to_upsert,
