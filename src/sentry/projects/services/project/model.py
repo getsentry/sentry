@@ -106,4 +106,4 @@ class RpcProject(RpcModel):
 
 class RpcProjectOptionValue(RpcModel):
     keyed_result: OptionValue
-    well_known_result: OptionValue
+    well_known_result: OptionValue  # TODO(Gabe): Verify whether we want this to be in the repr

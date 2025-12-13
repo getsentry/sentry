@@ -15,7 +15,7 @@ class RpcUserSocialAuth(RpcModel):
     user_id: int
     provider: str
     uid: str
-    extra_data: dict[str, Any]
+    extra_data: dict[str, Any]  # TODO(Gabe): Verify whether we want this to be in the repr
 
     def get_backend(self) -> type[BaseAuth] | None:
         return get_backend(instance=self)
