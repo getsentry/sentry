@@ -12,7 +12,7 @@ import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {
   hasCodeChanges as checkHasCodeChanges,
   getArtifactsFromBlocks,
-  getFilePatchesFromBlocks,
+  getMergedFilePatchesFromBlocks,
   useExplorerAutofix,
   type AutofixExplorerStep,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -148,7 +148,7 @@ export function ExplorerSeerDrawer({
   // Extract data from run state
   const blocks = useMemo(() => runState?.blocks ?? [], [runState?.blocks]);
   const artifacts = useMemo(() => getArtifactsFromBlocks(blocks), [blocks]);
-  const filePatches = useMemo(() => getFilePatchesFromBlocks(blocks), [blocks]);
+  const mergedPatches = useMemo(() => getMergedFilePatchesFromBlocks(blocks), [blocks]);
   const loadingBlock = useMemo(() => blocks.find(block => block.loading), [blocks]);
   const hasChanges = checkHasCodeChanges(blocks);
   const prStates = runState?.repo_pr_states;
@@ -320,10 +320,10 @@ export function ExplorerSeerDrawer({
             />
           )}
 
-          {/* Code changes from file patches */}
-          {filePatches.length > 0 && (
+          {/* Code changes from merged file patches */}
+          {mergedPatches.length > 0 && (
             <CodeChangesCard
-              patches={filePatches}
+              patches={mergedPatches}
               prStates={prStates}
               onCreatePR={handleCreatePR}
             />
