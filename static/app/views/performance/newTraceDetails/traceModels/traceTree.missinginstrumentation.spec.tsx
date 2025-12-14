@@ -121,7 +121,7 @@ describe('missing instrumentation', () => {
     await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
       api: new MockApiClient(),
       organization,
-      preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+      preferences: {...DEFAULT_TRACE_VIEW_PREFERENCES, missing_instrumentation: true},
     });
 
     expect(tree.build().serialize()).toMatchSnapshot();
