@@ -18,6 +18,7 @@ from sentry.seer.explorer.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
     execute_table_query,
     execute_timeseries_query,
+    get_baseline_tag_distribution,
     get_issue_and_event_details,
     get_issue_and_event_details_v2,
     get_issue_and_event_response,
@@ -2555,3 +2556,136 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
         ids = [item["id"] for item in result["data"]]
         assert self.get_id_str(self.metrics[0]) in ids
         assert self.get_id_str(self.metrics[2]) in ids
+
+
+class TestGetBaselineTagDistribution(APITransactionTestCase, SnubaTestCase):
+    """Tests for get_baseline_tag_distribution RPC handler."""
+
+    def _insert_event(
+        self, ts: datetime, group_id: int, tags: dict[str, Any], project_id: int | None = None
+    ) -> None:
+        """Insert an event with tags into Snuba for testing."""
+        import time
+
+        self.snuba_insert(
+            (
+                2,
+                "insert",
+                {
+                    "event_id": uuid.uuid4().hex,
+                    "primary_hash": "a" * 32,
+                    "group_id": group_id,
+                    "project_id": project_id or self.project.id,
+                    "message": "test message",
+                    "platform": "python",
+                    "datetime": ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                    "data": {
+                        "received": time.mktime(ts.timetuple()),
+                        "tags": list(tags.items()),
+                    },
+                },
+                {},
+            )
+        )
+
+    def test_returns_none_for_invalid_organization(self) -> None:
+        result = get_baseline_tag_distribution(
+            organization_id=999999,
+            project_id=1,
+            group_id=1,
+            tag_keys=["browser"],
+        )
+        assert result is None
+
+    def test_returns_none_for_invalid_project(self) -> None:
+        result = get_baseline_tag_distribution(
+            organization_id=self.organization.id,
+            project_id=999999,
+            group_id=1,
+            tag_keys=["browser"],
+        )
+        assert result is None
+
+    def test_returns_empty_for_empty_tag_keys(self) -> None:
+        result = get_baseline_tag_distribution(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=1,
+            tag_keys=[],
+        )
+        assert result is not None
+        assert result["baseline_tag_distribution"] == []
+
+    def test_returns_baseline_excluding_target_group(self) -> None:
+        """Test that baseline excludes events from the target group_id."""
+        now = datetime.now(UTC)
+        before = now - timedelta(hours=1)
+        after = now + timedelta(hours=1)
+
+        target_group_id = 12345
+        other_group_id = 67890
+
+        # Events in target group (should be EXCLUDED from baseline)
+        self._insert_event(now, target_group_id, {"browser": "Chrome", "os": "Windows"})
+        self._insert_event(now, target_group_id, {"browser": "Chrome", "os": "Mac"})
+
+        # Events in other groups (should be INCLUDED in baseline)
+        self._insert_event(now, other_group_id, {"browser": "Firefox", "os": "Linux"})
+        self._insert_event(now, other_group_id, {"browser": "Firefox", "os": "Linux"})
+        self._insert_event(now, other_group_id, {"browser": "Chrome", "os": "Windows"})
+
+        result = get_baseline_tag_distribution(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=target_group_id,
+            tag_keys=["browser", "os"],
+            start=_get_utc_iso_without_timezone(before),
+            end=_get_utc_iso_without_timezone(after),
+        )
+
+        assert result is not None
+        distribution = result["baseline_tag_distribution"]
+
+        # Build a dict for easier assertions
+        dist_dict: dict[tuple[str, str], int] = {}
+        for item in distribution:
+            key = (item["tag_key"], item["tag_value"])
+            dist_dict[key] = item["count"]
+
+        # Only events from other_group_id should be counted
+        # Firefox appears 2 times in other group
+        assert dist_dict.get(("browser", "Firefox")) == 2
+        # Chrome appears 1 time in other group (2 times in target group, excluded)
+        assert dist_dict.get(("browser", "Chrome")) == 1
+        # Linux appears 2 times in other group
+        assert dist_dict.get(("os", "Linux")) == 2
+        # Windows appears 1 time in other group (1 time in target group, excluded)
+        assert dist_dict.get(("os", "Windows")) == 1
+
+    def test_filters_by_tag_keys(self) -> None:
+        """Test that only requested tag keys are returned."""
+        now = datetime.now(UTC)
+        before = now - timedelta(hours=1)
+        after = now + timedelta(hours=1)
+
+        # Insert events with multiple tags
+        self._insert_event(now, 1, {"browser": "Chrome", "os": "Windows", "device": "Desktop"})
+        self._insert_event(now, 1, {"browser": "Firefox", "os": "Mac", "device": "Mobile"})
+
+        # Only request browser tag
+        result = get_baseline_tag_distribution(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=99999,  # Non-existent group, so all events are baseline
+            tag_keys=["browser"],
+            start=_get_utc_iso_without_timezone(before),
+            end=_get_utc_iso_without_timezone(after),
+        )
+
+        assert result is not None
+        distribution = result["baseline_tag_distribution"]
+
+        # Only browser tags should be returned
+        tag_keys = {item["tag_key"] for item in distribution}
+        assert tag_keys == {"browser"}
+        assert len(distribution) == 2  # Chrome and Firefox
