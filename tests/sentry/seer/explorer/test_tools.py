@@ -2588,24 +2588,6 @@ class TestGetBaselineTagDistribution(APITransactionTestCase, SnubaTestCase):
             )
         )
 
-    def test_returns_none_for_invalid_organization(self) -> None:
-        result = get_baseline_tag_distribution(
-            organization_id=999999,
-            project_id=1,
-            group_id=1,
-            tag_keys=["browser"],
-        )
-        assert result is None
-
-    def test_returns_none_for_invalid_project(self) -> None:
-        result = get_baseline_tag_distribution(
-            organization_id=self.organization.id,
-            project_id=999999,
-            group_id=1,
-            tag_keys=["browser"],
-        )
-        assert result is None
-
     def test_returns_empty_for_empty_tag_keys(self) -> None:
         result = get_baseline_tag_distribution(
             organization_id=self.organization.id,

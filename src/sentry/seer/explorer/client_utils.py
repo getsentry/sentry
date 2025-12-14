@@ -44,7 +44,6 @@ def has_seer_explorer_access_with_detail(
     Returns:
         tuple[bool, str | None]: (has_access, error_message)
     """
-    return True, None
     # Check base Seer access (gen-ai-features, hide_ai_features, acknowledgement)
     has_access, error = has_seer_access_with_detail(organization, actor)
     if not has_access:
