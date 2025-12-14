@@ -22,10 +22,8 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
-import HighlightQuery from 'sentry/components/searchSyntax/renderer';
+import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence, Organization} from 'sentry/types/organization';
@@ -88,7 +86,10 @@ import {
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
-import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {
+  getWidgetExploreUrl,
+  getWidgetTableRowExploreUrlFunction,
+} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -395,31 +396,31 @@ function WidgetViewerModal(props: Props) {
   const queryOptions = sortedQueries.map((query, index) => {
     const {name, conditions} = query;
     // Creates the highlighted query elements to be used in the Query Select
-    const dashboardFiltersString = dashboardFiltersToString(dashboardFilters);
-    const parsedQuery =
-      !name && !!conditions
-        ? parseSearch(
-            conditions +
-              (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`),
-            {
-              getFilterTokenWarning: shouldDisplayOnDemandWidgetWarning(
+    const dashboardFiltersString = dashboardFiltersToString(
+      dashboardFilters,
+      widget.widgetType
+    );
+
+    const getHighlightedQuery = (
+      highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
+    ) => {
+      const queryString = `${conditions} ${dashboardFiltersString}`.trim();
+      return !name && !!queryString ? (
+        <HighlightContainer {...highlightedContainerProps}>
+          <ProvidedFormattedQuery
+            query={queryString}
+            getFilterTokenWarning={
+              shouldDisplayOnDemandWidgetWarning(
                 query,
                 widget.widgetType ?? WidgetType.DISCOVER,
                 organization
               )
                 ? getOnDemandFilterWarning
-                : undefined,
+                : undefined
             }
-          )
-        : null;
-    const getHighlightedQuery = (
-      highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
-    ) => {
-      return parsedQuery === null ? undefined : (
-        <HighlightContainer {...highlightedContainerProps}>
-          <HighlightQuery parsedQuery={parsedQuery} />
+          />
         </HighlightContainer>
-      );
+      ) : null;
     };
 
     return {
@@ -463,6 +464,8 @@ function WidgetViewerModal(props: Props) {
       fields,
       widget,
       tableWidget,
+      dashboardFilters,
+      modalSelection,
       setChartUnmodified,
       widths,
       location,
@@ -471,6 +474,7 @@ function WidgetViewerModal(props: Props) {
       eventView,
       theme,
       projects,
+      selectedQueryIndex,
     });
   }
 
@@ -490,6 +494,8 @@ function WidgetViewerModal(props: Props) {
       fields,
       widget,
       tableWidget,
+      dashboardFilters,
+      modalSelection,
       setChartUnmodified,
       widths,
       location,
@@ -498,6 +504,7 @@ function WidgetViewerModal(props: Props) {
       eventView,
       theme,
       projects,
+      selectedQueryIndex,
     });
   };
 
@@ -722,7 +729,7 @@ function WidgetViewerModal(props: Props) {
                         wordBreak: 'break-word',
                         flex: 1,
                         display: 'flex',
-                        padding: `0 ${space(0.5)}`,
+                        padding: `0 ${theme.space.xs}`,
                       })}
                     >
                       {queryOptions[selectedQueryIndex]!.getHighlightedQuery({
@@ -968,13 +975,16 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
 }
 
 interface ViewerTableV2Props {
+  dashboardFilters: DashboardFilters | undefined;
   eventView: EventView;
   fields: string[];
   loading: boolean;
   location: Location;
+  modalSelection: PageFilters;
   navigate: ReactRouter3Navigate;
   organization: Organization;
   projects: Project[];
+  selectedQueryIndex: number;
   setChartUnmodified: React.Dispatch<React.SetStateAction<boolean>>;
   tableWidget: Widget;
   theme: Theme;
@@ -999,6 +1009,9 @@ function ViewerTableV2({
   eventView,
   theme,
   projects,
+  dashboardFilters,
+  modalSelection,
+  selectedQueryIndex,
 }: ViewerTableV2Props) {
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
   const links = parseLinkHeader(pageLinks ?? null);
@@ -1029,7 +1042,7 @@ function ViewerTableV2({
   const datasetConfig = getDatasetConfig(widget.widgetType);
   const aliases = decodeColumnAliases(
     tableColumns,
-    tableWidget.queries[0]?.fieldAliases ?? [],
+    tableWidget.queries[selectedQueryIndex]?.fieldAliases ?? [],
     tableWidget.widgetType === WidgetType.ISSUE
       ? datasetConfig?.getFieldHeaderMap?.()
       : {}
@@ -1141,6 +1154,18 @@ function ViewerTableV2({
           } satisfies RenderFunctionBaggage;
         }}
         allowedCellActions={cellActions}
+        onTriggerCellAction={(action, _value, dataRow) => {
+          if (action === Actions.OPEN_ROW_IN_EXPLORE) {
+            const getExploreUrl = getWidgetTableRowExploreUrlFunction(
+              modalSelection,
+              widget,
+              organization,
+              dashboardFilters,
+              selectedQueryIndex
+            );
+            navigate(getExploreUrl(dataRow));
+          }
+        }}
       />
       {!(
         tableWidget.queries[0]!.orderby.match(/^-?release$/) &&
@@ -1201,26 +1226,23 @@ const Container = styled('div')<{height?: number | null}>`
   flex-direction: column;
   height: ${p => (p.height ? `${p.height}px` : 'auto')};
   position: relative;
-  padding-bottom: ${space(3)};
+  padding-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const QueryContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   position: relative;
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
   position: absolute;
-  top: ${space(1.5)};
-  right: ${space(2)};
+  top: ${p => p.theme.space.lg};
+  right: ${p => p.theme.space.xl};
 `;
 
 const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
   display: ${p => p.display};
-  gap: ${space(1)};
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
-  line-height: 2;
+  gap: ${p => p.theme.space.md};
   flex: 1;
 `;
 
@@ -1228,7 +1250,7 @@ const ResultsContainer = styled('div')`
   display: flex;
   flex-grow: 1;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     align-items: center;
@@ -1244,13 +1266,13 @@ const EmptyQueryContainer = styled('span')`
 const WidgetHeader = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const WidgetTitleRow = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
 `;
 
 export default withPageFilters(WidgetViewerModal);

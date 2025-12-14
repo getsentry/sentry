@@ -26,7 +26,7 @@ function CardHeader({
   onEdit,
   onDelete,
 }: Props) {
-  const {onClick} = useCopyToClipboard({text: publicKey});
+  const {copy} = useCopyToClipboard();
 
   const deleteButton = (
     <Button
@@ -47,7 +47,11 @@ function CardHeader({
         {tct('Created on [date]', {date: <DateTime date={created} />})}
       </DateCreated>
       <StyledButtonBar>
-        <Button size="sm" icon={<IconCopy />} onClick={onClick}>
+        <Button
+          size="sm"
+          icon={<IconCopy />}
+          onClick={() => copy(publicKey, {successMessage: t('Copied key to clipboard')})}
+        >
           {t('Copy Key')}
         </Button>
         <Button

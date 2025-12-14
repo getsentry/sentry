@@ -1,10 +1,5 @@
 import {useCallback, useMemo, useSyncExternalStore} from 'react';
-import {
-  css,
-  useTheme,
-  type DO_NOT_USE_ChonkTheme,
-  type SerializedStyles,
-} from '@emotion/react';
+import {css, useTheme, type SerializedStyles} from '@emotion/react';
 
 import type {Theme} from 'sentry/utils/theme';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
@@ -59,10 +54,18 @@ export function rc<T>(
   `;
 }
 
-const BREAKPOINT_ORDER: readonly Breakpoint[] = ['xs', 'sm', 'md', 'lg', 'xl'];
+const BREAKPOINT_ORDER: readonly Breakpoint[] = [
+  '2xs',
+  'xs',
+  'sm',
+  'md',
+  'lg',
+  'xl',
+  '2xl',
+];
 
 // We alias None -> 0 to make it slighly more terse and easier to read.
-export type RadiusSize = keyof DO_NOT_USE_ChonkTheme['radius'];
+export type RadiusSize = keyof Theme['radius'];
 export type SpacingSize = keyof Theme['space'];
 export type Border = keyof Theme['tokens']['border'];
 export type Breakpoint = keyof Theme['breakpoints'];
@@ -99,7 +102,7 @@ function resolveRadius(sizeComponent: RadiusSize | undefined, theme: Theme) {
     return undefined;
   }
 
-  return isChonkTheme(theme) ? theme.radius[sizeComponent] : theme.borderRadius;
+  return isChonkTheme(theme) ? theme.radius[sizeComponent] : theme.radius.md;
 }
 
 function resolveSpacing(sizeComponent: SpacingSize, theme: Theme) {
@@ -305,5 +308,5 @@ function findLargestBreakpoint(
 
   // Since we use min width, the only remaining breakpoint that we might have missed is <xs,
   // in which case we return xs, which is in line with behavior of rc() function.
-  return 'xs';
+  return '2xs';
 }

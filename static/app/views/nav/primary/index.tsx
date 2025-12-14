@@ -13,8 +13,8 @@ import {
   IconIssues,
   IconPrevent,
   IconSettings,
+  IconSiren,
 } from 'sentry/icons';
-import {ChonkOptInBanner} from 'sentry/utils/theme/ChonkOptInBanner';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -161,6 +161,20 @@ export function PrimaryNavigationItems() {
 
         <SeparatorItem />
 
+        <Feature features={['workflow-engine-ui']}>
+          <Container position="relative" height="100%">
+            <SidebarLink
+              to={`/${prefix}/monitors/`}
+              analyticsKey="monitors"
+              group={PrimaryNavGroup.MONITORS}
+              {...makeNavItemProps(PrimaryNavGroup.MONITORS)}
+            >
+              <IconSiren />
+            </SidebarLink>
+            <BetaBadge type="alpha" />
+          </Container>
+        </Feature>
+
         <NavTourElement
           id={StackedNavigationTour.SETTINGS}
           title={null}
@@ -179,7 +193,6 @@ export function PrimaryNavigationItems() {
       </SidebarBody>
 
       <SidebarFooter>
-        <ChonkOptInBanner collapsed="never" />
         <PrimaryNavigationHelp />
         <ErrorBoundary customComponent={null}>
           <PrimaryNavigationWhatsNew />

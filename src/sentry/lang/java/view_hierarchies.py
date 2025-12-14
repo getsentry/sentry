@@ -2,20 +2,25 @@ from typing import Any
 
 import orjson
 
-from sentry.attachments import CachedAttachment, attachment_cache
+from sentry.attachments import (
+    CachedAttachment,
+    get_attachments_for_event,
+    store_attachments_for_event,
+)
 from sentry.ingest.consumer.processors import CACHE_TIMEOUT
-from sentry.utils.cache import cache_key_for_event
+from sentry.models.project import Project
 
 
 class ViewHierarchies:
-    def __init__(self, data: Any):
-        self._cache_key = cache_key_for_event(data)
+    def __init__(self, project: Project, data: Any):
+        self._project = project
+        self._event = data
         self._view_hierarchies: list[tuple[CachedAttachment, Any]] = []
         self._other_attachments: list[CachedAttachment] = []
 
-        for attachment in attachment_cache.get(self._cache_key):
+        for attachment in get_attachments_for_event(self._event):
             if attachment.type == "event.view_hierarchy":
-                view_hierarchy = orjson.loads(attachment.data)
+                view_hierarchy = orjson.loads(attachment.load_data(project))
                 self._view_hierarchies.append((attachment, view_hierarchy))
             else:
                 self._other_attachments.append(attachment)
@@ -50,17 +55,19 @@ class ViewHierarchies:
             _deobfuscate_view_hierarchy(view_hierarchy, class_names)
             new_attachments.append(
                 CachedAttachment(
-                    type=attachment.type,
+                    key=attachment.key,
                     id=attachment.id,
+                    type=attachment.type,
                     name=attachment.name,
                     content_type=attachment.content_type,
                     data=orjson.dumps(view_hierarchy),
                     chunks=None,
+                    stored_id=attachment.stored_id,
                 )
             )
 
         attachments = self._other_attachments + new_attachments
-        attachment_cache.set(self._cache_key, attachments, timeout=CACHE_TIMEOUT)
+        store_attachments_for_event(self._project, self._event, attachments, timeout=CACHE_TIMEOUT)
 
 
 def _deobfuscate_view_hierarchy(view_hierarchy: Any, class_names: dict[str, str]):

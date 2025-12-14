@@ -33,7 +33,7 @@ export function getBadgeProperties(
       return {
         tagType: 'error',
         status: t('Escalating'),
-        tooltip: t('This issue is occurring significantly more often it used to.'),
+        tooltip: t('This issue is occurring significantly more often than it used to.'),
       };
     }
     if (substatus === GroupSubstatus.NEW) {

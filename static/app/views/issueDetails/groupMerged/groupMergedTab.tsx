@@ -43,7 +43,7 @@ function GroupMergedTab() {
 
   return (
     <Layout.Body>
-      <Layout.Main fullWidth>
+      <Layout.Main width="full">
         <GroupMergedView project={project} groupId={params.groupId} location={location} />
       </Layout.Main>
     </Layout.Body>

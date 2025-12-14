@@ -2,10 +2,11 @@ import React, {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex, Grid} from 'sentry/components/core/layout';
+import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {Heading, Text} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
@@ -37,14 +38,19 @@ export function StoryExports(props: {story: StoryDescriptor}) {
 
 function StoryLayout() {
   const {story} = useStory();
+  const [tab, setTab] = useQueryState(
+    'tab',
+    parseAsString.withOptions({history: 'push'}).withDefault('usage')
+  );
+
   return (
-    <Tabs>
+    <Tabs value={tab} onChange={setTab}>
       {isMDXStory(story) ? <MDXStoryTitle story={story} /> : null}
       <StoryGrid>
         <StoryContainer>
-          <StoryContent>
+          <Flex flexGrow={1}>
             <StoryTabPanels />
-          </StoryContent>
+          </Flex>
           <ErrorBoundary>
             <StorySourceLinks />
           </ErrorBoundary>
@@ -70,7 +76,13 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
   }, [title]);
 
   return (
-    <StoryHeader>
+    <Container
+      as="header"
+      background="secondary"
+      padding="3xl 0 0 0"
+      borderBottom="primary"
+      area="story-head"
+    >
       <StoryGrid>
         <StoryContainer style={{gap: theme.space['2xl']}}>
           <Flex
@@ -111,19 +123,22 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
         </StoryContainer>
         <StoryTableOfContentsPlaceholder />
       </StoryGrid>
-    </StoryHeader>
+    </Container>
   );
 }
 
 function StoryTabList() {
   const {story} = useStory();
+
   if (!isMDXStory(story)) return null;
   if (story.exports.frontmatter?.layout === 'document') return null;
 
   return (
     <TabList>
       <TabList.Item key="usage">{t('Usage')}</TabList.Item>
-      {story.exports.types ? <TabList.Item key="api">{t('API')}</TabList.Item> : null}
+      {story.exports.documentation ? (
+        <TabList.Item key="api">{t('API')}</TabList.Item>
+      ) : null}
 
       {isMDXStory(story) && story.exports.frontmatter?.resources ? (
         <TabList.Item key="resources">{t('Resources')}</TabList.Item>
@@ -134,6 +149,7 @@ function StoryTabList() {
 
 function StoryTabPanels() {
   const {story} = useStory();
+
   if (!isMDXStory(story)) {
     return <StoryUsage />;
   }
@@ -146,6 +162,7 @@ function StoryTabPanels() {
   return (
     <TabPanels>
       <TabPanels.Item key="usage">
+        <StoryModuleExports exports={story.exports.documentation?.exports} />
         <StoryUsage />
       </TabPanels.Item>
       <TabPanels.Item key="api">
@@ -157,7 +174,10 @@ function StoryTabPanels() {
     </TabPanels>
   );
 }
-const EXPECTED_EXPORTS = new Set<keyof StoryExportValues>(['frontmatter', 'types']);
+const EXPECTED_EXPORTS = new Set<keyof StoryExportValues>([
+  'frontmatter',
+  'documentation',
+]);
 
 function StoryUsage() {
   const {
@@ -209,35 +229,21 @@ function StoryUsage() {
 
 function StoryAPI() {
   const {story} = useStory();
-  if (!story.exports.types) return null;
 
-  if (
-    typeof story.exports.types === 'object' &&
-    story.exports.types !== null &&
-    'filename' in story.exports.types
-  ) {
-    return (
-      <Storybook.APIReference
-        types={story.exports.types as TypeLoader.ComponentDocWithFilename}
-      />
-    );
+  const documentation = story.exports.documentation as TypeLoader.TypeLoaderResult;
+
+  if (!documentation || !('props' in documentation)) {
+    return null;
   }
 
   return (
     <Fragment>
-      {Object.entries(story.exports.types).map(([key, value]) => {
-        return <Storybook.APIReference key={key} types={value} />;
+      {Object.entries(documentation.props ?? {}).map(([key, value]) => {
+        return <Storybook.APIReference key={key} componentProps={value} />;
       })}
     </Fragment>
   );
 }
-
-const StoryHeader = styled('header')`
-  background: ${p => p.theme.tokens.background.secondary};
-  padding: ${p => p.theme.space['3xl']} 0 0 0;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  grid-area: story-head;
-`;
 
 function StoryGrid(props: React.ComponentProps<typeof Grid>) {
   return (
@@ -247,6 +253,13 @@ function StoryGrid(props: React.ComponentProps<typeof Grid>) {
       height="100%"
     />
   );
+}
+
+function StoryModuleExports(props: {
+  exports: TypeLoader.TypeLoaderResult['exports'] | undefined;
+}) {
+  if (!props.exports) return null;
+  return <Storybook.ModuleExports exports={props.exports} />;
 }
 
 const StoryContainer = styled('div')`
@@ -261,8 +274,4 @@ const StoryContainer = styled('div')`
     max-width: 832px;
     margin-inline: auto;
   }
-`;
-
-const StoryContent = styled('main')`
-  flex-grow: 1;
 `;

@@ -10,11 +10,9 @@ const StickyFooterBase = styled('div')`
   right: 0;
   width: 100%;
   padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-top: 1px solid ${p => p.theme.translucentGray200};
   box-shadow: none;
-  display: flex;
-  align-items: center;
   justify-content: flex-end;
   gap: ${p => p.theme.space.lg};
   z-index: ${p => p.theme.zIndex.initial};

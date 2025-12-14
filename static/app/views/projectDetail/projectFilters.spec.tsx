@@ -27,8 +27,7 @@ describe('ProjectDetail > ProjectFilters', () => {
         onSearch={onSearch}
         tagValueLoader={tagValueLoader}
         relativeDateOptions={{}}
-      />,
-      {organization: {features: ['search-query-builder-input-flow-changes']}}
+      />
     );
 
     await userEvent.click(
@@ -43,7 +42,6 @@ describe('ProjectDetail > ProjectFilters', () => {
     expect(screen.getByRole('option', {name: 'release.version'})).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('option', {name: 'release.version'}));
-    await userEvent.click(screen.getByRole('option', {name: 'is'}));
 
     await screen.findByText('sentry@0.5.3');
   });

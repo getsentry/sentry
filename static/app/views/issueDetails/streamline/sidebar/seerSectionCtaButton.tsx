@@ -10,7 +10,14 @@ import {
   type AutofixStep,
 } from 'sentry/components/events/autofix/types';
 import {useAiAutofix, useAutofixData} from 'sentry/components/events/autofix/useAutofix';
-import {getAutofixRunExists} from 'sentry/components/events/autofix/utils';
+import {
+  getAutofixRunExists,
+  getCodeChangesDescription,
+  getRootCauseDescription,
+  getSolutionDescription,
+  hasPullRequest,
+} from 'sentry/components/events/autofix/utils';
+import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
@@ -55,6 +62,8 @@ export function SeerSectionCtaButton({
     isSidebar: !isDrawerOpenRef.current,
     pollInterval: 1500,
   });
+
+  const {data: summaryData, isPending: isSummaryPending} = useGroupSummaryData(group);
 
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
@@ -143,6 +152,13 @@ export function SeerSectionCtaButton({
   const hasStepType = (type: AutofixStepType) =>
     autofixData?.steps?.some(step => step.type === type);
 
+  const rootCauseDescription = autofixData ? getRootCauseDescription(autofixData) : null;
+  const solutionDescription = autofixData ? getSolutionDescription(autofixData) : null;
+  const codeChangesDescription = autofixData
+    ? getCodeChangesDescription(autofixData)
+    : null;
+  const hasPr = hasPullRequest(autofixData);
+
   const getButtonText = () => {
     if (!aiConfig.hasAutofix) {
       return t('Open Resources');
@@ -205,6 +221,11 @@ export function SeerSectionCtaButton({
         has_streamlined_ui: hasStreamlinedUI,
         autofix_exists: Boolean(autofixData?.steps?.length),
         autofix_step_type: lastStep?.type ?? null,
+        has_summary: Boolean(summaryData && !isSummaryPending),
+        has_root_cause: Boolean(rootCauseDescription),
+        has_solution: Boolean(solutionDescription),
+        has_coded_solution: Boolean(codeChangesDescription),
+        has_pr: hasPr,
       }}
       priority="primary"
     >
@@ -247,6 +268,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 const ButtonPlaceholder = styled(Placeholder)`
   width: 100%;
   height: 38px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   margin-top: ${space(1)};
 `;

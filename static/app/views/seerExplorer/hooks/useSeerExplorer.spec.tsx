@@ -7,6 +7,7 @@ import {useSeerExplorer} from './useSeerExplorer';
 describe('useSeerExplorer', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    sessionStorage.clear();
   });
 
   const organization = OrganizationFixture({
@@ -91,7 +92,6 @@ describe('useSeerExplorer', () => {
           data: expect.objectContaining({
             query: 'Test query',
             insert_index: 0,
-            message_timestamp: expect.any(Number),
           }),
         })
       );

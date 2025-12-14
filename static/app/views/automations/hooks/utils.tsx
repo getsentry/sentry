@@ -32,14 +32,14 @@ export function getAutomationActionsWarning(
   if (totalCount === 0) {
     return {
       color: 'danger' as const,
-      message: t('You must add an action for this automation to run.'),
+      message: t('You must add an action for this alert to run.'),
     };
   }
   if (inactiveCount === totalCount) {
     return {
       color: 'danger' as const,
       message: t(
-        'Automation is invalid because no actions can run. Actions need to be reconfigured.'
+        'Alert is invalid because no actions can run. Actions need to be reconfigured.'
       ),
     };
   }

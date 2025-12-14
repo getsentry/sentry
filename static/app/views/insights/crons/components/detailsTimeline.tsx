@@ -1,6 +1,5 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import sortBy from 'lodash/sortBy';
 
 import {
   deleteMonitorEnvironment,
@@ -21,6 +20,7 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
 import type {Monitor, MonitorBucket} from 'sentry/views/insights/crons/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
 
@@ -31,12 +31,16 @@ import {CronServiceIncidents} from './serviceIncidents';
 interface Props {
   monitor: Monitor;
   /**
+   * Called when an environment is updated (muted/unmuted/deleted).
+   */
+  onEnvironmentUpdated?: () => void;
+  /**
    * Called when monitor stats have been loaded for this timeline.
    */
   onStatsLoaded?: (stats: MonitorBucket[]) => void;
 }
 
-export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
+export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const api = useApi();
@@ -46,11 +50,11 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
 
-  // Use the nextCheckIn timestamp as a queryKey for computing the
-  // timeWindowConfig. This means when the nextCheckIn date changes we will
-  // recompute the timeWindowConfig timestamps. This is important when a
-  // period is used (like last hour)
-  const nextCheckIn = sortBy(monitor.environments, e => e.nextCheckIn)[0]?.nextCheckIn;
+  // Use the nextCheckIn timestamp from the earliest scheduled environment as a
+  // queryKey for computing the timeWindowConfig. This means when the
+  // nextCheckIn date changes we will recompute the timeWindowConfig
+  // timestamps. This is important when a period is used (like last hour)
+  const nextCheckIn = getNextCheckInEnv(monitor.environments)?.nextCheckIn;
 
   const timeWindowConfig = useTimeWindowConfig({
     timelineWidth,
@@ -62,7 +66,9 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
     organization,
     monitor.project.slug,
     monitor.slug,
-    {...location.query}
+    {
+      environment: location.query.environment,
+    }
   );
 
   const {data: monitorStats} = useMonitorStats({
@@ -89,6 +95,8 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
           }
         : undefined;
     });
+
+    onEnvironmentUpdated?.();
   };
 
   const handleToggleMuteEnvironment = async (env: string, isMuted: boolean) => {
@@ -104,21 +112,10 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
       return;
     }
 
-    setApiQueryData<Monitor>(queryClient, monitorDetailsQueryKey, oldMonitorDetails => {
-      return oldMonitorDetails
-        ? {
-            ...oldMonitorDetails,
-            environments: oldMonitorDetails.environments.map(monitorEnv =>
-              monitorEnv.name === env
-                ? {
-                    ...monitorEnv,
-                    isMuted,
-                  }
-                : monitorEnv
-            ),
-          }
-        : undefined;
-    });
+    // Invalidate the query to refetch the monitor with updated environment data
+    queryClient.invalidateQueries({queryKey: monitorDetailsQueryKey});
+
+    onEnvironmentUpdated?.();
   };
 
   return (

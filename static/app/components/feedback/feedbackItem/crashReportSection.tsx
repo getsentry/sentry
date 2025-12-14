@@ -62,7 +62,7 @@ export default function CrashReportSection({
 
 const IssueDetailsContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   position: relative;
   padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(2)};
   overflow: auto;

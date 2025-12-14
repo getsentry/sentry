@@ -40,12 +40,12 @@ describe('AutomateSection', () => {
       </Form>
     );
 
-    expect(screen.getByText('Automate')).toBeInTheDocument();
+    expect(screen.getByText('Alert')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('Connect an Automation'));
+    await userEvent.click(screen.getByText('Connect an Alert'));
 
     const drawer = await screen.findByRole('complementary', {
-      name: 'Connect Automations',
+      name: 'Connect Alerts',
     });
 
     await within(drawer).findByText(automation1.name);
@@ -74,12 +74,12 @@ describe('AutomateSection', () => {
     );
 
     // Should display automation as connected
-    expect(screen.getByText('Connected Automations')).toBeInTheDocument();
+    expect(screen.getByText('Connected Alerts')).toBeInTheDocument();
     expect(await screen.findByText(automation1.name)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('Edit Automations'));
+    await userEvent.click(screen.getByText('Edit Alerts'));
     const drawer = await screen.findByRole('complementary', {
-      name: 'Connect Automations',
+      name: 'Connect Alerts',
     });
 
     const connectedAutomationsList = await screen.findByTestId(

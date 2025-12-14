@@ -27,7 +27,11 @@ export type SessionsOperation =
   | 'crash_free_rate'
   | 'crash_rate'
   | 'foreground_anr_rate'
-  | 'sum';
+  | 'sum'
+  | 'unhealthy_rate'
+  | 'abnormal_rate'
+  | 'errored_rate'
+  | 'unhandled_rate';
 
 export type SessionAggregationColumn = {
   outputType: AggregationOutputType | null;

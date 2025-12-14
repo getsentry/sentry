@@ -1,5 +1,5 @@
-import type {SentryRouteObject} from 'sentry/components/route';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
+import type {SentryRouteObject} from 'sentry/router/types';
 import errorHandler from 'sentry/utils/errorHandler';
 
 import SubscriptionContext from 'getsentry/components/subscriptionContext';
@@ -78,9 +78,16 @@ const settingsRoutes = (): SentryRouteObject => ({
           component: make(() => import('../views/subscriptionPage/billingInformation')),
           deprecatedRouteProps: true,
         },
+        // TODO(sub-v3): We're keeping both routes for now, but we should remove the usage-log route once we're confident in keeping the new name
         {
           path: 'usage-log/',
           name: 'Usage Log',
+          component: make(() => import('../views/subscriptionPage/usageLog')),
+          deprecatedRouteProps: true,
+        },
+        {
+          path: 'activity-logs/',
+          name: 'Activity Logs',
           component: make(() => import('../views/subscriptionPage/usageLog')),
           deprecatedRouteProps: true,
         },

@@ -19,6 +19,7 @@ import {
   REPLAY_CLICK_FIELDS,
   REPLAY_FIELDS,
   REPLAY_TAG_ALIASES,
+  REPLAY_TAP_FIELDS,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
@@ -41,6 +42,7 @@ function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
 
 const REPLAY_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS);
 const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_CLICK_FIELDS);
+const REPLAY_TAP_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_TAP_FIELDS);
 /**
  * Excluded from the display but still valid search queries. browser.name,
  * device.name, etc are effectively the same and included from REPLAY_FIELDS.
@@ -57,6 +59,7 @@ function getReplayFilterKeys(supportedTags: TagCollection): TagCollection {
   return {
     ...REPLAY_FIELDS_AS_TAGS,
     ...REPLAY_CLICK_FIELDS_AS_TAGS,
+    ...REPLAY_TAP_FIELDS_AS_TAGS,
     ...Object.fromEntries(
       Object.keys(supportedTags)
         .filter(key => !EXCLUDED_TAGS.includes(key))
@@ -76,7 +79,8 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
     tag =>
       !EXCLUDED_TAGS.includes(tag.key) &&
       !REPLAY_FIELDS.map(String).includes(tag.key) &&
-      !REPLAY_CLICK_FIELDS.map(String).includes(tag.key)
+      !REPLAY_CLICK_FIELDS.map(String).includes(tag.key) &&
+      !REPLAY_TAP_FIELDS.map(String).includes(tag.key)
   );
 
   const orderedTagKeys = orderBy(customTags, ['totalValues', 'key'], ['desc', 'asc']).map(
@@ -93,6 +97,11 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
       value: 'replay_click_field',
       label: t('Click Fields'),
       children: Object.keys(REPLAY_CLICK_FIELDS_AS_TAGS),
+    },
+    {
+      value: 'replay_tap_field',
+      label: t('Tap Fields'),
+      children: Object.keys(REPLAY_TAP_FIELDS_AS_TAGS),
     },
     {
       value: FieldKind.TAG,

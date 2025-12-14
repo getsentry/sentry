@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import secrets
 from datetime import timedelta
@@ -51,7 +53,7 @@ def get_download_url_for_artifact(artifact: PreprodArtifact) -> str:
 
 def create_installable_preprod_artifact(
     preprod_artifact: PreprodArtifact, expiration_hours: int = 12
-):
+) -> InstallablePreprodArtifact:
     """
     Creates a new InstallablePreprodArtifact for a given PreprodArtifact.
 

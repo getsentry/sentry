@@ -217,16 +217,16 @@ const VariantHint = styled('span')`
 
 const ContributionIcon = styled(({isContributing, ...p}: any) =>
   isContributing ? (
-    <IconCheckmark size="sm" isCircled color="successText" {...p} />
+    <IconCheckmark size="sm" color="successText" {...p} />
   ) : (
-    <IconClose size="sm" isCircled color="dangerText" {...p} />
+    <IconClose size="sm" color="dangerText" {...p} />
   )
 )`
   margin-right: ${space(1)};
 `;
 
 const GroupingTree = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const TextWithQuestionTooltip = styled('div')`

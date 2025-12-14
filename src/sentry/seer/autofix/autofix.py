@@ -10,27 +10,35 @@ import requests
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.db import router, transaction
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import eventstore, features, quotas, tagstore
+from sentry import features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
+    bulk_set_project_preferences,
     get_autofix_repos_from_project_code_mappings,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
+from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
@@ -317,7 +325,7 @@ def _get_profile_from_trace_tree(
     )
 
     if profile:
-        execution_tree = _convert_profile_to_execution_tree(profile)
+        execution_tree, _ = _convert_profile_to_execution_tree(profile)
         return (
             None
             if not execution_tree
@@ -330,7 +338,148 @@ def _get_profile_from_trace_tree(
     return None
 
 
-def _get_all_tags_overview(group: Group) -> dict[str, Any] | None:
+def _respond_with_error(reason: str, status: int):
+    return Response(
+        {
+            "detail": reason,
+        },
+        status=status,
+    )
+
+
+def _get_github_username_for_user(user: User | RpcUser, organization_id: int) -> str | None:
+    """
+    Get GitHub username for a user by checking multiple sources.
+
+    This function attempts to resolve a Sentry user to their GitHub username by:
+    1. Checking ExternalActor for explicit user→GitHub mappings
+    2. Falling back to CommitAuthor records matched by email (like suspect commits)
+    3. Extracting the GitHub username from the CommitAuthor external_id
+    """
+    # Method 1: Check ExternalActor for direct user→GitHub mapping
+    external_actor: ExternalActor | None = (
+        ExternalActor.objects.filter(
+            user_id=user.id,
+            organization_id=organization_id,
+            provider__in=[
+                ExternalProviders.GITHUB.value,
+                ExternalProviders.GITHUB_ENTERPRISE.value,
+            ],
+        )
+        .order_by("-date_added")
+        .first()
+    )
+
+    if external_actor and external_actor.external_name:
+        username = external_actor.external_name
+        return username[1:] if username.startswith("@") else username
+
+    # Method 2: Check CommitAuthor by email matching (like suspect commits does)
+    # Get all verified emails for this user
+    user_emails: list[str] = []
+    try:
+        # Both User and RpcUser models have a get_verified_emails method
+        if hasattr(user, "get_verified_emails"):
+            verified_emails = user.get_verified_emails()
+            user_emails.extend([e.email for e in verified_emails])
+    except Exception:
+        # If we can't get verified emails, don't use any
+        pass
+
+    if user_emails:
+        # Find CommitAuthors with matching emails that have GitHub external_id
+        commit_author = (
+            CommitAuthor.objects.filter(
+                organization_id=organization_id,
+                email__in=[email.lower() for email in user_emails],
+                external_id__isnull=False,
+            )
+            .exclude(external_id="")
+            .order_by("-id")
+            .first()
+        )
+
+        if commit_author:
+            commit_username = commit_author.get_username_from_external_id()
+            if commit_username:
+                return commit_username
+
+    return None
+
+
+def _call_autofix(
+    *,
+    user: User | AnonymousUser | RpcUser,
+    group: Group,
+    repos: list[dict],
+    serialized_event: dict[str, Any],
+    profile: dict[str, Any] | None,
+    trace_tree: dict[str, Any] | None,
+    logs: dict[str, list[dict]] | None,
+    tags_overview: dict[str, Any] | None,
+    instruction: str | None = None,
+    timeout_secs: int = TIMEOUT_SECONDS,
+    pr_to_comment_on_url: str | None = None,
+    auto_run_source: str | None = None,
+    stopping_point: AutofixStoppingPoint | None = None,
+    github_username: str | None = None,
+):
+    path = "/v1/automation/autofix/start"
+    body = orjson.dumps(
+        {
+            "organization_id": group.organization.id,
+            "project_id": group.project.id,
+            "repos": repos,
+            "issue": {
+                "id": group.id,
+                "title": group.title,
+                "short_id": group.qualified_short_id,
+                "first_seen": group.first_seen.isoformat(),
+                "events": [serialized_event],
+            },
+            "profile": profile,
+            "trace_tree": trace_tree,
+            "logs": logs,
+            "tags_overview": tags_overview,
+            "instruction": instruction,
+            "timeout_secs": timeout_secs,
+            "last_updated": datetime.now().isoformat(),
+            "invoking_user": (
+                {
+                    "id": user.id,
+                    "display_name": user.get_display_name(),
+                    "github_username": github_username,
+                }
+                if not isinstance(user, AnonymousUser)
+                else None
+            ),
+            "options": {
+                "comment_on_pr_with_url": pr_to_comment_on_url,
+                "auto_run_source": auto_run_source,
+                "disable_coding_step": not group.organization.get_option(
+                    "sentry:enable_seer_coding", default=True
+                ),
+                "stopping_point": stopping_point,
+            },
+        },
+        option=orjson.OPT_NON_STR_KEYS,
+    )
+
+    response = requests.post(
+        f"{settings.SEER_AUTOFIX_URL}{path}",
+        data=body,
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            **sign_with_seer_secret(body),
+        },
+    )
+
+    response.raise_for_status()
+
+    return response.json().get("run_id")
+
+
+def get_all_tags_overview(group: Group) -> dict[str, Any] | None:
     """
     Get high-level overview of all tags for an issue.
     Returns aggregated tag data with percentages for all tags.
@@ -433,107 +582,72 @@ def _get_all_tags_overview(group: Group) -> dict[str, Any] | None:
     }
 
 
-def _respond_with_error(reason: str, status: int):
-    return Response(
-        {
-            "detail": reason,
-        },
-        status=status,
-    )
+def onboarding_seer_settings_update(
+    organization_id: int,
+    is_rca_enabled: bool,
+    is_auto_open_prs_enabled: bool,
+    project_repo_dict: dict[int, list[SeerRepoDefinition]],
+) -> None:
+    """
+    Update Seer settings for new orgs that are onboarding to the seat-based Seer tier.
+    """
+    # Get organization and list of projects
+    organization = Organization.objects.get(id=organization_id)
+    projects = Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
 
-
-def _get_github_username_for_user(user: User | RpcUser, organization_id: int) -> str | None:
-    """Get GitHub username for a user by checking ExternalActor mappings."""
-    external_actor: ExternalActor | None = (
-        ExternalActor.objects.filter(
-            user_id=user.id,
-            organization_id=organization_id,
-            provider__in=[
-                ExternalProviders.GITHUB.value,
-                ExternalProviders.GITHUB_ENTERPRISE.value,
-            ],
+    # If RCA is explicitly disabled, set the automation tuning to off for org and projects.
+    # If RCA is disabled then other settings don't matter.
+    if not is_rca_enabled:
+        # Ensure org and all projects are updated in a single transaction to maintain consistency
+        with transaction.atomic(using=router.db_for_write(OrganizationOption)):
+            organization.update_option(
+                "sentry:default_autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
+            )
+            for project in projects:
+                project.update_option(
+                    "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
+                )
+        logger.info(
+            "RCA is disabled for org and projects, setting automation tuning to off",
+            extra={
+                "organization_id": organization_id,
+                "org_slug": organization.slug,
+                "num_projects": len(projects),
+            },
         )
-        .order_by("-date_added")
-        .first()
-    )
+        return
 
-    if external_actor and external_actor.external_name:
-        username = external_actor.external_name
-        return username[1:] if username.startswith("@") else username
+    # Set the default stopping point for projects
+    stopping_point = AutofixStoppingPoint.CODE_CHANGES
+    if is_auto_open_prs_enabled:
+        stopping_point = AutofixStoppingPoint.OPEN_PR
 
-    return None
+    # Build preferences for each project with its repositories
+    preferences_to_set = []
+    for project_id, repositories in project_repo_dict.items():
+        preferences_to_set.append(
+            {
+                "organization_id": organization_id,
+                "project_id": project_id,
+                "repositories": [repo.dict() for repo in repositories],
+                "automated_run_stopping_point": stopping_point,
+            }
+        )
 
+    # Call Seer API to set preferences
+    if preferences_to_set:
+        bulk_set_project_preferences(organization_id, preferences_to_set)
 
-def _call_autofix(
-    *,
-    user: User | AnonymousUser | RpcUser,
-    group: Group,
-    repos: list[dict],
-    serialized_event: dict[str, Any],
-    profile: dict[str, Any] | None,
-    trace_tree: dict[str, Any] | None,
-    logs: dict[str, list[dict]] | None,
-    tags_overview: dict[str, Any] | None,
-    instruction: str | None = None,
-    timeout_secs: int = TIMEOUT_SECONDS,
-    pr_to_comment_on_url: str | None = None,
-    auto_run_source: str | None = None,
-    stopping_point: AutofixStoppingPoint | None = None,
-    github_username: str | None = None,
-):
-    path = "/v1/automation/autofix/start"
-    body = orjson.dumps(
-        {
-            "organization_id": group.organization.id,
-            "project_id": group.project.id,
-            "repos": repos,
-            "issue": {
-                "id": group.id,
-                "title": group.title,
-                "short_id": group.qualified_short_id,
-                "first_seen": group.first_seen.isoformat(),
-                "events": [serialized_event],
-            },
-            "profile": profile,
-            "trace_tree": trace_tree,
-            "logs": logs,
-            "tags_overview": tags_overview,
-            "instruction": instruction,
-            "timeout_secs": timeout_secs,
-            "last_updated": datetime.now().isoformat(),
-            "invoking_user": (
-                {
-                    "id": user.id,
-                    "display_name": user.get_display_name(),
-                    "github_username": github_username,
-                }
-                if not isinstance(user, AnonymousUser)
-                else None
-            ),
-            "options": {
-                "comment_on_pr_with_url": pr_to_comment_on_url,
-                "auto_run_source": auto_run_source,
-                "disable_coding_step": not group.organization.get_option(
-                    "sentry:enable_seer_coding", default=True
-                ),
-                "stopping_point": stopping_point,
-            },
-        },
-        option=orjson.OPT_NON_STR_KEYS,
-    )
-
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
+    logger.info(
+        "onboarding_seer_settings_update for new org completed",
+        extra={
+            "organization_id": organization_id,
+            "org_slug": organization.slug,
+            "is_rca_enabled": is_rca_enabled,
+            "is_auto_open_prs_enabled": is_auto_open_prs_enabled,
+            "num_projects": len(project_repo_dict),
         },
     )
-
-    response.raise_for_status()
-
-    return response.json().get("run_id")
 
 
 def trigger_autofix(
@@ -552,14 +666,14 @@ def trigger_autofix(
     if group.organization.get_option("sentry:hide_ai_features"):
         return _respond_with_error("AI features are disabled for this organization.", 403)
 
-    if not get_seer_org_acknowledgement(org_id=group.organization.id):
+    if not get_seer_org_acknowledgement(group.organization):
         return _respond_with_error(
             "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer.",
             403,
         )
 
     # check billing quota for autofix
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
+    has_budget: bool = quotas.backend.check_seer_quota(
         org_id=group.organization.id,
         data_category=DataCategory.SEER_AUTOFIX,
     )
@@ -611,7 +725,7 @@ def trigger_autofix(
 
     # get all tags overview for this issue
     try:
-        tags_overview = _get_all_tags_overview(group)
+        tags_overview = get_all_tags_overview(group)
     except Exception:
         logger.exception("Failed to get tags overview")
         tags_overview = None
@@ -652,12 +766,10 @@ def trigger_autofix(
 
     group.update(seer_autofix_last_triggered=timezone.now())
 
-    # seer runs are free for web vitals issues during testing phase
-    if group.issue_type != WebVitalsGroup:
-        # log billing event for seer autofix
-        quotas.backend.record_seer_run(
-            group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
-        )
+    # log billing event for seer autofix
+    quotas.backend.record_seer_run(
+        group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
+    )
 
     return Response(
         {

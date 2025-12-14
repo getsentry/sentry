@@ -11,12 +11,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import InnerIntentForm from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
 import type {StripeIntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
 import {usePaymentIntentData} from 'getsentry/hooks/useIntentData';
-import {hasNewBillingUI} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 function StripePaymentIntentForm(props: StripeIntentFormProps) {
   const {organization, referrer, onSuccess} = props;
-  const isNewBillingUI = hasNewBillingUI(organization);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -76,7 +74,6 @@ function StripePaymentIntentForm(props: StripeIntentFormProps) {
           organization,
           referrer: decodeScalar(referrer),
           isStripeComponent: true,
-          isNewBillingUI,
         });
         addSuccessMessage(t('Payment sent successfully.'));
         onSuccess?.();

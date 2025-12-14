@@ -10,7 +10,7 @@ import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
 } from 'getsentry-test/fixtures/subscription';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
@@ -36,7 +36,7 @@ describe('Subscription > PendingChanges', () => {
     expect(screen.queryByTestId('pending-changes')).not.toBeInTheDocument();
   });
 
-  it('renders mm2 plan and ondemand changes', () => {
+  it('renders mm2 plan and ondemand changes', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_ac',
@@ -59,6 +59,8 @@ describe('Subscription > PendingChanges', () => {
     });
 
     render(<PendingChanges organization={organization} subscription={sub} />);
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await screen.findByTestId('expanded-pending-list-0');
 
     expect(
       screen.getByText(/The following changes will take effect on/)
@@ -73,51 +75,7 @@ describe('Subscription > PendingChanges', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(4);
   });
 
-  it('renders am1 plan and ondemand changes', () => {
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'mm2_a_500k_auf',
-      onDemandMaxSpend: 10000,
-      pendingChanges: PendingChangesFixture({
-        plan: 'am1_team',
-        reserved: {errors: 100000, transactions: 250000, attachments: 50},
-        onDemandMaxSpend: 5000,
-        effectiveDate: '2021-02-01',
-        onDemandEffectiveDate: '2021-02-01',
-        planDetails: PlanFixture({
-          name: 'Team',
-          billingInterval: MONTHLY,
-          contractInterval: MONTHLY,
-          categories: [
-            DataCategory.ERRORS,
-            DataCategory.TRANSACTIONS,
-            DataCategory.ATTACHMENTS,
-          ],
-          budgetTerm: 'on-demand',
-        }),
-      }),
-    });
-
-    render(<PendingChanges organization={organization} subscription={sub} />);
-
-    expect(screen.getByText('Feb 1, 2021')).toBeInTheDocument();
-    expect(getItemWithText('Plan change to Team')).toBeInTheDocument();
-    expect(getItemWithText('Billing period change to monthly')).toBeInTheDocument();
-    expect(getItemWithText('Contract period change to monthly')).toBeInTheDocument();
-
-    expect(getItemWithText('Reserved errors change to 100,000')).toBeInTheDocument();
-    expect(
-      getItemWithText('Reserved transactions change to 250,000')
-    ).toBeInTheDocument();
-    expect(getItemWithText('Reserved attachments change to 50 GB')).toBeInTheDocument();
-    expect(
-      getItemWithText('On-Demand spend change from $100 to $50')
-    ).toBeInTheDocument();
-
-    expect(screen.getAllByRole('listitem')).toHaveLength(7);
-  });
-
-  it('renders mmx to am2 plan and ondemand changes', () => {
+  it('renders mmx to AM plan and ondemand changes', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_auf',
@@ -143,6 +101,8 @@ describe('Subscription > PendingChanges', () => {
     });
 
     render(<PendingChanges organization={organization} subscription={sub} />);
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await screen.findByTestId('expanded-pending-list-0');
 
     expect(screen.getByText('Feb 1, 2021')).toBeInTheDocument();
     expect(getItemWithText('Plan change to Team')).toBeInTheDocument();
@@ -161,7 +121,7 @@ describe('Subscription > PendingChanges', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(7);
   });
 
-  it('renders am1 to am2 plan and ondemand changes', () => {
+  it('renders plan and ondemand changes for AM tier change', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am1_team_auf',
@@ -191,6 +151,8 @@ describe('Subscription > PendingChanges', () => {
     });
 
     render(<PendingChanges organization={organization} subscription={sub} />);
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await screen.findByTestId('expanded-pending-list-0');
 
     expect(screen.getByText('Feb 1, 2021')).toBeInTheDocument();
     expect(getItemWithText('Plan change to Business')).toBeInTheDocument();
@@ -208,7 +170,7 @@ describe('Subscription > PendingChanges', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(6);
   });
 
-  it('renders am1 plan and pending shared ondemand changes', () => {
+  it('renders AM plan and pending shared ondemand changes', async () => {
     const org = OrganizationFixture({
       features: ['ondemand-budgets'],
     });
@@ -251,6 +213,8 @@ describe('Subscription > PendingChanges', () => {
     });
 
     render(<PendingChanges subscription={sub} organization={org} />);
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await screen.findByTestId('expanded-pending-list-0');
 
     expect(
       getItemWithText(
@@ -259,7 +223,7 @@ describe('Subscription > PendingChanges', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders am1 plan and pending per-category ondemand changes', () => {
+  it('renders AM plan and pending per-category ondemand changes', async () => {
     const org = OrganizationFixture({
       features: ['ondemand-budgets'],
     });
@@ -304,43 +268,14 @@ describe('Subscription > PendingChanges', () => {
     });
 
     render(<PendingChanges subscription={sub} organization={org} />);
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await screen.findByTestId('expanded-pending-list-0');
 
     expect(
       getItemWithText(
         'On-Demand budget change from shared on-demand budget of $50 to per-category on-demand budget (errors at $10, transactions at $20, and attachments at $30)'
       )
     ).toBeInTheDocument();
-  });
-
-  it('renders plan change only', () => {
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'mm2_a_500k_auf',
-      onDemandMaxSpend: 0,
-      pendingChanges: PendingChangesFixture({
-        plan: 'am1_team_auf',
-        onDemandMaxSpend: 0,
-        effectiveDate: '2021-02-01',
-        planDetails: PlanFixture({
-          name: 'Team',
-          categories: [
-            DataCategory.ERRORS,
-            DataCategory.TRANSACTIONS,
-            DataCategory.ATTACHMENTS,
-          ],
-          billingInterval: ANNUAL,
-          contractInterval: ANNUAL,
-          budgetTerm: 'on-demand',
-        }),
-      }),
-    });
-
-    render(<PendingChanges organization={organization} subscription={sub} />);
-
-    expect(screen.getByText('Feb 1, 2021')).toBeInTheDocument();
-    expect(getItemWithText('Plan change to Team')).toBeInTheDocument();
-
-    expect(screen.getByRole('listitem')).toBeInTheDocument();
   });
 
   it('renders plan and ondemand changes on different dates', () => {
@@ -380,7 +315,7 @@ describe('Subscription > PendingChanges', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
   });
 
-  it('renders on-demand to pay-as-you go pending changes for am2 to am3', () => {
+  it('renders on-demand to pay-as-you go pending changes for legacy to modern', () => {
     organization.features.push('ondemand-budgets');
     const sub = SubscriptionFixture({
       organization,
@@ -396,24 +331,13 @@ describe('Subscription > PendingChanges', () => {
         usedSpends: {},
       },
       pendingChanges: PendingChangesFixture({
-        plan: 'am3_business',
+        plan: 'am3_team',
         onDemandBudgets: {
           enabled: true,
           budgetMode: OnDemandBudgetMode.SHARED,
           sharedMaxBudget: 5000,
         },
-        planDetails: PlanFixture({
-          name: 'Business',
-          categories: [
-            DataCategory.ERRORS,
-            DataCategory.REPLAYS,
-            DataCategory.SPANS,
-            DataCategory.MONITOR_SEATS,
-            DataCategory.ATTACHMENTS,
-          ],
-          billingInterval: ANNUAL,
-          contractInterval: ANNUAL,
-        }),
+        planDetails: PlanDetailsLookupFixture('am3_team'),
       }),
     });
 
@@ -425,7 +349,7 @@ describe('Subscription > PendingChanges', () => {
     ).toBeInTheDocument();
   });
 
-  it('handles missing subscription values', () => {
+  it('handles missing subscription values', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_auf',
@@ -450,6 +374,8 @@ describe('Subscription > PendingChanges', () => {
     });
 
     render(<PendingChanges organization={organization} subscription={sub} />);
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await screen.findByTestId('expanded-pending-list-0');
     expect(screen.getByText('Feb 1, 2021')).toBeInTheDocument();
   });
 
@@ -657,7 +583,7 @@ describe('Subscription > PendingChanges', () => {
     expect(screen.queryByText(/Reserved errors/)).not.toBeInTheDocument();
   });
 
-  it('renders reserved budgets without existing budgets', () => {
+  it('renders reserved budgets without existing budgets', async () => {
     const sub = SubscriptionFixture({
       organization: OrganizationFixture(),
       plan: 'am3_business',
@@ -682,6 +608,8 @@ describe('Subscription > PendingChanges', () => {
       }),
     });
     render(<PendingChanges organization={organization} subscription={sub} />);
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await screen.findByTestId('expanded-pending-list-0');
 
     expect(screen.queryByText('accepted spans')).not.toBeInTheDocument();
     expect(screen.queryByText('stored spans')).not.toBeInTheDocument();
@@ -712,5 +640,136 @@ describe('Subscription > PendingChanges', () => {
     expect(screen.queryByText('Spans budget')).not.toBeInTheDocument();
     expect(screen.getByText('Reserved spans change to 10,000,000')).toBeInTheDocument();
     expect(screen.getByText('Plan change to Enterprise (Business)')).toBeInTheDocument();
+  });
+
+  it('does not render expand button when there are less than 3 changes', () => {
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      pendingChanges: PendingChangesFixture({
+        plan: 'am3_team',
+        planDetails: PlanDetailsLookupFixture('am3_team'),
+        reserved: {
+          spans: 5_000_000,
+        },
+      }),
+    });
+    sub.categories.spans = {
+      ...sub.categories.spans!,
+      reserved: 10_000_000,
+    };
+    render(<PendingChanges organization={organization} subscription={sub} />);
+    expect(screen.queryByRole('button', {name: 'Expand'})).not.toBeInTheDocument();
+    expect(screen.getByTestId('pending-list-0')).toBeInTheDocument();
+    expect(
+      screen.getByText(/The following changes will take effect on/)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/more change/)).not.toBeInTheDocument();
+  });
+
+  it('does not render expand button when there are less than 3 changes across all dates', () => {
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      onDemandBudgets: {
+        enabled: true,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 5000,
+        onDemandSpendUsed: 0,
+      },
+      onDemandMaxSpend: 5000,
+      pendingChanges: PendingChangesFixture({
+        effectiveDate: '2021-03-01',
+        onDemandEffectiveDate: '2021-02-01',
+        plan: 'am3_team',
+        planDetails: PlanDetailsLookupFixture('am3_team'),
+        onDemandMaxSpend: 1000,
+      }),
+    });
+    render(<PendingChanges organization={organization} subscription={sub} />);
+    expect(screen.queryByRole('button', {name: 'Expand'})).not.toBeInTheDocument();
+    expect(screen.getAllByText(/The following changes will take effect on/)).toHaveLength(
+      2
+    );
+    expect(screen.getByTestId('pending-list-0')).toBeInTheDocument();
+    expect(screen.getByTestId('pending-list-1')).toBeInTheDocument();
+    expect(screen.queryByText(/more change/)).not.toBeInTheDocument();
+  });
+
+  it('renders expand button when there are 3 or more changes', async () => {
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      pendingChanges: PendingChangesFixture({
+        plan: 'am3_team',
+        planDetails: PlanDetailsLookupFixture('am3_team'),
+        reserved: {
+          spans: 5_000_000,
+          replays: 50,
+        },
+      }),
+    });
+    sub.categories.spans = {
+      ...sub.categories.spans!,
+      reserved: 10_000_000,
+    };
+    sub.categories.replays = {
+      ...sub.categories.replays!,
+      reserved: 10_000,
+    };
+    render(<PendingChanges organization={organization} subscription={sub} />);
+    expect(screen.getByRole('button', {name: 'Expand'})).toBeInTheDocument();
+    expect(screen.getByTestId('pending-list-0')).toBeInTheDocument();
+    expect(
+      screen.getByText(/The following changes will take effect on/)
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('expanded-pending-list-0')).not.toBeInTheDocument();
+    expect(screen.getByText(/and 1 more change.../)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await screen.findByTestId('expanded-pending-list-0');
+    expect(screen.getByTestId('expanded-pending-list-0')).toBeInTheDocument();
+  });
+
+  it('renders expand button when there are 3 or more changes across all dates', async () => {
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      onDemandBudgets: {
+        enabled: true,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 5000,
+        onDemandSpendUsed: 0,
+      },
+      onDemandMaxSpend: 5000,
+      pendingChanges: PendingChangesFixture({
+        effectiveDate: '2021-03-01',
+        onDemandEffectiveDate: '2021-02-01',
+        plan: 'am3_team',
+        planDetails: PlanDetailsLookupFixture('am3_team'),
+        onDemandMaxSpend: 1000,
+        reserved: {
+          spans: 5_000_000,
+        },
+      }),
+    });
+    sub.categories.spans = {
+      ...sub.categories.spans!,
+      reserved: 10_000_000,
+    };
+    render(<PendingChanges organization={organization} subscription={sub} />);
+    expect(screen.getByRole('button', {name: 'Expand'})).toBeInTheDocument();
+    expect(
+      screen.getByText(/The following changes will take effect on/)
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('pending-list-0')).toBeInTheDocument();
+    expect(screen.queryByTestId('pending-list-1')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('expanded-pending-list-0')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('expanded-pending-list-1')).not.toBeInTheDocument();
+    expect(screen.getByText(/and 2 more changes.../)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await screen.findByTestId('expanded-pending-list-0');
+    expect(screen.getByTestId('expanded-pending-list-1')).toBeInTheDocument();
   });
 });

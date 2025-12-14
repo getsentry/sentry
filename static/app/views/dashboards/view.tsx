@@ -14,6 +14,7 @@ import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useTimeseriesVisualizationEnabled} from 'sentry/views/dashboards/utils/useTimeseriesVisualizationEnabled';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
@@ -68,6 +69,8 @@ function ViewEditDashboard(props: Props) {
     }
   }, [location.pathname, location.query]);
 
+  const useTimeseriesVisualization = useTimeseriesVisualizationEnabled();
+
   return (
     <DashboardBasicFeature organization={organization}>
       <OrgDashboards>
@@ -86,6 +89,7 @@ function ViewEditDashboard(props: Props) {
                 onDashboardUpdate={onDashboardUpdate}
                 newWidget={newWidget}
                 onSetNewWidget={() => setNewWidget(undefined)}
+                useTimeseriesVisualization={useTimeseriesVisualization}
               />
             </ErrorBoundary>
           ) : (

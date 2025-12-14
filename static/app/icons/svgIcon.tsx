@@ -17,14 +17,7 @@ export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
   size?: IconSize;
 }
 
-interface IconProps extends SVGIconProps {
-  /**
-   * Determines if the icon coloring is done using stroke or fill
-   */
-  kind?: 'stroke' | 'path';
-}
-
-export function SvgIcon(props: IconProps) {
+export function SvgIcon(props: SVGIconProps) {
   const {
     color: providedColor = 'currentColor',
     size: providedSize = 'sm',
@@ -36,24 +29,6 @@ export function SvgIcon(props: IconProps) {
   const theme = useTheme();
   const color = useResolvedIconColor(providedColor);
   const size = legacySize ?? theme.iconSizes[providedSize];
-
-  // Stroke based icons are only available in Chonk
-  if (props.kind === 'stroke' && theme.isChonk) {
-    return (
-      <svg
-        role="img"
-        viewBox="1 1 14 14"
-        height={size}
-        width={size}
-        fill="none"
-        stroke={color}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1px"
-        {...rest}
-      />
-    );
-  }
 
   return (
     <svg
@@ -77,16 +52,21 @@ export function useResolvedIconColor(
     return 'currentColor';
   }
 
-  // Chonk changes the color of the icon to gray300 to differ. We will remap
-  // the color to subText for the time being and remove this when the old theme
-  // aliases are removed.
-  let normalizedColor = providedColor;
-  if (theme.isChonk && providedColor === 'gray300') {
-    normalizedColor = 'subText';
-  }
+  // Remap gray300 to subText since we no longer support the old theme
+  const normalizedColor = providedColor === 'gray300' ? 'subText' : providedColor;
   const resolvedColor = theme[normalizedColor];
   if (typeof resolvedColor === 'string') {
     return resolvedColor;
   }
   return normalizedColor;
 }
+
+export type SVGIconDirection = 'up' | 'right' | 'down' | 'left';
+const ICON_DIRECTION_TO_ROTATION_ANGLE = {
+  up: 0,
+  right: 90,
+  down: 180,
+  left: 270,
+} as const;
+
+SvgIcon.ICON_DIRECTION_TO_ROTATION_ANGLE = ICON_DIRECTION_TO_ROTATION_ANGLE;

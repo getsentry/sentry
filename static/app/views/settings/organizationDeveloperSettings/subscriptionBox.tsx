@@ -92,7 +92,7 @@ const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   align-items: flex-start;
   background: ${p => p.theme.backgroundSecondary};
   opacity: ${p => (p.disabled ? 0.6 : 1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'auto')};
   margin: ${space(1.5)};
   padding: ${space(1.5)};
@@ -114,7 +114,7 @@ const SubscriptionDescription = styled('div')`
 const SubscriptionTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.lg};
   line-height: 1;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
   margin-bottom: ${space(0.75)};
 `;

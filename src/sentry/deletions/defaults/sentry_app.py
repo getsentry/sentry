@@ -23,8 +23,3 @@ class SentryAppDeletionTask(ModelDeletionTask[SentryApp]):
             status = getattr(instance, "status", None)
             if status not in (SentryAppStatus.DELETION_IN_PROGRESS, None):
                 instance.update(status=SentryAppStatus.DELETION_IN_PROGRESS)
-
-    def delete_instance(self, instance: SentryApp) -> None:
-        # action service RPC goes here, iterating by region because children are deleted first
-
-        return super().delete_instance(instance)

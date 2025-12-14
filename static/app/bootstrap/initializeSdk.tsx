@@ -36,10 +36,18 @@ export function getLastEventId(): string | undefined {
 // pollute our breadcrumbs since they may occur a LOT.
 //
 // XXX(epurkhiser): Note some of these hosts may only apply to sentry.io.
-const IGNORED_BREADCRUMB_FETCH_HOSTS = ['amplitude.com', 'reload.getsentry.net'];
+const IGNORED_BREADCRUMB_FETCH_HOSTS = [
+  'amplitude.com',
+  'pendo.io',
+  'reload.getsentry.net',
+];
 
 // Ignore analytics in spans as well
-const IGNORED_SPANS_BY_DESCRIPTION = ['amplitude.com', 'reload.getsentry.net'];
+const IGNORED_SPANS_BY_DESCRIPTION = [
+  'amplitude.com',
+  'pendo.io',
+  'reload.getsentry.net',
+];
 
 // We check for `window.__initialData.user` property and only enable profiling
 // for Sentry employees. This is to prevent a Violation error being visible in
@@ -57,29 +65,26 @@ function getSentryIntegrations() {
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    // Blocks main thread for long periods with react 19.2 in dev mode
-    NODE_ENV === 'production'
-      ? Sentry.reactRouterV6BrowserTracingIntegration({
-          useEffect,
-          useLocation,
-          useNavigationType,
-          createRoutesFromChildren,
-          matchRoutes,
-          _experiments: {
-            enableStandaloneClsSpans: true,
-            enableStandaloneLcpSpans: true,
-          },
-          linkPreviousTrace: 'session-storage',
-        })
-      : null,
-    Sentry.browserProfilingIntegration(),
+    Sentry.reactRouterV6BrowserTracingIntegration({
+      useEffect,
+      useLocation,
+      useNavigationType,
+      createRoutesFromChildren,
+      matchRoutes,
+      _experiments: {
+        enableStandaloneClsSpans: true,
+        enableStandaloneLcpSpans: true,
+      },
+      linkPreviousTrace: 'session-storage',
+    }),
+    ...(NODE_ENV === 'production' ? [Sentry.browserProfilingIntegration()] : []),
     Sentry.thirdPartyErrorFilterIntegration({
       filterKeys: ['sentry-spa'],
       behaviour: 'apply-tag-if-contains-third-party-frames',
     }),
     Sentry.featureFlagsIntegration(),
     Sentry.consoleLoggingIntegration(),
-  ].filter(integration => integration !== null);
+  ];
 
   return integrations;
 }
@@ -114,7 +119,8 @@ export function initializeSdk(config: Config) {
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
     integrations: getSentryIntegrations(),
     tracesSampleRate,
-    profilesSampleRate: shouldOverrideBrowserProfiling ? 1 : 0.1,
+    profileSessionSampleRate: shouldOverrideBrowserProfiling ? 1 : 0.1,
+    profileLifecycle: 'trace',
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
       const op = context.attributes?.[Sentry.SEMANTIC_ATTRIBUTE_SENTRY_OP] || '';

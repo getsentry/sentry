@@ -351,7 +351,7 @@ const Container = styled('div')`
 `;
 
 const Header = styled('header')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding-left: ${space(4)};
   padding-right: ${space(4)};
   position: sticky;
@@ -368,7 +368,7 @@ const Header = styled('header')`
 const LogoSvg = styled(LogoSentry)`
   width: 130px;
   height: 30px;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const OnboardingStep = styled((props: React.ComponentProps<typeof motion.div>) => (

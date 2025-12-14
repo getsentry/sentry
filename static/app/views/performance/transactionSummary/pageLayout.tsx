@@ -1,5 +1,6 @@
-import {useCallback, useState} from 'react';
-import {css} from '@emotion/react';
+import {useCallback, useMemo, useState} from 'react';
+import {Outlet} from 'react-router-dom';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {isString} from '@sentry/core';
 import type {Location} from 'history';
@@ -16,6 +17,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -30,9 +32,12 @@ import {
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useRouter from 'sentry/utils/useRouter';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
+import {TransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
   getPerformanceBaseUrl,
   getSelectedProjectPlatforms,
@@ -59,28 +64,14 @@ export const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
   [Tab.WEB_VITALS]: 'performance_views.vitals.vitals_tab_clicked',
   [Tab.TAGS]: 'performance_views.tags.tags_tab_clicked',
   [Tab.EVENTS]: 'performance_views.events.events_tab_clicked',
-  [Tab.SPANS]: 'performance_views.spans.spans_tab_clicked',
-};
-
-export type ChildProps = {
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-  projectId: string;
-  projects: Project[];
-  setError: React.Dispatch<React.SetStateAction<string | undefined>>;
-  transactionName: string;
-  // These are used to trigger a reload when the threshold/metric changes.
-  transactionThreshold?: number;
-  transactionThresholdMetric?: TransactionThresholdMetric;
 };
 
 type Props = {
-  childComponent: (props: ChildProps) => React.JSX.Element;
   generateEventView: (props: {
     location: Location;
     organization: Organization;
     shouldUseOTelFriendlyUI: boolean;
+    theme: Theme;
     transactionName: string;
   }) => EventView;
   getDocumentTitle: (name: string) => string;
@@ -100,7 +91,6 @@ function PageLayout(props: Props) {
     tab,
     getDocumentTitle,
     generateEventView,
-    childComponent: ChildComponent,
     features = [],
   } = props;
 
@@ -111,6 +101,7 @@ function PageLayout(props: Props) {
     projectId = filterProjects;
   }
 
+  const theme = useTheme();
   const router = useRouter();
   const transactionName = getTransactionName(location);
   const [error, setError] = useState<string | undefined>();
@@ -121,6 +112,32 @@ function PageLayout(props: Props) {
   >();
 
   const {isInDomainView} = useDomainViewFilters();
+
+  const dataCategories: [DataCategory, ...DataCategory[]] = useMemo(() => {
+    switch (tab) {
+      case Tab.PROFILING:
+        return [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI];
+      case Tab.REPLAYS:
+        return [DataCategory.REPLAYS];
+      case Tab.EVENTS:
+      case Tab.TAGS:
+      case Tab.WEB_VITALS:
+        return [DataCategory.TRANSACTIONS];
+      case Tab.TRANSACTION_SUMMARY:
+        // The transactions summary page technically also uses transactions
+        // in additional to spans. But if we specify transactions here, it'll
+        // use the 90d retention for transactions instead of the 30d retention
+        // for spans in some cases which is not what we want.
+        return [DataCategory.SPANS];
+      default:
+        throw new Error(`Unsupported tab: ${tab}`);
+    }
+  }, [tab]);
+
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories,
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const getNewRoute = useCallback(
     (newTab: Tab) => {
@@ -180,7 +197,7 @@ function PageLayout(props: Props) {
     [getNewRoute, tab, organization, location, projects]
   );
 
-  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
 
   if (!defined(transactionName)) {
     redirectToPerformanceHomepage(organization, location);
@@ -192,6 +209,7 @@ function PageLayout(props: Props) {
     organization,
     transactionName,
     shouldUseOTelFriendlyUI,
+    theme,
   });
 
   if (!defined(projectId)) {
@@ -288,6 +306,19 @@ function PageLayout(props: Props) {
               shouldForceProject={defined(project)}
               forceProject={project}
               specificProjectSlugs={defined(project) ? [project.slug] : []}
+              maxPickableDays={datePageFilterProps.maxPickableDays}
+              defaultSelection={
+                datePageFilterProps.defaultPeriod
+                  ? {
+                      datetime: {
+                        period: datePageFilterProps.defaultPeriod,
+                        start: null,
+                        end: null,
+                        utc: null,
+                      },
+                    }
+                  : undefined
+              }
             >
               <Tabs value={tab} onChange={onTabChange}>
                 <Layout.Page>
@@ -308,17 +339,20 @@ function PageLayout(props: Props) {
                   />
                   <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
                     {defined(error) && <StyledAlert type="error">{error}</StyledAlert>}
-                    <ChildComponent
-                      location={location}
-                      organization={organization}
-                      projects={projects}
-                      eventView={eventView}
-                      projectId={projectId}
-                      transactionName={transactionName}
-                      setError={setError}
-                      transactionThreshold={transactionThreshold}
-                      transactionThresholdMetric={transactionThresholdMetric}
-                    />
+                    <TransactionSummaryContext
+                      value={{
+                        eventView,
+                        organization,
+                        projectId,
+                        projects,
+                        setError,
+                        transactionName,
+                        transactionThreshold,
+                        transactionThresholdMetric,
+                      }}
+                    >
+                      <Outlet />
+                    </TransactionSummaryContext>
                   </StyledBody>
                 </Layout.Page>
               </Tabs>

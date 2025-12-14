@@ -1013,7 +1013,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.PERFORMANCE_SCORE]: {
     desc: t('Returns the performance score for a given web vital'),
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NUMBER,
+    valueType: FieldValueType.SCORE,
     parameters: [
       {
         name: 'value',
@@ -1808,6 +1808,7 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     desc: t('The event identification number'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.MESSAGE]: {
     desc: t('Error message or transaction name'),
@@ -1828,6 +1829,7 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     desc: t('The ID of an associated profile'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.PROJECT]: {kind: FieldKind.FIELD, valueType: FieldValueType.STRING},
   [FieldKey.HAS]: {
@@ -1840,6 +1842,7 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     desc: t('The ID of an associated Session Replay'),
     kind: FieldKind.TAG,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.TIMESTAMP]: {
     desc: t('The time an event finishes'),
@@ -1855,16 +1858,19 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     desc: t('The trace identification number'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.TRACE_PARENT_SPAN]: {
     desc: t('Span identification number of the parent to the event'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.TRACE_SPAN]: {
     desc: t('Span identification number of the root span'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.TRANSACTION]: {
     desc: t('Error or transaction name identifier'),
@@ -1911,6 +1917,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     desc: t('The detector that triggered the issue'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.ERROR_HANDLED]: {
     desc: t('Determines handling status of the error'),
@@ -2080,6 +2087,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     desc: t('Status of the issue'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.TIMES_SEEN]: {
     desc: t('Total number of events'),
@@ -2137,6 +2145,7 @@ const DEVICE_FIELD_DEFINITION: Record<DeviceFieldKey, FieldDefinition> = {
     desc: t('The estimated performance level of the device, graded low, medium, or high'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.DEVICE_FAMILY]: {
     desc: t('Model name across generations'),
@@ -2261,24 +2270,28 @@ const RELEASE_FIELD_DEFINITION: Record<ReleaseFieldKey, FieldDefinition> = {
     desc: t('The version of your code deployed to an environment'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.RELEASE_BUILD]: {
     desc: t('The full version number that identifies the iteration'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
+    allowWildcard: false,
   },
   [FieldKey.RELEASE_PACKAGE]: {
     desc: t('The identifier unique to the project or application'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
+    allowWildcard: false,
   },
   [FieldKey.RELEASE_STAGE]: {
     desc: t('Stage of usage (i.e., adopted, replaced, low)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
+    allowWildcard: false,
   },
   [FieldKey.RELEASE_VERSION]: {
     desc: t('An abbreviated version number of the build'),
@@ -2447,6 +2460,7 @@ const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
     valueType: FieldValueType.SIZE,
   },
 };
+
 const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   ...EVENT_FIELD_DEFINITIONS,
   ...SPAN_AGGREGATION_FIELDS,
@@ -2481,6 +2495,86 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
 
 const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   ...LOG_AGGREGATION_FIELDS,
+  ...EVENT_FIELD_DEFINITIONS,
+  [OurLogKnownFieldKey.CODE_FILE_PATH]: {
+    desc: t(
+      'The source code file name that identifies the code unit as uniquely as possible (preferably an absolute file path).'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.CODE_LINE_NUMBER]: {
+    desc: t(
+      'The line number in %s best representing the operation. It SHOULD point within the code unit named in %s.',
+      OurLogKnownFieldKey.CODE_FILE_PATH,
+      OurLogKnownFieldKey.CODE_FUNCTION_NAME
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  [OurLogKnownFieldKey.CODE_FUNCTION_NAME]: {
+    desc: t(
+      'The method or function name, or equivalent (usually rightmost part of the code unit’s name).'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.LOGGER]: {
+    desc: t('The name of the logger that generated this event.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.MESSAGE]: {
+    desc: t('Log message'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.PARENT_SPAN_ID]: {
+    desc: t(
+      'The span id of the span that was active when the log was collected. This should not be set if there was no active span.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [OurLogKnownFieldKey.PAYLOAD_SIZE]: {
+    desc: t('The size of the log payload in bytes.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.SIZE,
+  },
+  [OurLogKnownFieldKey.REPLAY_ID]: {
+    desc: t('The ID of an associated sentry replay.'),
+    kind: FieldKind.TAG,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [OurLogKnownFieldKey.SERVER_ADDRESS]: {
+    desc: t(
+      'Server domain name if available without reverse DNS lookup; otherwise, IP address or Unix domain socket name.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.SEVERITY]: {
+    desc: t('The severity level of the log.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [OurLogKnownFieldKey.SPAN_ID]: {
+    desc: t('The associated span ID of the log.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [OurLogKnownFieldKey.TEMPLATE]: {
+    desc: t('The parameterized template string.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
+const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
+  // TODO: Add field definitions for tracemetric fields
 };
 
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
@@ -2805,6 +2899,12 @@ export enum ReplayClickFieldKey {
   CLICK_COMPONENT_NAME = 'click.component_name',
 }
 
+enum ReplayTapFieldKey {
+  TAP_MESSAGE = 'tap.message',
+  TAP_VIEW_ID = 'tap.view_id',
+  TAP_VIEW_CLASS = 'tap.view_class',
+}
+
 /**
  * Some fields inside the ReplayRecord type are intentionally omitted:
  * `environment` -> Not backend support, omitted because we have a dropdown for it
@@ -2960,6 +3060,7 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     desc: t('Error instance'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [ReplayFieldKey.IS_ARCHIVED]: {
     desc: t('Whether the replay has been archived'),
@@ -3037,6 +3138,12 @@ export const REPLAY_CLICK_FIELDS = [
   ReplayClickFieldKey.CLICK_COMPONENT_NAME,
 ];
 
+export const REPLAY_TAP_FIELDS = [
+  ReplayTapFieldKey.TAP_MESSAGE,
+  ReplayTapFieldKey.TAP_VIEW_ID,
+  ReplayTapFieldKey.TAP_VIEW_CLASS,
+];
+
 // This is separated out from REPLAY_FIELD_DEFINITIONS so that it is feature-flaggable
 const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinition> = {
   [ReplayClickFieldKey.CLICK_ALT]: {
@@ -3070,6 +3177,7 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [ReplayClickFieldKey.DEAD_SELECTOR]: {
     desc: t(
@@ -3077,6 +3185,7 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [ReplayClickFieldKey.RAGE_SELECTOR]: {
     desc: t(
@@ -3084,6 +3193,7 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [ReplayClickFieldKey.CLICK_TAG]: {
     desc: t('`tag` of an element that was clicked'),
@@ -3112,7 +3222,26 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
   },
 };
 
+const REPLAY_TAP_FIELD_DEFINITIONS: Record<ReplayTapFieldKey, FieldDefinition> = {
+  [ReplayTapFieldKey.TAP_MESSAGE]: {
+    desc: t('`Message` of an element that was tapped'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayTapFieldKey.TAP_VIEW_CLASS]: {
+    desc: t('`View Class` of an element that was tapped'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayTapFieldKey.TAP_VIEW_ID]: {
+    desc: t('`View ID` of an element that was tapped'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
 export enum FeedbackFieldKey {
+  AI_CATEGORIZATION_LABELS = 'ai_categorization.labels',
   BROWSER_NAME = 'browser.name',
   LOCALE_LANG = 'locale.lang',
   LOCALE_TIMEZONE = 'locale.timezone',
@@ -3123,6 +3252,7 @@ export enum FeedbackFieldKey {
 }
 
 export const FEEDBACK_FIELDS = [
+  FeedbackFieldKey.AI_CATEGORIZATION_LABELS,
   FieldKey.ASSIGNED,
   FeedbackFieldKey.BROWSER_NAME,
   FieldKey.DEVICE_BRAND,
@@ -3156,6 +3286,12 @@ export const FEEDBACK_FIELDS = [
 ];
 
 const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
+  [FeedbackFieldKey.AI_CATEGORIZATION_LABELS]: {
+    desc: t('AI-generated labels for categorizing feedback'),
+    kind: FieldKind.TAG,
+    valueType: FieldValueType.STRING,
+    allowWildcard: true,
+  },
   [FeedbackFieldKey.BROWSER_NAME]: {
     desc: t('Name of the browser'),
     kind: FieldKind.FIELD,
@@ -3219,6 +3355,11 @@ export const getFieldDefinition = (
           key as keyof typeof REPLAY_CLICK_FIELD_DEFINITIONS
         ];
       }
+      if (REPLAY_TAP_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+        return REPLAY_TAP_FIELD_DEFINITIONS[
+          key as keyof typeof REPLAY_TAP_FIELD_DEFINITIONS
+        ];
+      }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
         return EVENT_FIELD_DEFINITIONS[key as FieldKey];
       }
@@ -3253,6 +3394,24 @@ export const getFieldDefinition = (
       if (LOG_FIELD_DEFINITIONS.hasOwnProperty(key)) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return LOG_FIELD_DEFINITIONS[key];
+      }
+
+      // In EAP we have numeric tags that can be passed as parameters to
+      // aggregate functions. We assign value type based on kind, so that we can filter
+      // on them when suggesting function parameters.
+      if (kind === FieldKind.MEASUREMENT) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
+      }
+
+      if (kind === FieldKind.TAG) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
+      }
+      return null;
+
+    case 'tracemetric':
+      if (TRACEMETRIC_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        return TRACEMETRIC_FIELD_DEFINITIONS[key];
       }
 
       // In EAP we have numeric tags that can be passed as parameters to

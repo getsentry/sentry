@@ -1,0 +1,117 @@
+---
+title: Link
+description: Link components provide navigation within the application and to external URLs with consistent styling and accessibility.
+source: 'sentry/components/core/link'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/link/link.tsx
+  a11y:
+    WCAG 2.4.4: https://www.w3.org/TR/WCAG22/#link-purpose-in-context
+    WCAG 2.4.9: https://www.w3.org/TR/WCAG22/#link-purpose-link-only
+    WCAG 3.2.4: https://www.w3.org/TR/WCAG22/#consistent-identification
+---
+
+import {Container} from 'sentry/components/core/layout';
+import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
+import * as Storybook from 'sentry/stories';
+
+import types from '!!type-loader!sentry/components/core/link/link';
+
+export {types};
+
+The Link component provides context-aware navigation within the Sentry application, while ExternalLink handles external URLs. Both components maintain consistent styling and accessibility standards.
+
+## Internal Links
+
+Use `<Link>` for navigation within the Sentry application. The component uses React Router under the hood and falls back to a standard anchor tag when no router context is available.
+
+<Storybook.Demo>
+  <Link to="/organizations/sentry/issues/">Navigate to Issues</Link>
+</Storybook.Demo>
+```jsx
+<Link to="/organizations/sentry/issues/">Navigate to Issues</Link>
+```
+
+### Link Target Format
+
+The `to` prop accepts either a string path or a `LocationDescriptor` object. When using literal paths, always use slug-based URLs to ensure compatibility across different deployment environments (customer domains and single-tenant).
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <Link to="/organizations/sentry/issues/">String path</Link>
+    <Link to={{pathname: '/settings/account/'}}>LocationDescriptor object</Link>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Link to="/organizations/sentry/issues/">String path</Link>
+<Link to={{pathname: '/settings/account/'}}>LocationDescriptor object</Link>
+```
+
+## External Links
+
+Use `<ExternalLink>` for links to external websites. By default, external links open in a new tab.
+
+<Storybook.Demo>
+  <ExternalLink href="https://docs.sentry.io">Visit Sentry Docs</ExternalLink>
+</Storybook.Demo>
+```jsx
+<ExternalLink href="https://docs.sentry.io">Visit Sentry Docs</ExternalLink>
+```
+
+### Opening in Same Tab
+
+Set `openInNewTab={false}` to open external links in the same tab.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <ExternalLink href="https://docs.sentry.io">Opens in new tab (default)</ExternalLink>
+    <ExternalLink href="https://docs.sentry.io" openInNewTab={false}>
+      Opens in same tab
+    </ExternalLink>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<ExternalLink href="https://docs.sentry.io">Opens in new tab (default)</ExternalLink>
+<ExternalLink href="https://docs.sentry.io" openInNewTab={false}>
+  Opens in same tab
+</ExternalLink>
+```
+
+## Disabled Links
+
+Use the `disabled` prop to disable link navigation while maintaining visual presence.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <Link to="/organizations/sentry/issues/">Active link</Link>
+    <Link to="/organizations/sentry/issues/" disabled>
+      Disabled link
+    </Link>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Link to="/issues/">Active link</Link>
+<Link to="/issues/" disabled>
+  Disabled Link
+</Link>
+```
+
+## Inline Links
+
+Both `<Link>` and `<ExternalLink>` components can be used inline in `<Text>` components to give a styled link.
+
+<Storybook.Demo>
+  <Container padding="md">
+    <Text>
+      This is a paragraph with an{' '}
+      <Link to="/organizations/sentry/issues/">inline link</Link> that inherits text
+      styling.
+    </Text>
+  </Container>
+</Storybook.Demo>
+```jsx
+<Text>
+  This is a paragraph with an <Link to="/organizations/sentry/issues/">inline link</Link>{' '}
+  that inherits text styling.
+</Text>
+```

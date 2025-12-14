@@ -34,7 +34,7 @@ export function EventUserFeedback({
     ip_address: '',
   };
 
-  const {onClick, label} = useCopyToClipboard({text: report.email});
+  const {copy} = useCopyToClipboard();
 
   return (
     <div className={className}>
@@ -45,11 +45,11 @@ export function EventUserFeedback({
           <Items>
             <ActivityAuthor>{report.name}</ActivityAuthor>
             <CopyButton
-              aria-label={label}
               borderless
-              onClick={onClick}
+              onClick={() =>
+                copy(report.email, {successMessage: t('Copied email to clipboard')})
+              }
               size="zero"
-              title={label}
               tooltipProps={{delay: 0}}
               translucentBorder
               icon={<StyledIconCopy size="xs" />}

@@ -1,19 +1,29 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {
   SessionUserCountByStatus2Fixture,
   SessionUserCountByStatusFixture,
 } from 'sentry-fixture/sessions';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import type {ReleaseProject} from 'sentry/types/release';
 import ReleaseComparisonChart from 'sentry/views/releases/detail/overview/releaseComparisonChart';
 
 describe('Releases > Detail > Overview > ReleaseComparison', () => {
-  const {router, organization, project: rawProject} = initializeOrg();
-  const api = new MockApiClient();
+  const organization = OrganizationFixture();
+  const rawProject = ProjectFixture();
   const release = ReleaseFixture();
+  const initialRouterConfig: RouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/releases/${release.version}/`,
+      query: {},
+    },
+    routes: ['/organizations/:orgId/releases/:release/'],
+  };
+  const api = new MockApiClient();
   const releaseSessions = SessionUserCountByStatusFixture();
   const allSessions = SessionUserCountByStatus2Fixture();
 
@@ -32,18 +42,16 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         releaseSessions={releaseSessions}
         allSessions={allSessions}
         platform="javascript"
-        location={{...router.location, query: {}}}
         loading={false}
         reloading={false}
         errored={false}
         project={project}
-        organization={organization}
         api={api}
         hasHealthData
       />,
       {
-        router,
-        deprecatedRouterMocks: true,
+        organization,
+        initialRouterConfig,
       }
     );
 
@@ -63,48 +71,29 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
   });
 
   it('can change chart by clicking on a row', async () => {
-    const {rerender} = render(
+    const {router} = render(
       <ReleaseComparisonChart
         release={release}
         releaseSessions={releaseSessions}
         allSessions={allSessions}
         platform="javascript"
-        location={{...router.location, query: {}}}
         loading={false}
         reloading={false}
         errored={false}
         project={project}
-        organization={organization}
         api={api}
         hasHealthData
       />,
       {
-        router,
-        deprecatedRouterMocks: true,
+        organization,
+        initialRouterConfig,
       }
     );
 
     await userEvent.click(screen.getByLabelText(/crash free user rate/i));
 
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({query: {chart: 'crashFreeUsers'}})
-    );
-
-    rerender(
-      <ReleaseComparisonChart
-        release={release}
-        releaseSessions={releaseSessions}
-        allSessions={allSessions}
-        platform="javascript"
-        location={{...router.location, query: {chart: 'crashFreeUsers'}}}
-        loading={false}
-        reloading={false}
-        errored={false}
-        project={project}
-        organization={organization}
-        api={api}
-        hasHealthData
-      />
+    expect(router.location.query).toEqual(
+      expect.objectContaining({chart: 'crashFreeUsers'})
     );
 
     expect(screen.getByLabelText('Chart Title')).toHaveTextContent(
@@ -120,18 +109,16 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         releaseSessions={releaseSessions}
         allSessions={allSessions}
         platform="javascript"
-        location={{...router.location, query: {}}}
         loading={false}
         reloading={false}
         errored={false}
         project={project}
-        organization={organization}
         api={api}
         hasHealthData
       />,
       {
-        router,
-        deprecatedRouterMocks: true,
+        organization,
+        initialRouterConfig,
       }
     );
 
@@ -171,6 +158,9 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
       url: `/organizations/${organization.slug}/issues-count/`,
       body: 0,
     });
+    const noHealthDataOrganization = OrganizationFixture({
+      features: [...organization.features, 'discover-basic'],
+    });
 
     render(
       <ReleaseComparisonChart
@@ -178,29 +168,21 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         releaseSessions={null}
         allSessions={null}
         platform="javascript"
-        location={{...router.location, query: {}}}
         loading={false}
         reloading={false}
         errored={false}
         project={project}
-        organization={{
-          ...organization,
-          features: [...organization.features, 'discover-basic'],
-        }}
         api={api}
         hasHealthData={false}
       />,
       {
-        router,
-        deprecatedRouterMocks: true,
+        organization: noHealthDataOrganization,
+        initialRouterConfig,
       }
     );
 
-    expect(screen.getAllByRole('radio')).toHaveLength(1);
+    expect(await screen.findAllByRole('radio')).toHaveLength(1);
     expect(screen.queryByLabelText(/toggle chart/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/toggle additional/i)).not.toBeInTheDocument();
-
-    // Wait for api requests to propegate
-    await act(tick);
   });
 });

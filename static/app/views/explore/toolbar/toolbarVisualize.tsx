@@ -21,7 +21,6 @@ import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
-  MAX_VISUALIZES,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -29,6 +28,7 @@ import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields'
 import {
   isVisualizeEquation,
   isVisualizeFunction,
+  MAX_VISUALIZES,
   Visualize,
   VisualizeEquation,
   VisualizeFunction,
@@ -239,19 +239,19 @@ interface VisualizeLabelProps {
   visualize: Visualize;
 }
 
-function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
-  const label = visualize.visible ? (
-    String.fromCharCode('A'.charCodeAt(0) + index)
-  ) : (
-    <IconHide />
-  );
+export function getVisualizeLabel(index: number) {
+  return String.fromCharCode('A'.charCodeAt(0) + index);
+}
+
+export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
+  const label = visualize.visible ? getVisualizeLabel(index) : <IconHide />;
 
   return <Label onClick={onClick}>{label}</Label>;
 }
 
 const Label = styled('div')`
   cursor: pointer;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   background-color: ${p => p.theme.purple100};
   color: ${p => p.theme.purple300};
   font-weight: ${p => p.theme.fontWeight.bold};

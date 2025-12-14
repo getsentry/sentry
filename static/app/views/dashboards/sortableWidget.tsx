@@ -40,16 +40,21 @@ type Props = {
   dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
+  isEmbedded?: boolean;
   isMobile?: boolean;
+  isPrebuiltDashboard?: boolean;
   isPreview?: boolean;
   newlyAddedWidget?: Widget;
   onNewWidgetScrollComplete?: () => void;
+  useTimeseriesVisualization?: boolean;
   windowWidth?: number;
 };
 
 function SortableWidget(props: Props) {
   const widgetRef = useRef<HTMLDivElement>(null);
-  const [tableWidths, setTableWidths] = useState<number[]>();
+  const [tableWidths, setTableWidths] = useState<number[]>(
+    props.widget.tableWidths ?? []
+  );
   const [queries, setQueries] = useState<WidgetQuery[]>();
   const {
     widget,
@@ -59,6 +64,7 @@ function SortableWidget(props: Props) {
     onEdit,
     onDuplicate,
     onSetTransactionsDataset,
+    isEmbedded,
     isPreview,
     isMobile,
     windowWidth,
@@ -69,18 +75,21 @@ function SortableWidget(props: Props) {
     dashboardCreator,
     newlyAddedWidget,
     onNewWidgetScrollComplete,
+    useTimeseriesVisualization,
+    isPrebuiltDashboard = false,
   } = props;
 
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  const hasEditAccess = checkUserHasEditAccess(
-    currentUser,
-    userTeams,
-    organization,
-    dashboardPermissions,
-    dashboardCreator
-  );
+  const hasEditAccess =
+    checkUserHasEditAccess(
+      currentUser,
+      userTeams,
+      organization,
+      dashboardPermissions,
+      dashboardCreator
+    ) && !isPrebuiltDashboard;
 
   const disableTransactionWidget =
     organization.features.includes('discover-saved-queries-deprecation') &&
@@ -118,7 +127,7 @@ function SortableWidget(props: Props) {
     onEdit,
     onDuplicate,
     onSetTransactionsDataset,
-    showContextMenu: true,
+    showContextMenu: !isEmbedded || isPrebuiltDashboard,
     isPreview,
     index,
     dashboardFilters,
@@ -135,6 +144,7 @@ function SortableWidget(props: Props) {
     tableItemLimit: TABLE_ITEM_LIMIT,
     onWidgetTableSort,
     onWidgetTableResizeColumn,
+    useTimeseriesVisualization,
   };
 
   return (

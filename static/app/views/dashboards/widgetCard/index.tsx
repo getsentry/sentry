@@ -1,4 +1,4 @@
-import {useContext, useEffect, useRef, useState} from 'react';
+import {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -9,6 +9,8 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
+import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
@@ -19,6 +21,7 @@ import type {Confidence, Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
+import {getFieldDefinition} from 'sentry/utils/fields';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -34,10 +37,12 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
+  DashboardFilterKeys,
   DisplayType,
   OnDemandExtractionState,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
@@ -45,8 +50,10 @@ import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
+import {VisualizationWidget} from './visualizationWidget';
 import {
   getMenuOptions,
+  useDroppedColumnsWarning,
   useIndexedEventsWarning,
   useTransactionsDeprecationWarning,
 } from './widgetCardContextMenu';
@@ -107,6 +114,7 @@ type Props = WithRouterProps & {
   showLoadingText?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;
+  useTimeseriesVisualization?: boolean;
   windowWidth?: number;
 };
 
@@ -169,6 +177,7 @@ function WidgetCard(props: Props) {
     onWidgetTableSort,
     onWidgetTableResizeColumn,
     disableTableActions,
+    useTimeseriesVisualization,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -195,8 +204,13 @@ function WidgetCard(props: Props) {
     widget,
     selection,
   });
+  const droppedColumnsWarning = useDroppedColumnsWarning(widget);
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
+  const conflictingFilterWarning = useConflictingFilterWarning({
+    widget,
+    dashboardFilters,
+  });
 
   const onDataFetchStart = () => {
     if (timeoutRef.current) {
@@ -266,6 +280,8 @@ function WidgetCard(props: Props) {
     sessionDurationWarning,
     spanTimeRangeWarning,
     transactionsDeprecationWarning,
+    droppedColumnsWarning,
+    conflictingFilterWarning,
   ].filter(Boolean) as string[];
 
   const actionsDisabled = Boolean(props.isPreview);
@@ -292,6 +308,55 @@ function WidgetCard(props: Props) {
   const widgetQueryError = isWidgetInvalid
     ? t('Widget query condition is invalid.')
     : undefined;
+
+  const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
+  if (canUseTimeseriesVisualization && useTimeseriesVisualization) {
+    return (
+      <ErrorBoundary
+        customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
+      >
+        <VisuallyCompleteWithData
+          id="DashboardList-FirstWidgetCard"
+          hasData={
+            ((data?.tableResults?.length || data?.timeseriesResults?.length) ?? 0) > 0
+          }
+          disabled={Number(props.index) !== 0}
+        >
+          <WidgetFrame
+            title={widget.title}
+            description={widget.description}
+            badgeProps={badges}
+            warnings={warnings}
+            actionsDisabled={actionsDisabled}
+            error={widgetQueryError}
+            actionsMessage={actionsMessage}
+            actions={actions}
+            onFullScreenViewClick={
+              disableFullscreen
+                ? undefined
+                : currentDashboardId
+                  ? onFullScreenViewClick
+                  : undefined
+            }
+            borderless={props.borderless}
+            revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
+          >
+            <VisualizationWidget
+              widget={widget}
+              selection={selection}
+              dashboardFilters={dashboardFilters}
+              onDataFetched={onDataFetched}
+              onWidgetTableSort={onWidgetTableSort}
+              onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+              renderErrorMessage={renderErrorMessage}
+              onDataFetchStart={onDataFetchStart}
+              tableItemLimit={tableItemLimit}
+            />
+          </WidgetFrame>
+        </VisuallyCompleteWithData>
+      </ErrorBoundary>
+    );
+  }
 
   return (
     <ErrorBoundary
@@ -433,6 +498,45 @@ function useTimeRangeWarning({widget}: {widget: Widget}) {
   return null;
 }
 
+// Displays a warning message if there is a conflict between widget and global filters
+function useConflictingFilterWarning({
+  widget,
+  dashboardFilters,
+}: {
+  dashboardFilters: DashboardFilters | undefined;
+  widget: Widget;
+}) {
+  const conflictingFilterKeys = useMemo(() => {
+    if (!dashboardFilters) return [];
+
+    const widgetFilterKeys = widget.queries.flatMap(query => {
+      const parseResult = parseQueryBuilderValue(query.conditions, getFieldDefinition);
+      if (!parseResult) {
+        return [];
+      }
+      return parseResult
+        .filter(token => token.type === Token.FILTER)
+        .map(token => token.key.text);
+    });
+    const globalFilterKeys =
+      dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER]
+        ?.filter(filter => filter.dataset === widget.widgetType)
+        .map(filter => filter.tag.key) ?? [];
+
+    const widgetFilterKeySet = new Set(widgetFilterKeys);
+    return globalFilterKeys.filter(key => widgetFilterKeySet.has(key));
+  }, [widget.queries, widget.widgetType, dashboardFilters]);
+
+  if (conflictingFilterKeys.length > 0) {
+    return tct('[strong:Filter conflicts:] [filters]', {
+      strong: <strong />,
+      filters: conflictingFilterKeys.join(', '),
+    });
+  }
+
+  return null;
+}
+
 const ErrorCard = styled(Placeholder)`
   display: flex;
   align-items: center;
@@ -440,7 +544,7 @@ const ErrorCard = styled(Placeholder)`
   background-color: ${p => p.theme.alert.error.backgroundLight};
   border: 1px solid ${p => p.theme.alert.error.border};
   color: ${p => p.theme.alert.error.textLight};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   margin-bottom: ${space(2)};
 `;
 

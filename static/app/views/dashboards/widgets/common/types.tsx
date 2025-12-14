@@ -76,7 +76,7 @@ export type TimeSeriesGroupBy = {
   /**
    * The `value` of a `groupBy` can sometimes surprisingly be an array, because some datasets support array values. e.g., in the error dataset, the error type could be an array that looks like `["Exception", null, "TypeError"]`
    */
-  value: string | Array<string | null> | Array<number | null>;
+  value: string | null | Array<string | null> | Array<number | null>;
 };
 
 /**

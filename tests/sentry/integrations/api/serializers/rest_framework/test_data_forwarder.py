@@ -27,6 +27,7 @@ class DataForwarderSerializerTest(TestCase):
                 "enroll_new_projects": False,
                 "provider": DataForwarderProviderSlug.SEGMENT,
                 "config": {"write_key": "test_key"},
+                "project_ids": [],
             }
         )
         assert serializer.is_valid()
@@ -36,6 +37,7 @@ class DataForwarderSerializerTest(TestCase):
         assert validated_data["enroll_new_projects"] is False
         assert validated_data["provider"] == DataForwarderProviderSlug.SEGMENT
         assert validated_data["config"] == {"write_key": "test_key"}
+        assert validated_data["project_ids"] == []
 
     def test_default_values(self) -> None:
         serializer = DataForwarderSerializer(
@@ -48,6 +50,7 @@ class DataForwarderSerializerTest(TestCase):
                     "access_key": "AKIAIOSFODNN7EXAMPLE",
                     "secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
                 },
+                "project_ids": [],
             }
         )
         assert serializer.is_valid()
@@ -90,6 +93,7 @@ class DataForwarderSerializerTest(TestCase):
                     "organization_id": self.organization.id,
                     "provider": provider,
                     "config": config,
+                    "project_ids": [],
                 }
             )
             assert serializer.is_valid(), f"Provider {provider} should be valid"
@@ -113,6 +117,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SQS,
                 "config": valid_config,
+                "project_ids": [],
             }
         )
         assert serializer.is_valid()
@@ -126,6 +131,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SQS,
                 "config": config,
+                "project_ids": [],
             }
         )
         assert not serializer.is_valid()
@@ -144,6 +150,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SQS,
                 "config": config,
+                "project_ids": [],
             }
         )
         assert not serializer.is_valid()
@@ -162,6 +169,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SQS,
                 "config": config,
+                "project_ids": [],
             }
         )
         assert not serializer.is_valid()
@@ -189,6 +197,7 @@ class DataForwarderSerializerTest(TestCase):
                         "organization_id": self.organization.id,
                         "provider": DataForwarderProviderSlug.SQS,
                         "config": config,
+                        "project_ids": [],
                     }
                 )
                 assert serializer.is_valid(), f"Region {region} should be valid"
@@ -205,12 +214,13 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SQS,
                 "config": config,
+                "project_ids": [],
             }
         )
         assert not serializer.is_valid()
         assert "config" in serializer.errors
-        config_errors = serializer.errors["config"]
-        assert "access_key" in config_errors or "secret_key" in config_errors
+        config_errors_str = str(serializer.errors["config"])
+        assert "access_key" in config_errors_str and "secret_key" in config_errors_str
 
     def test_sqs_config_validation_fifo_queue_without_message_group_id(self) -> None:
         config: dict[str, str] = {
@@ -224,6 +234,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SQS,
                 "config": config,
+                "project_ids": [],
             }
         )
         assert not serializer.is_valid()
@@ -243,6 +254,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SQS,
                 "config": config,
+                "project_ids": [],
             }
         )
         assert serializer.is_valid()
@@ -260,6 +272,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SQS,
                 "config": config,
+                "project_ids": [],
             }
         )
         assert serializer.is_valid()
@@ -277,6 +290,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SQS,
                 "config": config,
+                "project_ids": [],
             }
         )
         assert not serializer.is_valid()
@@ -290,6 +304,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SEGMENT,
                 "config": config,
+                "project_ids": [],
             }
         )
         assert serializer.is_valid()
@@ -301,6 +316,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SEGMENT,
                 "config": config,
+                "project_ids": [],
             }
         )
         assert not serializer.is_valid()
@@ -314,6 +330,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SEGMENT,
                 "config": config,
+                "project_ids": [],
             }
         )
         assert not serializer.is_valid()
@@ -334,6 +351,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SPLUNK,
                 "config": config,
+                "project_ids": [],
             }
         )
         assert serializer.is_valid()
@@ -345,6 +363,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SPLUNK,
                 "config": config,
+                "project_ids": [],
             }
         )
         assert not serializer.is_valid()
@@ -363,6 +382,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SPLUNK,
                 "config": config,
+                "project_ids": [],
             }
         )
         assert not serializer.is_valid()
@@ -383,12 +403,13 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SPLUNK,
                 "config": config,
+                "project_ids": [],
             }
         )
         assert not serializer.is_valid()
         assert "config" in serializer.errors
-        config_errors = serializer.errors["config"]
-        assert "index" in config_errors or "source" in config_errors
+        config_errors_str = str(serializer.errors["config"])
+        assert "index" in config_errors_str and "source" in config_errors_str
 
     def test_splunk_config_validation_invalid_token_format(self) -> None:
         config: dict[str, str] = {
@@ -402,6 +423,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SPLUNK,
                 "config": config,
+                "project_ids": [],
             }
         )
         assert not serializer.is_valid()
@@ -420,6 +442,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SEGMENT,
                 "config": {"write_key": "new_key"},
+                "project_ids": [],
             }
         )
         assert not serializer.is_valid()
@@ -441,6 +464,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SEGMENT,
                 "config": {"write_key": "updated_key"},
+                "project_ids": [],
             },
             instance=data_forwarder,
         )
@@ -463,6 +487,7 @@ class DataForwarderSerializerTest(TestCase):
                     "access_key": "AKIAIOSFODNN7EXAMPLE",
                     "secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
                 },
+                "project_ids": [],
             }
         )
         assert serializer.is_valid()

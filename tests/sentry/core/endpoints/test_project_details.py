@@ -268,6 +268,7 @@ class ProjectDetailsTest(APITestCase):
             "sentry:error_messages", ["TypeError*", "*: integer division by modulo or zero"]
         )
         self.project.update_option("sentry:log_messages", ["Updated*", "*.sentry.io"])
+        self.project.update_option("sentry:trace_metric_names", ["counter.*", "*.duration"])
 
         resp = self.get_success_response(self.project.organization.slug, self.project.slug)
 
@@ -277,6 +278,7 @@ class ProjectDetailsTest(APITestCase):
             == "TypeError*\n*: integer division by modulo or zero"
         )
         assert resp.data["options"]["filters:log_messages"] == "Updated*\n*.sentry.io"
+        assert resp.data["options"]["filters:trace_metric_names"] == "counter.*\n*.duration"
 
 
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
@@ -632,6 +634,7 @@ class ProjectUpdateTest(APITestCase):
             "filters:releases": "1.*\n2.1.*",
             "filters:error_messages": "TypeError*\n*: integer division by modulo or zero",
             "filters:log_messages": "Updated*\n*.sentry.io",
+            "filters:trace_metric_names": "counter.*\n*.duration",
             "mail:subject_prefix": "[Sentry]",
             "sentry:scrub_ip_address": False,
             "sentry:origins": "*",
@@ -649,7 +652,13 @@ class ProjectUpdateTest(APITestCase):
             "filters:chunk-load-error": True,
         }
         with (
-            self.feature(["projects:custom-inbound-filters", "organizations:ourlogs-ingestion"]),
+            self.feature(
+                [
+                    "projects:custom-inbound-filters",
+                    "organizations:ourlogs-ingestion",
+                    "organizations:tracemetrics-ingestion",
+                ]
+            ),
             outbox_runner(),
         ):
             self.get_success_response(self.org_slug, self.proj_slug, options=options)
@@ -708,6 +717,10 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option("sentry:log_messages") == [
             "Updated*",
             "*.sentry.io",
+        ]
+        assert project.get_option("sentry:trace_metric_names") == [
+            "counter.*",
+            "*.duration",
         ]
         assert project.get_option("mail:subject_prefix", "[Sentry]")
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -2133,34 +2146,6 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
             self.organization.slug, self.project.slug, method="get"
         )
         assert "tempestFetchScreenshots" not in response.data
-
-    def test_put_tempest_fetch_dumps(self) -> None:
-        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
-        assert self.project.get_option("sentry:tempest_fetch_dumps") is False
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
-        )
-        assert response.data["tempestFetchDumps"] is True
-        assert self.project.get_option("sentry:tempest_fetch_dumps") is True
-
-    def test_put_tempest_fetch_dumps_without_feature_flag(self) -> None:
-        self.get_error_response(
-            self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
-        )
-
-    def test_get_tempest_fetch_dumps_options(self) -> None:
-        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="get"
-        )
-        assert "tempestFetchDumps" in response.data
-        assert response.data["tempestFetchDumps"] is False
-
-    def test_get_tempest_fetch_dumps_options_without_enabled_playstation_in_options(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="get"
-        )
-        assert "tempestFetchDumps" not in response.data
 
 
 class TestSeerProjectDetails(TestProjectDetailsBase):

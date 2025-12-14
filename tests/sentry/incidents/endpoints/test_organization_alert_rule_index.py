@@ -62,13 +62,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.snuba import _snuba_pool
-from sentry.workflow_engine.models import (
-    Action,
-    ActionAlertRuleTriggerAction,
-    AlertRuleDetector,
-    Detector,
-)
-from sentry.workflow_engine.models.data_condition import DataCondition
+from sentry.workflow_engine.models import Action, Detector
 from tests.sentry.incidents.serializers.test_workflow_engine_base import (
     TestWorkflowEngineSerializer,
 )
@@ -384,7 +378,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:workflow-engine-metric-alert-dual-write",
                     "organizations:workflow-engine-rule-serializers",
                 ]
             ),
@@ -398,7 +391,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         detector = Detector.objects.get(alertruledetector__alert_rule_id=int(resp.data.get("id")))
         assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_create_alert_rule_aci(self) -> None:
         with (
             outbox_runner(),
@@ -652,31 +644,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_not_dual_written(self, mock_seer_request: MagicMock) -> None:
-        """
-        For now, we want to skip dual writing the ACI objects for anomaly detection alerts. We
-        will repurpose this test once we have a plan in place to handle them.
-        """
-        data = self.dynamic_alert_rule_dict
-        seer_return_value: StoreDataResponse = {"success": True}
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-
-        with outbox_runner():
-            resp = self.get_success_response(
-                self.organization.slug,
-                status_code=201,
-                **data,
-            )
-
-        assert not AlertRuleDetector.objects.filter(alert_rule_id=resp.data["id"]).exists()
-        assert not DataCondition.objects.filter().exists()
-        assert not ActionAlertRuleTriggerAction.objects.filter().exists()
-
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
     def test_anomaly_detection_alert_timeout(self, mock_seer_request: MagicMock) -> None:
         data = self.dynamic_alert_rule_dict
         mock_seer_request.side_effect = TimeoutError
@@ -906,6 +873,45 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         with self.feature("organizations:incidents"):
             resp = self.get_error_response(self.organization.slug, **self.alert_rule_dict)
             assert resp.data[0] == "You may not exceed 1 metric alerts per organization"
+
+    @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
+    def test_enforce_max_subscriptions_with_override(self) -> None:
+        with self.options(
+            {
+                "metric_alerts.extended_max_subscriptions_orgs": [self.organization.id],
+                "metric_alerts.extended_max_subscriptions": 3,
+            }
+        ):
+            with self.feature("organizations:incidents"):
+                resp = self.get_success_response(
+                    self.organization.slug, status_code=201, **self.alert_rule_dict
+                )
+            alert_rule = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule, self.user)
+
+            alert_rule_dict_2 = self.alert_rule_dict.copy()
+            alert_rule_dict_2["name"] = "Test Rule 2"
+            with self.feature("organizations:incidents"):
+                resp = self.get_success_response(
+                    self.organization.slug, status_code=201, **alert_rule_dict_2
+                )
+            alert_rule_2 = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule_2, self.user)
+
+            alert_rule_dict_3 = self.alert_rule_dict.copy()
+            alert_rule_dict_3["name"] = "Test Rule 3"
+            with self.feature("organizations:incidents"):
+                resp = self.get_success_response(
+                    self.organization.slug, status_code=201, **alert_rule_dict_3
+                )
+            alert_rule_3 = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule_3, self.user)
+
+            alert_rule_dict_4 = self.alert_rule_dict.copy()
+            alert_rule_dict_4["name"] = "Test Rule 4"
+            with self.feature("organizations:incidents"):
+                resp = self.get_error_response(self.organization.slug, **alert_rule_dict_4)
+                assert resp.data[0] == "You may not exceed 3 metric alerts per organization"
 
     def test_sentry_app(self) -> None:
         other_org = self.create_organization(owner=self.user)
@@ -1645,6 +1651,13 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @with_feature("organizations:workflow-engine-metric-detector-limit")
     @patch("sentry.quotas.backend.get_metric_detector_limit")
     def test_metric_alert_limit(self, mock_get_limit: MagicMock) -> None:
+        # create orphaned metric alert
+        project_to_delete = self.create_project(organization=self.organization)
+        alert_rule = self.create_alert_rule(
+            organization=self.organization, projects=[project_to_delete]
+        )
+        project_to_delete.delete()
+
         # Set limit to 2 alert rules
         mock_get_limit.return_value = 2
 
@@ -1679,6 +1692,13 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @with_feature("organizations:incidents")
     @with_feature("organizations:workflow-engine-metric-detector-limit")
     def test_metric_alert_limit_unlimited_plan(self) -> None:
+        # create orphaned metric alert
+        project_to_delete = self.create_project(organization=self.organization)
+        alert_rule = self.create_alert_rule(
+            organization=self.organization, projects=[project_to_delete]
+        )
+        project_to_delete.delete()
+
         # Create many alert rules
         for _ in range(5):
             self.create_alert_rule(organization=self.organization)
@@ -1737,6 +1757,15 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp.data[0]
             == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
         )
+
+    def test_invalid_extrapolation_mode(self) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        data["extrapolation_mode"] = "server_weighted"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert resp.data[0] == "server_weighted extrapolation mode is not supported for new alerts."
 
 
 @freeze_time()

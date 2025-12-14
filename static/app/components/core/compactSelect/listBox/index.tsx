@@ -34,13 +34,6 @@ interface ListBoxProps
       | 'autoFocus'
     > {
   /**
-   * Keyboard event handler, to be attached to the list (`ul`) element, to seamlessly
-   * move focus from one composite list to another when an arrow key is pressed. Returns
-   * a boolean indicating whether the keyboard event was intercepted. If yes, then no
-   * further callback function should be run.
-   */
-  keyDownHandler: (e: React.KeyboardEvent<HTMLUListElement>) => boolean;
-  /**
    * Object containing the selection state and focus position, needed for
    * `useListBox()`.
    */
@@ -55,6 +48,13 @@ interface ListBoxProps
    * Set of keys that are hidden from the user (e.g. because not matching search query)
    */
   hiddenOptions?: Set<SelectKey>;
+  /**
+   * Keyboard event handler, to be attached to the list (`ul`) element, to seamlessly
+   * move focus from one composite list to another when an arrow key is pressed. Returns
+   * a boolean indicating whether the keyboard event was intercepted. If yes, then no
+   * further callback function should be run.
+   */
+  keyDownHandler?: (e: React.KeyboardEvent<HTMLUListElement>) => boolean;
   /**
    * Text label to be rendered as heading on top of grid list.
    */
@@ -92,6 +92,7 @@ interface ListBoxProps
 }
 
 const EMPTY_SET = new Set<never>();
+const DEFAULT_KEY_DOWN_HANDLER = () => true;
 
 /**
  * A list box with accessibile behaviors & attributes.
@@ -111,13 +112,14 @@ export function ListBox({
   shouldFocusOnHover = true,
   onSectionToggle,
   sizeLimitMessage,
-  keyDownHandler,
+  keyDownHandler = DEFAULT_KEY_DOWN_HANDLER,
   label,
   hiddenOptions = EMPTY_SET,
   hasSearch,
   overlayIsOpen,
   showSectionHeaders = true,
   showDetails = true,
+  onAction,
   ...props
 }: ListBoxProps) {
   const listElementRef = useRef<HTMLUListElement>(null);
@@ -128,6 +130,7 @@ export function ListBox({
       shouldFocusWrap,
       shouldFocusOnHover,
       shouldSelectOnPressUp: true,
+      onAction,
     },
     listState,
     listElementRef
@@ -153,13 +156,21 @@ export function ListBox({
     [listState.collection, hiddenOptions]
   );
 
+  const mergedProps = mergeProps(listBoxProps, props);
+
+  const onMouseLeave = (e: React.MouseEvent<HTMLUListElement>) => {
+    mergedProps.onMouseLeave?.(e);
+    listState.selectionManager.setFocusedKey(null);
+  };
+
   return (
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
       <ListWrap
-        {...mergeProps(listBoxProps, props)}
+        {...mergedProps}
         onKeyDown={onKeyDown}
+        onMouseLeave={onMouseLeave}
         ref={mergeRefs(listElementRef, ref)}
       >
         {overlayIsOpen &&

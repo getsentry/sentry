@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
@@ -16,20 +17,13 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
 import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {isMobileRelease} from 'sentry/views/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import ReleaseActions from './releaseActions';
-
-const MOBILE_PLATFORMS: PlatformKey[] = [
-  'android',
-  'apple-ios',
-  'flutter',
-  'react-native',
-];
 
 type Props = {
   location: Location;
@@ -85,25 +79,30 @@ function ReleaseHeader({
   const numberOfMobileBuilds = releaseMeta.preprodBuildCount;
 
   const buildsTab = {
-    title: tct('Builds [count]', {
+    title: tct('Mobile Builds [count]', {
       count:
         numberOfMobileBuilds === 0 ? (
           <BadgeWrapper>
-            <FeatureBadge type="new" />
+            <FeatureBadge type="beta" />
           </BadgeWrapper>
         ) : (
-          <NavTabsBadge type="default">
-            {formatAbbreviatedNumber(numberOfMobileBuilds)}
-          </NavTabsBadge>
+          <React.Fragment>
+            <NavTabsBadge type="default">
+              {formatAbbreviatedNumber(numberOfMobileBuilds)}
+            </NavTabsBadge>
+            <BadgeWrapper>
+              <FeatureBadge type="beta" />
+            </BadgeWrapper>
+          </React.Fragment>
         ),
     }),
-    textValue: t('Builds %s', numberOfMobileBuilds),
+    textValue: t('Mobile Builds %s', numberOfMobileBuilds),
     to: `builds/`,
   };
 
   if (
     organization.features?.includes('preprod-frontend-routes') &&
-    (numberOfMobileBuilds || MOBILE_PLATFORMS.includes(project.platform))
+    (numberOfMobileBuilds || isMobileRelease(project.platform, false))
   ) {
     tabs.push(buildsTab);
   }
@@ -151,6 +150,7 @@ function ReleaseHeader({
               size="zero"
               text={version}
               title={version}
+              aria-label={t('Copy release version to clipboard')}
             />
           </IconWrapper>
           {!!url && (
@@ -167,12 +167,10 @@ function ReleaseHeader({
 
       <Layout.HeaderActions>
         <ReleaseActions
-          organization={organization}
           projectSlug={project.slug}
           release={release}
           releaseMeta={releaseMeta}
           refetchData={refetchData}
-          location={location}
         />
       </Layout.HeaderActions>
 
@@ -198,7 +196,7 @@ const IconWrapper = styled('span')`
     display: flex;
     &:hover {
       cursor: pointer;
-      color: ${p => p.theme.textColor};
+      color: ${p => p.theme.tokens.content.primary};
     }
   }
 `;
@@ -210,7 +208,7 @@ const NavTabsBadge = styled(Badge)`
 `;
 
 const BadgeWrapper = styled('div')`
-  margin-left: ${p => (p.theme.isChonk ? 0 : p.theme.space.sm)};
+  margin-left: 0;
 `;
 
 export default ReleaseHeader;

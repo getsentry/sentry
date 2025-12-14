@@ -19,7 +19,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import LegacyBillingDetailsForm from 'getsentry/components/billingDetails/legacyForm';
 import StripeWrapper from 'getsentry/components/stripeWrapper';
 import type {BillingDetails} from 'getsentry/types';
-import {hasNewBillingUI, hasStripeComponentsFeature} from 'getsentry/utils/billing';
+import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
 import {countryCodes} from 'getsentry/utils/ISO3166codes';
 import type {TaxFieldInfo} from 'getsentry/utils/salesTax';
 import {
@@ -167,7 +167,6 @@ function BillingDetailsForm({
       !!initialData?.taxNumber || countryHasSalesTax(initialData?.countryCode),
   });
   const hasStripeComponents = hasStripeComponentsFeature(organization);
-  const isNewBillingUI = hasNewBillingUI(organization);
   const location = useLocation();
 
   const taxFieldInfo = useMemo(
@@ -194,7 +193,7 @@ function BillingDetailsForm({
   };
 
   useEffect(() => {
-    const requiredFields = ['addressLine1', 'city', 'countryCode'];
+    const requiredFields = ['addressLine1', 'countryCode'];
     requiredFields.forEach(field => {
       form.setFieldDescriptor(field, {
         required: true,
@@ -208,18 +207,6 @@ function BillingDetailsForm({
     };
   }, [form]);
 
-  useEffect(() => {
-    if (countryHasRegionChoices(state.countryCode)) {
-      form.setFieldDescriptor('region', {required: true});
-    } else {
-      form.setFieldDescriptor('region', {required: false});
-    }
-
-    return () => {
-      form.removeField('region');
-    };
-  }, [state.countryCode, form]);
-
   if (!organization.access.includes('org:billing')) {
     return null;
   }
@@ -228,7 +215,6 @@ function BillingDetailsForm({
     if (analyticsEvent) {
       trackGetsentryAnalytics(analyticsEvent, {
         organization,
-        isNewBillingUI,
         isStripeComponent: hasStripeComponents,
         referrer: decodeScalar(location.query?.referrer),
       });
@@ -250,6 +236,7 @@ function BillingDetailsForm({
         wrapper={wrapper}
         submitLabel={submitLabel}
         fieldProps={fieldProps}
+        extraButton={extraButton}
       />
     );
   }
@@ -272,7 +259,7 @@ function BillingDetailsForm({
       submitLabel={submitLabel}
       onPreSubmit={onPreSubmit}
       onSubmitSuccess={handleSubmit}
-      onSubmitError={onSubmitError}
+      onSubmitError={err => onSubmitError?.(err)}
       initialData={transformedInitialData}
       footerStyle={footerStyle}
       extraButton={extraButton}

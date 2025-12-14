@@ -1,5 +1,10 @@
+from __future__ import annotations
+
+import logging
+from collections import defaultdict
 from enum import IntEnum
 
+import sentry_sdk
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -11,6 +16,8 @@ from sentry.db.models.fields.bounded import (
 )
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.models.commitcomparison import CommitComparison
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_model
@@ -36,7 +43,7 @@ class PreprodArtifact(DefaultFieldsModel):
         """The artifact failed to upload or process. Read the error_code and error_message for more details."""
 
         @classmethod
-        def as_choices(cls):
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
                 (cls.UPLOADING, "uploading"),
                 (cls.UPLOADED, "uploaded"),
@@ -53,7 +60,7 @@ class PreprodArtifact(DefaultFieldsModel):
         """Android APK."""
 
         @classmethod
-        def as_choices(cls):
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
                 (cls.XCARCHIVE, "xcarchive"),
                 (cls.AAB, "aab"),
@@ -71,7 +78,7 @@ class PreprodArtifact(DefaultFieldsModel):
         """The artifact processing failed."""
 
         @classmethod
-        def as_choices(cls):
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
                 (cls.UNKNOWN, "unknown"),
                 (cls.UPLOAD_TIMEOUT, "upload_timeout"),
@@ -109,6 +116,11 @@ class PreprodArtifact(DefaultFieldsModel):
     # E.g. 9999
     build_number = BoundedBigIntegerField(null=True)
 
+    # Version of tooling used to upload/build the artifact, extracted from metadata files
+    cli_version = models.CharField(max_length=255, null=True)
+    fastlane_plugin_version = models.CharField(max_length=255, null=True)
+    gradle_plugin_version = models.CharField(max_length=255, null=True)
+
     # Miscellaneous fields that we don't need columns for, e.g. enqueue/dequeue times, user-agent, etc.
     extras = models.JSONField(null=True)
 
@@ -133,27 +145,54 @@ class PreprodArtifact(DefaultFieldsModel):
     # An identifier for the main binary
     main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
 
-    def get_sibling_artifacts_for_commit(self) -> models.QuerySet["PreprodArtifact"]:
-        """
-        Get all artifacts for the same commit comparison (monorepo scenario).
+    # The objectstore id of the app icon
+    app_icon_id = models.CharField(max_length=255, null=True)
 
-        Note: Always includes the calling artifact itself along with any siblings.
+    def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
+        """
+        Get sibling artifacts for the same commit, deduplicated by (app_id, artifact_type).
+
+        When multiple artifacts exist for the same (app_id, artifact_type) combination
+        (e.g., due to reprocessing or CI retries), this method returns only one artifact
+        per combination to prevent duplicate rows in status checks:
+        - For the calling artifact's (app_id, artifact_type): Returns the calling artifact itself
+        - For other combinations: Returns the earliest (oldest) artifact for that combination
+
+        Note: Deduplication by both app_id and artifact_type is necessary because
+        iOS and Android apps can share the same app_id (e.g., "com.example.app").
+
         Results are filtered by the current artifact's organization for security.
 
         Returns:
-            QuerySet of PreprodArtifact objects, ordered by app_id for stable results
+            List of PreprodArtifact objects, deduplicated by (app_id, artifact_type),
+            ordered by app_id
         """
         if not self.commit_comparison:
-            return PreprodArtifact.objects.none()
+            return []
 
-        return PreprodArtifact.objects.filter(
+        all_artifacts = PreprodArtifact.objects.filter(
             commit_comparison=self.commit_comparison,
             project__organization_id=self.project.organization_id,
-        ).order_by("app_id")
+        ).order_by("app_id", "artifact_type", "date_added")
+
+        artifacts_by_key = defaultdict(list)
+        for artifact in all_artifacts:
+            key = (artifact.app_id, artifact.artifact_type)
+            artifacts_by_key[key].append(artifact)
+
+        selected_artifacts = []
+        for (app_id, artifact_type), artifacts in artifacts_by_key.items():
+            if self.app_id == app_id and self.artifact_type == artifact_type:
+                selected_artifacts.append(self)
+            else:
+                selected_artifacts.append(artifacts[0])
+
+        selected_artifacts.sort(key=lambda a: a.app_id or "")
+        return selected_artifacts
 
     def get_base_artifact_for_commit(
         self, artifact_type: ArtifactType | None = None
-    ) -> models.QuerySet["PreprodArtifact"]:
+    ) -> models.QuerySet[PreprodArtifact]:
         """
         Get the base artifact for the same commit comparison (monorepo scenario).
         Multiple artifacts can share the same commit comparison, but only one should
@@ -162,13 +201,34 @@ class PreprodArtifact(DefaultFieldsModel):
         if not self.commit_comparison:
             return PreprodArtifact.objects.none()
 
-        try:
-            base_commit_comparison = CommitComparison.objects.get(
-                head_sha=self.commit_comparison.base_sha,
-                organization_id=self.project.organization_id,
-            )
-        except CommitComparison.DoesNotExist:
+        base_commit_comparisons_qs = CommitComparison.objects.filter(
+            head_sha=self.commit_comparison.base_sha,
+            organization_id=self.project.organization_id,
+        ).order_by("date_added")
+        base_commit_comparisons = list(base_commit_comparisons_qs)
+
+        if len(base_commit_comparisons) == 0:
             return PreprodArtifact.objects.none()
+        elif len(base_commit_comparisons) == 1:
+            base_commit_comparison = base_commit_comparisons[0]
+        else:
+            logger.warning(
+                "preprod.models.get_base_artifact_for_commit.multiple_base_commit_comparisons",
+                extra={
+                    "head_sha": self.commit_comparison.head_sha,
+                    "organization_id": self.project.organization_id,
+                    "base_commit_comparison_ids": [c.id for c in base_commit_comparisons],
+                },
+            )
+            sentry_sdk.capture_message(
+                "Multiple base commitcomparisons found",
+                level="error",
+                extras={
+                    "sha": self.commit_comparison.head_sha,
+                },
+            )
+            # Take first (oldest) commit comparison
+            base_commit_comparison = base_commit_comparisons[0]
 
         return PreprodArtifact.objects.filter(
             commit_comparison=base_commit_comparison,
@@ -180,7 +240,7 @@ class PreprodArtifact(DefaultFieldsModel):
 
     def get_head_artifacts_for_commit(
         self, artifact_type: ArtifactType | None = None
-    ) -> models.QuerySet["PreprodArtifact"]:
+    ) -> models.QuerySet[PreprodArtifact]:
         """
         Get all head artifacts for the same commit comparison (monorepo scenario).
         There can be multiple head artifacts for a commit comparison, as multiple
@@ -203,9 +263,9 @@ class PreprodArtifact(DefaultFieldsModel):
 
     def get_size_metrics(
         self,
-        metrics_artifact_type: "PreprodArtifactSizeMetrics.MetricsArtifactType | None" = None,
+        metrics_artifact_type: PreprodArtifactSizeMetrics.MetricsArtifactType | None = None,
         identifier: str | None = None,
-    ) -> models.QuerySet["PreprodArtifactSizeMetrics"]:
+    ) -> models.QuerySet[PreprodArtifactSizeMetrics]:
         """Get size metrics for this artifact with optional filtering."""
         queryset = self.preprodartifactsizemetrics_set.all()
 
@@ -220,10 +280,10 @@ class PreprodArtifact(DefaultFieldsModel):
     @classmethod
     def get_size_metrics_for_artifacts(
         cls,
-        artifacts: models.QuerySet["PreprodArtifact"] | list["PreprodArtifact"],
-        metrics_artifact_type: "PreprodArtifactSizeMetrics.MetricsArtifactType | None" = None,
+        artifacts: models.QuerySet[PreprodArtifact] | list[PreprodArtifact],
+        metrics_artifact_type: PreprodArtifactSizeMetrics.MetricsArtifactType | None = None,
         identifier: str | None = None,
-    ) -> dict[int, models.QuerySet["PreprodArtifactSizeMetrics"]]:
+    ) -> dict[int, models.QuerySet[PreprodArtifactSizeMetrics]]:
         """
         Get size metrics for multiple artifacts using a single query.
 
@@ -249,7 +309,7 @@ class PreprodArtifact(DefaultFieldsModel):
             queryset = queryset.filter(identifier=identifier)
 
         # Group results by artifact_id
-        results: dict[int, models.QuerySet["PreprodArtifactSizeMetrics"]] = {}
+        results: dict[int, models.QuerySet[PreprodArtifactSizeMetrics]] = {}
         for artifact_id in artifact_ids:
             results[artifact_id] = queryset.filter(preprod_artifact_id=artifact_id)
 
@@ -263,6 +323,13 @@ class PreprodArtifact(DefaultFieldsModel):
 
     def is_ios(self) -> bool:
         return self.artifact_type == self.ArtifactType.XCARCHIVE
+
+    def get_platform_label(self) -> str | None:
+        if self.is_android():
+            return "Android"
+        elif self.is_ios():
+            return "iOS"
+        return None
 
     class Meta:
         app_label = "preprod"
@@ -300,7 +367,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         """An embedded Android dynamic feature artifact."""
 
         @classmethod
-        def as_choices(cls):
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
                 (cls.MAIN_ARTIFACT, "main_artifact"),
                 (cls.WATCH_ARTIFACT, "watch_artifact"),
@@ -318,7 +385,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         """Size analysis failed. See error_code and error_message for details."""
 
         @classmethod
-        def as_choices(cls):
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
                 (cls.PENDING, "pending"),
                 (cls.PROCESSING, "processing"),
@@ -337,7 +404,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         """An error occurred during size analysis processing."""
 
         @classmethod
-        def as_choices(cls):
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
                 (cls.UNKNOWN, "unknown"),
                 (cls.TIMEOUT, "timeout"),
@@ -454,7 +521,7 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
         """The comparison failed. See error_code and error_message for details."""
 
         @classmethod
-        def as_choices(cls):
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
                 (cls.PENDING, "pending"),
                 (cls.PROCESSING, "processing"),
@@ -475,7 +542,7 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
         """The size analysis comparison timed out."""
 
         @classmethod
-        def as_choices(cls):
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
                 (cls.UNKNOWN, "unknown"),
                 (cls.TIMEOUT, "timeout"),

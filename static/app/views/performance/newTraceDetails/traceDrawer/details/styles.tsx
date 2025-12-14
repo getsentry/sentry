@@ -53,8 +53,8 @@ import type {Color, ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {getIsAiNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
-import {getIsMCPNode} from 'sentry/views/insights/mcp/utils/mcpTraceNodes';
+import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
 import {
@@ -137,6 +137,7 @@ function SubtitleWithCopyButton({
       <StyledSubTitleText>{subTitle}</StyledSubTitleText>
       {clipboardText ? (
         <CopyToClipboardButton
+          aria-label={t('Copy to clipboard')}
           borderless
           size="zero"
           text={clipboardText}
@@ -163,6 +164,7 @@ function TitleOp({text}: {text: string}) {
         <Fragment>
           {text}
           <CopyToClipboardButton
+            aria-label={t('Copy to clipboard')}
             borderless
             size="zero"
             text={text}
@@ -203,7 +205,7 @@ const IconTitleWrapper = styled(FlexBox)`
 
 const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   background-color: ${p => p.backgroundColor};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: 0;
   display: flex;
   align-items: center;
@@ -659,7 +661,7 @@ const HighlightsDurationWrapper = styled(FlexBox)`
 `;
 
 const HighlightDuration = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 400;
 `;
 
@@ -1144,7 +1146,12 @@ function CopyableCardValueWithLink({
       <CardValueText>
         {value}
         {typeof value === 'string' ? (
-          <StyledCopyToClipboardButton borderless size="zero" text={value} />
+          <StyledCopyToClipboardButton
+            borderless
+            size="zero"
+            text={value}
+            aria-label={t('Copy to clipboard')}
+          />
         ) : null}
       </CardValueText>
       {linkTarget && linkTarget ? (
@@ -1222,7 +1229,7 @@ function MultilineText({children}: {children: string}) {
 const MultilineTextWrapper = styled('div')`
   white-space: pre-wrap;
   background-color: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)};
   word-break: break-word;
   &:not(:last-child) {
@@ -1264,7 +1271,7 @@ function MultilineJSON({
 
 const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const MultilineTextLabel = styled('div')`

@@ -172,6 +172,18 @@ export const getCodeChangesIsLoading = (autofixData: AutofixData) => {
   return changesStep?.status === AutofixStatus.PROCESSING;
 };
 
+export function hasPullRequest(autofixData: AutofixData | null | undefined): boolean {
+  if (!autofixData) {
+    return false;
+  }
+
+  const changesStep = autofixData.steps?.find(
+    step => step.type === AutofixStepType.CHANGES
+  );
+
+  return Boolean(changesStep?.changes?.some(change => change.pull_request));
+}
+
 const supportedProviders = ['integrations:github', 'integrations:github_enterprise'];
 
 export const isSupportedAutofixProvider = (provider?: {id: string; name: string}) => {

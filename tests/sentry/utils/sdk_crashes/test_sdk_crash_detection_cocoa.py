@@ -634,6 +634,14 @@ class CococaSDKFunctionTestMixin(BaseSDKCrashDetectionMixin):
             mock_sdk_crash_reporter,
         )
 
+    # "+[SentrySDKInternal crash]" is used for testing, so we must ignore it.
+    def test_sentrySDKInternal_not_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
+        self.execute_test(
+            get_crash_event(function="+[SentrySDKInternal crash]"),
+            False,
+            mock_sdk_crash_reporter,
+        )
+
     # "SentryCrashExceptionApplicationHelper _crashOnException" calls abort() intentionally, so we must ignore it.
     def test_sentrycrash_exception_application_helper_not_reported(
         self, mock_sdk_crash_reporter: MagicMock

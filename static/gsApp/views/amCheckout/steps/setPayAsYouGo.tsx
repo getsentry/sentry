@@ -21,7 +21,7 @@ import {OnDemandBudgetMode, type OnDemandBudgets} from 'getsentry/types';
 import {isBizPlanFamily} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {getTotalBudget} from 'getsentry/views/onDemandBudgets/utils';
 
@@ -60,10 +60,9 @@ function SetPayAsYouGo({
 
   const addOnCategories = useMemo(() => {
     return Object.values(activePlan.addOnCategories).filter(
-      addOnInfo =>
-        !addOnInfo.billingFlag || organization.features.includes(addOnInfo.billingFlag)
+      addOnInfo => subscription.addOns?.[addOnInfo.apiName]?.isAvailable ?? false
     );
-  }, [activePlan, organization.features]);
+  }, [activePlan, subscription.addOns]);
 
   const paygOnlyCategories = useMemo(() => {
     return activePlan.categories.filter(
@@ -95,7 +94,6 @@ function SetPayAsYouGo({
           plan: formData.plan,
           cents: totalBudget || 0,
           method: fromButton ? 'button' : 'textbox',
-          isNewCheckout: false,
         });
       }
       setCurrentBudget(totalBudget);
@@ -360,7 +358,7 @@ const Currency = styled('div')`
 `;
 
 const PayAsYouGoInput = styled(Input)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   max-width: 120px;
   height: 36px;
   text-align: right;
@@ -402,7 +400,7 @@ const Column = styled('div')`
 const Box = styled('div')<{padding?: string}>`
   border: 1px solid ${p => p.theme.border};
   padding: ${p => p.padding || space(2)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const Title = styled('label')`

@@ -43,6 +43,9 @@ from sentry.testutils.pytest.fixtures import django_db_all
 ON_DEMAND_METRICS = "organizations:on-demand-metrics-extraction"
 ON_DEMAND_METRICS_WIDGETS = "organizations:on-demand-metrics-extraction-widgets"
 ON_DEMAND_METRICS_PREFILL = "organizations:on-demand-metrics-prefill"
+ON_DEMAND_METRICS_PREFILL_FOR_DEPRECATION = (
+    "organizations:on-demand-gen-metrics-deprecation-prefill"
+)
 
 
 def create_alert(
@@ -1949,6 +1952,7 @@ def test_get_metric_extraction_config_epm_eps(
         ([ON_DEMAND_METRICS], 1),  # Alerts.
         ([ON_DEMAND_METRICS_PREFILL], 1),  # Alerts.
         ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_PREFILL], 1),  # Alerts.
+        ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_PREFILL_FOR_DEPRECATION], 2),  # Alerts.
         # Revert to 2 after {"include_environment_tag"} becomes the default
         ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS], 3),  # Alerts and widgets.
         # Revert to 1 after {"include_environment_tag"} becomes the default
@@ -1965,8 +1969,12 @@ def test_get_metrics_extraction_config_features_combinations(
     enabled_features: str, number_of_metrics: int, default_project: Project, widget_type: int
 ) -> None:
     create_alert("count()", "transaction.duration:>=10", default_project)
+    create_alert("avg(transaction.duration)", "", default_project)
     create_widget(
         ["count()"], "transaction.duration:>=20", default_project, widget_type=widget_type
+    )
+    create_widget(
+        ["avg(transaction.duration)"], "", default_project, title="new", widget_type=widget_type
     )
 
     features = {feature: True for feature in enabled_features}

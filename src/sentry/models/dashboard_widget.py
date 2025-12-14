@@ -68,6 +68,10 @@ class DashboardWidgetTypes(TypesClass):
     These represent the logs trace item type on the EAP dataset.
     """
     LOGS = 103
+    """
+    These represent the tracemetrics item type on the EAP dataset.
+    """
+    TRACEMETRICS = 104
 
     TYPES = [
         (DISCOVER, "discover"),
@@ -80,6 +84,7 @@ class DashboardWidgetTypes(TypesClass):
         (TRANSACTION_LIKE, "transaction-like"),
         (SPANS, "spans"),
         (LOGS, "logs"),
+        (TRACEMETRICS, "tracemetrics"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -119,6 +124,22 @@ class DatasetSourcesTypes(Enum):
      Dataset modified by using the widget snapshot to restore the original transaction query
     """
     RESTORED_SPAN_MIGRATION_VERSION_1 = 7
+    """
+     Dataset modified by the transaction -> span migration version 2
+    """
+    SPAN_MIGRATION_VERSION_2 = 8
+    """
+    Dataset modified by the transaction -> span migration version 3
+    """
+    SPAN_MIGRATION_VERSION_3 = 9
+    """
+    Dataset modified by the transaction -> span migration version 4 (fixing boolean bug)
+    """
+    SPAN_MIGRATION_VERSION_4 = 10
+    """
+    Dataset modified by the transaction -> span migration version 5 (fixing boolean bug again)
+    """
+    SPAN_MIGRATION_VERSION_5 = 11
 
     @classmethod
     def as_choices(cls):
@@ -147,6 +168,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
     TABLE = 4
     BIG_NUMBER = 6
     TOP_N = 7
+    DETAILS = 8
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
@@ -155,6 +177,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (TABLE, "table"),
         (BIG_NUMBER, "big_number"),
         (TOP_N, "top_n"),
+        (DETAILS, "details"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 

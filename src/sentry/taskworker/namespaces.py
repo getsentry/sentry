@@ -26,6 +26,11 @@ buffer_tasks = app.taskregistry.create_namespace(
     app_feature="errors",
 )
 
+conduit_tasks = app.taskregistry.create_namespace(
+    "conduit",
+    app_feature="conduit",
+)
+
 crons_tasks = app.taskregistry.create_namespace(
     "crons",
     app_feature="crons",
@@ -33,7 +38,7 @@ crons_tasks = app.taskregistry.create_namespace(
 
 deletion_tasks = app.taskregistry.create_namespace(
     "deletions",
-    processing_deadline_duration=60 * 10,
+    processing_deadline_duration=60 * 20,
     app_feature="shared",
 )
 

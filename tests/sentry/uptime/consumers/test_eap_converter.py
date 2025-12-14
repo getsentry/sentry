@@ -266,6 +266,43 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         assert attributes["method"].string_value == "POST"
         assert attributes["original_url"].string_value == "https://original.example.com/path"
 
+    def test_convert_with_no_request_info(self) -> None:
+        """Test that we can create a TraceItem when request_info is None (e.g., for misses)."""
+        result = self._create_base_result(
+            status="missed_window",
+            status_reason={"type": "missed_window", "description": "Check was not executed"},
+        )
+
+        item_id = b"span-789"[:16].ljust(16, b"\x00")
+        trace_item = convert_uptime_request_to_trace_item(
+            self.project, result, None, 0, item_id, IncidentStatus.NO_INCIDENT
+        )
+
+        self._assert_trace_item_base_fields(trace_item)
+        assert trace_item.item_id == item_id
+
+        attributes = trace_item.attributes
+
+        # Check-level metadata should be present
+        assert attributes["guid"].string_value == "test-guid-123"
+        assert attributes["subscription_id"].string_value == "sub-456"
+        assert attributes["check_status"].string_value == "missed_window"
+        assert attributes["region"].string_value == "us-east-1"
+        assert attributes["scheduled_check_time_us"].int_value == 1609459200000000
+        assert attributes["actual_check_time_us"].int_value == 1609459205000000
+        assert attributes["status_reason_type"].string_value == "missed_window"
+        assert attributes["status_reason_description"].string_value == "Check was not executed"
+        assert attributes["check_id"].string_value == "test-guid-123"
+        assert attributes["request_sequence"].int_value == 0
+
+        # Request-specific attributes should NOT be present
+        assert "request_type" not in attributes
+        assert "http_status_code" not in attributes
+        assert "request_url" not in attributes
+        assert "request_duration_us" not in attributes
+        assert "request_body_size_bytes" not in attributes
+        assert "response_body_size_bytes" not in attributes
+
 
 class TestFullDenormalizedConversion(SentryTestCase):
 
@@ -363,12 +400,28 @@ class TestFullDenormalizedConversion(SentryTestCase):
         assert attributes["request_url"].string_value == "https://example.com"
 
     def test_convert_with_no_requests(self) -> None:
-        """Test conversion when there are no requests to convert (e.g., missed_window status)."""
-        result = self._create_base_result()  # Has request_info=None and no request_info_list
+        """Test conversion when there are no requests (e.g., missed_window status)."""
+        result = self._create_base_result(
+            status="missed_window",
+            status_reason={"type": "missed_window", "description": "Check was not executed"},
+        )  # Has request_info=None and no request_info_list
 
         trace_items = convert_uptime_result_to_trace_items(
             self.project, result, IncidentStatus.NO_INCIDENT
         )
 
-        # Should return empty list when there are legitimately no requests to convert
-        assert len(trace_items) == 0
+        # Should return one item with check-level metadata but no request-specific data
+        assert len(trace_items) == 1
+        trace_item = trace_items[0]
+
+        attributes = trace_item.attributes
+        # Check-level metadata should be present
+        assert attributes["guid"].string_value == "test-guid-123"
+        assert attributes["subscription_id"].string_value == "sub-456"
+        assert attributes["check_status"].string_value == "missed_window"
+        assert attributes["status_reason_type"].string_value == "missed_window"
+
+        # Request-specific attributes should NOT be present
+        assert "request_type" not in attributes
+        assert "http_status_code" not in attributes
+        assert "request_url" not in attributes

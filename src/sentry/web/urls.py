@@ -4,7 +4,6 @@ import re
 
 from django.conf import settings
 from django.conf.urls import include
-from django.http import HttpResponse
 from django.urls import URLPattern, URLResolver, re_path
 from django.views.generic import RedirectView
 
@@ -983,6 +982,12 @@ urlpatterns += [
         react_page_view,
         name="prevent",
     ),
+    # Monitors
+    re_path(
+        r"^monitors/",
+        react_page_view,
+        name="monitors",
+    ),
     # Data Export
     re_path(
         r"^data-export/",
@@ -1251,13 +1256,13 @@ urlpatterns += [
     # See: https://github.com/getsentry/sentry/issues/2195
     re_path(
         r"^favicon\.ico$",
-        lambda r: HttpResponse(status=404),
+        api.not_found,
         name="sentry-favicon-404",
     ),
     # crossdomain.xml
     re_path(
         r"^crossdomain\.xml$",
-        lambda r: HttpResponse(status=404),
+        api.not_found,
         name="sentry-crossdomain-404",
     ),
     # plugins

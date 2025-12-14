@@ -7,17 +7,29 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 
 import {DataCategory} from 'sentry/types/core';
 
-import {BILLION, GIGABYTE, MILLION, UNLIMITED} from 'getsentry/constants';
-import {InvoiceItemType, OnDemandBudgetMode, type ProductTrial} from 'getsentry/types';
 import {
+  BILLION,
+  GIGABYTE,
+  MILLION,
+  RESERVED_BUDGET_QUOTA,
+  UNLIMITED,
+  UNLIMITED_RESERVED,
+} from 'getsentry/constants';
+import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
+import type {ProductTrial, Subscription} from 'getsentry/types';
+import {
+  checkIsAddOn,
+  checkIsAddOnChildCategory,
   convertUsageToReservedUnit,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
   getBestActionToIncreaseEventLimits,
+  getBilledCategory,
   getCreditApplied,
   getOnDemandCategories,
   getProductTrial,
+  getSeerTrialCategory,
   getSlot,
   hasPerformance,
   isBizPlanFamily,
@@ -26,6 +38,7 @@ import {
   isNewPayingCustomer,
   isTeamPlanFamily,
   MILLISECONDS_IN_HOUR,
+  productIsEnabled,
   trialPromptIsDismissed,
   UsageAction,
 } from 'getsentry/utils/billing';
@@ -184,6 +197,11 @@ describe('formatReservedWithUnits', () => {
         useUnitScaling: true,
       })
     ).toBe(UNLIMITED);
+    expect(
+      formatReservedWithUnits(-1, DataCategory.ATTACHMENTS, {
+        useUnitScaling: true,
+      })
+    ).toBe(UNLIMITED);
   });
 
   it('returns correct string for Profile Duration', () => {
@@ -249,6 +267,11 @@ describe('formatReservedWithUnits', () => {
     ).toBe('1.23 ZB');
     expect(
       formatReservedWithUnits(-1 / GIGABYTE, DataCategory.LOG_BYTE, {
+        useUnitScaling: true,
+      })
+    ).toBe(UNLIMITED);
+    expect(
+      formatReservedWithUnits(-1, DataCategory.LOG_BYTE, {
         useUnitScaling: true,
       })
     ).toBe(UNLIMITED);
@@ -1097,7 +1120,7 @@ describe('getCreditApplied', () => {
         creditApplied: 100,
         invoiceItems: [
           {
-            type: InvoiceItemType.SUBSCRIPTION_CREDIT,
+            type: 'subscription_credit',
             ...commonCreditProps,
           },
         ],
@@ -1108,7 +1131,7 @@ describe('getCreditApplied', () => {
         creditApplied: 100,
         invoiceItems: [
           {
-            type: InvoiceItemType.BALANCE_CHANGE,
+            type: 'balance_change',
             ...commonCreditProps,
           },
         ],
@@ -1119,12 +1142,341 @@ describe('getCreditApplied', () => {
         creditApplied: 100,
         invoiceItems: [
           {
-            type: InvoiceItemType.BALANCE_CHANGE,
+            type: 'balance_change',
             ...commonCreditProps,
             amount: -50,
           },
         ],
       })
     ).toBe(0);
+  });
+});
+
+describe('checkIsAddOn', () => {
+  it('returns true for add-on', () => {
+    expect(checkIsAddOn(AddOnCategory.LEGACY_SEER)).toBe(true);
+    expect(checkIsAddOn(AddOnCategory.SEER)).toBe(true);
+  });
+
+  it('returns false for data category', () => {
+    expect(checkIsAddOn(DataCategory.ERRORS)).toBe(false);
+    expect(checkIsAddOn(DataCategory.SEER_AUTOFIX)).toBe(false);
+  });
+});
+
+describe('checkIsAddOnChildCategory', () => {
+  const organization = OrganizationFixture();
+  let subscription: Subscription;
+
+  beforeEach(() => {
+    subscription = SubscriptionFixture({organization, plan: 'am3_team'});
+  });
+
+  it('returns false when parent add-on is unavailable', () => {
+    subscription.addOns!.seer = {
+      ...subscription.addOns?.seer!,
+      isAvailable: false,
+    };
+    expect(checkIsAddOnChildCategory(subscription, DataCategory.SEER_USER, true)).toBe(
+      false
+    );
+  });
+
+  it('returns true for zero reserved volume', () => {
+    subscription.categories.seerUsers = {
+      ...subscription.categories.seerUsers!,
+      reserved: 0,
+    };
+    expect(checkIsAddOnChildCategory(subscription, DataCategory.SEER_USER, true)).toBe(
+      true
+    );
+  });
+
+  it('returns true for RESERVED_BUDGET_QUOTA reserved volume', () => {
+    subscription.categories.seerAutofix = {
+      ...subscription.categories.seerAutofix!,
+      reserved: RESERVED_BUDGET_QUOTA,
+    };
+    expect(checkIsAddOnChildCategory(subscription, DataCategory.SEER_AUTOFIX, true)).toBe(
+      true
+    );
+  });
+
+  it('returns true for sub-categories regardless of reserved volume if not checking', () => {
+    subscription.categories.seerAutofix = {
+      ...subscription.categories.seerAutofix!,
+      reserved: UNLIMITED_RESERVED,
+    };
+    expect(
+      checkIsAddOnChildCategory(subscription, DataCategory.SEER_AUTOFIX, false)
+    ).toBe(true);
+  });
+
+  it('returns false for sub-categories with non-zero reserved volume if checking', () => {
+    subscription.categories.seerAutofix = {
+      ...subscription.categories.seerAutofix!,
+      reserved: UNLIMITED_RESERVED,
+    };
+    expect(checkIsAddOnChildCategory(subscription, DataCategory.SEER_AUTOFIX, true)).toBe(
+      false
+    );
+  });
+});
+
+describe('getBilledCategory', () => {
+  const organization = OrganizationFixture();
+  const subscription = SubscriptionFixture({organization, plan: 'am3_team'});
+
+  it('returns correct billed category for data category', () => {
+    subscription.planDetails.categories.forEach(category => {
+      expect(getBilledCategory(subscription, category)).toBe(category);
+    });
+  });
+
+  it('returns correct billed category for add-on', () => {
+    expect(getBilledCategory(subscription, AddOnCategory.LEGACY_SEER)).toBe(
+      DataCategory.SEER_AUTOFIX
+    );
+    expect(getBilledCategory(subscription, AddOnCategory.SEER)).toBe(
+      DataCategory.SEER_USER
+    );
+  });
+});
+
+describe('productIsEnabled', () => {
+  const organization = OrganizationFixture();
+  let subscription: Subscription;
+
+  beforeEach(() => {
+    subscription = SubscriptionFixture({organization, plan: 'am3_team'});
+  });
+
+  it('returns true for active product trial', () => {
+    subscription.productTrials = [
+      {
+        // not started
+        category: DataCategory.PROFILE_DURATION,
+        isStarted: false,
+        reasonCode: 1001,
+        startDate: undefined,
+        endDate: moment().utc().add(20, 'years').format(),
+      },
+      {
+        // started
+        category: DataCategory.REPLAYS,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(10, 'days').format(),
+        endDate: moment().utc().add(20, 'days').format(),
+      },
+      {
+        // started
+        category: DataCategory.SEER_AUTOFIX,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(10, 'days').format(),
+        endDate: moment().utc().add(20, 'days').format(),
+      },
+    ];
+
+    expect(productIsEnabled(subscription, DataCategory.PROFILE_DURATION)).toBe(false);
+    expect(productIsEnabled(subscription, DataCategory.REPLAYS)).toBe(true);
+    expect(productIsEnabled(subscription, DataCategory.SEER_AUTOFIX)).toBe(true);
+    expect(productIsEnabled(subscription, AddOnCategory.LEGACY_SEER)).toBe(true); // because there is a product trial for the billed category
+  });
+
+  it('uses subscription add-on info for add-on', () => {
+    subscription.addOns!.seer = {
+      ...subscription.addOns?.seer!,
+      enabled: true,
+    };
+
+    expect(productIsEnabled(subscription, AddOnCategory.SEER)).toBe(true);
+    expect(productIsEnabled(subscription, AddOnCategory.LEGACY_SEER)).toBe(false);
+  });
+
+  it('returns true for non-PAYG-only data categories', () => {
+    expect(productIsEnabled(subscription, DataCategory.ERRORS)).toBe(true);
+  });
+
+  it('uses PAYG budgets for PAYG-only data categories', () => {
+    expect(productIsEnabled(subscription, DataCategory.PROFILE_DURATION)).toBe(false);
+
+    // shared PAYG
+    subscription.onDemandBudgets = {
+      budgetMode: OnDemandBudgetMode.SHARED,
+      sharedMaxBudget: 1000,
+      enabled: true,
+      onDemandSpendUsed: 0,
+    };
+    expect(productIsEnabled(subscription, DataCategory.PROFILE_DURATION)).toBe(true);
+
+    // per-category PAYG
+    subscription.onDemandBudgets = {
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+      enabled: true,
+      budgets: {
+        errors: 1000,
+      },
+      usedSpends: {},
+    };
+    expect(productIsEnabled(subscription, DataCategory.PROFILE_DURATION)).toBe(false);
+
+    subscription.onDemandBudgets.budgets = {
+      ...subscription.onDemandBudgets.budgets,
+      profileDuration: 1000,
+    };
+    subscription.categories.profileDuration = {
+      ...subscription.categories.profileDuration!,
+      onDemandBudget: 1000,
+    };
+    expect(productIsEnabled(subscription, DataCategory.PROFILE_DURATION)).toBe(true);
+  });
+});
+
+describe('getSeerTrialCategory', () => {
+  it('returns null for null productTrials', () => {
+    expect(getSeerTrialCategory(null)).toBeNull();
+  });
+
+  it('returns null for empty productTrials', () => {
+    expect(getSeerTrialCategory([])).toBeNull();
+  });
+
+  it('returns null when no Seer trials exist', () => {
+    const trials: ProductTrial[] = [
+      {
+        category: DataCategory.ERRORS,
+        isStarted: false,
+        reasonCode: 1001,
+        endDate: moment().utc().add(20, 'days').format(),
+      },
+    ];
+    expect(getSeerTrialCategory(trials)).toBeNull();
+  });
+
+  it('returns SEER_USER when SEER_USER trial exists (seat-based billing)', () => {
+    const trials: ProductTrial[] = [
+      {
+        category: DataCategory.SEER_USER,
+        isStarted: false,
+        reasonCode: 1001,
+        endDate: moment().utc().add(20, 'days').format(),
+      },
+    ];
+    expect(getSeerTrialCategory(trials)).toBe(DataCategory.SEER_USER);
+  });
+
+  it('returns SEER_AUTOFIX when only SEER_AUTOFIX trial exists (legacy billing)', () => {
+    const trials: ProductTrial[] = [
+      {
+        category: DataCategory.SEER_AUTOFIX,
+        isStarted: false,
+        reasonCode: 1001,
+        endDate: moment().utc().add(20, 'days').format(),
+      },
+    ];
+    expect(getSeerTrialCategory(trials)).toBe(DataCategory.SEER_AUTOFIX);
+  });
+
+  it('returns SEER_USER when both SEER_USER and SEER_AUTOFIX trials exist (SEER_USER takes precedence)', () => {
+    const trials: ProductTrial[] = [
+      {
+        category: DataCategory.SEER_AUTOFIX,
+        isStarted: false,
+        reasonCode: 1001,
+        endDate: moment().utc().add(20, 'days').format(),
+      },
+      {
+        category: DataCategory.SEER_USER,
+        isStarted: false,
+        reasonCode: 1002,
+        endDate: moment().utc().add(20, 'days').format(),
+      },
+    ];
+    expect(getSeerTrialCategory(trials)).toBe(DataCategory.SEER_USER);
+  });
+
+  it('returns SEER_USER when SEER_USER trial is active', () => {
+    const trials: ProductTrial[] = [
+      {
+        category: DataCategory.SEER_USER,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(5, 'days').format(),
+        endDate: moment().utc().add(10, 'days').format(),
+      },
+    ];
+    expect(getSeerTrialCategory(trials)).toBe(DataCategory.SEER_USER);
+  });
+
+  it('returns SEER_AUTOFIX when SEER_AUTOFIX trial is active (legacy)', () => {
+    const trials: ProductTrial[] = [
+      {
+        category: DataCategory.SEER_AUTOFIX,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(5, 'days').format(),
+        endDate: moment().utc().add(10, 'days').format(),
+      },
+    ];
+    expect(getSeerTrialCategory(trials)).toBe(DataCategory.SEER_AUTOFIX);
+  });
+
+  it('returns null when SEER_USER trial has expired (started trial)', () => {
+    const trials: ProductTrial[] = [
+      {
+        category: DataCategory.SEER_USER,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(20, 'days').format(),
+        endDate: moment().utc().subtract(5, 'days').format(),
+      },
+    ];
+    expect(getSeerTrialCategory(trials)).toBeNull();
+  });
+
+  it('returns null when SEER_USER trial offer has expired (unstarted trial with past start-by date)', () => {
+    // This tests the case where an unstarted trial's "start by" deadline has passed
+    const trials: ProductTrial[] = [
+      {
+        category: DataCategory.SEER_USER,
+        isStarted: false,
+        reasonCode: 1001,
+        endDate: moment().utc().subtract(5, 'days').format(), // Expired start-by date
+      },
+    ];
+    expect(getSeerTrialCategory(trials)).toBeNull();
+  });
+
+  it('returns null when SEER_AUTOFIX trial offer has expired (unstarted trial with past start-by date)', () => {
+    const trials: ProductTrial[] = [
+      {
+        category: DataCategory.SEER_AUTOFIX,
+        isStarted: false,
+        reasonCode: 1001,
+        endDate: moment().utc().subtract(5, 'days').format(), // Expired start-by date
+      },
+    ];
+    expect(getSeerTrialCategory(trials)).toBeNull();
+  });
+
+  it('returns SEER_AUTOFIX when SEER_USER is expired but SEER_AUTOFIX is available', () => {
+    const trials: ProductTrial[] = [
+      {
+        category: DataCategory.SEER_USER,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(20, 'days').format(),
+        endDate: moment().utc().subtract(5, 'days').format(),
+      },
+      {
+        category: DataCategory.SEER_AUTOFIX,
+        isStarted: false,
+        reasonCode: 1002,
+        endDate: moment().utc().add(20, 'days').format(),
+      },
+    ];
+    expect(getSeerTrialCategory(trials)).toBe(DataCategory.SEER_AUTOFIX);
   });
 });

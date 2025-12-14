@@ -71,7 +71,6 @@ const SpendToggleWrapper = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
-  margin-bottom: ${space(2)};
 `;
 
 const RadioLabel = styled('label')`

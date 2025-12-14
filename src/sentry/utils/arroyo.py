@@ -126,7 +126,7 @@ def _initialize_arroyo_subprocess(initializer: Callable[[], None] | None, tags: 
     from sentry.metrics.middleware import add_global_tags
 
     # Inherit global tags from the parent process
-    add_global_tags(_all_threads=True, **tags)
+    add_global_tags(all_threads=True, tags=tags)
 
 
 def initialize_arroyo_main() -> None:

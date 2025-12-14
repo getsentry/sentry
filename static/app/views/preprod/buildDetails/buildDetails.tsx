@@ -1,9 +1,11 @@
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {
   fetchMutation,
   useApiQuery,
@@ -16,7 +18,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  isSizeInfoProcessing,
+  type BuildDetailsApiResponse,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 import {BuildDetailsHeaderContent} from './header/buildDetailsHeaderContent';
 import {BuildDetailsMainContent} from './main/buildDetailsMainContent';
@@ -36,8 +41,16 @@ export default function BuildDetails() {
       {
         staleTime: 0,
         enabled: !!projectId && !!artifactId,
+        refetchInterval: query => {
+          const data = query.state.data;
+          const sizeInfo = data?.[0]?.size_info;
+          return isSizeInfoProcessing(sizeInfo) ? 10_000 : false;
+        },
       }
     );
+
+  const sizeInfo = buildDetailsQuery.data?.size_info;
+  const isProcessing = isSizeInfoProcessing(sizeInfo);
 
   const appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError> =
     useApiQuery<AppSizeApiResponse>(
@@ -49,6 +62,15 @@ export default function BuildDetails() {
         enabled: !!projectId && !!artifactId,
       }
     );
+
+  const wasProcessingRef = useRef(isProcessing);
+
+  useEffect(() => {
+    if (wasProcessingRef.current && !isProcessing) {
+      appSizeQuery.refetch();
+    }
+    wasProcessingRef.current = isProcessing;
+  }, [isProcessing, appSizeQuery]);
 
   const {mutate: onRerunAnalysis, isPending: isRerunning} = useMutation<
     void,
@@ -74,6 +96,8 @@ export default function BuildDetails() {
   const buildDetails = buildDetailsQuery.data;
   const version = buildDetails?.app_info?.version;
   const buildNumber = buildDetails?.app_info?.build_number;
+  const project = ProjectsStore.getBySlug(projectId);
+  const projectType = project?.platform ?? null;
 
   let title = t('Build details');
   if (
@@ -87,10 +111,9 @@ export default function BuildDetails() {
     title = t('Build details v%s (%s)', version, buildNumber);
   }
 
-  // If the main data fetch fails, show a single error state instead of per component
   if (
     buildDetailsQuery.isError ||
-    (!buildDetailsQuery.data && !buildDetailsQuery.isPending)
+    (!buildDetailsQuery.data && !buildDetailsQuery.isLoading)
   ) {
     return (
       <SentryDocumentTitle title={title}>
@@ -98,8 +121,9 @@ export default function BuildDetails() {
           <BuildError
             title="Build details unavailable"
             message={
-              buildDetailsQuery.error?.message ||
-              'Unable to load build details for this artifact' // TODO(preprod): translate once we have a final design
+              typeof buildDetailsQuery.error?.responseJSON?.error === 'string'
+                ? buildDetailsQuery.error?.responseJSON.error
+                : t('Unable to load build details for this artifact')
             }
           />
         </Layout.Page>
@@ -115,6 +139,7 @@ export default function BuildDetails() {
             buildDetailsQuery={buildDetailsQuery}
             projectId={projectId}
             artifactId={artifactId}
+            projectType={projectType}
           />
         </Layout.Header>
 
@@ -123,7 +148,7 @@ export default function BuildDetails() {
             <BuildDetailsSide>
               <BuildDetailsSidebarContent
                 buildDetailsData={buildDetailsQuery.data}
-                isBuildDetailsPending={buildDetailsQuery.isPending}
+                isBuildDetailsPending={buildDetailsQuery.isLoading}
                 artifactId={artifactId}
                 projectId={projectId}
               />
@@ -134,7 +159,9 @@ export default function BuildDetails() {
                 onRerunAnalysis={onRerunAnalysis}
                 isRerunning={isRerunning}
                 buildDetailsData={buildDetailsQuery.data}
-                isBuildDetailsPending={buildDetailsQuery.isPending}
+                isBuildDetailsPending={buildDetailsQuery.isLoading}
+                projectType={projectType}
+                projectId={projectId}
               />
             </BuildDetailsMain>
           </UrlParamBatchProvider>

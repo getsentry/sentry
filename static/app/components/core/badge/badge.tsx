@@ -77,8 +77,8 @@ const StyledBadge = styled('span')<BadgeProps>`
   min-width: 20px;
   line-height: 20px;
   border-radius: 20px;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-weight: ${p => p.theme.font.weight.regular};
+  font-size: ${p => p.theme.font.size.xs};
   padding: 0 ${space(0.75)};
   transition: background ${p => p.theme.motion.snap.fast};
 

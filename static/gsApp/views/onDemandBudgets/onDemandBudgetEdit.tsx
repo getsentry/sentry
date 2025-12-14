@@ -147,9 +147,7 @@ class OnDemandBudgetEdit extends Component<Props> {
           ),
         ...Object.values(activePlan.addOnCategories)
           .filter(
-            addOnInfo =>
-              !addOnInfo.billingFlag ||
-              organization.features.includes(addOnInfo.billingFlag)
+            addOnInfo => subscription.addOns?.[addOnInfo.apiName]?.isAvailable ?? false
           )
           .map(addOnInfo =>
             toTitleCase(addOnInfo.productName, {allowInnerUpperCase: true})
@@ -209,8 +207,9 @@ class OnDemandBudgetEdit extends Component<Props> {
           {activePlan.onDemandCategories.length !== perCategoryCategories.length && (
             <Alert type="warning">
               {tct(
-                'Additional [oxfordCategories] usage [isOrAre] only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.',
+                'Additional [oxfordCategories] usage [isOrAre] only available through a shared [budgetTerm] budget. To enable [budgetTerm] usage switch to a shared [budgetTerm] budget.',
                 {
+                  budgetTerm: displayBudgetName(activePlan),
                   isOrAre: nonPerCategory.length === 1 ? t('is') : t('are'),
                   oxfordCategories: oxfordizeArray(nonPerCategory),
                 }
@@ -292,8 +291,11 @@ class OnDemandBudgetEdit extends Component<Props> {
                         )}
                     </Title>
                     <Description>
-                      {t(
-                        'The on-demand budget is shared among all categories on a first come, first serve basis. There are no restrictions for any single category consuming the entire budget.'
+                      {tct(
+                        'The [budgetTerm] is shared among all categories on a first come, first serve basis. There are no restrictions for any single category consuming the entire budget.',
+                        {
+                          budgetTerm: displayBudgetName(activePlan),
+                        }
                       )}
                     </Description>
                     {this.renderInputFields(OnDemandBudgetMode.SHARED)}
@@ -328,9 +330,12 @@ class OnDemandBudgetEdit extends Component<Props> {
                         )}
                     </Title>
                     <Description>
-                      {t(
-                        'Dedicated on-demand budget for %s. Any overages in one category will not consume the budget of another category.',
-                        perCategoryCategories
+                      {tct(
+                        'Dedicated [budgetTerm] for [perCategoryCategories]. Any overages in one category will not consume the budget of another category.',
+                        {
+                          budgetTerm: displayBudgetName(activePlan, {withBudget: true}),
+                          perCategoryCategories,
+                        }
                       )}
                     </Description>
                     {this.renderInputFields(OnDemandBudgetMode.PER_CATEGORY)}
@@ -385,7 +390,7 @@ const BudgetModeOption = styled(PanelItem)<{isSelected?: boolean}>`
     p.isSelected &&
     css`
       background: ${p.theme.backgroundSecondary};
-      color: ${p.theme.textColor};
+      color: ${p.theme.tokens.content.primary};
     `}
 `;
 
@@ -414,14 +419,14 @@ const InputFields = styled('div')`
 `;
 
 const StyledRadio = styled(Radio)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const BudgetDetails = styled('div')`
   display: inline-grid;
   gap: ${space(0.75)};
   font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Title = styled('div')`
@@ -450,7 +455,7 @@ const Currency = styled('div')`
 
 const OnDemandInput = styled(Input)`
   padding-left: ${space(4)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   max-width: 140px;
   height: 36px;
 `;

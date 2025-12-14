@@ -3,6 +3,7 @@ import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 export const SAMPLING_MODE = {
   NORMAL: 'NORMAL',
   HIGH_ACCURACY: 'HIGHEST_ACCURACY',
+  FLEX_TIME: 'HIGHEST_ACCURACY_FLEX_TIME',
 } as const;
 
 const NORMAL_SAMPLING_MODE_QUERY_EXTRAS = {
@@ -19,10 +20,13 @@ const NON_EXTRAPOLATED_SAMPLING_MODE_QUERY_EXTRAS = {
 } as const;
 
 export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
-export type SpansRPCQueryExtras = {
+export type RPCQueryExtras = {
   caseInsensitive?: CaseInsensitive;
   disableAggregateExtrapolation?: string;
+  logQuery?: string[];
+  metricQuery?: string[];
   samplingMode?: SamplingMode;
+  spanQuery?: string[];
 };
 
 interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {

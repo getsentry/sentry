@@ -28,7 +28,7 @@ export function CronsOnDemandStepWarning({
   let reserved: number | null | undefined;
   let cronsPrice: number | null | undefined;
   if (isEnterprise(activePlan.id)) {
-    // this can only be reached for enterprise customers with invoiced on-demand
+    // this can only be reached for enterprise customers with invoiced PAYG
     // we want to make sure we use their actual reserved amount and not the minimum
     // for enterprise plans
     reserved = subscription.categories[cronCategoryName]?.reserved;

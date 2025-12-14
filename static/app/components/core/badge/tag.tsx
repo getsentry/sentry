@@ -63,7 +63,7 @@ export function Tag({
           priority="link"
           borderless
           aria-label={t('Dismiss')}
-          icon={<IconClose isCircled size="xs" />}
+          icon={<IconClose size="xs" />}
         />
       )}
     </StyledTag>
@@ -73,7 +73,7 @@ export function Tag({
 const TagPill = styled('div')<{
   type: NonNullable<TagProps['type']>;
 }>`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   background-color: ${p => p.theme.tag[p.type].background};
   border: solid 1px ${p => p.theme.tag[p.type].border};
   display: inline-flex;

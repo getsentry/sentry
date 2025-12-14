@@ -123,7 +123,11 @@ class RatelimitMiddleware:
                             limit=request.rate_limit_metadata.concurrent_limit
                         )
 
-                    response = HttpResponse(orjson.dumps(response_text), status=429)
+                    response_json = {
+                        "detail": response_text,
+                    }
+
+                    response = HttpResponse(orjson.dumps(response_json), status=429)
                     assert request.method is not None
                     return apply_cors_headers(
                         request=request, response=response, allowed_methods=[request.method]

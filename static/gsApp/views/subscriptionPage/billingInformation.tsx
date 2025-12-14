@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {Flex} from 'sentry/components/core/layout';
@@ -20,7 +20,6 @@ import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/componen
 import RecurringCredits from 'getsentry/views/subscriptionPage/recurringCredits';
 
 import SubscriptionHeader from './subscriptionHeader';
-import {trackSubscriptionView} from './utils';
 
 type Props = {
   location: Location;
@@ -32,14 +31,10 @@ type Props = {
  * Update Billing Information view.
  */
 function BillingInformation({organization, subscription, location}: Props) {
-  useEffect(() => {
-    if (!organization || !subscription) return;
-
-    trackSubscriptionView(organization, subscription, 'details');
-  }, [organization, subscription]);
-
   const isNewBillingUI = hasNewBillingUI(organization);
   const hasBillingPerms = organization.access?.includes('org:billing');
+  const theme = useTheme();
+  const maxPanelWidth = theme.breakpoints.lg;
 
   if (subscription?.isSelfServePartner) {
     return <Redirect to={`/settings/${organization.slug}/billing/overview/`} />;
@@ -73,11 +68,13 @@ function BillingInformation({organization, subscription, location}: Props) {
           isNewBillingUI={isNewBillingUI}
           ftcLocation={FTCConsentLocation.BILLING_DETAILS}
           budgetTerm={subscription.planDetails.budgetTerm}
+          maxPanelWidth={maxPanelWidth}
         />
         <BillingDetailsPanel
           organization={organization}
           subscription={subscription}
           isNewBillingUI={isNewBillingUI}
+          maxPanelWidth={maxPanelWidth}
         />
       </SubscriptionPageContainer>
     );
@@ -98,12 +95,14 @@ function BillingInformation({organization, subscription, location}: Props) {
               ftcLocation={FTCConsentLocation.BILLING_DETAILS}
               budgetTerm={subscription.planDetails.budgetTerm}
               shouldExpandInitially
+              maxPanelWidth={maxPanelWidth}
             />
             <BillingDetailsPanel
               organization={organization}
               subscription={subscription}
               isNewBillingUI={isNewBillingUI}
               shouldExpandInitially
+              maxPanelWidth={maxPanelWidth}
             />
           </Flex>
         ) : (

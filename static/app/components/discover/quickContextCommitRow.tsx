@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+
 import CommitLink from 'sentry/components/commitLink';
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {formatCommitMessage} from 'sentry/components/commitRow';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -77,7 +78,7 @@ const LinkToPullRequest = styled(TextOverflow)`
 
 const LinkToCommit = styled(TextOverflow)<{hasPrTitle: string | null | undefined}>`
   font-size: ${p => (p.hasPrTitle ? p.theme.fontSize.sm : p.theme.fontSize.lg)};
-  color: ${p => (p.hasPrTitle ? p.theme.subText : p.theme.textColor)};
+  color: ${p => (p.hasPrTitle ? p.theme.subText : p.theme.tokens.content.primary)};
   line-height: 1.5;
   margin: 0;
 `;

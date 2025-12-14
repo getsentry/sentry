@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import contextlib
 import functools
-import itertools
 import threading
 import typing
 from collections.abc import Callable, Generator, Iterable
@@ -137,6 +136,7 @@ class SiloLimit(abc.ABC):
     def create_override(
         self,
         original_method: Callable[P, R],
+        update_attrs: list[str] | None = None,
     ) -> Callable[P, R]:
         """Create a method that conditionally overrides another method.
 
@@ -157,14 +157,18 @@ class SiloLimit(abc.ABC):
             if is_available:
                 return original_method(*args, **kwargs)
             else:
+                modes = list(self.modes)
+                if SiloMode.MONOLITH not in self.modes:
+                    modes = modes + [SiloMode.MONOLITH]
                 handler = self.handle_when_unavailable(
-                    original_method,
-                    SiloMode.get_current_mode(),
-                    itertools.chain([SiloMode.MONOLITH], self.modes),
+                    original_method, SiloMode.get_current_mode(), modes
                 )
                 return handler(*args, **kwargs)
 
-        functools.update_wrapper(override, original_method)
+        assign: tuple[str, ...] = functools.WRAPPER_ASSIGNMENTS
+        if update_attrs:
+            assign = assign + tuple(update_attrs)
+        functools.update_wrapper(override, original_method, assigned=assign)
         return override
 
 

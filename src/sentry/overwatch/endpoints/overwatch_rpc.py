@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+from copy import deepcopy
 from typing import Any
 
 import sentry_sdk
@@ -10,18 +11,20 @@ from rest_framework.exceptions import AuthenticationFailed, ParseError, Permissi
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.constants import (
-    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-    HIDE_AI_FEATURES_DEFAULT,
-    ObjectStatus,
-)
+from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS, ObjectStatus
+from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import RepositorySettings
+from sentry.prevent.models import PreventAIConfiguration
+from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT, PREVENT_AI_CONFIG_DEFAULT_V1
 from sentry.silo.base import SiloMode
+from sentry.utils.seer import can_use_prevent_ai_features
 
 logger = logging.getLogger(__name__)
 
@@ -81,24 +84,12 @@ class OverwatchRpcSignatureAuthentication(StandardAuthentication):
         return (AnonymousUser(), token)
 
 
-def _can_use_prevent_ai_features(org: Organization) -> bool:
-    """Check if organization has opted in to Prevent AI features."""
-    hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
-    pr_review_test_generation_enabled = bool(
-        org.get_option(
-            "sentry:enable_pr_review_test_generation",
-            ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-        )
-    )
-    return not hide_ai_features and pr_review_test_generation_enabled
-
-
 @region_silo_endpoint
 class PreventPrReviewResolvedConfigsEndpoint(Endpoint):
     """
-    Returns the resolved config for a single repo under a GitHub org.
+    Returns the resolved config for a Sentry organization.
 
-    GET /prevent/pr-review/configs/resolved?ghOrg={org}&repo={repo}
+    GET /prevent/pr-review/configs/resolved?sentryOrgId={orgId}&gitOrgName={gitOrgName}&provider={provider}
     """
 
     publish_status = {
@@ -114,12 +105,125 @@ class PreventPrReviewResolvedConfigsEndpoint(Endpoint):
             request.successful_authenticator, OverwatchRpcSignatureAuthentication
         ):
             raise PermissionDenied
-        gh_org = request.GET.get("ghOrg")
-        repo = request.GET.get("repo")
-        if not gh_org or not repo:
-            raise ParseError("Missing required query parameters: ghOrg, repo")
-        # Stub: return empty dict for now
-        return Response(data={})
+
+        sentry_org_id_str = request.GET.get("sentryOrgId")
+        if not sentry_org_id_str:
+            raise ParseError("Missing required query parameter: sentryOrgId")
+        try:
+            sentry_org_id = int(sentry_org_id_str)
+            if sentry_org_id <= 0:
+                raise ParseError("sentryOrgId must be a positive integer")
+        except ValueError:
+            raise ParseError("sentryOrgId must be a valid integer")
+
+        git_org_name = request.GET.get("gitOrgName")
+        if not git_org_name:
+            raise ParseError("Missing required query parameter: gitOrgName")
+        provider = request.GET.get("provider")
+        if not provider:
+            raise ParseError("Missing required query parameter: provider")
+
+        github_org_integrations = integration_service.get_organization_integrations(
+            organization_id=sentry_org_id,
+            providers=[provider],
+            status=ObjectStatus.ACTIVE,
+            name=git_org_name,
+        )
+        if not github_org_integrations:
+            return Response({"detail": "GitHub integration not found"}, status=404)
+
+        config = PreventAIConfiguration.objects.filter(
+            organization_id=sentry_org_id,
+            integration_id=github_org_integrations[0].integration_id,
+        ).first()
+
+        organization = Organization.objects.filter(id=sentry_org_id).first()
+
+        default_config = PREVENT_AI_CONFIG_DEFAULT
+        if features.has("organizations:code-review-run-per-commit", organization):
+            default_config = PREVENT_AI_CONFIG_DEFAULT_V1
+
+        response_data: dict[str, Any] = deepcopy(default_config)
+        if config:
+            response_data["organization"] = config.data
+
+        return Response(data=response_data)
+
+
+@region_silo_endpoint
+class CodeReviewRepoSettingsEndpoint(Endpoint):
+    """
+    Returns the code review repository settings for a specific repo within a Sentry organization.
+
+    GET /code-review/repo-settings?sentryOrgId={orgId}&externalRepoId={externalRepoId}&provider={provider}
+    """
+
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
+    owner = ApiOwner.CODECOV
+    authentication_classes = (OverwatchRpcSignatureAuthentication,)
+    permission_classes = ()
+    enforce_rate_limit = False
+
+    def get(self, request: Request) -> Response:
+        if not request.auth or not isinstance(
+            request.successful_authenticator, OverwatchRpcSignatureAuthentication
+        ):
+            raise PermissionDenied
+
+        sentry_org_id_str = request.GET.get("sentryOrgId")
+        if not sentry_org_id_str:
+            raise ParseError("Missing required query parameter: sentryOrgId")
+        try:
+            sentry_org_id = int(sentry_org_id_str)
+            if sentry_org_id <= 0:
+                raise ParseError("sentryOrgId must be a positive integer")
+        except ValueError:
+            raise ParseError("sentryOrgId must be a valid integer")
+
+        external_repo_id = request.GET.get("externalRepoId")
+        if not external_repo_id:
+            raise ParseError("Missing required query parameter: externalRepoId")
+
+        provider = request.GET.get("provider")
+        if not provider:
+            raise ParseError("Missing required query parameter: provider")
+
+        repo_settings = (
+            RepositorySettings.objects.select_related("repository")
+            .filter(
+                repository__external_id=external_repo_id,
+                repository__organization_id=sentry_org_id,
+                repository__provider=provider,
+                repository__status=ObjectStatus.ACTIVE,
+            )
+            .first()
+        )
+
+        if repo_settings is None:
+            organization = Organization.objects.filter(id=sentry_org_id).first()
+            if organization and features.has("organizations:code-review-beta", organization):
+                return Response(
+                    {
+                        "enabledCodeReview": True,
+                        "codeReviewTriggers": DEFAULT_CODE_REVIEW_TRIGGERS,
+                    }
+                )
+
+            return Response(
+                {
+                    "enabledCodeReview": False,
+                    "codeReviewTriggers": [],
+                }
+            )
+
+        return Response(
+            {
+                "enabledCodeReview": repo_settings.enabled_code_review,
+                "codeReviewTriggers": repo_settings.code_review_triggers,
+            }
+        )
 
 
 @region_silo_endpoint
@@ -165,7 +269,7 @@ class PreventPrReviewSentryOrgEndpoint(Endpoint):
                         "org_id": org.id,
                         "org_slug": org.slug,
                         "org_name": org.name,
-                        "has_consent": _can_use_prevent_ai_features(org),
+                        "has_consent": can_use_prevent_ai_features(org),
                     }
                     for org in organizations
                 ]

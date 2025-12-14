@@ -11,25 +11,18 @@ import {
 import ProjectDebugFiles from 'sentry/views/settings/projectDebugFiles';
 
 describe('ProjectDebugFiles', () => {
-  const {organization, project, router} = initializeOrg();
+  const {organization, project} = initializeOrg();
 
-  const props = {
-    organization,
-    project,
-    params: {projectId: project.slug},
+  const endpoint = `/projects/${organization.slug}/${project.slug}/files/dsyms/`;
+
+  const initialRouterConfig = {
     location: {
-      ...router.location,
+      pathname: `/settings/${organization.slug}/projects/${project.slug}/debug-symbols/`,
       query: {
         query: '',
       },
     },
-    route: {},
-    router,
-    routes: [],
-    routeParams: {},
   };
-
-  const endpoint = `/projects/${organization.slug}/${project.slug}/files/dsyms/`;
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -44,7 +37,11 @@ describe('ProjectDebugFiles', () => {
   });
 
   it('renders', async () => {
-    render(<ProjectDebugFiles {...props} />);
+    render(<ProjectDebugFiles />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
 
     expect(screen.getByText('Debug Information Files')).toBeInTheDocument();
 
@@ -61,7 +58,11 @@ describe('ProjectDebugFiles', () => {
       body: [],
     });
 
-    render(<ProjectDebugFiles {...props} />);
+    render(<ProjectDebugFiles />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
 
     // Uploaded debug files content
     expect(
@@ -77,7 +78,11 @@ describe('ProjectDebugFiles', () => {
       }`,
     });
 
-    render(<ProjectDebugFiles {...props} />);
+    render(<ProjectDebugFiles />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
     renderGlobalModal();
 
     // Delete button
@@ -98,7 +103,11 @@ describe('ProjectDebugFiles', () => {
       statusCode: 400,
     });
 
-    render(<ProjectDebugFiles {...props} />);
+    render(<ProjectDebugFiles />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
 
     expect(await screen.findByText(/There was an error/)).toBeInTheDocument();
 
@@ -113,12 +122,11 @@ describe('ProjectDebugFiles', () => {
       statusCode: 400,
     });
 
-    render(
-      <ProjectDebugFiles
-        {...props}
-        organization={{...organization, features: ['symbol-sources']}}
-      />
-    );
+    render(<ProjectDebugFiles />, {
+      organization: {...organization, features: ['symbol-sources']},
+      outletContext: {project},
+      initialRouterConfig,
+    });
 
     expect(await screen.findByText(/There was an error/)).toBeInTheDocument();
 

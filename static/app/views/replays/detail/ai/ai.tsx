@@ -5,25 +5,26 @@ import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
 
 import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
 import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import {NO_REPLAY_SUMMARY_MESSAGES} from 'sentry/views/replays/detail/ai/utils';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
+
+const MAX_SEGMENTS_TO_SUMMARIZE = 150;
 
 export default function Ai() {
   const organization = useOrganization();
@@ -38,6 +39,11 @@ export default function Ai() {
   const segmentCount = replayRecord?.count_segments ?? 0;
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   const analyticsArea = useAnalyticsArea();
+  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
+
+  const replayTooLongMessage = t(
+    'If a replay is too long, we may only summarize a small portion of it.'
+  );
 
   const {
     summaryData,
@@ -74,7 +80,8 @@ export default function Ai() {
   }
 
   // check for org seer setup first before attempting to fetch summary
-  if (isOrgSeerSetupPending) {
+  // only do this if consent flow is not skipped
+  if (!skipConsentFlow && isOrgSeerSetupPending) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <LoadingContainer>
@@ -88,7 +95,8 @@ export default function Ai() {
 
   // If our `replay-ai-summaries` ff is enabled and the org has gen AI ff enabled,
   // but the org hasn't acknowledged the gen AI features, then show CTA.
-  if (!setupAcknowledgement.orgHasAcknowledged) {
+  // only do this if consent flow is not skipped
+  if (!skipConsentFlow && !setupAcknowledgement.orgHasAcknowledged) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EndStateContainer>
@@ -191,16 +199,14 @@ export default function Ai() {
           <SummaryLeftTitle>
             <Flex align="center" gap="xs">
               {t('Replay Summary')}
-              <IconSeer />
             </Flex>
-            <Badge type="experimental">{t('Experimental')}</Badge>
           </SummaryLeftTitle>
           <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
         <SummaryRight>
           <Flex gap="xs">
-            <FeedbackButton type="positive" />
-            <FeedbackButton type="negative" />
+            <ThumbsUpDownButton type="positive" />
+            <ThumbsUpDownButton type="negative" />
           </Flex>
           <Button
             priority="default"
@@ -222,12 +228,8 @@ export default function Ai() {
       <StyledTabItemContainer>
         <OverflowBody>
           <ChapterList timeRanges={summaryData.data.time_ranges} />
-          {segmentCount > 100 && (
-            <Subtext>
-              {t(
-                `Note: this replay is very long, so we might not be summarizing all of it.`
-              )}
-            </Subtext>
+          {segmentCount > MAX_SEGMENTS_TO_SUMMARIZE && (
+            <Subtext>{replayTooLongMessage}</Subtext>
           )}
         </OverflowBody>
       </StyledTabItemContainer>
@@ -277,32 +279,27 @@ function ErrorState({
   );
 }
 
-function FeedbackButton({type}: {type: 'positive' | 'negative'}) {
-  const openForm = useFeedbackForm();
-  if (!openForm) {
-    return null;
-  }
-
+function ThumbsUpDownButton({type}: {type: 'positive' | 'negative'}) {
   return (
-    <Button
+    <FeedbackButton
       aria-label={t('Give feedback on the replay summary section')}
       icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
       title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
       size="xs"
-      onClick={() =>
-        openForm({
-          messagePlaceholder:
-            type === 'positive'
-              ? t('What did you like about the replay summary and chapters?')
-              : t('How can we make the replay summary and chapters work better for you?'),
-          tags: {
-            ['feedback.source']: 'replay_ai_summary',
-            ['feedback.owner']: 'replay',
-            ['feedback.type']: type,
-          },
-        })
-      }
-    />
+      feedbackOptions={{
+        messagePlaceholder:
+          type === 'positive'
+            ? t('What did you like about the replay summary and chapters?')
+            : t('How can we make the replay summary and chapters work better for you?'),
+        tags: {
+          ['feedback.source']: 'replay_ai_summary',
+          ['feedback.owner']: 'replay',
+          ['feedback.type']: type,
+        },
+      }}
+    >
+      {undefined}
+    </FeedbackButton>
   );
 }
 
@@ -312,7 +309,7 @@ const Wrapper = styled('div')`
   flex-wrap: nowrap;
   min-height: 0;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const LoadingContainer = styled('div')`

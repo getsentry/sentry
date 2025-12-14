@@ -1,15 +1,24 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {StructuredData} from 'sentry/components/structuredEventData';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
-import {ModelName} from 'sentry/views/insights/agents/components/modelName';
-import {AI_CREATE_AGENT_OPS, getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {
+  getIsAiAgentSpan,
+  getToolSpansFilter,
+} from 'sentry/views/insights/pages/agents/utils/query';
+import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+import {SpanFields} from 'sentry/views/insights/types';
 
 type HighlightedAttribute = {
   name: string;
@@ -26,15 +35,18 @@ function tryParseJson(value: string) {
 
 export function getHighlightedSpanAttributes({
   op,
+  spanId,
   attributes = {},
 }: {
   attributes: Record<string, string> | undefined | TraceItemResponseAttribute[];
-  op: string | undefined;
+  spanId: string;
+  op?: string;
 }): HighlightedAttribute[] {
   const attributeObject = ensureAttributeObject(attributes);
+  const genAiOpType = attributeObject['gen_ai.operation.type'] as string | undefined;
 
-  if (getIsAiSpan({op})) {
-    return getAISpanAttributes(attributeObject, op);
+  if (genAiOpType) {
+    return getAISpanAttributes({attributes: attributeObject, spanId});
   }
 
   if (op?.startsWith('mcp.')) {
@@ -62,11 +74,16 @@ function ensureAttributeObject(
   return attributes;
 }
 
-function getAISpanAttributes(
-  attributes: Record<string, string | number | boolean>,
-  op?: string
-) {
+function getAISpanAttributes({
+  spanId,
+  attributes = {},
+}: {
+  attributes: Record<string, string | number | boolean>;
+  spanId: string;
+}) {
   const highlightedAttributes = [];
+
+  const genAiOpType = attributes['gen_ai.operation.type'] as string | undefined;
 
   const agentName = attributes['gen_ai.agent.name'] || attributes['gen_ai.function_id'];
   if (agentName) {
@@ -122,12 +139,10 @@ function getAISpanAttributes(
         span_type: 'gen_ai',
         has_model: 'true',
         has_cost: 'false',
-        span_operation: op || 'unknown',
         model: model.toString(),
       },
       extra: {
         total_costs: totalCosts,
-        span_operation: op,
         attributes,
       },
     });
@@ -142,16 +157,53 @@ function getAISpanAttributes(
   }
 
   const availableTools = attributes['gen_ai.request.available_tools'];
-  if (availableTools && AI_CREATE_AGENT_OPS.includes(op!)) {
+  const toolsArray = tryParseJson(availableTools?.toString() || '');
+  if (
+    toolsArray &&
+    Array.isArray(toolsArray) &&
+    toolsArray.length > 0 &&
+    getIsAiAgentSpan(genAiOpType)
+  ) {
     highlightedAttributes.push({
       name: t('Available Tools'),
-      value: (
-        <StructuredData
-          value={tryParseJson(availableTools.toString())}
-          withAnnotatedText
-          maxDefaultDepth={0}
-        />
-      ),
+      value: <HighlightedTools availableTools={toolsArray} spanId={spanId} />,
+    });
+  }
+
+  // Emit a message if the span is missing any required gen_ai attributes,
+  // but only if the origin starts with "auto.ai"
+  const requiredGenAIAttributes = [
+    'gen_ai.system',
+    'gen_ai.request.model',
+    'gen_ai.operation.name',
+    'gen_ai.agent.name',
+  ];
+
+  const missingGenAIAttributes = requiredGenAIAttributes.filter(
+    attr => !attributes[attr]
+  );
+
+  const origin = attributes['gen_ai.origin'];
+  if (
+    missingGenAIAttributes.length > 0 &&
+    typeof origin === 'string' &&
+    origin.startsWith('auto.ai')
+  ) {
+    const sdkName = attributes['sdk.name'];
+    const sdkVersion = attributes['sdk.version'];
+
+    Sentry.captureMessage('Gen AI span missing required attributes', {
+      level: 'warning',
+      tags: {
+        feature: 'agent-monitoring',
+        span_type: 'gen_ai',
+        missing_attributes: missingGenAIAttributes.join(','),
+        origin,
+        sdk:
+          [sdkName?.toString(), sdkVersion?.toString()].filter(Boolean).join('@') ||
+          'unknown',
+        span_id: spanId,
+      },
     });
   }
 
@@ -194,6 +246,61 @@ function getMCPAttributes(attributes: Record<string, string | number | boolean>)
   }
 
   return highlightedAttributes;
+}
+
+function HighlightedTools({
+  availableTools,
+  spanId,
+}: {
+  availableTools: any[];
+  spanId: string;
+}) {
+  const toolNames = availableTools.map(tool => tool.name).filter(Boolean);
+  const hasToolNames = toolNames.length > 0;
+  const toolSpansQuery = useSpans(
+    {
+      search: `parent_span:${spanId} has:${SpanFields.GEN_AI_TOOL_NAME} ${getToolSpansFilter()}`,
+      fields: [SpanFields.GEN_AI_TOOL_NAME],
+      enabled: hasToolNames,
+    },
+    Referrer.TRACE_DRAWER_TOOL_USAGE
+  );
+
+  const usedTools: Map<string, number> = new Map();
+  toolSpansQuery.data?.forEach(span => {
+    const toolName = span[SpanFields.GEN_AI_TOOL_NAME];
+    usedTools.set(toolName, (usedTools.get(toolName) ?? 0) + 1);
+  });
+
+  // Fall back to showing formatted JSON if tool names cannot be parsed
+  if (!hasToolNames) {
+    return (
+      <StructuredData value={availableTools} withAnnotatedText maxDefaultDepth={0} />
+    );
+  }
+
+  return (
+    <Flex direction="row" gap="xs" wrap="wrap">
+      {toolNames.sort().map(tool => {
+        const usageCount = usedTools.get(tool) ?? 0;
+        return (
+          <Tooltip
+            key={tool}
+            disabled={toolSpansQuery.isPending}
+            title={
+              usageCount === 0
+                ? t('Not used by agent')
+                : tn('Used %s time', 'Used %s times', usageCount)
+            }
+          >
+            <Tag key={tool} type={usedTools.has(tool) ? 'info' : 'default'}>
+              {tool}
+            </Tag>
+          </Tooltip>
+        );
+      })}
+    </Flex>
+  );
 }
 
 function HighlightedTokenAttributes({

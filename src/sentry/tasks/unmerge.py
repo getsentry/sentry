@@ -10,21 +10,21 @@ from typing import Any
 from django.db import router, transaction
 from django.db.models.base import Model
 
-from sentry import analytics, eventstore, similarity, tsdb
+from sentry import analytics, similarity, tsdb
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.culprit import generate_culprit
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.group import Group, GroupStatus
+from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
+from sentry.services import eventstore
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -202,7 +202,6 @@ def migrate_events(
         destination = Group.objects.get(id=destination_id)
         destination.update(**get_group_backfill_attributes(caches, destination, events))
 
-    update_open_periods(source, destination)
     logger.info("migrate_events.migrate", extra={**extra, "destination_id": destination_id})
 
     if isinstance(args, InitialUnmergeArgs) or opt_eventstream_state is None:
@@ -246,33 +245,6 @@ def migrate_events(
     )
 
     return (destination.id, eventstream_state)
-
-
-def update_open_periods(source: Group, destination: Group) -> None:
-    # For groups that are not resolved, the open period created on group creation should have the necessary information
-    if destination.status != GroupStatus.RESOLVED:
-        return
-
-    try:
-        dest_open_period = GroupOpenPeriod.objects.get(group=destination)
-    except GroupOpenPeriod.DoesNotExist:
-        logger.exception("No open period found for group", extra={"group_id": destination.id})
-
-    source_open_period = GroupOpenPeriod.objects.filter(group=source).order_by("-datetime").first()
-    if not source_open_period:
-        logger.error("No open period found for group", extra={"group_id": destination.id})
-        return
-
-    if source_open_period.date_ended is None:
-        return
-
-    # If the destination group is resolved, set the open period fields to match the source's open period.
-    dest_open_period.update(
-        date_started=source_open_period.date_started,
-        date_ended=source_open_period.date_ended,
-        resolution_activity=source_open_period.resolution_activity,
-        user_id=source_open_period.user_id,
-    )
 
 
 def truncate_denormalizations(project: Project, group: Group) -> None:

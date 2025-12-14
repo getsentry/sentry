@@ -17,7 +17,7 @@ const prismStyles = (theme: Theme) => css`
   pre[class*='language-'] {
     overflow-x: auto;
     padding: ${space(1)} ${space(2)};
-    border-radius: ${theme.borderRadius};
+    border-radius: ${theme.radius.md};
     box-shadow: none;
 
     code {
@@ -29,7 +29,7 @@ const prismStyles = (theme: Theme) => css`
   code[class*='language-'] {
     color: var(--prism-base);
     background: var(--prism-block-background);
-    font-size: ${theme.codeFontSize};
+    font-size: ${theme.fontSize.sm};
     text-shadow: none;
     font-family: ${theme.text.familyMono};
     direction: ltr;
@@ -134,9 +134,35 @@ const styles = (theme: Theme, isDark: boolean) => css`
       z-index: ${theme.zIndex.sentryErrorEmbed};
     }
 
-    color: ${theme.textColor};
-    background: ${theme.backgroundSecondary};
+    .loading .loading-indicator {
+      background: transparent;
+    }
+
+    color: ${theme.tokens.content.primary};
+    background: ${theme.tokens.background.primary};
   }
+
+  ${theme.type === 'dark' &&
+  css`
+    /*this updates styles set by base.less to match our theme*/
+    body.theme-dark {
+      background: ${theme.tokens.background.primary};
+      color: ${theme.tokens.content.primary};
+    }
+    body.theme-system {
+      @media (prefers-color-scheme: dark) {
+        background: ${theme.tokens.background.primary};
+        color: ${theme.tokens.content.primary};
+      }
+    }
+    /*this updates styles set by shared-components.less to match our theme*/
+    .theme-dark .loading .loading-indicator {
+      background: transparent;
+    }
+    .theme-dark .loading.triangle .loading-indicator {
+      background: #fff;
+    }
+  `}
 
   abbr {
     ${theme.tooltipUnderline()};
@@ -160,7 +186,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
   pre,
   code {
-    color: ${theme.textColor};
+    color: ${theme.tokens.content.primary};
   }
 
   pre {
@@ -211,12 +237,12 @@ const styles = (theme: Theme, isDark: boolean) => css`
     ? css`
         .box,
         .box.box-modal {
-          background: ${theme.background};
+          background: ${theme.tokens.background.primary};
           border-color: ${theme.border};
 
           .box-content,
           .box-header {
-            background: ${theme.background};
+            background: ${theme.tokens.background.primary};
 
             h1,
             h2,
@@ -224,7 +250,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
             h4,
             h5,
             h6 {
-              color: ${theme.headingColor};
+              color: ${theme.tokens.content.primary};
             }
           }
 
@@ -232,7 +258,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
             border-bottom-color: ${theme.border};
 
             a {
-              color: ${theme.textColor};
+              color: ${theme.tokens.content.primary};
 
               &:hover {
                 color: ${theme.linkHoverColor};
@@ -254,13 +280,13 @@ const styles = (theme: Theme, isDark: boolean) => css`
           & > li {
             &.active {
               a {
-                color: ${theme.textColor} !important;
+                color: ${theme.tokens.content.primary} !important;
                 border-bottom-color: ${theme.active} !important;
               }
             }
 
             a:hover {
-              color: ${theme.textColor} !important;
+              color: ${theme.tokens.content.primary} !important;
             }
           }
           &.border-bottom {
@@ -281,7 +307,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
                 &.collapsed {
                   .title {
                     border-color: ${theme.border};
-                    background: ${theme.background};
+                    background: ${theme.tokens.background.primary};
                   }
                 }
               }
@@ -293,10 +319,10 @@ const styles = (theme: Theme, isDark: boolean) => css`
             border-top-color: ${theme.border};
 
             &.is-expandable .title:hover {
-              background-color: ${theme.background};
+              background-color: ${theme.tokens.background.primary};
             }
             .btn-toggle {
-              color: ${theme.textColor};
+              color: ${theme.tokens.content.primary};
               background: transparent;
             }
             .title {
@@ -306,7 +332,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
               background-color: ${theme.backgroundSecondary};
             }
             .context {
-              background: ${theme.background};
+              background: ${theme.tokens.background.primary};
 
               table.key-value {
                 border-color: ${theme.border};
@@ -321,7 +347,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
           color: ${theme.subText};
         }
         .event-details-container {
-          background-color: ${theme.background};
+          background-color: ${theme.tokens.background.primary};
           .secondary {
             border-left-color: ${theme.border};
           }
@@ -333,31 +359,31 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
         /* Global Selection header date picker */
         .rdrCalendarWrapper {
-          background: ${theme.background};
-          color: ${theme.textColor};
+          background: ${theme.tokens.background.primary};
+          color: ${theme.tokens.content.primary};
         }
         .rdrDayDisabled {
           background-color: ${theme.backgroundSecondary};
           color: ${theme.disabled};
         }
         .rdrMonthAndYearPickers select {
-          color: ${theme.textColor};
+          color: ${theme.tokens.content.primary};
         }
         .dropdown-menu {
-          color: ${theme.textColor};
-          background-color: ${theme.background} !important;
+          background-color: ${theme.tokens.background.primary} !important;
+          color: ${theme.tokens.content.primary};
           border: 1px solid ${theme.border};
           &:before {
             border-bottom-color: ${theme.border};
           }
           &:after {
-            border-bottom-color: ${theme.background};
+            border-bottom-color: ${theme.tokens.background.primary};
           }
           &.inverted:before {
             border-top-color: ${theme.border};
           }
           &.inverted:after {
-            border-top-color: ${theme.background};
+            border-top-color: ${theme.tokens.background.primary};
           }
         }
       `

@@ -14,6 +14,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -22,12 +23,14 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {OverviewSpansTable} from 'sentry/views/performance/otlp/overviewSpansTable';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import Filter, {
   filterToSearchConditions,
@@ -48,7 +51,9 @@ type Props = {
   eventsDisplayFilterName: EventsDisplayFilterName;
   location: Location;
   onChangeEventsDisplayFilter: (eventsDisplayFilterName: EventsDisplayFilterName) => void;
-  onChangeSpanOperationBreakdownFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  onChangeSpanOperationBreakdownFilter: (
+    newFilter: SpanOperationBreakdownFilter | undefined
+  ) => void;
   organization: Organization;
   projectId: string;
   projects: Project[];
@@ -166,7 +171,7 @@ function EventsContent(props: Props) {
     webVital,
   ]);
 
-  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
 
   const table = shouldUseOTelFriendlyUI ? (
     <OverviewSpansTable
@@ -189,7 +194,7 @@ function EventsContent(props: Props) {
   );
 
   return (
-    <Layout.Main fullWidth>
+    <Layout.Main width="full">
       <Search {...props} eventView={eventView} />
       {table}
     </Layout.Main>
@@ -240,7 +245,12 @@ function Search(props: Props) {
   };
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
-  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
+
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.TRANSACTIONS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
     <FilterActions>
@@ -255,7 +265,7 @@ function Search(props: Props) {
       )}
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
-        <DatePageFilter />
+        <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <StyledSearchBarWrapper>
         <TransactionSearchQueryBuilder

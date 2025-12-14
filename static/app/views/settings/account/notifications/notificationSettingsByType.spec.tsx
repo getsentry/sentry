@@ -325,7 +325,7 @@ describe('NotificationSettingsByType', () => {
         'continuous-profiling-billing',
         'seer-billing',
         'logs-billing',
-        'prevent-billing',
+        'seer-user-billing',
       ],
     });
     renderComponent({

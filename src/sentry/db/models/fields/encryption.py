@@ -6,11 +6,13 @@ from collections.abc import Callable
 from typing import Any, Literal, TypedDict
 
 import sentry_sdk
-from cryptography.fernet import Fernet, InvalidToken
-from django.conf import settings
+from cryptography.fernet import InvalidToken
+from django.db import models
 from django.db.models import CharField, Field
 
 from sentry import options
+from sentry.utils import json, metrics
+from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +79,7 @@ class EncryptedField(Field):
             },
         }
 
+    @sentry_sdk.trace
     def _format_encrypted_value(
         self, encrypted_data: bytes, marker: str, key_id: str | None = None
     ) -> str:
@@ -96,14 +99,17 @@ class EncryptedField(Field):
         else:
             return f"{marker}:{encoded_data}"
 
-    def get_prep_value(self, value: Any) -> str | None:
+    @sentry_sdk.trace
+    def get_prep_value(self, value: Any) -> Any:
         """Encrypt the value before saving to database."""
         value = super().get_prep_value(value)
         if value is None:
             return value
 
+        # Get the encryption method from the options
+        # xxx(vgrozdanic): this is a temporary solution during a rollout
+        # so that we can quickly rollback if needed.
         encryption_method = options.get("database.encryption.method")
-
         # Default to plaintext if method is not recognized
         if encryption_method not in self._encryption_handlers:
             logger.error(
@@ -112,11 +118,27 @@ class EncryptedField(Field):
             encryption_method = "plaintext"
 
         handler = self._encryption_handlers[encryption_method]
-        return handler["encrypt"](value)
 
+        tags = {
+            "method": encryption_method,
+            "field_type": self.__class__.__name__,
+        }
+
+        try:
+            with metrics.timer("database.encrypted_field.encrypt.duration", tags=tags):
+                result = handler["encrypt"](value)
+
+            metrics.incr("database.encrypted_field.encrypt", tags={**tags, "status": "success"})
+            return result
+        except Exception:
+            metrics.incr("database.encrypted_field.encrypt", tags={**tags, "status": "failure"})
+            raise
+
+    @sentry_sdk.trace
     def from_db_value(self, value: Any, expression: Any, connection: Any) -> bytes | str | None:
         return self.to_python(value)
 
+    @sentry_sdk.trace
     def to_python(self, value: Any) -> Any:
         """Decrypt the value when loading from database."""
         if value is None:
@@ -147,6 +169,7 @@ class EncryptedField(Field):
                 return True
         return False
 
+    @sentry_sdk.trace
     def _get_value_in_bytes(self, value: Any) -> bytes:
         if isinstance(value, str):
             return value.encode("utf-8")
@@ -155,11 +178,13 @@ class EncryptedField(Field):
         else:
             return str(value).encode("utf-8")
 
+    @sentry_sdk.trace
     def _encrypt_plaintext(self, value: Any) -> str:
         """Store value as plain text (UTF-8 encoded)."""
         value_bytes = self._get_value_in_bytes(value)
         return self._format_encrypted_value(value_bytes, MARKER_PLAINTEXT)
 
+    @sentry_sdk.trace
     def _decrypt_plaintext(self, value: str) -> bytes:
         """Decrypt plain text. Extracts data from the formatted value.
 
@@ -173,21 +198,15 @@ class EncryptedField(Field):
             logger.warning("Failed to decode base64 data: %s", e)
             raise ValueError("Invalid base64 encoding") from e
 
+    @sentry_sdk.trace
     def _encrypt_fernet(self, value: Any) -> str:
         """Encrypt using Fernet symmetric encryption.
 
         Always returns formatted string: enc:fernet:key_id:base64data
         The key_id is required to support key rotation.
         """
-        key_id, key = self._get_fernet_key_for_encryption()
-        if not key:
-            raise ValueError(
-                "Fernet encryption key is required but not found. "
-                "Please set DATABASE_ENCRYPTION_FERNET_KEYS in your settings."
-            )
-
         try:
-            f = Fernet(key)
+            key_id, f = FernetKeyStore.get_primary_fernet()
             value_bytes = self._get_value_in_bytes(value)
             encrypted_data = f.encrypt(value_bytes)
             return self._format_encrypted_value(encrypted_data, MARKER_FERNET, key_id)
@@ -195,6 +214,7 @@ class EncryptedField(Field):
             sentry_sdk.capture_exception(e)
             raise
 
+    @sentry_sdk.trace
     def _decrypt_fernet(self, value: str) -> bytes:
         """Decrypt using Fernet. Extracts key_id from the formatted value.
 
@@ -215,14 +235,8 @@ class EncryptedField(Field):
             logger.warning("Failed to decode base64 data: %s", e)
             raise ValueError("Invalid base64 encoding") from e
 
-        # Get the decryption key
-        key = self._get_fernet_key(key_id)
-        if not key:
-            logger.warning("No decryption key found for key_id '%s'", key_id)
-            raise ValueError(f"Cannot decrypt without key for key_id '{key_id}'")
-
         try:
-            f = Fernet(key)
+            f = FernetKeyStore.get_fernet_for_key_id(key_id)
             decrypted = f.decrypt(encrypted_data)
             return decrypted
         except InvalidToken:  # noqa
@@ -243,6 +257,7 @@ class EncryptedField(Field):
         """
         raise NotImplementedError("Keysets decryption not yet implemented")
 
+    @sentry_sdk.trace
     def _decrypt_with_fallback(self, value: str) -> bytes | str:
         """
         Attempt to decrypt with the appropriate method based on the marker.
@@ -264,88 +279,42 @@ class EncryptedField(Field):
         # Find the appropriate handler by marker
         for method_name, handler in self._encryption_handlers.items():
             if handler["marker"] == marker:
+                tags = {
+                    "method": method_name,
+                    "field_type": self.__class__.__name__,
+                    "marker": marker,
+                }
+
                 try:
-                    # Pass the full formatted value to the decrypt method
-                    return handler["decrypt"](remaining)
+                    with metrics.timer("database.encrypted_field.decrypt.duration", tags=tags):
+                        result = handler["decrypt"](remaining)
+
+                    metrics.incr(
+                        "database.encrypted_field.decrypt", tags={**tags, "status": "success"}
+                    )
+                    return result
                 except InvalidToken:
                     # Data might be plain text that happens to accidentally match the encrypted format
                     # Treating this as plain text is the best fallback.
+                    metrics.incr(
+                        "database.encrypted_field.decrypt", tags={**tags, "status": "failure"}
+                    )
                     return value
                 except Exception as e:
                     sentry_sdk.capture_exception(e)
                     logger.exception("Failed to decrypt with %s", method_name)
+                    metrics.incr(
+                        "database.encrypted_field.decrypt", tags={**tags, "status": "failure"}
+                    )
                     return value
 
         # No handler found for this marker (shouldn't happen with known markers)
         logger.warning("No handler found for marker '%s'", marker)
         return value
 
-    def _get_fernet_key_for_encryption(self) -> tuple[str, bytes]:
-        """Get the first Fernet key for encryption along with its key_id."""
-        keys = getattr(settings, "DATABASE_ENCRYPTION_FERNET_KEYS", None)
-        if keys is None:
-            raise ValueError("DATABASE_ENCRYPTION_FERNET_KEYS is not configured")
-
-        if not isinstance(keys, dict):
-            logger.error("DATABASE_ENCRYPTION_FERNET_KEYS must be a dict, got %s", type(keys))
-            raise ValueError("DATABASE_ENCRYPTION_FERNET_KEYS must be a dictionary")
-
-        if not keys:
-            raise ValueError("DATABASE_ENCRYPTION_FERNET_KEYS is empty")
-
-        # Use the first key for encryption
-        key_id = next(iter(keys.keys()))
-        key = keys[key_id]
-
-        if not key_id or not key:
-            raise ValueError(
-                f"DATABASE_ENCRYPTION_FERNET_KEYS has invalid key_id or key ({key_id}, {key})"
-            )
-
-        if isinstance(key, str):
-            key = key.encode("utf-8")
-
-        # Validate key
-        try:
-            Fernet(key)
-            return (key_id, key)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            logger.exception("Invalid Fernet key for key_id '%s'", key_id)
-            raise ValueError(f"Invalid Fernet key for key_id '{key_id}'")
-
-    def _get_fernet_key(self, key_id: str) -> bytes | None:
-        """Get the Fernet key for the specified key_id from Django settings."""
-        keys = getattr(settings, "DATABASE_ENCRYPTION_FERNET_KEYS", None)
-        if keys is None:
-            return None
-
-        if not isinstance(keys, dict):
-            logger.error("DATABASE_ENCRYPTION_FERNET_KEYS must be a dict, got %s", type(keys))
-            return None
-
-        # Return specific key by key_id
-        if key_id not in keys:
-            logger.warning("Fernet key with id '%s' not found, cannot decrypt data", key_id)
-            return None
-        key = keys[key_id]
-
-        if isinstance(key, str):
-            # If key is a string, encode it
-            key = key.encode("utf-8")
-
-        # Validate key length (Fernet requires 32 bytes base64 encoded)
-        try:
-            Fernet(key)
-            return key
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            logger.exception("Invalid Fernet key")
-
-        return None
-
 
 class EncryptedCharField(EncryptedField, CharField):
+    @sentry_sdk.trace
     def from_db_value(self, value: Any, expression: Any, connection: Any) -> Any:
         db_value = super().from_db_value(value, expression, connection)
         if db_value is None:
@@ -353,3 +322,101 @@ class EncryptedCharField(EncryptedField, CharField):
         if isinstance(db_value, bytes):
             db_value = db_value.decode("utf-8")
         return db_value
+
+
+class EncryptedJSONField(EncryptedField, models.JSONField):
+    """
+    An encrypted field that stores JSON data.
+
+    This field is a drop-in replacement for JSONField that adds encryption.
+    Data is stored as jsonb in the database with the encrypted payload wrapped
+    in a structure: {"sentry_encrypted_field_value": "enc:method:key_id:data"}
+
+    This allows for:
+    - Reuse of EncryptedField's encryption logic via composition
+    - Fallback to unencrypted JSON for backward compatibility
+    - Easy identification of encrypted vs unencrypted data
+    - True jsonb storage for database compatibility
+
+    The field handles:
+    - Encryption: Python object → JSON → encrypt → wrap in JSON object → store as jsonb
+    - Decryption: load jsonb → check for wrapper → decrypt → parse JSON → Python object
+    - Fallback: If no wrapper present, return parsed JSON as-is
+    """
+
+    _encrypted_field_key = "sentry_encrypted_field_value"
+
+    @sentry_sdk.trace
+    def get_prep_value(self, value: Any) -> dict | None:
+        """
+        Prepare value for database storage.
+
+        Flow: Python object → JSON string → encrypt → wrap in dict → return
+        """
+        if value is None:
+            return None
+
+        # First, serialize the Python object to JSON string
+        json_string = json.dumps(value)
+
+        # Encrypt the JSON string using the EncryptedField
+        # This will return something like "enc:fernet:key_id:base64data"
+        encrypted_value = super().get_prep_value(json_string)
+
+        if encrypted_value is None:
+            return None
+
+        # Wrap the encrypted string in a dict for jsonb storage
+        # This will be stored as jsonb, not as a string
+        return {self._encrypted_field_key: encrypted_value}
+
+    @sentry_sdk.trace
+    def to_python(self, value: Any) -> Any:
+        """
+        Convert database value to Python object.
+
+        Flow:
+        1. Value from database (already parsed as dict if jsonb)
+        2. Check for encrypted wrapper structure
+        3. If encrypted: decrypt → parse JSON → return Python object
+        4. If not encrypted (fallback): return value as-is
+        """
+        if value is None:
+            return value
+
+        # If value is a string, it might be from form input or serialization
+        # Parse it first
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except (ValueError, TypeError):
+                # If it can't be parsed, return as-is
+                return value
+
+        # If it's not a dict at this point, return as-is
+        if not isinstance(value, dict):
+            return value
+
+        # Check if this is our encrypted wrapper structure
+        if self._encrypted_field_key in value and len(value) == 1:
+            # Extract the encrypted value and decrypt it
+            encrypted_value = value[self._encrypted_field_key]
+            decrypted_bytes = super().to_python(encrypted_value)
+
+            # Convert bytes to string if needed
+            if isinstance(decrypted_bytes, bytes):
+                decrypted_string = decrypted_bytes.decode("utf-8")
+            else:
+                decrypted_string = decrypted_bytes
+
+            # Parse the decrypted JSON string back to Python object
+            try:
+                return json.loads(decrypted_string)
+            except (ValueError, TypeError) as e:
+                logger.warning("Failed to parse decrypted JSON: %s", e)
+                # Fallback: return the original value
+                return value
+
+        # Fallback: No encrypted wrapper found, return the value as-is
+        # This handles backward compatibility with unencrypted data
+        return value

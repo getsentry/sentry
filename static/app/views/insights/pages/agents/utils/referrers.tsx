@@ -1,0 +1,16 @@
+export enum Referrer {
+  MODELS_TABLE = 'api.insights.agent-monitoring.models-table',
+  TOOLS_TABLE = 'api.insights.agent-monitoring.tools-table',
+  TRACE_DRAWER = 'api.insights.agent-monitoring.trace-drawer',
+  TRACE_DRAWER_TOOL_USAGE = 'api.insights.agent-monitoring.trace-drawer-tool-usage',
+  TRACES_TABLE = 'api.insights.agent-monitoring.traces-table',
+  TOKEN_USAGE_WIDGET = 'api.insights.agent-monitoring.token-usage-widget',
+  MODEL_COST_WIDGET = 'api.insights.agent-monitoring.token-cost-widget',
+  TOKEN_TYPES_WIDGET = 'api.insights.agent-monitoring.token-types-widget',
+  TOOL_CALLS_WIDGET = 'api.insights.agent-monitoring.tool-calls-widget',
+  TOOL_ERRORS_WIDGET = 'api.insights.agent-monitoring.tool-errors-widget',
+  LLM_CALLS_WIDGET = 'api.insights.agent-monitoring.llm-calls-widget',
+  AGENT_RUNS_WIDGET = 'api.insights.agent-monitoring.agent-runs-widget',
+  AGENT_DURATION_WIDGET = 'api.insights.agent-monitoring.agent-duration-widget',
+  ONBOARDING = 'api.insights.agent-monitoring.onboarding',
+}

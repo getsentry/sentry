@@ -1,6 +1,5 @@
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import Placeholder from 'sentry/components/placeholder';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
@@ -8,9 +7,10 @@ import Section from 'sentry/components/workflowEngine/ui/section';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
+import {DisabledAlert} from 'sentry/views/detectors/components/details/common/disabledAlert';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
@@ -71,10 +71,12 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
       <DetectorDetailsHeader detector={detector} project={project} />
       <DetailLayout.Body>
         <DetailLayout.Main>
+          <DisabledAlert
+            detector={detector}
+            message={t('This monitor is disabled and not creating issues.')}
+          />
           <DatePageFilter />
-          <ErrorBoundary mini>
-            <DetectorDetailsOngoingIssues detector={detector} />
-          </ErrorBoundary>
+          <DetectorDetailsOngoingIssues detector={detector} />
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>

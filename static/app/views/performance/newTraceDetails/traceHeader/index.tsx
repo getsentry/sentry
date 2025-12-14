@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -30,6 +32,7 @@ import {Title} from './title';
 export interface TraceMetadataHeaderProps {
   logs: OurLogsResponseItem[] | undefined;
   metaResults: TraceMetaQueryResults;
+  metrics: {count: number} | undefined;
   organization: Organization;
   rootEventResults: TraceRootEventQueryResults;
   traceEventView: EventView;
@@ -43,9 +46,10 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
   const {projects} = useProjects();
-  const {hasLogs} = useTraceContextSections({
+  const {hasLogs, hasMetrics} = useTraceContextSections({
     tree: props.tree,
     logs: props.logs,
+    metrics: props.metrics,
   });
 
   const isLoading =
@@ -58,7 +62,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     props.rootEventResults.status === 'error' ||
     props.tree.type === 'error';
 
-  const noEvents = props.tree.type === 'empty' && !hasLogs;
+  const noEvents = props.tree.type === 'empty' && !hasLogs && !hasMetrics;
   if (isLoading || isError || noEvents) {
     return <PlaceHolder organization={props.organization} traceSlug={props.traceSlug} />;
   }
@@ -87,7 +91,16 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             })}
           />
           <ButtonBar>
-            <TraceHeaderComponents.FeedbackButton />
+            <FeedbackButton
+              size="xs"
+              feedbackOptions={{
+                messagePlaceholder: t('How can we make the trace view better for you?'),
+                tags: {
+                  ['feedback.source']: 'trace-view',
+                  ['feedback.owner']: 'performance',
+                },
+              }}
+            />
           </ButtonBar>
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.HeaderRow>
@@ -98,6 +111,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             meta={props.metaResults.data}
             representativeEvent={rep}
             logs={props.logs}
+            metrics={props.metrics}
           />
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.StyledBreak />

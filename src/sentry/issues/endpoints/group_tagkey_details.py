@@ -87,12 +87,18 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
 
         if group_tag_key.count is None:
             group_tag_key.count = tagstore.backend.get_group_tag_value_count(
-                group, environment_id, lookup_key, tenant_ids=tenant_ids
+                group,
+                environment_id,
+                lookup_key,
+                tenant_ids=tenant_ids,
             )
 
         if group_tag_key.top_values is None:
             group_tag_key.top_values = tagstore.backend.get_top_group_tag_values(
-                group, environment_id, lookup_key, tenant_ids=tenant_ids
+                group,
+                environment_id,
+                lookup_key,
+                tenant_ids=tenant_ids,
             )
 
         return Response(serialize(group_tag_key, request.user, serializer=TagKeySerializer()))

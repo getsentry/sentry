@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {type DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
@@ -13,6 +12,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {SuggestedOwnerReason} from 'sentry/types/group';
+import type {Theme} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 type AssigneeBadgeProps = {
@@ -144,7 +144,7 @@ const TooltipWrapper = styled('div')`
 `;
 
 const StyledText = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   max-width: 114px;
   ${p => p.theme.overflowEllipsis};
 `;
@@ -161,7 +161,7 @@ const UnassignedTag = withChonk(
   styled(StyledTag)`
     border-style: dashed;
   `,
-  styled(StyledTag)<{theme: DO_NOT_USE_ChonkTheme}>`
+  styled(StyledTag)<{theme: Theme}>`
     border: 1px dashed ${p => p.theme.border};
     background-color: transparent;
   `

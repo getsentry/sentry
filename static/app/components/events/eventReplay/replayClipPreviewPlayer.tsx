@@ -87,9 +87,10 @@ const PlayerContainer = styled(FluidHeight)`
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     min-height: ${REPLAY_LOADING_HEIGHT + 16}px;
   }
+  overflow: unset;
 `;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   height: ${REPLAY_LOADING_HEIGHT}px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;

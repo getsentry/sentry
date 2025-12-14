@@ -2492,3 +2492,185 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             interval="1m",
         )
         assert response.status_code == 200
+
+    def test_abnormal_rate_sessions_and_users(self) -> None:
+        for tags, values in (
+            ({"release": "foobar@1.0"}, [1, 2, 4, 8]),
+            ({"session.status": "abnormal", "release": "foobar@1.0"}, [1, 2]),
+            ({"release": "foobar@2.0"}, [3, 5]),
+        ):
+            for value in values:
+                self.store_release_health_metric(
+                    name=SessionMRI.RAW_USER.value,
+                    tags=tags,
+                    value=value,
+                )
+
+        for tag_value, release_tag_value, value, second in (
+            ("init", "foobar@1.0", 4, 4),
+            ("abnormal", "foobar@1.0", 1, 2),
+            ("init", "foobar@2.0", 4, 4),
+            ("abnormal", "foobar@2.0", 3, 2),
+        ):
+            self.store_release_health_metric(
+                name=SessionMRI.RAW_SESSION.value,
+                tags={"session.status": tag_value, "release": release_tag_value},
+                value=value,
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                "session.abnormal_rate",
+                "session.abnormal_user_rate",
+            ],
+            statsPeriod="1h",
+            interval="1h",
+            groupBy="release",
+            orderBy="-session.abnormal_user_rate",
+        )
+        group = response.data["groups"][0]
+        assert group["by"]["release"] == "foobar@1.0"
+        assert group["totals"]["session.abnormal_rate"] == 0.25
+        assert group["totals"]["session.abnormal_user_rate"] == 0.5
+
+        group = response.data["groups"][1]
+        assert group["by"]["release"] == "foobar@2.0"
+        assert group["totals"]["session.abnormal_rate"] == 0.75
+        assert group["totals"]["session.abnormal_user_rate"] == 0.0
+
+    def test_errored_rate_sessions_and_users(self) -> None:
+        for tags, values in (
+            ({"release": "foobar@1.0"}, [1, 2, 4, 8]),
+            ({"session.status": "errored", "release": "foobar@1.0"}, [1, 2]),
+            ({"release": "foobar@2.0"}, [3, 5]),
+        ):
+            for value in values:
+                self.store_release_health_metric(
+                    name=SessionMRI.RAW_USER.value,
+                    tags=tags,
+                    value=value,
+                )
+
+        for tag_value, release_tag_value, value in (
+            ("init", "foobar@1.0", 4),
+            ("errored_preaggr", "foobar@1.0", 1),
+            ("init", "foobar@2.0", 4),
+            ("errored_preaggr", "foobar@2.0", 3),
+        ):
+            self.store_release_health_metric(
+                name=SessionMRI.RAW_SESSION.value,
+                tags={"session.status": tag_value, "release": release_tag_value},
+                value=value,
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                "session.errored_rate",
+                "session.errored_user_rate",
+                "sum(sentry.sessions.session)",
+            ],
+            statsPeriod="1h",
+            interval="1h",
+            groupBy="release",
+            orderBy="sum(sentry.sessions.session)",
+        )
+        group = response.data["groups"][0]
+        assert group["by"]["release"] == "foobar@1.0"
+        assert group["totals"]["session.errored_rate"] == 0.25
+        assert group["totals"]["session.errored_user_rate"] == 0.5
+
+        group = response.data["groups"][1]
+        assert group["by"]["release"] == "foobar@2.0"
+        assert group["totals"]["session.errored_rate"] == 0.75
+        assert group["totals"]["session.errored_user_rate"] == 0.0
+
+    def test_unhandled_rate_sessions_and_users(self) -> None:
+        for tags, values in (
+            ({"release": "foobar@1.0"}, [1, 2, 4, 8]),
+            ({"session.status": "unhandled", "release": "foobar@1.0"}, [1, 2]),
+            ({"release": "foobar@2.0"}, [3, 5]),
+        ):
+            for value in values:
+                self.store_release_health_metric(
+                    name=SessionMRI.RAW_USER.value,
+                    tags=tags,
+                    value=value,
+                )
+
+        for tag_value, release_tag_value, value in (
+            ("init", "foobar@1.0", 4),
+            ("unhandled", "foobar@1.0", 1),
+            ("init", "foobar@2.0", 4),
+            ("unhandled", "foobar@2.0", 3),
+        ):
+            self.store_release_health_metric(
+                name=SessionMRI.RAW_SESSION.value,
+                tags={"session.status": tag_value, "release": release_tag_value},
+                value=value,
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                "session.unhandled_rate",
+                "session.unhandled_user_rate",
+                "sum(sentry.sessions.session)",
+            ],
+            statsPeriod="1h",
+            interval="1h",
+            groupBy="release",
+            orderBy="sum(sentry.sessions.session)",
+        )
+        group = response.data["groups"][0]
+        assert group["by"]["release"] == "foobar@1.0"
+        assert group["totals"]["session.unhandled_rate"] == 0.25
+        assert group["totals"]["session.unhandled_user_rate"] == 0.5
+
+        group = response.data["groups"][1]
+        assert group["by"]["release"] == "foobar@2.0"
+        assert group["totals"]["session.unhandled_rate"] == 0.75
+        assert group["totals"]["session.unhandled_user_rate"] == 0.0
+
+    def test_unhealthy_rate_sessions(self) -> None:
+        for tag_value, release_tag_value, value in (
+            ("init", "foobar@1.0", 4),
+            ("errored_preaggr", "foobar@1.0", 1),
+            ("init", "foobar@2.0", 4),
+        ):
+            self.store_release_health_metric(
+                name=SessionMRI.RAW_SESSION.value,
+                tags={"session.status": tag_value, "release": release_tag_value},
+                value=value,
+            )
+        # Unhealthy rate relies on RAW_ERROR metric
+        for tag_value, release_tag_value, value in (
+            ("abnormal", "foobar@2.0", 1),
+            ("unhandled", "foobar@2.0", 2),
+            ("crashed", "foobar@2.0", 3),
+        ):
+            self.store_release_health_metric(
+                name=SessionMRI.RAW_ERROR.value,
+                tags={"release": release_tag_value},
+                value=value,
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                "session.unhealthy_rate",
+                "sum(sentry.sessions.session)",
+            ],
+            statsPeriod="1h",
+            interval="1h",
+            groupBy="release",
+            orderBy="-sum(sentry.sessions.session)",
+        )
+        group = response.data["groups"][0]
+        assert group["by"]["release"] == "foobar@1.0"
+        assert group["totals"]["session.unhealthy_rate"] == 0.25
+
+        group = response.data["groups"][1]
+        assert group["by"]["release"] == "foobar@2.0"
+        assert group["totals"]["session.unhealthy_rate"] == 0.75

@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -63,7 +62,6 @@ describe('Sudo Modal', () => {
   });
 
   it('can delete an org with sudo flow', async () => {
-    const {routerProps} = initializeOrg({router: {params: {}}});
     setHasPasswordAuth(true);
 
     const successCb = jest.fn();
@@ -76,11 +74,7 @@ describe('Sudo Modal', () => {
       error: errorCb,
     });
 
-    render(
-      <App {...routerProps}>
-        <div>placeholder content</div>
-      </App>
-    );
+    render(<App />);
 
     // Should have Modal + input
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
@@ -137,17 +131,12 @@ describe('Sudo Modal', () => {
   });
 
   it('shows button to redirect if user does not have password auth', async () => {
-    const {routerProps} = initializeOrg({router: {params: {}}});
     setHasPasswordAuth(false);
 
     // Should return w/ `sudoRequired` and trigger the modal to open
     new MockApiClient().request('/organizations/org-slug/', {method: 'DELETE'});
 
-    render(
-      <App {...routerProps}>
-        <div>placeholder content</div>
-      </App>
-    );
+    render(<App />);
 
     // Should have Modal + input
     expect(await screen.findByRole('dialog')).toBeInTheDocument();

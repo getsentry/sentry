@@ -20,7 +20,6 @@ import {
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import {hasNewCheckout} from 'getsentry/views/amCheckout/utils';
 
 export function parseOnDemandBudgetsFromSubscription(
   subscription: Subscription
@@ -132,8 +131,8 @@ export function hasOnDemandBudgetsFeature(
   organization: undefined | Organization,
   subscription: undefined | Subscription
 ) {
-  // This function determines if the org can access the on-demand budgets UI.
-  // Only orgs on the AM plan can access the on-demand budgets UI.
+  // This function determines if the org can access the PAYG budgets UI.
+  // Only orgs on the AM plan can access the PAYG budgets UI.
   return (
     subscription?.planDetails?.hasOnDemandModes &&
     organization?.features.includes('ondemand-budgets')
@@ -155,7 +154,7 @@ export function exceedsInvoicedBudgetLimit(
     return false;
   }
 
-  // no limit for invoiced customers with CC-charged on-demand
+  // no limit for invoiced customers with CC-charged PAYG
   if (subscription.onDemandInvoiced && !subscription.onDemandInvoicedManual) {
     return false;
   }
@@ -183,7 +182,10 @@ export function trackOnDemandBudgetAnalytics(
   organization: Organization,
   previousBudget: OnDemandBudgets,
   newBudget: OnDemandBudgets,
-  prefix: 'ondemand_budget_modal' | 'checkout' = 'ondemand_budget_modal'
+  prefix:
+    | 'ondemand_budget_modal'
+    | 'checkout'
+    | 'payg_inline_form' = 'ondemand_budget_modal'
 ) {
   const previousTotalBudget = getTotalBudget(previousBudget);
   const totalBudget = getTotalBudget(newBudget);
@@ -191,10 +193,6 @@ export function trackOnDemandBudgetAnalytics(
   const newBudgetMode = newBudget.budgetMode;
 
   const analyticsParams: Record<string, any> = {};
-  if (prefix === 'checkout') {
-    const isNewCheckout = hasNewCheckout(organization);
-    analyticsParams.isNewCheckout = isNewCheckout;
-  }
 
   if (totalBudget > 0 && previousTotalBudget !== totalBudget) {
     const newBudgets: Partial<Record<`${DataCategoryExact}_budget`, number>> = {};

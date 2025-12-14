@@ -10,6 +10,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.activity import ActivityType
+from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.types import WorkflowEventData
@@ -38,7 +39,8 @@ def fetch_event(event_id: str, project_id: int) -> Event | None:
     fetch_retry_policy = ConditionalRetryPolicy(
         _should_retry_nodestore_fetch, exponential_delay(1.00)
     )
-    data = fetch_retry_policy(lambda: nodestore.backend.get(node_id))
+    with metrics.timer("workflow_engine.process_workflows.fetch_from_nodestore"):
+        data = fetch_retry_policy(lambda: nodestore.backend.get(node_id))
     if data is None:
         return None
     evt = Event(
@@ -62,7 +64,6 @@ class EventNotFoundError(Exception):
 
 @scopedstats.timer()
 def build_workflow_event_data_from_event(
-    project_id: int,
     event_id: str,
     group_id: int,
     workflow_id: int | None = None,
@@ -76,14 +77,14 @@ def build_workflow_event_data_from_event(
     This method handles all the database fetching and object construction logic.
     Raises EventNotFoundError if the event is not found.
     """
-
+    group = Group.objects.get_from_cache(id=group_id)
+    project_id = group.project_id
     event = fetch_event(event_id, project_id)
     if event is None:
         raise EventNotFoundError(event_id, project_id)
 
     occurrence = IssueOccurrence.fetch(occurrence_id, project_id) if occurrence_id else None
 
-    group = Group.objects.get_from_cache(id=group_id)
     group_event = GroupEvent.from_event(event, group)
     group_event.occurrence = occurrence
 

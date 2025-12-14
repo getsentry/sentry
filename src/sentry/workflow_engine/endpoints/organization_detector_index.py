@@ -15,7 +15,8 @@ from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationAlertRulePermission, OrganizationEndpoint
+from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationDetectorPermission
 from sentry.api.event_search import SearchConfig, SearchFilter, SearchKey, default_config
 from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -49,6 +50,7 @@ from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
+    can_delete_detectors,
     can_edit_detectors,
 )
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
@@ -145,9 +147,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ISSUES
 
-    # TODO: We probably need a specific permission for detectors. Possibly specific detectors have different perms
-    # too?
-    permission_classes = (OrganizationAlertRulePermission,)
+    permission_classes = (OrganizationDetectorPermission,)
 
     def filter_detectors(self, request: Request, organization) -> QuerySet[Detector]:
         """
@@ -419,6 +419,15 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         queryset = self.filter_detectors(request, organization)
 
+        # If explicitly filtering by IDs and some were not found, return 400
+        if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):
+            return Response(
+                {
+                    "detail": "Some detectors were not found or you do not have permission to update them."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if not queryset:
             return Response(
                 {"detail": "No detectors found."},
@@ -482,6 +491,15 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         queryset = self.filter_detectors(request, organization)
 
+        # If explicitly filtering by IDs and some were not found, return 400
+        if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):
+            return Response(
+                {
+                    "detail": "Some detectors were not found or you do not have permission to delete them."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if not queryset:
             return Response(
                 {"detail": "No detectors found."},
@@ -489,7 +507,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             )
 
         # Check if the user has edit permissions for all detectors
-        if not can_edit_detectors(queryset, request):
+        if not can_delete_detectors(queryset, request):
             raise PermissionDenied
 
         for detector in queryset:

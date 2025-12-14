@@ -1,4 +1,4 @@
-from typing import Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 
 class StatsMeta(TypedDict):
@@ -29,7 +29,7 @@ class SeriesMeta(TypedDict):
 
 class GroupBy(TypedDict):
     key: str
-    value: str
+    value: str | None
 
 
 class TimeSeries(TypedDict):
@@ -40,5 +40,10 @@ class TimeSeries(TypedDict):
 
 
 class StatsResponse(TypedDict):
-    meta: StatsMeta
+    meta: NotRequired[StatsMeta]
     timeSeries: list[TimeSeries]
+
+
+EMPTY_STATS_RESPONSE: dict[str, Any] = {
+    "timeSeries": [],
+}

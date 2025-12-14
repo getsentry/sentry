@@ -15,7 +15,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import Version from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {percent} from 'sentry/utils';
+import {generateQueryWithTag, percent} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
@@ -84,7 +84,7 @@ export function GroupTagsTab() {
   const alphabeticalTags = data.toSorted((a, b) => a.key.localeCompare(b.key));
   return (
     <Layout.Body>
-      <Layout.Main fullWidth>
+      <Layout.Main width="full">
         <Alert.Container>
           <Alert type="info" showIcon={false}>
             {tct(
@@ -106,32 +106,44 @@ export function GroupTagsTab() {
                     </Link>
                   </TagHeading>
                   <UnstyledUnorderedList>
-                    {tag.topValues.map((tagValue, tagValueIdx) => (
-                      <li key={tagValueIdx} data-test-id={tag.key}>
-                        <TagBarGlobalSelectionLink
-                          to={{
-                            pathname: `${baseUrl}events/`,
-                            query: {
-                              query: tagValue.query || `${tag.key}:"${tagValue.value}"`,
-                            },
-                          }}
-                        >
-                          <TagBarBackground
-                            widthPercent={percent(tagValue.count, tag.totalValues) + '%'}
-                          />
-                          <TagBarLabel>
-                            {tag.key === 'release' ? (
-                              <Version version={tagValue.name} anchor={false} />
-                            ) : (
-                              <DeviceName value={tagValue.name} />
-                            )}
-                          </TagBarLabel>
-                          <TagBarCount>
-                            <Count value={tagValue.count} />
-                          </TagBarCount>
-                        </TagBarGlobalSelectionLink>
-                      </li>
-                    ))}
+                    {tag.topValues.map((tagValue, tagValueIdx) => {
+                      const tagName = tagValue.name === '' ? t('(empty)') : tagValue.name;
+                      const query = tagValue.query
+                        ? {
+                            ...location.query,
+                            query: tagValue.query,
+                          }
+                        : generateQueryWithTag(location.query, {
+                            key: tag.key,
+                            value: tagValue.value,
+                          });
+                      return (
+                        <li key={tagValueIdx} data-test-id={tag.key}>
+                          <TagBarGlobalSelectionLink
+                            to={{
+                              pathname: `${baseUrl}events/`,
+                              query,
+                            }}
+                          >
+                            <TagBarBackground
+                              widthPercent={
+                                percent(tagValue.count, tag.totalValues) + '%'
+                              }
+                            />
+                            <TagBarLabel>
+                              {tag.key === 'release' ? (
+                                <Version version={tagName} anchor={false} />
+                              ) : (
+                                <DeviceName value={tagName} />
+                              )}
+                            </TagBarLabel>
+                            <TagBarCount>
+                              <Count value={tagValue.count} />
+                            </TagBarCount>
+                          </TagBarGlobalSelectionLink>
+                        </li>
+                      );
+                    })}
                   </UnstyledUnorderedList>
                 </PanelBody>
               </StyledPanel>
@@ -189,7 +201,7 @@ const TagBarBackground = styled('div')<{widthPercent: string}>`
   bottom: 0;
   left: 0;
   background: ${p => p.theme.surface100};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   width: ${p => p.widthPercent};
 `;
 
@@ -197,18 +209,18 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
   position: relative;
   display: flex;
   line-height: 2.2;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   margin-bottom: ${space(0.5)};
   padding: 0 ${space(1)};
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
     text-decoration: underline;
     ${TagBarBackground} {
-      background: ${p => (p.theme.isChonk ? p.theme.blue300 : p.theme.purple200)};
+      background: ${p => p.theme.blue300};
     }
   }
 `;

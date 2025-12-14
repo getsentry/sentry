@@ -331,10 +331,9 @@ class StacktraceGroupingComponent(BaseGroupingComponent[FrameGroupingComponent])
         values: Sequence[FrameGroupingComponent] | None = None,
         hint: str | None = None,
         contributes: bool | None = None,
-        frame_counts: Counter[str] | None = None,
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
-        self.frame_counts = frame_counts or Counter()
+        self.frame_counts = Counter()
 
     def as_dict(self) -> dict[str, Any]:
         result = super().as_dict()
@@ -350,9 +349,11 @@ def _get_exception_component_key(
 ) -> str:
     key = component.id
 
-    contributing_stacktrace = component.get_subcomponent(
-        "stacktrace", recursive=True, only_contributing=True
+    either_variant_has_contributing_stacktrace = (
+        component.frame_counts["in_app_contributing_frames"] != 0
+        or component.frame_counts["system_contributing_frames"] != 0
     )
+
     contributing_error_message = component.get_subcomponent(
         "value", recursive=True, only_contributing=True
     )
@@ -368,7 +369,7 @@ def _get_exception_component_key(
     # stacktrace or message, the error type technically does contribute to grouping as well, but in
     # an explaining-it-to-humans sense, it's clearer - and close enough, given how infrequently type
     # is the only differentiator between two events - to just say we're grouping on stacktrace.)
-    if contributing_stacktrace:
+    if either_variant_has_contributing_stacktrace:
         key += "_stacktrace"
     elif contributing_error_message:
         key += "_message"
@@ -405,6 +406,25 @@ class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponen
     @property
     def key(self) -> str:
         return _get_exception_component_key(self)
+
+    def as_dict(self) -> dict[str, Any]:
+        """
+        Convert to a dictionary, first rearranging the values so they show up in the order we want
+        in grouping info.
+
+        TODO: Once we're fully transitioned off of the `newstyle:2023-01-11` config, this method can
+        be deleted
+        """
+        ordered_values: Any = []
+
+        for component_id in ["type", "value", "ns_error", "stacktrace"]:
+            subcomponent = self.get_subcomponent(component_id)
+            if subcomponent:
+                ordered_values.append(subcomponent)
+
+        self.values = ordered_values
+
+        return super().as_dict()
 
 
 class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponent]):

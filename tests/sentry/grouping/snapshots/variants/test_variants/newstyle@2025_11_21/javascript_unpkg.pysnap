@@ -1,0 +1,72 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: null
+  contributing component: null
+  hint: ignored because system exception takes precedence
+  root_component:
+    app (ignored because system exception takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "Error"
+        value*
+          "bad"
+        stacktrace (ignored because it contains no in-app frames)
+          frame (marked out of app by built-in stack trace rule (path:**https://unpkg.com/** -app))
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "unpkg"
+          frame (marked out of app by built-in stack trace rule (path:**https://cdnjs.cloudflare.com/** -app))
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "cdnjs"
+          frame (marked out of app by built-in stack trace rule (path:**https://cdn.jsdelivr.net/** -app))
+            filename (ignored because frame points to a URL)
+              "jquery.min.js"
+            function*
+              "jsdelivr"
+          frame (marked out of app by built-in stack trace rule (path:**https://esm.run/** -app))
+            filename (ignored because frame points to a URL)
+              "d3@7.6.1"
+            function* (trimmed javascript function)
+              "run"
+--------------------------------------------------------------------------
+system:
+  hash: "96955d6eb6b1c842b7c64ac8eb3ffe8d"
+  contributing component: exception
+  hint: None
+  root_component:
+    system*
+      exception*
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+        stacktrace*
+          frame*
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "unpkg"
+          frame*
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "cdnjs"
+          frame*
+            filename (ignored because frame points to a URL)
+              "jquery.min.js"
+            function*
+              "jsdelivr"
+          frame*
+            filename (ignored because frame points to a URL)
+              "d3@7.6.1"
+            function* (trimmed javascript function)
+              "run"

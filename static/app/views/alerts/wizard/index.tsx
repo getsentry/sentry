@@ -170,7 +170,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
         </StyledHeaderContent>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <WizardBody>
             <WizardOptions>
               {getAlertWizardCategories(organization).map(
@@ -335,7 +335,7 @@ const DisabledAlertMessageContainer = styled('div')`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.subText};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
 `;
 
 export default AlertWizard;

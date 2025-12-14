@@ -6,6 +6,7 @@ import Color from 'color';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DeviceName} from 'sentry/components/deviceName';
 import Placeholder from 'sentry/components/placeholder';
@@ -20,7 +21,7 @@ import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -90,6 +91,8 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
       name = formatVersion(value.name);
     } else if (tag.key === 'device') {
       name = <DeviceName value={value.name} />;
+    } else if (value.name === '') {
+      name = <Text variant="muted">{t('(empty)')}</Text>;
     }
 
     return {
@@ -140,6 +143,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   return (
     <Tooltip title={tooltipContent} skipWrapper maxWidth={420}>
       <TagPreviewGrid
+        replace
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${tag.key}/`,
           query: location.query,
@@ -189,7 +193,7 @@ function DistributionsDrawerButton({
         replace
         disabled={tags.length === 0}
       >
-        {includeFeatureFlags
+        {includeFeatureFlags && !isScreenSmall
           ? tct('View[nbsp]All Tags[nbsp]&[nbsp]Flags', {
               nbsp: '\u00A0', // non-breaking space unicode character.
             })
@@ -202,6 +206,7 @@ function DistributionsDrawerButton({
 
   return (
     <DistributionsDrawerLink
+      replace
       to={{
         pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
         query: location.query,
@@ -399,13 +404,13 @@ const TagPreviewGrid = styled(Link)`
   align-items: center;
   padding: 0 ${p => p.theme.space.sm};
   margin: 0 -${p => p.theme.space.sm};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.textColor};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
 
   &:hover {
     background: ${p => p.theme.backgroundTertiary};
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

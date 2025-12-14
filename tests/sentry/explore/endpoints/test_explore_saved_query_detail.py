@@ -3,6 +3,7 @@ from django.urls import NoReverseMatch, reverse
 
 from sentry.explore.models import (
     ExploreSavedQuery,
+    ExploreSavedQueryDataset,
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
 )
@@ -253,6 +254,34 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 403, response.content
+
+    def test_put_query_with_segment_spans(self) -> None:
+        with self.feature(self.feature_name):
+            segment_spans_query = ExploreSavedQuery.objects.create(
+                organization=self.org,
+                created_by_id=self.user.id,
+                name="Test query",
+                query={"fields": ["span.op"], "mode": "samples"},
+                dataset=ExploreSavedQueryDataset.SEGMENT_SPANS,
+                changed_reason={"orderby": [{"orderby": "span.op", "reason": "span.op dropped"}]},
+            )
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail",
+                args=[self.org.slug, segment_spans_query.id],
+            )
+
+            response = self.client.put(
+                url,
+                {
+                    "name": "Updated query",
+                    "projects": self.project_ids,
+                    "range": "24h",
+                    "dataset": "spans",
+                },
+            )
+            assert response.status_code == 200
+            assert response.data["dataset"] == "spans"
+            assert ExploreSavedQuery.objects.get(id=segment_spans_query.id).changed_reason is None
 
     def test_delete(self) -> None:
         with self.feature(self.feature_name):

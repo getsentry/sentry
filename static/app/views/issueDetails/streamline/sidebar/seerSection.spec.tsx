@@ -133,6 +133,44 @@ describe('SeerSection', () => {
       expect(screen.getByRole('button', {name: 'Fix with Seer'})).toBeInTheDocument();
     });
 
+    it('shows issue summary and "Fix with Seer" when consent flow is removed and there is no autofix quota', async () => {
+      const orgWithConsentFlowRemoved = OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['gen-ai-features', 'gen-ai-consent-flow-removal'],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: true,
+            userHasAcknowledged: true,
+          },
+          integration: {ok: true, reason: null},
+          githubWriteIntegration: {ok: true, repos: []},
+          billing: {hasAutofixQuota: false},
+        }),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+        method: 'POST',
+        body: {whatsWrong: 'Test summary', possibleCause: 'You did it wrong'},
+      });
+
+      render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+        organization: orgWithConsentFlowRemoved,
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+      });
+
+      expect(screen.getByText(/initial guess/i)).toBeInTheDocument();
+      // Should show issue summary
+      expect(await screen.findByText('You did it wrong')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Fix with Seer'})).toBeInTheDocument();
+    });
+
     it('shows "Find Root Cause" even when autofix needs setup', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,

@@ -90,6 +90,16 @@ def get_max_widget_specs(organization: Organization) -> int:
     return max_widget_specs
 
 
+def get_max_alert_specs(organization: Organization) -> int:
+    if organization.id in options.get("on_demand.extended_alert_spec_orgs") and (
+        extended_max_specs := options.get("on_demand.extended_max_alert_specs")
+    ):
+        return extended_max_specs
+
+    max_alert_specs = options.get("on_demand.max_alert_specs")
+    return max_alert_specs
+
+
 @metrics.wraps("on_demand_metrics.get_metric_extraction_config")
 def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | None:
     """
@@ -129,9 +139,17 @@ def get_on_demand_metric_specs(
     timeout.check()
 
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
+    prefilling_for_deprecation = (
+        "organizations:on-demand-gen-metrics-deprecation-prefill" in enabled_features
+    )
 
     with sentry_sdk.start_span(op="get_alert_metric_specs"):
-        alert_specs = _get_alert_metric_specs(project, enabled_features, prefilling)
+        alert_specs = _get_alert_metric_specs(
+            project,
+            enabled_features,
+            prefilling,
+            prefilling_for_deprecation=prefilling_for_deprecation,
+        )
     timeout.check()
     with sentry_sdk.start_span(op="get_widget_metric_specs"):
         widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
@@ -146,6 +164,7 @@ def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:
         "organizations:on-demand-metrics-extraction-widgets",  # Controls extraction for widgets
         "organizations:on-demand-metrics-extraction-experimental",
         "organizations:on-demand-metrics-prefill",
+        "organizations:on-demand-gen-metrics-deprecation-prefill",
     ]
 
     enabled_features = set()
@@ -157,9 +176,16 @@ def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:
 
 
 def get_all_alert_metric_specs(
-    project: Project, enabled_features: set[str], prefilling: bool
+    project: Project,
+    enabled_features: set[str],
+    prefilling: bool,
+    prefilling_for_deprecation: bool,
 ) -> list[HashedMetricSpec]:
-    if not ("organizations:on-demand-metrics-extraction" in enabled_features or prefilling):
+    if not (
+        "organizations:on-demand-metrics-extraction" in enabled_features
+        or prefilling
+        or prefilling_for_deprecation
+    ):
         return []
 
     metrics.incr(
@@ -190,7 +216,12 @@ def get_all_alert_metric_specs(
                 tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
             )
 
-            if results := _convert_snuba_query_to_metrics(project, alert_snuba_query, prefilling):
+            if results := _convert_snuba_query_to_metrics(
+                project,
+                alert_snuba_query,
+                prefilling,
+                prefilling_for_deprecation=prefilling_for_deprecation,
+            ):
                 for spec in results:
                     metrics.incr(
                         "on_demand_metrics.on_demand_spec.for_alert",
@@ -201,9 +232,14 @@ def get_all_alert_metric_specs(
 
 
 def get_default_version_alert_metric_specs(
-    project: Project, enabled_features: set[str], prefilling: bool
+    project: Project,
+    enabled_features: set[str],
+    prefilling: bool,
+    prefilling_for_deprecation: bool,
 ) -> list[HashedMetricSpec]:
-    specs = get_all_alert_metric_specs(project, enabled_features, prefilling)
+    specs = get_all_alert_metric_specs(
+        project, enabled_features, prefilling, prefilling_for_deprecation=prefilling_for_deprecation
+    )
     specs_per_version = get_specs_per_version(specs)
     default_extraction_version = OnDemandMetricSpecVersioning.get_default_spec_version().version
     return specs_per_version.get(default_extraction_version, [])
@@ -211,11 +247,16 @@ def get_default_version_alert_metric_specs(
 
 @metrics.wraps("on_demand_metrics._get_alert_metric_specs")
 def _get_alert_metric_specs(
-    project: Project, enabled_features: set[str], prefilling: bool
+    project: Project,
+    enabled_features: set[str],
+    prefilling: bool,
+    prefilling_for_deprecation: bool,
 ) -> list[HashedMetricSpec]:
-    specs = get_all_alert_metric_specs(project, enabled_features, prefilling)
+    specs = get_all_alert_metric_specs(
+        project, enabled_features, prefilling, prefilling_for_deprecation=prefilling_for_deprecation
+    )
 
-    max_alert_specs = options.get("on_demand.max_alert_specs")
+    max_alert_specs = get_max_alert_specs(project.organization)
     (specs, _) = _trim_if_above_limit(specs, max_alert_specs, project, "alerts")
 
     return specs
@@ -455,7 +496,10 @@ def _merge_metric_specs(
 
 
 def _convert_snuba_query_to_metrics(
-    project: Project, snuba_query: SnubaQuery, prefilling: bool
+    project: Project,
+    snuba_query: SnubaQuery,
+    prefilling: bool,
+    prefilling_for_deprecation: bool,
 ) -> Sequence[HashedMetricSpec] | None:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
@@ -469,6 +513,7 @@ def _convert_snuba_query_to_metrics(
         snuba_query.query,
         environment,
         prefilling,
+        prefilling_for_deprecation=prefilling_for_deprecation,
     )
 
 
@@ -492,7 +537,13 @@ def convert_widget_query_to_metric(
 
     for aggregate in aggregates:
         metrics_specs += _generate_metric_specs(
-            aggregate, widget_query, project, prefilling, groupbys, organization_bulk_query_cache
+            aggregate,
+            widget_query,
+            project,
+            prefilling,
+            prefilling_for_deprecation=False,
+            groupbys=groupbys,
+            organization_bulk_query_cache=organization_bulk_query_cache,
         )
 
     return metrics_specs
@@ -503,6 +554,7 @@ def _generate_metric_specs(
     widget_query: DashboardWidgetQuery,
     project: Project,
     prefilling: bool,
+    prefilling_for_deprecation: bool,
     groupbys: Sequence[str] | None = None,
     organization_bulk_query_cache: dict[int, dict[str, bool]] | None = None,
 ) -> list[HashedMetricSpec]:
@@ -517,6 +569,7 @@ def _generate_metric_specs(
         widget_query.conditions,
         None,
         prefilling,
+        prefilling_for_deprecation,
         groupbys=groupbys,
         spec_type=MetricSpecType.DYNAMIC_QUERY,
         organization_bulk_query_cache=organization_bulk_query_cache,
@@ -753,6 +806,7 @@ def _convert_aggregate_and_query_to_metrics(
     query: str,
     environment: str | None,
     prefilling: bool,
+    prefilling_for_deprecation: bool,
     spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
     groupbys: Sequence[str] | None = None,
     organization_bulk_query_cache: dict[int, dict[str, bool]] | None = None,
@@ -768,7 +822,13 @@ def _convert_aggregate_and_query_to_metrics(
     # the supported state of a query, since if it's standard, and we added environment it will still be standard
     # and if it's on demand, it will always be on demand irrespectively of what we add.
     if not should_use_on_demand_metrics(
-        dataset, aggregate, query, groupbys, prefilling, organization_bulk_query_cache
+        dataset,
+        aggregate,
+        query,
+        groupbys,
+        prefilling,
+        organization_bulk_query_cache,
+        prefilling_for_deprecation=prefilling_for_deprecation,
     ):
         return None
 

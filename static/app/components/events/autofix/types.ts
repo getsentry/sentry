@@ -306,12 +306,27 @@ export interface SeerRepoDefinition {
   branch_name?: string;
   branch_overrides?: BranchOverride[];
   instructions?: string;
+  integration_id?: string;
+  organization_id?: number;
   provider_raw?: string;
+}
+
+interface SeerAutomationHandoffConfiguration {
+  handoff_point: 'root_cause';
+  integration_id: number;
+  target: 'cursor_background_agent';
+  auto_create_pr?: boolean;
 }
 
 export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
-  automated_run_stopping_point?: 'root_cause' | 'solution' | 'code_changes' | 'open_pr';
+  automated_run_stopping_point?:
+    | 'root_cause'
+    | 'solution'
+    | 'code_changes'
+    | 'open_pr'
+    | 'background_agent';
+  automation_handoff?: SeerAutomationHandoffConfiguration;
 }
 
 export const AUTOFIX_TTL_IN_DAYS = 30;

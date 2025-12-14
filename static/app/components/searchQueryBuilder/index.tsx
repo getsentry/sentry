@@ -2,8 +2,10 @@ import {useContext, useLayoutEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {
   SearchQueryBuilderContext,
   SearchQueryBuilderProvider,
@@ -30,7 +32,6 @@ import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
 
 export interface SearchQueryBuilderProps {
   /**
@@ -128,6 +129,12 @@ export interface SearchQueryBuilderProps {
    * ```
    */
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  /**
+   * If provided, filters recent searches by this query string on the backend.
+   * This query will not be displayed in the UI because it is stripped from the
+   * API response results before rendering.
+   */
+  namespace?: string;
   onBlur?: (query: string, state: CallbackSearchState) => void;
   /**
    * When passed, this will display the case sensitivity toggle, and will be called when
@@ -190,29 +197,30 @@ function ActionButtons({
     onCaseInsensitiveClick,
   } = useSearchQueryBuilder();
 
-  const hasCaseSensitiveSearch = useOrganization().features.includes(
-    'search-query-builder-case-insensitivity'
-  );
-
   if (disabled) {
     return null;
   }
 
+  const isCaseInsensitive = caseInsensitive === 1;
+  const caseInsensitiveLabel = isCaseInsensitive ? t('Match case') : t('Ignore case');
+
   return (
     <ButtonsWrapper ref={ref}>
       {trailingItems}
-      {defined(onCaseInsensitiveClick) && hasCaseSensitiveSearch ? (
-        <ActionButton
-          aria-label={t('Toggle case sensitivity')}
-          aria-pressed={caseInsensitive === 1}
-          size="zero"
-          icon={<IconCase color={caseInsensitive ? 'active' : 'subText'} />}
-          borderless
-          active={caseInsensitive === 1}
-          onClick={() => {
-            onCaseInsensitiveClick?.(caseInsensitive === 1 ? null : 1);
-          }}
-        />
+      {defined(onCaseInsensitiveClick) ? (
+        <Tooltip title={caseInsensitiveLabel}>
+          <ActionButton
+            aria-label={caseInsensitiveLabel}
+            aria-pressed={isCaseInsensitive}
+            size="zero"
+            icon={<IconCase color={isCaseInsensitive ? 'subText' : 'active'} />}
+            borderless
+            active={!isCaseInsensitive}
+            onClick={() => {
+              onCaseInsensitiveClick?.(isCaseInsensitive ? null : 1);
+            }}
+          />
+        </Tooltip>
       ) : null}
       {query === '' ? null : (
         <ActionButton
@@ -328,7 +336,7 @@ const ActionButton = styled(Button)<{active?: boolean}>`
 const PositionedSearchIconContainer = styled('div')`
   position: absolute;
   left: ${p => p.theme.space.lg};
-  top: ${p => (p.theme.isChonk ? p.theme.space.sm : p.theme.space.md)};
+  top: ${p => p.theme.space.sm};
 `;
 
 const SearchIcon = styled(IconSearch)`

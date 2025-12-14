@@ -8,6 +8,7 @@ export enum PrimaryNavGroup {
   DASHBOARDS = 'dashboards',
   EXPLORE = 'explore',
   INSIGHTS = 'insights',
+  MONITORS = 'monitors',
   SETTINGS = 'settings',
   PREVENT = 'prevent',
   ADMIN = 'admin',

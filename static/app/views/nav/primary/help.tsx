@@ -1,7 +1,4 @@
-import {Fragment} from 'react';
-
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -10,9 +7,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useChonkPrompt} from 'sentry/utils/theme/useChonkPrompt';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
 import {SidebarMenu} from 'sentry/views/nav/primary/components';
 import {
@@ -54,8 +49,6 @@ function getContactSupportItem({
 
 export function PrimaryNavigationHelp() {
   const organization = useOrganization();
-  const user = useUser();
-  const {mutate: mutateUserOptions} = useMutateUserOptions();
   const contactSupportItem = getContactSupportItem({organization});
   const openForm = useFeedbackForm();
   const {startTour} = useStackedNavigationTour();
@@ -65,8 +58,8 @@ export function PrimaryNavigationHelp() {
     <SidebarMenu
       triggerWrap={StackedNavigationTourReminder}
       onOpen={() => {
-        chonkPrompt.dismissDotIndicatorPrompt();
-        chonkPrompt.dismissBannerPrompt();
+        chonkPrompt.snoozeDotIndicatorPrompt();
+        chonkPrompt.snoozeBannerPrompt();
       }}
       items={[
         {
@@ -131,34 +124,6 @@ export function PrimaryNavigationHelp() {
                 startTour();
               },
             },
-            organization?.features?.includes('chonk-ui')
-              ? user.options.prefersChonkUI
-                ? {
-                    key: 'new-chonk-ui',
-                    label: t('Switch back to our old look'),
-                    onAction() {
-                      mutateUserOptions({prefersChonkUI: false});
-                      trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
-                        organization,
-                      });
-                    },
-                  }
-                : {
-                    key: 'new-chonk-ui',
-                    label: (
-                      <Fragment>
-                        {t('Try our new look')} <FeatureBadge type="beta" />
-                      </Fragment>
-                    ),
-                    textValue: 'Try our new look',
-                    onAction() {
-                      mutateUserOptions({prefersChonkUI: true});
-                      trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {
-                        organization,
-                      });
-                    },
-                  }
-              : null,
           ].filter(n => !!n),
         },
       ]}

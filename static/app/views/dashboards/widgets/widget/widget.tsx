@@ -146,10 +146,10 @@ const Frame = styled('div')<{
   width: 100%;
   min-width: ${MIN_WIDTH}px;
 
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: ${p => (p.borderless ? 'none' : `1px solid ${p.theme.border}`)};
 
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 
   ${p =>
     p.revealActions === 'hover' &&
@@ -181,7 +181,7 @@ const VisualizationWrapper = styled('div')<{noPadding?: boolean}>`
   padding: ${p => (p.noPadding ? 0 : `0 ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER}`)};
 `;
 
-const FooterWrapper = styled('div')<{noPadding?: boolean}>`
+export const FooterWrapper = styled('div')<{noPadding?: boolean}>`
   margin: 0;
   border-top: 1px solid ${p => p.theme.border};
   padding: ${p => (p.noPadding ? 0 : `${space(1)} ${X_GUTTER} ${space(1)} ${X_GUTTER}`)};

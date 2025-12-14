@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
+import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {defaultVisualizes} from 'sentry/views/explore/spans/spansQueryParams';
@@ -19,17 +19,22 @@ describe('ExploreCharts', () => {
 
     render(
       <SpansQueryParamsProvider>
-        <PageParamsProvider>
+        <ChartSelectionProvider>
           <ExploreCharts
             extrapolate
+            setTab={() => {}}
             confidences={[]}
             query=""
             timeseriesResult={mockTimeseriesResult}
             visualizes={defaultVisualizes()}
             setVisualizes={() => {}}
             samplingMode={SAMPLING_MODE.HIGH_ACCURACY}
+            rawSpanCounts={{
+              highAccuracy: {count: 0, isLoading: true},
+              normal: {count: 0, isLoading: true},
+            }}
           />
-        </PageParamsProvider>
+        </ChartSelectionProvider>
       </SpansQueryParamsProvider>,
       {
         organization: OrganizationFixture(),

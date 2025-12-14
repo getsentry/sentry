@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Button} from '@sentry/scraps/button/button';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
@@ -31,7 +33,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import {InvalidReason} from 'sentry/components/searchSyntax/parser';
+import {defaultConfig, InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -53,6 +55,7 @@ import {getHasTag} from 'sentry/utils/tag';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import withTags from 'sentry/utils/withTags';
+import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
 import {getProjectOptions, isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {
@@ -83,8 +86,13 @@ import {
   DEFAULT_TRANSACTION_AGGREGATE,
   getTimeWindowOptions,
 } from './constants';
-import type {EventTypes} from './types';
-import {AlertRuleComparisonType, Dataset, Datasource} from './types';
+import {
+  AlertRuleComparisonType,
+  Dataset,
+  Datasource,
+  ExtrapolationMode,
+  type EventTypes,
+} from './types';
 
 type Props = {
   aggregate: string;
@@ -109,6 +117,7 @@ type Props = {
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
   disableProjectSelector?: boolean;
+  extrapolationMode?: ExtrapolationMode;
   isErrorMigration?: boolean;
   isExtrapolatedChartData?: boolean;
   isLowConfidenceChartData?: boolean;
@@ -493,35 +502,35 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             <div>{t('Define your metric')}</div>
           </StyledListTitle>
         </StyledListItem>
-        <Tooltip
-          title={this.transactionAlertDisabledMessage}
-          disabled={!this.disableTransactionAlertType}
-          isHoverable
-        >
-          <FormRow>
-            <WizardField
-              name="aggregate"
-              help={null}
-              organization={organization}
-              disabled={disabled}
-              project={project}
-              style={{
-                ...this.formElemBaseStyle,
-                flex: 1,
-              }}
-              inline={false}
-              flexibleControlStateSize
-              columnWidth={200}
-              alertType={alertType}
-              required
-              isEditing={isEditing}
-              eventTypes={eventTypes}
-              disabledReason={
-                this.disableTransactionAlertType
-                  ? this.transactionAlertDisabledMessage
-                  : undefined
-              }
-            />
+        <FormRow>
+          <WizardField
+            name="aggregate"
+            help={null}
+            organization={organization}
+            disabled={disabled}
+            project={project}
+            style={{
+              ...this.formElemBaseStyle,
+              flex: 1,
+            }}
+            inline={false}
+            flexibleControlStateSize
+            columnWidth={200}
+            alertType={alertType}
+            required
+            isEditing={isEditing}
+            eventTypes={eventTypes}
+            disabledReason={
+              this.disableTransactionAlertType
+                ? this.transactionAlertDisabledMessage
+                : undefined
+            }
+          />
+          <Tooltip
+            title={this.transactionAlertDisabledMessage}
+            disabled={!this.disableTransactionAlertType}
+            isHoverable
+          >
             <Select
               name="timeWindow"
               styles={this.selectControlStyles}
@@ -532,8 +541,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               inline={false}
               flexibleControlStateSize
             />
-          </FormRow>
-        </Tooltip>
+          </Tooltip>
+        </FormRow>
       </Fragment>
     );
   }
@@ -554,6 +563,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       isLowConfidenceChartData,
       isOnDemandLimitReached,
       eventTypes,
+      extrapolationMode,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
@@ -574,6 +584,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       organization.features.includes('performance-transaction-deprecation-banner') &&
       DEPRECATED_TRANSACTION_ALERTS.includes(alertType);
 
+    const showExtrapolationModeChangeWarning = getIsMigratedExtrapolationMode(
+      extrapolationMode,
+      dataset,
+      traceItemType
+    );
+
     return (
       <Fragment>
         {deprecateTransactionsAlertsWarning && (
@@ -590,6 +606,35 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             </Alert>
           </Alert.Container>
         )}
+        {showExtrapolationModeChangeWarning && (
+          <Alert.Container>
+            <Alert type="info">
+              {tct(
+                'The thresholds on this chart may look off. This is because, once saved, alerts will now take into account [samplingLink:sampling rate]. Before clicking save, take the time to update your [thresholdsLink:thresholds]. Click cancel to continue running this alert in compatibility mode.',
+                {
+                  thresholdsLink: (
+                    <Button
+                      priority="link"
+                      aria-label="Go to thresholds"
+                      onClick={() => {
+                        document
+                          .getElementById('thresholds-warning-icon')
+                          ?.scrollIntoView({behavior: 'smooth'});
+                      }}
+                    />
+                  ),
+                  samplingLink: (
+                    <ExternalLink
+                      href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
+                      openInNewTab
+                    />
+                  ),
+                }
+              )}
+            </Alert>
+          </Alert.Container>
+        )}
+
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
@@ -700,6 +745,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           }
                           onChange={onChange}
                           invalidMessages={{
+                            ...defaultConfig.invalidMessages,
                             [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
                               'The wildcard operator is not supported here.'
                             ),

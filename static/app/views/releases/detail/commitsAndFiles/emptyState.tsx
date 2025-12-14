@@ -26,13 +26,14 @@ export function EmptyState({children}: Props) {
 export function NoReleaseRepos() {
   return (
     <Body>
-      <Main fullWidth>
+      <Main width="full">
         <Panel dashedBorder>
           <EmptyMessage
-            icon={<IconCommit size="xl" />}
+            icon={<IconCommit />}
             title={t('Releases are better with commit data!')}
-            description={t('No commits associated with this release have been found.')}
-          />
+          >
+            {t('No commits associated with this release have been found.')}
+          </EmptyMessage>
         </Panel>
       </Main>
     </Body>
@@ -42,20 +43,21 @@ export function NoReleaseRepos() {
 export function NoRepositories({orgSlug}: {orgSlug: string}) {
   return (
     <Body>
-      <Main fullWidth>
+      <Main width="full">
         <Panel dashedBorder>
           <EmptyMessage
-            icon={<IconCommit size="xl" />}
+            icon={<IconCommit />}
             title={t('Releases are better with commit data!')}
-            description={t(
-              'Connect a repository to see commit info, files changed, and authors involved in future releases.'
-            )}
             action={
               <LinkButton priority="primary" to={`/settings/${orgSlug}/repos/`}>
                 {t('Connect a repository')}
               </LinkButton>
             }
-          />
+          >
+            {t(
+              'Connect a repository to see commit info, files changed, and authors involved in future releases.'
+            )}
+          </EmptyMessage>
         </Panel>
       </Main>
     </Body>

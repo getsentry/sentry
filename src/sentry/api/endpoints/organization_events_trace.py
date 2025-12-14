@@ -16,10 +16,10 @@ from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Function
 
-from sentry import constants, eventstore, features, options
+from sentry import constants, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.serializers.models.event import EventTag, get_tags_with_meta
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -29,6 +29,7 @@ from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
+from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_sources import QuerySource
@@ -733,7 +734,7 @@ def pad_span_id(span: str | None) -> str:
     return span.rjust(16, "0")
 
 
-class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
+class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -1447,7 +1448,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
 
 @region_silo_endpoint
-class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsTraceMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

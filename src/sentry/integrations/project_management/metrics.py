@@ -17,6 +17,10 @@ class ProjectManagementActionType(StrEnum):
     LINK_EXTERNAL_ISSUE = "link_external_issue"
     CREATE_EXTERNAL_ISSUE_VIA_ISSUE_DETAIL = "create_external_issue_via_issue_detail"
 
+    # External Issue Comment Sync
+    SYNC_EXTERNAL_ISSUE_COMMENT_CREATE = "sync_external_issue_comment_create"
+    SYNC_EXTERNAL_ISSUE_COMMENT_UPDATE = "sync_external_issue_comment_update"
+
 
 class ProjectManagementHaltReason(StrEnum):
     SYNC_INBOUND_ASSIGNEE_NOT_FOUND = "inbound-assignee-not-found"

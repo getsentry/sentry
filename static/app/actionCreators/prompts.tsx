@@ -401,6 +401,7 @@ export function usePrompt({
   return {
     isLoading: prompt.isPending,
     isError: prompt.isError,
+    data: prompt.data?.data,
     isPromptDismissed,
     dismissPrompt,
     snoozePrompt,

@@ -180,6 +180,7 @@ export function SpanDescription({
               size="zero"
               text={formattedDescription}
               tooltipProps={{disabled: true}}
+              aria-label={t('Copy formatted description to clipboard')}
             />
           </Fragment>
         ) : (
@@ -201,8 +202,9 @@ export function SpanDescription({
       }
       comparisonDescription={t('Average duration for this span over the last 24 hours')}
       highlightedAttributes={getHighlightedSpanAttributes({
-        attributes: span.data,
         op: span.op,
+        attributes: span.data,
+        spanId: span.span_id,
       })}
     />
   );
@@ -282,6 +284,7 @@ function ResourceImage(props: {
           borderless
           size="zero"
           text={fileName}
+          aria-label={t('Copy file name to clipboard')}
           title={t('Copy file name')}
         />
       </FilenameContainer>

@@ -1,16 +1,13 @@
 import math
 import uuid
-from datetime import UTC, timedelta
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 
 import pytest
-from dateutil import parser
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
-from rest_framework.response import Response
-from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckStatus, CheckStatusReason
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
@@ -35,19 +32,19 @@ from sentry.testutils.cases import (
     APITransactionTestCase,
     OurLogTestCase,
     PerformanceIssueTestCase,
+    ProfileFunctionsTestCase,
     ProfilesSnubaTestCase,
     SnubaTestCase,
     SpanTestCase,
     TraceMetricsTestCase,
-    UptimeCheckSnubaTestCase,
 )
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.discover import user_misery_formula
 from sentry.types.group import GroupSubStatus
-from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
 from sentry.utils.samples import load_data
+from sentry.utils.snuba_rpc import SnubaRPCError
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
@@ -56,7 +53,12 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventsEndpointTestBase(
-    APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase, TraceMetricsTestCase
+    APITransactionTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+    OurLogTestCase,
+    TraceMetricsTestCase,
+    ProfileFunctionsTestCase,
 ):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
@@ -589,6 +591,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
     def test_performance_short_group_id(self) -> None:
         event = self.create_performance_issue()
+        assert event.group is not None
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
@@ -602,6 +605,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
     def test_multiple_performance_short_group_ids_filter(self) -> None:
         event1 = self.create_performance_issue()
         event2 = self.create_performance_issue()
+        assert event1.group is not None
+        assert event2.group is not None
 
         query = {
             "field": ["count()"],
@@ -1566,7 +1571,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert response.status_code == 200, response.content
             assert len(response.data["data"]) == 1
             data = response.data["data"]
-            assert data[0]["failure_rate()"] == 0.75
+            assert data[0]["failure_rate()"] == 0.875
 
     def test_count_miserable_alias_field(self) -> None:
         self._setup_user_misery()
@@ -4065,7 +4070,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert len(response.data["data"]) == 1
             data = response.data["data"]
             assert data[0]["count()"] == 8
-            assert data[0]["failure_count()"] == 6
+            assert data[0]["failure_count()"] == 7
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize: mock.MagicMock) -> None:
@@ -5974,6 +5979,46 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         # We should get the snql query back in the query key
         assert "MATCH" in response.data["meta"]["debug_info"]["query"]
 
+    @mock.patch("sentry.utils.snuba_rpc.table_rpc")
+    def test_debug_param_with_error(self, mock_query) -> None:
+        mock_query.side_effect = SnubaRPCError("test")
+        self.user = self.create_user("superuser@example.com", is_superuser=True)
+        self.create_team(organization=self.organization, members=[self.user])
+
+        response = self.do_request(
+            {
+                "field": ["spans.http"],
+                "project": [self.project.id],
+                "query": "event.type:transaction",
+                "dataset": "spans",
+                "debug": True,
+            },
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 500, response.content
+        assert "debug_info" in response.data["meta"]
+        # We should get the snql query back in the query key
+        assert "virtualColumnContexts" in response.data["meta"]["debug_info"]["query"]
+
+        # Need to reset the mock, otherwise previous query is still attached
+        mock_query.side_effect = SnubaRPCError("test")
+        response = self.do_request(
+            {
+                "field": ["spans.http"],
+                "project": [self.project.id],
+                "query": "event.type:transaction",
+                "dataset": "spans",
+            },
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 500, response.content
+        assert "meta" not in response.data
+        assert "debug_info" not in response.data
+
 
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
@@ -6285,6 +6330,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
     def test_performance_issue_id_filter(self) -> None:
         event = self.create_performance_issue()
 
+        assert event.group is not None
         query = {
             "field": ["count()"],
             "statsPeriod": "2h",
@@ -6352,6 +6398,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
 
     def test_performance_short_group_id(self) -> None:
         event = self.create_performance_issue()
+        assert event.group is not None
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
@@ -6365,6 +6412,8 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
     def test_multiple_performance_short_group_ids_filter(self) -> None:
         event1 = self.create_performance_issue()
         event2 = self.create_performance_issue()
+        assert event1.group is not None
+        assert event2.group is not None
 
         query = {
             "field": ["count()"],
@@ -6432,6 +6481,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             },
             user_data=user_data,
         )
+        assert event.group is not None
 
         query = {
             "field": [
@@ -7289,126 +7339,3 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert meta["fields"]["transaction.duration"] == "duration"
         assert meta["units"]["span.duration"] == "millisecond"
         assert meta["units"]["transaction.duration"] == "millisecond"
-
-
-class OrganizationEventsUptimeDatasetEndpointTest(
-    OrganizationEventsEndpointTestBase, UptimeCheckSnubaTestCase
-):
-    def coerce_response(self, response: Response) -> None:
-        for item in response.data["data"]:
-            for field in ("uptime_subscription_id", "uptime_check_id", "trace_id"):
-                if field in item:
-                    item[field] = uuid.UUID(item[field])
-
-            for field in ("timestamp", "scheduled_check_time"):
-                if field in item:
-                    item[field] = parser.parse(item[field]).replace(tzinfo=UTC)
-
-            for field in ("duration_ms", "http_status_code"):
-                if field in item:
-                    item[field] = int(item[field])
-
-    def test_basic(self) -> None:
-        subscription_id = uuid.uuid4().hex
-        check_id = uuid.uuid4()
-        self.store_snuba_uptime_check(
-            subscription_id=subscription_id, check_status="success", check_id=check_id
-        )
-        query = {
-            "field": ["uptime_subscription_id", "uptime_check_id"],
-            "statsPeriod": "2h",
-            "query": "",
-            "dataset": "uptimeChecks",
-            "orderby": ["uptime_subscription_id"],
-        }
-
-        response = self.do_request(query)
-        self.coerce_response(response)
-        assert response.status_code == 200, response.content
-        assert response.data["data"] == [
-            {
-                "uptime_subscription_id": uuid.UUID(subscription_id),
-                "uptime_check_id": check_id,
-            }
-        ]
-
-    def test_all_fields(self) -> None:
-        subscription_id = uuid.uuid4().hex
-        check_id = uuid.uuid4()
-        scheduled_check_time = before_now(minutes=5)
-        actual_check_time = before_now(minutes=2)
-        duration_ms = 100
-        region = "us"
-        check_status: CheckStatus = "failure"
-        check_status_reason: CheckStatusReason = {
-            "type": "timeout",
-            "description": "Request timed out",
-        }
-        http_status = 200
-        trace_id = uuid.uuid4()
-        environment = "test"
-        self.store_snuba_uptime_check(
-            environment=environment,
-            subscription_id=subscription_id,
-            check_status=check_status,
-            check_id=check_id,
-            incident_status=IncidentStatus.NO_INCIDENT,
-            scheduled_check_time=scheduled_check_time,
-            http_status=http_status,
-            actual_check_time=actual_check_time,
-            duration_ms=duration_ms,
-            region=region,
-            check_status_reason=check_status_reason,
-            trace_id=trace_id,
-        )
-
-        query = {
-            "field": [
-                "environment",
-                "uptime_subscription_id",
-                "uptime_check_id",
-                "scheduled_check_time",
-                "timestamp",
-                "duration_ms",
-                "region",
-                "check_status",
-                "check_status_reason",
-                "http_status_code",
-                "trace_id",
-            ],
-            "statsPeriod": "1h",
-            "query": "",
-            "dataset": "uptimeChecks",
-        }
-
-        response = self.do_request(query)
-        self.coerce_response(response)
-        assert response.status_code == 200, response.content
-        assert response.data["data"] == [
-            {
-                "environment": environment,
-                "uptime_subscription_id": uuid.UUID(subscription_id),
-                "uptime_check_id": check_id,
-                "environment": environment,
-                "scheduled_check_time": scheduled_check_time.replace(microsecond=0),
-                "timestamp": actual_check_time,
-                "duration_ms": duration_ms,
-                "region": region,
-                "check_status": check_status,
-                "check_status_reason": check_status_reason["type"],
-                "http_status_code": http_status,
-                "trace_id": trace_id,
-            }
-        ]
-
-    def test_project_slug_converter(self) -> None:
-        self.store_event(self.transaction_data, self.project.id)
-        response = self.do_request(
-            {
-                "field": ["project.name"],
-                "query": "project:ba*",
-            }
-        )
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["project.name"] == self.project.slug

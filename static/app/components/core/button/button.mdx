@@ -33,9 +33,24 @@ import {
 } from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-import APIReference from '!!type-loader!sentry/components/core/button/index';
+import ButtonDocumentation from '!!type-loader!@sentry/scraps/button';
 
-export const types = {Button: APIReference.Button};
+export const documentation = {
+  exports: {
+    module: ButtonDocumentation.exports?.module,
+    exports: {
+      // Button has some exports that we don't want to document, strip them out until they are removed
+      ...Object.fromEntries(
+        Object.entries(ButtonDocumentation?.exports?.exports ?? {}).filter(
+          ([key]) => key !== 'StyledButton' && key !== 'ButtonBar'
+        )
+      ),
+    },
+  },
+  props: {
+    ...ButtonDocumentation?.props,
+  },
+};
 
 To create a basic button, wrap text in a `<Button>` and pass an `onClick` callback.
 
@@ -48,9 +63,8 @@ To create a basic button, wrap text in a `<Button>` and pass an `onClick` callba
 Buttons come in a few different styles: `muted` (default), `primary`, `warning`, `danger`, `transparent` and `link`.
 
 <Storybook.Demo>
-  <Button priority="muted">Muted (default)</Button>
+  <Button priority="default">Default (default)</Button>
   <Button priority="primary">Primary</Button>
-  <Button priority="warning">Warning</Button>
   <Button priority="danger">Danger</Button>
   <Button priority="transparent">Transparent</Button>
   <div style={{alignSelf: 'center'}}>
@@ -58,9 +72,8 @@ Buttons come in a few different styles: `muted` (default), `primary`, `warning`,
   </div>
 </Storybook.Demo>
 ```jsx
-<Button priority="muted">Muted (default)</Button>
+<Button priority="default">Default (default)</Button>
 <Button priority="primary">Primary</Button>
-<Button priority="warning">Warning</Button>
 <Button priority="danger">Danger</Button>
 <Button priority="transparent">Transparent</Button>
 <Button priority="link">Link</Button>

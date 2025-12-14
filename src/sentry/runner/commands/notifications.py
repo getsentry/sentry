@@ -62,7 +62,7 @@ def send_email(source: str, email: str) -> None:
         resource_id=email,
     )
     template_cls = template_registry.get(source)
-    NotificationService(data=template_cls.example_data).notify(targets=[email_target])
+    NotificationService(data=template_cls.example_data).notify_sync(targets=[email_target])
     click.echo(f"Example '{source}' email sent to {email}.")
 
 
@@ -152,7 +152,7 @@ def send_slack(
     )
 
     template_cls = template_registry.get(source)
-    NotificationService(data=template_cls.example_data).notify(targets=[slack_target])
+    NotificationService(data=template_cls.example_data).notify_sync(targets=[slack_target])
     click.echo(f"Example '{source}' slack message sent to {integration.name}.")
 
 
@@ -242,7 +242,7 @@ def send_discord(
     )
 
     template_cls = template_registry.get(source)
-    NotificationService(data=template_cls.example_data).notify(targets=[discord_target])
+    NotificationService(data=template_cls.example_data).notify_sync(targets=[discord_target])
     click.echo(f"Example '{source}' discord message sent to channel with ID {channel_id}.")
 
 

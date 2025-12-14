@@ -106,7 +106,11 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
             serializer_cls = None
 
         paginator = tagstore.backend.get_group_tag_value_paginator(
-            group, environment_ids, lookup_key, order_by=order_by, tenant_ids=tenant_ids
+            group,
+            environment_ids,
+            lookup_key,
+            order_by=order_by,
+            tenant_ids=tenant_ids,
         )
 
         return self.paginate(

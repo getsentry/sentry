@@ -1,6 +1,5 @@
 import type React from 'react';
 import {
-  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -36,11 +35,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import {
-  TraceLinkNavigationButton,
-  TraceLinkNavigationButtonPlaceHolder,
-} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
+import {TraceLinksNavigation} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinksNavigation';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceOpenInExploreButton} from 'sentry/views/performance/newTraceDetails/traceOpenInExploreButton';
 import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
@@ -124,12 +119,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const forceRerender = useCallback(() => {
     flushSync(rerender);
   }, []);
-
-  const showLinkedTraces =
-    organization?.features.includes('trace-view-linked-traces') &&
-    // Don't show the linked traces buttons when the waterfall is embedded in the replay
-    // detail page, as it already contains all traces of the replay session.
-    props.source !== 'replay';
 
   useEffect(() => {
     trackAnalytics('performance_views.trace_view_v1_page_load', {
@@ -394,11 +383,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     // TODO Abdullah Khan: Remove this once /trace-meta/ starts responding
     // with the correct spans count for EAP traces.
     if (traceNode && props.tree.eap_spans_count !== props.meta?.data?.span_count) {
-      Sentry.withScope(scope => {
-        scope.setFingerprint(['trace-eap-spans-count-mismatch']);
-        scope.captureMessage(
-          'EAP spans count from /trace/ and /trace-meta/ are not equal'
-        );
+      Sentry.logger.warn('EAP spans count from /trace/ and /trace-meta/ are not equal', {
+        trace_eap_span_count: props.tree.eap_spans_count,
+        trace_meta_span_count: props.meta?.data?.span_count,
       });
     }
   }, [props.tree, props.meta]);
@@ -449,10 +436,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     if (index === -1 || !node) {
       const hasScrollComponent = !!(path || eventId);
       if (hasScrollComponent) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['trace-view-scroll-to-node-error']);
-          scope.captureMessage('Failed to scroll to node in trace tree');
-        });
+        Sentry.logger.warn('Failed to scroll to node in trace tree');
       }
 
       return;
@@ -681,6 +665,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     <Flex direction="column" flex={1}>
       <TraceToolbar>
         <TraceSearchInput onTraceSearch={onTraceSearch} organization={organization} />
+        <TraceLinksNavigation
+          rootEventResults={props.rootEventResults}
+          source={props.source}
+        />
         <TraceOpenInExploreButton
           trace_id={props.traceSlug}
           traceEventView={props.traceEventView}
@@ -746,31 +734,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           traceEventView={props.traceEventView}
         />
       </TraceGrid>
-      {showLinkedTraces && (
-        <TraceLinksNavigationContainer>
-          {isTraceItemDetailsResponse(props.rootEventResults.data) &&
-          props.rootEventResults.data.timestamp ? (
-            <Fragment>
-              <TraceLinkNavigationButton
-                direction="previous"
-                attributes={props.rootEventResults.data.attributes}
-                currentTraceStartTimestamp={
-                  new Date(props.rootEventResults.data.timestamp).getTime() / 1000
-                }
-              />
-              <TraceLinkNavigationButton
-                direction="next"
-                attributes={props.rootEventResults.data.attributes}
-                currentTraceStartTimestamp={
-                  new Date(props.rootEventResults.data.timestamp).getTime() / 1000
-                }
-              />
-            </Fragment>
-          ) : (
-            <TraceLinkNavigationButtonPlaceHolder />
-          )}
-        </TraceLinksNavigationContainer>
-      )}
     </Flex>
   );
 }
@@ -780,22 +743,12 @@ const TraceToolbar = styled('div')`
   gap: ${space(1)};
 `;
 
-const TraceLinksNavigationContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  flex-direction: row;
-
-  &:not(:empty) {
-    margin-top: ${space(1)};
-  }
-`;
-
 export const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
 }>`
   ${traceGridCssVariables}
 
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;
@@ -821,5 +774,5 @@ export const TraceGrid = styled('div')<{
         : '1fr min-content'};
   grid-template-rows: 1fr auto;
 
-  ${p => `border-radius: ${p.theme.borderRadius};`}
+  ${p => `border-radius: ${p.theme.radius.md};`}
 `;

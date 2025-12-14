@@ -3,7 +3,6 @@ import fs from 'node:fs';
 // eslint-disable-next-line import/no-nodejs-modules
 import path from 'node:path';
 
-import {DiscoverSeriesFixture} from 'sentry-fixture/discoverSeries';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -13,12 +12,6 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 
 import type {ChartId} from './chartWidgetLoader';
 import {ChartWidgetLoader} from './chartWidgetLoader';
-
-function mockDiscoverSeries(seriesName: string) {
-  return DiscoverSeriesFixture({
-    seriesName,
-  });
-}
 
 function mockTimeSeries(yAxis: string, groupBy?: string[]) {
   const partialTimeseries: Partial<TimeSeries> = {yAxis};
@@ -85,13 +78,6 @@ jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
         transaction: 'transaction_a',
       },
     ],
-    isPending: false,
-    error: null,
-  })),
-}));
-jest.mock('sentry/views/insights/common/queries/useTopNDiscoverSeries', () => ({
-  useTopNSpanSeries: jest.fn(() => ({
-    data: [mockDiscoverSeries('transaction_a,abc123')],
     isPending: false,
     error: null,
   })),

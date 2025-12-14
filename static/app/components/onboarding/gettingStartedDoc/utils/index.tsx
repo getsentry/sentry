@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
@@ -7,6 +9,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconCopy} from 'sentry/icons/iconCopy';
 import {t, tct} from 'sentry/locale';
+import type {ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -79,9 +82,13 @@ export function getUploadSourceMapsStep({
 }
 
 function CopyRulesButton({rules}: {rules: string}) {
-  const {onClick} = useCopyToClipboard({text: rules});
+  const {copy} = useCopyToClipboard();
   return (
-    <Button size="xs" icon={<IconCopy />} onClick={onClick}>
+    <Button
+      size="xs"
+      icon={<IconCopy />}
+      onClick={() => copy(rules, {successMessage: t('Rules copied to clipboard')})}
+    >
       {t('Copy Rules')}
     </Button>
   );
@@ -115,4 +122,58 @@ export function getAIRulesForCodeEditorStep({rules}: {rules: string}): Onboardin
       },
     ],
   };
+}
+
+function CopyDsnButton({
+  dsn,
+  onCopyDsn,
+}: {
+  dsn: ProjectKey['dsn'];
+  onCopyDsn?: () => void;
+}) {
+  const {copy} = useCopyToClipboard();
+
+  return (
+    <Button
+      size="xs"
+      icon={<IconCopy />}
+      onClick={() =>
+        copy(dsn.public, {successMessage: t('DSN copied to clipboard')}).then(onCopyDsn)
+      }
+    >
+      {t('Copy DSN')}
+    </Button>
+  );
+}
+
+export function injectCopyDsnButtonIntoFirstConfigureStep({
+  configureSteps,
+  dsn,
+  onCopyDsn,
+}: {
+  configureSteps: OnboardingStep[];
+  dsn: ProjectKey['dsn'];
+  onCopyDsn?: () => void;
+}): OnboardingStep[] {
+  const [firstStep, ...otherSteps] = configureSteps;
+
+  if (!firstStep) {
+    return configureSteps;
+  }
+
+  const copyDsnButton = <CopyDsnButton dsn={dsn} onCopyDsn={onCopyDsn} />;
+
+  const firstStepWithDsnButton: OnboardingStep = {
+    ...firstStep,
+    trailingItems: firstStep.trailingItems ? (
+      <Fragment>
+        {copyDsnButton}
+        {firstStep.trailingItems}
+      </Fragment>
+    ) : (
+      copyDsnButton
+    ),
+  };
+
+  return [firstStepWithDsnButton, ...otherSteps];
 }

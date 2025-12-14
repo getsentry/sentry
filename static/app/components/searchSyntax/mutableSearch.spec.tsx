@@ -338,7 +338,7 @@ describe('MutableSearch', () => {
     });
 
     it('addFilterValueList', () => {
-      const results = new MutableSearch('');
+      let results = new MutableSearch('');
 
       results.addFilterValueList('a', ['a1', 'a2']);
       expect(results.formatString()).toBe('a:[a1,a2]');
@@ -357,6 +357,11 @@ describe('MutableSearch', () => {
       expect(results.formatString()).toBe(
         `a:[a1,a2] b:${WildcardOperators.CONTAINS}[b1,b2] c:${WildcardOperators.STARTS_WITH}[c1,c2] d:${WildcardOperators.ENDS_WITH}[d1,d2]`
       );
+
+      // Quotes values with commas to avoid breaking list parsing
+      results = new MutableSearch('');
+      results.addFilterValueList('message', [',testA,', ',testB,']);
+      expect(results.formatString()).toBe('message:[",testA,",",testB,"]');
     });
   });
 

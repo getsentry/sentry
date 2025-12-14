@@ -4,7 +4,7 @@ from django.test import override_settings
 from sentry.attachments.base import CachedAttachment
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
-from sentry.objectstore import attachments
+from sentry.objectstore import get_attachments_session
 from sentry.testutils.cases import APITestCase, PermissionTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -91,19 +91,13 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
     def test_doublewrite_objectstore(self) -> None:
         self.login_as(user=self.user)
 
-        with override_options(
-            {
-                # TODO: we should make sure the default works for local tests
-                "objectstore.config": {"base_url": "http://localhost:8888/"},
-                "objectstore.double_write.attachments": 1,
-            }
-        ):
+        with override_options({"objectstore.double_write.attachments": 1}):
             attachment = self.create_attachment()
 
             assert attachment.blob_path is not None
             object_key = attachment.blob_path.removeprefix(V1_PREFIX + V2_PREFIX)
             # the file should also be available in objectstore
-            os_response = attachments.for_project(self.organization.id, self.project.id).get(
+            os_response = get_attachments_session(self.organization.id, self.project.id).get(
                 object_key
             )
             assert os_response.payload.read() == ATTACHMENT_CONTENT
@@ -122,13 +116,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
     def test_download_objectstore(self) -> None:
         self.login_as(user=self.user)
 
-        with override_options(
-            {
-                # TODO: we should make sure the default works for local tests
-                "objectstore.config": {"base_url": "http://localhost:8888/"},
-                "objectstore.enable_for.attachments": 1,
-            }
-        ):
+        with override_options({"objectstore.enable_for.attachments": 1}):
             attachment = self.create_attachment()
 
             assert attachment.blob_path is not None

@@ -9,13 +9,14 @@ from rest_framework import serializers
 from sentry import audit_log
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDataConditionValidator,
-    BaseDataSourceValidator,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     get_unknown_detector_type_error,
@@ -40,6 +41,12 @@ class DetectorQuota:
 
 
 class BaseDetectorTypeValidator(CamelSnakeSerializer):
+    enforce_single_datasource = False
+    """
+    Set to True in subclasses to enforce that only a single data source can be configured.
+    This prevents invalid configurations for detector types that don't support multiple data sources.
+    """
+
     name = serializers.CharField(
         required=True,
         max_length=200,
@@ -48,6 +55,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     type = serializers.CharField()
     config = serializers.JSONField(default=dict)
     owner = ActorField(required=False, allow_null=True)
+    description = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     enabled = serializers.BooleanField(required=False)
     condition_group = BaseDataConditionGroupValidator(required=False)
 
@@ -67,11 +75,6 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         return type
 
     @property
-    def data_source(self) -> BaseDataSourceValidator | None:
-        # Moving this field to optional
-        return None
-
-    @property
     def data_sources(self) -> serializers.ListField:
         # TODO - improve typing here to enforce that the child is the correct type
         # otherwise, can look at creating a custom field.
@@ -81,6 +84,16 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     @property
     def data_conditions(self) -> BaseDataConditionValidator:
         raise NotImplementedError
+
+    def validate_data_sources(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """
+        Validate data sources, enforcing single data source if configured.
+        """
+        if self.enforce_single_datasource and len(value) > 1:
+            raise serializers.ValidationError(
+                "Only one data source is allowed for this detector type."
+            )
+        return value
 
     def get_quota(self) -> DetectorQuota:
         return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
@@ -102,6 +115,10 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         with transaction.atomic(router.db_for_write(Detector)):
             if "name" in validated_data:
                 instance.name = validated_data.get("name", instance.name)
+
+            # Handle description field update
+            if "description" in validated_data:
+                instance.description = validated_data.get("description", instance.description)
 
             # Handle enable/disable detector
             if "enabled" in validated_data:
@@ -132,6 +149,14 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                     group_validator = BaseDataConditionGroupValidator()
                     group_validator.update(instance.workflow_condition_group, condition_group)
 
+            # Handle config field update
+            if "config" in validated_data:
+                instance.config = validated_data.get("config", instance.config)
+                try:
+                    enforce_config_schema(instance)
+                except JSONSchemaValidationError as error:
+                    raise serializers.ValidationError({"config": [str(error)]})
+
             instance.save()
 
         create_audit_entry(
@@ -141,7 +166,20 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             event=audit_log.get_event_id("DETECTOR_EDIT"),
             data=instance.get_audit_log_data(),
         )
+
         return instance
+
+    def delete(self) -> None:
+        """
+        Delete the detector by scheduling it for deletion.
+
+        Subclasses can override this to perform detector-specific cleanup before
+        deletion (e.g., removing billing seats, cleaning up external resources).
+        They should call super().delete() to perform the actual deletion.
+        """
+        assert self.instance is not None
+        RegionScheduledDeletion.schedule(self.instance, days=0, actor=self.context["request"].user)
+        self.instance.update(status=ObjectStatus.PENDING_DELETION)
 
     def _create_data_source(self, validated_data_source, detector: Detector):
         data_source_creator = validated_data_source["_creator"]
@@ -186,6 +224,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             detector = Detector(
                 project_id=self.context["project"].id,
                 name=validated_data["name"],
+                description=validated_data.get("description"),
                 workflow_condition_group=condition_group,
                 type=validated_data["type"].slug,
                 config=validated_data.get("config", {}),
@@ -202,10 +241,6 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
 
             detector.save()
 
-            if "data_source" in validated_data:
-                validated_data_source = validated_data["data_source"]
-                self._create_data_source(validated_data_source, detector)
-
             if "data_sources" in validated_data:
                 for validated_data_source in validated_data["data_sources"]:
                     self._create_data_source(validated_data_source, detector)
@@ -217,4 +252,5 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 event=audit_log.get_event_id("DETECTOR_ADD"),
                 data=detector.get_audit_log_data(),
             )
+
         return detector

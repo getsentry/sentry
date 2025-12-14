@@ -1,10 +1,12 @@
 import type {ReactNode} from 'react';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
+import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
@@ -173,19 +175,33 @@ describe('LogsToolbar', () => {
 
   describe('group by section', () => {
     it('can switch group bys', async () => {
-      const {router} = render(
-        <Wrapper>
+      let mode: Mode | undefined = undefined;
+
+      function Component() {
+        mode = useQueryParamsMode();
+        return (
           <LogsToolbar
-            numberTags={{bar: {key: 'bar', name: 'bar'}, foo: {key: 'foo', name: 'foo'}}}
+            numberTags={{
+              bar: {key: 'bar', name: 'bar'},
+              foo: {key: 'foo', name: 'foo'},
+            }}
             stringTags={{
               message: {key: 'message', name: 'message'},
               severity: {key: 'severity', name: 'severity'},
             }}
           />
+        );
+      }
+      const {router} = render(
+        <Wrapper>
+          <Component />
         </Wrapper>
       );
 
-      await userEvent.click(screen.getByRole('button', {name: '\u2014'}));
+      expect(mode).toEqual(Mode.SAMPLES);
+
+      const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+      await userEvent.click(within(editorColumn).getByRole('button', {name: '\u2014'}));
       await userEvent.click(screen.getByRole('option', {name: 'message'}));
       expect(router.location.query.aggregateField).toEqual(
         [{groupBy: 'message'}, {yAxes: ['count(message)']}].map(aggregateField =>
@@ -193,13 +209,16 @@ describe('LogsToolbar', () => {
         )
       );
 
-      await userEvent.click(screen.getByRole('button', {name: 'message'}));
+      expect(mode).toEqual(Mode.AGGREGATE);
+
+      await userEvent.click(within(editorColumn).getByRole('button', {name: 'message'}));
       await userEvent.click(screen.getByRole('option', {name: 'severity'}));
       expect(router.location.query.aggregateField).toEqual(
         [{groupBy: 'severity'}, {yAxes: ['count(message)']}].map(aggregateField =>
           JSON.stringify(aggregateField)
         )
       );
+      expect(mode).toEqual(Mode.AGGREGATE);
     });
 
     it('can add/delete group bys', async () => {
@@ -215,7 +234,8 @@ describe('LogsToolbar', () => {
         </Wrapper>
       );
 
-      await userEvent.click(screen.getByRole('button', {name: '\u2014'}));
+      const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+      await userEvent.click(within(editorColumn).getByRole('button', {name: '\u2014'}));
       await userEvent.click(screen.getByRole('option', {name: 'message'}));
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Group'}));

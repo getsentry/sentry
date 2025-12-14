@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from django.http.response import FileResponse, HttpResponseBase
@@ -10,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.files.file import File
+from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiSizeAnalysisCompareDownloadEvent
 from sentry.preprod.models import PreprodArtifactSizeComparison
 
@@ -24,7 +27,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
     }
 
     def get(
-        self, request: Request, project, head_size_metric_id, base_size_metric_id
+        self, request: Request, project: Project, head_size_metric_id: int, base_size_metric_id: int
     ) -> HttpResponseBase:
         """
         Download size analysis comparison results for specific size metrics
@@ -46,8 +49,8 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
                 organization_id=project.organization_id,
                 project_id=project.id,
                 user_id=request.user.id,
-                head_size_metric_id=head_size_metric_id,
-                base_size_metric_id=base_size_metric_id,
+                head_size_metric_id=str(head_size_metric_id),
+                base_size_metric_id=str(base_size_metric_id),
             )
         )
 

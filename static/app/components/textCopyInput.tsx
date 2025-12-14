@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import type {InputProps} from 'sentry/components/core/input/inputGroup';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
 
@@ -73,6 +74,7 @@ function TextCopyInput({
       />
       <InputGroup.TrailingItems>
         <StyledCopyButton
+          aria-label={t('Copy to clipboard')}
           borderless
           size={size === 'xs' ? 'xs' : 'sm'}
           onCopy={onCopy}

@@ -5,6 +5,7 @@ import {checkBreakpoints} from 'sentry/utils/useBreakpoints';
 describe('checkBreakpoints', () => {
   it('returns true for active breakpoints', () => {
     const breakpoints: Record<keyof Theme['breakpoints'], string> = {
+      '2xs': '0px',
       xs: '0px',
       sm: '0px',
       md: '1px',
@@ -14,6 +15,7 @@ describe('checkBreakpoints', () => {
     };
 
     expect(checkBreakpoints(breakpoints, 2)).toEqual({
+      '2xs': true,
       xs: true,
       sm: true,
       md: true,

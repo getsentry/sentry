@@ -10,7 +10,7 @@ import {
   type TextProps,
 } from './text';
 
-type BaseHeadingProps = Omit<BaseTextProps, 'bold'>;
+type BaseHeadingProps = Omit<BaseTextProps, 'bold' | 'uppercase'>;
 
 export type HeadingProps = BaseHeadingProps & {
   /**
@@ -51,8 +51,8 @@ export const Heading = styled(
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
   text-wrap: ${p => p.textWrap ?? undefined};
 
-  font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-family: ${p => p.theme.font.family[p.monospace ? 'mono' : 'sans']};
+  font-weight: ${p => p.theme.font.weight.medium};
   font-variant-numeric: ${p =>
     [
       p.tabular ? 'tabular-nums' : undefined,
@@ -60,7 +60,6 @@ export const Heading = styled(
     ]
       .filter(Boolean)
       .join(' ')};
-  text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 
   text-box-edge: text text;
   text-box-trim: trim-both;

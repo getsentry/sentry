@@ -237,6 +237,36 @@ def test_as_log_message_click() -> None:
     assert get_timestamp_unit(which(event)) == "ms"
 
 
+def test_as_log_message_tap() -> None:
+    event = {
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "level": "info",
+                "timestamp": 1758212015.458114,
+                "category": "ui.tap",
+                "data": {
+                    "path": [
+                        {"name": "View"},
+                        {"name": "ScrollView"},
+                        {"name": "AnimatedComponent(ScrollView)"},
+                        {"name": "ScrollView"},
+                    ]
+                },
+                "message": "ScrollView > AnimatedComponent(ScrollView) > ScrollView > View",
+                "type": "default",
+            },
+        },
+        "type": 5,
+        "timestamp": 1758212015458,
+    }
+    assert (
+        as_log_message(event)
+        == "User tapped on ScrollView > AnimatedComponent(ScrollView) > ScrollView > View at 1758212015458.0"
+    )
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
 def test_as_log_message_lcp() -> None:
     event = {
         "type": 5,
@@ -293,7 +323,11 @@ def test_as_log_message_navigation_span() -> None:
             },
         },
     }
-    assert as_log_message(event) == "User navigated to: https://url-example.com at 1756400579304.0"
+    assert (
+        as_log_message(event, is_mobile_replay=False)
+        == "User navigated to: https://url-example.com at 1756400579304.0"
+    )
+    assert as_log_message(event, is_mobile_replay=True) is None
     assert get_timestamp_unit(which(event)) == "s"
 
 
@@ -580,7 +614,11 @@ def test_as_log_message_navigation() -> None:
             },
         },
     }
-    assert as_log_message(event) is None
+    assert as_log_message(event, is_mobile_replay=False) is None
+    assert (
+        as_log_message(event, is_mobile_replay=True)
+        == "User navigated to: https://url-example.com at 1756400579304.0"
+    )
     assert get_timestamp_unit(which(event)) == "ms"
 
 
@@ -829,6 +867,143 @@ def test_as_log_message_resource_script() -> None:
     assert get_timestamp_unit(which(event)) == "s"
 
 
+def test_as_log_message_device_battery() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1753203886279,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1753203886.279,
+                "category": "device.battery",
+                "data": {"level": 100.0, "charging": False},
+            },
+        },
+    }
+    assert as_log_message(event) == "Device battery was 100.0% and not charging at 1753203886279.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
+def test_as_log_message_device_orientation() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758212033534,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "level": "none",
+                "category": "device.orientation",
+                "timestamp": 1758212033.534864,
+                "data": {"position": "landscape"},
+                "type": "default",
+            },
+        },
+    }
+    assert as_log_message(event) == "Device orientation was changed to landscape at 1758212033534.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
+def test_as_log_message_device_connectivity() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758733250547,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758733250.547,
+                "category": "device.connectivity",
+                "data": {"state": "wifi"},
+            },
+        },
+    }
+    assert as_log_message(event) == "Device connectivity was changed to wifi at 1758733250547.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
+def test_as_log_message_scroll() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1760948639388,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1760948639.388,
+                "category": "ui.scroll",
+                "level": "info",
+                "data": {
+                    "view.class": "androidx.recyclerview.widget.RecyclerView",
+                    "view.id": "recycler_view",
+                    "direction": "up",
+                },
+            },
+        },
+    }
+    assert as_log_message(event) == "User scrolled recycler_view up at 1760948639388.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
+def test_as_log_message_swipe() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1760948640299,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1760948640.299,
+                "category": "ui.swipe",
+                "level": "info",
+                "data": {
+                    "view.class": "androidx.recyclerview.widget.RecyclerView",
+                    "view.id": "recycler_view",
+                    "direction": "up",
+                },
+            },
+        },
+    }
+    assert as_log_message(event) == "User swiped recycler_view up at 1760948640299.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
+def test_as_log_message_background() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758735184405,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758735184.405,
+                "category": "app.background",
+                "data": {},
+            },
+        },
+    }
+    assert as_log_message(event) == "User moved the app to the background at 1758735184405.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
+def test_as_log_message_foreground() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758733250461,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758733250.461,
+                "category": "app.foreground",
+                "data": {},
+            },
+        },
+    }
+    assert as_log_message(event) == "User moved the app to the foreground at 1758733250461.0"
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
 def test_parse_iso_timestamp_to_ms() -> None:
     # Without timezone
     assert _parse_iso_timestamp_to_ms("2023-01-01T12:00:00") == 1672574400000
@@ -858,7 +1033,12 @@ class RpcGetReplaySummaryLogsTestCase(
         self.replay_id = uuid.uuid4().hex
 
     def store_replay(self, dt: datetime | None = None, **kwargs: Any) -> None:
-        replay = mock_replay(dt or datetime.now(UTC), self.project.id, self.replay_id, **kwargs)
+        replay = mock_replay(
+            dt or datetime.now(UTC) - timedelta(minutes=1),
+            self.project.id,
+            self.replay_id,
+            **kwargs,
+        )
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
         )
@@ -877,10 +1057,13 @@ class RpcGetReplaySummaryLogsTestCase(
         FilestoreBlob().set(metadata, zlib.compress(data) if compressed else data)
 
     def test_rpc_simple(self) -> None:
+        now = datetime.now(UTC)
+        replay_start = now - timedelta(minutes=1)
+
         data = [
             {
                 "type": 5,
-                "timestamp": 0.0,
+                "timestamp": replay_start.timestamp() * 1000,
                 "data": {
                     "tag": "breadcrumb",
                     "payload": {"category": "console", "message": "hello"},
@@ -888,7 +1071,7 @@ class RpcGetReplaySummaryLogsTestCase(
             },
             {
                 "type": 5,
-                "timestamp": 0.0,
+                "timestamp": replay_start.timestamp() * 1000,
                 "data": {
                     "tag": "breadcrumb",
                     "payload": {"category": "console", "message": "world"},
@@ -897,7 +1080,7 @@ class RpcGetReplaySummaryLogsTestCase(
         ]
         self.save_recording_segment(0, json.dumps(data).encode())
         self.save_recording_segment(1, json.dumps([]).encode())
-        self.store_replay()
+        self.store_replay(dt=replay_start)
 
         response = rpc_get_replay_summary_logs(
             self.project.id,
@@ -905,7 +1088,10 @@ class RpcGetReplaySummaryLogsTestCase(
             2,
         )
 
-        assert response == {"logs": ["Logged: 'hello' at 0.0", "Logged: 'world' at 0.0"]}
+        timestamp_ms = replay_start.timestamp() * 1000
+        assert response == {
+            "logs": [f"Logged: 'hello' at {timestamp_ms}", f"Logged: 'world' at {timestamp_ms}"]
+        }
 
     def test_rpc_with_both_direct_and_trace_connected_errors(self) -> None:
         """Test handling of breadcrumbs with both direct and trace connected errors. Error logs should not be duplicated."""
@@ -915,7 +1101,7 @@ class RpcGetReplaySummaryLogsTestCase(
 
         # Create a direct error event that is not trace connected.
         direct_event_id = uuid.uuid4().hex
-        direct_error_timestamp = now.timestamp() - 2
+        direct_error_timestamp = (now - timedelta(minutes=5)).timestamp()
         self.store_event(
             data={
                 "event_id": direct_event_id,
@@ -942,7 +1128,7 @@ class RpcGetReplaySummaryLogsTestCase(
 
         # Create a trace connected error event
         connected_event_id = uuid.uuid4().hex
-        connected_error_timestamp = now.timestamp() - 1
+        connected_error_timestamp = (now - timedelta(minutes=3)).timestamp()
         project_2 = self.create_project()
         self.store_event(
             data={
@@ -967,8 +1153,11 @@ class RpcGetReplaySummaryLogsTestCase(
             project_id=project_2.id,
         )
 
-        # Store the replay with both error IDs and trace IDs
+        # Store the replay with both error IDs and trace IDs in the time range
+        self.store_replay(dt=now - timedelta(minutes=10), segment_id=0, trace_ids=[trace_id])
         self.store_replay(
+            dt=now - timedelta(minutes=1),
+            segment_id=1,
             error_ids=[direct_event_id],
             trace_ids=[trace_id],
         )
@@ -976,7 +1165,7 @@ class RpcGetReplaySummaryLogsTestCase(
         data = [
             {
                 "type": 5,
-                "timestamp": float(now.timestamp()),
+                "timestamp": (now - timedelta(minutes=1)).timestamp() * 1000,
                 "data": {
                     "tag": "breadcrumb",
                     "payload": {"category": "console", "message": "hello"},
@@ -1004,14 +1193,14 @@ class RpcGetReplaySummaryLogsTestCase(
         If the feedback is in Snuba (guaranteed for SDK v8.0.0+),
         it should be de-duped like in the duplicate_feedback test below."""
 
-        now = datetime.now(UTC)
+        dt = datetime.now(UTC) - timedelta(minutes=3)
         feedback_event_id = uuid.uuid4().hex
 
         self.store_event(
             data={
                 "type": "feedback",
                 "event_id": feedback_event_id,
-                "timestamp": now.timestamp(),
+                "timestamp": dt.timestamp(),
                 "contexts": {
                     "feedback": {
                         "contact_email": "josh.ferge@sentry.io",
@@ -1024,12 +1213,12 @@ class RpcGetReplaySummaryLogsTestCase(
             },
             project_id=self.project.id,
         )
-        self.store_replay()
+        self.store_replay(dt=dt)
 
         data = [
             {
                 "type": 5,
-                "timestamp": float(now.timestamp()),
+                "timestamp": dt.timestamp() * 1000,
                 "data": {
                     "tag": "breadcrumb",
                     "payload": {
@@ -1061,11 +1250,11 @@ class RpcGetReplaySummaryLogsTestCase(
         # Create regular error event - errors dataset
         event_id_1 = uuid.uuid4().hex
         trace_id_1 = uuid.uuid4().hex
-        timestamp_1 = (now - timedelta(minutes=2)).timestamp()
+        dt_1 = now - timedelta(minutes=5)
         self.store_event(
             data={
                 "event_id": event_id_1,
-                "timestamp": timestamp_1,
+                "timestamp": dt_1.timestamp(),
                 "exception": {
                     "values": [
                         {
@@ -1088,12 +1277,12 @@ class RpcGetReplaySummaryLogsTestCase(
         # Create feedback event - issuePlatform dataset
         event_id_2 = uuid.uuid4().hex
         trace_id_2 = uuid.uuid4().hex
-        timestamp_2 = (now - timedelta(minutes=5)).timestamp()
+        dt_2 = now - timedelta(minutes=2)
 
         feedback_data = {
             "type": "feedback",
             "event_id": event_id_2,
-            "timestamp": timestamp_2,
+            "timestamp": dt_2.timestamp(),
             "contexts": {
                 "feedback": {
                     "contact_email": "test@example.com",
@@ -1115,12 +1304,13 @@ class RpcGetReplaySummaryLogsTestCase(
         )
 
         # Store the replay with all trace IDs
-        self.store_replay(trace_ids=[trace_id_1, trace_id_2])
+        self.store_replay(dt=dt_1, segment_id=0, trace_ids=[trace_id_1])
+        self.store_replay(dt=dt_2, segment_id=1, trace_ids=[trace_id_2])
 
         data = [
             {
                 "type": 5,
-                "timestamp": 0.0,
+                "timestamp": dt_1.timestamp() * 1000 + 3000,
                 "data": {
                     "tag": "breadcrumb",
                     "payload": {"category": "console", "message": "hello"},
@@ -1138,14 +1328,16 @@ class RpcGetReplaySummaryLogsTestCase(
         logs = response["logs"]
         assert len(logs) == 3
 
-        # Verify that feedback event is included
-        assert "Great website" in logs[1]
-        assert "User submitted feedback" in logs[1]
-
         # Verify that regular error event is included
-        assert "ValueError" in logs[2]
-        assert "Invalid input" in logs[2]
-        assert "User experienced an error" in logs[2]
+        assert "ValueError" in logs[0]
+        assert "Invalid input" in logs[0]
+        assert "User experienced an error" in logs[0]
+
+        assert "hello" in logs[1]
+
+        # Verify that feedback event is included
+        assert "Great website" in logs[2]
+        assert "User submitted feedback" in logs[2]
 
     @patch("sentry.replays.usecases.summarize.fetch_feedback_details")
     def test_rpc_with_trace_errors_duplicate_feedback(
@@ -1210,7 +1402,8 @@ class RpcGetReplaySummaryLogsTestCase(
             feedback_data_2, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         )
 
-        self.store_replay(trace_ids=[trace_id, trace_id_2])
+        self.store_replay(dt=now - timedelta(minutes=10), segment_id=0, trace_ids=[trace_id])
+        self.store_replay(dt=now - timedelta(minutes=1), segment_id=1, trace_ids=[trace_id_2])
 
         # mock SDK feedback event with same event_id as the first feedback event
         data = [
@@ -1252,3 +1445,186 @@ class RpcGetReplaySummaryLogsTestCase(
         assert "Great website" in logs[0]
         assert "User submitted feedback" in logs[1]
         assert "Broken website" in logs[1]
+
+    def test_rpc_mobile_replay_navigation(self) -> None:
+        """Test that mobile replays are correctly detected and navigation events return log messages."""
+        now = datetime.now(UTC)
+
+        # Store a mobile replay with android platform
+        self.store_replay(dt=now, platform="android")
+
+        # Create segment data with a navigation event
+        data = [
+            {
+                "type": 5,
+                "timestamp": float(now.timestamp() * 1000),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {
+                        "timestamp": float(now.timestamp()),
+                        "type": "default",
+                        "category": "navigation",
+                        "data": {
+                            "from": "/home",
+                            "to": "/profile",
+                        },
+                    },
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        response = rpc_get_replay_summary_logs(
+            self.project.id,
+            self.replay_id,
+            1,
+        )
+
+        logs = response["logs"]
+        assert len(logs) == 1
+        assert "User navigated to: /profile" in logs[0]
+        assert str(float(now.timestamp() * 1000)) in logs[0]
+
+    def test_rpc_web_replay_navigation(self) -> None:
+        """Test that web replays do not return navigation log messages."""
+        now = datetime.now(UTC)
+
+        # Store a web replay with javascript platform (default)
+        self.store_replay(dt=now, platform="javascript")
+
+        # Create segment data with a navigation event
+        data = [
+            {
+                "type": 5,
+                "timestamp": float(now.timestamp() * 1000),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {
+                        "timestamp": float(now.timestamp()),
+                        "type": "default",
+                        "category": "navigation",
+                        "data": {
+                            "from": "https://example.com/home",
+                            "to": "https://example.com/profile",
+                        },
+                    },
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        response = rpc_get_replay_summary_logs(
+            self.project.id,
+            self.replay_id,
+            1,
+        )
+
+        logs = response["logs"]
+        # Web replays should not include navigation events, so logs should be empty
+        assert len(logs) == 0
+
+    def test_rpc_filters_out_events_before_replay_start(self) -> None:
+        """Test that both segment events and error events before replay start are filtered out."""
+        now = datetime.now(UTC)
+        replay_start = now - timedelta(minutes=1)
+        trace_id = uuid.uuid4().hex
+        span_id = "1" + uuid.uuid4().hex[:15]
+
+        # Create an error that occurred BEFORE replay start (should be filtered)
+        early_error_id = uuid.uuid4().hex
+        early_error_timestamp = (replay_start - timedelta(minutes=3)).timestamp()
+        self.store_event(
+            data={
+                "event_id": early_error_id,
+                "timestamp": early_error_timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "EarlyError",
+                            "value": "This happened before replay started",
+                        }
+                    ]
+                },
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": span_id,
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        # Create an error that occurred AFTER replay start (should be included)
+        late_error_id = uuid.uuid4().hex
+        late_error_timestamp = (replay_start + timedelta(minutes=2)).timestamp()
+        self.store_event(
+            data={
+                "event_id": late_error_id,
+                "timestamp": late_error_timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "LateError",
+                            "value": "This happened after replay started",
+                        }
+                    ]
+                },
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": span_id,
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_replay(dt=replay_start, segment_id=0, error_ids=[early_error_id, late_error_id])
+
+        data = [
+            {
+                "type": 5,
+                "timestamp": float((replay_start - timedelta(minutes=2)).timestamp() * 1000),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {
+                        "category": "console",
+                        "message": "hello",
+                    },
+                },
+            },
+            {
+                "type": 5,
+                "timestamp": float((replay_start + timedelta(minutes=3)).timestamp() * 1000),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {
+                        "category": "console",
+                        "message": "world",
+                    },
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        response = rpc_get_replay_summary_logs(
+            self.project.id,
+            self.replay_id,
+            1,
+        )
+
+        logs = response["logs"]
+        assert len(logs) == 2
+
+        # Should include the late error and the "world" console message
+        assert "LateError" in logs[0]
+        assert "This happened after replay started" in logs[0]
+        assert "world" in logs[1]
+
+        # Should NOT include the early error or "hello" console message
+        assert not any("EarlyError" in log for log in logs)
+        assert not any("This happened before replay started" in log for log in logs)
+        assert not any("hello" in log for log in logs)

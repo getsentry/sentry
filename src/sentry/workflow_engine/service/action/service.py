@@ -67,5 +67,16 @@ class ActionService(RpcService):
     ) -> None:
         pass
 
+    @regional_rpc_method(resolve=ByRegionName())
+    @abc.abstractmethod
+    def update_action_status_for_webhook_via_sentry_app_slug(
+        self,
+        *,
+        region_name: str,
+        status: int,
+        sentry_app_slug: str,
+    ) -> None:
+        pass
+
 
 action_service = ActionService.create_delegation()

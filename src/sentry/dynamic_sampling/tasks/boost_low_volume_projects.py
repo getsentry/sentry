@@ -85,7 +85,7 @@ OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, Dec
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     namespace=telemetry_experience_tasks,
-    processing_deadline_duration=15 * 60 + 5,
+    processing_deadline_duration=20 * 60 + 5,
     retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
 )
@@ -133,28 +133,33 @@ def partition_by_measure(
 
     # Exclude orgs with project-mode sampling from the start. We know the
     # default is DynamicSamplingMode.ORGANIZATION.
-    orgs = [org for org, mode in modes.items() if mode != DynamicSamplingMode.PROJECT]
+    filtered_org_ids = {
+        org.id for org, mode in modes.items() if mode != DynamicSamplingMode.PROJECT
+    }
 
     if not options.get("dynamic-sampling.check_span_feature_flag"):
-        metrics.incr("dynamic_sampling.partition_by_measure.transactions", amount=len(orgs))
-        return {SamplingMeasure.TRANSACTIONS: [org.id for org in orgs]}
+        metrics.incr(
+            "dynamic_sampling.partition_by_measure.transactions", amount=len(filtered_org_ids)
+        )
+        return {SamplingMeasure.TRANSACTIONS: sorted(filtered_org_ids)}
 
-    spans = []
-    transactions = []
+    span_org_ids = set(options.get("dynamic-sampling.measure.spans") or [])
+    span_org_ids = span_org_ids & filtered_org_ids
+    transactions_org_ids = filtered_org_ids - span_org_ids
 
-    for org in orgs:
-        # This is an N+1 query that fetches getsentry database models
-        # internally, but we cannot abstract over batches of feature flag
-        # handlers yet. Hence, we must fetch organizations and do individual
-        # feature checks per org.
-        if features.has("organizations:dynamic-sampling-spans", org):
-            spans.append(org.id)
-        else:
-            transactions.append(org.id)
+    logger.info(
+        "dynamic_sampling.partition_by_measure.options_check",
+        extra={"span_org_ids": span_org_ids},
+    )
 
-    metrics.incr("dynamic_sampling.partition_by_measure.spans", amount=len(spans))
-    metrics.incr("dynamic_sampling.partition_by_measure.transactions", amount=len(transactions))
-    return {SamplingMeasure.SPANS: spans, SamplingMeasure.TRANSACTIONS: transactions}
+    metrics.incr("dynamic_sampling.partition_by_measure.spans", amount=len(span_org_ids))
+    metrics.incr(
+        "dynamic_sampling.partition_by_measure.transactions", amount=len(transactions_org_ids)
+    )
+    return {
+        SamplingMeasure.SPANS: sorted(span_org_ids),
+        SamplingMeasure.TRANSACTIONS: sorted(transactions_org_ids),
+    }
 
 
 @instrumented_task(
@@ -180,10 +185,10 @@ def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
         return
 
     measure = SamplingMeasure.TRANSACTIONS
-    if options.get("dynamic-sampling.check_span_feature_flag") and features.has(
-        "organizations:dynamic-sampling-spans", org
-    ):
-        measure = SamplingMeasure.SPANS
+    if options.get("dynamic-sampling.check_span_feature_flag"):
+        span_org_ids = options.get("dynamic-sampling.measure.spans") or []
+        if org_id in span_org_ids:
+            measure = SamplingMeasure.SPANS
 
     projects_with_tx_count_and_rates = fetch_projects_with_total_root_transaction_count_and_rates(
         org_ids=[org_id],
@@ -300,6 +305,12 @@ def query_project_counts_by_org(
         granularity = Granularity(24 * 3600)
     else:
         granularity = Granularity(60)
+
+    metrics.incr(
+        "dynamic_sampling.query_project_counts_by_org.count",
+        amount=len(org_ids),
+        tags={"measure": str(measure.value)},
+    )
 
     org_ids = list(org_ids)
     project_ids = list(

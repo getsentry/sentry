@@ -1,5 +1,6 @@
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -11,7 +12,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
@@ -24,7 +24,7 @@ jest.mock('sentry/components/lazyRender', () => ({
 describe('MultiQueryModeContent', () => {
   const {organization, project} = initializeOrg();
   let eventsRequest: any;
-  let eventsStatsRequest: any;
+  let eventsTimeSeriesRequest: any;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -81,20 +81,11 @@ describe('MultiQueryModeContent', () => {
         ],
       },
     });
-    eventsStatsRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+    eventsTimeSeriesRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       body: {
-        'count(span.duration)': {
-          data: [
-            [1672531200, [{count: 5}]],
-            [1672542000, [{count: 10}]],
-            [1672552800, [{count: 15}]],
-          ],
-          order: 0,
-          start: 1672531200,
-          end: 1672552800,
-        },
+        timeSeries: [TimeSeriesFixture()],
       },
     });
     MockApiClient.addMockResponse({
@@ -119,11 +110,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -138,11 +127,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -207,11 +194,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -228,11 +213,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -299,11 +282,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -368,11 +349,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -389,11 +368,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -478,11 +455,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     expect(await screen.findByRole('button', {name: 'Bar'})).toBeInTheDocument();
@@ -532,11 +507,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Bar'}));
@@ -574,11 +547,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     expect(queries).toEqual([
@@ -622,11 +593,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     expect(queries).toEqual([
@@ -670,11 +639,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     expect(queries).toEqual([
@@ -721,11 +688,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     expect(queries).toEqual([
@@ -781,11 +746,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     expect(queries).toEqual([
@@ -848,11 +811,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     expect(queries).toEqual([
@@ -958,11 +919,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     expect(queries).toEqual([
@@ -985,21 +944,27 @@ describe('MultiQueryModeContent', () => {
     await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
 
     await waitFor(() =>
-      expect(eventsStatsRequest).toHaveBeenNthCalledWith(
+      expect(eventsTimeSeriesRequest).toHaveBeenNthCalledWith(
         1,
-        `/organizations/${organization.slug}/events-stats/`,
+        `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
+            caseInsensitive: 0,
             dataset: 'spans',
-            field: [],
-            interval: '3h',
-            orderby: undefined,
-            project: ['2'],
+            disableAggregateExtrapolation: '0',
+            environment: [],
+            excludeOther: 0,
+            groupBy: [],
+            interval: '30m',
+            partial: 1,
+            project: [2],
             query: '',
-            referrer: 'api.explore.spans-stats',
+            referrer: 'api.explore.spans-timeseries',
+            sampling: 'NORMAL',
+            sort: '-timestamp',
             statsPeriod: '7d',
             topEvents: undefined,
-            yAxis: 'count(span.duration)',
+            yAxis: ['count(span.duration)'],
           }),
         })
       )
@@ -1033,23 +998,27 @@ describe('MultiQueryModeContent', () => {
 
     // group by requests
     await waitFor(() =>
-      expect(eventsStatsRequest).toHaveBeenNthCalledWith(
+      expect(eventsTimeSeriesRequest).toHaveBeenNthCalledWith(
         2,
-        `/organizations/${organization.slug}/events-stats/`,
+        `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
+            caseInsensitive: 0,
             dataset: 'spans',
+            disableAggregateExtrapolation: '0',
+            environment: [],
             excludeOther: 0,
-            field: ['span.op', 'count(span.duration)'],
-            interval: '3h',
-            orderby: '-count_span_duration',
-            project: ['2'],
+            groupBy: ['span.op'],
+            interval: '30m',
+            partial: 1,
+            project: [2],
             query: '',
-            referrer: 'api.explore.spans-stats',
+            referrer: 'api.explore.spans-timeseries',
+            sampling: 'NORMAL',
             sort: '-count_span_duration',
             statsPeriod: '7d',
-            topEvents: '5',
-            yAxis: 'count(span.duration)',
+            topEvents: 5,
+            yAxis: ['count(span.duration)'],
           }),
         })
       )
@@ -1105,11 +1074,9 @@ describe('MultiQueryModeContent', () => {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <Component />
+      </TraceItemAttributeProvider>
     );
 
     expect(queries).toEqual([
@@ -1164,11 +1131,9 @@ describe('MultiQueryModeContent', () => {
     });
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <MultiQueryModeContent />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>,
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <MultiQueryModeContent />
+      </TraceItemAttributeProvider>,
       {
         router,
         organization,
@@ -1178,14 +1143,14 @@ describe('MultiQueryModeContent', () => {
 
     const section = screen.getByTestId('section-visualization-0');
     expect(
-      await within(section).findByRole('button', {name: '3 hours'})
+      await within(section).findByRole('button', {name: '30 minutes'})
     ).toBeInTheDocument();
-    await userEvent.click(within(section).getByRole('button', {name: '3 hours'}));
-    await userEvent.click(within(section).getByRole('option', {name: '30 minutes'}));
+    await userEvent.click(within(section).getByRole('button', {name: '30 minutes'}));
+    await userEvent.click(within(section).getByRole('option', {name: '3 hours'}));
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/traces/compare',
       query: expect.objectContaining({
-        interval: '30m',
+        interval: '3h',
         queries: [
           '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
         ],
@@ -1246,11 +1211,9 @@ describe('MultiQueryModeContent', () => {
     });
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <MultiQueryModeContent />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>,
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <MultiQueryModeContent />
+      </TraceItemAttributeProvider>,
       {
         router,
         organization,

@@ -1,10 +1,11 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ResponseMeta} from 'sentry/api';
 import {ExternalLink} from 'sentry/components/core/link';
-import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
@@ -65,15 +66,17 @@ export function OnDemandSettings({subscription, organization}: OnDemandSettingsP
   }
 
   const onDemandEnabled = subscription.planDetails.allowOnDemand;
-  // VC partner accounts don't require a payment source (i.e. credit card) since they make all payments via VC
-  const isVCPartner = subscription.partner?.partnership?.id === 'VC';
-  const hasPaymentSource = !!subscription.paymentSource || isVCPartner;
+  const hasPaymentSource = !!(
+    subscription.paymentSource ||
+    subscription.isSelfServePartner ||
+    subscription.onDemandInvoicedManual
+  );
   const hasOndemandBudgets =
     hasOnDemandBudgetsFeature(organization, subscription) &&
     Boolean(subscription.onDemandBudgets);
 
   return (
-    <Panel>
+    <Container background="primary" border="primary" radius="md">
       <PanelHeader
         // Displays the edit button when user has budgets enabled
         hasButtons={
@@ -113,7 +116,7 @@ export function OnDemandSettings({subscription, organization}: OnDemandSettingsP
           <EditOnDemandButton organization={organization} subscription={subscription} />
         )}
       </PanelHeader>
-      {/* AM3 doesn't have on-demand-budgets, but we want them to see the newer ui  */}
+      {/* AM3 doesn't have PAYG budget modes, but we want them to see the newer ui  */}
       {hasOndemandBudgets || subscription.planTier === PlanTier.AM3 ? (
         <OnDemandBudgets
           onDemandEnabled={onDemandEnabled}
@@ -135,7 +138,7 @@ export function OnDemandSettings({subscription, organization}: OnDemandSettingsP
           showSave
         />
       )}
-    </Panel>
+    </Container>
   );
 }
 

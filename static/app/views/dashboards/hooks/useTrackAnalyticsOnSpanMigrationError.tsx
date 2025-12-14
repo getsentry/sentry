@@ -22,8 +22,11 @@ export function useTrackAnalyticsOnSpanMigrationError({
   const organization = useOrganization();
   useEffect(() => {
     if (
-      widget.datasetSource !== DatasetSource.SPAN_MIGRATION ||
-      widget.widgetType !== WidgetType.SPANS
+      !(
+        (widget.datasetSource === DatasetSource.SPAN_MIGRATION ||
+          widget.datasetSource === DatasetSource.SPAN_MIGRATION_V2) &&
+        widget.widgetType === WidgetType.SPANS
+      )
     ) {
       return;
     }

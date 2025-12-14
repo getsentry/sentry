@@ -2,40 +2,31 @@ import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {IconCopy} from 'sentry/icons';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
-type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
-
-type Props = {
+interface CopyToClipboardButtonProps
+  extends Omit<
+    Extract<ButtonProps, {'aria-label': string}>,
+    'children' | 'onCopy' | 'onError'
+  > {
   text: string;
+  children?: never;
+  onCopy?: undefined | ((copiedText: string) => void);
   onError?: undefined | ((error: Error) => void);
-} & Overwrite<
-  Omit<ButtonProps, 'children'>,
-  Partial<
-    Pick<ButtonProps, 'aria-label'> & {onCopy: undefined | ((copiedText: string) => void)}
-  >
->;
+}
 
 export function CopyToClipboardButton({
   onCopy,
   onError,
   text,
-  onClick: passedOnClick,
   ...props
-}: Props) {
-  const {onClick, label} = useCopyToClipboard({
-    text,
-    onCopy,
-    onError,
-  });
+}: CopyToClipboardButtonProps) {
+  const {copy} = useCopyToClipboard();
 
   return (
     <Button
-      aria-label={label}
-      title={label}
-      tooltipProps={{delay: 0}}
       translucentBorder
       onClick={e => {
-        onClick();
-        passedOnClick?.(e);
+        copy(text).then(onCopy).catch(onError);
+        props.onClick?.(e);
       }}
       icon={<IconCopy color="subText" />}
       {...props}

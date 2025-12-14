@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry.integrations.source_code_management.repo_trees import get_extension
 
-from .constants import SECOND_LEVEL_TLDS, STACK_ROOT_MAX_LEVEL
+from .constants import STACK_ROOT_MAX_LEVEL
 from .errors import (
     DoesNotFollowJavaPackageNamingConvention,
     MissingModuleOrAbsPath,
@@ -18,9 +18,8 @@ from .utils.platform import PlatformConfig
 
 NOT_FOUND = -1
 
-# Regex patterns for unsupported frame paths
+# Regex pattern for unsupported frame paths
 UNSUPPORTED_FRAME_PATH_PATTERN = re.compile(r"^[\[<]|https?://", re.IGNORECASE)
-UNSUPPORTED_NORMALIZED_PATH_PATTERN = re.compile(r"^[^/]*$")
 
 
 def create_frame_info(frame: Mapping[str, Any], platform: str | None = None) -> FrameInfo:
@@ -42,7 +41,7 @@ class FrameInfo(ABC):
         self.process_frame(frame)
 
     def __repr__(self) -> str:
-        return f"FrameInfo: {self.raw_path}"
+        return f"FrameInfo: {self.raw_path} stack_root: {self.stack_root}"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, FrameInfo):
@@ -76,11 +75,7 @@ class PathBasedFrameInfo(FrameInfo):
         # the straight path prefix and drive letter
         self.normalized_path, removed_prefix = remove_prefixes(frame_file_path)
 
-        if (
-            not frame_file_path
-            or UNSUPPORTED_FRAME_PATH_PATTERN.search(frame_file_path)
-            or UNSUPPORTED_NORMALIZED_PATH_PATTERN.search(self.normalized_path)
-        ):
+        if not frame_file_path or UNSUPPORTED_FRAME_PATH_PATTERN.search(frame_file_path):
             raise UnsupportedFrameInfo("This path is not supported.")
 
         if not get_extension(frame_file_path):
@@ -148,21 +143,27 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
     # Gets rid of the class name
     parts = module.rsplit(".", 1)[0].split(".")
     dirpath = "/".join(parts)
-    # a.Bar, Bar.kt -> stack_root: a/, file_path:  a/Bar.kt
-    granularity = 1
-
-    if len(parts) > 1:
-        # com.example.foo.bar.Baz$InnerClass, Baz.kt ->
-        #    stack_root: com/example/foo/
-        #    file_path:  com/example/foo/bar/Baz.kt
-        granularity = STACK_ROOT_MAX_LEVEL - 1
-
-        if parts[1] in SECOND_LEVEL_TLDS:
-            # uk.co.example.foo.bar.Baz$InnerClass, Baz.kt ->
-            #    stack_root: uk/co/example/foo/
-            #    file_path:  uk/co/example/foo/bar/Baz.kt
-            granularity = STACK_ROOT_MAX_LEVEL
+    granularity = get_granularity(parts)
 
     stack_root = "/".join(parts[:granularity]) + "/"
     file_path = f"{dirpath}/{abs_path}"
     return stack_root, file_path
+
+
+def get_granularity(parts: Sequence[str]) -> int:
+    # a.Bar, Bar.kt -> stack_root: a/, file_path: a/Bar.kt
+    granularity = 1
+
+    if len(parts) > 1:
+        # com.example.foo.bar.Baz$InnerClass, Baz.kt ->
+        #    stack_root: com/example/foo/bar/
+        #    file_path:  com/example/foo/bar/Baz.kt
+        # uk.co.example.foo.bar.Baz$InnerClass, Baz.kt ->
+        #    stack_root: uk/co/example/foo/
+        #    file_path:  uk/co/example/foo/bar/Baz.kt
+        # com.example.multi.foo.bar.Baz$InnerClass, Baz.kt ->
+        #    stack_root: com/example/multi/foo/
+        #    file_path:  com/example/multi/foo/bar/Baz.kt
+        granularity = STACK_ROOT_MAX_LEVEL
+
+    return granularity

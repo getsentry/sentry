@@ -10,7 +10,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
+import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import SpansWidgetQueries from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
+import TraceMetricsWidgetQueries from 'sentry/views/dashboards/widgetCard/traceMetricsWidgetQueries';
 
 import IssueWidgetQueries from './issueWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
@@ -64,11 +66,13 @@ export function WidgetCardDataLoader({
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
+  const {queue} = useWidgetQueryQueue();
 
   if (widget.widgetType === WidgetType.ISSUE) {
     return (
       <IssueWidgetQueries
         api={api}
+        queue={queue}
         organization={organization}
         widget={widget}
         selection={selection}
@@ -77,8 +81,22 @@ export function WidgetCardDataLoader({
         dashboardFilters={dashboardFilters}
         onDataFetchStart={onDataFetchStart}
       >
-        {({tableResults, errorMessage, loading}) => (
-          <Fragment>{children({tableResults, errorMessage, loading})}</Fragment>
+        {({
+          tableResults,
+          timeseriesResults,
+          timeseriesResultsTypes,
+          errorMessage,
+          loading,
+        }) => (
+          <Fragment>
+            {children({
+              tableResults,
+              timeseriesResults,
+              timeseriesResultsTypes,
+              errorMessage,
+              loading,
+            })}
+          </Fragment>
         )}
       </IssueWidgetQueries>
     );
@@ -88,6 +106,7 @@ export function WidgetCardDataLoader({
     return (
       <ReleaseWidgetQueries
         widget={widget}
+        queue={queue}
         selection={selection}
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
@@ -107,6 +126,7 @@ export function WidgetCardDataLoader({
     return (
       <SpansWidgetQueries
         api={api}
+        queue={queue}
         widget={widget}
         selection={selection}
         limit={tableItemLimit}
@@ -119,9 +139,27 @@ export function WidgetCardDataLoader({
     );
   }
 
+  if (widget.widgetType === WidgetType.TRACEMETRICS) {
+    return (
+      <TraceMetricsWidgetQueries
+        api={api}
+        queue={queue}
+        widget={widget}
+        selection={selection}
+        limit={tableItemLimit}
+        onDataFetchStart={onDataFetchStart}
+        onDataFetched={onDataFetched}
+        dashboardFilters={dashboardFilters}
+      >
+        {props => <Fragment>{children({...props})}</Fragment>}
+      </TraceMetricsWidgetQueries>
+    );
+  }
+
   return (
     <WidgetQueries
       api={api}
+      queue={queue}
       organization={organization}
       widget={widget}
       selection={selection}

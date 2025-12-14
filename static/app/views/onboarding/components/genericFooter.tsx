@@ -22,7 +22,7 @@ const GenericFooter = styled((props: React.ComponentProps<typeof motion.div>) =>
   height: 72px;
   z-index: 100;
   display: flex;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   justify-content: space-between;
   box-shadow: ${p => p.theme.dropShadowHeavyTop};
 `;

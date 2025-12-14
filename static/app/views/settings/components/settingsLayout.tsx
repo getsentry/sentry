@@ -1,6 +1,8 @@
 import {isValidElement} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
@@ -22,10 +24,10 @@ function SettingsLayout(props: Props) {
   return (
     <SettingsColumn>
       <SettingsHeader>
-        <HeaderContent>
+        <Flex align="center" justify="between">
           <StyledSettingsBreadcrumb params={params} routes={childRoutes} />
           <SettingsSearch />
-        </HeaderContent>
+        </Flex>
       </SettingsHeader>
 
       <MaxWidthContainer>
@@ -43,12 +45,6 @@ const SettingsColumn = styled('div')`
   footer {
     margin-top: 0;
   }
-`;
-
-const HeaderContent = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 `;
 
 const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`

@@ -1,18 +1,12 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {FlamegraphRendererDOM as mockFlameGraphRenderer} from 'sentry/utils/profiling/renderers/testUtils';
-import {useParams} from 'sentry/utils/useParams';
 import ProfileFlamegraph from 'sentry/views/profiling/profileFlamechart';
 import ProfilesAndTransactionProvider from 'sentry/views/profiling/transactionProfileProvider';
-
-jest.mock('sentry/utils/useParams', () => ({
-  useParams: jest.fn(),
-}));
 
 window.ResizeObserver =
   window.ResizeObserver ||
@@ -98,24 +92,27 @@ describe('Flamegraph', () => {
     act(() => ProjectsStore.loadInitialData([project]));
     setWindowLocation('http://localhost/');
   });
+
   it('renders a missing profile', async () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/foo-project/profiling/profiles/profile-id/',
       statusCode: 404,
     });
 
-    jest.mocked(useParams).mockReturnValue({
-      orgId: 'org-slug',
-      projectId: 'foo-project',
-      eventId: 'profile-id',
+    render(<ProfilesAndTransactionProvider />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/explore/profiling/profile/foo-project/profile-id/flamegraph/',
+        },
+        route: '/explore/profiling/profile/:projectId/:eventId/',
+        children: [
+          {
+            path: 'flamegraph/',
+            element: <ProfileFlamegraph />,
+          },
+        ],
+      },
     });
-
-    render(
-      <ProfilesAndTransactionProvider>
-        <ProfileFlamegraph />
-      </ProfilesAndTransactionProvider>,
-      {organization: initializeOrg().organization}
-    );
 
     expect(
       await screen.findByText(
@@ -135,18 +132,20 @@ describe('Flamegraph', () => {
       statusCode: 404,
     });
 
-    jest.mocked(useParams).mockReturnValue({
-      orgId: 'org-slug',
-      projectId: 'foo-project',
-      eventId: 'profile-id',
+    render(<ProfilesAndTransactionProvider />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/explore/profiling/profile/foo-project/profile-id/flamegraph/',
+        },
+        route: '/explore/profiling/profile/:projectId/:eventId/',
+        children: [
+          {
+            path: 'flamegraph/',
+            element: <ProfileFlamegraph />,
+          },
+        ],
+      },
     });
-
-    render(
-      <ProfilesAndTransactionProvider>
-        <ProfileFlamegraph />
-      </ProfilesAndTransactionProvider>,
-      {organization: initializeOrg().organization}
-    );
 
     const frames = await screen.findAllByTestId('flamegraph-frame', undefined, {
       timeout: 5000,
@@ -167,22 +166,24 @@ describe('Flamegraph', () => {
       statusCode: 404,
     });
 
-    jest.mocked(useParams).mockReturnValue({
-      orgId: 'org-slug',
-      projectId: 'foo-project',
-      eventId: 'profile-id',
-    });
-
     setWindowLocation(
       'http://localhost/?colorCoding=by+library&query=&sorting=alphabetical&tid=0&view=bottom+up'
     );
 
-    render(
-      <ProfilesAndTransactionProvider>
-        <ProfileFlamegraph />
-      </ProfilesAndTransactionProvider>,
-      {organization: initializeOrg().organization}
-    );
+    render(<ProfilesAndTransactionProvider />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/explore/profiling/profile/foo-project/profile-id/flamegraph/',
+        },
+        route: '/explore/profiling/profile/:projectId/:eventId/',
+        children: [
+          {
+            path: 'flamegraph/',
+            element: <ProfileFlamegraph />,
+          },
+        ],
+      },
+    });
 
     expect(await screen.findByRole('radio', {name: 'Alphabetical'})).toBeChecked();
     expect(await screen.findByRole('radio', {name: 'Bottom Up'})).toBeChecked();
@@ -205,20 +206,22 @@ describe('Flamegraph', () => {
       statusCode: 404,
     });
 
-    jest.mocked(useParams).mockReturnValue({
-      orgId: 'org-slug',
-      projectId: 'foo-project',
-      eventId: 'profile-id',
-    });
-
     setWindowLocation('http://localhost/?query=profiling+transaction');
 
-    render(
-      <ProfilesAndTransactionProvider>
-        <ProfileFlamegraph />
-      </ProfilesAndTransactionProvider>,
-      {organization: initializeOrg().organization}
-    );
+    render(<ProfilesAndTransactionProvider />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/explore/profiling/profile/foo-project/profile-id/flamegraph/',
+        },
+        route: '/explore/profiling/profile/:projectId/:eventId/',
+        children: [
+          {
+            path: 'flamegraph/',
+            element: <ProfileFlamegraph />,
+          },
+        ],
+      },
+    });
 
     expect(await screen.findByPlaceholderText('Find Frames')).toHaveValue(
       'profiling transaction'

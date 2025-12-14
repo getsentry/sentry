@@ -6,7 +6,6 @@ from typing import Any, Literal, TypedDict
 from sentry import features
 from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -333,9 +332,5 @@ def get_color(
             color = event_for_tags.occurrence.level
         if color and color in LEVEL_TO_COLOR.keys():
             return color
-    if group.issue_category == GroupCategory.PERFORMANCE:
-        # XXX(CEO): this shouldn't be needed long term, but due to a race condition
-        # the group's latest event is not found and we end up with no event_for_tags here for perf issues
-        return "info"
 
     return "error"

@@ -4,6 +4,7 @@ from django.views.generic import View
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
 from sentry.seer.anomaly_detection.types import AnomalyType
+from sentry.web.frontend.base import internal_region_silo_view
 from sentry.web.frontend.debug.mail import MailPreview
 
 incident = {
@@ -203,7 +204,6 @@ open_periods = {
             "id": "551505189",  # this ID renders on the vertical line indicating the beginning of an open period
             "start": "2022-04-21T20:29:34.982805Z",
             "end": None,
-            "duration": None,
             "isOpen": True,
             "lastChecked": "2022-05-01T20:28:00Z",
             "activities": [
@@ -511,6 +511,7 @@ crash_free_metric_alert = {
 }
 
 
+@internal_region_silo_view
 class DebugMetricAlertChartRendererView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         ret = []

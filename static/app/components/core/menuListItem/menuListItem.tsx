@@ -24,9 +24,11 @@ import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 /**
- * Leading/trailing items to be rendered alongside the main text label.
+ * A renderable item. Either a React node, or a function that accepts properties
+ * of the item, and returns a React node. The function version is useful for
+ * lazily rendering supplementary content like training items and tooltips.
  */
-type EdgeItems =
+type ExtraContent =
   | React.ReactNode
   | ((state: {
       disabled: boolean;
@@ -39,7 +41,7 @@ export type MenuListItemProps = {
    * Optional descriptive text. Like 'label', should preferably be a string or
    * have appropriate aria-labels.
    */
-  details?: React.ReactNode;
+  details?: ExtraContent;
   /**
    * Whether the item is disabled (if true, the item will be grayed out and
    * non-interactive).
@@ -53,7 +55,7 @@ export type MenuListItemProps = {
   /**
    * Items to be added to the left of the label
    */
-  leadingItems?: EdgeItems;
+  leadingItems?: ExtraContent;
   /**
    * Accented text and background (on hover) colors.
    */
@@ -71,7 +73,7 @@ export type MenuListItemProps = {
    * not very visible - if possible, add additional text via the `details`
    * prop instead.
    */
-  tooltip?: React.ReactNode;
+  tooltip?: ExtraContent;
   /**
    * Additional props to be passed into <Tooltip />.
    */
@@ -79,7 +81,7 @@ export type MenuListItemProps = {
   /**
    * Items to be added to the right of the label.
    */
-  trailingItems?: EdgeItems;
+  trailingItems?: ExtraContent;
 };
 
 interface OtherProps {
@@ -130,7 +132,15 @@ function BaseMenuListItem({
       ref={mergeRefs(ref, itemRef)}
       {...props}
     >
-      <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
+      <Tooltip
+        skipWrapper
+        title={
+          typeof tooltip === 'function'
+            ? tooltip({disabled, isFocused, isSelected})
+            : tooltip
+        }
+        {...tooltipOptions}
+      >
         <InnerWrap
           isFocused={isFocused}
           disabled={disabled}
@@ -162,7 +172,9 @@ function BaseMenuListItem({
                   priority={priority}
                   {...detailsProps}
                 >
-                  {details}
+                  {typeof details === 'function'
+                    ? details({disabled, isFocused, isSelected})
+                    : details}
                 </Details>
               )}
             </LabelWrap>
@@ -178,7 +190,9 @@ function BaseMenuListItem({
       </Tooltip>
       {showDetailsInOverlay && details && isFocused && (
         <DetailsOverlay size={size} id={detailId} itemRef={itemRef}>
-          {details}
+          {typeof details === 'function'
+            ? details({disabled, isFocused, isSelected})
+            : details}
         </DetailsOverlay>
       )}
     </MenuItemWrap>
@@ -287,7 +301,7 @@ function getTextColor({
       return theme.errorText;
     case 'default':
     default:
-      return theme.textColor;
+      return theme.tokens.content.primary;
   }
 }
 
@@ -306,7 +320,7 @@ export const InnerWrap = withChonk(
     display: flex;
     position: relative;
     padding: 0 ${space(1)} 0 ${space(1.5)};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     box-sizing: border-box;
 
     font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
@@ -420,7 +434,7 @@ const Label = withChonk(
 
 const Details = withChonk(
   styled('div')<{disabled: boolean; priority: Priority}>`
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     color: ${p => p.theme.subText};
     line-height: 1.2;
     margin-bottom: 0;

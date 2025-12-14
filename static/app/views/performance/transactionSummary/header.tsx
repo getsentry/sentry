@@ -8,7 +8,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TabList} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
@@ -37,7 +37,7 @@ import {
   getCurrentLandingDisplay,
   LandingDisplayField,
 } from 'sentry/views/performance/landing/utils';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
@@ -238,7 +238,7 @@ function TransactionHeader({
     </HasMeasurementsQuery>
   );
 
-  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
 
   if (isInDomainView) {
     const headerProps = {
@@ -382,7 +382,7 @@ function TransactionHeader({
               onChangeThreshold={onChangeThreshold}
             />
           </GuideAnchor>
-          <FeedbackWidgetButton />
+          <FeedbackButton />
         </ButtonBar>
       </Layout.HeaderActions>
       <HasMeasurementsQuery

@@ -22,7 +22,7 @@ import PlatformPicker, {
   type Platform,
 } from 'sentry/components/platformPicker';
 import type {TeamOption} from 'sentry/components/teamSelector';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
@@ -257,7 +257,7 @@ const Footer = styled('div')`
 const StyledPlatformIcon = styled(PlatformIcon)`
   position: absolute;
   top: 50%;
-  left: ${p => p.theme.formPadding.md.paddingLeft}px;
+  left: ${p => p.theme.form.md.paddingLeft}px;
   transform: translateY(-50%);
 `;
 
@@ -265,7 +265,7 @@ const ProjectNameInputWrap = styled('div')`
   position: relative;
 `;
 const ProjectNameInput = styled(Input)`
-  padding-left: calc(${p => p.theme.formPadding.md.paddingLeft}px * 1.5 + 20px);
+  padding-left: calc(${p => p.theme.form.md.paddingLeft}px * 1.5 + 20px);
 `;
 
 export const modalCss = css`

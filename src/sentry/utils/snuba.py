@@ -40,6 +40,7 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
+from sentry.services.eventstore.query_preprocessing import get_all_merged_group_ids
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.snuba.query_sources import QuerySource
@@ -892,8 +893,8 @@ class SnubaQueryParams:
     def __init__(
         self,
         dataset=None,
-        start=None,
-        end=None,
+        start: datetime | None = None,
+        end: datetime | None = None,
         groupby=None,
         conditions=None,
         filter_keys=None,
@@ -921,6 +922,66 @@ class SnubaQueryParams:
         self.referrer = referrer
         self.is_grouprelease = is_grouprelease
         self.kwargs = kwargs
+
+        # Groups can be merged together, but snuba is immutable(ish). In order to
+        # account for merges, here we expand queries to include all group IDs that have
+        # been merged together.
+
+        if self.dataset in {
+            Dataset.Events,
+            Dataset.IssuePlatform,
+        }:
+            self._preprocess_group_id_redirects()
+
+    def _preprocess_group_id_redirects(self):
+        # Conditions are a series of "AND" statements. For "group_id", to dedupe,
+        # we pre-collapse these. This helps us reduce the size of queries.
+        in_groups = None
+        out_groups: set[int | str] = set()
+        if "group_id" in self.filter_keys:
+            self.filter_keys = self.filter_keys.copy()
+            in_groups = get_all_merged_group_ids(self.filter_keys["group_id"])
+            del self.filter_keys["group_id"]
+
+        new_conditions = []
+
+        for triple in self.conditions:
+            if triple[0] != "group_id":
+                new_conditions.append(triple)
+                continue
+
+            op = triple[1]
+            # IN statements need to intersect
+            if op == "IN":
+                new_in_groups = get_all_merged_group_ids(triple[2])
+                if in_groups is not None:
+                    new_in_groups = in_groups.intersection(new_in_groups)
+                in_groups = new_in_groups
+            elif op == "=":
+                new_in_groups = get_all_merged_group_ids([triple[2]])
+                if in_groups is not None:
+                    new_in_groups = in_groups.intersection(new_in_groups)
+                in_groups = new_in_groups
+            # NOT IN statements can union and be differenced at the end
+            elif op == "NOT IN":
+                out_groups.update(triple[2])
+            elif op == "!=":
+                out_groups.add(triple[2])
+
+        out_groups = get_all_merged_group_ids(list(out_groups))
+        triple = None
+        # If there is an "IN" statement, we don't need a "NOT IN" statement. We can
+        # just subtract the NOT IN groups from the IN groups.
+        if in_groups is not None:
+            in_groups.difference_update(out_groups)
+            triple = ["group_id", "IN", in_groups]
+        elif len(out_groups) > 0:
+            triple = ["group_id", "NOT IN", out_groups]
+
+        if triple is not None:
+            new_conditions.append(triple)
+
+        self.conditions = new_conditions
 
 
 def raw_query(
@@ -1222,7 +1283,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                         log_snuba_info("{}.err: {}".format(referrer, body["error"]))
             except ValueError:
                 if response.status != 200:
-                    logger.exception(
+                    logger.warning(
                         "snuba.query.invalid-json",
                         extra={"response.data": response.data},
                     )
@@ -1440,8 +1501,8 @@ def _raw_snql_query(request: Request, headers: Mapping[str, str]) -> urllib3.res
 
 def query(
     dataset=None,
-    start=None,
-    end=None,
+    start: datetime | None = None,
+    end: datetime | None = None,
     groupby=None,
     conditions=None,
     filter_keys=None,

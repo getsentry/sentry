@@ -16,7 +16,7 @@ import {
   getIsAiGenerationNode,
   getIsExecuteToolNode,
   getTraceNodeAttribute,
-} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {hasAIInputAttribute} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {hasAIOutputAttribute} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
@@ -33,6 +33,8 @@ const knownSpanOrigins = {
     'auto.ai.langgraph',
     'auto.ai.anthropic',
     'auto.ai.litellm',
+    'auto.ai.google_genai',
+    'auto.ai.pydantic_ai',
   ],
   javascript: ['auto.ai.anthropic', 'auto.ai.openai', 'auto.vercelai.otel'],
 } as const;
@@ -137,6 +139,10 @@ const pythonIntegrationLinks: Record<PythonSpanOrigin, string> = {
   'auto.ai.langgraph': 'https://docs.sentry.io/platforms/python/integrations/langgraph/',
   'auto.ai.anthropic': 'https://docs.sentry.io/platforms/python/integrations/anthropic/',
   'auto.ai.litellm': 'https://docs.sentry.io/platforms/python/integrations/litellm/',
+  'auto.ai.google_genai':
+    'https://docs.sentry.io/platforms/python/integrations/google-genai/',
+  'auto.ai.pydantic_ai':
+    'https://docs.sentry.io/platforms/python/integrations/pydantic-ai/',
 };
 
 function PythonContent({

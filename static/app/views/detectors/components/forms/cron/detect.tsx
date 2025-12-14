@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
@@ -36,10 +35,6 @@ const SCHEDULE_OPTIONS: Array<SelectValue<string>> = [
 
 const CHECKIN_MARGIN_MINIMUM = 1;
 const TIMEOUT_MINIMUM = 1;
-
-type Props = {
-  isEditing: boolean;
-};
 
 function ScheduleTypeField() {
   return (
@@ -200,7 +195,7 @@ function Thresholds() {
   );
 }
 
-export function CronDetectorFormDetectSection({isEditing}: Props) {
+export function CronDetectorFormDetectSection() {
   return (
     <Container>
       <Section title={t('Detect')}>
@@ -212,13 +207,6 @@ export function CronDetectorFormDetectSection({isEditing}: Props) {
                 link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />,
               })}
             </Text>
-            {isEditing && (
-              <Alert type="info" showIcon={false}>
-                {t(
-                  'Any changes you make to the execution schedule will only be applied after the next expected check-in.'
-                )}
-              </Alert>
-            )}
             <Schedule />
             <Margins />
             <Thresholds />

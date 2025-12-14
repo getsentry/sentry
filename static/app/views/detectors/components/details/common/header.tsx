@@ -9,7 +9,11 @@ import {
   EditDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {
+  makeMonitorBasePathname,
+  makeMonitorTypePathname,
+} from 'sentry/views/detectors/pathnames';
+import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 type DetectorDetailsHeaderProps = {
   detector: Detector;
@@ -24,7 +28,14 @@ export function DetectorDetailsHeader({detector, project}: DetectorDetailsHeader
       <DetailLayout.HeaderContent>
         <Breadcrumbs
           crumbs={[
-            {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
+            {
+              label: t('Monitors'),
+              to: makeMonitorBasePathname(organization.slug),
+            },
+            {
+              label: getDetectorTypeLabel(detector.type),
+              to: makeMonitorTypePathname(organization.slug, detector.type),
+            },
             {label: detector.name},
           ]}
         />

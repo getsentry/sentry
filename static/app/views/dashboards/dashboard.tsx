@@ -18,12 +18,14 @@ import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
 
@@ -44,7 +46,7 @@ import {
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
-import {WidgetType} from './types';
+import {DashboardFilterKeys, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
@@ -80,6 +82,7 @@ type Props = {
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   handleChangeSplitDataset?: (widget: Widget, index: number) => void;
+  isEmbedded?: boolean;
   isPreview?: boolean;
   newWidget?: Widget;
   newlyAddedWidget?: Widget;
@@ -87,6 +90,7 @@ type Props = {
   onEditWidget?: (widget: Widget) => void;
   onNewWidgetScrollComplete?: () => void;
   onSetNewWidget?: () => void;
+  useTimeseriesVisualization?: boolean;
 };
 
 interface LayoutState extends Record<string, Layout[]> {
@@ -102,6 +106,7 @@ function Dashboard({
   onUpdate,
   widgetLegendState,
   widgetLimitReached,
+  isEmbedded,
   isPreview,
   newWidget,
   newlyAddedWidget,
@@ -109,12 +114,14 @@ function Dashboard({
   onEditWidget,
   onNewWidgetScrollComplete,
   onSetNewWidget,
+  useTimeseriesVisualization,
 }: Props) {
   const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const api = useApi();
   const {selection} = usePageFilters();
+  const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {
     const desktopLayout = getDashboardLayout(dashboard.widgets);
     return {
@@ -153,20 +160,31 @@ function Dashboard({
     );
   }, [api, organization.slug, selection.projects]);
 
+  useEffect(() => {
+    // Always load organization tags on dashboards
+    loadOrganizationTags(api, organization.slug, selection);
+  }, [api, organization.slug, selection]);
+
   // The operations in this effect should only run on mount/unmount
   useEffect(() => {
     window.addEventListener('resize', debouncedHandleResize);
-
-    // Always load organization tags on dashboards
-    loadOrganizationTags(api, organization.slug, selection);
 
     // Get member list data for issue widgets
     fetchMemberList();
 
     connectDashboardCharts(DASHBOARD_CHART_GROUP);
-    trackEngagementAnalytics(dashboard.widgets, organization, dashboard.title);
+    trackEngagementAnalytics(
+      dashboard.widgets,
+      organization,
+      dashboard.title,
+      dashboard.filters?.[DashboardFilterKeys.GLOBAL_FILTER]?.length ?? 0
+    );
 
     return () => {
+      if (queue) {
+        queue.abort();
+        queue.clear();
+      }
       window.removeEventListener('resize', debouncedHandleResize);
       window.clearTimeout(forceCheckTimeout.current);
       GroupStore.reset();
@@ -411,7 +429,9 @@ function Dashboard({
             onEdit={handleEditWidget(index)}
             onDuplicate={handleDuplicateWidget(widget)}
             onSetTransactionsDataset={() => handleChangeSplitDataset(widget, index)}
+            isEmbedded={isEmbedded}
             isPreview={isPreview}
+            isPrebuiltDashboard={defined(dashboard.prebuiltId)}
             dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboard.filters}
             dashboardPermissions={dashboard.permissions}
             dashboardCreator={dashboard.createdBy}
@@ -420,6 +440,7 @@ function Dashboard({
             index={String(index)}
             newlyAddedWidget={newlyAddedWidget}
             onNewWidgetScrollComplete={onNewWidgetScrollComplete}
+            useTimeseriesVisualization={useTimeseriesVisualization}
           />
         </div>
       ))}
@@ -438,7 +459,7 @@ export default Dashboard;
 // Allow the Add Widget tile to show above widgets when moved
 const AddWidgetWrapper = styled('div')`
   z-index: 5;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const GridLayout = styled(WidthProvider(Responsive))`
@@ -446,7 +467,7 @@ const GridLayout = styled(WidthProvider(Responsive))`
 
   .react-grid-item.react-grid-placeholder {
     background: ${p => p.theme.purple200};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
   }
 `;
 

@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 import re
+from typing import Any
 
 import jsonschema
 import orjson
@@ -9,7 +12,8 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import internal_region_silo_endpoint
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
@@ -23,7 +27,9 @@ from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_ch
 logger = logging.getLogger(__name__)
 
 
-def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, str | None]:
+def validate_preprod_artifact_update_schema(
+    request_body: bytes,
+) -> tuple[dict[str, Any], str | None]:
     """
     Validate the JSON schema for preprod artifact update requests.
 
@@ -53,9 +59,21 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
                     "certificate_expiration_date": {"type": "string"},
                     "is_code_signature_valid": {"type": "boolean"},
                     "code_signature_errors": {"type": "array", "items": {"type": "string"}},
+                    "missing_dsym_binaries": {"type": "array", "items": {"type": "string"}},
+                    "build_date": {"type": "string"},
+                },
+            },
+            "android_app_info": {
+                "type": "object",
+                "properties": {
+                    "has_proguard_mapping": {"type": "boolean"},
                 },
             },
             "dequeued_at": {"type": "string"},
+            "app_icon_id": {"type": "string", "maxLength": 255},
+            "cli_version": {"type": "string", "maxLength": 255},
+            "fastlane_plugin_version": {"type": "string", "maxLength": 255},
+            "gradle_plugin_version": {"type": "string", "maxLength": 255},
         },
         "additionalProperties": True,
     }
@@ -75,7 +93,15 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
         "apple_app_info.profile_name": "The profile_name field must be a string.",
         "apple_app_info.is_code_signature_valid": "The is_code_signature_valid field must be a boolean.",
         "apple_app_info.code_signature_errors": "The code_signature_errors field must be an array of strings.",
+        "apple_app_info.missing_dsym_binaries": "The missing_dsym_binaries field must be an array of strings.",
+        "apple_app_info.build_date": "The build_date field must be a string.",
+        "android_app_info": "The android_app_info field must be an object.",
+        "android_app_info.has_proguard_mapping": "The has_proguard_mapping field must be a boolean.",
         "dequeued_at": "The dequeued_at field must be a string.",
+        "app_icon_id": "The app_icon_id field must be a string with a maximum length of 255 characters.",
+        "cli_version": "The cli_version field must be a string with a maximum length of 255 characters.",
+        "fastlane_plugin_version": "The fastlane_plugin_version field must be a string with a maximum length of 255 characters.",
+        "gradle_plugin_version": "The gradle_plugin_version field must be a string with a maximum length of 255 characters.",
     }
 
     try:
@@ -94,7 +120,7 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
 
 
 def find_or_create_release(
-    project, package: str, version: str, build_number: int | None = None
+    project: Project, package: str, version: str, build_number: int | None = None
 ) -> Release | None:
     """
     Find or create a release based on package, version, and project.
@@ -171,7 +197,7 @@ def find_or_create_release(
         return None
 
 
-@region_silo_endpoint
+@internal_region_silo_endpoint
 class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -180,7 +206,13 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
     authentication_classes = (LaunchpadRpcSignatureAuthentication,)
     permission_classes = (LaunchpadRpcPermission,)
 
-    def put(self, request: Request, project, head_artifact_id, head_artifact) -> Response:
+    def put(
+        self,
+        request: Request,
+        project: Project,
+        head_artifact_id: int,
+        head_artifact: PreprodArtifact,
+    ) -> Response:
         """
         Update a preprod artifact with preprocessed data
         ```````````````````````````````````````````````
@@ -252,6 +284,22 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             head_artifact.app_name = data["app_name"]
             updated_fields.append("app_name")
 
+        if "app_icon_id" in data:
+            head_artifact.app_icon_id = data["app_icon_id"]
+            updated_fields.append("app_icon_id")
+
+        if "cli_version" in data:
+            head_artifact.cli_version = data["cli_version"]
+            updated_fields.append("cli_version")
+
+        if "fastlane_plugin_version" in data:
+            head_artifact.fastlane_plugin_version = data["fastlane_plugin_version"]
+            updated_fields.append("fastlane_plugin_version")
+
+        if "gradle_plugin_version" in data:
+            head_artifact.gradle_plugin_version = data["gradle_plugin_version"]
+            updated_fields.append("gradle_plugin_version")
+
         extras_updates = {}
 
         if "apple_app_info" in data:
@@ -259,6 +307,15 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             if "main_binary_uuid" in apple_info:
                 head_artifact.main_binary_identifier = apple_info["main_binary_uuid"]
                 updated_fields.append("main_binary_identifier")
+
+            if "missing_dsym_binaries" in apple_info:
+                binaries = apple_info["missing_dsym_binaries"]
+                if isinstance(binaries, list):
+                    extras_updates["has_missing_dsym_binaries"] = len(binaries) > 0
+
+            if "build_date" in apple_info:
+                head_artifact.date_built = apple_info["build_date"]
+                updated_fields.append("date_built")
 
             for field in [
                 "is_simulator",
@@ -271,6 +328,12 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             ]:
                 if field in apple_info:
                     extras_updates[field] = apple_info[field]
+
+        if "android_app_info" in data:
+            android_info = data["android_app_info"]
+            for field in ["has_proguard_mapping"]:
+                if field in android_info:
+                    extras_updates[field] = android_info[field]
 
         if "dequeued_at" in data:
             extras_updates["dequeued_at"] = data["dequeued_at"]

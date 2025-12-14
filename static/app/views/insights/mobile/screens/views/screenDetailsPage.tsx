@@ -1,5 +1,6 @@
 import type React from 'react';
 import {useState} from 'react';
+import omit from 'lodash/omit';
 
 import {
   FeatureBadge,
@@ -90,7 +91,7 @@ function ScreenDetailsPage() {
 
     navigate({
       pathname: location.pathname,
-      query: newQuery,
+      query: omit(newQuery, 'field', 'query', 'referrer', 'sampling', 'sort', 'span.op'),
     });
   }
 
@@ -132,7 +133,7 @@ function ScreenDetailsPage() {
               ]}
             />
             <Layout.Body>
-              <Layout.Main fullWidth>
+              <Layout.Main width="full">
                 <PageAlert />
                 {tabs.filter(tab => tab.key === selectedTabKey).map(tab => tab.content())}
               </Layout.Main>

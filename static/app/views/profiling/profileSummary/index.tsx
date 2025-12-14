@@ -1,6 +1,5 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -12,11 +11,14 @@ import {TabList, Tabs} from 'sentry/components/core/tabs';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {
+  DatePageFilter,
+  type DatePageFilterProps,
+} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -31,8 +33,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
+import {DataCategory} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import type {DeepPartial} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
@@ -55,8 +56,10 @@ import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -67,7 +70,6 @@ import {
 import {ProfilesSummaryChart} from 'sentry/views/profiling/landing/profilesSummaryChart';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfilesTable} from 'sentry/views/profiling/profileSummary/profilesTable';
-import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {MostRegressedProfileFunctions} from './regressedProfileFunctions';
 import {SlowestProfileFunctions} from './slowestProfileFunctions';
@@ -96,9 +98,7 @@ const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
 };
 
 interface ProfileSummaryHeaderProps {
-  location: Location;
   onViewChange: (newView: 'flamegraph' | 'profiles') => void;
-  organization: Organization;
   project: Project | null;
   query: string;
   transaction: string;
@@ -106,30 +106,33 @@ interface ProfileSummaryHeaderProps {
 }
 
 function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
+  const location = useLocation();
+  const organization = useOrganization();
+
   const breadcrumbTrails: ProfilingBreadcrumbsProps['trails'] = useMemo(() => {
     return [
       {
         type: 'landing',
         payload: {
-          query: props.location.query,
+          query: location.query,
         },
       },
       {
         type: 'profile summary',
         payload: {
           projectSlug: props.project?.slug ?? '',
-          query: props.location.query,
+          query: location.query,
           transaction: props.transaction,
         },
       },
     ];
-  }, [props.location.query, props.project?.slug, props.transaction]);
+  }, [location.query, props.project?.slug, props.transaction]);
 
   const transactionSummaryTarget =
     props.project &&
     props.transaction &&
     transactionSummaryRouteWithQuery({
-      organization: props.organization,
+      organization,
       transaction: props.transaction,
       projectID: props.project.id,
       query: {query: props.query},
@@ -138,10 +141,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
   return (
     <ProfilingHeader>
       <ProfilingHeaderContent>
-        <ProfilingBreadcrumbs
-          organization={props.organization}
-          trails={breadcrumbTrails}
-        />
+        <ProfilingBreadcrumbs organization={organization} trails={breadcrumbTrails} />
         <Layout.Title>
           <ProfilingTitleContainer>
             {props.project ? (
@@ -158,7 +158,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
       </ProfilingHeaderContent>
       {transactionSummaryTarget && (
         <StyledHeaderActions>
-          <FeedbackWidgetButton />
+          <FeedbackButton />
           <LinkButton to={transactionSummaryTarget} size="sm">
             {t('View Summary')}
           </LinkButton>
@@ -200,27 +200,26 @@ const ProfilingTitleContainer = styled('div')`
 `;
 
 interface ProfileFiltersProps {
-  location: Location;
-  organization: Organization;
+  datePageFilterProps: DatePageFilterProps;
   projectIds: EventView['project'];
   query: string;
-  selection: PageFilters;
-  transaction: string | undefined;
 }
 
 function ProfileFilters(props: ProfileFiltersProps) {
+  const location = useLocation();
+
   const handleSearch = useCallback(
     (searchQuery: string) => {
       browserHistory.push({
-        ...props.location,
+        ...location,
         query: {
-          ...props.location.query,
+          ...location.query,
           query: searchQuery || undefined,
           cursor: undefined,
         },
       });
     },
-    [props.location]
+    [location]
   );
 
   const projectIds = useMemo(() => props.projectIds.slice(), [props.projectIds]);
@@ -229,7 +228,7 @@ function ProfileFilters(props: ProfileFiltersProps) {
     <ActionBar>
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
-        <DatePageFilter />
+        <DatePageFilter {...props.datePageFilterProps} />
       </PageFilterBar>
       <TransactionSearchQueryBuilder
         projects={projectIds}
@@ -246,23 +245,16 @@ const ActionBar = styled('div')`
   gap: ${space(1)};
   grid-template-columns: min-content auto;
   padding: ${space(1)} ${space(1)};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
-interface ProfileSummaryPageProps {
-  location: Location;
-  params: {
-    projectId?: Project['slug'];
-  };
-  selection: PageFilters;
-  view: 'flamegraph' | 'profile list';
-}
-
-function ProfileSummaryPage(props: ProfileSummaryPageProps) {
+function ProfileSummaryPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
 
-  const transaction = decodeScalar(props.location.query.transaction);
+  const transaction = decodeScalar(location.query.transaction);
 
   if (!transaction) {
     throw new TypeError(
@@ -272,7 +264,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     );
   }
 
-  const rawQuery = decodeScalar(props.location?.query?.query, '');
+  const rawQuery = decodeScalar(location?.query?.query, '');
 
   const projectIds: number[] = useMemo(() => {
     if (!defined(project)) {
@@ -353,9 +345,6 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
-  const location = useLocation();
-  const navigate = useNavigate();
-
   const view = useMemo(() => {
     return decodeViewOrDefault(location.query.view, 'flamegraph');
   }, [location.query.view]);
@@ -377,6 +366,11 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     return setHideRegressions(!hideRegressions);
   }, [hideRegressions, setHideRegressions]);
 
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   return (
     <SentryDocumentTitle
       title={t('Profiling \u2014 Profile Summary')}
@@ -387,24 +381,31 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
           shouldForceProject={defined(project)}
           forceProject={project}
           specificProjectSlugs={projectSlugs}
-          defaultSelection={{datetime: DEFAULT_PROFILING_DATETIME_SELECTION}}
+          maxPickableDays={datePageFilterProps.maxPickableDays}
+          defaultSelection={
+            datePageFilterProps.defaultPeriod
+              ? {
+                  datetime: {
+                    period: datePageFilterProps.defaultPeriod,
+                    start: null,
+                    end: null,
+                    utc: null,
+                  },
+                }
+              : undefined
+          }
         >
           <ProfileSummaryHeader
             view={view}
             onViewChange={setView}
-            organization={organization}
-            location={props.location}
             project={project}
             query={rawQuery}
             transaction={transaction}
           />
           <ProfileFilters
             projectIds={projectIds}
-            organization={organization}
-            location={props.location}
             query={rawQuery}
-            selection={props.selection}
-            transaction={transaction}
+            datePageFilterProps={datePageFilterProps}
           />
           <ProfilesSummaryChart
             referrer="api.profiling.profile-summary-chart"
@@ -616,7 +617,7 @@ const ProfileVisualization = styled('div')`
 const ProfileDigestContainer = styled('div')`
   grid-area: digest;
   border-left: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex: 1 1 100%;
   flex-direction: column;
@@ -786,17 +787,17 @@ const ProfileDigestHeader = styled('div')`
 `;
 
 const ProfileDigestLabel = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
 `;
 
-export default function ProfileSummaryPageToggle(props: ProfileSummaryPageProps) {
+export default function ProfileSummaryPageToggle() {
   return (
     <ProfileSummaryContainer data-test-id="profile-summary-redesign">
       <ErrorBoundary>
-        <ProfileSummaryPage {...props} />
+        <ProfileSummaryPage />
       </ErrorBoundary>
     </ProfileSummaryContainer>
   );

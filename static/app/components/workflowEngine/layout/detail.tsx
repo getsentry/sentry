@@ -17,14 +17,14 @@ interface WorkflowEngineDetailLayoutProps {
 }
 
 /**
- * Precomposed 67/33 layout for Automations / Monitors detail pages.
+ * Precomposed 67/33 layout for Monitors / Alerts detail pages.
  */
 function DetailLayout({children}: WorkflowEngineDetailLayoutProps) {
   return <StyledPage>{children}</StyledPage>;
 }
 
 const StyledPage = styled(Layout.Page)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const StyledBody = styled(Layout.Body)`

@@ -30,26 +30,28 @@ type ConditionsPanelProps = {
 function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
   return (
     <Panel>
-      {triggers && (
-        <ConditionGroupWrapper>
-          <ConditionGroupHeader>
-            {tct('[when:When] [logicType] of the following occur', {
-              when: <ConditionBadge />,
-              logicType:
-                TRIGGER_MATCH_OPTIONS.find(choice => choice.value === triggers.logicType)
-                  ?.label || triggers.logicType,
-            })}
-          </ConditionGroupHeader>
-          {triggers.conditions.map((trigger, index) => (
-            <div key={index}>
-              <DataConditionDetails condition={trigger} />
-            </div>
-          ))}
-        </ConditionGroupWrapper>
-      )}
+      <ConditionGroupWrapper>
+        <ConditionGroupHeader>
+          {tct('[when:When] [logicType] of the following occur', {
+            when: <ConditionBadge />,
+            logicType:
+              TRIGGER_MATCH_OPTIONS.find(choice => choice.value === triggers?.logicType)
+                ?.label || t('any'),
+          })}
+        </ConditionGroupHeader>
+        {triggers?.conditions?.map((trigger, index) => (
+          <div key={index}>
+            <DataConditionDetails condition={trigger} />
+          </div>
+        ))}
+        {(!triggers || triggers.conditions.length === 0) && t('An event is captured')}
+      </ConditionGroupWrapper>
       {actionFilters.map((actionFilter, index) => (
         <div key={index}>
-          <ActionFilter actionFilter={actionFilter} totalFilters={actionFilters.length} />
+          <ActionFilter
+            actionFilter={actionFilter}
+            showDivider={actionFilters.length > 1}
+          />
         </div>
       ))}
     </Panel>
@@ -75,14 +77,14 @@ function findActionHandler(
 
 interface ActionFilterProps {
   actionFilter: DataConditionGroup;
-  totalFilters: number;
+  showDivider: boolean;
 }
 
-function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
+function ActionFilter({actionFilter, showDivider}: ActionFilterProps) {
   const {data: availableActions = [], isLoading} = useAvailableActionsQuery();
 
   return (
-    <ConditionGroupWrapper showDivider={totalFilters > 1}>
+    <ConditionGroupWrapper showDivider={showDivider}>
       <ConditionGroupHeader>
         {tct('[if:If] [logicType] of these filters match', {
           if: <ConditionBadge />,
@@ -161,13 +163,13 @@ const Panel = styled('div')`
   gap: ${p => p.theme.space.lg};
   background-color: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.translucentBorder};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.lg};
   word-break: break-word;
 `;
 
 const ConditionGroupHeader = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const ConditionGroupWrapper = styled('div')<{showDivider?: boolean}>`

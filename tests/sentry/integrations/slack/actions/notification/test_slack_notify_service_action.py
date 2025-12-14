@@ -10,10 +10,12 @@ from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.rules import RuleFuture
 
@@ -182,7 +184,7 @@ class TestInit(RuleTestCase):
         assert thread_ts_failure.args[0] == EventLifecycleOutcome.SUCCESS
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_failure.args[0] == EventLifecycleOutcome.FAILURE
-        assert_failure_metric(mock_record, SlackApiError(message="", response={}))
+        assert_failure_metric(mock_record, IntegrationError())
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
@@ -282,7 +284,7 @@ class TestInit(RuleTestCase):
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @with_feature("organizations:workflow-engine-trigger-actions")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
@@ -326,7 +328,7 @@ class TestInit(RuleTestCase):
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @with_feature("organizations:workflow-engine-trigger-actions")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
@@ -369,7 +371,7 @@ class TestInit(RuleTestCase):
         assert thread_ts_start.args[0] == EventLifecycleOutcome.STARTED
         assert thread_ts_success.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @with_feature("organizations:workflow-engine-trigger-actions")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @with_feature("organizations:workflow-engine-ui-links")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
@@ -414,7 +416,7 @@ class TestInit(RuleTestCase):
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @with_feature("organizations:workflow-engine-trigger-actions")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
@@ -459,7 +461,7 @@ class TestInit(RuleTestCase):
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @with_feature("organizations:workflow-engine-trigger-actions")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")

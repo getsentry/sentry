@@ -1,10 +1,9 @@
 import {Fragment, useRef, useState} from 'react';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
-
-import type {DistributiveOmit} from '@sentry/scraps/types';
+import type {DistributedOmit} from 'type-fest';
 
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
@@ -21,6 +20,7 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   type: 'muted' | 'info' | 'warning' | 'success' | 'error';
   defaultExpanded?: boolean;
   expand?: React.ReactNode;
+  handleExpandChange?: (isExpanded: boolean) => void;
   icon?: React.ReactNode;
   showIcon?: boolean;
   system?: boolean;
@@ -61,6 +61,7 @@ export function Alert({
     }
     if (showExpand) {
       setIsExpanded(!isExpanded);
+      props.handleExpandChange?.(!isExpanded);
     }
   }
 
@@ -98,7 +99,10 @@ export function Alert({
               borderless
               icon={<IconChevron direction={isExpanded ? 'up' : 'down'} />}
               aria-label={isExpanded ? t('Collapse') : t('Expand')}
-              onClick={() => setIsExpanded(!isExpanded)}
+              onClick={() => {
+                setIsExpanded(!isExpanded);
+                props.handleExpandChange?.(!isExpanded);
+              }}
             />
           </ExpandIconWrap>
         )}
@@ -183,7 +187,7 @@ const AlertPanel = styled('div')<AlertProps & {hovered: boolean}>`
   grid-template-columns: ${p => getAlertGridLayout(p)};
   gap: ${space(1)};
   color: ${p => getAlertColors(p.theme, p.type).color};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => getAlertColors(p.theme, p.type).border};
   padding: ${space(1.5)} ${space(2)};
@@ -241,7 +245,9 @@ const IconWrapper = withChonk(
   styled('div')<{type: AlertProps['type']}>`
     display: flex;
     align-items: center;
-    height: calc(${p => p.theme.fontSize.md} * ${p => p.theme.text.lineHeightBody});
+    height: calc(
+      ${p => p.theme.font.size.md} * ${p => p.theme.font.lineHeight.comfortable}
+    );
   `,
   ChonkAlert.IconWrapper
 );
@@ -249,14 +255,16 @@ const IconWrapper = withChonk(
 const Message = withChonk(
   styled('span')`
     position: relative;
-    line-height: ${p => p.theme.text.lineHeightBody};
+    line-height: ${p => p.theme.font.lineHeight.comfortable};
   `,
   ChonkAlert.Message
 );
 
 const TrailingItems = withChonk(
   styled('div')<{showIcon: boolean}>`
-    height: calc(${p => p.theme.fontSize.md} * ${p => p.theme.text.lineHeightBody});
+    height: calc(
+      ${p => p.theme.font.size.md} * ${p => p.theme.font.lineHeight.comfortable}
+    );
     display: grid;
     grid-auto-flow: column;
     grid-template-rows: 100%;
@@ -329,9 +337,8 @@ const Container = styled('div')`
 
 Alert.Container = Container;
 
-function AlertButton(props: DistributiveOmit<ButtonProps, 'size'>) {
-  const theme = useTheme();
-  return <Button {...props} size={theme.isChonk ? 'zero' : 'sm'} />;
+function AlertButton(props: DistributedOmit<ButtonProps, 'size'>) {
+  return <Button {...props} size="zero" />;
 }
 
 Alert.Button = AlertButton;

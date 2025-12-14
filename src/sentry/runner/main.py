@@ -54,7 +54,6 @@ for cmd in map(
         "sentry.runner.commands.files.files",
         "sentry.runner.commands.help.help",
         "sentry.runner.commands.init.init",
-        "sentry.runner.commands.killswitches.killswitches",
         "sentry.runner.commands.migrations.migrations",
         "sentry.runner.commands.plugins.plugins",
         "sentry.runner.commands.repair.repair",
@@ -68,7 +67,6 @@ for cmd in map(
         "sentry.runner.commands.performance.performance",
         "sentry.runner.commands.spans.spans",
         "sentry.runner.commands.spans.write_hashes",
-        "sentry.runner.commands.llm.llm",
         "sentry.runner.commands.notifications.notifications",
     ),
 ):

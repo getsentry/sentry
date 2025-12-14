@@ -7,7 +7,11 @@ import type {
   SelectOptionOrSectionWithKey,
   SelectSectionWithKey,
 } from 'sentry/components/core/compactSelect/types';
-import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
+import {areWildcardOperatorsAllowed} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {
+  WildcardOperators,
+  type ParseResultToken,
+} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
@@ -127,7 +131,11 @@ export function getInitialFilterText(
     case FieldValueType.SIZE:
     case FieldValueType.PERCENTAGE:
       return `${keyText}:>${defaultValue}`;
-    case FieldValueType.STRING:
+    case FieldValueType.STRING: {
+      return areWildcardOperatorsAllowed(fieldDefinition)
+        ? `${keyText}:${WildcardOperators.CONTAINS}${defaultValue}`
+        : `${keyText}:${defaultValue}`;
+    }
     default:
       return `${keyText}:${defaultValue}`;
   }

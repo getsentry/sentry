@@ -10,11 +10,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import * as spanTagsModule from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
@@ -24,16 +24,13 @@ import {
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import type {PickableDays} from 'sentry/views/explore/utils';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
     <SpansQueryParamsProvider>
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          {children}
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        {children}
+      </TraceItemAttributeProvider>
     </SpansQueryParamsProvider>
   );
 }
@@ -50,7 +47,7 @@ const mockNumberTags: TagCollection = {
   numberTag2: {key: 'numberTag2', kind: FieldKind.MEASUREMENT, name: 'numberTag2'},
 };
 
-const datePageFilterProps: PickableDays = {
+const datePageFilterProps: DatePageFilterProps = {
   defaultPeriod: '7d' as const,
   maxPickableDays: 7,
   relativeOptions: ({arbitraryOptions}) => ({
@@ -68,7 +65,7 @@ describe('SpansTabContent', () => {
         'gen-ai-features',
         'gen-ai-explore-traces',
         'gen-ai-explore-traces-consent-ui',
-        'search-query-builder-case-insensitivity',
+        'traces-page-cross-event-querying',
       ],
     },
   });
@@ -93,7 +90,7 @@ describe('SpansTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
       method: 'GET',
-      body: {},
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/spans/fields/`,
@@ -106,9 +103,11 @@ describe('SpansTabContent', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {},
+      body: {
+        timeSeries: [],
+      },
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/traces/`,
@@ -124,15 +123,31 @@ describe('SpansTabContent', () => {
         },
       }),
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [],
+      match: [MockApiClient.matchQuery({attributeType: 'number'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {
+          key: 'project',
+          name: 'project',
+          attributeSource: {source_type: 'sentry'},
+        },
+      ],
+      match: [MockApiClient.matchQuery({attributeType: 'string'})],
+    });
   });
 
   it('should fire analytics once per change', async () => {
-    render(
-      <Wrapper>
-        <SpansTabContent datePageFilterProps={datePageFilterProps} />
-      </Wrapper>,
-      {organization}
-    );
+    render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+      organization,
+      additionalWrapper: Wrapper,
+    });
 
     await screen.findByText(/No spans found/);
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
@@ -171,12 +186,7 @@ describe('SpansTabContent', () => {
       return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }
 
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>,
-      {organization}
-    );
+    render(<Component />, {organization, additionalWrapper: Wrapper});
 
     const samples = screen.getByRole('tab', {name: 'Span Samples'});
     const aggregates = screen.getByRole('tab', {name: 'Aggregates'});
@@ -194,7 +204,10 @@ describe('SpansTabContent', () => {
 
     // Add a group by, and leave one unselected
     await userEvent.click(aggregates);
-    await userEvent.click(within(groupBy).getByRole('button', {name: '\u2014'}));
+
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+
+    await userEvent.click(within(editorColumn).getByRole('button', {name: '\u2014'}));
     await userEvent.click(within(groupBy).getByRole('option', {name: 'project'}));
 
     expect(groupBys).toEqual(['project']);
@@ -214,12 +227,10 @@ describe('SpansTabContent', () => {
   }, 20_000);
 
   it('opens toolbar when switching to aggregates tab', async () => {
-    render(
-      <Wrapper>
-        <SpansTabContent datePageFilterProps={datePageFilterProps} />
-      </Wrapper>,
-      {organization}
-    );
+    render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+      organization,
+      additionalWrapper: Wrapper,
+    });
 
     // by default the toolbar should be visible
     expect(screen.getByTestId('explore-span-toolbar')).toBeInTheDocument();
@@ -253,29 +264,25 @@ describe('SpansTabContent', () => {
 
   describe('case sensitivity', () => {
     it('renders the case sensitivity toggle', () => {
-      render(
-        <Wrapper>
-          <SpansTabContent datePageFilterProps={datePageFilterProps} />
-        </Wrapper>,
-        {organization}
-      );
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
 
       const caseSensitivityToggle = screen.getByRole('button', {
-        name: 'Toggle case sensitivity',
+        name: 'Ignore case',
       });
       expect(caseSensitivityToggle).toBeInTheDocument();
     });
 
     it('toggles case sensitivity', async () => {
       const {router} = render(
-        <Wrapper>
-          <SpansTabContent datePageFilterProps={datePageFilterProps} />
-        </Wrapper>,
-        {organization}
+        <SpansTabContent datePageFilterProps={datePageFilterProps} />,
+        {organization, additionalWrapper: Wrapper}
       );
 
       const caseSensitivityToggle = screen.getByRole('button', {
-        name: 'Toggle case sensitivity',
+        name: 'Ignore case',
       });
       expect(caseSensitivityToggle).toBeInTheDocument();
       await userEvent.click(caseSensitivityToggle);
@@ -290,21 +297,21 @@ describe('SpansTabContent', () => {
         method: 'GET',
         body: {},
       });
-      const eventsStatsMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-stats/`,
+      const eventsTimeSeriesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
         method: 'GET',
-        body: {},
+        body: {
+          timeSeries: [],
+        },
       });
 
-      render(
-        <Wrapper>
-          <SpansTabContent datePageFilterProps={datePageFilterProps} />
-        </Wrapper>,
-        {organization}
-      );
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
 
       const caseSensitivityToggle = screen.getByRole('button', {
-        name: 'Toggle case sensitivity',
+        name: 'Ignore case',
       });
       expect(caseSensitivityToggle).toBeInTheDocument();
       await userEvent.click(caseSensitivityToggle);
@@ -319,8 +326,8 @@ describe('SpansTabContent', () => {
       );
 
       await waitFor(() =>
-        expect(eventsStatsMock).toHaveBeenCalledWith(
-          `/organizations/${organization.slug}/events-stats/`,
+        expect(eventsTimeSeriesMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/events-timeseries/`,
           expect.objectContaining({
             query: expect.objectContaining({caseInsensitive: 1}),
           })
@@ -390,14 +397,10 @@ describe('SpansTabContent', () => {
     });
 
     it('should show hints', () => {
-      render(
-        <Wrapper>
-          <SpansTabContent datePageFilterProps={datePageFilterProps} />
-        </Wrapper>,
-        {
-          organization,
-        }
-      );
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
 
       expect(screen.getByText('stringTag1')).toBeInTheDocument();
       expect(screen.getByText('stringTag2')).toBeInTheDocument();
@@ -420,13 +423,25 @@ describe('SpansTabContent', () => {
       });
     });
 
+    describe('when the AI features are disabled', () => {
+      it('does not display the Ask Seer combobox', async () => {
+        render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+          organization: {...organization, features: []},
+          additionalWrapper: Wrapper,
+        });
+
+        const input = screen.getByRole('combobox');
+        await userEvent.click(input);
+
+        expect(screen.queryByText(/Ask AI to build your query/)).not.toBeInTheDocument();
+      });
+    });
+
     it('brings along the query', async () => {
-      render(
-        <Wrapper>
-          <SpansTabContent datePageFilterProps={datePageFilterProps} />
-        </Wrapper>,
-        {organization}
-      );
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
 
       const input = screen.getByRole('combobox');
       await userEvent.click(input);
@@ -434,7 +449,7 @@ describe('SpansTabContent', () => {
 
       // re-open the combobox
       await userEvent.click(input);
-      const askSeer = await screen.findByText(/Ask Seer to build your query/);
+      const askSeer = await screen.findByText(/Ask AI to build your query/);
       await userEvent.click(askSeer);
 
       const askSeerInput = screen.getByRole('combobox', {
@@ -447,18 +462,16 @@ describe('SpansTabContent', () => {
     });
 
     it('brings along the user input', async () => {
-      render(
-        <Wrapper>
-          <SpansTabContent datePageFilterProps={datePageFilterProps} />
-        </Wrapper>,
-        {organization}
-      );
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
 
       const input = screen.getByRole('combobox');
       await userEvent.click(input);
       await userEvent.type(input, ' random');
 
-      const askSeer = await screen.findByText(/Ask Seer to build your query/);
+      const askSeer = await screen.findByText(/Ask AI to build your query/);
       await userEvent.click(askSeer);
 
       const askSeerInput = screen.getByRole('combobox', {
@@ -471,19 +484,17 @@ describe('SpansTabContent', () => {
     });
 
     it('brings along only the query and the user input', async () => {
-      render(
-        <Wrapper>
-          <SpansTabContent datePageFilterProps={datePageFilterProps} />
-        </Wrapper>,
-        {organization}
-      );
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
 
       const input = screen.getByRole('combobox');
       await userEvent.click(input);
       await userEvent.type(input, 'span.duration:>10ms{enter}');
       await userEvent.type(input, ' random');
 
-      const askSeer = await screen.findByText(/Ask Seer to build your query/);
+      const askSeer = await screen.findByText(/Ask AI to build your query/);
       await userEvent.click(askSeer);
 
       const askSeerInput = screen.getByRole('combobox', {
@@ -493,6 +504,157 @@ describe('SpansTabContent', () => {
       await waitFor(() => {
         expect(askSeerInput).toHaveValue('span.duration is greater than 10ms random ');
       });
+    });
+  });
+
+  describe('cross events', () => {
+    it('displays the cross events dropdown', async () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
+
+      expect(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      );
+
+      expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Metrics'})).toBeInTheDocument();
+    });
+
+    it('adds a cross event query', async () => {
+      const {router} = render(
+        <SpansTabContent datePageFilterProps={datePageFilterProps} />,
+        {organization, additionalWrapper: Wrapper}
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      );
+
+      expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Spans'}));
+
+      await waitFor(() =>
+        expect(router.location.query.crossEvents).toEqual(
+          JSON.stringify([{query: '', type: 'spans'}])
+        )
+      );
+    });
+
+    it('disables dropdown when there are 2 cross events', () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              crossEvents: JSON.stringify([
+                {query: '', type: 'spans'},
+                {query: '', type: 'logs'},
+              ]),
+            },
+          },
+        },
+      });
+
+      expect(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      ).toBeDisabled();
+    });
+
+    it('adds a cross event search bar when cross event added', async () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      );
+
+      expect(screen.getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Logs'}));
+
+      expect(
+        screen.getByPlaceholderText('Search for logs, users, tags, and more')
+      ).toBeInTheDocument();
+    });
+
+    it('can remove a cross event query', async () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {crossEvents: JSON.stringify([{query: '', type: 'logs'}])},
+          },
+        },
+      });
+
+      expect(
+        await screen.findByPlaceholderText('Search for logs, users, tags, and more')
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByLabelText('Remove cross event search for logs'));
+
+      expect(
+        screen.queryByPlaceholderText('Search for logs, users, tags, and more')
+      ).not.toBeInTheDocument();
+    });
+
+    it('changes the cross event search bar when dataset changed', async () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {crossEvents: JSON.stringify([{query: '', type: 'logs'}])},
+          },
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: /Logs/}));
+      await userEvent.click(screen.getByRole('option', {name: 'Metrics'}));
+
+      expect(
+        screen.getByPlaceholderText('Search for metrics, users, tags, and more')
+      ).toBeInTheDocument();
+    });
+
+    it('renders disabled cross event search bar when the limit is reached', () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              crossEvents: JSON.stringify([
+                {query: '', type: 'spans'},
+                {query: '', type: 'logs'},
+                {query: '', type: 'metrics'},
+              ]),
+            },
+          },
+        },
+      });
+
+      expect(screen.getAllByTestId('search-query-builder').pop()).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 });

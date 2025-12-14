@@ -50,6 +50,7 @@ const SectionBody = styled('div')<{alignment?: boolean}>`
 interface MetaProps {
   logs: OurLogsResponseItem[] | undefined;
   meta: TraceMetaQueryResults['data'];
+  metrics: {count: number} | undefined;
   organization: Organization;
   representativeEvent: TraceTree.RepresentativeTraceEvent | null;
   tree: TraceTree;

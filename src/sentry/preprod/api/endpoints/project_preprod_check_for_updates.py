@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 from packaging.version import parse as parse_version
 from pydantic import BaseModel
@@ -8,7 +11,8 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.bases.project import ProjectDistributionPermission, ProjectEndpoint
+from sentry.models.project import Project
 from sentry.preprod.build_distribution_utils import (
     get_download_url_for_artifact,
     is_installable_artifact,
@@ -41,20 +45,17 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (ProjectDistributionPermission,)
 
-    enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
             "GET": {
-                RateLimitCategory.ORGANIZATION: RateLimit(
-                    limit=100, window=60
-                ),  # 100 requests per minute per org
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
             }
         }
     )
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Check for updates for a preprod artifact
         """
@@ -65,6 +66,7 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
         provided_build_version = request.GET.get("build_version")
         provided_build_number = request.GET.get("build_number")
         provided_build_configuration = request.GET.get("build_configuration")
+        provided_codesigning_type = request.GET.get("codesigning_type")
 
         if not provided_app_id or not provided_platform or not provided_build_version:
             return Response({"error": "Missing required parameters"}, status=400)
@@ -90,8 +92,8 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
         update = None
 
         # Common filter logic
-        def get_base_filters():
-            filter_kwargs = {
+        def get_base_filters() -> dict[str, Any]:
+            filter_kwargs: dict[str, Any] = {
                 "project": project,
                 "app_id": provided_app_id,
             }
@@ -103,6 +105,9 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                 ]
             elif provided_platform == "ios":
                 filter_kwargs["artifact_type"] = PreprodArtifact.ArtifactType.XCARCHIVE
+
+            if provided_codesigning_type:
+                filter_kwargs["extras__codesigning_type"] = provided_codesigning_type
 
             return filter_kwargs
 
@@ -156,6 +161,10 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
         new_build_filter_kwargs = get_base_filters()
         if preprod_artifact:
             new_build_filter_kwargs["build_configuration"] = preprod_artifact.build_configuration
+            if preprod_artifact.extras:
+                codesigning_type = preprod_artifact.extras.get("codesigning_type")
+                if codesigning_type:
+                    new_build_filter_kwargs["extras__codesigning_type"] = codesigning_type
         elif build_configuration:
             new_build_filter_kwargs["build_configuration"] = build_configuration
         all_versions = (

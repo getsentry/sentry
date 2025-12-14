@@ -1,18 +1,21 @@
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  waitFor,
+  within,
+  type RouterConfig,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueCategory, IssueType} from 'sentry/types/group';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
@@ -27,9 +30,9 @@ const makeDefaultMockData = (
 ): {
   event: Event;
   group: Group;
+  initialRouterConfig: RouterConfig;
   organization: Organization;
   project: Project;
-  router: InjectedRouter;
 } => {
   const group = GroupFixture();
   const org = organization ?? OrganizationFixture();
@@ -37,12 +40,13 @@ const makeDefaultMockData = (
   return {
     project: project ?? ProjectFixture(),
     organization: org,
-    router: RouterFixture({
-      params: {orgId: org.slug, groupId: group.id},
-      location: LocationFixture({
+    initialRouterConfig: {
+      location: {
+        pathname: `/organizations/${org.slug}/issues/${group.id}/`,
         query: query ?? {},
-      }),
-    }),
+      },
+      route: `/organizations/:orgId/issues/:groupId/`,
+    },
     group,
     event: EventFixture({
       size: 1,
@@ -356,7 +360,14 @@ describe('groupEventDetails', () => {
 
   it('redirects on switching to an invalid environment selection for event', async () => {
     const props = makeDefaultMockData();
-    props.router.params.eventId = props.event.id;
+    const eventRouterConfig = {
+      ...props.initialRouterConfig,
+      location: {
+        ...props.initialRouterConfig.location,
+        pathname: `/organizations/${props.organization.slug}/issues/${props.group.id}/events/${props.event.id}/`,
+      },
+      route: `/organizations/:orgId/issues/:groupId/events/:eventId/`,
+    };
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
     MockApiClient.addMockResponse({
@@ -364,37 +375,49 @@ describe('groupEventDetails', () => {
       body: props.event,
     });
 
-    const {rerender} = render(<GroupEventDetails />, {
+    const {router} = render(<GroupEventDetails />, {
       organization: props.organization,
-      router: props.router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: eventRouterConfig,
     });
     expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
-    expect(props.router.replace).not.toHaveBeenCalled();
 
-    props.router.location.query.environment = ['prod'];
-    rerender(<GroupEventDetails />);
+    router.navigate(`${router.location.pathname}?environment=prod`);
 
-    await waitFor(() => expect(props.router.replace).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/organizations/${props.organization.slug}/issues/${props.group.id}/`,
+          query: expect.objectContaining({
+            environment: 'prod',
+          }),
+        })
+      );
+    });
   });
 
   it('does not redirect when switching to a valid environment selection for event', async () => {
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
-    const {rerender} = render(<GroupEventDetails />, {
+    const {router} = render(<GroupEventDetails />, {
       organization: props.organization,
-      router: props.router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: props.initialRouterConfig,
     });
 
-    expect(props.router.replace).not.toHaveBeenCalled();
-    props.router.location.query.environment = [];
-    rerender(<GroupEventDetails />);
+    const initialPathname = router.location.pathname;
+    router.navigate(`${initialPathname}?environment=`);
 
     expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
 
-    expect(props.router.replace).not.toHaveBeenCalled();
+    // Should not redirect - pathname should remain the same
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: initialPathname,
+        query: expect.objectContaining({
+          environment: '',
+        }),
+      })
+    );
   });
 
   it('displays error on event error', async () => {
@@ -422,8 +445,7 @@ describe('groupEventDetails', () => {
 
     render(<GroupEventDetails />, {
       organization: props.organization,
-      router: props.router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: props.initialRouterConfig,
     });
 
     expect(await screen.findByText(/couldn't track down an event/)).toBeInTheDocument();
@@ -442,9 +464,8 @@ describe('groupEventDetails', () => {
     mockGroupApis(props.organization, props.project, group, transactionEvent);
 
     render(<GroupEventDetails />, {
-      router: props.router,
       organization: props.organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: props.initialRouterConfig,
     });
 
     expect(
@@ -476,8 +497,7 @@ describe('groupEventDetails', () => {
 
     render(<GroupEventDetails />, {
       organization: props.organization,
-      router: props.router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: props.initialRouterConfig,
     });
 
     expect(
@@ -489,12 +509,12 @@ describe('groupEventDetails', () => {
   });
 
   it('renders event tags ui', async () => {
-    const {organization, project, group, event, router} = makeDefaultMockData();
+    const {organization, project, group, event, initialRouterConfig} =
+      makeDefaultMockData();
     mockGroupApis(organization, project, group, event);
     render(<GroupEventDetails />, {
       organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
 
     expect(await screen.findByRole('region', {name: 'tags'})).toBeInTheDocument();
@@ -525,8 +545,7 @@ describe('groupEventDetails', () => {
 
       render(<GroupEventDetails />, {
         organization: props.organization,
-        router: props.router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: props.initialRouterConfig,
       });
 
       expect(
@@ -555,8 +574,7 @@ describe('groupEventDetails', () => {
 
       render(<GroupEventDetails />, {
         organization: props.organization,
-        router: props.router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: props.initialRouterConfig,
       });
 
       // mechanism: ANR

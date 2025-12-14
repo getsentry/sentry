@@ -243,7 +243,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       ...formData,
       reserved: {...formData.reserved, errors: reservedErrors},
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: true,
         },
       },
@@ -281,17 +281,41 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       replays: updatedData.reserved.replays,
       monitorSeats: updatedData.reserved.monitorSeats,
       uptime: 1,
-      isNewCheckout: false,
+      categories: {
+        errors: {
+          reserved: updatedData.reserved.errors,
+          previous_reserved: 5000,
+        },
+        transactions: {
+          reserved: updatedData.reserved.transactions,
+          previous_reserved: 10_000,
+        },
+        attachments: {
+          reserved: updatedData.reserved.attachments,
+          previous_reserved: 1,
+        },
+        replays: {
+          reserved: updatedData.reserved.replays,
+          previous_reserved: 50,
+        },
+        monitorSeats: {
+          reserved: updatedData.reserved.monitorSeats,
+          previous_reserved: 1,
+        },
+        uptime: {
+          reserved: 1,
+          previous_reserved: 1,
+        },
+      },
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith('checkout.product_select', {
       organization,
       subscription,
-      seer: {
+      legacySeer: {
         enabled: true,
         previously_enabled: false,
       },
-      isNewCheckout: false,
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -397,14 +421,46 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       previous_uptime: 1,
       plan: updatedData.plan,
       errors: updatedData.reserved.errors,
-      transactions: undefined,
       attachments: updatedData.reserved.attachments,
       replays: updatedData.reserved.replays,
       monitorSeats: updatedData.reserved.monitorSeats,
       spans: updatedData.reserved.spans,
       profileDuration: updatedData.reserved.profileDuration,
       uptime: updatedData.reserved.uptime,
-      isNewCheckout: false,
+      categories: {
+        errors: {
+          reserved: updatedData.reserved.errors,
+          previous_reserved: 5000,
+        },
+        transactions: {
+          reserved: undefined,
+          previous_reserved: 10_000,
+        },
+        attachments: {
+          reserved: updatedData.reserved.attachments,
+          previous_reserved: 1,
+        },
+        replays: {
+          reserved: updatedData.reserved.replays,
+          previous_reserved: 50,
+        },
+        monitorSeats: {
+          reserved: updatedData.reserved.monitorSeats,
+          previous_reserved: 1,
+        },
+        spans: {
+          reserved: updatedData.reserved.spans,
+          previous_reserved: undefined,
+        },
+        profileDuration: {
+          reserved: updatedData.reserved.profileDuration,
+          previous_reserved: undefined,
+        },
+        uptime: {
+          reserved: updatedData.reserved.uptime,
+          previous_reserved: 1,
+        },
+      },
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -415,7 +471,6 @@ describe('AmCheckout > ReviewAndConfirm', () => {
         applyNow: false,
         daysLeft: 7,
         partner: 'FOO',
-        isNewCheckout: false,
       }
     );
   });
@@ -498,13 +553,41 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       previous_spans: undefined,
       plan: updatedData.plan,
       errors: updatedData.reserved.errors,
-      transactions: undefined,
       attachments: updatedData.reserved.attachments,
       replays: updatedData.reserved.replays,
       monitorSeats: updatedData.reserved.monitorSeats,
       spans: updatedData.reserved.spans,
       previous_uptime: 1,
-      isNewCheckout: false,
+      categories: {
+        errors: {
+          reserved: updatedData.reserved.errors,
+          previous_reserved: 5000,
+        },
+        transactions: {
+          reserved: undefined,
+          previous_reserved: 10_000,
+        },
+        attachments: {
+          reserved: updatedData.reserved.attachments,
+          previous_reserved: 1,
+        },
+        replays: {
+          reserved: updatedData.reserved.replays,
+          previous_reserved: 50,
+        },
+        monitorSeats: {
+          reserved: updatedData.reserved.monitorSeats,
+          previous_reserved: 1,
+        },
+        spans: {
+          reserved: updatedData.reserved.spans,
+          previous_reserved: undefined,
+        },
+        uptime: {
+          reserved: undefined,
+          previous_reserved: 1,
+        },
+      },
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -515,7 +598,6 @@ describe('AmCheckout > ReviewAndConfirm', () => {
         applyNow: true,
         daysLeft: 20,
         partner: 'FOO',
-        isNewCheckout: false,
       }
     );
   });
@@ -717,8 +799,32 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       replays: updatedData.reserved.replays,
       monitorSeats: updatedData.reserved.monitorSeats,
       uptime: updatedData.reserved.uptime,
-      spans: undefined,
-      isNewCheckout: false,
+      categories: {
+        errors: {
+          reserved: updatedData.reserved.errors,
+          previous_reserved: 100000,
+        },
+        transactions: {
+          reserved: updatedData.reserved.transactions,
+          previous_reserved: 250000,
+        },
+        attachments: {
+          reserved: updatedData.reserved.attachments,
+          previous_reserved: 1,
+        },
+        replays: {
+          reserved: updatedData.reserved.replays,
+          previous_reserved: 500,
+        },
+        monitorSeats: {
+          reserved: updatedData.reserved.monitorSeats,
+          previous_reserved: 1,
+        },
+        uptime: {
+          reserved: updatedData.reserved.uptime,
+          previous_reserved: undefined,
+        },
+      },
     });
     expect(trackGetsentryAnalytics).not.toHaveBeenCalledWith(
       'checkout.transactions_upgrade'
@@ -785,8 +891,32 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       replays: updatedData.reserved.replays,
       monitorSeats: updatedData.reserved.monitorSeats,
       uptime: updatedData.reserved.uptime,
-      spans: undefined,
-      isNewCheckout: false,
+      categories: {
+        errors: {
+          reserved: updatedData.reserved.errors,
+          previous_reserved: 100000,
+        },
+        transactions: {
+          reserved: updatedData.reserved.transactions,
+          previous_reserved: 500000,
+        },
+        attachments: {
+          reserved: updatedData.reserved.attachments,
+          previous_reserved: 1,
+        },
+        replays: {
+          reserved: updatedData.reserved.replays,
+          previous_reserved: 500,
+        },
+        monitorSeats: {
+          reserved: updatedData.reserved.monitorSeats,
+          previous_reserved: 1,
+        },
+        uptime: {
+          reserved: updatedData.reserved.uptime,
+          previous_reserved: undefined,
+        },
+      },
     });
 
     expect(trackGetsentryAnalytics).not.toHaveBeenCalledWith(

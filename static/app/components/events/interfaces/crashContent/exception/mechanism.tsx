@@ -98,16 +98,8 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
     }
   });
 
-  return (
-    <Wrapper>
-      <StyledPills>{pills}</StyledPills>
-    </Wrapper>
-  );
+  return <StyledPills>{pills}</StyledPills>;
 }
-
-const Wrapper = styled('div')`
-  margin: ${space(2)} 0 ${space(0.5)} 0;
-`;
 
 const iconStyle = (p: {theme: Theme}) => css`
   transition: 0.1s linear color;
