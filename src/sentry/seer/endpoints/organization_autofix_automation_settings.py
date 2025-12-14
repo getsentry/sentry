@@ -177,7 +177,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                         **existing_pref,
                         "organization_id": organization.id,
                         "project_id": project.id,
-                        "automated_run_stopping_point": automated_run_stopping_point.value,
+                        "automated_run_stopping_point": automated_run_stopping_point,
                     }
                 )
 
@@ -186,11 +186,11 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         with transaction.atomic(router.db_for_write(ProjectOption)):
             if autofix_automation_tuning:
                 autofix_automation_tuning_value = (
-                    autofix_automation_tuning or AutofixAutomationTuningSettings.OFF
+                    autofix_automation_tuning or AutofixAutomationTuningSettings.OFF.value
                 )
                 for project in projects:
                     project.update_option(
-                        "sentry:autofix_automation_tuning", autofix_automation_tuning_value.value
+                        "sentry:autofix_automation_tuning", autofix_automation_tuning_value
                     )
 
             if preferences_to_set:

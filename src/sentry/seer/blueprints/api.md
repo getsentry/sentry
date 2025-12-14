@@ -14,7 +14,7 @@ returns a response _will_ document the full interchange format. Clients may opt
 to restrict response data or provide a subset of the request data. The API may
 or may not accept partial payloads.
 
-## Organization Autofix Automation Settings [/organizations/<organization_id_or_slug>/autofix-automation-settings/]
+## Organization Autofix Automation Settings [/organizations/<organization_id_or_slug>/autofix/automation-settings/]
 
 Bulk endpoint for managing project-level autofix automation settings across an organization.
 
