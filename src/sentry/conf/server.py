@@ -809,7 +809,7 @@ DATABASE_ENCRYPTION_SETTINGS: EncryptedFieldSettings = {
 
 # If true, tasks will be run immediately.
 # Used primarily in tests.
-TASKWORKER_ALWAYS_EAGER = False
+TASKWORKER_ALWAYS_EAGER = True
 
 # Shared secrets used to sign RPC requests to taskbrokers
 # The first secret is used for signing.
