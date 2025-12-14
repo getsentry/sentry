@@ -16,16 +16,15 @@ import {
   TraceDrawerComponents,
   type SectionCardKeyValueList,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 type GeneralInfoProps = {
   cacheMetrics: Array<Pick<SpanResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>>;
   event: EventTransaction;
   location: Location;
-  node: TraceTreeNode<TraceTree.Transaction>;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  node: TransactionNode;
+  onParentClick: (node: BaseNode) => void;
   organization: Organization;
 };
 
@@ -42,7 +41,7 @@ function GeneralInfo(props: GeneralInfoProps) {
       endTimestamp / 1e3
     );
 
-  const parentTransaction = TraceTree.ParentTransaction(node);
+  const parentTransaction = node.findClosestParentTransaction();
 
   const items: SectionCardKeyValueList = [
     {
@@ -53,6 +52,8 @@ function GeneralInfo(props: GeneralInfoProps) {
           node={node}
           duration={durationInSeconds}
           baseline={undefined}
+          // Since transactions have ms precision, we show 2 decimal places only if the duration is greater than 1 second.
+          precision={durationInSeconds > 1 ? 2 : 0}
         />
       ),
     },
@@ -90,7 +91,7 @@ function GeneralInfo(props: GeneralInfoProps) {
       subject: t('Parent Transaction'),
       value: (
         <a onClick={() => onParentClick(parentTransaction)}>
-          {getTraceTabTitle(parentTransaction)}
+          {parentTransaction.drawerTabsTitle}
         </a>
       ),
     });

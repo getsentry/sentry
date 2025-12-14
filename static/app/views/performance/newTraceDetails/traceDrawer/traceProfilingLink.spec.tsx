@@ -2,7 +2,7 @@ import type {LocationDescriptor} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 import {makeTraceContinuousProfilingLink} from './traceProfilingLink';
 
@@ -24,11 +24,12 @@ function makeTransaction(
   } as TraceTree.Transaction;
 }
 
+const organization = OrganizationFixture({slug: 'sentry'});
+
 describe('traceProfilingLink', () => {
   describe('required params', () => {
-    const node = new TraceTreeNode(null, makeTransaction(), {
-      project_slug: '',
-      event_id: '',
+    const node = new TransactionNode(null, makeTransaction(), {
+      organization,
     });
 
     it('requires projectSlug', () => {
@@ -67,7 +68,7 @@ describe('traceProfilingLink', () => {
   it('creates a window of time around end timestamp', () => {
     const timestamp = Date.now();
 
-    const node = new TraceTreeNode(
+    const node = new TransactionNode(
       null,
       makeTransaction({
         start_timestamp: undefined,
@@ -75,8 +76,7 @@ describe('traceProfilingLink', () => {
         event_id: 'event',
       }),
       {
-        project_slug: 'project',
-        event_id: 'event',
+        organization,
       }
     );
 

@@ -3,11 +3,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {
   makeEAPSpan,
   makeEAPTrace,
-  makeEventTransaction,
   makeSpan,
   makeTrace,
   makeTransaction,
+  mockSpansResponse,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 import {TraceTree} from './traceTree';
 
@@ -22,12 +23,16 @@ const ssrTrace = makeTrace({
       start_timestamp: start,
       timestamp: start + 2,
       ['transaction.op']: 'http.server',
+      event_id: '000',
+      project_slug: 'project-0',
       children: [
         makeTransaction({
           start_timestamp: start,
           timestamp: start + 2,
           ['transaction.op']: 'pageload',
           children: [],
+          event_id: '001',
+          project_slug: 'project-1',
         }),
       ],
     }),
@@ -93,14 +98,17 @@ describe('server side rendering', () => {
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
-  it('reparents server handler under browser request span', () => {
+  it('reparents server handler under browser request span', async () => {
     const tree = TraceTree.FromTrace(ssrTrace, traceMetadata);
 
-    TraceTree.FromSpans(
-      tree.root.children[0]!.children[0]!,
-      ssrSpans,
-      makeEventTransaction()
-    );
+    mockSpansResponse([], 'project-0', '000');
+    mockSpansResponse(ssrSpans, 'project-1', '001');
+    await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+      api: new MockApiClient(),
+      organization,
+      preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+    });
+
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
@@ -130,7 +138,7 @@ describe('server side rendering', () => {
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
-  it('does not reparent if server handler does not have SSR reparent reason', () => {
+  it('does not reparent if server handler does not have SSR reparent reason', async () => {
     const tree = TraceTree.FromTrace(ssrTrace, traceMetadata);
 
     // The automatic pageload reparenting should have happened
@@ -149,7 +157,13 @@ describe('server side rendering', () => {
     serverHandler.reparent_reason = null;
 
     // This is where it would re-parent again
-    TraceTree.FromSpans(pageload, ssrSpans, makeEventTransaction());
+    mockSpansResponse(ssrSpans, 'project-1', '001');
+    mockSpansResponse([], 'project-0', '000');
+    await tree.fetchNodeSubTree(true, pageload, {
+      api: new MockApiClient(),
+      organization,
+      preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+    });
 
     const browserRequestSpan = tree.root.children[0]!.children[0]!.children.find(
       span => span.value && 'op' in span.value && span.value.op === 'browser.request'
@@ -176,7 +190,7 @@ describe('server side rendering', () => {
       const tree = TraceTree.FromTrace(ssrEAPTrace, traceMetadata);
 
       const pageload = tree.root.children[0]!.children[0]!;
-      tree.expand(pageload, true);
+      pageload.expand(true, tree);
 
       expect(tree.build().serialize()).toMatchSnapshot();
     });
