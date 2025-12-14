@@ -88,9 +88,8 @@ class ProjectAutofixAutomationSettingsEndpoint(ProjectEndpoint):
                 "autofixAutomationTuning": autofix_automation_tuning
                 or AutofixAutomationTuningSettings.OFF.value,
                 "automatedRunStoppingPoint": (
-                    seer_pref.automated_run_stopping_point
-                    if seer_pref
-                    else AutofixStoppingPoint.CODE_CHANGES.value
+                    (seer_pref.automated_run_stopping_point if seer_pref else None)
+                    or AutofixStoppingPoint.CODE_CHANGES.value
                 ),
                 "reposCount": len(seer_pref.repositories if seer_pref else []),
             },
