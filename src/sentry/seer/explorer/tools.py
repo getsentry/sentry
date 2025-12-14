@@ -1606,13 +1606,13 @@ def get_baseline_tag_distribution(
     """
     Get baseline tag distribution for suspect attributes analysis.
 
-    Returns tag value counts for all events EXCEPT those in the specified group,
+    Returns tag value counts for all events except those in the specified issue,
     filtered to only include the specified tag keys.
 
     Args:
         organization_id: The organization ID
         project_id: The project ID
-        group_id: The issue group ID to EXCLUDE from baseline
+        group_id: The issue group ID to exclude from baseline
         tag_keys: List of tag keys to fetch (from the issue's tags_overview)
         start: ISO timestamp for start of time range (optional)
         end: ISO timestamp for end of time range (optional)
@@ -1630,9 +1630,9 @@ def get_baseline_tag_distribution(
         start_dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
         end_dt = datetime.fromisoformat(end.replace("Z", "+00:00"))
     else:
-        # Default to last 14 days if no time range specified
+        # Default to last 7 days if no time range specified
         end_dt = datetime.now(timezone.utc)
-        start_dt = end_dt - timedelta(days=14)
+        start_dt = end_dt - timedelta(days=7)
 
     query = Query(
         match=Entity("events"),
@@ -1672,7 +1672,7 @@ def get_baseline_tag_distribution(
             ),
         ],
         groupby=[Column("variants")],
-        limit=Limit(5000),  # Reasonable upper bound for tag values
+        limit=Limit(5000),
     )
 
     snuba_request = Request(
@@ -1681,25 +1681,12 @@ def get_baseline_tag_distribution(
         query=query,
         tenant_ids={"organization_id": organization_id},
     )
+    response = raw_snql_query(
+        snuba_request,
+        referrer="seer.explorer.get_baseline_tag_distribution",
+        use_cache=True,
+    )
 
-    try:
-        response = raw_snql_query(
-            snuba_request,
-            referrer="seer.explorer.get_baseline_tag_distribution",
-            use_cache=True,
-        )
-    except Exception:
-        logger.exception(
-            "get_baseline_tag_distribution: Query failed",
-            extra={
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "group_id": group_id,
-            },
-        )
-        return None
-
-    # Transform response to expected format
     baseline_distribution = [
         {
             "tag_key": result["variants"][0],
