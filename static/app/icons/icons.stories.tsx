@@ -1,7 +1,8 @@
-import React, {Fragment, isValidElement, useState} from 'react';
+import React, {Fragment, isValidElement} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import lowerFirst from 'lodash/lowerFirst';
+import {parseAsString, useQueryState} from 'nuqs';
 import {PlatformIcon, platforms} from 'platformicons';
 
 import {InlineCode} from '@sentry/scraps/code';
@@ -1523,7 +1524,10 @@ const SECTIONS: TSection[] = [
 
 export default function IconsStories() {
   const theme = useTheme();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useQueryState(
+    'search',
+    parseAsString.withDefault('')
+  );
 
   const definedWithPrefix = new Set<string>();
 
@@ -1541,7 +1545,7 @@ export default function IconsStories() {
 
   const allIcons: TIcon[] = SECTIONS.flatMap(section => section.icons);
 
-  const variants = Object.keys(theme.tokens.graphics);
+  const variants = Object.keys(theme.tokens.content);
   const shuffled = [...allIcons].sort(() => Math.random() - 0.5);
   const picked = shuffled.slice(0, variants.length);
 
