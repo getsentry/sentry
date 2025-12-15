@@ -84,3 +84,15 @@ class OrganizationOnDemandRuleStatsEndpointTest(BaseAlertRuleSerializerTest, API
             "totalOnDemandAlertSpecs": 53,
             "maxAllowed": 50,
         }
+
+    def test_idor_project_from_different_org(self) -> None:
+        """Regression test: Cannot access projects from other organizations (IDOR)."""
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug, project_id=other_project.id, status_code=404
+            )
+            # Should return 404 to prevent ID enumeration
+            assert response.data["detail"] == "Project not found"
