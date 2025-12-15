@@ -47,6 +47,7 @@ NOTIFICATION_SOURCE_MAP = {
     ],
     NotificationCategory.SEER: [
         "seer-autofix-trigger",
+        "seer-autofix-error",
         "seer-context-input",
         "seer-context-input-complete",
     ],

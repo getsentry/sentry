@@ -18,6 +18,10 @@ from sentry.notifications.platform.types import NotificationData, NotificationRe
 
 
 class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
+    """
+    Custom SlackRenderer for 'seer-autofix-trigger', 'seer-context-input', and 'seer-context-input-complete'.
+    """
+
     @classmethod
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
