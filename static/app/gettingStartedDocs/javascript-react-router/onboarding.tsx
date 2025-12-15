@@ -24,7 +24,7 @@ function getServerSetupSnippet(params: DocsParams) {
 
   const profilingSnippet = params.isProfilingSelected
     ? `
-  profilesSampleRate: 1.0, // profile every transaction`
+  profileSessionSampleRate: 1.0, // profile every user session`
     : '';
 
   const profilingImport = params.isProfilingSelected

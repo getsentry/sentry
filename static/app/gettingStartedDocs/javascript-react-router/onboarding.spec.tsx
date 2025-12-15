@@ -84,7 +84,7 @@ describe('javascript-react-router onboarding docs', () => {
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+      screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1\.0/))
     ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/nodeProfilingIntegration\(\)/))
