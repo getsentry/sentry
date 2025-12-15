@@ -1,4 +1,5 @@
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {debossedBackground} from 'sentry/components/core/chonk';
@@ -8,7 +9,6 @@ import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FormSize, Theme} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 
 // We don't care about any options for the styles config
 export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
@@ -271,7 +271,7 @@ export function ChonkDropdownIndicator(
   );
 }
 
-export const ChonkCheckWrap = chonkStyled('div')<{
+export const ChonkCheckWrap = styled('div')<{
   isMultiple: boolean;
   isSelected: boolean;
   size: FormSize;

@@ -7,7 +7,6 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {
   IssueDetailsTour,
@@ -135,7 +134,7 @@ const NavigationSidebarWrapper = withChonk(
         ? `${p.theme.space.md} 0 ${p.theme.space.sm} ${p.theme.space['2xl']}`
         : `${p.theme.space.sm} ${p.theme.space['2xl']} ${p.theme.space.xs} ${p.theme.space['2xl']}`};
   `,
-  chonkStyled('div')<{
+  styled('div')<{
     hasToggleSidebar: boolean;
   }>`
     position: relative;
