@@ -28,7 +28,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20.000Z&limit=5&project=1&query=issue.type%3Aerror%20event.type%3Aerror%20is%3Aunresolved&sort=freq&start=2019-05-21T17%3A59%3A00.000Z',
+      url: '/organizations/org-slug/issues/',
       body: [],
     });
   });
@@ -138,9 +138,10 @@ describe('MetricDetectorTriggeredSection', () => {
     const eventDateCreated = '2024-01-01T00:00:00Z';
     // Start date is eventDateCreated minus the timeWindow (60 seconds) minus 1 extra minute
     const startDate = '2023-12-31T23:58:00.000Z';
+    const endDate = '2017-10-17T02:41:20.000Z'; // Mocked time in test env
 
     const contributingIssuesMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20.000Z&limit=5&project=1&query=issue.type%3Aerror%20event.type%3Aerror%20is%3Aunresolved&sort=freq&start=${encodeURIComponent(startDate)}`,
+      url: '/organizations/org-slug/issues/',
       body: [GroupFixture()],
     });
 
@@ -172,7 +173,16 @@ describe('MetricDetectorTriggeredSection', () => {
       ).toBeInTheDocument();
     });
 
-    expect(contributingIssuesMock).toHaveBeenCalled();
+    expect(contributingIssuesMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'issue.type:error event.type:error is:unresolved',
+          start: startDate,
+          end: endDate,
+        }),
+      })
+    );
 
     await screen.findByRole('link', {name: 'RequestError'});
   });
