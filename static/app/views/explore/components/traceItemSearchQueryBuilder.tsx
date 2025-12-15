@@ -172,6 +172,10 @@ export function TraceItemSearchQueryBuilder({
   supportedAggregates = [],
   disabled,
   namespace,
+  caseInsensitive,
+  onCaseInsensitiveClick,
+  matchKeySuggestions,
+  replaceRawSearchKeys,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -189,6 +193,10 @@ export function TraceItemSearchQueryBuilder({
     projects,
     supportedAggregates,
     namespace,
+    caseInsensitive,
+    onCaseInsensitiveClick,
+    matchKeySuggestions,
+    replaceRawSearchKeys,
   });
 
   return (
