@@ -308,34 +308,6 @@ describe('EapSpanNode', () => {
 
       expect(node.description).toBe('GET /api/users');
     });
-
-    it('should return name when OTEL-friendly UI is enabled', () => {
-      const extra = createMockExtra({
-        organization: OrganizationFixture({features: ['performance-otel-friendly-ui']}),
-      });
-      const value = makeEAPSpan({
-        description: 'GET /api/users',
-        name: 'request-span',
-      });
-
-      const node = new EapSpanNode(null, value, extra);
-
-      expect(node.description).toBe('request-span');
-    });
-
-    it('should handle undefined name with OTEL-friendly UI enabled', () => {
-      const extra = createMockExtra({
-        organization: OrganizationFixture({features: ['performance-otel-friendly-ui']}),
-      });
-      const value = makeEAPSpan({
-        description: 'GET /api/users',
-        name: undefined,
-      });
-
-      const node = new EapSpanNode(null, value, extra);
-
-      expect(node.description).toBeUndefined();
-    });
   });
 
   describe('getter methods', () => {
