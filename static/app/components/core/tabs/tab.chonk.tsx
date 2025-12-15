@@ -1,8 +1,8 @@
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 import type {DOMAttributes, Orientation} from '@react-types/shared';
 
 import type {Theme} from 'sentry/utils/theme';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 
 import {tabsShouldForwardProp} from './utils';
 
@@ -21,13 +21,16 @@ export interface BaseTabProps {
   variant?: 'flat' | 'floating';
 }
 
-export const ChonkStyledTabWrap = chonkStyled('li', {
+export const ChonkStyledTabWrap = styled('li', {
   shouldForwardProp: tabsShouldForwardProp,
 })<{
   overflowing: boolean;
   selected: boolean;
 }>`
-  color: ${p => (p.selected ? p.theme.tokens.component.link.accent.default : p.theme.tokens.component.link.muted.default)};
+  color: ${p =>
+    p.selected
+      ? p.theme.tokens.component.link.accent.default
+      : p.theme.tokens.component.link.muted.default};
   white-space: nowrap;
   cursor: pointer;
 
@@ -142,7 +145,7 @@ export const chonkInnerWrapStyles = ({
     background-color: ${theme.colors.blue100};
   `}
 `;
-export const ChonkStyledTabSelectionIndicator = chonkStyled('div')<{
+export const ChonkStyledTabSelectionIndicator = styled('div')<{
   orientation: Orientation;
   selected: boolean;
 }>`

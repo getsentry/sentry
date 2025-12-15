@@ -177,7 +177,6 @@ function ItemWithPrice({
 function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
   const theme = useTheme();
   const isXSmallScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
-  const isChonk = theme.isChonk;
 
   const additionalProductCategories = useMemo(
     () =>
@@ -264,16 +263,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                       })}
                     >
                       <Tag icon={<IconLock locked size="xs" />}>
-                        {(isChonk || activePlan.budgetTerm === 'pay-as-you-go') &&
-                        !isXSmallScreen ? (
-                          tct('Unlock with [budgetTerm]', {
-                            budgetTerm: displayBudgetName(activePlan, {
-                              title: true,
-                              abbreviated: activePlan.budgetTerm === 'pay-as-you-go',
-                            }),
-                          })
-                        ) : (
-                          // "Unlock with on-demand" gets cut off in non-chonk theme
+                        {isXSmallScreen ? (
                           <Text size="xs">
                             {tct('Unlock with [budgetTerm]', {
                               budgetTerm: displayBudgetName(activePlan, {
@@ -282,6 +272,13 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                               }),
                             })}
                           </Text>
+                        ) : (
+                          tct('Unlock with [budgetTerm]', {
+                            budgetTerm: displayBudgetName(activePlan, {
+                              title: true,
+                              abbreviated: activePlan.budgetTerm === 'pay-as-you-go',
+                            }),
+                          })
                         )}
                       </Tag>
                     </Tooltip>
