@@ -28,7 +28,6 @@ from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import notifications_tasks
-from sentry.utils.options import sample_modulo
 from sentry.utils.registry import NoRegistrationExistsError
 
 logger = logging.getLogger(__name__)
@@ -44,12 +43,13 @@ class NotificationService[T: NotificationData]:
 
     @staticmethod
     def has_access(organization: Organization | RpcOrganization, source: str) -> bool:
-        if not features.has("organizations:notification-platform", organization):
+
+        option_key = NotificationService._has_feature_flag_access(organization, source)
+        if option_key is None:
             return False
 
-        option_key = f"notifications.platform-rate.{source}"
         try:
-            options.get(option_key)
+            rollout_rates = options.get(option_key)
         except options.UnknownOption:
             logger.warning(
                 "notification.platform.has_access.unknown_option",
@@ -61,8 +61,46 @@ class NotificationService[T: NotificationData]:
             )
             return False
 
-        modulo_result = sample_modulo(option_key, organization.id)
-        return modulo_result
+        try:
+            source_rollout_rate = rollout_rates[source]
+        except KeyError:
+            logger.warning(
+                "notification.platform.has_access.unknown_source",
+                extra={
+                    "organization_id": organization.id,
+                    "source": source,
+                    "option_key": option_key,
+                    "rollout_rates": rollout_rates,
+                },
+            )
+            return False
+
+        return (organization.id % 100) < 100 * source_rollout_rate
+
+    @staticmethod
+    def _has_feature_flag_access(organization: Organization | RpcOrganization) -> str | None:
+        internal_testing = features.has(
+            "organizations:notification-platform.internal-testing", organization
+        )
+        is_sentry = features.has("organizations:notification-platform.is-sentry", organization)
+        early_adopter = features.has(
+            "organizations:notification-platform.early-adopter", organization
+        )
+        general_access = features.has(
+            "organizations:notification-platform.general-access", organization
+        )
+
+        option_key = None
+        if internal_testing:
+            option_key = "notifications.platform-rollout.internal-testing.internal-testing"
+        elif is_sentry:
+            option_key = "notifications.platform-rollout.is-sentry.is-sentry"
+        elif early_adopter:
+            option_key = "notifications.platform-rollout.early-adopter.early-adopter"
+        elif general_access:
+            option_key = "notifications.platform-rollout.general-access.general-access"
+
+        return option_key
 
     def notify_target(self, *, target: NotificationTarget) -> None:
         """

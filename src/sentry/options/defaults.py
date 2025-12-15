@@ -3091,32 +3091,35 @@ register(
 
 # Notification Options - Start
 # Options for migrating to the notification platform
-# Data Export Success notifications
+# Notifications for internal testing
 register(
-    "notifications.platform-rate.data-export-success",
-    type=Float,
-    default=0.0,
+    "notifications.platform-rollout.internal-testing",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Data Export Failure notifications
+
+# Notifications for Sentry organizations
 register(
-    "notifications.platform-rate.data-export-failure",
-    type=Float,
-    default=0.0,
+    "notifications.platform-rollout.is-sentry",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Custom Rule Samples Fulfilled notifications
+
+# Notifications for early adopter organizations
 register(
-    "notifications.platform-rate.custom-rule-samples-fulfilled",
-    type=Float,
-    default=0.0,
+    "notifications.platform-rollout.early-adopter",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Unable to Delete Repository notifications
+
+# Notifications for general access organizations
 register(
-    "notifications.platform-rate.unable-to-delete-repository",
-    type=Float,
-    default=0.0,
+    "notifications.platform-rollout.general-access",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Notification Options - End
