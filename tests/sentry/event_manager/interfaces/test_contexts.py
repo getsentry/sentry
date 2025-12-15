@@ -183,3 +183,18 @@ def test_large_nested_numbers() -> None:
         "type": "default",
     }
     assert ctx_data == expected_data
+
+
+def test_unity(make_ctx_snapshot) -> None:
+    make_ctx_snapshot(
+        {
+            "unity": {
+                "active_scene_name": "MainScene",
+                "editor_version": "2022.3.1f1",
+                "install_mode": "Store",
+                "is_main_thread": True,
+                "rendering_threading_mode": "MultiThreaded",
+                "target_frame_rate": "60",
+            }
+        }
+    )
