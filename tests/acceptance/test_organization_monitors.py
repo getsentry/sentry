@@ -16,7 +16,6 @@ from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
 
-@pytest.mark.xdist_unsafe
 @no_silo_test
 class OrganizationMonitorsTest(AcceptanceTestCase):
     def setUp(self) -> None:
