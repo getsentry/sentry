@@ -209,7 +209,7 @@ class MiniGraph extends Component<Props> {
             : undefined;
 
           if (chartColors?.length && hasOther) {
-            chartColors.push(theme.chartOther);
+            chartColors.push(theme.tokens.content.muted);
           }
 
           const chartOptions = {

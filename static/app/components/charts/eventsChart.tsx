@@ -279,7 +279,7 @@ class Chart extends Component<ChartProps, State> {
           .slice())
       : undefined;
     if (chartColors?.length && hasOther) {
-      chartColors.push(theme.chartOther);
+      chartColors.push(theme.tokens.content.muted);
     }
     const chartOptions = {
       colors: chartColors,

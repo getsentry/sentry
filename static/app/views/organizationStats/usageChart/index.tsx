@@ -275,7 +275,7 @@ const outputChartColors = (theme: Theme) => {
         theme.chart.colors[5][3],
         theme.chart.colors[5][4],
         theme.chart.colors[5][5],
-        theme.chartOther, // Projected
+        theme.tokens.content.muted, // Projected
       ] as const);
 };
 

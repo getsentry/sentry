@@ -1401,11 +1401,6 @@ const generateAliases = (
   chartLabel: tokens.content.muted,
 
   /**
-   * Color for the 'others' series in topEvent charts
-   */
-  chartOther: tokens.content.muted,
-
-  /**
    * Default Progressbar color
    */
   progressBar: colors.chonk.blue400,
