@@ -543,9 +543,7 @@ describe('ReleasesList', () => {
       },
     });
 
-    expect(
-      await screen.findByText('There are no preprod builds associated with this project.')
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/No mobile builds found/)).toBeInTheDocument();
 
     expect(buildsMock).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${mobileProject.slug}/preprodartifacts/list-builds/`,
