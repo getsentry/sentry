@@ -174,7 +174,7 @@ export function TracesTable() {
         acc[span.trace] = {
           llmCalls: Number(span['count_if(gen_ai.operation.type,equals,ai_client)'] ?? 0),
           toolCalls: Number(span['count_if(gen_ai.operation.type,equals,tool)'] ?? 0),
-          totalTokens: Number(span['sum(gen_ai.cost.total_tokens)'] ?? 0),
+          totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
           totalCost: Number(span['sum(gen_ai.cost.total_tokens)'] ?? 0),
           totalErrors: Number(errors[span.trace] ?? 0),
         };
