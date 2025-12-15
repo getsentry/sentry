@@ -125,7 +125,6 @@ function GroupMergedView(props: Props) {
       {isLoadedSuccessfully && (
         <MergedList
           project={project}
-          organization={organization}
           fingerprints={mergedItems}
           pageLinks={mergedLinks}
           groupId={groupId}
