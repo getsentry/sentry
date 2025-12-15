@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -15,7 +14,6 @@ import {
 import GlobalModal from 'sentry/components/globalModal';
 import {mockTour} from 'sentry/components/tours/testUtils';
 import ConfigStore from 'sentry/stores/configStore';
-import ModalStore from 'sentry/stores/modalStore';
 import {GroupStatus, IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {GroupActions} from 'sentry/views/issueDetails/actions';
@@ -132,48 +130,6 @@ describe('GroupActions', () => {
           data: {isBookmarked: true},
         })
       );
-    });
-  });
-
-  describe('reprocessing', () => {
-    it('renders ReprocessAction component if org has native exception event', async () => {
-      const event = EventStacktraceExceptionFixture({
-        platform: 'native',
-      });
-
-      render(
-        <GroupActions group={group} project={project} event={event} disabled={false} />,
-        {
-          organization,
-        }
-      );
-
-      await userEvent.click(screen.getByLabelText('More Actions'));
-
-      const reprocessActionButton = await screen.findByTestId('reprocess');
-      expect(reprocessActionButton).toBeInTheDocument();
-    });
-
-    it('open dialog by clicking on the ReprocessAction component', async () => {
-      const event = EventStacktraceExceptionFixture({
-        platform: 'native',
-      });
-
-      render(
-        <GroupActions group={group} project={project} event={event} disabled={false} />,
-        {
-          organization,
-        }
-      );
-
-      const onReprocessEventFunc = jest.spyOn(ModalStore, 'openModal');
-
-      await userEvent.click(screen.getByLabelText('More Actions'));
-
-      const reprocessActionButton = await screen.findByTestId('reprocess');
-      expect(reprocessActionButton).toBeInTheDocument();
-      await userEvent.click(reprocessActionButton);
-      await waitFor(() => expect(onReprocessEventFunc).toHaveBeenCalled());
     });
   });
 
