@@ -262,7 +262,7 @@ const StickyCompatibleStyledHeaderCell = styled(StyledSimpleTableHeaderCell)<{
     css`
       position: sticky;
       right: 0;
-      background: ${p.theme.bodyBackground};
+      background: ${p.theme.tokens.background.secondary};
       height: 100%;
       z-index: 2;
     `};
