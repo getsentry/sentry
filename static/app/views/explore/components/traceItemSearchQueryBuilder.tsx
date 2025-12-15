@@ -149,10 +149,6 @@ export function useTraceItemSearchQueryBuilderProps({
   );
 }
 
-/**
- * This component should replace EAPSpansSearchQueryBuilder in the future,
- * once spans support has been added to the trace-items attribute endpoints.
- */
 export function TraceItemSearchQueryBuilder({
   autoFocus,
   initialQuery,
