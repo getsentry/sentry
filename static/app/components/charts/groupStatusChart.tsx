@@ -10,7 +10,6 @@ import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 function asChartPoint(point: [number, number]): {name: number | string; value: number} {
   return {
@@ -55,11 +54,9 @@ function GroupStatusChart({
 
     const formattedMarkLine = formatAbbreviatedNumber(max);
 
-    const marklineColor = isChonkTheme(theme) ? theme.gray300 : theme.gray200;
-    const marklineLabelColor = isChonkTheme(theme)
-      ? theme.tokens.content.muted
-      : theme.gray300;
-    const chartColor = isChonkTheme(theme) ? theme.tokens.graphics.muted : theme.gray300;
+    const marklineColor = theme.gray300;
+    const marklineLabelColor = theme.tokens.content.muted;
+    const chartColor = theme.tokens.graphics.muted;
 
     const markLine = MarkLine({
       silent: true,

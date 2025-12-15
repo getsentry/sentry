@@ -361,25 +361,25 @@ function useFilterSuggestions({
   const queryParams = useMemo(
     () =>
       [
-        key ? {key: key.key, name: key.name} : {key: keyName, name: keyName},
+        key
+          ? {key: key.key, name: key.name, kind: key.kind}
+          : {key: keyName, name: keyName, kind: undefined},
         filterValue,
       ] as const,
     [filterValue, key, keyName]
   );
 
   const baseQueryKey = useMemo(
-    () => ['search-query-builder-tag-values', queryParams],
+    () => ['search-query-builder-tag-values', queryParams] as const,
     [queryParams]
   );
   const queryKey = useDebouncedValue(baseQueryKey);
   const isDebouncing = baseQueryKey !== queryKey;
 
   // TODO(malwilley): Display error states
-  const {data, isFetching} = useQuery<string[]>({
-    // disable exhaustive deps because we want to debounce the query key above
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const {data, isFetching} = useQuery({
     queryKey,
-    queryFn: () => getTagValues(...queryParams),
+    queryFn: ctx => getTagValues(...ctx.queryKey[1]),
     placeholderData: keepPreviousData,
     enabled: shouldFetchValues,
   });
