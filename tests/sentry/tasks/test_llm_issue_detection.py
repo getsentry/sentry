@@ -86,6 +86,8 @@ class LLMIssueDetectionTest(TestCase):
             offender_span_ids=["span_1", "span_2"],
             trace_id="abc123xyz",
             transaction_name="test_transaction",
+            subcategory="Connection Pool Exhaustion",
+            category="Database",
         )
 
         create_issue_occurrence_from_detection(
@@ -191,6 +193,8 @@ class LLMIssueDetectionTest(TestCase):
                     "offender_span_ids": ["span_1", "span_2"],
                     "trace_id": "trace_id_1",
                     "transaction_name": "POST /some/thing",
+                    "category": "Database",
+                    "subcategory": "N+1 Query",
                 },
                 {
                     "title": "Memory Leak Risk",
@@ -201,6 +205,8 @@ class LLMIssueDetectionTest(TestCase):
                     "offender_span_ids": ["span_3"],
                     "trace_id": "trace_id_2",
                     "transaction_name": "GET /another/",
+                    "category": "Memory",
+                    "subcategory": "Memory Leak",
                 },
             ]
         }
@@ -294,6 +300,8 @@ class LLMIssueDetectionTest(TestCase):
                     "offender_span_ids": ["span_1"],
                     "trace_id": "trace_id_2",
                     "transaction_name": "GET /another/",
+                    "category": "General",
+                    "subcategory": "Success",
                 }
             ]
         }

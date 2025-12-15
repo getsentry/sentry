@@ -51,6 +51,8 @@ class DetectedIssue(BaseModel):
     missing_telemetry: str | None = None
     offender_span_ids: list[str]
     title: str
+    subcategory: str
+    category: str
     # context fields, not LLM generated
     trace_id: str
     transaction_name: str
@@ -325,6 +327,13 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                 create_issue_occurrence_from_detection(
                     detected_issue=detected_issue,
                     project_id=project_id,
+                )
+                logger.info(
+                    "LLM Issue Detection Category",
+                    extra={
+                        "category": detected_issue.category,
+                        "subcategory": detected_issue.subcategory,
+                    },
                 )
             except Exception as issue_creation_exception:
                 e = LLMIssueDetectionError(
