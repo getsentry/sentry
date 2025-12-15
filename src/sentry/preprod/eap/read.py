@@ -20,8 +20,142 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.preprod.eap.constants import PREPROD_NAMESPACE
+from sentry.search.eap import constants
+from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.rpc_utils import create_attribute_value
 from sentry.utils import snuba_rpc
+
+PREPROD_SIZE_ATTRIBUTE_DEFINITIONS = {
+    column.public_alias: column
+    for column in [
+        ResolvedAttribute(
+            public_alias="preprod_artifact_id",
+            internal_name="preprod_artifact_id",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="size_metric_id",
+            internal_name="size_metric_id",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="metrics_artifact_type",
+            internal_name="metrics_artifact_type",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="max_install_size",
+            internal_name="max_install_size",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="max_download_size",
+            internal_name="max_download_size",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="min_install_size",
+            internal_name="min_install_size",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="min_download_size",
+            internal_name="min_download_size",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="artifact_type",
+            internal_name="artifact_type",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="artifact_state",
+            internal_name="artifact_state",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="app_id",
+            internal_name="app_id",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="app_name",
+            internal_name="app_name",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="build_version",
+            internal_name="build_version",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="build_number",
+            internal_name="build_number",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="main_binary_identifier",
+            internal_name="main_binary_identifier",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="artifact_date_built",
+            internal_name="artifact_date_built",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="build_configuration_name",
+            internal_name="build_configuration_name",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="git_head_sha",
+            internal_name="git_head_sha",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="git_base_sha",
+            internal_name="git_base_sha",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="git_provider",
+            internal_name="git_provider",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="git_head_repo_name",
+            internal_name="git_head_repo_name",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="git_base_repo_name",
+            internal_name="git_base_repo_name",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="git_head_ref",
+            internal_name="git_head_ref",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="git_base_ref",
+            internal_name="git_base_ref",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="git_pr_number",
+            internal_name="git_pr_number",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="timestamp",
+            internal_name="sentry.timestamp",
+            internal_type=constants.DOUBLE,
+            search_type="string",
+        ),
+    ]
+}
 
 
 @dataclass
@@ -75,14 +209,17 @@ def query_preprod_size_metrics(
     start: datetime,
     end: datetime,
     filters: PreprodSizeFilters | None = None,
+    columns: list[str] | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> TraceItemTableResponse:
     """
     Query preprod size metrics from EAP.
 
+    Args:
+        columns: List of column names to include. If None, returns all available columns.
+
     Example:
-        # Query all iOS Release builds on main branch for a specific app
         query_preprod_size_metrics(
             organization_id=1,
             project_ids=[1, 2],
@@ -90,10 +227,11 @@ def query_preprod_size_metrics(
             end=datetime.now(),
             filters=PreprodSizeFilters(
                 app_id="com.example.app",
-                artifact_type=0,  # iOS
+                artifact_type=0,
                 build_configuration_name="Release",
                 git_head_ref="main",
             ),
+            columns=["app_id", "build_version", "max_install_size", "timestamp"],
         )
     """
     start_timestamp = Timestamp()
@@ -102,114 +240,7 @@ def query_preprod_size_metrics(
     end_timestamp = Timestamp()
     end_timestamp.FromDatetime(end)
 
-    columns = [
-        # IDs
-        Column(
-            key=AttributeKey(name="preprod_artifact_id", type=AttributeKey.Type.TYPE_INT),
-            label="preprod_artifact_id",
-        ),
-        Column(
-            key=AttributeKey(name="size_metric_id", type=AttributeKey.Type.TYPE_INT),
-            label="size_metric_id",
-        ),
-        # Size metrics
-        Column(
-            key=AttributeKey(name="metrics_artifact_type", type=AttributeKey.Type.TYPE_INT),
-            label="metrics_artifact_type",
-        ),
-        Column(
-            key=AttributeKey(name="max_install_size", type=AttributeKey.Type.TYPE_INT),
-            label="max_install_size",
-        ),
-        Column(
-            key=AttributeKey(name="max_download_size", type=AttributeKey.Type.TYPE_INT),
-            label="max_download_size",
-        ),
-        Column(
-            key=AttributeKey(name="min_install_size", type=AttributeKey.Type.TYPE_INT),
-            label="min_install_size",
-        ),
-        Column(
-            key=AttributeKey(name="min_download_size", type=AttributeKey.Type.TYPE_INT),
-            label="min_download_size",
-        ),
-        # Artifact attributes
-        Column(
-            key=AttributeKey(name="artifact_type", type=AttributeKey.Type.TYPE_INT),
-            label="artifact_type",
-        ),
-        Column(
-            key=AttributeKey(name="artifact_state", type=AttributeKey.Type.TYPE_INT),
-            label="artifact_state",
-        ),
-        Column(
-            key=AttributeKey(name="app_id", type=AttributeKey.Type.TYPE_STRING),
-            label="app_id",
-        ),
-        Column(
-            key=AttributeKey(name="app_name", type=AttributeKey.Type.TYPE_STRING),
-            label="app_name",
-        ),
-        Column(
-            key=AttributeKey(name="build_version", type=AttributeKey.Type.TYPE_STRING),
-            label="build_version",
-        ),
-        Column(
-            key=AttributeKey(name="build_number", type=AttributeKey.Type.TYPE_INT),
-            label="build_number",
-        ),
-        Column(
-            key=AttributeKey(name="main_binary_identifier", type=AttributeKey.Type.TYPE_STRING),
-            label="main_binary_identifier",
-        ),
-        Column(
-            key=AttributeKey(name="artifact_date_built", type=AttributeKey.Type.TYPE_INT),
-            label="artifact_date_built",
-        ),
-        # Build configuration
-        Column(
-            key=AttributeKey(name="build_configuration_name", type=AttributeKey.Type.TYPE_STRING),
-            label="build_configuration_name",
-        ),
-        # Git attributes
-        Column(
-            key=AttributeKey(name="git_head_sha", type=AttributeKey.Type.TYPE_STRING),
-            label="git_head_sha",
-        ),
-        Column(
-            key=AttributeKey(name="git_base_sha", type=AttributeKey.Type.TYPE_STRING),
-            label="git_base_sha",
-        ),
-        Column(
-            key=AttributeKey(name="git_provider", type=AttributeKey.Type.TYPE_STRING),
-            label="git_provider",
-        ),
-        Column(
-            key=AttributeKey(name="git_head_repo_name", type=AttributeKey.Type.TYPE_STRING),
-            label="git_head_repo_name",
-        ),
-        Column(
-            key=AttributeKey(name="git_base_repo_name", type=AttributeKey.Type.TYPE_STRING),
-            label="git_base_repo_name",
-        ),
-        Column(
-            key=AttributeKey(name="git_head_ref", type=AttributeKey.Type.TYPE_STRING),
-            label="git_head_ref",
-        ),
-        Column(
-            key=AttributeKey(name="git_base_ref", type=AttributeKey.Type.TYPE_STRING),
-            label="git_base_ref",
-        ),
-        Column(
-            key=AttributeKey(name="git_pr_number", type=AttributeKey.Type.TYPE_INT),
-            label="git_pr_number",
-        ),
-        # Standard timestamp
-        Column(
-            key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
-            label="timestamp",
-        ),
-    ]
+    columns_list = _get_columns_for_preprod_size(columns)
 
     query_filter = None
     filter_list = _build_filters(filters) if filters else []
@@ -229,7 +260,7 @@ def query_preprod_size_metrics(
             ),
         ),
         filter=query_filter,
-        columns=columns,
+        columns=columns_list,
         order_by=[
             TraceItemTableRequest.OrderBy(
                 column=Column(
@@ -294,3 +325,20 @@ def _build_filters(filters: PreprodSizeFilters) -> list[TraceItemFilter]:
         )
 
     return result
+
+
+def _get_columns_for_preprod_size(column_names: list[str] | None = None) -> list[Column]:
+    """Convert column names to Column objects. If column_names is None, returns all columns."""
+    if column_names is None:
+        column_names = list(PREPROD_SIZE_ATTRIBUTE_DEFINITIONS.keys())
+
+    columns = []
+    for name in column_names:
+        if name not in PREPROD_SIZE_ATTRIBUTE_DEFINITIONS:
+            raise ValueError(
+                f"Unknown column '{name}'. Available columns: {sorted(PREPROD_SIZE_ATTRIBUTE_DEFINITIONS.keys())}"
+            )
+        col = PREPROD_SIZE_ATTRIBUTE_DEFINITIONS[name]
+        columns.append(Column(label=col.internal_name, key=col.proto_definition))
+
+    return columns
