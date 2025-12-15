@@ -3268,6 +3268,13 @@ class SpanTestCase(BaseTestCase):
             organization = self.organization
         if project is None:
             project = self.project
+
+        # assumes the span will be stored,
+        # so mark the project has sent a transaction/span
+        if not project.flags.has_transactions:
+            project.flags.has_transactions = True
+            project.save()
+
         if start_ts is None:
             start_ts = datetime.now() - timedelta(minutes=1)
         if extra_data is None:
@@ -3433,6 +3440,13 @@ class OurLogTestCase(BaseTestCase, TraceItemTestCase):
             organization = self.organization
         if project is None:
             project = self.project
+
+        # assumes the log will be stored,
+        # so mark the project has sent a log
+        if not project.flags.has_logs:
+            project.flags.has_logs = True
+            project.save()
+
         if timestamp is None:
             timestamp = datetime.now() - timedelta(minutes=1)
         if attributes is None:
@@ -3508,6 +3522,12 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
         if project is None:
             project = self.project
             assert project is not None
+
+        # assumes the trace metric will be stored,
+        # so mark the project has sent a trace metric
+        if not project.flags.has_trace_metrics:
+            project.flags.has_trace_metrics = True
+            project.save()
 
         if timestamp is None:
             timestamp = datetime.now() - timedelta(minutes=1)

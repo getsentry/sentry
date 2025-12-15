@@ -46,6 +46,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.project import Project
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
@@ -222,6 +223,10 @@ class RPCBase:
                         )
         return cross_trace_queries
 
+    @classmethod
+    def filter_project(cls, project: Project) -> bool:
+        return True
+
     """ Table Methods """
 
     @classmethod
@@ -229,7 +234,11 @@ class RPCBase:
         """Make the query"""
         resolver = query.resolver
         sentry_sdk.set_tag("query.sampling_mode", query.sampling_mode)
-        meta = resolver.resolve_meta(referrer=query.referrer, sampling_mode=query.sampling_mode)
+        meta = resolver.resolve_meta(
+            referrer=query.referrer,
+            sampling_mode=query.sampling_mode,
+            filter_project=cls.filter_project,
+        )
         where, having, query_contexts = resolver.resolve_query_with_columns(
             query.query_string,
             query.selected_columns,
@@ -544,9 +553,7 @@ class RPCBase:
             raise InvalidSearchQuery("start, end and interval are required")
 
     @classmethod
-    def _run_timeseries_rpc(
-        self, debug: bool, rpc_request: TimeSeriesRequest
-    ) -> TimeSeriesResponse:
+    def _run_timeseries_rpc(cls, debug: bool, rpc_request: TimeSeriesRequest) -> TimeSeriesResponse:
         try:
             return snuba_rpc.timeseries_rpc([rpc_request])[0]
         except Exception as e:
@@ -606,7 +613,11 @@ class RPCBase:
         groupbys, groupby_contexts = search_resolver.resolve_attributes(groupby)
 
         timeseries_filter, params = cls.update_timestamps(params, search_resolver)
-        meta = search_resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
+        meta = search_resolver.resolve_meta(
+            referrer=referrer,
+            sampling_mode=sampling_mode,
+            filter_project=cls.filter_project,
+        )
         query, _, _ = search_resolver.resolve_query_with_columns(
             query_string,
             selected_axes,
