@@ -10,9 +10,9 @@ from slack_sdk.models.blocks import (
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
+    SeerAutofixTrigger,
     SeerContextInput,
     SeerContextInputComplete,
-    SeerPartialAutofixTriggers,
 )
 from sentry.notifications.platform.types import NotificationData, NotificationRenderedTemplate
 
@@ -22,11 +22,11 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
     ) -> SlackRenderable:
-        if isinstance(data, SeerPartialAutofixTriggers):
+        if isinstance(data, SeerAutofixTrigger):
             autofix_button = cls.render_autofix_button(data)
             return SlackRenderable(
                 blocks=[ActionsBlock(elements=[autofix_button])],
-                text="Seer Partial Autofix Triggers",
+                text="Seer Autofix Trigger",
             )
         elif isinstance(data, SeerContextInput):
             return cls.render_context_input(data)
@@ -36,7 +36,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
 
     @classmethod
-    def render_autofix_button(cls, data: SeerPartialAutofixTriggers) -> ButtonElement:
+    def render_autofix_button(cls, data: SeerAutofixTrigger) -> ButtonElement:
         from sentry.integrations.slack.message_builder.types import SlackAction
 
         return ButtonElement(

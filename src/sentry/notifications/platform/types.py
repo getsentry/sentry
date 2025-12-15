@@ -46,7 +46,7 @@ NOTIFICATION_SOURCE_MAP = {
         "unable-to-delete-repository",
     ],
     NotificationCategory.SEER: [
-        "seer-partial-autofix-triggers",
+        "seer-autofix-trigger",
         "seer-context-input",
         "seer-context-input-complete",
     ],

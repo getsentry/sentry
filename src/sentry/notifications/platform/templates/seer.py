@@ -2,10 +2,12 @@ from dataclasses import dataclass
 
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
+    CodeTextBlock,
     NotificationCategory,
     NotificationData,
     NotificationRenderedTemplate,
     NotificationTemplate,
+    ParagraphBlock,
 )
 
 # TODO(leander): We're going to shortcut this with a custom renderer, since not all the
@@ -13,19 +15,43 @@ from sentry.notifications.platform.types import (
 
 
 @dataclass
-class SeerPartialAutofixTriggers(NotificationData):
-    source: str = "seer-partial-autofix-triggers"
+class SeerAutofixTrigger(NotificationData):
+    source: str = "seer-autofix-trigger"
     label: str = "Start RCA"
 
 
-@template_registry.register(SeerPartialAutofixTriggers.source)
-class SeerPartialAutofixTriggersTemplate(NotificationTemplate[SeerPartialAutofixTriggers]):
+@template_registry.register(SeerAutofixTrigger.source)
+class SeerAutofixTriggerTemplate(NotificationTemplate[SeerAutofixTrigger]):
     category = NotificationCategory.SEER
-    example_data = SeerPartialAutofixTriggers(source="seer-partial-autofix-triggers")
+    example_data = SeerAutofixTrigger(source="seer-autofix-trigger")
     hide_from_debugger = True
 
-    def render(self, data: SeerPartialAutofixTriggers) -> NotificationRenderedTemplate:
-        return NotificationRenderedTemplate(subject="Seer Partial Autofix Triggers", body=[])
+    def render(self, data: SeerAutofixTrigger) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(subject="Seer Autofix Trigger", body=[])
+
+
+@dataclass
+class SeerAutofixError(NotificationData):
+    error_message: str
+    source: str = "seer-autofix-error"
+    error_title: str = "Seer had some trouble..."
+
+
+@template_registry.register(SeerAutofixError.source)
+class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
+    category = NotificationCategory.SEER
+    example_data = SeerAutofixError(
+        source="seer-autofix-error",
+        error_message="(401): Could not connect to your GitHub repository for this project.",
+    )
+
+    def render(self, data: SeerAutofixError) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject=data.error_title,
+            body=[
+                ParagraphBlock(blocks=[CodeTextBlock(text=data.error_message)]),
+            ],
+        )
 
 
 @dataclass

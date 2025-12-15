@@ -58,7 +58,7 @@ from sentry.models.team import Team
 from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
-from sentry.notifications.platform.templates.seer import SeerPartialAutofixTriggers
+from sentry.notifications.platform.templates.seer import SeerAutofixTrigger
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
@@ -767,7 +767,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         if features.has("organizations:seer-slack-workflows", self.group.organization):
             autofix_button: ButtonElement = SeerSlackRenderer.render_autofix_button(
-                data=SeerPartialAutofixTriggers(source="seer-partial-autofix-triggers")
+                data=SeerAutofixTrigger(source="seer-autofix-trigger")
             )
             # We have to coerce this since we're not using the proper SlackSDK client to emit this
             # notification yet, it just takes JSON.

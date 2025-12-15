@@ -109,6 +109,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         # I currently view this as akin to a rollout or feature flag for the registry
         return False
 
+    @classmethod
     def get_renderer(
         cls, *, data: NotificationData, category: NotificationCategory
     ) -> type[NotificationRenderer[SlackRenderable]]:
