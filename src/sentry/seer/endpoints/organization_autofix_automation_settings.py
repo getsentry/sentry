@@ -22,6 +22,7 @@ from sentry.seer.autofix.utils import (
     SeerAutofixSettingsSerializer,
     bulk_get_project_preferences,
     bulk_set_project_preferences,
+    default_seer_project_preference,
 )
 
 
@@ -156,6 +157,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
                 preferences_to_set.append(
                     {
+                        **default_seer_project_preference(project).dict(),
                         **existing_pref,
                         "organization_id": organization.id,
                         "project_id": project.id,

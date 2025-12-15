@@ -171,7 +171,9 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             {
                 "organization_id": self.organization.id,
                 "project_id": project.id,
+                "repositories": [],
                 "automated_run_stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+                "automation_handoff": None,
             }
         ]
 
@@ -230,7 +232,9 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             {
                 "organization_id": self.organization.id,
                 "project_id": project.id,
+                "repositories": [],
                 "automated_run_stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+                "automation_handoff": None,
             }
         ]
 
