@@ -38,7 +38,10 @@ class WaiveDataSecrecyTest(APITestCase):
         data = response.data
         assert data["accessStart"] == start.isoformat() if start is not None else self.access_start
         assert data["accessEnd"] == end.isoformat() if end is not None else self.access_end
-        assert data["zendeskTickets"] == tickets if tickets is not None else []
+        if tickets is not None:
+            assert data["zendeskTickets"] == tickets
+        else:
+            assert data["zendeskTickets"] == []
 
     def test_get_simple(self) -> None:
         cached_object = EffectiveGrantStatus(

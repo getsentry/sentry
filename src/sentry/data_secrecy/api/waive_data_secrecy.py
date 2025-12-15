@@ -14,7 +14,11 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationPermission
 from sentry.data_secrecy.cache import effective_grant_status_cache
 from sentry.data_secrecy.logic import data_access_grant_exists
-from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
+from sentry.data_secrecy.models.data_access_grant import (
+    DataAccessGrant,
+    create_or_update_data_access_grant,
+    revoke_active_data_access_grants,
+)
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -117,18 +121,9 @@ class WaiveDataSecrecyEndpoint(ControlSiloOrganizationEndpoint):
 
         result = validator.validated_data
 
-        DataAccessGrant.objects.update_or_create(
-            organization_id=organization.id,
-            grant_type=DataAccessGrant.GrantType.MANUAL,
-            defaults={
-                "grant_start": timezone.now(),
-                "grant_end": result["access_end"],
-                "granted_by_user_id": request.user.id,
-            },
+        create_or_update_data_access_grant(
+            organization.id, request.user.id, DataAccessGrant.GrantType.MANUAL, result["access_end"]
         )
-
-        # invalidate cache to force effective grant status recalculation
-        effective_grant_status_cache.delete(organization.id)
 
         return Response(status=status.HTTP_201_CREATED)
 
@@ -141,19 +136,8 @@ class WaiveDataSecrecyEndpoint(ControlSiloOrganizationEndpoint):
         """
         Revoke all active manual data secrecy waivers for an organization.
         """
-        now = timezone.now()
-
-        DataAccessGrant.objects.filter(
-            organization_id=organization.id,
-            grant_start__lte=now,
-            grant_end__gt=now,
-            revocation_date__isnull=True,  # Not revoked
-        ).update(
-            revocation_date=now,
-            revocation_reason=DataAccessGrant.RevocationReason.MANUAL_REVOCATION,
-            revoked_by_user_id=request.user.id,
+        revoke_active_data_access_grants(
+            organization.id, request.user.id, DataAccessGrant.RevocationReason.MANUAL_REVOCATION
         )
 
-        # invalidate cache to force effective grant status recalculation
-        effective_grant_status_cache.delete(organization.id)
         return Response(status=status.HTTP_204_NO_CONTENT)

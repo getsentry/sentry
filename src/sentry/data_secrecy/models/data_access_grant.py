@@ -1,9 +1,11 @@
+from datetime import datetime
 from enum import StrEnum
 
 from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
+from sentry.data_secrecy.cache import effective_grant_status_cache
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
@@ -55,3 +57,43 @@ class DataAccessGrant(DefaultFieldsModel):
         app_label = "sentry"
         db_table = "sentry_dataaccessgrant"
         unique_together = (("organization_id", "grant_type", "ticket_id"),)
+
+
+def create_or_update_data_access_grant(
+    organization_id: int,
+    user_id: int | None,
+    grant_type: DataAccessGrant.GrantType,
+    access_end: datetime,
+) -> None:
+    DataAccessGrant.objects.update_or_create(
+        organization_id=organization_id,
+        grant_type=grant_type,
+        defaults={
+            "grant_start": timezone.now(),
+            "grant_end": access_end,
+            "granted_by_user_id": user_id,
+        },
+    )
+
+    # invalidate cache to force effective grant status recalculation
+    effective_grant_status_cache.delete(organization_id)
+
+
+def revoke_active_data_access_grants(
+    organization_id: int, user_id: int | None, revocation_reason: DataAccessGrant.RevocationReason
+) -> None:
+    now = timezone.now()
+
+    DataAccessGrant.objects.filter(
+        organization_id=organization_id,
+        grant_start__lte=now,
+        grant_end__gt=now,
+        revocation_date__isnull=True,  # Not revoked
+    ).update(
+        revocation_date=now,
+        revocation_reason=revocation_reason,
+        revoked_by_user_id=user_id,
+    )
+
+    # invalidate cache to force effective grant status recalculation
+    effective_grant_status_cache.delete(organization_id)
