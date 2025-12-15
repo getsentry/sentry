@@ -10,11 +10,8 @@ from sentry.notifications.platform.types import (
     ParagraphBlock,
 )
 
-# TODO(leander): We're going to shortcut this with a custom renderer, since not all the
-# required SlackBlocks are available in the NotificationRenderedTemplate.
 
-
-@dataclass
+@dataclass(frozen=True)
 class SeerAutofixTrigger(NotificationData):
     source: str = "seer-autofix-trigger"
     label: str = "Start RCA"
@@ -30,7 +27,7 @@ class SeerAutofixTriggerTemplate(NotificationTemplate[SeerAutofixTrigger]):
         return NotificationRenderedTemplate(subject="Seer Autofix Trigger", body=[])
 
 
-@dataclass
+@dataclass(frozen=True)
 class SeerAutofixError(NotificationData):
     error_message: str
     source: str = "seer-autofix-error"
@@ -54,7 +51,7 @@ class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
         )
 
 
-@dataclass
+@dataclass(frozen=True)
 class SeerContextInput(NotificationData):
     source: str = "seer-context-input"
     label: str = "Share helpful context with Seer"
@@ -73,7 +70,7 @@ class SeerContextInputTemplate(NotificationTemplate[SeerContextInput]):
         return NotificationRenderedTemplate(subject="Seer Context Input", body=[])
 
 
-@dataclass
+@dataclass(frozen=True)
 class SeerContextInputComplete(NotificationData):
     provided_context: str
     source: str = "seer-context-input-complete"
