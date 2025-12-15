@@ -2,7 +2,8 @@ import type {SerializedStyles} from '@emotion/react';
 import {css} from '@emotion/react';
 
 import type {AlertProps} from 'sentry/components/core/alert';
-import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme';
+import type {Theme} from 'sentry/utils/theme';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -19,7 +20,7 @@ export const chonkAlertPropMapping: ChonkPropMapping<
 
 interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
   type: 'subtle' | 'info' | 'warning' | 'success' | 'danger';
-  theme?: ReturnType<typeof useChonkTheme>;
+  theme?: Theme;
 }
 
 export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
@@ -59,10 +60,7 @@ function makeChonkAlertTheme(props: ChonkAlertProps): SerializedStyles {
   `;
 }
 
-function getChonkAlertTokens(
-  type: ChonkAlertProps['type'],
-  theme: ReturnType<typeof useChonkTheme>
-) {
+function getChonkAlertTokens(type: ChonkAlertProps['type'], theme: Theme) {
   switch (type) {
     case 'info':
       return {
@@ -104,7 +102,7 @@ function getChonkAlertTokens(
 function generateAlertBackground(
   props: ChonkAlertProps,
   tokens: ReturnType<typeof getChonkAlertTokens>,
-  theme: ReturnType<typeof useChonkTheme>
+  theme: Theme
 ) {
   const width = 44;
   if (props.showIcon) {
