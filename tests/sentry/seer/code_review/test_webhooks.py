@@ -9,164 +9,8 @@ from fixtures.github import (
     CHECK_RUN_COMPLETED_EVENT_EXAMPLE,
     CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
 )
-from sentry.seer.error_prediction.webhooks import (
-    SEER_PR_REVIEW_RERUN_PATH,
-    handle_github_check_run_event,
-)
-from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.github import GitHubWebhookTestCase
-
-
-class HandleGithubCheckRunEventTest(TestCase):
-    def setUp(self):
-        super().setUp()
-        self.organization = self.create_organization()
-        self.action_rerequested_event = {
-            "action": "rerequested",
-            "check_run": {
-                "external_id": "4663713",
-                "html_url": "https://github.com/test/repo/runs/4",
-            },
-        }
-
-    def test_skips_when_prevent_ai_features_disabled(self):
-        """Test that the handler returns early when AI features are not enabled."""
-        # Without enabling feature flags, can_use_prevent_ai_features returns False
-        success = handle_github_check_run_event(
-            self.organization,
-            event=self.action_rerequested_event,
-        )
-        assert not success
-
-    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
-    def test_skips_non_handled_actions(self):
-        """Test that non-handled actions are skipped."""
-        non_handled_actions = ["created", "completed", "requested_action", None]
-
-        for action in non_handled_actions:
-            event = {
-                "action": action,
-                "check_run": {
-                    "external_id": "4663713",
-                    "html_url": "https://github.com/test/repo/runs/4",
-                },
-            }
-            success = handle_github_check_run_event(self.organization, event)
-            assert not success
-
-    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
-    def test_skips_when_option_disabled(self):
-        """Test that handler returns early when the option is disabled."""
-        with self.options(
-            {"coding_workflows.error_prediction.github.check_run.rerun.enabled": False}
-        ):
-            success = handle_github_check_run_event(
-                self.organization,
-                event=self.action_rerequested_event,
-            )
-            assert not success
-
-    @responses.activate
-    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
-    def test_forwards_rerequested_action_to_seer(self):
-        """Test that rerequested action forwards original_run_id to Seer."""
-        responses.add(
-            responses.POST,
-            f"{settings.SEER_AUTOFIX_URL}{SEER_PR_REVIEW_RERUN_PATH}",
-            json={"success": True},
-            status=200,
-        )
-
-        with self.options(
-            {"coding_workflows.error_prediction.github.check_run.rerun.enabled": True}
-        ):
-            success = handle_github_check_run_event(
-                self.organization,
-                event=self.action_rerequested_event,
-            )
-            assert success
-
-            # Verify request was made with correct payload
-            assert len(responses.calls) == 1
-            body = orjson.loads(responses.calls[0].request.body)
-            assert body == {"original_run_id": 4663713}
-
-    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
-    def test_fails_when_external_id_missing(self):
-        """Test that missing external_id returns False."""
-        event = {
-            "action": "rerequested",
-            "check_run": {"html_url": "https://github.com/test/repo/runs/4"},
-        }
-
-        with patch("sentry.seer.error_prediction.webhooks.logger") as mock_logger:
-            success = handle_github_check_run_event(self.organization, event)
-            assert not success
-            mock_logger.warning.assert_called_once()
-            assert "missing_external_id" in mock_logger.warning.call_args[0][0]
-
-    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
-    def test_fails_when_external_id_not_numeric(self):
-        """Test that non-numeric external_id returns False."""
-        event = {
-            "action": "rerequested",
-            "check_run": {"external_id": "not-a-number"},
-        }
-
-        with patch("sentry.seer.error_prediction.webhooks.logger") as mock_logger:
-            success = handle_github_check_run_event(self.organization, event)
-            assert not success
-            mock_logger.warning.assert_called_once()
-            assert "missing_external_id" in mock_logger.warning.call_args[0][0]
-
-    @responses.activate
-    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
-    def test_handles_seer_error_response(self):
-        """Test that Seer errors are caught and logged."""
-        responses.add(
-            responses.POST,
-            f"{settings.SEER_AUTOFIX_URL}{SEER_PR_REVIEW_RERUN_PATH}",
-            json={"error": "Internal server error"},
-            status=500,
-        )
-
-        with self.options(
-            {"coding_workflows.error_prediction.github.check_run.rerun.enabled": True}
-        ):
-            with patch("sentry.seer.error_prediction.webhooks.logger") as mock_logger:
-                success = handle_github_check_run_event(
-                    self.organization,
-                    event=self.action_rerequested_event,
-                )
-                assert not success
-                # Verify exception logging
-                mock_logger.exception.assert_called_once()
-                assert "forward.exception" in mock_logger.exception.call_args[0][0]
-
-    @responses.activate
-    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
-    def test_includes_signed_headers(self):
-        """Test that request includes signed headers for Seer authentication."""
-        responses.add(
-            responses.POST,
-            f"{settings.SEER_AUTOFIX_URL}{SEER_PR_REVIEW_RERUN_PATH}",
-            json={"success": True},
-            status=200,
-        )
-
-        with self.options(
-            {"coding_workflows.error_prediction.github.check_run.rerun.enabled": True}
-        ):
-            success = handle_github_check_run_event(
-                self.organization,
-                event=self.action_rerequested_event,
-            )
-            assert success
-
-            # Verify request has content-type header
-            request = responses.calls[0].request
-            assert request.headers["content-type"] == "application/json;charset=utf-8"
 
 
 class CheckRunEventWebhookTest(GitHubWebhookTestCase):
@@ -186,18 +30,63 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
         assert response.status_code == 204
         return response
 
-    @patch("sentry.integrations.github.webhook.CheckRunEventWebhook.__call__")
-    def test_check_run_requested_action_event_triggers_handler(
-        self, mock_event_handler: MagicMock
-    ) -> None:
-        """Test that check_run requested_action events trigger the webhook handler."""
+    @responses.activate
+    def test_check_run_skips_when_ai_features_disabled(self) -> None:
+        """Test that the handler returns early when AI features are not enabled."""
+        # Mock the Seer API endpoint (should NOT be called without feature flags)
+        responses.add(
+            responses.POST,
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/rerun",
+            json={"success": True},
+            status=200,
+        )
+
+        # Without enabling feature flags, no request should be made
         self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
-        assert mock_event_handler.called
+
+        # Verify NO request was made to Seer
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
+    def test_check_run_skips_non_handled_actions(self) -> None:
+        """Test that non-handled actions are skipped."""
+        # Mock the Seer API endpoint (should NOT be called for non-handled actions)
+        responses.add(
+            responses.POST,
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/rerun",
+            json={"success": True},
+            status=200,
+        )
+
+        # Test with completed action (already tested separately, but included for completeness)
+        self._send_check_run_event(CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
+
+        # Verify NO request was made to Seer
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
+    def test_check_run_skips_when_option_disabled(self) -> None:
+        """Test that handler returns early when the option is disabled."""
+        # Mock the Seer API endpoint (should NOT be called when option is disabled)
+        responses.add(
+            responses.POST,
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/rerun",
+            json={"success": True},
+            status=200,
+        )
+
+        with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": False}):
+            self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
+
+            # Verify NO request was made to Seer
+            assert len(responses.calls) == 0
 
     @responses.activate
     @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
     def test_check_run_rerequested_forwards_to_seer(self) -> None:
-        """Test that rerequested check_run events forward original_run_id to Seer."""
+        """Test that rerequested action forwards original_run_id to Seer."""
         # Mock the Seer API endpoint
         responses.add(
             responses.POST,
@@ -206,21 +95,19 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             status=200,
         )
 
-        self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
+        with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
+            self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
 
-        # Verify the request was made to Seer
-        assert len(responses.calls) == 1
-        request = responses.calls[0].request
-
-        # Verify request body contains original_run_id extracted from external_id
-        body = orjson.loads(request.body)
-        assert body == {"original_run_id": 4663713}
+            # Verify request was made with correct payload
+            assert len(responses.calls) == 1
+            body = orjson.loads(responses.calls[0].request.body)
+            assert body == {"original_run_id": 4663713}
 
     @responses.activate
     @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
-    def test_check_run_completed_is_skipped(self) -> None:
-        """Test that completed check_run events are skipped (not handled)."""
-        # Mock the Seer API endpoint (should NOT be called)
+    def test_check_run_fails_when_external_id_missing(self) -> None:
+        """Test that missing external_id is handled gracefully."""
+        # Mock the Seer API endpoint (should NOT be called with missing external_id)
         responses.add(
             responses.POST,
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/rerun",
@@ -228,15 +115,50 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             status=200,
         )
 
-        self._send_check_run_event(CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
+        # Create event without external_id
+        event_without_external_id = orjson.loads(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
+        del event_without_external_id["check_run"]["external_id"]
 
-        # Verify NO request was made to Seer (completed action is not handled)
-        assert len(responses.calls) == 0
+        with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
+            with patch("sentry.seer.code_review.webhooks.logger") as mock_logger:
+                self._send_check_run_event(orjson.dumps(event_without_external_id))
+
+                # Verify NO request was made to Seer
+                assert len(responses.calls) == 0
+                # Verify warning was logged
+                mock_logger.warning.assert_called_once()
+                assert "missing_external_id" in mock_logger.warning.call_args[0][0]
+
+    @responses.activate
+    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
+    def test_check_run_fails_when_external_id_not_numeric(self) -> None:
+        """Test that non-numeric external_id is handled gracefully."""
+        # Mock the Seer API endpoint (should NOT be called with non-numeric external_id)
+        responses.add(
+            responses.POST,
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/rerun",
+            json={"success": True},
+            status=200,
+        )
+
+        # Create event with non-numeric external_id
+        event_with_invalid_external_id = orjson.loads(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
+        event_with_invalid_external_id["check_run"]["external_id"] = "not-a-number"
+
+        with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
+            with patch("sentry.seer.code_review.webhooks.logger") as mock_logger:
+                self._send_check_run_event(orjson.dumps(event_with_invalid_external_id))
+
+                # Verify NO request was made to Seer
+                assert len(responses.calls) == 0
+                # Verify warning was logged
+                mock_logger.warning.assert_called_once()
+                assert "missing_external_id" in mock_logger.warning.call_args[0][0]
 
     @responses.activate
     @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
     def test_check_run_handles_seer_error_gracefully(self) -> None:
-        """Test that Seer API errors are caught and logged without failing the webhook."""
+        """Test that Seer errors are caught and logged without failing the webhook."""
         # Mock Seer API to return an error
         responses.add(
             responses.POST,
@@ -245,11 +167,42 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             status=500,
         )
 
-        # Should not raise an exception, just log it
-        self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
+        with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
+            with patch("sentry.seer.code_review.webhooks.logger") as mock_logger:
+                self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
 
-        # Verify the request was attempted
-        assert len(responses.calls) == 1
+                # Verify the request was attempted
+                assert len(responses.calls) == 1
+                # Verify exception logging
+                mock_logger.exception.assert_called_once()
+                assert "forward.exception" in mock_logger.exception.call_args[0][0]
+
+    @responses.activate
+    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
+    def test_check_run_includes_signed_headers(self) -> None:
+        """Test that request includes signed headers for Seer authentication."""
+        # Mock the Seer API endpoint
+        responses.add(
+            responses.POST,
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/rerun",
+            json={"success": True},
+            status=200,
+        )
+
+        with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
+            self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
+
+            # Verify request has content-type header
+            request = responses.calls[0].request
+            assert request.headers["content-type"] == "application/json;charset=utf-8"
+
+    @patch("sentry.integrations.github.webhook.CheckRunEventWebhook.__call__")
+    def test_check_run_requested_action_event_triggers_handler(
+        self, mock_event_handler: MagicMock
+    ) -> None:
+        """Test that check_run requested_action events trigger the webhook handler."""
+        self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
+        assert mock_event_handler.called
 
     def test_check_run_without_integration_returns_204(self) -> None:
         """Test that check_run events without integration return 204."""

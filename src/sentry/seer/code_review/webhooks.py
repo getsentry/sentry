@@ -25,7 +25,7 @@ class CheckRunAction(StrEnum):
 # This needs to match the value defined in the Seer API:
 # https://github.com/getsentry/seer/blob/main/src/seer/automation/codegen/pr_review_coding_agent.py
 SEER_PR_REVIEW_RERUN_PATH = "/v1/automation/codegen/pr-review/rerun"
-PREFIX = "seer.error_prediction.check_run"
+PREFIX = "seer.code_review.check_run"
 
 
 def handle_github_check_run_event(organization: Organization, event: Mapping[str, Any]) -> bool:
@@ -84,7 +84,7 @@ def _should_handle_github_check_run_event(organization: Organization, action: st
     if action != CheckRunAction.REREQUESTED:
         return False
 
-    if not options.get("coding_workflows.error_prediction.github.check_run.rerun.enabled"):
+    if not options.get("coding_workflows.code_review.github.check_run.rerun.enabled"):
         return False
 
     return True

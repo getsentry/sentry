@@ -664,7 +664,7 @@ register(
 
 # Coding Workflows
 register(
-    "coding_workflows.error_prediction.github.check_run.rerun.enabled",
+    "coding_workflows.code_review.github.check_run.rerun.enabled",
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
