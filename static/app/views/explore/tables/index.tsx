@@ -91,7 +91,7 @@ export function ExploreTables(props: ExploreTablesProps) {
 
   return (
     <Fragment>
-      <SamplesTableHeader>
+      <SamplesTableHeader data-explore-chart-selection-region>
         <Tabs value={props.tab} onChange={props.setTab} size="sm">
           <TabList hideBorder variant="floating">
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
