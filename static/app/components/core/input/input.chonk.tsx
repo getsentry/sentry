@@ -18,15 +18,23 @@ export const chonkInputStyles = ({
     ...debossedBackground(theme),
     boxShadow,
     border: `1px solid ${theme.tokens.border.primary}`,
-    fontWeight: theme.fontWeight.normal,
+    fontWeight: theme.font.weight.regular,
     resize: 'vertical',
     transition: `border ${theme.motion.smooth.fast}, box-shadow ${theme.motion.smooth.fast}`,
-    ...(monospace ? {fontFamily: theme.text.familyMono} : {}),
+    ...(monospace ? {fontFamily: theme.font.family.mono} : {}),
     ...(readOnly ? {cursor: 'default'} : {}),
 
-    ...theme.form[size],
-    ...theme.formPadding[size],
-    ...theme.formRadius[size],
+    fontSize: theme.form[size].fontSize,
+    height: theme.form[size].height,
+    lineHeight: theme.form[size].lineHeight,
+    minHeight: theme.form[size].minHeight,
+
+    paddingBottom: theme.form[size].paddingBottom,
+    paddingLeft: theme.form[size].paddingLeft,
+    paddingRight: theme.form[size].paddingRight,
+    paddingTop: theme.form[size].paddingTop,
+
+    borderRadius: theme.form[size].borderRadius,
 
     '&::placeholder': {
       color: theme.tokens.content.muted,

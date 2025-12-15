@@ -21,7 +21,7 @@ import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -404,13 +404,13 @@ const TagPreviewGrid = styled(Link)`
   align-items: center;
   padding: 0 ${p => p.theme.space.sm};
   margin: 0 -${p => p.theme.space.sm};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.textColor};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
 
   &:hover {
     background: ${p => p.theme.backgroundTertiary};
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

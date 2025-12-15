@@ -29,7 +29,7 @@ export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   border-width: ${p => (p.system ? '0px 0px 1px 0px' : '1px')};
   border-style: solid;
-  border-radius: ${p => (p.system ? '0px' : p.theme.borderRadius)};
+  border-radius: ${p => (p.system ? '0px' : p.theme.radius.md)};
   cursor: ${p => (p.expand ? 'pointer' : 'inherit')};
   gap: ${p => p.theme.space.lg};
   row-gap: 0;
@@ -137,7 +137,7 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
   grid-auto-columns: max-content;
   grid-template-rows: 100%;
   gap: ${p => p.theme.space.md};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   grid-row: 2;
   grid-column: 1 / -1;
   justify-items: start;
@@ -159,7 +159,7 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
 `;
 
 export const Message = chonkStyled('div')`
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
   place-content: center;
   padding-block: ${p => p.theme.space.xs};
 `;

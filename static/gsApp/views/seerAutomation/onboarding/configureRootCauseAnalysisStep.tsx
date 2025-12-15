@@ -1,9 +1,13 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import configureRootCauseAnalysisImg from 'sentry-images/spot/seer-config-connect-2.svg';
+
 import {Button} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Switch} from 'sentry/components/core/switch';
 import {
@@ -13,12 +17,20 @@ import {
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useProjects from 'sentry/utils/useProjects';
 
 import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {useCodeMappings} from './hooks/useCodeMappings';
-import {MaxWidthPanel, PanelDescription, StepContent} from './common';
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+  MaxWidthPanel,
+  PanelDescription,
+  StepContent,
+} from './common';
 import {RepositoryToProjectConfiguration} from './repositoryToProjectConfiguration';
 
 export function ConfigureRootCauseAnalysisStep() {
@@ -30,7 +42,10 @@ export function ConfigureRootCauseAnalysisStep() {
     selectedRootCauseAnalysisRepositories,
     repositoryProjectMapping,
     changeRepositoryProjectMapping,
+    changeRootCauseAnalysisRepository,
+    addRootCauseAnalysisRepository,
     addRepositoryProjectMappings,
+    repositories,
   } = useSeerOnboardingContext();
 
   const {
@@ -85,36 +100,62 @@ export function ConfigureRootCauseAnalysisStep() {
     [changeRepositoryProjectMapping, repositoryProjectMapping]
   );
 
+  const availableRepositories = useMemo(() => {
+    return (
+      repositories?.filter(
+        repo =>
+          !selectedRootCauseAnalysisRepositories.some(selected => selected.id === repo.id)
+      ) ?? []
+    );
+  }, [repositories, selectedRootCauseAnalysisRepositories]);
+
+  const repositoryOptions = useMemo(() => {
+    return availableRepositories.map(repo => ({
+      value: repo.id,
+      label: repo.name,
+      textValue: repo.name,
+    }));
+  }, [availableRepositories]);
+
+  const handleAddRepository = useCallback(
+    (option: SelectOption<string>) => {
+      addRootCauseAnalysisRepository(option.value);
+    },
+    [addRootCauseAnalysisRepository]
+  );
+
+  // We don't want to allow the user to finish the step if there are no projects mapped to the repositories.
+  // It is ok to advance if there are no repositories selected because they'll have configured the RCA/Auto PR creation settings.
   const isFinishDisabled = useMemo(() => {
     const mappings = Object.values(repositoryProjectMapping);
     return (
-      !mappings.length ||
       mappings.length !== selectedRootCauseAnalysisRepositories.length ||
-      Boolean(mappings.some(mappedProjects => mappedProjects.length === 0)) ||
-      selectedRootCauseAnalysisRepositories.length === 0
+      Boolean(mappings.some(mappedProjects => mappedProjects.length === 0))
     );
   }, [repositoryProjectMapping, selectedRootCauseAnalysisRepositories.length]);
 
   return (
     <Fragment>
-      <StepContent>
+      <StepContentWithBackground>
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
               <p>
                 {t(
-                  'Pair your projects with your repositories to enable Seer to analyze your codebase.'
+                  'Pair your projects with your repositories to make sure Seer can analyze your codebase.'
                 )}
               </p>
             </PanelDescription>
 
             <Field>
               <Flex direction="column" flex="1" gap="xs">
-                <FieldLabel>{t('Propose Fixes For Root Cause Analysis')}</FieldLabel>
+                <FieldLabel>{t('Enable Root Cause Analysis')}</FieldLabel>
                 <FieldDescription>
-                  {t(
-                    'For all projects below, Seer will automatically analyze highly actionable issues, and create a root cause analysis and proposed solution without a user needing to prompt it.'
-                  )}
+                  <Text>
+                    {t(
+                      'For all new projects, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution. '
+                    )}
+                  </Text>
                 </FieldDescription>
               </Flex>
               <Switch
@@ -127,7 +168,9 @@ export function ConfigureRootCauseAnalysisStep() {
               <Flex direction="column" flex="1" gap="xs">
                 <FieldLabel>{t('Automatic PR Creation')}</FieldLabel>
                 <FieldDescription>
-                  {t('For all projects below, Seer will be able to make a pull request.')}
+                  {t(
+                    'For all projects below AND newly added projects, Seer will be able to create a pull request.'
+                  )}
                 </FieldDescription>
               </Flex>
               <Switch
@@ -138,11 +181,31 @@ export function ConfigureRootCauseAnalysisStep() {
             </Field>
 
             {isProjectsLoaded && !isProjectsFetching ? (
-              <RepositoryToProjectConfiguration
-                isPending={isCodeMappingsLoading}
-                projects={projects}
-                onChange={handleRepositoryProjectMappingsChange}
-              />
+              <Fragment>
+                <RepositoryToProjectConfiguration
+                  isPending={isCodeMappingsLoading}
+                  projects={projects}
+                  onChange={handleRepositoryProjectMappingsChange}
+                  onChangeRepository={changeRootCauseAnalysisRepository}
+                />
+                {availableRepositories.length > 0 && (
+                  <AddRepoRow>
+                    <CompactSelect
+                      size="sm"
+                      searchable
+                      value={undefined}
+                      strategy="fixed"
+                      triggerProps={{
+                        icon: <IconAdd />,
+                        children: t('Add Repository'),
+                      }}
+                      onChange={handleAddRepository}
+                      options={repositoryOptions}
+                      menuTitle={t('Select Repository')}
+                    />
+                  </AddRepoRow>
+                )}
+              </Fragment>
             ) : (
               <Flex direction="column" gap="md" padding="md">
                 {selectedRootCauseAnalysisRepositories.map(repository => (
@@ -152,7 +215,7 @@ export function ConfigureRootCauseAnalysisStep() {
             )}
           </PanelBody>
         </MaxWidthPanel>
-      </StepContent>
+      </StepContentWithBackground>
 
       <GuidedSteps.ButtonWrapper>
         <Button size="md" onClick={handlePreviousStep} aria-label={t('Previous Step')}>
@@ -172,18 +235,12 @@ export function ConfigureRootCauseAnalysisStep() {
   );
 }
 
-const Field = styled(PanelItem)`
-  align-items: start;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.xl};
+const StepContentWithBackground = styled(StepContent)`
+  background: url(${configureRootCauseAnalysisImg}) no-repeat 638px 0;
+  background-size: 200px 256px;
 `;
 
-const FieldLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const FieldDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  line-height: 1.4;
+const AddRepoRow = styled(PanelItem)`
+  align-items: center;
+  justify-content: flex-end;
 `;

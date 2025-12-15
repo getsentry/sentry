@@ -495,7 +495,7 @@ const ToggleButton = styled(Button)`
 
   :hover,
   :focus {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

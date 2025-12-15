@@ -120,13 +120,24 @@ export function useExplorerMenu({
         // Handle /resume command here - avoid changing menu state from item handlers.
         setMenuMode('session-history');
         refetchSessions();
+      } else if (menuMode === 'session-history') {
+        // When resuming a session, just close without focusing input.
+        close();
       } else {
         // Default to closing the menu after an item is selected and handled.
         closeAndFocusInput();
       }
     },
     // clearInput and textAreaRef are both expected to be stable.
-    [menuMode, clearInput, textAreaRef, setMenuMode, refetchSessions, closeAndFocusInput]
+    [
+      menuMode,
+      clearInput,
+      textAreaRef,
+      setMenuMode,
+      refetchSessions,
+      close,
+      closeAndFocusInput,
+    ]
   );
 
   // Toggle between slash-commands-keyboard and hidden modes based on filteredSlashCommands.
@@ -245,7 +256,6 @@ export function useExplorerMenu({
     const spacing = 8;
     const relativeTop = rect.top - panelRect.top;
     const relativeLeft = rect.left - panelRect.left;
-    const relativeRight = panelRect.right - rect.right;
 
     if (isSlashCommand) {
       setMenuPosition({
@@ -253,10 +263,10 @@ export function useExplorerMenu({
         left: `${relativeLeft}px`,
       });
     } else if (menuMode === 'pr-widget') {
-      // Position below anchor, aligned to right edge
+      // Position below anchor, centered
       setMenuPosition({
         top: `${relativeTop + rect.height + spacing}px`,
-        right: `${relativeRight}px`,
+        left: `${relativeLeft - rect.width - spacing}px`,
       });
     } else {
       setMenuPosition({
@@ -432,9 +442,9 @@ const MenuPanel = styled('div')<{
 }>`
   position: absolute;
   width: 300px;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   max-height: ${p =>
     p.panelSize === 'max' ? 'calc(100vh - 120px)' : `calc(50vh - 80px)`};
@@ -458,7 +468,6 @@ const MenuItem = styled('div')<{isSelected: boolean}>`
 `;
 
 const ItemName = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.sm};
   overflow: hidden;
   text-overflow: ellipsis;

@@ -564,10 +564,10 @@ const Content = styled('div')`
 
 const TaskGroupWrapper = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)};
 
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 
   hr {
     border-color: ${p => p.theme.translucentBorder};
@@ -582,7 +582,7 @@ const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
 `;
 
 const TaskGroupBody = styled('ul')`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   list-style-type: none;
   padding: 0;
   margin: 0;
@@ -609,7 +609,7 @@ const TaskCardWrapper = styled('div')`
   grid-template-columns: 22px 1fr max-content;
   gap: ${space(1.5)};
   cursor: ${p => (p.onClick ? 'pointer' : 'default')};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)} ${space(1.5)};
   p {
     margin: 0;

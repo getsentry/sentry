@@ -15,6 +15,7 @@ import {spring, type Transition} from 'framer-motion';
 
 import {color} from 'sentry/utils/theme/scraps/color';
 import {breakpoints, radius, size, space} from 'sentry/utils/theme/scraps/size';
+import {typography} from 'sentry/utils/theme/scraps/typography';
 
 type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
 
@@ -308,17 +309,24 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   },
 });
 
-const generateLevelTheme = (colors: Colors): LevelColors => ({
-  sample: colors.blue400,
-  info: colors.blue400,
-  warning: colors.yellow400,
-  // Hardcoded legacy color (orange400). We no longer use orange anywhere
-  // else in the app (except for the chart palette). This needs to be harcoded
-  // here because existing users may still associate orange with the "error" level.
-  error: '#FF7738',
-  fatal: colors.red400,
-  default: colors.gray400,
-  unknown: colors.gray200,
+const generateLevelTheme = (
+  tokens: ReturnType<typeof generateChonkTokens>,
+  mode: 'light' | 'dark'
+): LevelColors => ({
+  sample: tokens.graphics.accent,
+  info: tokens.graphics.accent,
+  // BAD: accessing named colors is forbidden
+  // but necessary to differente from orange
+  warning: color.categorical[mode].yellow,
+  // BAD: hardcoded legacy color! We no longer use orange in the main UI,
+  // but do have it in the chart palette. This needs to be harcoded
+  // because existing users still associate orange with the "error" level.
+  error: color.categorical[mode].orange,
+  fatal: tokens.graphics.danger,
+  // BAD: should be `tokens.dataviz.semantic.neutral` once available
+  default: color.neutral[mode][mode === 'light' ? 'opaque800' : 'opaque900'],
+  // BAD: should be `tokens.dataviz.semantic.other` once available
+  unknown: color.neutral[mode][mode === 'light' ? 'opaque400' : 'opaque800'],
 });
 
 const generateTagTheme = (colors: Colors): TagColors => ({
@@ -427,15 +435,6 @@ type ButtonColors = Record<
 
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
-// @TODO: this needs to directly reference the icon direction
-type IconDirection = 'up' | 'right' | 'down' | 'left';
-const iconDirectionToAngle: Record<IconDirection, number> = {
-  up: 0,
-  right: 90,
-  down: 180,
-  left: 270,
-} as const;
-
 /**
  * Unless you are implementing a new component in the `sentry/components/core`
  * directory, use `ComponentProps['size']` instead.
@@ -449,28 +448,17 @@ type FormTheme = {
   form: Record<
     FormSize,
     {
+      borderRadius: string;
       fontSize: string;
       height: string;
       lineHeight: string;
       minHeight: string;
-    }
-  >;
-  formPadding: Record<
-    FormSize,
-    {
       paddingBottom: number;
       paddingLeft: number;
       paddingRight: number;
       paddingTop: number;
     }
   >;
-  formRadius: Record<
-    FormSize,
-    {
-      borderRadius: string;
-    }
-  >;
-  formSpacing: Record<FormSize, string>;
 };
 
 const iconSizes: Record<Size, string> = {
@@ -480,6 +468,20 @@ const iconSizes: Record<Size, string> = {
   lg: '24px',
   xl: '32px',
   '2xl': '72px',
+} as const;
+
+const legacyTypography = {
+  fontSize: typography.font.size,
+  fontWeight: {
+    normal: typography.font.weight.regular,
+    bold: typography.font.weight.medium,
+  },
+  text: {
+    family: typography.font.family.sans,
+    familyMono: typography.font.family.mono,
+    lineHeightHeading: typography.font.lineHeight.default,
+    lineHeightBody: typography.font.lineHeight.comfortable,
+  },
 } as const;
 
 /**
@@ -494,7 +496,6 @@ const commonTheme = {
 
   // Icons
   iconSizes,
-  iconDirections: iconDirectionToAngle,
 
   // Try to keep these ordered plz
   zIndex: {
@@ -565,26 +566,8 @@ const commonTheme = {
   },
 
   borderRadius: '6px',
-  fontSize: {
-    xs: '11px',
-    sm: '12px',
-    md: '14px',
-    lg: '16px',
-    xl: '18px',
-    '2xl': '20px',
-  } satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>,
-
-  fontWeight: {
-    normal: 400 as const,
-    bold: 600 as const,
-  },
-
-  text: {
-    family: "'Rubik', 'Avenir Next', sans-serif",
-    familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
-    lineHeightHeading: 1.2,
-    lineHeightBody: 1.4,
-  },
+  ...legacyTypography,
+  ...typography,
 };
 
 export type Color = keyof ReturnType<typeof deprecatedColorMappings>;
@@ -995,60 +978,34 @@ const formTheme: FormTheme = {
       minHeight: '36px',
       fontSize: '0.875rem',
       lineHeight: '1rem',
+      paddingLeft: 16,
+      paddingRight: 16,
+      paddingTop: 12,
+      paddingBottom: 12,
+      borderRadius: radius.lg,
     },
     sm: {
       height: '32px',
       minHeight: '32px',
       fontSize: '0.875rem',
       lineHeight: '1rem',
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingTop: 8,
+      paddingBottom: 8,
+      borderRadius: radius.md,
     },
     xs: {
       height: '28px',
       minHeight: '28px',
       fontSize: '0.75rem',
       lineHeight: '1rem',
-    },
-  },
-
-  /**
-   * Padding for form inputs
-   * @TODO(jonasbadalic) This should exist on form component
-   */
-  formPadding: {
-    md: {
-      paddingLeft: 16,
-      paddingRight: 16,
-      paddingTop: 12,
-      paddingBottom: 12,
-    },
-    sm: {
-      paddingLeft: 12,
-      paddingRight: 12,
-      paddingTop: 8,
-      paddingBottom: 8,
-    },
-    xs: {
       paddingLeft: 8,
       paddingRight: 8,
       paddingTop: 6,
       paddingBottom: 6,
+      borderRadius: radius.sm,
     },
-  },
-  formRadius: {
-    md: {
-      borderRadius: '8px',
-    },
-    sm: {
-      borderRadius: '6px',
-    },
-    xs: {
-      borderRadius: '5px',
-    },
-  },
-  formSpacing: {
-    md: '8px',
-    sm: '6px',
-    xs: '4px',
   },
 };
 
@@ -1097,26 +1054,6 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
           default: colorScheme.blue500,
           hover: colorScheme.blue600,
           active: colorScheme.blue700,
-        },
-        promotion: {
-          default: colorScheme.pink500,
-          hover: colorScheme.pink600,
-          active: colorScheme.pink700,
-        },
-        danger: {
-          default: colorScheme.red500,
-          hover: colorScheme.red600,
-          active: colorScheme.red700,
-        },
-        warning: {
-          default: colorScheme.yellow500,
-          hover: colorScheme.yellow600,
-          active: colorScheme.yellow700,
-        },
-        success: {
-          default: colorScheme.green500,
-          hover: colorScheme.green600,
-          active: colorScheme.green700,
         },
       },
     },
@@ -1453,11 +1390,6 @@ const generateAliases = (
   formPlaceholder: colors.gray300,
 
   /**
-   *
-   */
-  rowBackground: tokens.background.primary,
-
-  /**
    * Color of lines that flow across the background of the chart to indicate axes levels
    * (This should only be used for yAxis)
    */
@@ -1472,11 +1404,6 @@ const generateAliases = (
    * Color for the 'others' series in topEvent charts
    */
   chartOther: tokens.content.muted,
-
-  /**
-   * Hover color of the drag handle used in the content slider diff view.
-   */
-  diffSliderDragHandleHover: colors.blue500,
 
   /**
    * Default Progressbar color
@@ -1511,15 +1438,6 @@ const generateAliases = (
     warningActive: modifyColor(colors.yellow200).opaquer(1).string(),
   },
 });
-
-const fontSize = {
-  xs: '11px' as const,
-  sm: '12px' as const,
-  md: '14px' as const,
-  lg: '16px' as const,
-  xl: '20px' as const,
-  '2xl': '24px' as const,
-} satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>;
 
 const lightTokens = generateChonkTokens(lightColors);
 const darkTokens = generateChonkTokens(darkColors);
@@ -1710,11 +1628,10 @@ const deprecatedColorMappings = (colors: Colors) => ({
 });
 
 const lightThemeDefinition = {
-  isChonk: true,
   type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-  fontSize,
+
   ...formTheme,
   ...deprecatedColorMappings(lightColors),
   ...lightAliases,
@@ -1732,7 +1649,7 @@ const lightThemeDefinition = {
   alert: generateAlertTheme(lightColors, lightAliases),
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
-  level: generateLevelTheme(lightColors),
+  level: generateLevelTheme(lightTokens, 'light'),
 
   chart: {
     neutral: modifyColor(lightColors.gray400).lighten(0.8).toString(),
@@ -1750,15 +1667,6 @@ const lightThemeDefinition = {
   ),
 
   colors: lightColors,
-
-  sidebar: {
-    background: lightAliases.background,
-    scrollbarThumbColor: '#A0A0A0',
-    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
-    gradient: lightAliases.background,
-    border: lightAliases.border,
-    superuser: '#880808',
-  },
 };
 
 /**
@@ -1770,11 +1678,10 @@ export const lightTheme: SentryTheme = lightThemeDefinition;
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const darkTheme: SentryTheme = {
-  isChonk: true,
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-  fontSize,
+
   ...formTheme,
   ...deprecatedColorMappings(darkColors),
   ...darkAliases,
@@ -1792,7 +1699,7 @@ export const darkTheme: SentryTheme = {
   alert: generateAlertTheme(darkColors, darkAliases),
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
-  level: generateLevelTheme(darkColors),
+  level: generateLevelTheme(darkTokens, 'dark'),
 
   chart: {
     neutral: modifyColor(darkColors.gray400).darken(0.35).toString(),
@@ -1807,15 +1714,6 @@ export const darkTheme: SentryTheme = {
   ),
 
   colors: darkColors,
-
-  sidebar: {
-    background: darkAliases.background,
-    scrollbarThumbColor: '#A0A0A0',
-    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
-    gradient: darkAliases.background,
-    border: darkAliases.border,
-    superuser: '#880808',
-  },
 };
 
 declare module '@emotion/react' {
