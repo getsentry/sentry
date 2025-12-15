@@ -18,7 +18,7 @@ export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
    */
   legacySize?: string;
   ref?: React.Ref<SVGSVGElement>;
-  size?: keyof typeof ICON_SIZES;
+  size?: Exclude<Size, '2xs'>;
   variant?: keyof Theme['tokens']['content'];
 }
 
