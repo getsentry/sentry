@@ -12,10 +12,6 @@ logger = logging.getLogger(__name__)
 API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
 
 
-# Built-in span fields that are always available for querying
-# Derived from SENTRY_SPAN_STRING_TAGS and SENTRY_SPAN_NUMBER_TAGS
-# in frontend (static/app/views/explore/constants.tsx)
-# These are merged with dynamic API fields in the search UI
 _SPAN_BUILT_IN_STRING_FIELDS = [
     "id",
     "project",
@@ -40,10 +36,6 @@ _SPAN_BUILT_IN_NUMBER_FIELDS = [
 ]
 
 
-# Built-in log fields that are always available for querying
-# Derived from SENTRY_LOG_STRING_TAGS and SENTRY_LOG_NUMBER_TAGS
-# in frontend (static/app/views/explore/constants.tsx)
-# These are merged with dynamic API fields in the search UI
 _LOG_BUILT_IN_STRING_FIELDS = [
     "trace",
     "id",
