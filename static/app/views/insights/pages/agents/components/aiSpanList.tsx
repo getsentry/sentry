@@ -378,7 +378,7 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
     nodeInfo.color = colors[0];
   } else if (getIsAiGenerationSpan(genAiOpType)) {
     const tokens = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
-    const cost = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_COST);
+    const cost = getNodeAttribute(SpanFields.GEN_AI_COST_TOTAL_TOKENS);
     nodeInfo.title = node.value.description || nodeInfo.title;
     nodeInfo.icon = <IconChat size="md" />;
     nodeInfo.subtitle = tokens ? (

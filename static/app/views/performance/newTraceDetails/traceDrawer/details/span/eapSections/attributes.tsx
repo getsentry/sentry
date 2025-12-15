@@ -166,9 +166,6 @@ export function Attributes({
     [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: (props: CustomRenderersProps) => {
       return formatDollars(+Number(props.item.value).toFixed(10));
     },
-    [SpanFields.GEN_AI_USAGE_TOTAL_COST]: (props: CustomRenderersProps) => {
-      return formatDollars(+Number(props.item.value).toFixed(10));
-    },
   };
 
   // Some attributes (semantic or otherwise) look like they contain JSON-encoded
