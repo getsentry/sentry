@@ -22,6 +22,10 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
+import {
+  isEAPSpanNode,
+  isTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
@@ -71,7 +75,12 @@ export function AISpanList({
   const nodesByTransaction = useMemo(() => {
     const result: Map<TransactionNode | EapSpanNode, AITraceSpanNode[]> = new Map();
     for (const node of nodes) {
-      const transaction = node.findClosestParentTransaction();
+      // TODO: We should consider using BaseNode.expand to control toggle state,
+      // instead of grouping by transactions for toggling by transactions only.
+      // This would allow us to avoid using type guards/checks like below, outside of the BaseNode classes.
+      const isNodeTransaction =
+        isTransactionNode(node) || (isEAPSpanNode(node) && node.value.is_transaction);
+      const transaction = isNodeTransaction ? node : node.findClosestParentTransaction();
       if (!transaction) {
         continue;
       }
@@ -119,7 +128,9 @@ function TransactionWrapper({
   const nodeAiRunParentsMap = useMemo<Record<string, AITraceSpanNode>>(() => {
     const parents: Record<string, AITraceSpanNode> = {};
     for (const node of nodes) {
-      const parent = node.findParent<AITraceSpanNode>(p => getIsAiAgentNode(p));
+      const parent = getIsAiAgentNode(node)
+        ? node
+        : (node as AITraceSpanNode).findParent<AITraceSpanNode>(p => getIsAiAgentNode(p));
       if (parent) {
         parents[node.id] = parent;
       }

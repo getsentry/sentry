@@ -392,6 +392,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                     organization,
                     replay: props.replay,
                     traceId: props.traceId,
+                    tree: props.trace,
                   })
                 : null}
             </ContentWrapper>

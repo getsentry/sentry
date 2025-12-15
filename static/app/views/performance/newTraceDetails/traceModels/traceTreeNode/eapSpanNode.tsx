@@ -84,13 +84,6 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     }
   }
 
-  get description(): string | undefined {
-    const isOtelFriendlyUi = this.extra?.organization.features.includes(
-      'performance-otel-friendly-ui'
-    );
-    return isOtelFriendlyUi ? this.value.name : this.value.description;
-  }
-
   get drawerTabsTitle(): string {
     return this.op + (this.description ? ' - ' + this.description : '');
   }

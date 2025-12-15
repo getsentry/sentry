@@ -831,7 +831,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
         throw new Error('Parent node is missing, this should be unreachable code');
       }
 
-      // Check for direct visible children first, this helps respect the expanded state of the node in concern.
       const children = node.parent.children;
 
       const index = children.indexOf(node);
@@ -858,6 +857,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       autogroupCount++;
       children[index] = autoGroupedNode;
 
+      autoGroupedNode.children = tail.children;
       autoGroupedNode.head.parent = autoGroupedNode;
       autoGroupedNode.groupCount = groupMatchCount + 1;
 

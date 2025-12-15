@@ -501,6 +501,9 @@ function EAPSpanNodeDetailsContent({
             organization={organization}
             onTabScrollToNode={onTabScrollToNode}
             showJSONLink={node.value.is_transaction}
+            profileId={node.profileId}
+            profilerId={node.profilerId}
+            threadId={threadId}
           />
         )}
       </TraceDrawerComponents.HeaderContainer>
