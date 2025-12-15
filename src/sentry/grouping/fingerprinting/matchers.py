@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Self
+from typing import Any
 
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.grouping.utils import bool_from_string
@@ -133,7 +133,8 @@ class FingerprintMatcher:
             return value == bool_from_string(self.pattern)
 
         if self.key in ["thread_id", "thread_name", "thread_state"]:
-            return glob_match(value, self.pattern, ignorecase=True)
+            # Cast value to string since thread_id may be an integer
+            return glob_match(str(value), self.pattern, ignorecase=True)
 
         return glob_match(value, self.pattern, ignorecase=False)
 
@@ -144,9 +145,29 @@ class FingerprintMatcher:
         return [key, self.pattern]
 
     @classmethod
-    def _from_config_structure(cls, matcher: list[str]) -> Self:
+    def _from_config_structure(
+        cls, matcher: list[str]
+    ) -> FingerprintMatcher | CallerMatcher | CalleeMatcher:
         key, pattern = matcher
 
+        # Check for sibling matcher syntax
+        # CallerMatcher: [key]| or [!key]|
+        # CalleeMatcher: |[key] or |[!key]
+        if key.startswith("[") and key.endswith("]|"):
+            inner_key = key[1:-2]  # Remove [ and ]|
+            negated = inner_key.startswith("!")
+            inner_key = inner_key.lstrip("!")
+            inner_matcher = cls(inner_key, pattern, negated)
+            return CallerMatcher(inner_matcher)
+
+        if key.startswith("|[") and key.endswith("]"):
+            inner_key = key[2:-1]  # Remove |[ and ]
+            negated = inner_key.startswith("!")
+            inner_key = inner_key.lstrip("!")
+            inner_matcher = cls(inner_key, pattern, negated)
+            return CalleeMatcher(inner_matcher)
+
+        # Regular matcher
         negated = key.startswith("!")
         key = key.lstrip("!")
 
@@ -178,7 +199,9 @@ class CallerMatcher:
     def matches(
         self, event_values: dict[str, Any], frame_idx: int, all_frames: list[dict[str, Any]]
     ) -> bool:
-        # Check if there's a frame above (caller)
+        # Check if there's a caller frame (frame above in the visual stack trace)
+        # Frames are ordered from oldest (root) at index 0 to newest (crash) at the end
+        # In native debugging terms, the "caller" is visually above (closer to crash, higher index)
         if frame_idx + 1 < len(all_frames):
             caller_frame = all_frames[frame_idx + 1]
             return self.inner.matches(caller_frame)
@@ -212,7 +235,9 @@ class CalleeMatcher:
     def matches(
         self, event_values: dict[str, Any], frame_idx: int, all_frames: list[dict[str, Any]]
     ) -> bool:
-        # Check if there's a frame below (callee)
+        # Check if there's a callee frame (frame below in the visual stack trace)
+        # Frames are ordered from oldest (root) at index 0 to newest (crash) at the end
+        # In native debugging terms, the "callee" is visually below (further from crash, lower index)
         if frame_idx > 0:
             callee_frame = all_frames[frame_idx - 1]
             return self.inner.matches(callee_frame)

@@ -941,3 +941,45 @@ def test_sibling_frame_with_modules() -> None:
     match = rules.get_fingerprint_values_for_event(event)
     assert match is not None
     assert match.fingerprint == ["controller-request"]
+
+
+def test_sibling_frame_json_roundtrip() -> None:
+    """Test that sibling frame matchers can be serialized and deserialized via JSON"""
+    rules = FingerprintingConfig.from_config_string(
+        """
+[ function:caller_func ] | function:target_func -> caller-calls-target
+function:target_func | [ function:callee_func ] -> target-calls-callee
+[ module:foo ] | function:bar | [ module:baz ] -> foo-bar-baz
+"""
+    )
+
+    # Serialize to JSON
+    config_structure = rules._to_config_structure()
+
+    # Deserialize from JSON
+    restored_rules = FingerprintingConfig._from_config_structure(config_structure)
+
+    # Verify the restored rules match the original
+    assert restored_rules._to_config_structure() == config_structure
+
+    # Test that restored rules work correctly
+    event_with_caller = {
+        "exception": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {"function": "bottom"},
+                            {"function": "target_func"},
+                            {"function": "caller_func"},
+                            {"function": "top"},
+                        ]
+                    }
+                }
+            ]
+        }
+    }
+
+    match = restored_rules.get_fingerprint_values_for_event(event_with_caller)
+    assert match is not None
+    assert match.fingerprint == ["caller-calls-target"]
