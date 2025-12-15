@@ -76,6 +76,7 @@ from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.endpoints.utils import validate_date_params
+from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
@@ -805,9 +806,12 @@ def get_github_enterprise_integration_config(
     }
 
 
-def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -> dict:
+def handle_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -> dict:
     """
-    Send a seer webhook event for an organization.
+    Handles receipt (in Sentry, from Seer) of a seer webhook event for an organization.
+
+    Previously, this just broadcast webhooks to the relevant Sentry Apps.
+    Now, it allows other Sentry features to leverage this signal.
 
     Args:
         event_name: The sub-name of seer event (e.g., "root_cause_started")
@@ -841,6 +845,17 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
             extra={"organization_id": organization_id},
         )
         return {"success": False, "error": "Organization not found or not active"}
+
+    if features.has("organizations:seer-slack-workflows", organization):
+        run_id = payload.get("run_id")
+        if not run_id:
+            logger.error("seer.webhook_run_id_not_found", extra={"payload": payload})
+        else:
+            SeerOperator.handle_autofix_updates(
+                run_id=run_id,
+                event_name=SentryAppEventType(event_name),
+                event_payload=payload,
+            )
 
     if not features.has("organizations:seer-webhooks", organization):
         return {"success": False, "error": "Seer webhooks are not enabled for this organization"}
@@ -997,7 +1012,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_organization_autofix_consent": get_organization_autofix_consent,
     "get_error_event_details": get_error_event_details,
     "get_profile_details": get_profile_details,
-    "send_seer_webhook": send_seer_webhook,
+    "send_seer_webhook": handle_seer_webhook,
     "get_attributes_for_span": get_attributes_for_span,
     "trigger_coding_agent_launch": trigger_coding_agent_launch,
     #

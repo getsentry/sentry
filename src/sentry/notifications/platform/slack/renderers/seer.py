@@ -17,11 +17,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerContextInput,
     SeerContextInputComplete,
 )
-from sentry.notifications.platform.types import (
-    NotificationData,
-    NotificationRenderedTemplate,
-    PlainTextBlock,
-)
+from sentry.notifications.platform.types import NotificationData, NotificationRenderedTemplate
 
 
 class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
@@ -69,6 +65,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def render_context_input(cls, data: SeerContextInput) -> SlackRenderable:
         from sentry.integrations.slack.message_builder.types import SlackAction
+        from sentry.seer.entrypoints.integrations.slack import encode_context_block_id
 
         return SlackRenderable(
             blocks=[
@@ -78,6 +75,10 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                     element=PlainTextInputElement(
                         placeholder=PlainTextObject(text=data.placeholder),
                         action_id=SlackAction.SEER_CONTEXT_INPUT.value,
+                    ),
+                    block_id=encode_context_block_id(
+                        run_id=data.run_id,
+                        organization_id=data.organization_id,
                     ),
                 ),
                 ContextBlock(elements=[PlainTextObject(text=f"Run ID: {data.run_id}")]),

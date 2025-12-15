@@ -762,3 +762,29 @@ def trigger_autofix(
         },
         status=202,
     )
+
+
+def update_autofix_with_user_message(
+    *,
+    run_id: int,
+    unsafe_message: str,
+) -> Response:
+    from sentry.seer.autofix.types import (
+        AutofixUpdateRequest,
+        AutofixUpdateUserMessageRequestPayload,
+    )
+
+    path = "/v1/automation/autofix/update"
+    data = AutofixUpdateRequest(
+        run_id=run_id,
+        payload=AutofixUpdateUserMessageRequestPayload(
+            type="user_message",
+            text=unsafe_message,
+        ),
+    )
+    body = orjson.dumps(data)
+    return requests.post(
+        f"{settings.SEER_AUTOFIX_URL}{path}",
+        data=body,
+        headers={"content-type": "application/json;charset=utf-8", **sign_with_seer_secret(body)},
+    )

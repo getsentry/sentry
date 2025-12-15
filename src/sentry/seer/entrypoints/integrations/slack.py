@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
-from sentry.models.group import Group
+from sentry.integrations.slack.integration import SlackIntegration
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.templates.seer import SeerAutofixError, SeerContextInput
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
-from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
+from sentry.sentry_apps.metrics import SentryAppEventType
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +29,13 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
 
     def __init__(self, slack_request: SlackActionRequest, organization_id: int):
         self.slack_request = slack_request
-        self.install = slack_request.integration.get_installation(organization_id=organization_id)
-        self.channel_id = slack_request.channel_id
+        self.channel_id = slack_request.channel_id or ""
         self.thread_ts = slack_request.data.get("message", {}).get("ts")
         self.organization_id = organization_id
+        self.install = SlackIntegration(
+            model=slack_request.integration,
+            organization_id=organization_id,
+        )
 
     def _send_thread_update(self, *, data: NotificationData) -> None:
         provider = provider_registry.get(NotificationProviderKey.SLACK)
@@ -51,7 +52,17 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         self._send_thread_update(data=SeerAutofixError(error_message=error))
 
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
-        self._send_thread_update(data=SeerContextInput(run_id=run_id))
+        self._send_thread_update(
+            data=SeerContextInput(run_id=run_id, organization_id=self.organization_id)
+        )
+
+    def on_message_autofix_error(self, *, error: str) -> None:
+        # TODO(Leander): Modify the original context input block?
+        pass
+
+    def on_message_autofix_success(self, *, run_id: int) -> None:
+        # TODO(Leander): Add a reaction and disable the context input block?
+        pass
 
     def setup_on_autofix_update(self) -> SlackEntrypointCachePayload:
         return SlackEntrypointCachePayload(
@@ -60,16 +71,31 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         )
 
     @staticmethod
-    def on_autofix_update(cached_payload: SlackEntrypointCachePayload) -> None:
-        # TODO(leander): Implement this...
-        pass
+    def on_autofix_update(
+        event_name: SentryAppEventType,
+        event_payload: dict[str, Any],
+        cached_payload: SlackEntrypointCachePayload,
+    ) -> None:
+        # TODO(Leander): Implement this
+        match event_name:
+            case SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
+                pass
+            case SentryAppEventType.SEER_SOLUTION_COMPLETED:
+                pass
+            case SentryAppEventType.SEER_CODING_COMPLETED:
+                pass
+            case SentryAppEventType.SEER_PR_CREATED:
+                pass
+            case _:
+                return
 
 
-def handle_autofix_start(
-    slack_request: SlackActionRequest, group: Group, user: User | RpcUser
-) -> None:
-    entrypoint = SlackEntrypoint(
-        slack_request=slack_request, organization_id=group.project.organization_id
-    )
-    operator = SeerOperator(entrypoint=entrypoint)
-    operator.start_autofix(group=group, user=user)
+def encode_context_block_id(run_id: int, organization_id: int) -> str:
+    from sentry.integrations.slack.message_builder.types import SlackAction
+
+    return f"{SlackAction.SEER_CONTEXT_INPUT.value}::{organization_id}::{run_id}"
+
+
+def decode_context_block_id(block_id: str) -> tuple[int, int]:
+    _action, organization_id, run_id = block_id.split("::")
+    return int(organization_id), int(run_id)

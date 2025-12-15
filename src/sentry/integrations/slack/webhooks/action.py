@@ -55,7 +55,8 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
-from sentry.seer.entrypoints.integrations.slack import handle_autofix_start
+from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint, decode_context_block_id
+from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
@@ -482,9 +483,12 @@ class SlackActionEndpoint(Endpoint):
                     with self.record_event(
                         MessagingInteractionType.SEER_AUTOFIX_START, group, request
                     ).capture():
-                        handle_autofix_start(
-                            slack_request=slack_request, group=group, user=identity_user
+                        entrypoint = SlackEntrypoint(
+                            slack_request=slack_request,
+                            organization_id=group.project.organization_id,
                         )
+                        operator = SeerOperator(entrypoint=entrypoint)
+                        operator.start_autofix(group=group, user=identity_user)
                     defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)
@@ -562,7 +566,15 @@ class SlackActionEndpoint(Endpoint):
         if not actions_list:
             return self.respond(status=400)
 
-        # TODO(Leander): Implement this
+        action = actions_list[0]
+        organization_id, run_id = decode_context_block_id(action["block_id"])
+        message = action["value"]
+        entrypoint = SlackEntrypoint(
+            slack_request=slack_request,
+            organization_id=organization_id,
+        )
+        operator = SeerOperator(entrypoint=entrypoint)
+        operator.update_autofix(run_id=run_id, message=message)
         return self.respond()
 
     @classmethod

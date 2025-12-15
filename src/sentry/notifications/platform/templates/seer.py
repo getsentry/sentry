@@ -56,7 +56,6 @@ class SeerContextInput(NotificationData):
     source: str = "seer-context-input"
     label: str = "Share helpful context with Seer"
     placeholder: str = "There might be a file..."
-    run_id: int | None = None
 
 
 @template_registry.register(SeerContextInput.source)

@@ -1,5 +1,7 @@
 from enum import StrEnum
-from typing import Protocol
+from typing import Any, Protocol
+
+from sentry.sentry_apps.metrics import SentryAppEventType
 
 
 class SeerEntrypointKey(StrEnum):
@@ -34,6 +36,22 @@ class SeerEntrypoint[CachePayloadT](Protocol):
         """
         ...
 
+    def on_message_autofix_error(self, *, error: str) -> None:
+        """
+        Called when a user message fails to be sent to autofix.
+
+        Example Usage: Adding a :x: reaction to the user's message, or mention, etc.
+        """
+        ...
+
+    def on_message_autofix_success(self, *, run_id: int) -> None:
+        """
+        Called when a user message has been sent to autofix successfully.
+
+        Example Usage: Adding an :checkmark: reaction to the user's message, etc.
+        """
+        ...
+
     def setup_on_autofix_update(self) -> CachePayloadT:
         """
         Creates a cached payload which will be provided to on_autofix_update.
@@ -43,10 +61,13 @@ class SeerEntrypoint[CachePayloadT](Protocol):
         ...
 
     @staticmethod
-    def on_autofix_update(cached_payload: CachePayloadT) -> None:
+    def on_autofix_update(
+        event_name: SentryAppEventType, event_payload: dict[str, Any], cached_payload: CachePayloadT
+    ) -> None:
         """
         Called when an autofix update is received (via Seer's webhooks).
         The shape of the cached payload is determined by `setup_on_autofix_update`.
+        The event_name, and event_payload are webhook payloads emitted by Seer for Sentry Apps.
 
         Example Usage: Reply with an update in a thread, Give links to the run in Sentry, etc.
 
