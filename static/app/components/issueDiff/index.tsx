@@ -17,29 +17,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 const SplitDiffLazy = lazy(() => import('../splitDiff'));
 
-const buildStacktrace = ({
-  event,
-  hasSimilarityEmbeddingsFeature,
-  newestFirst,
-}: {
-  event: Event;
-  hasSimilarityEmbeddingsFeature: boolean;
-  newestFirst: boolean;
-}): string[] => {
-  const includeLocation = false;
-  const rawTrace = false;
-  const includeJSContext = true;
-
-  return getStacktraceBody({
-    event,
-    hasSimilarityEmbeddingsFeature,
-    includeLocation,
-    rawTrace,
-    newestFirst,
-    includeJSContext,
-  });
-};
-
 interface IssueDiffProps {
   baseIssueId: string;
   targetIssueId: string;
@@ -119,11 +96,13 @@ export function IssueDiff({
     if (!baseEventQuery.data) {
       return [];
     }
-
-    return buildStacktrace({
+    return getStacktraceBody({
       event: baseEventQuery.data,
       hasSimilarityEmbeddingsFeature,
+      includeLocation: false,
+      rawTrace: false,
       newestFirst,
+      includeJSContext: true,
     });
   }, [baseEventQuery.data, hasSimilarityEmbeddingsFeature, newestFirst]);
 
@@ -132,10 +111,13 @@ export function IssueDiff({
       return [];
     }
 
-    return buildStacktrace({
+    return getStacktraceBody({
       event: targetEventQuery.data,
       hasSimilarityEmbeddingsFeature,
+      includeLocation: false,
+      rawTrace: false,
       newestFirst,
+      includeJSContext: true,
     });
   }, [targetEventQuery.data, hasSimilarityEmbeddingsFeature, newestFirst]);
 
