@@ -280,6 +280,7 @@ function NumericFilterSelector({
     <CompactSelect
       disabled={false}
       value=""
+      size="sm"
       options={[]}
       hideOptions
       onChange={() => {}}
