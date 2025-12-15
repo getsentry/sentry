@@ -1,7 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import configureRootCauseAnalysisImg from 'sentry-images/spot/seer-config-connect-2.svg';
+
 import {Button} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
@@ -121,19 +124,19 @@ export function ConfigureRootCauseAnalysisStep() {
     [addRootCauseAnalysisRepository]
   );
 
+  // We don't want to allow the user to finish the step if there are no projects mapped to the repositories.
+  // It is ok to advance if there are no repositories selected because they'll have configured the RCA/Auto PR creation settings.
   const isFinishDisabled = useMemo(() => {
     const mappings = Object.values(repositoryProjectMapping);
     return (
-      !mappings.length ||
       mappings.length !== selectedRootCauseAnalysisRepositories.length ||
-      Boolean(mappings.some(mappedProjects => mappedProjects.length === 0)) ||
-      selectedRootCauseAnalysisRepositories.length === 0
+      Boolean(mappings.some(mappedProjects => mappedProjects.length === 0))
     );
   }, [repositoryProjectMapping, selectedRootCauseAnalysisRepositories.length]);
 
   return (
     <Fragment>
-      <StepContent>
+      <StepContentWithBackground>
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
@@ -148,9 +151,11 @@ export function ConfigureRootCauseAnalysisStep() {
               <Flex direction="column" flex="1" gap="xs">
                 <FieldLabel>{t('Enable Root Cause Analysis')}</FieldLabel>
                 <FieldDescription>
-                  {t(
-                    'For all projects below AND newly added projects, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution.'
-                  )}
+                  <Text>
+                    {t(
+                      'For all new projects, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution. '
+                    )}
+                  </Text>
                 </FieldDescription>
               </Flex>
               <Switch
@@ -210,7 +215,7 @@ export function ConfigureRootCauseAnalysisStep() {
             )}
           </PanelBody>
         </MaxWidthPanel>
-      </StepContent>
+      </StepContentWithBackground>
 
       <GuidedSteps.ButtonWrapper>
         <Button size="md" onClick={handlePreviousStep} aria-label={t('Previous Step')}>
@@ -229,6 +234,11 @@ export function ConfigureRootCauseAnalysisStep() {
     </Fragment>
   );
 }
+
+const StepContentWithBackground = styled(StepContent)`
+  background: url(${configureRootCauseAnalysisImg}) no-repeat 638px 0;
+  background-size: 200px 256px;
+`;
 
 const AddRepoRow = styled(PanelItem)`
   align-items: center;

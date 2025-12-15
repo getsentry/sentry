@@ -27,6 +27,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
@@ -293,6 +294,17 @@ export default function ReleasesList() {
     [location, navigate]
   );
 
+  const handleTabChange = useCallback(
+    (newTab: string) => {
+      if (newTab === 'mobile-builds') {
+        trackAnalytics('preprod.releases.mobile-builds.tab-clicked', {
+          organization,
+        });
+      }
+    },
+    [organization]
+  );
+
   const tagValueLoader = useCallback(
     (key: string, search: string) => {
       const {project} = location.query;
@@ -395,7 +407,7 @@ export default function ReleasesList() {
             </ReleasesPageFilterBar>
 
             {shouldShowMobileBuildsTab && (
-              <Layout.HeaderTabs value={selectedTab}>
+              <Layout.HeaderTabs value={selectedTab} onChange={handleTabChange}>
                 <TabList aria-label={t('Releases tab selector')}>
                   <TabList.Item
                     key="releases"

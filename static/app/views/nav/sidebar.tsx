@@ -95,10 +95,8 @@ export function Sidebar() {
 const SidebarWrapper = styled('div')<{tourIsActive: boolean}>`
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
   padding: ${space(1.5)} 0 ${space(1)} 0;
-  border-right: 1px solid
-    ${p => (p.theme.isChonk ? p.theme.border : p.theme.translucentGray200)};
-  background: ${p =>
-    p.theme.isChonk ? p.theme.tokens.background.primary : p.theme.surface300};
+  border-right: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex-direction: column;
 
@@ -114,7 +112,7 @@ const CollapsedSecondaryWrapper = styled(motion.div)`
   top: 0;
   left: ${PRIMARY_SIDEBAR_WIDTH}px;
   height: 100%;
-  box-shadow: ${p => (p.theme.isChonk ? 'none' : p.theme.dropShadowHeavy)};
+  box-shadow: none;
   background: ${p => p.theme.tokens.background.primary};
 `;
 
