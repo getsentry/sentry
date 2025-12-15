@@ -18,9 +18,8 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.conf.server import UPTIME_REGIONS
 from sentry.models.organization import Organization
-from sentry.quotas.base import RateLimit
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.types.ratelimit import RateLimitCategory
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
 from sentry.uptime.endpoints.validators import UptimeTestValidator
 from sentry.uptime.types import CheckConfig
