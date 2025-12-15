@@ -20,7 +20,7 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     is_seer_seat_based_tier_enabled,
-    set_project_preference,
+    set_project_seer_preference,
 )
 from sentry.seer.models import SeerProjectPreference
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -557,7 +557,7 @@ def set_default_project_auto_open_prs(organization: Organization, project: Proje
             automated_run_stopping_point=stopping_point,
         )
         try:
-            set_project_preference(preference)
+            set_project_seer_preference(preference)
         except Exception as e:
             sentry_sdk.capture_exception(e)
 

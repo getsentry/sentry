@@ -207,7 +207,7 @@ def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
     raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
-def set_project_preference(preference: SeerProjectPreference) -> None:
+def set_project_seer_preference(preference: SeerProjectPreference) -> None:
     """Set Seer project preference for a single project."""
     path = "/v1/project-preference/set"
     body = orjson.dumps({"preference": preference.dict()})
