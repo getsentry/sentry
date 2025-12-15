@@ -73,6 +73,7 @@ def test_device(make_ctx_snapshot) -> None:
                 "model_id": "1234AB",
                 "version": "1.2.3",
                 "arch": "arm64",
+                "device_type": "Handheld",
             }
         }
     )

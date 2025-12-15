@@ -183,7 +183,11 @@ class AppContextType(ContextType):
 @contexttype
 class DeviceContextType(ContextType):
     type = "device"
-    context_to_tag_mapping = {"": "{model}", "family": "{family}"}
+    context_to_tag_mapping = {
+        "": "{model}",
+        "family": "{family}",
+        "device_type": "{device_type}",
+    }
     # model_id, arch
 
 
