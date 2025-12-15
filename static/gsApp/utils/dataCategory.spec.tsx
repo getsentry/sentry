@@ -112,7 +112,10 @@ describe('hasCategoryFeature', () => {
     const org = {...organization, features: []};
     expect(hasCategoryFeature('unknown' as DataCategory, subscription, org)).toBe(false);
   });
+});
 
+describe('sortCategories', () => {
+  const organization = OrganizationFixture();
   it('returns sorted categories', () => {
     const sub = SubscriptionFixture({organization, plan: 'am1_team'});
     expect(sortCategories(sub.categories)).toStrictEqual([
@@ -163,6 +166,12 @@ describe('hasCategoryFeature', () => {
         reserved: 0,
         prepaid: 0,
         order: 15,
+      }),
+      MetricHistoryFixture({
+        category: DataCategory.SEER_USER,
+        reserved: 0,
+        prepaid: 0,
+        order: 16,
       }),
     ]);
   });
@@ -240,6 +249,15 @@ describe('hasCategoryFeature', () => {
           reserved: 0,
           prepaid: 0,
           order: 15,
+        }),
+      ],
+      [
+        'seerUsers',
+        MetricHistoryFixture({
+          category: DataCategory.SEER_USER,
+          reserved: 0,
+          prepaid: 0,
+          order: 16,
         }),
       ],
     ]);

@@ -693,6 +693,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/project/tempest')),
     },
     {
+      path: 'preprod/',
+      name: t('Preprod'),
+      component: make(() => import('sentry/views/settings/project/preprod')),
+    },
+    {
       path: 'keys/',
       name: t('Client Keys'),
       children: [
@@ -1160,7 +1165,6 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/settings/organizationAuthTokens/authTokenDetails')
           ),
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -1213,6 +1217,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('getsentry/views/seerAutomation/index')),
       children: [
         {
+          path: 'trial/',
+          component: make(() => import('getsentry/views/seerAutomation/trial')),
+        },
+        {
           index: true,
           component: make(() => import('getsentry/views/seerAutomation/seerAutomation')),
         },
@@ -1222,7 +1230,6 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'repos/',
-          name: t('Seer'),
           component: make(() => import('getsentry/views/seerAutomation/repos')),
         },
         {

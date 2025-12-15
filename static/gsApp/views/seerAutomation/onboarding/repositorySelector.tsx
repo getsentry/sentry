@@ -83,24 +83,6 @@ export function RepositorySelector() {
 
   return (
     <Flex direction="column" gap="xl" padding="xl">
-      <Flex justify="between" align="center" paddingRight="xl">
-        <Label htmlFor="select-all-repositories">
-          <MainLabel>{t('AI Code Review')}</MainLabel>
-          <Description>
-            {tct(
-              'For all [count] repos selected, Seer will review your PRs and flag potential bugs ',
-              {count: selectedIds.size}
-            )}
-          </Description>
-        </Label>
-        <Checkbox
-          disabled={isRepositoriesFetching || filteredRepositories.length === 0}
-          checked={!allSelected && !allUnselected ? 'indeterminate' : allSelected}
-          onChange={handleToggleAll}
-          id="select-all-repositories"
-        />
-      </Flex>
-
       <InputGroup>
         <InputGroup.LeadingItems>
           <IconSearch size="sm" />
@@ -114,6 +96,20 @@ export function RepositorySelector() {
           onChange={e => setSearchQuery(e.target.value)}
         />
       </InputGroup>
+
+      <Flex justify="end" align="center" gap="md" paddingRight="xl" paddingLeft="xl">
+        <Label htmlFor="select-all-repositories">
+          {allSelected
+            ? tct('Un-select all ([count])', {count: filteredRepositories.length})
+            : tct('Select all ([count])', {count: filteredRepositories.length})}
+        </Label>
+        <Checkbox
+          disabled={isRepositoriesFetching || filteredRepositories.length === 0}
+          checked={!allSelected && !allUnselected ? 'indeterminate' : allSelected}
+          onChange={handleToggleAll}
+          id="select-all-repositories"
+        />
+      </Flex>
 
       {isRepositoriesFetching ? (
         <Placeholder height={MAX_HEIGHT} />
@@ -149,7 +145,7 @@ export function RepositorySelector() {
               hasAccess ? (
                 <p>
                   {tct(
-                    `Cant't find a repository? Go [link:manage your GitHub integration] and ensure you have granted access to the correct repositories.`,
+                    `Can't find a repository? [link:Manage your GitHub integration] and ensure you have granted access to the correct repositories.`,
                     {
                       link: (
                         <IntegrationButton
@@ -159,8 +155,9 @@ export function RepositorySelector() {
                           }}
                           onExternalClick={() => {}}
                           buttonProps={{
-                            buttonText: t('manage your GitHub integration'),
+                            buttonText: t('Manage your GitHub integration'),
                             priority: 'link',
+                            style: {padding: 0},
                           }}
                         />
                       ),
@@ -176,40 +173,28 @@ export function RepositorySelector() {
   );
 }
 
-const RepositoryRow = memo(
-  ({
-    repository,
-    checked,
-    onChange,
-  }: {
-    checked: boolean;
-    onChange: (repositoryId: string, newValue: boolean) => void;
-    repository: Repository;
-  }) => {
-    const handleChange = useCallback(() => {
-      onChange?.(repository.id, !checked);
-    }, [onChange, repository.id, checked]);
-    return (
-      <RepositoryItem>
-        <Label htmlFor={repository.id}>{repository.name}</Label>
-        <Checkbox id={repository.id} checked={checked} onChange={handleChange} />
-      </RepositoryItem>
-    );
-  }
-);
+interface RepositoryRowProps {
+  checked: boolean;
+  onChange: (repositoryId: string, newValue: boolean) => void;
+  repository: Repository;
+}
+
+const RepositoryRow = memo(({repository, checked, onChange}: RepositoryRowProps) => {
+  return (
+    <RepositoryItem>
+      <Label htmlFor={repository.id}>{repository.name}</Label>
+      <Checkbox
+        id={repository.id}
+        checked={checked}
+        onChange={e => onChange?.(repository.id, e.target.checked)}
+      />
+    </RepositoryItem>
+  );
+});
 
 const Label = styled('label')`
   font-weight: ${p => p.theme.fontWeight.normal};
   margin-bottom: 0;
-`;
-
-const MainLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const Description = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
 `;
 
 const MAX_HEIGHT = '300px';

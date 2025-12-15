@@ -404,6 +404,56 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert stored_extras["is_simulator"] is False
         assert stored_extras["existing_field"] == "value"
 
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_with_tooling_versions_apple(self) -> None:
+        data = {
+            "apple_app_info": {
+                "cli_version": "2.39.1",
+                "fastlane_plugin_version": "2.220.0",
+            }
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+        assert set(resp_data["updatedFields"]) == {
+            "cli_version",
+            "fastlane_plugin_version",
+            "state",
+        }
+
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.cli_version == "2.39.1"
+        assert self.preprod_artifact.fastlane_plugin_version == "2.220.0"
+        assert self.preprod_artifact.gradle_plugin_version is None
+        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_with_tooling_versions_android(self) -> None:
+        data = {
+            "android_app_info": {
+                "cli_version": "2.39.1",
+                "gradle_plugin_version": "8.5.2",
+            }
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+        assert set(resp_data["updatedFields"]) == {
+            "cli_version",
+            "gradle_plugin_version",
+            "state",
+        }
+
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.cli_version == "2.39.1"
+        assert self.preprod_artifact.fastlane_plugin_version is None
+        assert self.preprod_artifact.gradle_plugin_version == "8.5.2"
+        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+
 
 class FindOrCreateReleaseTest(TestCase):
     def test_exact_version_matching_prevents_incorrect_matches(self):

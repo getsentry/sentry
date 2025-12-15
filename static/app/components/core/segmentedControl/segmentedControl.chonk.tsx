@@ -28,7 +28,10 @@ export const ChonkStyledGroupWrap = chonkStyled('div')<{
   grid-auto-flow: column;
   min-width: 0;
 
-  ${p => p.theme.form[p.size]}
+  font-size: ${p => p.theme.form[p.size].fontSize};
+  height: ${p => p.theme.form[p.size].height};
+  line-height: ${p => p.theme.form[p.size].lineHeight};
+  min-height: ${p => p.theme.form[p.size].minHeight};
 
   & > label:first-child {
     border-top-right-radius: 0;
@@ -69,7 +72,7 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   z-index: ${p => (p.isSelected ? 1 : undefined)};
 
   padding: ${p => segmentedWrapPadding[p.size]};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.regular};
 
   ${p => ({...DO_NOT_USE_getChonkButtonStyles({...p, disabled: p.isDisabled, priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default'})})}
 
@@ -91,7 +94,7 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
 export const ChonkStyledVisibleLabel = chonkStyled('span')`
   ${p => p.theme.overflowEllipsis}
   user-select: none;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.medium};
   text-align: center;
 `;
 

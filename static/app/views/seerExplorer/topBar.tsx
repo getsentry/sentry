@@ -7,6 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {
   IconAdd,
+  IconClose,
   IconContract,
   IconExpand,
   IconMegaphone,
@@ -16,6 +17,7 @@ import {
 import {t} from 'sentry/locale';
 import PRWidget from 'sentry/views/seerExplorer/prWidget';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
+import {toggleSeerExplorerPanel} from 'sentry/views/seerExplorer/utils';
 
 interface TopBarProps {
   blocks: Block[];
@@ -63,6 +65,7 @@ function TopBar({
       borderBottom="primary"
       background="secondary"
       flexShrink={0}
+      position="relative"
       data-seer-top-bar=""
     >
       <Flex>
@@ -91,9 +94,9 @@ function TopBar({
         {!isEmptyState && (
           <CenterSection
             key={hasCodeChanges ? 'pr-widget' : 'seer-icon'}
-            initial={{opacity: 0, scale: 0.8}}
-            animate={{opacity: 1, scale: 1}}
-            exit={{opacity: 0, scale: 0.8}}
+            initial={{opacity: 0, scale: 0.8, x: '-50%'}}
+            animate={{opacity: 1, scale: 1, x: '-50%'}}
+            exit={{opacity: 0, scale: 0.8, x: '-50%'}}
             transition={{duration: 0.12, ease: 'easeOut'}}
           >
             {hasCodeChanges ? (
@@ -135,6 +138,14 @@ function TopBar({
               : t('Expand to full screen (/max-size)')
           }
         />
+        <Button
+          icon={<IconClose />}
+          onClick={toggleSeerExplorerPanel}
+          priority="transparent"
+          size="sm"
+          aria-label={t('Close panel')}
+          title={t('Close panel')}
+        />
       </Flex>
     </Flex>
   );
@@ -143,10 +154,11 @@ function TopBar({
 export default TopBar;
 
 const CenterSection = styled(motion.div)`
+  position: absolute;
+  left: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1;
   gap: ${p => p.theme.space.lg};
 `;
 

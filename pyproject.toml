@@ -239,6 +239,13 @@ filterwarnings = [
 
     # pytest has not yet implemented the replacement for this yet
     "ignore:The --looponfail command line argument.*",
+
+    # `ATTRIBUTE_NAMES` is a constant from the `sentry-conventions` library.
+    # We don't want to immediately block any sentry-conventions library updates
+    # with errors on new deprecations, and some code may depend on the value of
+    # a deprecated constant. But, still report it as a warning so that we're
+    # informed and can evaluate.
+    "default:ATTRIBUTE_NAMES\\..* is deprecated.*:DeprecationWarning",
 ]
 looponfailroots = ["src", "tests"]
 
@@ -737,7 +744,7 @@ module = [
     "tests.sentry.digests.*",
     "tests.sentry.discover.translation.*",
     "tests.sentry.event_manager.test_event_manager",
-    "tests.sentry.eventstream.kafka.*",
+    "tests.sentry.eventstream.*",
     "tests.sentry.eventtypes.*",
     "tests.sentry.flags.*",
     "tests.sentry.grouping.*",
