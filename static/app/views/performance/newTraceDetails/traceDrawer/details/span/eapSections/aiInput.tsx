@@ -248,10 +248,14 @@ export function AIInputSection({
         />
       ) : null}
       {toolArgs ? (
-        <TraceDrawerComponents.MultilineJSON value={toolArgs} maxDefaultDepth={1} />
+        <TraceDrawerComponents.MultilineJSON
+          key={getNodeId(node)}
+          value={toolArgs}
+          maxDefaultDepth={1}
+        />
       ) : null}
       {embeddingsInput ? (
-        <TraceDrawerComponents.MultilineText>
+        <TraceDrawerComponents.MultilineText key={getNodeId(node)}>
           {embeddingsInput.toString()}
         </TraceDrawerComponents.MultilineText>
       ) : null}
