@@ -6,7 +6,6 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import sessionStorage from 'sentry/utils/sessionStorage';
 import {readStorageValue} from 'sentry/utils/useSessionStorage';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
 
