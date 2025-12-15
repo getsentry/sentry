@@ -565,7 +565,6 @@ const commonTheme = {
     },
   },
 
-  borderRadius: '6px',
   ...legacyTypography,
   ...typography,
 };
