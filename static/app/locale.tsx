@@ -70,10 +70,6 @@ type FormatArg = ComponentMap | React.ReactNode;
  */
 function getClient(): Jed | null {
   if (!i18n) {
-    // If this happens, it could mean that an import was added/changed where
-    // locale initialization does not happen soon enough.
-    // eslint-disable-next-line no-console
-    console.warn('Locale not set, defaulting to English');
     return setLocale(DEFAULT_LOCALE_DATA);
   }
 
