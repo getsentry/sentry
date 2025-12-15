@@ -81,18 +81,20 @@ class PromptsActivityTest(APITestCase):
         }
         resp = self.client.get(self.path, data)
         assert resp.status_code == 200
+        project_id = self.project.id
         self.project.delete()
         # project doesn't exist
         resp = self.client.put(
             self.path,
             {
                 "organization_id": self.org.id,
-                "project_id": self.project.id,
+                "project_id": project_id,
                 "feature": "releases",
                 "status": "dismissed",
             },
         )
         assert resp.status_code == 400
+        assert resp.data["detail"] == "Project does not belong to this organization"
 
     def test_dismiss(self) -> None:
         data = {
@@ -271,3 +273,20 @@ class PromptsActivityTest(APITestCase):
         assert resp.status_code == 200
         assert "dismissed_ts" in resp.data["features"]["releases"]
         assert "snoozed_ts" in resp.data["features"]["alert_stream"]
+
+    def test_project_from_different_organization(self) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+
+        resp = self.client.put(
+            self.path,
+            {
+                "organization_id": self.org.id,
+                "project_id": other_project.id,
+                "feature": "releases",
+                "status": "dismissed",
+            },
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == "Project does not belong to this organization"
