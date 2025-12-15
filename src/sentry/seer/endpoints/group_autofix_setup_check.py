@@ -170,11 +170,12 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
 
         autofix_enabled = False
         autofix_automation_tuning = group.project.get_option("sentry:autofix_automation_tuning")
-        if (
-            autofix_automation_tuning
-            and autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
-        ):
-            autofix_enabled = True
+        if seer_seat_based_tier_enabled:
+            if (
+                autofix_automation_tuning
+                and autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
+            ):
+                autofix_enabled = True
 
         return Response(
             {
