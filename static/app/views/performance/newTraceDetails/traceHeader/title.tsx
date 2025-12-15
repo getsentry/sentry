@@ -90,9 +90,9 @@ function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>)
     ? findSpanAttributeValue(rootEventResults.data.attributes, FieldKey.REPLAY_ID)
     : rootEventResults.data.contexts.replay?.[ReplayContextKey.REPLAY_ID];
 
-  // if (!replayId) {
-  //   return null;
-  // }
+  if (!replayId) {
+    return null;
+  }
 
   return (
     <Fragment>
