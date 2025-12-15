@@ -60,6 +60,7 @@ Glossary for types of keys:
     * span-buf:hrs:* -- simple bool key to flag a segment as "has root span" (HRS)
     * span-buf:sr:* -- redirect mappings so that each incoming span ID can be mapped to the right span-buf:z: set.
     * span-buf:ic:* -- ingested count, tracks total number of spans originally ingested for a segment (used to calculate dropped spans for outcome tracking)
+    * span-buf:ibc:* -- ingested byte count, tracks total bytes originally ingested for a segment (used to calculate dropped bytes for outcome tracking)
 """
 
 from __future__ import annotations
@@ -222,6 +223,7 @@ class SpansBuffer:
 
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
+                    byte_count = sum(len(span.payload) for span in subsegment)
                     p.execute_command(
                         "EVALSHA",
                         add_buffer_sha,
@@ -232,6 +234,7 @@ class SpansBuffer:
                         "true" if any(span.is_segment_span for span in subsegment) else "false",
                         redis_ttl,
                         max_segment_bytes,
+                        byte_count,
                         *[span.span_id for span in subsegment],
                     )
 
@@ -519,11 +522,16 @@ class SpansBuffer:
             for key in segment_keys:
                 ingested_count_key = b"span-buf:ic:" + key
                 p.get(ingested_count_key)
+                ingested_byte_count_key = b"span-buf:ibc:" + key
+                p.get(ingested_byte_count_key)
 
-            ingested_count_results = p.execute()
+            ingested_results = p.execute()
 
         # Calculate dropped counts: total ingested - successfully loaded
-        for key, ingested_count in zip(segment_keys, ingested_count_results):
+        for i, key in enumerate(segment_keys):
+            ingested_count = ingested_results[i * 2]
+            ingested_byte_count = ingested_results[i * 2 + 1]
+
             if ingested_count:
                 total_ingested = int(ingested_count)
                 successfully_loaded = len(payloads.get(key, []))
@@ -551,6 +559,12 @@ class SpansBuffer:
                         quantity=dropped,
                     )
 
+            if ingested_byte_count:
+                metrics.timing(
+                    "spans.buffer.flush_segments.ingested_bytes_per_segment",
+                    int(ingested_byte_count),
+                )
+
         for key, spans in payloads.items():
             if not spans:
                 # This is a bug, most likely the input topic is not
@@ -568,6 +582,7 @@ class SpansBuffer:
                 for segment_key, flushed_segment in segment_keys.items():
                     p.delete(b"span-buf:hrs:" + segment_key)
                     p.delete(b"span-buf:ic:" + segment_key)
+                    p.delete(b"span-buf:ibc:" + segment_key)
                     p.unlink(segment_key)
                     p.zrem(flushed_segment.queue_key, segment_key)
 
