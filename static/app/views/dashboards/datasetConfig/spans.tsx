@@ -65,7 +65,7 @@ import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBu
 import {transformPerformanceScoreBreakdownSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {useSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -153,17 +153,18 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
 
-  const {filterKeys, filterKeySections, getTagValues} = useSearchQueryBuilderProps({
-    itemType: TraceItemDataset.SPANS,
-    numberAttributes,
-    stringAttributes,
-    numberSecondaryAliases,
-    stringSecondaryAliases,
-    searchSource: 'dashboards',
-    initialQuery: widgetQuery?.conditions ?? '',
-    projects: pageFilters.projects,
-    supportedAggregates: ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-  });
+  const {filterKeys, filterKeySections, getTagValues} =
+    useTraceItemSearchQueryBuilderProps({
+      itemType: TraceItemDataset.SPANS,
+      numberAttributes,
+      stringAttributes,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      searchSource: 'dashboards',
+      initialQuery: widgetQuery?.conditions ?? '',
+      projects: pageFilters.projects,
+      supportedAggregates: ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+    });
   return {
     getFilterKeys: () => filterKeys,
     getFilterKeySections: () => filterKeySections,
