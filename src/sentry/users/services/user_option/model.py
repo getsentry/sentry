@@ -11,7 +11,7 @@ from sentry.hybridcloud.rpc import RpcModel
 class RpcUserOption(RpcModel):
     id: int = -1
     user_id: int = -1
-    value: Any = None  # TODO(Gabe): Verify whether we want this to be in the repr
+    value: Any = None
     key: str = ""
     project_id: int | None = None
     organization_id: int | None = None
