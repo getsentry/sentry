@@ -10,7 +10,7 @@ from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
-from sentry.taskworker.retry import Retry, retry_task
+from sentry.taskworker.retry import Retry
 from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
@@ -65,4 +65,3 @@ def assign_seat_to_organization_contributor(contributor_id) -> None:
                 "outcome": outcome,
             },
         )
-        retry_task()
