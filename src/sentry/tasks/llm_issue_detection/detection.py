@@ -206,9 +206,12 @@ def run_llm_issue_detection() -> None:
     if not enabled_project_ids:
         return
 
-    # Spawn a sub-task for each project
-    for project_id in enabled_project_ids:
-        detect_llm_issues_for_project.delay(project_id)
+    # Spawn a sub-task for each project with staggered delays
+    for index, project_id in enumerate(enabled_project_ids):
+        detect_llm_issues_for_project.apply_async(
+            args=[project_id],
+            countdown=index * 60,
+        )
 
 
 @instrumented_task(
