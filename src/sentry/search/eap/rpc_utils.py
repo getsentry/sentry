@@ -25,7 +25,7 @@ def anyvalue(value: Any) -> AnyValue:
     elif isinstance(value, bool):
         return AnyValue(bool_value=value)
     elif isinstance(value, int):
-        if value > I64_MAX:
+        if value > I64_MAX or value < -I64_MAX - 1:
             return AnyValue(double_value=float(value))
         return AnyValue(int_value=value)
     elif isinstance(value, float):

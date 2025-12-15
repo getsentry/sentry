@@ -42,6 +42,14 @@ def write_preprod_size_metric_to_eap(
     # (e.g., main app + Watch extension + dynamic features) under one trace.
     trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(size_metric.preprod_artifact_id)).hex
 
+    # Generate deterministic item_id based on size_metric.id.
+    # This enables ReplacingMergeTree deduplication when reprocessing the same metric.
+    # Since timestamp is also deterministic (uses size_metric.date_added), rewriting
+    # the same metric will result in identical (timestamp, trace_id, item_id) tuple,
+    # causing ClickHouse to automatically deduplicate and keep the most recent write.
+    item_id_str = f"size_metric_{size_metric.id}"
+    item_id = int(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex, 16).to_bytes(16, "little")
+
     attributes: dict[str, Any] = {
         "preprod_artifact_id": size_metric.preprod_artifact_id,
         "size_metric_id": size_metric.id,
@@ -130,7 +138,7 @@ def write_preprod_size_metric_to_eap(
     trace_item = EAPTraceItem(
         organization_id=organization_id,
         project_id=project_id,
-        item_id=uuid.uuid4().bytes,
+        item_id=item_id,
         item_type=TraceItemType.TRACE_ITEM_TYPE_PREPROD,
         timestamp=proto_timestamp,
         trace_id=trace_id,

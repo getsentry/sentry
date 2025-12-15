@@ -197,6 +197,19 @@ def query_preprod_size_metrics(
 
     columns_list = _get_columns_for_preprod_size(columns)
 
+    # Ensure timestamp is always included for ordering
+    timestamp_col = Column(
+        label="timestamp",
+        key=AttributeKey(
+            name="sentry.timestamp",
+            type=AttributeKey.Type.TYPE_DOUBLE,
+        ),
+    )
+    # Check if timestamp is already in columns_list by label
+    has_timestamp = any(col.label == "timestamp" for col in columns_list)
+    if not has_timestamp:
+        columns_list.append(timestamp_col)
+
     rpc_request = TraceItemTableRequest(
         meta=RequestMeta(
             referrer=referrer,
@@ -214,13 +227,7 @@ def query_preprod_size_metrics(
         columns=columns_list,
         order_by=[
             TraceItemTableRequest.OrderBy(
-                column=Column(
-                    label="timestamp",
-                    key=AttributeKey(
-                        name="sentry.timestamp",
-                        type=AttributeKey.Type.TYPE_DOUBLE,
-                    ),
-                ),
+                column=timestamp_col,
                 descending=True,
             )
         ],
@@ -246,6 +253,6 @@ def _get_columns_for_preprod_size(column_names: list[str] | None = None) -> list
                 f"Unknown column '{name}'. Available columns: {sorted(PREPROD_SIZE_ATTRIBUTE_DEFINITIONS.keys())}"
             )
         col = PREPROD_SIZE_ATTRIBUTE_DEFINITIONS[name]
-        columns.append(Column(label=col.internal_name, key=col.proto_definition))
+        columns.append(Column(label=col.public_alias, key=col.proto_definition))
 
     return columns
