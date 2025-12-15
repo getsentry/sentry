@@ -43,7 +43,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -569,7 +568,9 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           {
             key: 'reprocess',
             label: t('Reprocess events'),
-            hidden: !displayReprocessEventAction(event),
+            // Temporarily disable reprocessing as a whole till we get to the bottom of why it is failing.
+            // This is done since it breaks in a way where it nukes the entire issue group of the customer (very unpleasant).
+            hidden: true,
             onAction: onReprocessEvent,
           },
           {
