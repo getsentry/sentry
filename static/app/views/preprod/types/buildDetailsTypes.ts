@@ -9,6 +9,7 @@ export interface BuildDetailsApiResponse {
   state: BuildDetailsState;
   vcs_info: BuildDetailsVcsInfo;
   size_info?: BuildDetailsSizeInfo;
+  base_artifact_id?: string | null;
 }
 
 export interface BuildDetailsAppInfo {
@@ -27,7 +28,7 @@ export interface BuildDetailsAppInfo {
 }
 
 interface AppleAppInfo {
-  missing_dsym_binaries?: string[];
+  has_missing_dsym_binaries?: boolean;
 }
 
 interface AndroidAppInfo {
@@ -62,6 +63,7 @@ interface BuildDetailsSizeInfoProcessing {
 interface BuildDetailsSizeInfoCompleted {
   state: BuildDetailsSizeAnalysisState.COMPLETED;
   size_metrics: BuildDetailsSizeInfoSizeMetric[];
+  base_size_metrics: BuildDetailsSizeInfoSizeMetric[];
 }
 
 interface BuildDetailsSizeInfoFailed {

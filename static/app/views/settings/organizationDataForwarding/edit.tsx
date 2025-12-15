@@ -30,7 +30,6 @@ import {
   useMutateDataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/hooks';
 import {
-  DataForwarderProviderSlug,
   ProviderLabels,
   type DataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
@@ -150,13 +149,15 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                 tooltip={
                   key === provider
                     ? undefined
-                    : {title: t('Cannot update provider after setup.')}
+                    : {
+                        title: t(
+                          'Cannot update provider after setup, create a new forwarder instead.'
+                        ),
+                      }
                 }
               >
                 <Flex align="center" gap="sm">
-                  <PluginIcon
-                    pluginId={key === DataForwarderProviderSlug.SQS ? 'amazon-sqs' : key}
-                  />
+                  <PluginIcon pluginId={key} />
                   <b>{label}</b>
                 </Flex>
               </TabList.Item>

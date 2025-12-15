@@ -1,14 +1,16 @@
-import {Fragment, lazy} from 'react';
+import {Fragment, lazy, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
-import type {Theme} from '@emotion/react';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 
 import {NODE_ENV} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
-import {useThemeSwitcher} from 'sentry/utils/theme/useThemeSwitcher';
+import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 const SentryComponentInspector =
   NODE_ENV === 'development'
@@ -39,16 +41,34 @@ cache.compat = true;
  */
 export function ThemeAndStyleProvider({children}: Props) {
   const config = useLegacyStore(ConfigStore);
-  const theme = useThemeSwitcher();
+
+  // Hotkey definition for toggling the current theme
+  const themeToggleHotkey = useMemo(
+    () => [
+      {
+        match: ['command+shift+1', 'ctrl+shift+1'],
+        includeInputs: true,
+        callback: () => {
+          removeBodyTheme();
+          ConfigStore.set('theme', config.theme === 'dark' ? 'light' : 'dark');
+        },
+      },
+    ],
+    [config.theme]
+  );
+
+  useHotkeys(themeToggleHotkey);
+
+  const theme = config.theme === 'dark' ? darkTheme : lightTheme;
 
   return (
-    <ThemeProvider theme={theme as Theme}>
-      <GlobalStyles isDark={config.theme === 'dark'} theme={theme as Theme} />
+    <ThemeProvider theme={theme}>
+      <GlobalStyles isDark={config.theme === 'dark'} theme={theme} />
       <CacheProvider value={cache}>{children}</CacheProvider>
       {createPortal(
         <Fragment>
           <meta name="color-scheme" content={config.theme} />
-          <meta name="theme-color" content={theme.sidebar.background} />
+          <meta name="theme-color" content={theme.tokens.background.primary} />
         </Fragment>,
         document.head
       )}

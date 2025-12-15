@@ -2,6 +2,8 @@ import hashlib
 from datetime import UTC, datetime
 from uuid import uuid4
 
+import sentry_sdk
+
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import hash_fingerprint
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -16,10 +18,15 @@ def create_fingerprint(vital_grouping: WebVitalIssueDetectionGroupingType, trans
     return fingerprint
 
 
-def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: str) -> None:
+@sentry_sdk.tracing.trace
+def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: str) -> bool:
+    project = data["project"]
+    sentry_sdk.set_tag("project_id", project.id)
+    sentry_sdk.set_tag("organization_id", project.organization_id)
+
     # Do not create a new web vital issue if an open issue already exists
     if check_unresolved_web_vitals_issue_exists(data):
-        return
+        return False
 
     event_id = uuid4().hex
     now = datetime.now(UTC)
@@ -68,9 +75,13 @@ def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: st
 
     # TODO: Add better titles and subtitles
     if data["vital_grouping"] == "rendering":
-        title = "Render time Web Vital scores need improvement"
+        title = f"The page {transaction} was slow to load and render"
+    elif data["vital_grouping"] == "cls":
+        title = f"The page {transaction} had layout shifts while loading"
+    elif data["vital_grouping"] == "inp":
+        title = f"The page {transaction} responded slowly to user interactions"
     else:
-        title = f"{data['vital_grouping'].upper()} score needs improvement"
+        raise ValueError(f"Invalid vital grouping: {data['vital_grouping']}")
     subtitle_parts = []
     for vital in data["scores"]:
         a_or_an = "an" if vital in ("lcp", "fcp", "inp") else "a"
@@ -102,6 +113,8 @@ def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: st
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurence, event_data=event_data
     )
+
+    return True
 
 
 def check_unresolved_web_vitals_issue_exists(data: WebVitalIssueGroupData) -> bool:

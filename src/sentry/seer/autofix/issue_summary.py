@@ -14,11 +14,11 @@ from sentry import features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import DataCategory
-from sentry.issues.grouptype import WebVitalsGroup
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autofix
+from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     FixabilityScoreThresholds,
@@ -28,6 +28,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
+    is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
@@ -66,9 +67,12 @@ def _get_stopping_point_from_fixability(fixability_score: float) -> AutofixStopp
     if fixability_score < FixabilityScoreThresholds.MEDIUM.value:
         return None
     elif fixability_score < FixabilityScoreThresholds.HIGH.value:
-        return AutofixStoppingPoint.SOLUTION
-    else:
+        return AutofixStoppingPoint.ROOT_CAUSE
+    # 0.76 + 0.02 - extra buffer to avoid opening too many PRs.
+    elif fixability_score < FixabilityScoreThresholds.SUPER_HIGH.value + 0.02:
         return AutofixStoppingPoint.CODE_CHANGES
+    else:
+        return AutofixStoppingPoint.OPEN_PR
 
 
 def _fetch_user_preference(project_id: int) -> str | None:
@@ -105,22 +109,30 @@ def _fetch_user_preference(project_id: int) -> str | None:
 def _apply_user_preference_upper_bound(
     fixability_suggestion: AutofixStoppingPoint | None,
     user_preference: str | None,
-) -> AutofixStoppingPoint | None:
+) -> AutofixStoppingPoint:
     """
     Apply user preference as an upper bound on the fixability-based stopping point.
     Returns the more conservative (earlier) stopping point between the two.
     """
-    if fixability_suggestion is None or user_preference is None:
+    # If fixability is None but user preference exists, use user preference
+    if fixability_suggestion is None and user_preference is not None:
+        return AutofixStoppingPoint(user_preference)
+    # If fixability exists but user preference is None, use fixability
+    elif fixability_suggestion is not None and user_preference is None:
         return fixability_suggestion
-
-    user_stopping_point = AutofixStoppingPoint(user_preference)
-
-    return (
-        fixability_suggestion
-        if STOPPING_POINT_HIERARCHY[fixability_suggestion]
-        <= STOPPING_POINT_HIERARCHY[user_stopping_point]
-        else user_stopping_point
-    )
+    # If both are None, return ROOT_CAUSE as default
+    elif fixability_suggestion is None and user_preference is None:
+        return AutofixStoppingPoint.ROOT_CAUSE
+    # Both are not None - return the more conservative one
+    else:
+        assert fixability_suggestion is not None and user_preference is not None  # for mypy
+        user_stopping_point = AutofixStoppingPoint(user_preference)
+        return (
+            fixability_suggestion
+            if STOPPING_POINT_HIERARCHY[fixability_suggestion]
+            <= STOPPING_POINT_HIERARCHY[user_stopping_point]
+            else user_stopping_point
+        )
 
 
 @instrumented_task(
@@ -158,13 +170,24 @@ def _trigger_autofix_task(
         else:
             user = AnonymousUser()
 
-        trigger_autofix(
-            group=group,
-            event_id=event_id,
-            user=user,
-            auto_run_source=auto_run_source,
-            stopping_point=stopping_point,
-        )
+        # Route to explorer-based autofix if both feature flags are enabled
+        if features.has("organizations:seer-explorer", group.organization) and features.has(
+            "organizations:autofix-on-explorer", group.organization
+        ):
+            trigger_autofix_explorer(
+                group=group,
+                step=AutofixStep.ROOT_CAUSE,
+                run_id=None,
+                stopping_point=stopping_point,
+            )
+        else:
+            trigger_autofix(
+                group=group,
+                event_id=event_id,
+                user=user,
+                auto_run_source=auto_run_source,
+                stopping_point=stopping_point,
+            )
 
 
 def _get_event(
@@ -262,6 +285,27 @@ def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
     return SummarizeIssueResponse.validate(response_data)
 
 
+def get_and_update_group_fixability_score(group: Group, force_generate: bool = False) -> float:
+    """
+    Get the fixability score for a group and update the group with the score.
+    If the fixability score is already set, return it without generating a new one.
+    """
+    if not force_generate and group.seer_fixability_score is not None:
+        return group.seer_fixability_score
+
+    with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
+        issue_summary = _generate_fixability_score(group)
+
+    if not issue_summary.scores:
+        raise ValueError("Issue summary scores is None or empty.")
+    if issue_summary.scores.fixability_score is None:
+        raise ValueError("Issue summary fixability score is None.")
+
+    fixability_score = issue_summary.scores.fixability_score
+    group.update(seer_fixability_score=fixability_score)
+    return fixability_score
+
+
 def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     project = group.project
     option = project.get_option("sentry:autofix_automation_tuning")
@@ -280,7 +324,7 @@ def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     return False
 
 
-def _run_automation(
+def run_automation(
     group: Group,
     user: User | RpcUser | AnonymousUser,
     event: GroupEvent,
@@ -288,6 +332,30 @@ def _run_automation(
 ) -> None:
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return
+
+    # Check event count for ALERT source with triage-signals-v0-org
+    if is_seer_seat_based_tier_enabled(group.organization):
+        if source == SeerAutomationSource.ALERT:
+            # Use times_seen_with_pending if available (set by post_process), otherwise fall back
+            times_seen = (
+                group.times_seen_with_pending
+                if hasattr(group, "_times_seen_pending")
+                else group.times_seen
+            )
+            if times_seen < 10:
+                return
+
+        try:
+            times_seen = group.times_seen_with_pending
+        except (AssertionError, AttributeError):
+            times_seen = group.times_seen
+        logger.info(
+            "Triage signals V0: %s: run_automation called: project_slug=%s, source=%s, times_seen=%s",
+            group.id,
+            group.project.slug,
+            source.value,
+            times_seen,
+        )
 
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
@@ -303,23 +371,16 @@ def _run_automation(
         }
     )
 
-    with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-        issue_summary = _generate_fixability_score(group)
-
-    if not issue_summary.scores:
-        raise ValueError("Issue summary scores is None or empty.")
-    if issue_summary.scores.fixability_score is None:
-        raise ValueError("Issue summary fixability score is None.")
-
-    group.update(seer_fixability_score=issue_summary.scores.fixability_score)
+    # Only generate fixability if it doesn't already exist
+    fixability_score = get_and_update_group_fixability_score(group)
 
     if (
-        not _is_issue_fixable(group, issue_summary.scores.fixability_score)
+        not _is_issue_fixable(group, fixability_score)
         and not group.issue_type.always_trigger_seer_automation
     ):
         return
 
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
+    has_budget: bool = quotas.backend.check_seer_quota(
         org_id=group.organization.id,
         data_category=DataCategory.SEER_AUTOFIX,
     )
@@ -335,20 +396,15 @@ def _run_automation(
         return
 
     stopping_point = None
-    if features.has("projects:triage-signals-v0", group.project):
-        fixability_stopping_point = _get_stopping_point_from_fixability(
-            issue_summary.scores.fixability_score
-        )
-        logger.info("Fixability-based stopping point: %s", fixability_stopping_point)
+    if is_seer_seat_based_tier_enabled(group.organization):
+        fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
 
         # Fetch user preference and apply as upper bound
         user_preference = _fetch_user_preference(group.project.id)
-        logger.info("User preference stopping point: %s", user_preference)
 
         stopping_point = _apply_user_preference_upper_bound(
             fixability_stopping_point, user_preference
         )
-        logger.info("Final stopping point after upper bound: %s", stopping_point)
 
     _trigger_autofix_task.delay(
         group_id=group.id,
@@ -392,7 +448,7 @@ def _generate_summary(
 
     if should_run_automation:
         try:
-            _run_automation(group, user, event, source)
+            run_automation(group, user, event, source)
         except Exception:
             logger.exception(
                 "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
@@ -408,9 +464,6 @@ def _generate_summary(
 
 def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource):
     if source == SeerAutomationSource.ISSUE_DETAILS:
-        return
-    # seer runs are free for web vitals issues during testing phase
-    if group.issue_type == WebVitalsGroup:
         return
 
     quotas.backend.record_seer_run(

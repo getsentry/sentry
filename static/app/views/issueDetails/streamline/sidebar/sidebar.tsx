@@ -121,7 +121,7 @@ const StyledBreak = styled('hr')`
 
 export const SidebarSectionTitle = styled(SidebarSection.Title)`
   margin-bottom: ${space(1)};
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Side = styled(Layout.Side)`

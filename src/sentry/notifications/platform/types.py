@@ -17,6 +17,9 @@ class NotificationCategory(StrEnum):
 
     # TODO(ecosystem): Connect this to NotificationSettingEnum
     DEBUG = "debug"
+    DATA_EXPORT = "data-export"
+    DYNAMIC_SAMPLING = "dynamic-sampling"
+    REPOSITORY = "repository"
 
     def get_sources(self) -> list[str]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -30,6 +33,16 @@ NOTIFICATION_SOURCE_MAP = {
         "slow-load-metric-alert",
         "performance-monitoring",
         "team-communication",
+    ],
+    NotificationCategory.DATA_EXPORT: [
+        "data-export-success",
+        "data-export-failure",
+    ],
+    NotificationCategory.DYNAMIC_SAMPLING: [
+        "custom-rule-samples-fulfilled",
+    ],
+    NotificationCategory.REPOSITORY: [
+        "unable-to-delete-repository",
     ],
 }
 
@@ -237,14 +250,18 @@ class NotificationBodyTextBlock(Protocol):
 
 @dataclass
 class ParagraphBlock(NotificationBodyFormattingBlock):
-    type: Literal[NotificationBodyFormattingBlockType.PARAGRAPH]
     blocks: list[NotificationBodyTextBlock]
+    type: Literal[NotificationBodyFormattingBlockType.PARAGRAPH] = (
+        NotificationBodyFormattingBlockType.PARAGRAPH
+    )
 
 
 @dataclass
 class CodeBlock(NotificationBodyFormattingBlock):
-    type: Literal[NotificationBodyFormattingBlockType.CODE_BLOCK]
     blocks: list[NotificationBodyTextBlock]
+    type: Literal[NotificationBodyFormattingBlockType.CODE_BLOCK] = (
+        NotificationBodyFormattingBlockType.CODE_BLOCK
+    )
 
 
 @dataclass
@@ -255,14 +272,16 @@ class BoldTextBlock(NotificationBodyTextBlock):
 
 @dataclass
 class CodeTextBlock(NotificationBodyTextBlock):
-    type: Literal[NotificationBodyTextBlockType.CODE]
     text: str
+    type: Literal[NotificationBodyTextBlockType.CODE] = NotificationBodyTextBlockType.CODE
 
 
 @dataclass
 class PlainTextBlock(NotificationBodyTextBlock):
-    type: Literal[NotificationBodyTextBlockType.PLAIN_TEXT]
     text: str
+    type: Literal[NotificationBodyTextBlockType.PLAIN_TEXT] = (
+        NotificationBodyTextBlockType.PLAIN_TEXT
+    )
 
 
 class NotificationTemplate[T: NotificationData](abc.ABC):
@@ -290,3 +309,10 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
         implementation should be pure, and not populate with any live data.
         """
         return self.render(data=self.example_data)
+
+    @classmethod
+    def get_data_class(cls) -> type[NotificationData]:
+        """
+        Returns NotificationData type for this template.
+        """
+        return cls.example_data.__class__

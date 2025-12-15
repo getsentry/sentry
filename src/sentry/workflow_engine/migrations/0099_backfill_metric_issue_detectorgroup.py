@@ -82,7 +82,14 @@ def backfill_metric_issue_detectorgroup(
         # figure out the detector
         latest_event = get_oldest_or_latest_event(group, EventOrdering.LATEST)
         if not latest_event:
-            logger.info("No latest event found for group", extra={"group_id": group.id})
+            DetectorGroup.objects.create(
+                group_id=group.id,
+                detector_id=None,
+            )
+            logger.info(
+                "No latest event found for group, creating DetectorGroup with null detector",
+                extra={"group_id": group.id},
+            )
             continue
 
         occurrence = latest_event.occurrence

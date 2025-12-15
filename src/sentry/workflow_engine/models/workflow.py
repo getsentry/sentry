@@ -69,7 +69,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     # Required as the 'when' condition for the workflow, this evaluates states emitted from the detectors
     when_condition_group = FlexibleForeignKey(
-        "workflow_engine.DataConditionGroup", null=True, blank=True
+        "workflow_engine.DataConditionGroup", null=True, blank=True, db_index=False
     )
 
     environment = FlexibleForeignKey("sentry.Environment", null=True, blank=True)
@@ -99,6 +99,12 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     class Meta:
         app_label = "workflow_engine"
         db_table = "workflow_engine_workflow"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["when_condition_group_id"],
+                name="workflow_engine_workflow_when_condition_group_id_11d9ba05_uniq",
+            ),
+        ]
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name}

@@ -63,7 +63,10 @@ class FernetKeyStore:
                     sentry_sdk.capture_exception(e)
 
         cls._is_loaded = True
-        logger.info("Successfully loaded %d Fernet encryption keys.", len(cls._keys))
+        if cls._keys:
+            logger.info("Successfully loaded %d Fernet encryption keys.", len(cls._keys))
+        else:
+            logger.info("No Fernet encryption keys loaded.")
 
     @classmethod
     def get_fernet_for_key_id(cls, key_id: str) -> Fernet:
@@ -100,3 +103,8 @@ class FernetKeyStore:
             raise ValueError("Fernet primary key ID is not configured.")
 
         return primary_key_id, cls.get_fernet_for_key_id(primary_key_id)
+
+
+def initialize_encrypted_field_key_store() -> None:
+    # FernetKeyStore load keys from the mounted file system
+    FernetKeyStore.load_keys()

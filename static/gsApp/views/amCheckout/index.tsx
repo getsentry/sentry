@@ -40,21 +40,17 @@ import {
   PAYG_BUSINESS_DEFAULT,
   PAYG_TEAM_DEFAULT,
 } from 'getsentry/constants';
-import {
-  CheckoutType,
-  InvoiceItemType,
-  OnDemandBudgetMode,
-  PlanName,
-  PlanTier,
-  type BillingConfig,
-  type CheckoutAddOns,
-  type EventBucket,
-  type Invoice,
-  type OnDemandBudgets,
-  type Plan,
-  type PreviewData,
-  type PromotionData,
-  type Subscription,
+import {CheckoutType, OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
+import type {
+  BillingConfig,
+  CheckoutAddOns,
+  EventBucket,
+  Invoice,
+  OnDemandBudgets,
+  Plan,
+  PreviewData,
+  PromotionData,
+  Subscription,
 } from 'getsentry/types';
 import {
   hasActiveVCFeature,
@@ -138,16 +134,12 @@ class AMCheckout extends Component<Props, State> {
     const queryString =
       query && Object.keys(query).length > 0 ? `?${qs.stringify(query)}` : '';
 
-    // TODO(checkout v3): remove these checks once checkout v3 is GA'd and we've remove the legacy checkout route
-    if (props.location?.pathname.includes('checkout-v3') && !props.isNewCheckout) {
-      props.navigate(
-        `/settings/${props.organization.slug}/billing/checkout/${queryString}`,
-        {
-          replace: true,
-        }
-      );
-    } else if (!props.location?.pathname.includes('checkout-v3') && props.isNewCheckout) {
-      props.navigate(`/checkout-v3/${queryString}`, {replace: true});
+    // TODO(checkout v3): remove this check once we properly redirect from the legacy routes
+    if (
+      props.location?.pathname.includes('/settings/billing/checkout/') &&
+      props.isNewCheckout
+    ) {
+      props.navigate(`/checkout/${queryString}`, {replace: true});
     }
     let step = 1;
     if (props.location?.hash) {
@@ -167,9 +159,7 @@ class AMCheckout extends Component<Props, State> {
       const selectedAll = Object.values(props.subscription.addOns ?? {}).every(
         addOn =>
           // add-on is enabled or not launched yet
-          // if there's no billing flag, we assume it's launched
-          addOn.enabled ||
-          (addOn.billingFlag && !props.organization.features.includes(addOn.billingFlag))
+          addOn.enabled || !addOn.isAvailable
       );
 
       if (selectedAll) {
@@ -278,6 +268,22 @@ class AMCheckout extends Component<Props, State> {
   }
 
   getPlans(billingConfig: BillingConfig) {
+    const {subscription} = this.props;
+    const isTestOrg = subscription.planDetails.isTestPlan;
+    if (isTestOrg) {
+      const testPlans = billingConfig.planList.filter(
+        plan =>
+          plan.isTestPlan &&
+          (plan.id.includes(billingConfig.freePlan) ||
+            (plan.basePrice &&
+              ((plan.billingInterval === MONTHLY && plan.contractInterval === MONTHLY) ||
+                (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL))))
+      );
+
+      if (testPlans.length > 0) {
+        return testPlans;
+      }
+    }
     const plans = billingConfig.planList.filter(
       plan =>
         plan.id === billingConfig.freePlan ||
@@ -527,7 +533,7 @@ class AMCheckout extends Component<Props, State> {
       addOns: Object.values(subscription.addOns ?? {})
         .filter(
           // only populate add-ons that are launched
-          addOn => !addOn.billingFlag || organization.features.includes(addOn.billingFlag)
+          addOn => addOn.isAvailable
         )
         .reduce((acc, addOn) => {
           acc[addOn.apiName] = {
@@ -811,9 +817,7 @@ class AMCheckout extends Component<Props, State> {
     }
 
     if (isSubmitted && isNewCheckout) {
-      const purchasedPlanItem = invoice?.items.find(
-        item => item.type === InvoiceItemType.SUBSCRIPTION
-      );
+      const purchasedPlanItem = invoice?.items.find(item => item.type === 'subscription');
       const basePlan = purchasedPlanItem
         ? this.getPlan(purchasedPlanItem.data.plan)
         : this.getPlan(formData.plan);
@@ -1044,7 +1048,7 @@ const CheckoutHeader = styled('header')`
   right: 0;
   z-index: 100;
   width: 100%;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-bottom: 1px solid ${p => p.theme.border};
   display: flex;
   justify-content: center;
@@ -1100,7 +1104,7 @@ const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
             max-width: 26rem;
             border-top: none;
             padding-left: ${p.theme.space['3xl']};
-            background-color: ${p.theme.background};
+            background-color: ${p.theme.tokens.background.primary};
             padding-bottom: ${p.theme.space['3xl']};
           }
         `

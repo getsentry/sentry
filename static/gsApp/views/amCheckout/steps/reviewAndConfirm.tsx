@@ -17,7 +17,6 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import type {PreviewData, Subscription} from 'getsentry/types';
-import {InvoiceItemType} from 'getsentry/types';
 import {hasPartnerMigrationFeature} from 'getsentry/utils/billing';
 import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepPropsWithApi} from 'getsentry/views/amCheckout/types';
@@ -252,7 +251,7 @@ function ReviewAndConfirmItems({previewData}: Pick<State, 'previewData'>) {
           idx
         ) => {
           const price = displayPrice({cents: amount});
-          const showDates = type === InvoiceItemType.SUBSCRIPTION;
+          const showDates = type === 'subscription';
 
           return (
             <PreviewItem showDates={showDates} key={idx}>
@@ -390,7 +389,7 @@ const StyledPanelBody = styled(PanelBody)`
 `;
 
 const Preview = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.md};
 `;
 

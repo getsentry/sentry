@@ -3,7 +3,7 @@ import uuid
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
-class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
+class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBase):
     def test_cross_trace_query_with_logs(self) -> None:
         trace_id = uuid.uuid4().hex
         excluded_trace_id = uuid.uuid4().hex
@@ -50,7 +50,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
-                "logQueries": ["message:foo"],
+                "logQuery": ["message:foo"],
             }
         )
 
@@ -102,7 +102,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
-                "spanQueries": ["tags[foo]:six"],
+                "spanQuery": ["tags[foo]:six"],
             }
         )
 
@@ -167,8 +167,8 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
-                "spanQueries": ["tags[foo]:six"],
-                "logQueries": ["message:foo"],
+                "spanQuery": ["tags[foo]:six"],
+                "logQuery": ["message:foo"],
             }
         )
 
@@ -230,7 +230,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
-                "spanQueries": ["tags[foo]:six", "tags[foo]:seven"],
+                "spanQuery": ["tags[foo]:six", "tags[foo]:seven"],
             }
         )
 
@@ -288,7 +288,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
-                "logQueries": ["message:faa", "message:foo"],
+                "logQuery": ["message:faa", "message:foo"],
             }
         )
 

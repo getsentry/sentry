@@ -26,6 +26,7 @@ export enum OurLogKnownFieldKey {
   TIMESTAMP = 'timestamp',
   TIMESTAMP_PRECISE = 'timestamp_precise',
   OBSERVED_TIMESTAMP_PRECISE = 'observed_timestamp',
+  LOGGER = 'logger.name',
 
   PAYLOAD_SIZE = 'payload_size',
 

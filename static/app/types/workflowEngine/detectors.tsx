@@ -9,6 +9,7 @@ import type {
   AlertRuleThresholdType,
   Dataset,
   EventTypes,
+  ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
 import type {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 import type {Monitor, MonitorConfig} from 'sentry/views/insights/crons/types';
@@ -27,6 +28,7 @@ export interface SnubaQuery {
    */
   timeWindow: number;
   environment?: string;
+  extrapolationMode?: ExtrapolationMode;
 }
 
 /**
@@ -154,7 +156,7 @@ export interface ErrorDetector extends BaseDetector {
   readonly type: 'error';
 }
 
-interface IssueStreamDetector extends BaseDetector {
+export interface IssueStreamDetector extends BaseDetector {
   // TODO: Add issue stream detector type fields
   readonly type: 'issue_stream';
 }
@@ -179,6 +181,7 @@ interface UpdateSnubaDataSourcePayload {
   query: string;
   queryType: number;
   timeWindow: number;
+  extrapolationMode?: string;
 }
 
 interface UpdateUptimeDataSourcePayload {

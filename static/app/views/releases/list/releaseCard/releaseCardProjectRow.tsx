@@ -56,7 +56,7 @@ function getCrashFreeIcon(crashFreePercent: number, iconSize: IconSize = 'sm') {
     return <IconWarning color="warningText" size={iconSize} />;
   }
 
-  return <IconCheckmark isCircled color="successText" size={iconSize} />;
+  return <IconCheckmark color="successText" size={iconSize} />;
 }
 
 type Props = {

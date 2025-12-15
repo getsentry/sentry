@@ -47,6 +47,7 @@ import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
+import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -648,6 +649,9 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onEditWidget = (widget: Widget) => {
+    // Start measuring the "onEdit" click handler duration
+    const start = performance.now();
+
     const {navigate, organization, params, location, dashboard} = this.props;
     const {modifiedDashboard} = this.state;
     const currentDashboard = modifiedDashboard ?? dashboard;
@@ -686,6 +690,17 @@ class DashboardDetail extends Component<Props, State> {
       }),
       {preventScrollReset: true}
     );
+
+    // Schedule stopping the timer for the end of the current task queue tick.
+    // This roughly corresponds to when React finishes the rendering and
+    // painting, and gives a decent idea of how long it took to open the Widget
+    // Builder
+    scheduleMicroTask(() => {
+      const duration = performance.now() - start;
+      Sentry.metrics.distribution('dashboards.widget.onEdit', duration, {
+        unit: 'millisecond',
+      });
+    });
   };
 
   handleSaveWidget = ({index, widget}: {index: number | undefined; widget: Widget}) => {
@@ -960,7 +975,6 @@ class DashboardDetail extends Component<Props, State> {
                   filters={{}} // Default Dashboards don't have filters set
                   location={location}
                   hasUnsavedChanges={false}
-                  hasTemporaryFilters={false}
                   isEditingDashboard={false}
                   isPreview={false}
                   onDashboardFilterChange={this.handleChangeFilter}
@@ -986,6 +1000,7 @@ class DashboardDetail extends Component<Props, State> {
                           onUpdate={this.onUpdateWidget}
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
+                          isEmbedded={this.isEmbedded}
                           isPreview={this.isPreview}
                           widgetLegendState={this.state.widgetLegendState}
                         />
@@ -1041,10 +1056,6 @@ class DashboardDetail extends Component<Props, State> {
       dashboard.id !== 'default-overview' &&
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
-
-    const hasTemporaryFilters = defined(
-      location.query?.[DashboardFilterKeys.TEMPORARY_FILTERS]
-    );
 
     const eventView = generatePerformanceEventView(location, projects, {}, organization);
 
@@ -1178,7 +1189,6 @@ class DashboardDetail extends Component<Props, State> {
                                 dashboardCreator={dashboard.createdBy}
                                 location={location}
                                 hasUnsavedChanges={!this.isEmbedded && hasUnsavedFilters}
-                                hasTemporaryFilters={hasTemporaryFilters}
                                 isEditingDashboard={
                                   dashboardState !== DashboardState.CREATE &&
                                   this.isEditingDashboard
@@ -1186,6 +1196,7 @@ class DashboardDetail extends Component<Props, State> {
                                 isPreview={this.isPreview}
                                 onDashboardFilterChange={this.handleChangeFilter}
                                 shouldBusySaveButton={this.state.isSavingDashboardFilters}
+                                prebuiltDashboardId={dashboard.prebuiltId}
                                 onCancel={() => {
                                   resetPageFilters(dashboard, location);
                                   trackAnalytics('dashboards2.filter.cancel', {
@@ -1269,6 +1280,7 @@ class DashboardDetail extends Component<Props, State> {
                                       onAddWidget={this.onAddWidget}
                                       newWidget={newWidget}
                                       onSetNewWidget={onSetNewWidget}
+                                      isEmbedded={this.isEmbedded}
                                       isPreview={this.isPreview}
                                       widgetLegendState={this.state.widgetLegendState}
                                       onEditWidget={this.onEditWidget}

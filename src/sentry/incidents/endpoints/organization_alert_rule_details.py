@@ -72,7 +72,9 @@ def fetch_alert_rule(
 
     if features.has("organizations:workflow-engine-rule-serializers", organization):
         try:
-            detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+            detector = Detector.objects.with_type_filters().get(
+                alertruledetector__alert_rule_id=alert_rule.id
+            )
             return Response(
                 serialize(
                     detector,
@@ -125,7 +127,10 @@ def update_alert_rule(
         partial=True,
     )
     if validator.is_valid():
-        if data.get("dataset") == Dataset.EventsAnalyticsPlatform.value:
+        if (
+            data.get("dataset", alert_rule.snuba_query.dataset)
+            == Dataset.EventsAnalyticsPlatform.value
+        ):
             if data.get("extrapolation_mode"):
                 old_extrapolation_mode = ExtrapolationMode(
                     alert_rule.snuba_query.extrapolation_mode
@@ -158,7 +163,9 @@ def update_alert_rule(
             if features.has("organizations:workflow-engine-rule-serializers", organization):
                 validator.save()
                 try:
-                    detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+                    detector = Detector.objects.with_type_filters().get(
+                        alertruledetector__alert_rule_id=alert_rule.id
+                    )
                     return Response(
                         serialize(
                             detector,

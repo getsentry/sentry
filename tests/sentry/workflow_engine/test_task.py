@@ -9,6 +9,7 @@ from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.handlers.workflow import workflow_status_update_handler
@@ -137,6 +138,7 @@ class TestProcessWorkflowActivity(TestCase):
         self.activity.save()
         self.detector = self.create_detector(type=MetricIssue.slug)
 
+    @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
     def test_process_workflow_activity__no_workflows(self, mock_logger) -> None:
         with mock.patch(
@@ -155,17 +157,18 @@ class TestProcessWorkflowActivity(TestCase):
                 "workflow_engine.process_workflows.evaluation.workflows.not_triggered",
                 extra={
                     "workflow_ids": None,
-                    "associated_detector": self.detector.get_snapshot(),
-                    "event": self.activity,
-                    "group": self.activity.group,
+                    "detection_type": self.detector.type,
                     "event_id": None,
-                    "action_filter_conditions": None,
-                    "triggered_actions": None,
-                    "triggered_workflows": None,
+                    "group_id": self.activity.group.id,
+                    "action_filter_group_ids": [],
+                    "triggered_action_ids": [],
+                    "triggered_workflow_ids": [],
+                    "delayed_conditions": None,
                     "debug_msg": "No workflows are associated with the detector in the event",
                 },
             )
 
+    @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch(
         "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
         return_value=(set(), {}),
@@ -202,13 +205,13 @@ class TestProcessWorkflowActivity(TestCase):
             "workflow_engine.process_workflows.evaluation.workflows.triggered",
             extra={
                 "workflow_ids": [self.workflow.id],
-                "associated_detector": self.detector.get_snapshot(),
-                "event": self.activity,
-                "group": self.activity.group,
+                "detection_type": self.detector.type,
+                "group_id": self.activity.group.id,
                 "event_id": None,
-                "action_filter_conditions": None,
-                "triggered_actions": None,
-                "triggered_workflows": None,
+                "action_filter_group_ids": [],
+                "triggered_action_ids": [],
+                "triggered_workflow_ids": [],
+                "delayed_conditions": None,
                 "debug_msg": "No items were triggered or queued for slow evaluation",
             },
         )
@@ -246,6 +249,7 @@ class TestProcessWorkflowActivity(TestCase):
 
         mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)
 
+    @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch("sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers")
     @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
     def test_process_workflow_activity__success_logs(
@@ -282,13 +286,13 @@ class TestProcessWorkflowActivity(TestCase):
             "workflow_engine.process_workflows.evaluation.actions.triggered",
             extra={
                 "workflow_ids": [self.workflow.id],
-                "associated_detector": self.detector.get_snapshot(),
-                "event": self.activity,
-                "group": self.activity.group,
+                "detection_type": self.detector.type,
+                "group_id": self.activity.group.id,
                 "event_id": None,
-                "action_filter_conditions": [self.action_group.get_snapshot()],
-                "triggered_actions": [self.action.get_snapshot()],
-                "triggered_workflows": [self.workflow.get_snapshot()],
+                "action_filter_group_ids": [self.action_group.id],
+                "triggered_action_ids": [self.action.id],
+                "triggered_workflow_ids": [self.workflow.id],
+                "delayed_conditions": None,
                 "debug_msg": None,
             },
         )

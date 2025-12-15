@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   SubscriptionFixture,
-  SubscriptionWithSeerFixture,
+  SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 
 import {DataCategory} from 'sentry/types/core';
@@ -99,7 +99,7 @@ describe('calculateTotalSpend', () => {
   });
 
   it('should calculate reserved budget spend', () => {
-    const seerSubscription = SubscriptionWithSeerFixture({
+    const seerSubscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
     });

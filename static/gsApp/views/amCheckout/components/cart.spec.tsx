@@ -18,12 +18,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PAYG_BUSINESS_DEFAULT} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {
-  AddOnCategory,
-  InvoiceItemType,
-  OnDemandBudgetMode,
-  PlanTier,
-} from 'getsentry/types';
+import {AddOnCategory, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import Cart from 'getsentry/views/amCheckout/components/cart';
 import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
@@ -142,7 +137,11 @@ describe('Cart', () => {
         sharedMaxBudget: 50_00,
       },
       onDemandMaxSpend: 50_00,
+      // this would not happen IRL, but for testing purposes we can add both add-ons
       addOns: {
+        [AddOnCategory.LEGACY_SEER]: {
+          enabled: true,
+        },
         [AddOnCategory.SEER]: {
           enabled: true,
         },
@@ -170,9 +169,13 @@ describe('Cart', () => {
     expect(planItem).toHaveTextContent('Continuous profile hours');
     expect(planItem).toHaveTextContent('Available');
 
+    const legacySeerItem = screen.getByTestId('summary-item-product-legacySeer');
+    expect(legacySeerItem).toHaveTextContent('Seer');
+    expect(legacySeerItem).toHaveTextContent('$216/yr');
+
     const seerItem = screen.getByTestId('summary-item-product-seer');
     expect(seerItem).toHaveTextContent('Seer');
-    expect(seerItem).toHaveTextContent('$216/yr');
+    expect(seerItem).toHaveTextContent('Variable cost');
 
     const spendCapItem = screen.getByTestId('summary-item-spend-limit');
     expect(spendCapItem).toHaveTextContent('up to $50/mo');
@@ -280,13 +283,13 @@ describe('Cart', () => {
           {
             amount: 2_00,
             description: 'Tax',
-            type: InvoiceItemType.SALES_TAX,
+            type: 'sales_tax',
           },
           {
             amount: 89_00,
             description: 'Business Plan',
             period_end: moment(MOCK_TODAY).add(1, 'day').format('YYYY-MM-DD'),
-            type: InvoiceItemType.SUBSCRIPTION,
+            type: 'subscription',
           },
         ],
       },
@@ -329,7 +332,7 @@ describe('Cart', () => {
             amount: 89_00,
             description: 'Business Plan',
             period_end: moment(MOCK_TODAY).add(2, 'year').format('YYYY-MM-DD'),
-            type: InvoiceItemType.SUBSCRIPTION,
+            type: 'subscription',
           },
         ],
       },
@@ -462,6 +465,7 @@ describe('Cart', () => {
         },
         name: 'partner',
       },
+      paymentSource: null,
     });
 
     render(
@@ -476,7 +480,9 @@ describe('Cart', () => {
     );
 
     // wait for preview to be loaded
-    await screen.findByRole('button', {name: 'Confirm and pay'});
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Confirm and pay'})).toBeEnabled()
+    );
     screen.getByText(/you will be billed by Partner/);
   });
 
@@ -501,7 +507,7 @@ describe('Cart', () => {
         sharedMaxBudget: 1_00,
       },
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: true,
         },
       },
@@ -613,13 +619,13 @@ describe('Cart', () => {
             amount: 25_00,
             description: '500 pay-as-you-go replays',
             data: {quantity: 500},
-            type: InvoiceItemType.ONDEMAND_REPLAYS,
+            type: 'ondemand_replays',
           },
           {
             amount: 25_00,
             description: '50 GB pay-as-you-go attachments',
             data: {quantity: 53687091200},
-            type: InvoiceItemType.ONDEMAND_ATTACHMENTS,
+            type: 'ondemand_attachments',
           },
         ],
       },

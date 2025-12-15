@@ -23,6 +23,8 @@ import {
 } from 'sentry/icons';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery, useMutation, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -62,6 +64,8 @@ export function SizeCompareSelectionContent({
   const {projectId} = useParams<{
     projectId: string;
   }>();
+  const project = ProjectsStore.getBySlug(projectId);
+  const projectType = project?.platform ?? null;
   const [selectedBaseBuild, setSelectedBaseBuild] = useState<
     BuildDetailsApiResponse | undefined
   >(baseBuildDetails);
@@ -179,7 +183,19 @@ export function SizeCompareSelectionContent({
                 key={build.id}
                 build={build}
                 isSelected={selectedBaseBuild === build}
-                onSelect={() => setSelectedBaseBuild(build)}
+                onSelect={() => {
+                  setSelectedBaseBuild(build);
+                  trackAnalytics('preprod.builds.compare.select_base_build', {
+                    organization,
+                    build_id: build.id,
+                    project_slug: projectId,
+                    platform:
+                      build.app_info?.platform ??
+                      headBuildDetails.app_info?.platform ??
+                      null,
+                    project_type: projectType,
+                  });
+                }}
               />
             );
           })}
@@ -270,7 +286,7 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
 
 const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
   border: 1px solid ${p => (p.isSelected ? p.theme.focusBorder : p.theme.border)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.md};
   cursor: pointer;
 
@@ -288,7 +304,7 @@ const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
 const BuildItemBranchTag = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.purple400};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};

@@ -95,7 +95,7 @@ const CollapsedProjects = styled('div')`
 `;
 
 const AvatarStyle = (p: any) => css`
-  border: 2px solid ${p.theme.background};
+  border: 2px solid ${p.theme.tokens.background.primary};
   margin-right: -8px;
   cursor: default;
 
@@ -122,6 +122,6 @@ const CollapsedBadge = styled('div')<{fontSize: number; size: number}>`
   font-size: ${p => p.fontSize}px;
   width: ${p => p.size}px;
   height: ${p => p.size}px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   ${AvatarStyle}
 `;

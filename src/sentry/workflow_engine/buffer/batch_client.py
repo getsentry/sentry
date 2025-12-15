@@ -2,19 +2,56 @@ from __future__ import annotations
 
 import random
 from collections.abc import Mapping
+from dataclasses import dataclass
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 import pydantic
 
 import sentry.workflow_engine.buffer as buffer
+from sentry.utils import json
 from sentry.workflow_engine.models import Workflow
 
 if TYPE_CHECKING:
+    from sentry.services.eventstore.models import GroupEvent
     from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
 
 
 class CohortUpdates(pydantic.BaseModel):
     values: dict[int, float]
+
+
+DataConditionGroupId = int
+
+
+@dataclass
+class DelayedWorkflowItem:
+    workflow: Workflow
+    event: GroupEvent
+    delayed_when_group_id: DataConditionGroupId | None
+    delayed_if_group_ids: list[DataConditionGroupId]
+    passing_if_group_ids: list[DataConditionGroupId]
+
+    # Used to pick the end of the time window in snuba querying.
+    # Should be close to when fast conditions were evaluated to try to be consistent.
+    timestamp: datetime
+
+    def buffer_key(self) -> str:
+        when_condition_group_str = (
+            str(self.delayed_when_group_id) if self.delayed_when_group_id else ""
+        )
+        if_condition_groups = ",".join(str(id) for id in sorted(self.delayed_if_group_ids))
+        passing_if_groups = ",".join(str(id) for id in sorted(self.passing_if_group_ids))
+        return f"{self.workflow.id}:{self.event.group.id}:{when_condition_group_str}:{if_condition_groups}:{passing_if_groups}"
+
+    def buffer_value(self) -> str:
+        return json.dumps(
+            {
+                "event_id": self.event.event_id,
+                "occurrence_id": self.event.occurrence_id,
+                "timestamp": self.timestamp,
+            }
+        )
 
 
 class DelayedWorkflowClient:

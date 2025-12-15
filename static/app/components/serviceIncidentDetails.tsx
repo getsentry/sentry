@@ -123,7 +123,7 @@ function getStatusSymbol(status: StatusPageServiceStatus) {
   return (
     <Tooltip skipWrapper title={startCase(status)}>
       {status === 'operational' ? (
-        <IconCheckmark size="sm" isCircled color="successText" />
+        <IconCheckmark size="sm" color="successText" />
       ) : status === 'major_outage' ? (
         <IconFatal size="sm" color="errorText" />
       ) : status === 'degraded_performance' ? (
@@ -171,8 +171,8 @@ const UpdatesList = styled(List)`
     width: 2px;
     background: linear-gradient(
       0deg,
-      ${p => p.theme.background},
-      ${p => color(p.theme.background).alpha(0).string()}
+      ${p => p.theme.tokens.background.primary},
+      ${p => color(p.theme.tokens.background.primary).alpha(0).string()}
     );
   }
 `;
@@ -213,13 +213,13 @@ const UpdateHeading = styled('div')<{status: StatusPageIncidentUpdate['status']}
 `;
 
 const StatusTitle = styled('div')`
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const StatusDate = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const ComponentList = styled(List)`

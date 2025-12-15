@@ -13,8 +13,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.file = self.create_file(name="test_artifact.apk", type="application/octet-stream")
-        self.preprod_artifact = PreprodArtifact.objects.create(
-            project=self.project,
+        self.preprod_artifact = self.create_preprod_artifact(
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.UPLOADING,
         )
@@ -177,7 +176,16 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
         self.preprod_artifact.refresh_from_db()
         stored_apple_info = self.preprod_artifact.extras or {}
-        assert stored_apple_info == apple_info
+        # Verify that missing_dsym_binaries array is converted to has_missing_dsym_binaries boolean
+        expected_extras = {
+            "is_simulator": True,
+            "codesigning_type": "development",
+            "profile_name": "Test Profile",
+            "is_code_signature_valid": False,
+            "code_signature_errors": ["Certificate expired", "Missing entitlements"],
+            "has_missing_dsym_binaries": True,  # Converted from non-empty array
+        }
+        assert stored_apple_info == expected_extras
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_with_android_app_info(self) -> None:
@@ -204,15 +212,9 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert stored_android_info["has_proguard_mapping"] is True
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_preprod_artifact_with_missing_dsym_binaries_truncation(self) -> None:
-        """Test that missing_dsym_binaries list is truncated if it exceeds 1024 chars."""
-        # Create a list that exceeds 1024 chars total
-        # Each item is 30 chars, so 40 items = 1200 chars
-        large_list = [f"VeryLongLibraryName{i:04d}.dylib" for i in range(40)]
-        total_chars = sum(len(s) for s in large_list)
-        assert total_chars > 1024, "Test data should exceed 1024 chars"
-
-        apple_info = {"missing_dsym_binaries": large_list}
+    def test_update_preprod_artifact_with_missing_dsym_binaries_empty_array(self) -> None:
+        """Test that empty missing_dsym_binaries array converts to has_missing_dsym_binaries=False."""
+        apple_info: dict[str, Any] = {"missing_dsym_binaries": []}
         data = {
             "artifact_type": 1,
             "apple_app_info": apple_info,
@@ -225,13 +227,27 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
         self.preprod_artifact.refresh_from_db()
         stored_apple_info = self.preprod_artifact.extras or {}
-        stored_binaries = stored_apple_info.get("missing_dsym_binaries", [])
+        assert stored_apple_info.get("has_missing_dsym_binaries") is False
 
-        # Verify the list was truncated
-        assert len(stored_binaries) < len(large_list)
-        # Verify total chars is within limit
-        stored_total_chars = sum(len(s) for s in stored_binaries)
-        assert stored_total_chars <= 1024
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_with_missing_dsym_binaries_non_empty_array(self) -> None:
+        """Test that non-empty missing_dsym_binaries array converts to has_missing_dsym_binaries=True."""
+        # Even a large list should just convert to True
+        large_list = [f"VeryLongLibraryName{i:04d}.dylib" for i in range(40)]
+        apple_info: dict[str, Any] = {"missing_dsym_binaries": large_list}
+        data = {
+            "artifact_type": 1,
+            "apple_app_info": apple_info,
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+
+        self.preprod_artifact.refresh_from_db()
+        stored_apple_info = self.preprod_artifact.extras or {}
+        assert stored_apple_info.get("has_missing_dsym_binaries") is True
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_with_partial_apple_app_info(self) -> None:
@@ -387,6 +403,56 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert stored_extras["dequeued_at"] == "2024-04-07T14:03:18+00:00"
         assert stored_extras["is_simulator"] is False
         assert stored_extras["existing_field"] == "value"
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_with_tooling_versions_apple(self) -> None:
+        data = {
+            "apple_app_info": {
+                "cli_version": "2.39.1",
+                "fastlane_plugin_version": "2.220.0",
+            }
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+        assert set(resp_data["updatedFields"]) == {
+            "cli_version",
+            "fastlane_plugin_version",
+            "state",
+        }
+
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.cli_version == "2.39.1"
+        assert self.preprod_artifact.fastlane_plugin_version == "2.220.0"
+        assert self.preprod_artifact.gradle_plugin_version is None
+        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_with_tooling_versions_android(self) -> None:
+        data = {
+            "android_app_info": {
+                "cli_version": "2.39.1",
+                "gradle_plugin_version": "8.5.2",
+            }
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+        assert set(resp_data["updatedFields"]) == {
+            "cli_version",
+            "gradle_plugin_version",
+            "state",
+        }
+
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.cli_version == "2.39.1"
+        assert self.preprod_artifact.fastlane_plugin_version is None
+        assert self.preprod_artifact.gradle_plugin_version == "8.5.2"
+        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
 
 
 class FindOrCreateReleaseTest(TestCase):

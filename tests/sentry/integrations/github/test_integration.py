@@ -1676,9 +1676,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
         fields = installation.get_organization_config()
 
         assert [field["name"] for field in fields] == [
+            "sync_status_forward",
+            "sync_status_reverse",
             "sync_reverse_assignment",
             "sync_forward_assignment",
-            "sync_status_reverse",
             "resolution_strategy",
             "sync_comments",
         ]
@@ -1931,6 +1932,228 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         # Should not make any API calls when user is None and assign=True
         assert len(responses.calls) == 0
+
+    @responses.activate
+    @with_feature("organizations:integrations-github-outbound-status-sync")
+    def test_sync_status_outbound_resolved(self) -> None:
+        """Test syncing resolved status to GitHub (close issue)."""
+
+        installation = self.integration.get_installation(self.organization.id)
+
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="Test-Organization/foo#123",
+        )
+
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_id="Test-Organization/foo",
+            resolved_status="closed",
+            unresolved_status="open",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"state": "open", "number": 123},
+        )
+
+        responses.add(
+            responses.PATCH,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"state": "closed", "number": 123},
+        )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            installation.sync_status_outbound(
+                external_issue, is_resolved=True, project_id=self.project.id
+            )
+
+        assert len(responses.calls) == 2
+        assert responses.calls[1].request.method == "PATCH"
+        request_body = orjson.loads(responses.calls[1].request.body)
+        assert request_body == {"state": "closed"}
+
+    @responses.activate
+    @with_feature("organizations:integrations-github-outbound-status-sync")
+    def test_sync_status_outbound_unresolved(self) -> None:
+        """Test syncing unresolved status to GitHub (reopen issue)."""
+
+        installation = self.integration.get_installation(self.organization.id)
+
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="Test-Organization/foo#123",
+        )
+
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_id="Test-Organization/foo",
+            resolved_status="closed",
+            unresolved_status="open",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"state": "closed", "number": 123},
+        )
+
+        responses.add(
+            responses.PATCH,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"state": "open", "number": 123},
+        )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            installation.sync_status_outbound(
+                external_issue, is_resolved=False, project_id=self.project.id
+            )
+
+        assert len(responses.calls) == 2
+        assert responses.calls[1].request.method == "PATCH"
+        request_body = orjson.loads(responses.calls[1].request.body)
+        assert request_body == {"state": "open"}
+
+    @responses.activate
+    @with_feature("organizations:integrations-github-outbound-status-sync")
+    def test_sync_status_outbound_unchanged(self) -> None:
+        """Test that no update is made when status is already in desired state."""
+
+        installation = self.integration.get_installation(self.organization.id)
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="Test-Organization/foo#123",
+        )
+
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_id="Test-Organization/foo",
+            resolved_status="closed",
+            unresolved_status="open",
+        )
+
+        # Mock get issue to return closed status (already resolved)
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"state": "closed", "number": 123},
+        )
+
+        # Test resolve when already closed - should not make update call
+        with assume_test_silo_mode(SiloMode.REGION):
+            installation.sync_status_outbound(
+                external_issue, is_resolved=True, project_id=self.project.id
+            )
+
+        # Verify only GET was called, no PATCH
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.method == "GET"
+
+    @with_feature("organizations:integrations-github-outbound-status-sync")
+    def test_sync_status_outbound_no_external_project(self) -> None:
+        """Test that sync_status_outbound returns early if no external project mapping exists."""
+
+        installation = self.integration.get_installation(self.organization.id)
+
+        # Create external issue without project mapping
+        with assume_test_silo_mode(SiloMode.REGION):
+            external_issue = self.create_integration_external_issue(
+                group=self.group,
+                integration=self.integration,
+                key="Test-Organization/foo#123",
+            )
+
+        # No responses needed - should return early
+        with assume_test_silo_mode(SiloMode.REGION):
+            # Should not raise an exception, just return early
+            installation.sync_status_outbound(
+                external_issue, is_resolved=True, project_id=self.project.id
+            )
+
+    @responses.activate
+    @with_feature("organizations:integrations-github-outbound-status-sync")
+    def test_sync_status_outbound_api_error_on_get(self) -> None:
+        """Test that API errors on get_issue are handled properly."""
+        from sentry.shared_integrations.exceptions import IntegrationError
+
+        installation = self.integration.get_installation(self.organization.id)
+
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="Test-Organization/foo#123",
+        )
+
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_id="Test-Organization/foo",
+            resolved_status="closed",
+            unresolved_status="open",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"message": "Not Found"},
+            status=404,
+        )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            with pytest.raises(IntegrationError):
+                installation.sync_status_outbound(
+                    external_issue, is_resolved=True, project_id=self.project.id
+                )
+
+    @responses.activate
+    @with_feature("organizations:integrations-github-outbound-status-sync")
+    def test_sync_status_outbound_api_error_on_update(self) -> None:
+        """Test that API errors on update_issue are handled properly."""
+        from sentry.shared_integrations.exceptions import IntegrationError
+
+        installation = self.integration.get_installation(self.organization.id)
+
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="Test-Organization/foo#123",
+        )
+
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_id="Test-Organization/foo",
+            resolved_status="closed",
+            unresolved_status="open",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"state": "open", "number": 123},
+        )
+
+        # Mock update issue to return error
+        responses.add(
+            responses.PATCH,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"message": "Issues are disabled for this repo"},
+            status=410,
+        )
+
+        # Test that error is raised properly
+        with assume_test_silo_mode(SiloMode.REGION):
+            with pytest.raises(IntegrationError):
+                installation.sync_status_outbound(
+                    external_issue, is_resolved=True, project_id=self.project.id
+                )
 
     def test_create_comment(self) -> None:
         self.user.name = "Sentry Admin"

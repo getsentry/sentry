@@ -53,7 +53,7 @@ const ListItem = styled('li')``;
 const Dot = styled('span')<{color: string}>`
   display: inline-block;
   margin-right: ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   width: ${space(1)};
   height: ${space(1)};
   background-color: ${p => p.color};

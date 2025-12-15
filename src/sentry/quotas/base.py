@@ -694,7 +694,13 @@ class Quota(Service):
         """
         return True
 
-    def record_seer_run(self, org_id: int, project_id: int, data_category: DataCategory) -> None:
+    def record_seer_run(
+        self,
+        org_id: int,
+        project_id: int,
+        data_category: DataCategory,
+        seat_object: SeatObject | None = None,
+    ) -> None:
         """
         Records a seer run for an organization.
         """
@@ -725,3 +731,11 @@ class Quota(Service):
         Returns the maximum number of detectors allowed for the organization's plan type.
         """
         return -1
+
+    def check_seer_quota(
+        self, org_id: int, data_category: DataCategory, seat_object: SeatObject | None = None
+    ) -> bool:
+        """
+        Checks if the organization has access to Seer for the given data category and seat object.
+        """
+        return True

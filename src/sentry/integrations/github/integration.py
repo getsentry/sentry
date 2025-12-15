@@ -30,10 +30,12 @@ from sentry.integrations.base import (
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.codecov_account_link import codecov_account_link
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
+from sentry.integrations.github.types import GitHubIssueStatus
 from sentry.integrations.mixins.issues import IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.referrer_ids import GITHUB_PR_BOT_REFERRER
@@ -241,7 +243,7 @@ class GitHubIntegration(
 
     # IssueSyncIntegration configuration keys
     comment_key = "sync_comments"
-    outbound_status_key = None
+    outbound_status_key = "sync_status_forward"
     inbound_status_key = "sync_status_reverse"
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
@@ -408,6 +410,26 @@ class GitHubIntegration(
 
     # IssueSyncIntegration methods
 
+    def split_external_issue_key(
+        self, external_issue_key: str
+    ) -> tuple[str, str] | tuple[None, None]:
+        """
+        Split the external issue key into repo and issue number.
+        """
+        # Parse the external issue key to get repo and issue number
+        # Format is "{repo_full_name}#{issue_number}"
+        try:
+            repo_id, issue_num = external_issue_key.split("#")
+            return repo_id, issue_num
+        except ValueError:
+            logger.exception(
+                "github.assignee-outbound.invalid-key",
+                extra={
+                    "external_issue_key": external_issue_key,
+                },
+            )
+            return None, None
+
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
@@ -421,12 +443,10 @@ class GitHubIntegration(
         """
         client = self.get_client()
 
-        # Parse the external issue key to get repo and issue number
-        # Format is "{repo_full_name}#{issue_number}"
-        try:
-            repo, issue_num = external_issue.key.split("#")
-        except ValueError:
-            logger.exception(
+        repo_id, issue_num = self.split_external_issue_key(external_issue.key)
+
+        if not repo_id or not issue_num:
+            logger.error(
                 "github.assignee-outbound.invalid-key",
                 extra={
                     "integration_id": external_issue.integration_id,
@@ -465,7 +485,9 @@ class GitHubIntegration(
         # Only update GitHub if we have a username to assign or if we're explicitly deassigning
         if github_username or not assign:
             try:
-                client.update_issue(repo, issue_num, [github_username] if github_username else [])
+                client.update_issue_assignees(
+                    repo_id, issue_num, [github_username] if github_username else []
+                )
             except Exception as e:
                 self.raise_error(e)
 
@@ -474,9 +496,75 @@ class GitHubIntegration(
     ) -> None:
         """
         Propagate a sentry issue's status to a linked GitHub issue's status.
+        For GitHub, we only support open/closed states.
         """
-        # Not implemented yet
-        pass
+        client = self.get_client()
+
+        repo_id, issue_num = self.split_external_issue_key(external_issue.key)
+
+        if not repo_id or not issue_num:
+            logger.error(
+                "github.status-outbound.invalid-key",
+                extra={
+                    "external_issue_key": external_issue.key,
+                },
+            )
+            return
+
+        # Get the project mapping to determine what status to use
+        external_project = integration_service.get_integration_external_project(
+            organization_id=external_issue.organization_id,
+            integration_id=external_issue.integration_id,
+            external_id=repo_id,
+        )
+
+        log_context = {
+            "integration_id": external_issue.integration_id,
+            "is_resolved": is_resolved,
+            "issue_key": external_issue.key,
+            "repo_id": repo_id,
+        }
+
+        if not external_project:
+            logger.info("github.external-project-not-found", extra=log_context)
+            return
+
+        desired_state = (
+            external_project.resolved_status if is_resolved else external_project.unresolved_status
+        )
+
+        try:
+            issue_data = client.get_issue(repo_id, issue_num)
+        except ApiError as e:
+            self.raise_error(e)
+
+        current_state = issue_data.get("state")
+
+        # Don't update if it's already in the desired state
+        if current_state == desired_state:
+            logger.info(
+                "github.sync_status_outbound.unchanged",
+                extra={
+                    **log_context,
+                    "current_state": current_state,
+                    "desired_state": desired_state,
+                },
+            )
+            return
+
+        # Update the issue state
+        try:
+            client.update_issue_status(repo_id, issue_num, desired_state)
+            logger.info(
+                "github.sync_status_outbound.success",
+                extra={
+                    **log_context,
+                    "old_state": current_state,
+                    "new_state": desired_state,
+                },
+            )
+        except ApiError as e:
+            self.raise_error(e)
 
     def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
         """
@@ -494,7 +582,22 @@ class GitHubIntegration(
             return ResolveSyncAction.UNRESOLVE
         return ResolveSyncAction.NOOP
 
-    def get_organization_config(self) -> list[dict[str, Any]]:
+    def get_config_data(self):
+        config = self.org_integration.config
+        project_mappings = IntegrationExternalProject.objects.filter(
+            organization_integration_id=self.org_integration.id
+        )
+        sync_status_forward = {}
+
+        for pm in project_mappings:
+            sync_status_forward[pm.external_id] = {
+                "on_unresolve": pm.unresolved_status,
+                "on_resolve": pm.resolved_status,
+            }
+        config["sync_status_forward"] = sync_status_forward
+        return config
+
+    def _get_organization_config_default_values(self) -> list[dict[str, Any]]:
         """
         Return configuration options for the GitHub integration.
         """
@@ -503,6 +606,16 @@ class GitHubIntegration(
         if features.has("organizations:integrations-github-project-management", self.organization):
             config.extend(
                 [
+                    {
+                        "name": self.inbound_status_key,
+                        "type": "boolean",
+                        "label": _("Sync GitHub Status to Sentry"),
+                        "help": _(
+                            "When a GitHub issue is marked closed, resolve its linked issue in Sentry. "
+                            "When a GitHub issue is reopened, unresolve its linked Sentry issue."
+                        ),
+                        "default": False,
+                    },
                     {
                         "name": self.inbound_assignee_key,
                         "type": "boolean",
@@ -518,16 +631,6 @@ class GitHubIntegration(
                         "label": _("Sync Sentry Assignment to GitHub"),
                         "help": _(
                             "When an issue is assigned in Sentry, assign its linked GitHub issue to the same user."
-                        ),
-                        "default": False,
-                    },
-                    {
-                        "name": self.inbound_status_key,
-                        "type": "boolean",
-                        "label": _("Sync GitHub Status to Sentry"),
-                        "help": _(
-                            "When a GitHub issue is marked closed, resolve its linked issue in Sentry. "
-                            "When a GitHub issue is reopened, unresolve its linked Sentry issue."
                         ),
                         "default": False,
                     },
@@ -554,6 +657,64 @@ class GitHubIntegration(
                 ]
             )
 
+        return config
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        """
+        Return configuration options for the GitHub integration.
+        """
+        config = self._get_organization_config_default_values()
+
+        if features.has("organizations:integrations-github-project-management", self.organization):
+            config.insert(
+                0,
+                {
+                    "name": self.outbound_status_key,
+                    "type": "choice_mapper",
+                    "label": _("Sync Sentry Status to Github"),
+                    "help": _(
+                        "When a Sentry issue changes status, change the status of the linked ticket in Github."
+                    ),
+                    "addButtonText": _("Add Github Project"),
+                    "addDropdown": {
+                        "emptyMessage": _("All projects configured"),
+                        "noResultsMessage": _("Could not find Github project"),
+                        "items": [],  # Populated with projects
+                    },
+                    "mappedSelectors": {},
+                    "columnLabels": {
+                        "on_resolve": _("When resolved"),
+                        "on_unresolve": _("When unresolved"),
+                    },
+                    "mappedColumnLabel": _("Github Project"),
+                    "formatMessageValue": False,
+                },
+            )
+            try:
+                # Fetch all repositories and add them to the config
+                repositories = self.get_client().get_repos()
+
+                # Format repositories for the dropdown
+                formatted_repos = [
+                    {"value": repository["full_name"], "label": repository["name"]}
+                    for repository in repositories
+                    if not repository.get("archived")
+                ]
+                config[0]["addDropdown"]["items"] = formatted_repos
+
+                status_choices = GitHubIssueStatus.get_choices()
+
+                # Add mappedSelectors for each repository with GitHub status choices
+                config[0]["mappedSelectors"] = {
+                    "on_resolve": {"choices": status_choices},
+                    "on_unresolve": {"choices": status_choices},
+                }
+            except ApiError:
+                config[0]["disabled"] = True
+                config[0]["disabledReason"] = _(
+                    "Unable to communicate with the GitHub instance. You may need to reinstall the integration."
+                )
+
         context = organization_service.get_organization_by_id(
             id=self.organization_id, include_projects=False, include_teams=False
         )
@@ -579,6 +740,45 @@ class GitHubIntegration(
             return
 
         config = self.org_integration.config
+
+        # Handle status sync configuration
+        if "sync_status_forward" in data:
+            project_mappings = data.pop("sync_status_forward")
+
+            if any(
+                not mapping["on_unresolve"] or not mapping["on_resolve"]
+                for mapping in project_mappings.values()
+            ):
+                raise IntegrationError("Resolve and unresolve status are required.")
+
+            data["sync_status_forward"] = bool(project_mappings)
+
+            IntegrationExternalProject.objects.filter(
+                organization_integration_id=self.org_integration.id
+            ).delete()
+
+            for repo_id, statuses in project_mappings.items():
+                # For GitHub, we only support open/closed states
+                # Validate that the statuses are valid GitHub states
+                if statuses["on_resolve"] not in [
+                    GitHubIssueStatus.OPEN.value,
+                    GitHubIssueStatus.CLOSED.value,
+                ]:
+                    raise IntegrationError(
+                        f"Invalid resolve status: {statuses['on_resolve']}. Must be 'open' or 'closed'."
+                    )
+                if statuses["on_unresolve"] not in ["open", "closed"]:
+                    raise IntegrationError(
+                        f"Invalid unresolve status: {statuses['on_unresolve']}. Must be 'open' or 'closed'."
+                    )
+
+                IntegrationExternalProject.objects.create(
+                    organization_integration_id=self.org_integration.id,
+                    external_id=repo_id,
+                    resolved_status=statuses["on_resolve"],
+                    unresolved_status=statuses["on_unresolve"],
+                )
+
         config.update(data)
         org_integration = integration_service.update_organization_integration(
             org_integration_id=self.org_integration.id,

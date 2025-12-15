@@ -1,8 +1,11 @@
 from unittest import mock
 
 import pytest
+from django.test import override_settings
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.conf.types.sentry_config import SentryMode
+from sentry.utils.snuba_rpc import table_rpc
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -314,9 +317,16 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         # this query does not filter on any metrics, so scan all metrics
         response = self.do_request(
             {
-                "field": ["metric.name", "metric.type", "metric.unit", "count(metric.name)"],
+                "field": [
+                    "metric.name",
+                    "metric.type",
+                    "metric.unit",
+                    "count(metric.name)",
+                    "per_second(metric.name)",
+                ],
                 "orderby": "metric.name",
                 "dataset": self.dataset,
+                "statsPeriod": "10m",
             }
         )
         assert response.status_code == 200, response.content
@@ -326,24 +336,28 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
                 "metric.type": "gauge",
                 "metric.unit": None,
                 "count(metric.name)": 2,
+                "per_second(metric.name)": pytest.approx(2 / 600, abs=0.001),
             },
             {
                 "metric.name": "baz",
                 "metric.type": "distribution",
                 "metric.unit": None,
                 "count(metric.name)": 3,
+                "per_second(metric.name)": pytest.approx(3 / 600, abs=0.001),
             },
             {
                 "metric.name": "foo",
                 "metric.type": "counter",
                 "metric.unit": None,
                 "count(metric.name)": 1,
+                "per_second(metric.name)": pytest.approx(1 / 600, abs=0.001),
             },
             {
                 "metric.name": "qux",
                 "metric.type": "distribution",
                 "metric.unit": "millisecond",
                 "count(metric.name)": 4,
+                "per_second(metric.name)": pytest.approx(4 / 600, abs=0.001),
             },
         ]
 
@@ -412,11 +426,47 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         ]
 
     def test_aggregation_multiple_embedded_different_metric_name(self):
+        trace_metrics = [
+            self.create_trace_metric("foo", 1, "counter"),
+            self.create_trace_metric("foo", 2, "counter"),
+            self.create_trace_metric("bar", 4, "counter"),
+            self.create_trace_metric("baz", 8, "gauge"),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
         response = self.do_request(
             {
                 "field": [
                     "count(value,foo,counter,-)",
                     "count(value,bar,counter,-)",
+                    "count(value,baz,gauge,-)",
+                    "per_second(value,foo,counter,-)",
+                    "per_second(value,bar,counter,-)",
+                    "per_second(value,baz,gauge,-)",
+                ],
+                "dataset": self.dataset,
+                "project": self.project.id,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "count(value,foo,counter,-)": 2,
+                "count(value,bar,counter,-)": 1,
+                "count(value,baz,gauge,-)": 1,
+                "per_second(value,foo,counter,-)": pytest.approx(3 / 600, abs=0.001),
+                "per_second(value,bar,counter,-)": pytest.approx(4 / 600, abs=0.001),
+                "per_second(value,baz,gauge,-)": pytest.approx(1 / 600, abs=0.001),
+            },
+        ]
+
+    def test_mixing_all_metrics_and_one_metric(self):
+        response = self.do_request(
+            {
+                "field": [
+                    "count(value,foo,counter,-)",
+                    "per_second(value)",
                 ],
                 "dataset": self.dataset,
                 "project": self.project.id,
@@ -425,6 +475,67 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert response.status_code == 400, response.content
         assert response.data == {
             "detail": ErrorDetail(
-                "Cannot aggregate multiple metrics in 1 query.", code="parse_error"
+                "Cannot aggregate all metrics and singlular metrics in the same query.",
+                code="parse_error",
             )
         }
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_no_project_sent_trace_metrics(self):
+        project1 = self.create_project()
+        project2 = self.create_project()
+
+        request = {
+            "field": [
+                "timestamp",
+                "metric.name",
+                "metric.type",
+                "value",
+            ],
+            "project": [project1.id, project2.id],
+            "dataset": self.dataset,
+            "sort": "-timestamp",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == []
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    @mock.patch("sentry.utils.snuba_rpc.table_rpc", wraps=table_rpc)
+    def test_sent_trace_metrics_project_optimization(self, mock_table_rpc):
+        project1 = self.create_project()
+        project2 = self.create_project()
+
+        trace_metrics = [
+            self.create_trace_metric("foo", 1, "counter", project=project1),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "timestamp",
+                    "metric.name",
+                    "metric.type",
+                    "value",
+                ],
+                "dataset": self.dataset,
+                "project": [project1.id, project2.id],
+            }
+        )
+        assert response.status_code == 200
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "timestamp": mock.ANY,
+                "metric.name": "foo",
+                "metric.type": "counter",
+                "value": 1,
+                "project.name": project1.slug,
+            }
+        ]
+
+        mock_table_rpc.assert_called_once()
+        assert mock_table_rpc.call_args.args[0][0].meta.project_ids == [project1.id]

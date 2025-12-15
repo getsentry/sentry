@@ -11,6 +11,7 @@ import {Flex, Stack} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -22,13 +23,8 @@ import useMedia from 'sentry/utils/useMedia';
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
-import {
-  InvoiceItemType,
-  OnDemandBudgetMode,
-  type Plan,
-  type PreviewData,
-  type Subscription,
-} from 'getsentry/types';
+import {OnDemandBudgetMode} from 'getsentry/types';
+import type {AddOnCategory, Plan, PreviewData, Subscription} from 'getsentry/types';
 import {
   displayBudgetName,
   formatReservedWithUnits,
@@ -153,6 +149,7 @@ function ItemWithPrice({
   item,
   price,
   shouldBoldItem,
+  isVariableCost,
   isCredit,
 }: {
   item: React.ReactNode;
@@ -160,11 +157,17 @@ function ItemWithPrice({
   shouldBoldItem: boolean;
   'data-test-id'?: string;
   isCredit?: boolean;
+  isVariableCost?: boolean;
 }) {
   return (
     <ItemFlex data-test-id={dataTestId}>
-      <Text bold={shouldBoldItem}>{item}</Text>
-      <Text align="right" variant={isCredit ? 'success' : 'primary'}>
+      <Text bold={shouldBoldItem} variant={isVariableCost ? 'muted' : 'primary'}>
+        {item}
+      </Text>
+      <Text
+        align="right"
+        variant={isVariableCost ? 'muted' : isCredit ? 'success' : 'primary'}
+      >
         {price}
       </Text>
     </ItemFlex>
@@ -174,7 +177,6 @@ function ItemWithPrice({
 function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
   const theme = useTheme();
   const isXSmallScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
-  const isChonk = theme.isChonk;
 
   const additionalProductCategories = useMemo(
     () =>
@@ -261,16 +263,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                       })}
                     >
                       <Tag icon={<IconLock locked size="xs" />}>
-                        {(isChonk || activePlan.budgetTerm === 'pay-as-you-go') &&
-                        !isXSmallScreen ? (
-                          tct('Unlock with [budgetTerm]', {
-                            budgetTerm: displayBudgetName(activePlan, {
-                              title: true,
-                              abbreviated: activePlan.budgetTerm === 'pay-as-you-go',
-                            }),
-                          })
-                        ) : (
-                          // "Unlock with on-demand" gets cut off in non-chonk theme
+                        {isXSmallScreen ? (
                           <Text size="xs">
                             {tct('Unlock with [budgetTerm]', {
                               budgetTerm: displayBudgetName(activePlan, {
@@ -279,6 +272,13 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                               }),
                             })}
                           </Text>
+                        ) : (
+                          tct('Unlock with [budgetTerm]', {
+                            budgetTerm: displayBudgetName(activePlan, {
+                              title: true,
+                              abbreviated: activePlan.budgetTerm === 'pay-as-you-go',
+                            }),
+                          })
                         )}
                       </Tag>
                     </Tooltip>
@@ -296,11 +296,17 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
           const apiName = addOnInfo.apiName;
           const productName = addOnInfo.productName;
 
-          // if it's a reserved budget add on, get the price; otherwise, we assume it's 0
+          // if it's a reserved budget add on (e.g. Legacy Seer), get the price; otherwise, we assume it's 0
+          // and therefore a variable cost add-on (e.g. Seer)
           const price = utils.getPrepaidPriceForAddOn({
             plan: activePlan,
             addOnCategory: apiName,
           });
+
+          if (price === 0) {
+            return null; // we render variable cost add-ons in a different section
+          }
+
           const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
           const includedBudget = reservedBudgetCategory
             ? (activePlan.availableReservedBudgetTypes[reservedBudgetCategory]
@@ -364,7 +370,7 @@ function SubtotalSummary({
   );
 
   return (
-    <Stack borderTop="primary" background="primary" width="100%" padding="xl" gap="2xl">
+    <Stack borderTop="primary" background="primary" width="100%" padding="xl" gap="md">
       <Flex data-test-id="summary-item-plan-total" justify="between" align="center">
         <Text size="lg" bold>
           {t('Plan Total')}
@@ -380,13 +386,13 @@ function SubtotalSummary({
       {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.SHARED &&
         !!formData.onDemandMaxSpend && (
           <Flex justify="between" align="start" data-test-id="summary-item-spend-limit">
-            <Text>
+            <Text variant="muted">
               {tct('[budgetTerm] spend limit', {
                 budgetTerm: displayBudgetName(activePlan, {title: true}),
               })}
             </Text>
             <Flex direction="column" gap="sm" align="end">
-              <Text align="right">
+              <Text align="right" variant="muted">
                 {tct('up to [pricePerMonth]', {
                   pricePerMonth: `${utils.displayPrice({
                     cents: formData.onDemandMaxSpend,
@@ -415,7 +421,7 @@ function SubtotalSummary({
           </Flex>
         )}
       {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.PER_CATEGORY && (
-        <Stack gap="md">
+        <Fragment>
           <Text bold>
             {tct('Per-product [budgetTerm] spend limits', {
               budgetTerm: displayBudgetName(activePlan),
@@ -437,12 +443,50 @@ function SubtotalSummary({
                       cents: budget,
                     })}/mo`,
                   })}
+                  isVariableCost
                   shouldBoldItem={false}
                 />
               );
             })}
-        </Stack>
+        </Fragment>
       )}
+      <Fragment>
+        {formData.addOns &&
+          Object.entries(formData.addOns)
+            .filter(
+              ([apiName, addOn]) =>
+                addOn.enabled &&
+                !getReservedBudgetCategoryForAddOn(apiName as AddOnCategory) // if not a reserved budget add-on, assume it's a variable cost add-on
+            )
+            .map(([apiName]) => {
+              const addOnInfo = activePlan.addOnCategories[apiName as AddOnCategory];
+              if (!addOnInfo) {
+                return null;
+              }
+              return (
+                <ItemWithPrice
+                  data-test-id={`summary-item-product-${apiName}`}
+                  key={apiName}
+                  item={toTitleCase(addOnInfo.productName, {allowInnerUpperCase: true})}
+                  price={
+                    <Fragment>
+                      {t('Variable cost')}{' '}
+                      <QuestionTooltip
+                        size="xs"
+                        position="bottom"
+                        title={t(
+                          // TODO(seer): serialize pricing info
+                          '$40 per active contributor. Total varies month to month based on your active contributor count.'
+                        )}
+                      />
+                    </Fragment>
+                  }
+                  isVariableCost
+                  shouldBoldItem={false}
+                />
+              );
+            })}
+      </Fragment>
     </Stack>
   );
 }
@@ -772,9 +816,7 @@ function Cart({
             // for immediate changes, effectiveAt is the current day
             const {effectiveAt, atPeriodEnd, invoiceItems, billedAmount, proratedAmount} =
               data;
-            const planItem = invoiceItems.find(
-              item => item.type === InvoiceItemType.SUBSCRIPTION
-            );
+            const planItem = invoiceItems.find(item => item.type === 'subscription');
             const renewalDate = moment(
               planItem?.period_end ?? subscription.contractPeriodEnd
             )

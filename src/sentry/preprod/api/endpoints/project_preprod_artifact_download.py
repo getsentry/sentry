@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import UserAuthTokenAuthentication
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import internal_region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import StaffPermission
 from sentry.models.files.file import File
@@ -39,7 +39,7 @@ class LaunchpadServiceOrStaffPermission(StaffPermission):
         return super().has_permission(request, view)
 
 
-@region_silo_endpoint
+@internal_region_silo_endpoint
 class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {

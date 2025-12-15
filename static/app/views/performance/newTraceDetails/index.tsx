@@ -22,6 +22,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceOurlogs';
 import {TraceSummarySection} from 'sentry/views/performance/newTraceDetails/traceSummary';
 import {TraceTabsAndVitals} from 'sentry/views/performance/newTraceDetails/traceTabsAndVitals';
+import {PartialTraceDataWarning} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/partialTraceDataWarning';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 import {
   TraceLayoutTabKeys,
@@ -114,7 +115,11 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
-  const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
+  const trace = useTrace({
+    traceSlug,
+    timestamp: queryParams.timestamp,
+    additionalAttributes: ['thread.id'],
+  });
   const tree = useTraceTree({traceSlug, trace, replay: null});
 
   useTraceStateAnalytics({
@@ -160,6 +165,11 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               tree={tree}
               traceSlug={traceSlug}
               organization={organization}
+            />
+            <PartialTraceDataWarning
+              timestamp={queryParams.timestamp}
+              logs={logsData}
+              tree={tree}
             />
             <TraceTabsAndVitals
               tabsConfig={{

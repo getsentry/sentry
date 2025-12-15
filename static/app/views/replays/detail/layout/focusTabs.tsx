@@ -1,5 +1,4 @@
 import {useEffect, type ReactNode} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -10,7 +9,6 @@ import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -51,7 +49,7 @@ function getReplayTabs({
           >
             {t('AI Summary')}
           </Tooltip>
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </Flex>
       ) : null,
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
@@ -63,6 +61,9 @@ function getReplayTabs({
     // For video replays, we hide the memory tab (not applicable for mobile)
     [TabKey.MEMORY]: isVideoReplay ? null : t('Memory'),
     [TabKey.TAGS]: t('Tags'),
+    [TabKey.PLAYLIST]: organization.features.includes('replay-playlist-view')
+      ? t('Playlist')
+      : null,
   };
 }
 
@@ -72,7 +73,7 @@ type Props = {
 
 export default function FocusTabs({isVideoReplay}: Props) {
   const organization = useOrganization();
-  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
   const replay = useReplayReader();
@@ -92,15 +93,9 @@ export default function FocusTabs({isVideoReplay}: Props) {
     if (isAiTabAvailable) {
       trackAnalytics('replay.ai_tab_shown', {
         organization,
-        isSeerSetup: setupAcknowledgement.orgHasAcknowledged,
       });
     }
-  }, [
-    organization,
-    areAiFeaturesAllowed,
-    isVideoReplay,
-    setupAcknowledgement.orgHasAcknowledged,
-  ]);
+  }, [organization, areAiFeaturesAllowed, isVideoReplay]);
 
   return (
     <TabContainer>
@@ -138,13 +133,4 @@ const TabContainer = styled('div')`
   flex-direction: column;
   flex-wrap: nowrap;
   min-width: 0;
-
-  ${p =>
-    p.theme.isChonk
-      ? ''
-      : css`
-          padding-inline: ${space(1)};
-          border-bottom: 1px solid ${p.theme.border};
-          margin-bottom: -1px;
-        `}
 `;

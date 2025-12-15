@@ -315,17 +315,45 @@ function WidgetCard(props: Props) {
       <ErrorBoundary
         customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
-        <VisualizationWidget
-          widget={widget}
-          selection={selection}
-          dashboardFilters={dashboardFilters}
-          onDataFetched={onDataFetched}
-          onWidgetTableSort={onWidgetTableSort}
-          onWidgetTableResizeColumn={onWidgetTableResizeColumn}
-          renderErrorMessage={renderErrorMessage}
-          onDataFetchStart={onDataFetchStart}
-          tableItemLimit={tableItemLimit}
-        />
+        <VisuallyCompleteWithData
+          id="DashboardList-FirstWidgetCard"
+          hasData={
+            ((data?.tableResults?.length || data?.timeseriesResults?.length) ?? 0) > 0
+          }
+          disabled={Number(props.index) !== 0}
+        >
+          <WidgetFrame
+            title={widget.title}
+            description={widget.description}
+            badgeProps={badges}
+            warnings={warnings}
+            actionsDisabled={actionsDisabled}
+            error={widgetQueryError}
+            actionsMessage={actionsMessage}
+            actions={actions}
+            onFullScreenViewClick={
+              disableFullscreen
+                ? undefined
+                : currentDashboardId
+                  ? onFullScreenViewClick
+                  : undefined
+            }
+            borderless={props.borderless}
+            revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
+          >
+            <VisualizationWidget
+              widget={widget}
+              selection={selection}
+              dashboardFilters={dashboardFilters}
+              onDataFetched={onDataFetched}
+              onWidgetTableSort={onWidgetTableSort}
+              onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+              renderErrorMessage={renderErrorMessage}
+              onDataFetchStart={onDataFetchStart}
+              tableItemLimit={tableItemLimit}
+            />
+          </WidgetFrame>
+        </VisuallyCompleteWithData>
       </ErrorBoundary>
     );
   }
@@ -516,7 +544,7 @@ const ErrorCard = styled(Placeholder)`
   background-color: ${p => p.theme.alert.error.backgroundLight};
   border: 1px solid ${p => p.theme.alert.error.border};
   color: ${p => p.theme.alert.error.textLight};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   margin-bottom: ${space(2)};
 `;
 

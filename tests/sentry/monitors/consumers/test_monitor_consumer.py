@@ -293,7 +293,14 @@ class MonitorConsumerTest(TestCase):
         )
 
     def test_muted(self) -> None:
-        monitor = self._create_monitor(is_muted=True)
+        monitor = self._create_monitor()
+        # Create a muted environment for this monitor
+        production_env = self.create_environment(name="production")
+        MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=production_env.id,
+            is_muted=True,
+        )
         self.send_checkin(monitor.slug, status="error")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
@@ -301,8 +308,8 @@ class MonitorConsumerTest(TestCase):
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
 
-        # The created monitor environment is in line with the check-in, but the
-        # parent monitor is muted
+        # The monitor environment should still be muted and track the error status
+        assert monitor_environment.is_muted is True
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
         assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(

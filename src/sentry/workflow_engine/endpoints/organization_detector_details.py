@@ -21,7 +21,6 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import schedule_update_project_config
 from sentry.issues import grouptype
@@ -31,6 +30,7 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
+    can_delete_detector,
     can_edit_detector,
 )
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
@@ -67,9 +67,14 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     def convert_args(self, request: Request, detector_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         try:
-            detector = Detector.objects.select_related("project").get(id=detector_id)
-            if detector.project.organization_id != kwargs["organization"].id:
-                raise ResourceDoesNotExist
+            detector = (
+                Detector.objects.with_type_filters()
+                .select_related("project")
+                .get(
+                    id=detector_id,
+                    project__organization_id=kwargs["organization"].id,
+                )
+            )
             kwargs["detector"] = detector
         except Detector.DoesNotExist:
             raise ResourceDoesNotExist
@@ -193,11 +198,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         """
         Delete a detector
         """
-        if not can_edit_detector(detector, request):
+        if not can_delete_detector(detector, request):
             raise PermissionDenied
-
-        if detector.type == ErrorGroupType.slug:
-            return Response(status=403)
 
         validator = get_detector_validator(
             request, detector.project, detector.type, instance=detector

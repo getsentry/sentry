@@ -400,7 +400,7 @@ const SpaceBetweenRow = styled('div')`
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSize.lg};
   font-weight: 600;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   line-height: initial;
 `;
 
@@ -420,7 +420,8 @@ const ReservedVolumes = styled('div')`
 `;
 
 const ReservedItem = styled(Title)<{isIndividualProduct?: boolean}>`
-  color: ${p => (p.isIndividualProduct ? p.theme.textColor : p.theme.subText)};
+  color: ${p =>
+    p.isIndividualProduct ? p.theme.tokens.content.primary : p.theme.subText};
   font-weight: ${p => (p.isIndividualProduct ? 600 : 'normal')};
   text-wrap: balance;
 
@@ -446,13 +447,13 @@ const TotalSeparator = styled(Separator)`
 
 const Price = styled('div')`
   justify-self: end;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   justify-content: end;
 `;
 
 const TotalPrice = styled(Price)`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
 `;
 
@@ -464,7 +465,7 @@ const AdditionalMonthlyCharge = styled('div')`
 `;
 
 const EmphasisText = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: 600;
 `;
 

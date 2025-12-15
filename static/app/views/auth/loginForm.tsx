@@ -156,7 +156,7 @@ const LostPasswordLink = styled(Link)`
   font-size: ${p => p.theme.fontSize.md};
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

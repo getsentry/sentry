@@ -131,11 +131,11 @@ export function SuspectCommits({
           >
             {isExpanded ? (
               <Fragment>
-                {t('Show less')} <IconSubtract isCircled size="md" />
+                {t('Show less')} <IconSubtract size="md" />
               </Fragment>
             ) : (
               <Fragment>
-                {t('Show more')} <IconAdd isCircled size="md" />
+                {t('Show more')} <IconAdd size="md" />
               </Fragment>
             )}
           </ExpandButton>
@@ -173,7 +173,7 @@ const Title = styled('div')`
 
 const StreamlinedPanel = styled(Panel)`
   position: relative;
-  background: ${p => p.theme.background}
+  background: ${p => p.theme.tokens.background.primary}
     linear-gradient(to right, rgba(245, 243, 247, 0), ${p => p.theme.surface100});
   overflow: hidden;
   margin-bottom: 0;

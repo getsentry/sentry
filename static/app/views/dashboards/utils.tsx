@@ -218,7 +218,9 @@ export function getWidgetInterval(
       datetimeObj,
       widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS
         ? 'spans'
-        : 'high'
+        : widget.widgetType === WidgetType.ISSUE
+          ? 'issues'
+          : 'high'
     );
     // Only return high fidelity interval if desired interval is higher fidelity
     if (desiredPeriod < parsePeriodToHours(highInterval)) {
@@ -567,16 +569,6 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
             }
           })
           .filter(filter => filter !== null);
-      } else if (key === DashboardFilterKeys.TEMPORARY_FILTERS) {
-        dashboardFilters[key] = queryFilters
-          .map(filter => {
-            try {
-              return JSON.parse(filter);
-            } catch (error) {
-              return null;
-            }
-          })
-          .filter(filter => filter !== null);
       } else {
         dashboardFilters[key] = queryFilters;
       }
@@ -591,10 +583,7 @@ export function dashboardFiltersToString(
 ): string {
   let dashboardFilterConditions = '';
 
-  const pinnedFilters = omit(dashboardFilters, [
-    DashboardFilterKeys.GLOBAL_FILTER,
-    DashboardFilterKeys.TEMPORARY_FILTERS,
-  ]);
+  const pinnedFilters = omit(dashboardFilters, DashboardFilterKeys.GLOBAL_FILTER);
   if (pinnedFilters) {
     for (const [key, activeFilters] of Object.entries(pinnedFilters)) {
       if (activeFilters.length === 1) {
@@ -608,6 +597,7 @@ export function dashboardFiltersToString(
   }
 
   const globalFilters = dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER];
+
   // If widgetType is provided, concatenate global filters that apply
   if (widgetType && globalFilters) {
     dashboardFilterConditions +=
@@ -663,9 +653,13 @@ export const performanceScoreTooltip = t('peformance_score is not supported in D
 
 export function applyDashboardFilters(
   baseQuery: string | undefined,
-  dashboardFilters: DashboardFilters | undefined
+  dashboardFilters: DashboardFilters | undefined,
+  widgetType?: WidgetType
 ): string | undefined {
-  const dashboardFilterConditions = dashboardFiltersToString(dashboardFilters);
+  const dashboardFilterConditions = dashboardFiltersToString(
+    dashboardFilters,
+    widgetType
+  );
   if (dashboardFilterConditions) {
     if (baseQuery) {
       return `(${baseQuery}) ${dashboardFilterConditions}`;
@@ -674,3 +668,15 @@ export function applyDashboardFilters(
   }
   return baseQuery;
 }
+
+export const isChartDisplayType = (displayType?: DisplayType) => {
+  if (!displayType) {
+    return true;
+  }
+  return ![
+    DisplayType.BIG_NUMBER,
+    DisplayType.TABLE,
+    DisplayType.DETAILS,
+    DisplayType.WHEEL,
+  ].includes(displayType);
+};

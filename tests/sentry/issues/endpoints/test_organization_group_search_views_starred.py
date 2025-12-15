@@ -3,7 +3,9 @@ from datetime import datetime
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
 
 
@@ -109,3 +111,40 @@ class OrganizationGroupSearchViewsStarredEndpointTest(APITestCase):
 
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(u1_view_1.id)
+
+    def test_handles_none_from_user_service(self) -> None:
+        """
+        Test that when user_service.serialize_many() returns None for a user,
+        the endpoint handles it gracefully without crashing.
+
+        This can happen when a user is deleted from the system but their views remain.
+
+        Ref: https://linear.app/getsentry/issue/ISWF-719
+        """
+        self.login_as(user=self.user)
+
+        # Create a second user and member
+        deleted_user = self.create_user()
+        self.create_member(user=deleted_user, organization=self.organization)
+
+        # Create views by both users
+        active_user_view = self.create_view(user=self.user, name="Active User View")
+        deleted_user_view = self.create_view(user=deleted_user, name="Deleted User View")
+
+        # Star both views as self.user
+        self.star_view(user=self.user, view=active_user_view)
+        self.star_view(user=self.user, view=deleted_user_view)
+
+        # Delete the user who created one of the views
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            deleted_user.delete()
+
+        response = self.get_success_response(self.organization.slug)
+
+        # Both views should be returned without crashing
+        assert len(response.data) == 2
+
+        # One view should have createdBy populated, the other should be None
+        created_by_values = [view.get("createdBy") for view in response.data]
+        assert any(cb is not None for cb in created_by_values)
+        assert any(cb is None for cb in created_by_values)

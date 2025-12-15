@@ -1,7 +1,6 @@
 import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
-
-import type {DistributiveOmit} from '@sentry/scraps/types';
+import type {DistributedOmit} from 'type-fest';
 
 import {Container, type ContainerElement, type ContainerProps} from './container';
 import {getSpacing, rc, type Responsive, type SpacingSize} from './styles';
@@ -52,7 +51,7 @@ interface FlexLayoutProps {
   wrap?: Responsive<'nowrap' | 'wrap' | 'wrap-reverse'>;
 }
 
-export type FlexProps<T extends ContainerElement = 'div'> = DistributiveOmit<
+export type FlexProps<T extends ContainerElement = 'div'> = DistributedOmit<
   ContainerProps<T>,
   'display'
 > &

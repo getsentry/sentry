@@ -1,6 +1,7 @@
+import styled from '@emotion/styled';
+
 import {chonkFor} from 'sentry/components/core/chonk';
 import type {SwitchProps} from 'sentry/components/core/switch';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
 const toggleWrapperSize = {
   sm: {width: 36, height: 20},
@@ -17,7 +18,7 @@ function urlEscapeHex(hex: string) {
   return hex.replace(/#/g, '%23');
 }
 
-export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
+export const ChonkNativeHiddenCheckbox = styled('input')<{
   nativeSize: NonNullable<SwitchProps['size']>;
 }>`
   position: absolute;
@@ -54,7 +55,9 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
       top: 0;
       left: 0;
       transform: translateY(-1px);
-      transition: all ${p => p.theme.motion.smooth.moderate}, transform ${p => p.theme.motion.exit.slow};
+      transition:
+        all ${p => p.theme.motion.smooth.moderate},
+        transform ${p => p.theme.motion.exit.slow};
 
       &:after {
         /** The icon is not clickable */
@@ -67,9 +70,15 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
         top: ${p => toggleButtonSize[p.nativeSize].iconOffset}px;
         left: ${p => toggleButtonSize[p.nativeSize].iconOffset}px;
         background-repeat: no-repeat;
-        background-size: ${p => toggleButtonSize[p.nativeSize].icon}px ${p => toggleButtonSize[p.nativeSize].icon}px;
+        background-size: ${p => toggleButtonSize[p.nativeSize].icon}px
+          ${p => toggleButtonSize[p.nativeSize].icon}px;
         transition: transform ${p => p.theme.motion.snap.slow};
-        background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"><path fill="${p => urlEscapeHex(p.theme.colors.content.muted)}" d="M5.03 3.97a.75.75 0 0 0-1.06 1.06L6.94 8l-2.97 2.97a.75.75 0 1 0 1.06 1.06L8 9.06l2.97 2.97a.75.75 0 1 0 1.06-1.06L9.06 8l2.97-2.97a.75.75 0 0 0-1.06-1.06L8 6.94 5.03 3.97Z" clip-rule="evenodd"/></svg>');
+        /* stylelint-disable */
+        background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"><path fill="${p =>
+          urlEscapeHex(
+            p.theme.tokens.content.muted
+          )}" d="M5.03 3.97a.75.75 0 0 0-1.06 1.06L6.94 8l-2.97 2.97a.75.75 0 1 0 1.06 1.06L8 9.06l2.97 2.97a.75.75 0 1 0 1.06-1.06L9.06 8l2.97-2.97a.75.75 0 0 0-1.06-1.06L8 6.94 5.03 3.97Z" clip-rule="evenodd"/></svg>');
+        /* stylelint-enable */
       }
     }
   }
@@ -84,36 +93,45 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
     > div {
       background: ${p => p.theme.colors.surface500};
       border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
-      transform: translateY(-1px) translateX(${p => toggleWrapperSize[p.nativeSize].width - toggleButtonSize[p.nativeSize].width}px);
+      transform: translateY(-1px)
+        translateX(
+          ${p =>
+            toggleWrapperSize[p.nativeSize].width -
+            toggleButtonSize[p.nativeSize].width}px
+        );
 
       &:after {
-        background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"><path fill="${p => urlEscapeHex(p.theme.colors.content.accent)}" fill-rule="evenodd" d="M13.53 4.22c.3.3.3.77 0 1.06l-6.5 6.5a.75.75 0 0 1-1.08-.02l-3.5-3.75A.75.75 0 0 1 3.55 7l2.97 3.18 5.95-5.95c.3-.3.77-.3 1.06 0Z" clip-rule="evenodd"/></svg>');
+        /* stylelint-disable */
+        background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"><path fill="${p =>
+          urlEscapeHex(
+            p.theme.tokens.content.accent
+          )}" fill-rule="evenodd" d="M13.53 4.22c.3.3.3.77 0 1.06l-6.5 6.5a.75.75 0 0 1-1.08-.02l-3.5-3.75A.75.75 0 0 1 3.55 7l2.97 3.18 5.95-5.95c.3-.3.77-.3 1.06 0Z" clip-rule="evenodd"/></svg>');
+        /* stylelint-enable */
       }
     }
   }
 
   &:disabled {
-      cursor: not-allowed;
+    cursor: not-allowed;
 
-      + div {
-        opacity: 0.6;
+    + div {
+      opacity: 0.6;
 
-        > div {
-          transform: translateY(0px) translateX(0px);
-        }
+      > div {
+        transform: translateY(0px) translateX(0px);
       }
     }
   }
+
   &:checked:disabled + div > div {
     transform: translateY(0px) translateX(16px);
   }
 `;
 
-export const ChonkFakeCheckbox = chonkStyled('div')<{
+export const ChonkFakeCheckbox = styled('div')<{
   size: NonNullable<SwitchProps['size']>;
 }>`
   width: ${p => toggleWrapperSize[p.size].width}px;
   height: ${p => toggleWrapperSize[p.size].height}px;
 `;
-export const ChonkFakeCheckboxButton = chonkStyled('div')`
-`;
+export const ChonkFakeCheckboxButton = styled('div')``;

@@ -11,6 +11,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
@@ -22,18 +23,20 @@ import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
 import GenericFilterSelector from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {globalFilterKeysAreEqual} from 'sentry/views/dashboards/globalFilter/utils';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
-import {useHasDrillDownFlows} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
+import {
+  PREBUILT_DASHBOARDS,
+  type PrebuiltDashboardId,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import ReleasesSelectControl from './releasesSelectControl';
 import type {DashboardFilters, DashboardPermissions, GlobalFilter} from './types';
 import {DashboardFilterKeys} from './types';
 
-type FiltersBarProps = {
+export type FiltersBarProps = {
   filters: DashboardFilters;
-  hasTemporaryFilters: boolean;
   hasUnsavedChanges: boolean;
   isEditingDashboard: boolean;
   isPreview: boolean;
@@ -43,12 +46,12 @@ type FiltersBarProps = {
   dashboardPermissions?: DashboardPermissions;
   onCancel?: () => void;
   onSave?: () => Promise<void>;
+  prebuiltDashboardId?: PrebuiltDashboardId;
   shouldBusySaveButton?: boolean;
 };
 
 export default function FiltersBar({
   filters,
-  hasTemporaryFilters,
   dashboardPermissions,
   dashboardCreator,
   hasUnsavedChanges,
@@ -59,13 +62,17 @@ export default function FiltersBar({
   onDashboardFilterChange,
   onSave,
   shouldBusySaveButton,
+  prebuiltDashboardId,
 }: FiltersBarProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const getSearchBarData = useDatasetSearchBarData();
-  const hasDrillDownFlowsFeature = useHasDrillDownFlows();
+  const isPrebuiltDashboard = defined(prebuiltDashboardId);
+  const prebuiltDashboardFilters: GlobalFilter[] = prebuiltDashboardId
+    ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
+    : [];
 
   const hasEditAccess = checkUserHasEditAccess(
     currentUser,
@@ -84,19 +91,11 @@ export default function FiltersBar({
     [];
 
   const [activeGlobalFilters, setActiveGlobalFilters] = useState<GlobalFilter[]>(() => {
-    const globalFilters =
+    return (
       dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER] ??
       filters?.[DashboardFilterKeys.GLOBAL_FILTER] ??
-      [];
-
-    if (hasDrillDownFlowsFeature) {
-      return [
-        ...globalFilters,
-        ...(dashboardFiltersFromURL?.[DashboardFilterKeys.TEMPORARY_FILTERS] ?? []),
-      ];
-    }
-
-    return globalFilters;
+      []
+    );
   });
 
   const updateGlobalFilters = (newGlobalFilters: GlobalFilter[]) => {
@@ -106,6 +105,8 @@ export default function FiltersBar({
       [DashboardFilterKeys.GLOBAL_FILTER]: newGlobalFilters,
     });
   };
+
+  const hasTemporaryFilters = activeGlobalFilters.some(filter => filter.isTemporary);
 
   return (
     <Wrapper>
@@ -158,6 +159,14 @@ export default function FiltersBar({
         <Fragment>
           {activeGlobalFilters.map(filter => (
             <GenericFilterSelector
+              disableRemoveFilter={
+                isPrebuiltDashboard &&
+                prebuiltDashboardFilters.some(
+                  prebuiltFilter =>
+                    prebuiltFilter.tag.key === filter.tag.key &&
+                    prebuiltFilter.dataset === filter.dataset
+                )
+              }
               key={filter.tag.key + filter.value}
               globalFilter={filter}
               searchBarData={getSearchBarData(filter.dataset)}
@@ -192,34 +201,38 @@ export default function FiltersBar({
           />
         </Fragment>
       )}
-      {!hasTemporaryFilters && hasUnsavedChanges && !isEditingDashboard && !isPreview && (
-        <ButtonBar>
-          <Button
-            title={
-              !hasEditAccess && t('You do not have permission to edit this dashboard')
-            }
-            priority="primary"
-            onClick={async () => {
-              await onSave?.();
-              invalidateStarredDashboards();
-            }}
-            disabled={!hasEditAccess}
-            busy={shouldBusySaveButton}
-          >
-            {t('Save')}
-          </Button>
-          <Button
-            data-test-id="filter-bar-cancel"
-            onClick={() => {
-              onCancel?.();
-              setActiveGlobalFilters(filters.globalFilter ?? []);
-              onDashboardFilterChange(filters);
-            }}
-          >
-            {t('Cancel')}
-          </Button>
-        </ButtonBar>
-      )}
+      {!hasTemporaryFilters &&
+        hasUnsavedChanges &&
+        !isEditingDashboard &&
+        !isPreview &&
+        !isPrebuiltDashboard && (
+          <ButtonBar>
+            <Button
+              title={
+                !hasEditAccess && t('You do not have permission to edit this dashboard')
+              }
+              priority="primary"
+              onClick={async () => {
+                await onSave?.();
+                invalidateStarredDashboards();
+              }}
+              disabled={!hasEditAccess}
+              busy={shouldBusySaveButton}
+            >
+              {t('Save')}
+            </Button>
+            <Button
+              data-test-id="filter-bar-cancel"
+              onClick={() => {
+                onCancel?.();
+                setActiveGlobalFilters(filters.globalFilter ?? []);
+                onDashboardFilterChange(filters);
+              }}
+            >
+              {t('Cancel')}
+            </Button>
+          </ButtonBar>
+        )}
       <ToggleOnDemand />
     </Wrapper>
   );

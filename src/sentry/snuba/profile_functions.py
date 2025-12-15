@@ -11,7 +11,6 @@ from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolv
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
-from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger("sentry.snuba.profile_functions")
@@ -73,6 +72,7 @@ class ProfileFunctions(rpc_dataset_common.RPCBase):
         config: SearchResolverConfig,
         sampling_mode: SAMPLING_MODES | None,
         comparison_delta: timedelta | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> SnubaTSResult:
         cls.validate_granularity(params)
         search_resolver = cls.get_resolver(params, config)
@@ -84,10 +84,11 @@ class ProfileFunctions(rpc_dataset_common.RPCBase):
             groupby=[],
             referrer=referrer,
             sampling_mode=sampling_mode,
+            additional_queries=additional_queries,
         )
 
         """Run the query"""
-        rpc_response = snuba_rpc.timeseries_rpc([rpc_request])[0]
+        rpc_response = cls._run_timeseries_rpc(params.debug, rpc_request)
 
         """Process the results"""
         result = rpc_dataset_common.ProcessedTimeseries()

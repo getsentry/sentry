@@ -64,7 +64,10 @@ export function ActionFixture(params: Partial<Action> = {}): Action {
     type: ActionType.SLACK,
     config: {
       targetType: ActionTarget.SPECIFIC,
+      targetIdentifier: 'C123456',
+      targetDisplay: null,
     },
+    integrationId: 'integration-1',
     data: {},
     status: 'active',
     ...params,

@@ -1,4 +1,4 @@
-import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -20,27 +20,22 @@ export function withChonk<
   LegacyProps extends {children?: React.ReactNode} & React.RefAttributes<any>,
   ChonkProps extends {
     children?: React.ReactNode;
-    theme?: DO_NOT_USE_ChonkTheme;
+    theme?: Theme;
   } & React.RefAttributes<any>,
 >(
-  legacyComponent: React.ComponentType<LegacyProps>,
+  _legacyComponent: React.ComponentType<LegacyProps>,
   chonkComponent: React.ComponentType<ChonkProps>,
   propMapping: ChonkPropMapping<LegacyProps, ChonkProps> = identity
 ) {
   function ChonkSwitch(props: LegacyProps) {
     const theme = useTheme();
 
-    if (isChonkTheme(theme)) {
-      const ChonkComponent: any = chonkComponent;
-      return (
-        <ChonkComponent {...propMapping(props)} ref={props.ref} theme={theme}>
-          {props.children}
-        </ChonkComponent>
-      );
-    }
-
-    const LegacyComponent: any = legacyComponent;
-    return <LegacyComponent {...props}>{props.children}</LegacyComponent>;
+    const ChonkComponent: any = chonkComponent;
+    return (
+      <ChonkComponent {...propMapping(props)} ref={props.ref} theme={theme}>
+        {props.children}
+      </ChonkComponent>
+    );
   }
 
   return styled(ChonkSwitch)``;
@@ -48,10 +43,4 @@ export function withChonk<
 
 function identity<T, U>(props: T): U {
   return props as unknown as U;
-}
-
-export function isChonkTheme(
-  theme: Theme | DO_NOT_USE_ChonkTheme
-): theme is DO_NOT_USE_ChonkTheme {
-  return theme.isChonk;
 }

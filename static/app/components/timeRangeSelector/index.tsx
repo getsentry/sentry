@@ -24,6 +24,7 @@ import {
 } from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -65,7 +66,7 @@ export interface TimeRangeSelectorProps
     | 'options'
     | 'hideOptions'
     | 'value'
-    | 'defaultValue'
+    | 'clearable'
     | 'onChange'
     | 'onInteractOutside'
     | 'closeOnSelect'
@@ -153,7 +154,7 @@ export function TimeRangeSelector({
   showRelative = true,
   defaultAbsolute,
   defaultPeriod = DEFAULT_STATS_PERIOD,
-  maxPickableDays = 90,
+  maxPickableDays,
   maxDateRange,
   disallowArbitraryRelativeRanges = false,
   trigger,
@@ -166,6 +167,9 @@ export function TimeRangeSelector({
 }: TimeRangeSelectorProps) {
   const router = useRouter();
   const organization = useOrganization({allowNull: true});
+
+  const defaultMaxPickableDays = useDefaultMaxPickableDays();
+  maxPickableDays = maxPickableDays ?? defaultMaxPickableDays;
 
   const [search, setSearch] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
@@ -263,8 +267,8 @@ export function TimeRangeSelector({
     );
   }, [showRelative, onChange, internalValue, hasChanges]);
 
-  const handleChange = useCallback<NonNullable<SingleSelectProps<string>['onChange']>>(
-    option => {
+  const handleChange = useCallback(
+    (option: SelectOption<string>) => {
       // The absolute option was selected -> open absolute selector
       if (option.value === ABSOLUTE_OPTION_VALUE) {
         setInternalValue(current => {
@@ -524,10 +528,10 @@ const StyledDateRangeHook = styled(DateRangeHook)`
 const FooterMessage = styled('p')`
   padding: ${space(0.75)} ${space(1)};
   margin: ${space(0.5)} 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: solid 1px ${p => p.theme.alert.warning.border};
   background: ${p => p.theme.alert.warning.backgroundLight};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

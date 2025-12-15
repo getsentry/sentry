@@ -7,31 +7,34 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {
-  EAPSpanSearchQueryBuilder,
-  useEAPSpanSearchQueryBuilderProps,
+  useSpanSearchQueryBuilderProps,
+  type UseSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconChevron, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {GenerationsChart} from 'sentry/views/insights/aiGenerations/views/components/generationsChart';
 import {GenerationsTable} from 'sentry/views/insights/aiGenerations/views/components/generationsTable';
 import {GenerationsToolbar} from 'sentry/views/insights/aiGenerations/views/components/generationsToolbar';
@@ -58,11 +61,14 @@ function useShowOnboarding() {
   return !selectedProjects.some(p => p.hasInsightsAgentMonitoring);
 }
 
-function AIGenerationsPage() {
+interface AIGenerationsPageProps {
+  datePageFilterProps: DatePageFilterProps;
+}
+
+function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
   const organization = useOrganization();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const showOnboarding = useShowOnboarding();
-  const datePageFilterProps = limitMaxPickableDays(organization);
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
 
   const [searchQuery, setSearchQuery] = useQueryState(
@@ -73,22 +79,14 @@ function AIGenerationsPage() {
 
   const [fields, setFields] = useFieldsQueryParam();
 
-  const {
-    tags: numberTags,
-    secondaryAliases: numberSecondaryAliases,
-    isLoading: numberTagsLoading,
-  } = useTraceItemTags('number');
-  const {
-    tags: stringTags,
-    secondaryAliases: stringSecondaryAliases,
-    isLoading: stringTagsLoading,
-  } = useTraceItemTags('string');
+  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
+  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
 
-  const eapSpanSearchQueryBuilderProps = useMemo(
+  const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
@@ -96,10 +94,6 @@ function AIGenerationsPage() {
         unsetCursor();
       },
       searchSource: 'ai-generations',
-      numberTags,
-      stringTags,
-      numberSecondaryAliases,
-      stringSecondaryAliases,
       replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
@@ -111,20 +105,15 @@ function AIGenerationsPage() {
     [
       caseInsensitive,
       hasRawSearchReplacement,
-      numberSecondaryAliases,
-      numberTags,
       searchQuery,
       setCaseInsensitive,
       setSearchQuery,
-      stringSecondaryAliases,
-      stringTags,
       unsetCursor,
     ]
   );
 
-  const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
-    eapSpanSearchQueryBuilderProps
-  );
+  const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
+    useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -145,7 +134,7 @@ function AIGenerationsPage() {
   }, [fields, setFields, stringTags, numberTags]);
 
   return (
-    <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
+    <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
       <ModuleFeature moduleName={ModuleName.AI_GENERATIONS}>
         <Stack
           direction="column"
@@ -164,7 +153,7 @@ function AIGenerationsPage() {
             </PageFilterBar>
             {!showOnboarding && (
               <Flex flex={2} minWidth="50%">
-                <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
+                <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
               </Flex>
             )}
           </Flex>
@@ -255,11 +244,19 @@ function AIGenerationsPage() {
 }
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   return (
-    <ModulePageProviders moduleName={ModuleName.AI_GENERATIONS}>
+    <ModulePageProviders
+      moduleName={ModuleName.AI_GENERATIONS}
+      maxPickableDays={datePageFilterProps.maxPickableDays}
+    >
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <SpansQueryParamsProvider>
-          <AIGenerationsPage />
+          <AIGenerationsPage datePageFilterProps={datePageFilterProps} />
         </SpansQueryParamsProvider>
       </TraceItemAttributeProvider>
     </ModulePageProviders>
@@ -275,7 +272,7 @@ const SidebarCollapseButton = withChonk(
       p.sidebarOpen &&
       css`
         display: none;
-        border-left-color: ${p.theme.background};
+        border-left-color: ${p.theme.tokens.background.primary};
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
         margin-left: -13px;
@@ -285,23 +282,22 @@ const SidebarCollapseButton = withChonk(
       display: block;
     }
   `,
-  chonkStyled(Button)<{sidebarOpen: boolean}>`
+  styled(Button)<{sidebarOpen: boolean}>`
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+      display: inline-flex;
+    }
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: inline-flex;
-  }
+    ${p =>
+      p.sidebarOpen &&
+      css`
+        display: none;
+        margin-left: -13px;
 
-  ${p =>
-    p.sidebarOpen &&
-    css`
-      display: none;
-      margin-left: -13px;
-
-      &::after {
-        border-left-color: ${p.theme.background};
-        border-top-left-radius: 0px;
-        border-bottom-left-radius: 0px;
-      }
-    `}
-`
+        &::after {
+          border-left-color: ${p.theme.tokens.background.primary};
+          border-top-left-radius: 0px;
+          border-bottom-left-radius: 0px;
+        }
+      `}
+  `
 );

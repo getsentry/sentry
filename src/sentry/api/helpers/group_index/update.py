@@ -496,6 +496,11 @@ def process_group_resolution(
     activity_data: MutableMapping[str, Any],
     result: MutableMapping[str, Any],
 ) -> None:
+    from sentry.incidents.grouptype import MetricIssue
+    from sentry.workflow_engine.models.incident_groupopenperiod import (
+        update_incident_based_on_open_period_status_change,
+    )
+
     now = django_timezone.now()
     resolution = None
     created = None
@@ -655,6 +660,8 @@ def process_group_resolution(
             resolution_time=now,
             resolution_activity=activity,
         )
+        if group.issue_type == MetricIssue:
+            update_incident_based_on_open_period_status_change(group, GroupStatus.RESOLVED)
 
 
 def merge_groups(

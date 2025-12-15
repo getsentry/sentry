@@ -1,15 +1,20 @@
 import logging
-from typing import Any
+from datetime import timedelta
+from types import SimpleNamespace
+from typing import Any, cast
 
 from django.conf import settings
 from django.contrib.auth import logout
 from django.db import router, transaction
+from django.utils import timezone as django_timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import capture_exception
 
-from sentry import roles
+from sentry import analytics, roles
+from sentry.analytics.events.user_removed import UserRemovedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import sudo_required
@@ -23,6 +28,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganizationDeleteState
+from sentry.security.utils import capture_security_activity
 from sentry.users.api.bases.user import UserAndStaffPermission, UserEndpoint
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.user import User
@@ -36,6 +42,68 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 TIMEZONE_CHOICES = get_timezone_choices()
+
+
+def record_user_deactivation(*, user: User, actor: Any, ip_address: str) -> None:
+    deactivation_datetime = django_timezone.now()
+    scheduled_deletion_datetime = deactivation_datetime + timedelta(days=30)
+
+    try:
+        analytics.record(
+            UserRemovedEvent(
+                user_id=user.id,
+                actor_id=actor.id,
+                deletion_request_datetime=deactivation_datetime.isoformat(),
+                deletion_datetime=scheduled_deletion_datetime.isoformat(),
+            )
+        )
+    except Exception as e:
+        capture_exception(e)
+
+    capture_security_activity(
+        account=user,
+        type="user.deactivated",
+        actor=actor,
+        ip_address=ip_address,
+        context={
+            "deactivation_datetime": deactivation_datetime,
+            "scheduled_deletion_datetime": scheduled_deletion_datetime,
+        },
+        send_email=True,
+        current_datetime=deactivation_datetime,
+    )
+
+
+def record_hard_user_deletion(
+    *, user_id: int, user_email: str, actor: Any, ip_address: str
+) -> None:
+    deletion_datetime = django_timezone.now()
+
+    try:
+        analytics.record(
+            UserRemovedEvent(
+                user_id=user_id,
+                actor_id=actor.id,
+                deletion_request_datetime=deletion_datetime.isoformat(),
+                deletion_datetime=deletion_datetime.isoformat(),
+            )
+        )
+    except Exception as e:
+        capture_exception(e)
+
+    # We create a minimal object with id and email since the User was already deleted.
+    # This is only used for email template rendering.
+    account_info = SimpleNamespace(id=user_id, email=user_email)
+
+    capture_security_activity(
+        account=cast(Any, account_info),
+        type="user.removed",
+        actor=actor,
+        ip_address=ip_address,
+        context={"deletion_datetime": deletion_datetime},
+        send_email=True,
+        current_datetime=deletion_datetime,
+    )
 
 
 class UserOptionsSerializer(serializers.Serializer[UserOption]):
@@ -67,7 +135,6 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
         required=False,
     )
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
-    prefersChonkUI = serializers.BooleanField(required=False)
 
 
 class BaseUserSerializer(CamelSnakeModelSerializer[User]):
@@ -236,7 +303,6 @@ class UserDetailsEndpoint(UserEndpoint):
             "defaultIssueEvent": "default_issue_event",
             "clock24Hours": "clock_24_hours",
             "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
-            "prefersChonkUI": "prefers_chonk_ui",
         }
 
         options_result = serializer_options.validated_data
@@ -357,11 +423,24 @@ class UserDetailsEndpoint(UserEndpoint):
         is_current_user = request.user.id == user.id
 
         if hard_delete:
+            user_id = user.id
+            user_email = user.email
             user.delete()
             delete_logger.info("user.removed", extra=logging_data)
+            record_hard_user_deletion(
+                user_id=user_id,
+                user_email=user_email,
+                actor=request.user,
+                ip_address=request.META["REMOTE_ADDR"],
+            )
         else:
             User.objects.filter(id=user.id).update(is_active=False)
             delete_logger.info("user.deactivate", extra=logging_data)
+            record_user_deactivation(
+                user=user,
+                actor=request.user,
+                ip_address=request.META["REMOTE_ADDR"],
+            )
 
         # if the user deleted their own account log them out
         if is_current_user:

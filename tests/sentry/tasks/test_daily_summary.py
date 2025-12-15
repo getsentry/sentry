@@ -202,6 +202,8 @@ class DailySummaryTest(
             self.perf_event2 = self.create_performance_issue(
                 fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group6"
             )
+            assert self.perf_event.group is not None
+            assert self.perf_event2.group is not None
 
     @with_feature("organizations:daily-summary")
     @mock.patch("sentry.tasks.summaries.daily_summary.prepare_summary_data")
