@@ -7,7 +7,6 @@ from typing import Any, Final, get_type_hints
 
 import sentry_sdk
 
-from sentry import features, options
 from sentry.models.organization import Organization
 from sentry.notifications.platform.metrics import (
     NotificationEventLifecycleMetric,
@@ -15,6 +14,7 @@ from sentry.notifications.platform.metrics import (
 )
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry, template_registry
+from sentry.notifications.platform.rollout import NotificationRolloutService
 from sentry.notifications.platform.target import NotificationTargetDto
 from sentry.notifications.platform.types import (
     NotificationData,
@@ -43,64 +43,7 @@ class NotificationService[T: NotificationData]:
 
     @staticmethod
     def has_access(organization: Organization | RpcOrganization, source: str) -> bool:
-
-        option_key = NotificationService._has_feature_flag_access(organization)
-        if option_key is None:
-            return False
-
-        try:
-            rollout_rates = options.get(option_key)
-        except options.UnknownOption:
-            logger.warning(
-                "notification.platform.has_access.unknown_option",
-                extra={
-                    "organization_id": organization.id,
-                    "source": source,
-                    "option_key": option_key,
-                },
-            )
-            return False
-
-        try:
-            source_rollout_rate = rollout_rates[source]
-        except KeyError:
-            logger.warning(
-                "notification.platform.has_access.unknown_source",
-                extra={
-                    "organization_id": organization.id,
-                    "source": source,
-                    "option_key": option_key,
-                    "rollout_rates": rollout_rates,
-                },
-            )
-            return False
-
-        return (organization.id % 100) < 100 * source_rollout_rate
-
-    @staticmethod
-    def _has_feature_flag_access(organization: Organization | RpcOrganization) -> str | None:
-        internal_testing = features.has(
-            "organizations:notification-platform.internal-testing", organization
-        )
-        is_sentry = features.has("organizations:notification-platform.is-sentry", organization)
-        early_adopter = features.has(
-            "organizations:notification-platform.early-adopter", organization
-        )
-        general_access = features.has(
-            "organizations:notification-platform.general-access", organization
-        )
-
-        option_key = None
-        if internal_testing:
-            option_key = "notifications.platform-rollout.internal-testing"
-        elif is_sentry:
-            option_key = "notifications.platform-rollout.is-sentry"
-        elif early_adopter:
-            option_key = "notifications.platform-rollout.early-adopter"
-        elif general_access:
-            option_key = "notifications.platform-rollout.general-access"
-
-        return option_key
+        return NotificationRolloutService(organization=organization).should_notify(source=source)
 
     def notify_target(self, *, target: NotificationTarget) -> None:
         """
