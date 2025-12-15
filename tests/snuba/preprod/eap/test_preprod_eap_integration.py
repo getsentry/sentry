@@ -3,7 +3,10 @@ from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
 from sentry.models.commitcomparison import CommitComparison
-from sentry.preprod.eap.read import PreprodSizeFilters, query_preprod_size_metrics
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+
+from sentry.preprod.eap.read import query_preprod_size_metrics
 from sentry.preprod.eap.write import write_preprod_size_metric_to_eap
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -67,12 +70,21 @@ class PreprodEAPIntegrationTest(SnubaTestCase):
         for attempt in range(max_attempts):
             time.sleep(0.5)
 
+            app_filter = TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name="app_id", type=AttributeKey.Type.TYPE_STRING),
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_str="com.example.integrationtest"),
+                )
+            )
+
             response = query_preprod_size_metrics(
                 organization_id=self.organization.id,
                 project_ids=[self.project.id],
                 start=datetime.now(dt_timezone.utc) - timedelta(hours=1),
                 end=datetime.now(dt_timezone.utc) + timedelta(hours=1),
-                filters=PreprodSizeFilters(app_id="com.example.integrationtest"),
+                referrer="test.preprod.integration",
+                filter=app_filter,
             )
 
             if response.column_values:
@@ -159,12 +171,21 @@ class PreprodEAPIntegrationTest(SnubaTestCase):
         for attempt in range(max_attempts):
             time.sleep(0.5)
 
+            app_filter = TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name="app_id", type=AttributeKey.Type.TYPE_STRING),
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_str="com.example.multitest"),
+                )
+            )
+
             response = query_preprod_size_metrics(
                 organization_id=self.organization.id,
                 project_ids=[self.project.id],
                 start=datetime.now(dt_timezone.utc) - timedelta(hours=1),
                 end=datetime.now(dt_timezone.utc) + timedelta(hours=1),
-                filters=PreprodSizeFilters(app_id="com.example.multitest"),
+                referrer="test.preprod.integration",
+                filter=app_filter,
             )
 
             if response.column_values:

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import uuid
-from dataclasses import dataclass, field, fields
 from datetime import datetime
 
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -12,17 +10,11 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableResponse,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
-    AndFilter,
-    ComparisonFilter,
-    TraceItemFilter,
-)
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
-from sentry.preprod.eap.constants import PREPROD_NAMESPACE
 from sentry.search.eap import constants
 from sentry.search.eap.columns import ResolvedAttribute
-from sentry.search.eap.rpc_utils import create_attribute_value
 from sentry.utils import snuba_rpc
 
 PREPROD_SIZE_ATTRIBUTE_DEFINITIONS = {
@@ -158,57 +150,13 @@ PREPROD_SIZE_ATTRIBUTE_DEFINITIONS = {
 }
 
 
-@dataclass
-class PreprodSizeFilters:
-    # IDs (handled specially - converted to trace_id)
-    artifact_id: int | None = None
-
-    # App/Artifact attributes
-    app_id: str | None = field(
-        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
-    )
-    artifact_type: int | None = field(
-        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_INT}
-    )
-
-    # Build configuration
-    build_configuration_name: str | None = field(
-        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
-    )
-
-    # Git attributes
-    git_head_ref: str | None = field(
-        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
-    )
-    git_head_sha: str | None = field(
-        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
-    )
-    git_base_ref: str | None = field(
-        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
-    )
-    git_base_sha: str | None = field(
-        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
-    )
-    git_provider: str | None = field(
-        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
-    )
-    git_head_repo_name: str | None = field(
-        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
-    )
-    git_base_repo_name: str | None = field(
-        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
-    )
-    git_pr_number: int | None = field(
-        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_INT}
-    )
-
-
 def query_preprod_size_metrics(
     organization_id: int,
     project_ids: list[int],
     start: datetime,
     end: datetime,
-    filters: PreprodSizeFilters | None = None,
+    referrer: str,
+    filter: TraceItemFilter | None = None,
     columns: list[str] | None = None,
     limit: int = 100,
     offset: int = 0,
@@ -217,20 +165,27 @@ def query_preprod_size_metrics(
     Query preprod size metrics from EAP.
 
     Args:
+        referrer: Identifier for the calling endpoint (e.g., "api.preprod.app-size-stats").
+        filter: Optional TraceItemFilter for filtering results. Build using proto types directly.
         columns: List of column names to include. If None, returns all available columns.
 
     Example:
+        # With filter
+        app_filter = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="app_id", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="com.example.app"),
+            )
+        )
+
         query_preprod_size_metrics(
             organization_id=1,
             project_ids=[1, 2],
             start=datetime.now() - timedelta(days=30),
             end=datetime.now(),
-            filters=PreprodSizeFilters(
-                app_id="com.example.app",
-                artifact_type=0,
-                build_configuration_name="Release",
-                git_head_ref="main",
-            ),
+            referrer="api.preprod.app-size-stats",
+            filter=app_filter,
             columns=["app_id", "build_version", "max_install_size", "timestamp"],
         )
     """
@@ -242,14 +197,10 @@ def query_preprod_size_metrics(
 
     columns_list = _get_columns_for_preprod_size(columns)
 
-    query_filter = None
-    filter_list = _build_filters(filters) if filters else []
-    if filter_list:
-        query_filter = TraceItemFilter(and_filter=AndFilter(filters=filter_list))
-
     rpc_request = TraceItemTableRequest(
         meta=RequestMeta(
-            referrer="preprod.eap.debug",
+            referrer=referrer,
+            cogs_category="preprod_size_analysis",
             organization_id=organization_id,
             project_ids=project_ids,
             trace_item_type=TraceItemType.TRACE_ITEM_TYPE_PREPROD,
@@ -259,7 +210,7 @@ def query_preprod_size_metrics(
                 mode=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
             ),
         ),
-        filter=query_filter,
+        filter=filter,
         columns=columns_list,
         order_by=[
             TraceItemTableRequest.OrderBy(
@@ -281,50 +232,6 @@ def query_preprod_size_metrics(
     if not responses:
         raise ValueError("No response from Snuba RPC")
     return responses[0]
-
-
-def _build_filters(filters: PreprodSizeFilters) -> list[TraceItemFilter]:
-    result = []
-
-    for field in fields(filters):
-        value = getattr(filters, field.name)
-        if value is None:
-            continue
-
-        # Special case: artifact_id needs to be converted to trace_id format using UUID5
-        if field.name == "artifact_id":
-            trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(value)).hex
-            result.append(
-                TraceItemFilter(
-                    comparison_filter=ComparisonFilter(
-                        key=AttributeKey(
-                            name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING
-                        ),
-                        op=ComparisonFilter.OP_EQUALS,
-                        value=AttributeValue(val_str=trace_id),
-                    )
-                )
-            )
-            continue
-
-        attr_type = field.metadata.get("attr_type")
-        if attr_type is None:
-            raise ValueError(
-                f"Field '{field.name}' is missing 'attr_type' metadata. "
-                f"Add metadata={{'attr_type': ...}} to the field definition"
-            )
-
-        result.append(
-            TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=AttributeKey(name=field.name, type=attr_type),
-                    op=ComparisonFilter.OP_EQUALS,
-                    value=create_attribute_value(attr_type, value),
-                )
-            )
-        )
-
-    return result
 
 
 def _get_columns_for_preprod_size(column_names: list[str] | None = None) -> list[Column]:
