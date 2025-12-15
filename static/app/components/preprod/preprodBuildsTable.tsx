@@ -4,7 +4,7 @@ import {PlatformIcon} from 'platformicons';
 
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -12,7 +12,7 @@ import Pagination from 'sentry/components/pagination';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCheckmark, IconCommit} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   formattedPrimaryMetricDownloadSize,
@@ -172,8 +172,14 @@ export function PreprodBuildsTable({
       <SimpleTable.Empty>
         <Text as="p">
           {hasSearchQuery
-            ? t('No builds found for your search')
-            : t('There are no preprod builds associated with this project.')}
+            ? t('No mobile builds found for your search')
+            : tct('No mobile builds found, see our [link:documentation] for more info.', {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/size-analysis/">
+                    {t('Learn more')}
+                  </ExternalLink>
+                ),
+              })}
         </Text>
       </SimpleTable.Empty>
     );
