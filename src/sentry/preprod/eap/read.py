@@ -9,12 +9,16 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.request_common_pb2 import (
+    PageToken,
+    RequestMeta,
+    TraceItemType,
+)
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.search.eap import constants
-from sentry.search.eap.columns import ResolvedAttribute
+from sentry.search.eap.columns import ResolvedAttribute, datetime_processor
 from sentry.utils import snuba_rpc
 
 PREPROD_SIZE_ATTRIBUTE_DEFINITIONS = {
@@ -145,6 +149,7 @@ PREPROD_SIZE_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.timestamp",
             internal_type=constants.DOUBLE,
             search_type="string",
+            processor=datetime_processor,
         ),
     ]
 }
@@ -197,7 +202,7 @@ def query_preprod_size_metrics(
 
     columns_list = _get_columns_for_preprod_size(columns)
 
-    # Ensure timestamp is always included for ordering
+    # Ensure timestamp is always included since it's part of our order_by
     timestamp_col = Column(
         label="timestamp",
         key=AttributeKey(
@@ -205,7 +210,6 @@ def query_preprod_size_metrics(
             type=AttributeKey.Type.TYPE_DOUBLE,
         ),
     )
-    # Check if timestamp is already in columns_list by label
     has_timestamp = any(col.label == "timestamp" for col in columns_list)
     if not has_timestamp:
         columns_list.append(timestamp_col)
