@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
@@ -44,7 +44,7 @@ export default function SentryApplicationRow({
 
   return (
     <SentryAppItem data-test-id={app.slug}>
-      <StyledFlex>
+      <Flex justify="center" padding="md">
         <SentryAppAvatar sentryApp={app} size={36} />
         <SentryAppBox>
           <SentryAppName hideStatus={hideStatus}>
@@ -65,7 +65,7 @@ export default function SentryApplicationRow({
             onClickPublish={handlePublish}
           />
         </div>
-      </StyledFlex>
+      </Flex>
     </SentryAppItem>
   );
 }
@@ -74,10 +74,6 @@ const SentryAppItem = styled(PanelItem)`
   flex-direction: column;
   padding: 5px;
 `;
-
-function StyledFlex(props: FlexProps) {
-  return <Flex justify="center" padding="md" {...props} />;
-}
 
 const SentryAppBox = styled('div')`
   padding-left: 15px;

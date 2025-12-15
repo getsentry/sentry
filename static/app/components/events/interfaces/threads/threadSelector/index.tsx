@@ -266,14 +266,5 @@ const SortableThreadSelectorGridCell = styled(ThreadSelectorGridCell)`
 `;
 
 function HeaderText(props: FlexProps) {
-  return (
-    <Flex
-      gap="xs"
-      display="flex"
-      align="center"
-      justify="start"
-      padding="0 xs"
-      {...props}
-    />
-  );
+  return <Flex gap="xs" align="center" justify="start" padding="0 xs" {...props} />;
 }

@@ -203,7 +203,7 @@ const LinkedFeedbackCard = styled(Link)`
 `;
 
 function Row(props: FlexProps) {
-  return <Flex place-items="center" {...props} />;
+  return <Flex placeItems="center" {...props} />;
 }
 
 const BottomGrid = styled('div')`
