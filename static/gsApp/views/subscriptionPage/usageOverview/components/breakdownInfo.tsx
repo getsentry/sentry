@@ -304,6 +304,9 @@ function ReservedBudgetUsageBreakdownInfo({
   const billedCategory = reservedBudget.dataCategories[0]!;
   const metricHistory = subscription.categories[billedCategory];
   if (!metricHistory) {
+    // we don't normalize metric history here because there should always be a metric history
+    // for a reserved budget, otherwise there is no way to indicate that that category should
+    // be tallied as a budget (reserved = RESERVED_BUDGET_QUOTA)
     return null;
   }
   const recurringReservedSpend =

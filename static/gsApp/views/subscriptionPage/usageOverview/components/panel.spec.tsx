@@ -630,4 +630,66 @@ describe('ProductBreakdownPanel', () => {
 
     await screen.findByText('Active Contributors (3)'); // wait for billed seats to be loaded
   });
+
+  it('renders for add-on with missing metric history', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`,
+      method: 'GET',
+      body: [],
+    });
+    subscription.addOns!.seer = {
+      ...subscription.addOns!.seer!,
+      enabled: true,
+    };
+    subscription.categories.seerUsers = undefined;
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={AddOnCategory.SEER}
+      />
+    );
+    await screen.findByRole('heading', {name: 'Seer'});
+
+    // just nullifies everything
+    expect(screen.queryByText('Included volume')).not.toBeInTheDocument();
+    expect(screen.queryByText('Business plan')).not.toBeInTheDocument();
+    expect(screen.queryByText('Additional reserved')).not.toBeInTheDocument();
+    expect(screen.queryByText('Gifted')).not.toBeInTheDocument();
+    expect(screen.queryByText('Additional spend')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pay-as-you-go')).not.toBeInTheDocument();
+    expect(screen.queryByText('Reserved spend')).not.toBeInTheDocument();
+    expect(screen.queryByText('Active contributors spend')).not.toBeInTheDocument();
+
+    await screen.findByText('Active Contributors (0)'); // wait for billed seats to be loaded
+  });
+
+  it('renders for data category with missing metric history', async () => {
+    // NOTE(isabella): currently, we would never have this case IRL
+    // since we would not allow a data category without a metric history to be
+    // selectable for the panel, but i've left this test in for completeness
+    subscription.categories.errors = undefined;
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+    await screen.findByText('Upgrade required');
+
+    // since a data category can only be enabled based on metric history,
+    // we will always show full panel upgrade CTA (or product trial CTA if applicable)
+    // and thus no breakdown info or heading should be rendered
+    expect(screen.queryByRole('heading', {name: 'Errors'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Included volume')).not.toBeInTheDocument();
+    expect(screen.queryByText('Business plan')).not.toBeInTheDocument();
+    expect(screen.queryByText('Additional reserved')).not.toBeInTheDocument();
+    expect(screen.queryByText('Gifted')).not.toBeInTheDocument();
+    expect(screen.queryByText('Additional spend')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pay-as-you-go')).not.toBeInTheDocument();
+    expect(screen.queryByText('Reserved spend')).not.toBeInTheDocument();
+  });
 });
