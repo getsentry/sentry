@@ -1,6 +1,8 @@
 import logging
 from datetime import datetime, timedelta
 
+import sentry_sdk
+
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -135,6 +137,14 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     - Seer API (all projects): automated_run_stopping_point="code_changes" or "open_pr"
     """
     organization = Organization.objects.get(id=organization_id)
+
+    sentry_sdk.set_context(
+        "configure_seer_task",
+        {
+            "organization_id": organization.id,
+            "organization_slug": organization.slug,
+        },
+    )
 
     # Set org-level options
     organization.update_option("sentry:enable_seer_coding", True)
