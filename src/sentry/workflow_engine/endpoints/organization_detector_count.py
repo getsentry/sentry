@@ -59,7 +59,7 @@ class OrganizationDetectorCountEndpoint(OrganizationEndpoint):
             }
             return self.respond(empty_response)
 
-        queryset = Detector.objects.filter(
+        queryset = Detector.objects.with_type_filters().filter(
             status=ObjectStatus.ACTIVE,
             project__organization_id=organization.id,
             project_id__in=filter_params["project_id"],
