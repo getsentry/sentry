@@ -191,7 +191,7 @@ const RepositoryRow = memo(function RepositoryRow({
 
 function getProjectItem(project: Project) {
   return {
-    value: project.slug,
+    value: project.id,
     textValue: project.slug,
     label: (
       <ProjectBadge
