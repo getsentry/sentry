@@ -16,6 +16,7 @@ import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
 import {
   displayBudgetName,
   getReservedBudgetCategoryForAddOn,
+  normalizeMetricHistory,
   supportsPayg,
 } from 'getsentry/utils/billing';
 import useSeerOnboardingCheck from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingCheck';
@@ -166,29 +167,29 @@ function ProductBreakdownPanel({
       );
     } else {
       const metricHistory = subscription.categories[billedCategory];
-      if (metricHistory) {
-        breakdownInfo = (
-          <DataCategoryUsageBreakdownInfo
-            subscription={subscription}
-            category={billedCategory}
-            metricHistory={metricHistory}
-            activeProductTrial={activeProductTrial}
-          />
-        );
-      }
+      const normalizedMetricHistory = normalizeMetricHistory(
+        billedCategory,
+        metricHistory
+      );
+      breakdownInfo = (
+        <DataCategoryUsageBreakdownInfo
+          subscription={subscription}
+          category={billedCategory}
+          metricHistory={normalizedMetricHistory}
+          activeProductTrial={activeProductTrial}
+        />
+      );
     }
   } else {
     const category = selectedProduct as DataCategory;
     const metricHistory = subscription.categories[category];
-    if (!metricHistory) {
-      return null;
-    }
+    const normalizedMetricHistory = normalizeMetricHistory(category, metricHistory);
 
     breakdownInfo = (
       <DataCategoryUsageBreakdownInfo
         subscription={subscription}
         category={category}
-        metricHistory={metricHistory}
+        metricHistory={normalizedMetricHistory}
         activeProductTrial={activeProductTrial}
       />
     );

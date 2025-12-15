@@ -1064,3 +1064,34 @@ export function productIsEnabled(
       subscription.onDemandBudgets.sharedMaxBudget > 0)
   );
 }
+
+/**
+ * Given a data category and potential metric history, returns a normalized metric history object.
+ *
+ * If the metric history is null or undefined, we return a default metric history object with all
+ * fields set to 0, null, or false.
+ */
+export function normalizeMetricHistory(
+  category: DataCategory,
+  metricHistory: BillingMetricHistory | null | undefined
+): BillingMetricHistory {
+  return (
+    metricHistory ?? {
+      category,
+      reserved: 0,
+      usage: 0,
+      prepaid: 0,
+      free: 0,
+      onDemandSpendUsed: 0,
+      onDemandBudget: 0,
+      onDemandQuantity: 0,
+      customPrice: null,
+      order: 0,
+      paygCpe: null,
+      sentUsageWarning: false,
+      softCapType: null,
+      trueForward: false,
+      usageExceeded: false,
+    }
+  );
+}
