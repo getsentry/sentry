@@ -3,52 +3,100 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import ConfigStore from 'sentry/stores/configStore';
 
-import {formatXAxisTimestamp} from './formatXAxisTimestamp';
+import {computeXAxisConfig, formatXAxisTimestamp} from './formatXAxisTimestamp';
+
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 
 describe('formatXAxisTimestamp', () => {
-  it.each([
-    // Year starts
-    ['2025-01-01T00:00:00', 'Jan 1st 2025'],
-    ['2024-01-01T00:00:00', 'Jan 1st 2024'],
-    // // Month starts
-    ['2025-02-01T00:00:00', 'Feb 1st'],
-    ['2024-03-01T00:00:00', 'Mar 1st'],
-    // // Day starts
-    ['2025-02-05T00:00:00', 'Feb 5th'],
-    // // Hour starts
-    ['2025-02-05T12:00:00', '12:00 PM'],
-    ['2025-02-05T05:00:00', '5:00 AM'],
-    ['2025-02-01T01:00:00', '1:00 AM'],
-    // Minute starts
-    ['2025-02-05T12:11:00', '12:11 PM'],
-    ['2025-02-05T05:25:00', '5:25 AM'],
-    // Seconds
-    ['2025-02-05T12:10:05', '12:10:05 PM'],
-    ['2025-02-05T12:10:06', '12:10:06 PM'],
-    ['2025-02-05T05:25:10', '5:25:10 AM'],
-  ])('formats %s as %s with 12h format', (raw, formatted) => {
+  beforeEach(() => {
     const user = UserFixture();
     user.options.clock24Hours = false;
     ConfigStore.set('user', user);
-
-    const timestamp = moment(raw).unix() * 1000;
-    expect(formatXAxisTimestamp(timestamp)).toEqual(formatted);
   });
 
-  it.each([
-    // Minute starts
-    ['2025-02-05T12:11:00', '12:11'],
-    ['2025-02-05T17:25:00', '17:25'],
-    // Seconds
-    ['2025-02-05T12:10:05', '12:10:05'],
-    ['2025-02-05T12:10:06', '12:10:06'],
-    ['2025-02-05T17:25:10', '17:25:10'],
-  ])('formats %s as %s with 24h format', (raw, formatted) => {
+  it('formats as date for multi-day ranges', () => {
+    const timestamp = moment.utc('2025-02-05T12:00:00').valueOf();
+    expect(
+      formatXAxisTimestamp(timestamp, {timezone: 'UTC', durationMs: 7 * DAY_MS})
+    ).toBe('Feb 5th');
+  });
+
+  it('formats year start with year for multi-day ranges', () => {
+    const timestamp = moment.utc('2025-01-01T00:00:00').valueOf();
+    expect(
+      formatXAxisTimestamp(timestamp, {timezone: 'UTC', durationMs: 7 * DAY_MS})
+    ).toBe('Jan 1st 2025');
+  });
+
+  it('formats as time for single-day ranges', () => {
+    const timestamp = moment.utc('2025-02-05T12:00:00').valueOf();
+    expect(
+      formatXAxisTimestamp(timestamp, {timezone: 'UTC', durationMs: 12 * HOUR_MS})
+    ).toBe('12:00 PM');
+  });
+
+  it('respects 24h format setting', () => {
     const user = UserFixture();
     user.options.clock24Hours = true;
     ConfigStore.set('user', user);
 
-    const timestamp = moment(raw).unix() * 1000;
-    expect(formatXAxisTimestamp(timestamp)).toEqual(formatted);
+    const timestamp = moment.utc('2025-02-05T17:30:00').valueOf();
+    expect(
+      formatXAxisTimestamp(timestamp, {timezone: 'UTC', durationMs: 6 * HOUR_MS})
+    ).toBe('17:30');
+  });
+
+  it('formats in user timezone', () => {
+    const timestamp = moment.utc('2025-02-05T12:00:00').valueOf();
+    expect(
+      formatXAxisTimestamp(timestamp, {
+        timezone: 'America/New_York',
+        durationMs: 6 * HOUR_MS,
+      })
+    ).toBe('7:00 AM');
+  });
+});
+
+describe('computeXAxisConfig', () => {
+  it('returns undefined when start or end is undefined', () => {
+    expect(computeXAxisConfig(undefined, 1000, 'UTC')).toBeUndefined();
+    expect(computeXAxisConfig(1000, undefined, 'UTC')).toBeUndefined();
+    expect(computeXAxisConfig(undefined, undefined, 'UTC')).toBeUndefined();
+  });
+
+  it('selects 10 minute interval for 1 hour range', () => {
+    const start = moment.utc('2025-02-05T10:00:00').valueOf();
+    const end = moment.utc('2025-02-05T11:00:00').valueOf();
+    const config = computeXAxisConfig(start, end, 'UTC');
+    expect(config?.interval).toBe(10 * MINUTE_MS);
+  });
+
+  it('selects 1 hour interval for 6 hour range', () => {
+    const start = moment.utc('2025-02-05T08:00:00').valueOf();
+    const end = moment.utc('2025-02-05T14:00:00').valueOf();
+    const config = computeXAxisConfig(start, end, 'UTC');
+    expect(config?.interval).toBe(HOUR_MS);
+  });
+
+  it('selects 4 hour interval for 24 hour range', () => {
+    const start = moment.utc('2025-02-05T00:00:00').valueOf();
+    const end = moment.utc('2025-02-06T00:00:00').valueOf();
+    const config = computeXAxisConfig(start, end, 'UTC');
+    expect(config?.interval).toBe(4 * HOUR_MS);
+  });
+
+  it('selects 1 day interval for 7 day range', () => {
+    const start = moment.utc('2025-02-01T00:00:00').valueOf();
+    const end = moment.utc('2025-02-08T00:00:00').valueOf();
+    const config = computeXAxisConfig(start, end, 'UTC');
+    expect(config?.interval).toBe(DAY_MS);
+  });
+
+  it('sets labelInterval for periodic hiding when many ticks', () => {
+    const start = moment.utc('2025-02-01T00:00:00').valueOf();
+    const end = moment.utc('2025-02-08T00:00:00').valueOf();
+    const config = computeXAxisConfig(start, end, 'UTC', 3);
+    expect(config?.labelInterval).toBeGreaterThan(0);
   });
 });

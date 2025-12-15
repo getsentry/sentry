@@ -22,6 +22,7 @@ import {
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {useTimezone} from 'sentry/components/timezoneProvider';
 import {space} from 'sentry/styles/space';
 import type {
   EChartClickHandler,
@@ -52,7 +53,10 @@ import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useRelease
 import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {formatTooltipValue} from './formatters/formatTooltipValue';
-import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
+import {
+  computeXAxisConfig,
+  formatXAxisTimestamp,
+} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
 import type {Plottable} from './plottables/plottable';
 import {ReleaseSeries} from './releaseSeries';
@@ -147,6 +151,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const userTimezone = useTimezone();
+  const effectiveTimezone = utc ? 'UTC' : userTimezone;
   const hasReleaseBubbles =
     props.showReleaseAs !== 'none' && props.showReleaseAs === 'bubble';
 
@@ -447,17 +453,32 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const showXAxisProp = props.showXAxis ?? 'auto';
   const showXAxis = showXAxisProp === 'auto';
 
+  const earliestTimeMs = earliestTimeStamp
+    ? new Date(earliestTimeStamp).getTime()
+    : undefined;
+  const latestTimeMs = latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined;
+  const durationMs =
+    earliestTimeMs && latestTimeMs ? latestTimeMs - earliestTimeMs : undefined;
+  const xAxisConfig = computeXAxisConfig(earliestTimeMs, latestTimeMs, effectiveTimezone);
+
   const xAxis = showXAxis
     ? {
         animation: false,
+        type: 'time' as const,
+        minInterval: xAxisConfig?.interval,
         axisLabel: {
-          padding: [0, 10, 0, 10],
-          width: 60,
+          interval: xAxisConfig?.labelInterval ?? 0,
+          showMinLabel: true,
+          showMaxLabel: true,
+          alignMinLabel: 'left' as const,
+          alignMaxLabel: 'right' as const,
           formatter: (value: number) => {
-            return formatXAxisTimestamp(value, {utc: utc ?? undefined});
+            return formatXAxisTimestamp(value, {
+              timezone: effectiveTimezone,
+              durationMs,
+            });
           },
         },
-        splitNumber: 5,
         ...releaseBubbleXAxis,
       }
     : HIDDEN_X_AXIS;

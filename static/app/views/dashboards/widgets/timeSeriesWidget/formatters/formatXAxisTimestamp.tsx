@@ -1,57 +1,84 @@
-import {getParser, getTimeFormat} from 'sentry/utils/dates';
+import moment from 'moment-timezone';
 
-/**
- * A "cascading" formatter, based on the recommendations in [ECharts documentation](https://echarts.apache.org/en/option.html#xAxis.axisLabel.formatter). Given a timestamp of an X axis of type `"time"`, return a formatted string, to show under the axis tick.
- *
- * The fidelity of the formatted value depends on the fidelity of the tick mark timestamp. ECharts will intelligently choose the location of tick marks based on the total time range, and any significant intervals inside. It always chooses tick marks that fall on a "round" time values (starts of days, starts of hours, 15 minute intervals, etc.). This formatter is called on the time stamps of the selected ticks. Here are some examples of output labels sets you can expect:
- *
- * ["Feb 1st", "Feb 2nd", "Feb 3rd"] when ECharts aligns ticks with days of the month
- * ["11:00pm", "Feb 2nd", "1:00am"] when ECharts aligns ticks with hours across a day boundary
- * ["Mar 1st", "Apr 1st", "May 1st"] when ECharts aligns ticks with starts of month
- * ["Dec 1st", "Jan 1st 2025", "Feb 1st"] when ECharts aligns markers with starts of month across a year boundary
- * ["12:00pm", "1:00am", "2:00am", "3:00am"] when ECharts aligns ticks with hours starts
- *
- * @param value
- * @param options
- * @returns Formatted X axis label string
- */
+import {getTimeFormat} from 'sentry/utils/dates';
+
+const MINUTE_MS = 60 * 1000;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
+
+export interface FormatXAxisTimestampOptions {
+  durationMs?: number;
+  timezone?: string;
+}
+
 export function formatXAxisTimestamp(
   value: number,
-  options: {utc?: boolean} = {utc: false}
+  options: FormatXAxisTimestampOptions = {}
 ): string {
-  const parsed = getParser(!options.utc)(value);
+  const timezone = options.timezone ?? 'UTC';
+  const duration = options.durationMs ?? DAY_MS;
+  const parsed = moment(value).tz(timezone);
 
-  // Granularity-aware parsing, adjusts the format based on the
-  // granularity of the object This works well with ECharts since the
-  // parser is not aware of the other ticks
-  let format = 'MMM Do';
-
-  if (
-    parsed.dayOfYear() === 1 &&
-    parsed.hour() === 0 &&
-    parsed.minute() === 0 &&
-    parsed.second() === 0
-  ) {
-    // Start of a year
-    format = 'MMM Do YYYY';
-  } else if (
-    parsed.day() === 0 &&
-    parsed.hour() === 0 &&
-    parsed.minute() === 0 &&
-    parsed.second() === 0
-  ) {
-    // Start of a month
-    format = 'MMM Do';
-  } else if (parsed.hour() === 0 && parsed.minute() === 0 && parsed.second() === 0) {
-    // Start of a day
-    format = 'MMM Do';
-  } else if (parsed.second() === 0) {
-    // Hours, minutes
-    format = getTimeFormat();
-  } else {
-    // Hours, minutes, seconds
-    format = getTimeFormat({seconds: true});
+  if (duration > DAY_MS) {
+    if (parsed.dayOfYear() === 1 && parsed.hour() === 0 && parsed.minute() === 0) {
+      return parsed.format('MMM Do YYYY');
+    }
+    return parsed.format('MMM Do');
   }
 
-  return parsed.format(format);
+  return parsed.format(getTimeFormat());
+}
+
+const NICE_INTERVALS = [
+  5 * MINUTE_MS,
+  10 * MINUTE_MS,
+  15 * MINUTE_MS,
+  30 * MINUTE_MS,
+  HOUR_MS,
+  2 * HOUR_MS,
+  3 * HOUR_MS,
+  4 * HOUR_MS,
+  6 * HOUR_MS,
+  12 * HOUR_MS,
+  DAY_MS,
+  2 * DAY_MS,
+  7 * DAY_MS,
+];
+
+export interface XAxisConfig {
+  interval: number;
+  labelInterval: number;
+}
+
+export function computeXAxisConfig(
+  start: number | undefined,
+  end: number | undefined,
+  _timezone: string,
+  targetTickCount = 5
+): XAxisConfig | undefined {
+  if (start === undefined || end === undefined) {
+    return undefined;
+  }
+
+  const duration = end - start;
+  const targetInterval = duration / targetTickCount;
+
+  let interval = NICE_INTERVALS[0]!;
+  for (const candidate of NICE_INTERVALS) {
+    if (candidate <= targetInterval) {
+      interval = candidate;
+    } else {
+      break;
+    }
+  }
+
+  const totalTicks = Math.ceil(duration / interval);
+  let labelInterval = 0;
+  if (totalTicks > targetTickCount * 2) {
+    const skip = Math.ceil(totalTicks / targetTickCount);
+    labelInterval = [2, 3, 4, 5, 6].find(f => f >= skip) ?? skip;
+    labelInterval -= 1;
+  }
+
+  return {interval, labelInterval};
 }
