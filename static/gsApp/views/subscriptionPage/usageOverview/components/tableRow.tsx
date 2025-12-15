@@ -85,6 +85,8 @@ function UsageOverviewTableRow({
     return null;
   }
 
+  const {reserved, usage, prepaid, free} = metricHistory;
+
   if (!isEnabled && isChildProduct) {
     // don't show child product rows if the parent product is not enabled
     return null;
@@ -103,17 +105,13 @@ function UsageOverviewTableRow({
       return null;
     }
 
-    isUnlimited = !!activeProductTrial;
+    isUnlimited = !!activeProductTrial || prepaid === UNLIMITED_RESERVED;
     const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(
       (parentProduct ?? product) as AddOnCategory
     );
     const reservedBudget = subscription.reservedBudgets?.find(
       budget => budget.apiName === reservedBudgetCategory
     );
-    const free = reservedBudget?.freeBudget ?? 0;
-    percentUsed = reservedBudget
-      ? getPercentage(reservedBudget.totalReservedSpend, reservedBudget.reservedBudget)
-      : 0;
     formattedUsage = reservedBudget
       ? displayPriceWithCents({
           cents: isChildProduct
@@ -126,10 +124,23 @@ function UsageOverviewTableRow({
         });
 
     if (isUnlimited) {
+      percentUsed = 0;
       formattedPrepaid = formatReservedWithUnits(UNLIMITED_RESERVED, billedCategory);
     } else if (reservedBudget) {
+      percentUsed = getPercentage(
+        reservedBudget.totalReservedSpend,
+        reservedBudget.reservedBudget
+      );
       formattedPrepaid = displayPriceWithCents({cents: reservedBudget.reservedBudget});
-      formattedFree = free ? displayPriceWithCents({cents: free}) : null;
+      formattedFree = reservedBudget.freeBudget
+        ? displayPriceWithCents({cents: reservedBudget.freeBudget})
+        : null;
+    } else {
+      formattedPrepaid = prepaid
+        ? formatReservedWithUnits(prepaid, billedCategory)
+        : null;
+      formattedFree = free ? formatReservedWithUnits(free, billedCategory) : null;
+      percentUsed = prepaid ? getPercentage(usage, prepaid) : 0;
     }
 
     paygSpend = isChildProduct
@@ -139,7 +150,6 @@ function UsageOverviewTableRow({
         }, 0);
   } else {
     // convert prepaid amount to the same unit as usage to accurately calculate percent used
-    const {prepaid, free} = metricHistory;
     isUnlimited = prepaid === UNLIMITED_RESERVED || !!activeProductTrial;
     const rawPrepaid = isUnlimited
       ? prepaid
@@ -167,8 +177,6 @@ function UsageOverviewTableRow({
 
     paygSpend = subscription.categories[billedCategory]?.onDemandSpendUsed ?? 0;
   }
-
-  const {reserved, prepaid, usage} = metricHistory;
   const bucket = getBucket({
     events: reserved ?? 0, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
     buckets: subscription.planDetails.planCategories[billedCategory],
