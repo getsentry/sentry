@@ -1477,10 +1477,8 @@ class TestGetLogsForEvent(TestCase):
 @pytest.mark.django_db
 class TestOnboardingSeerSettingsUpdate(TestCase):
     def test_rca_disabled_sets_automation_tuning_off(self) -> None:
-        """Tests that when RCA is disabled, automation tuning is set to OFF for org and projects."""
+        """Tests that when RCA is disabled, automation tuning is set to OFF for org."""
         organization = self.create_organization()
-        project1 = self.create_project(organization=organization)
-        project2 = self.create_project(organization=organization)
 
         onboarding_seer_settings_update(
             organization_id=organization.id,
@@ -1495,18 +1493,47 @@ class TestOnboardingSeerSettingsUpdate(TestCase):
             organization.get_option("sentry:default_autofix_automation_tuning")
             == AutofixAutomationTuningSettings.OFF
         )
+        # Verify auto_open_prs is set to False
+        assert organization.get_option("sentry:auto_open_prs") is False
 
-        # Verify project-level options are set to OFF
-        project1.refresh_from_db()
-        project2.refresh_from_db()
-        assert (
-            project1.get_option("sentry:autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.OFF
+    def test_rca_enabled_sets_automation_tuning_medium(self) -> None:
+        """Tests that when RCA is enabled, automation tuning is set to MEDIUM for org."""
+        organization = self.create_organization()
+
+        onboarding_seer_settings_update(
+            organization_id=organization.id,
+            is_rca_enabled=True,
+            is_auto_open_prs_enabled=False,
+            project_repo_dict={},
         )
+
+        # Verify org-level option is set to MEDIUM
+        organization.refresh_from_db()
         assert (
-            project2.get_option("sentry:autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.OFF
+            organization.get_option("sentry:default_autofix_automation_tuning")
+            == AutofixAutomationTuningSettings.MEDIUM
         )
+        # Verify auto_open_prs is set to False
+        assert organization.get_option("sentry:auto_open_prs") is False
+
+    def test_auto_open_prs_enabled_sets_org_option(self) -> None:
+        """Tests that when auto_open_prs is enabled, the org option is set to True."""
+        organization = self.create_organization()
+
+        onboarding_seer_settings_update(
+            organization_id=organization.id,
+            is_rca_enabled=True,
+            is_auto_open_prs_enabled=True,
+            project_repo_dict={},
+        )
+
+        # Verify org-level options
+        organization.refresh_from_db()
+        assert (
+            organization.get_option("sentry:default_autofix_automation_tuning")
+            == AutofixAutomationTuningSettings.MEDIUM
+        )
+        assert organization.get_option("sentry:auto_open_prs") is True
 
     @patch("sentry.seer.autofix.autofix.bulk_set_project_preferences")
     def test_rca_enabled_without_auto_prs_sets_code_changes_stopping_point(
