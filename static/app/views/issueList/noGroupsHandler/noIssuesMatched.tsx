@@ -91,7 +91,7 @@ function NoIssuesMatched() {
             'Still not seeing issues? Can we interest you in some raw telemetry, like [logsLink], instead?',
             {
               logsLink: (
-                <ExternalLink href="http://sentry.io/orgredirect/explore/logs">
+                <ExternalLink href="https://sentry.io/orgredirect/explore/logs">
                   {t('logs')}
                 </ExternalLink>
               ),
