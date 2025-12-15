@@ -337,11 +337,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             if not project_id:
                 raise ValidationError({"projectId": ["This field is required."]})
 
-            project = Project.objects.get(id=project_id)
+            project = Project.objects.get(id=project_id, organization_id=organization.id)
         except Project.DoesNotExist:
-            raise ValidationError({"projectId": ["Project not found"]})
-
-        if project.organization.id != organization.id:
             raise ValidationError({"projectId": ["Project not found"]})
 
         # TODO: Should be in the validator?

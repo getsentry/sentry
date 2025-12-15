@@ -741,6 +741,20 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             "workflowIds": [self.connected_workflow.id],
         }
 
+    def test_idor_project_from_different_org(self) -> None:
+        """Regression test: Cannot access projects from other organizations (IDOR)."""
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+
+        data = {**self.valid_data, "projectId": other_project.id}
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            status_code=400,
+        )
+        # Should return validation error (not 403) to prevent ID enumeration
+        assert response.data == {"projectId": [ErrorDetail(string="Project not found", code="invalid")]}
+
     def test_reject_upsampled_count_aggregate(self) -> None:
         """Users should not be able to submit upsampled_count() directly in ACI."""
         data = {**self.valid_data}
