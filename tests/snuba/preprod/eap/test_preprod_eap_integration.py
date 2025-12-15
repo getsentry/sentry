@@ -2,10 +2,10 @@ import time
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
-from sentry.models.commitcomparison import CommitComparison
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
+from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.eap.read import query_preprod_size_metrics
 from sentry.preprod.eap.write import write_preprod_size_metric_to_eap
 from sentry.preprod.models import (
