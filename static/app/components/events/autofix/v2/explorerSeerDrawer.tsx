@@ -67,7 +67,7 @@ const drawerBreadcrumbs = (group: Group, event: Event, project: Project) => [
 ];
 
 interface DrawerNavigatorProps {
-  iconVariant: 'loading' | 'waiting';
+  iconAnimation: 'loading' | 'waiting';
   organization: Organization;
   project: Project;
   copyButtonDisabled?: boolean;
@@ -80,7 +80,7 @@ interface DrawerNavigatorProps {
  * Common navigator section with header and buttons.
  */
 function DrawerNavigator({
-  iconVariant,
+  iconAnimation,
   organization,
   project,
   copyButtonDisabled = false,
@@ -92,7 +92,7 @@ function DrawerNavigator({
     <SeerDrawerNavigator>
       <HeaderContainer>
         <Header>{t('Seer')}</Header>
-        <IconSeer variant={iconVariant} size="md" />
+        <IconSeer animation={iconAnimation} size="md" />
       </HeaderContainer>
       <ButtonWrapper>
         {showCopyButton && (
@@ -229,7 +229,7 @@ export function ExplorerSeerDrawer({
           <NavigationCrumbs crumbs={breadcrumbs} />
         </SeerDrawerHeader>
         <DrawerNavigator
-          iconVariant="waiting"
+          iconAnimation="waiting"
           showCopyButton
           copyButtonDisabled
           onCopyMarkdown={handleCopyMarkdown}
@@ -257,7 +257,7 @@ export function ExplorerSeerDrawer({
           <NavigationCrumbs crumbs={breadcrumbs} />
         </SeerDrawerHeader>
         <DrawerNavigator
-          iconVariant="waiting"
+          iconAnimation="waiting"
           showCopyButton
           copyButtonDisabled
           onCopyMarkdown={handleCopyMarkdown}
@@ -286,7 +286,7 @@ export function ExplorerSeerDrawer({
         </FeedbackWrapper>
       </SeerDrawerHeader>
       <DrawerNavigator
-        iconVariant={
+        iconAnimation={
           runState.status === 'processing' && isPolling ? 'loading' : 'waiting'
         }
         showCopyButton={hasArtifacts}
