@@ -728,7 +728,7 @@ describe('DetectorEdit', () => {
                   aggregate: 'apdex(span.duration,100)',
                   dataset: 'events_analytics_platform',
                   eventTypes: ['trace_item_span'],
-                  query: 'is:unresolved',
+                  query: '',
                   queryType: 1,
                   timeWindow: 3600,
                   environment: null,
