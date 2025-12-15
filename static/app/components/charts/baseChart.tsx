@@ -48,7 +48,6 @@ import type {
   Series,
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
@@ -454,17 +453,13 @@ function BaseChart({
           lineStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : isChonkTheme(theme)
-                ? theme.colors.gray400
-                : theme.gray200,
+              : theme.colors.gray400,
             type: 'dotted',
           },
           itemStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : isChonkTheme(theme)
-                ? theme.colors.gray400
-                : theme.gray200,
+              : theme.colors.gray400,
           },
           stack: 'previous',
           animation: false,
