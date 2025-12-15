@@ -47,9 +47,9 @@ import {
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
 
-import {Tab, type useTab} from './useTab';
-
 const {info, fmt} = Sentry.logger;
+
+type QueryType = 'aggregate' | 'samples' | 'traces' | 'attribute_breakdowns';
 
 interface UseTrackAnalyticsProps {
   aggregatesTableResult: AggregatesTableResult;
@@ -59,7 +59,7 @@ interface UseTrackAnalyticsProps {
   isTopN: boolean;
   page_source: 'explore' | 'compare';
   query: string;
-  queryType: 'aggregate' | 'samples' | 'traces';
+  queryType: QueryType;
   spansTableResult: SpansTableResult;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualizes: readonly Visualize[];
@@ -284,6 +284,89 @@ function useTrackAnalytics({
     attributeBreakdownsMode,
   ]);
 
+  useEffect(() => {
+    if (
+      queryType !== 'attribute_breakdowns' ||
+      timeseriesResult.isPending ||
+      isLoadingSubscriptionDetails ||
+      isLoadingSeerSetup
+    ) {
+      return;
+    }
+
+    const search = new MutableSearch(query);
+    const gaveSeerConsent = organization.hideAiFeatures
+      ? 'gen_ai_features_disabled'
+      : seerSetup?.orgHasAcknowledged
+        ? 'given'
+        : 'not_given';
+
+    const yAxes = visualizes.map(visualize => visualize.yAxis);
+
+    trackAnalytics('trace.explorer.metadata', {
+      organization,
+      dataScanned: '',
+      dataset,
+      result_mode: 'attribute breakdowns',
+      columns: [],
+      columns_count: 0,
+      query_status,
+      result_length: 0,
+      result_missing_root: 0,
+      user_queries: search.formatString(),
+      user_queries_count: search.tokens.length,
+      visualizes: visualizes.map(visualize => visualize.serialize()),
+      visualizes_count: visualizes.length,
+      title: title || '',
+      empty_buckets_percentage: computeEmptyBuckets(yAxes, timeseriesResult.data),
+      confidences: computeConfidence(yAxes, timeseriesResult.data),
+      sample_counts: computeVisualizeSampleTotals(yAxes, timeseriesResult.data, isTopN),
+      has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
+      page_source,
+      interval,
+      gave_seer_consent: gaveSeerConsent,
+      version: 2,
+      attribute_breakdowns_mode: attributeBreakdownsMode,
+    });
+
+    info(fmt`trace.explorer.metadata:
+      organization: ${organization.slug}
+      dataScanned: ''
+      dataset: ${dataset}
+      query: ${query}
+      visualizes: ${visualizes.map(v => v.chartType).join(', ')}
+      title: ${title || ''}
+      queryType: ${queryType}
+      result_length: ''
+      user_queries: ${search.formatString()}
+      user_queries_count: ${String(search.tokens.length)}
+      visualizes_count: ${String(visualizes.length)}
+      has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
+      page_source: ${page_source}
+      gave_seer_consent: ${gaveSeerConsent}
+      attribute_breakdowns_mode: ${attributeBreakdownsMode}
+    `);
+  }, [
+    dataset,
+    fields,
+    hasExceededPerformanceUsageLimit,
+    interval,
+    isLoadingSeerSetup,
+    isLoadingSubscriptionDetails,
+    isTopN,
+    organization,
+    page_source,
+    query,
+    queryType,
+    query_status,
+    seerSetup?.orgHasAcknowledged,
+    timeseriesResult.data,
+    timeseriesResult.isPending,
+    title,
+    visualizes,
+    attributeBreakdownsMode,
+  ]);
+
   const tracesTableResultDefined = defined(tracesTableResult);
 
   useEffect(() => {
@@ -372,7 +455,6 @@ export function useAnalytics({
   tracesTableResult,
   timeseriesResult,
   interval,
-  tab,
 }: Pick<
   UseTrackAnalyticsProps,
   | 'queryType'
@@ -381,9 +463,7 @@ export function useAnalytics({
   | 'tracesTableResult'
   | 'timeseriesResult'
   | 'interval'
-> & {
-  tab: ReturnType<typeof useTab>[0];
-}) {
+>) {
   const dataset = useSpansDataset();
   const title = useQueryParamsTitle();
   const query = useQueryParamsQuery();
@@ -394,7 +474,7 @@ export function useAnalytics({
   const {chartSelection} = useChartSelection();
 
   const attributeBreakdownsMode =
-    tab === Tab.ATTRIBUTE_BREAKDOWNS
+    queryType === 'attribute_breakdowns'
       ? chartSelection
         ? 'cohort_comparison'
         : 'breakdowns'
