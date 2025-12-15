@@ -55,6 +55,7 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
+from sentry.seer.entrypoints.integrations.slack import handle_autofix_start
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
@@ -481,8 +482,9 @@ class SlackActionEndpoint(Endpoint):
                     with self.record_event(
                         MessagingInteractionType.SEER_AUTOFIX_START, group, request
                     ).capture():
-                        # TODO(Leander): Implement this
-                        pass
+                        handle_autofix_start(
+                            slack_request=slack_request, group=group, user=identity_user
+                        )
                     defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)

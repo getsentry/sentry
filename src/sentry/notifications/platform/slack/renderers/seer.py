@@ -17,7 +17,11 @@ from sentry.notifications.platform.templates.seer import (
     SeerContextInput,
     SeerContextInputComplete,
 )
-from sentry.notifications.platform.types import NotificationData, NotificationRenderedTemplate
+from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationRenderedTemplate,
+    PlainTextBlock,
+)
 
 
 class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
