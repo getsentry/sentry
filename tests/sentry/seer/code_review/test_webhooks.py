@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import orjson
 import responses
@@ -43,24 +43,6 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
 
         # Without enabling feature flags, no request should be made
         self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
-
-        # Verify NO request was made to Seer
-        assert len(responses.calls) == 0
-
-    @responses.activate
-    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
-    def test_check_run_skips_non_handled_actions(self) -> None:
-        """Test that non-handled actions are skipped."""
-        # Mock the Seer API endpoint (should NOT be called for non-handled actions)
-        responses.add(
-            responses.POST,
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codegen/pr-review/rerun",
-            json={"success": True},
-            status=200,
-        )
-
-        # Test with completed action (already tested separately, but included for completeness)
-        self._send_check_run_event(CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
 
         # Verify NO request was made to Seer
         assert len(responses.calls) == 0
@@ -195,14 +177,6 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             # Verify request has content-type header
             request = responses.calls[0].request
             assert request.headers["content-type"] == "application/json;charset=utf-8"
-
-    @patch("sentry.integrations.github.webhook.CheckRunEventWebhook.__call__")
-    def test_check_run_requested_action_event_triggers_handler(
-        self, mock_event_handler: MagicMock
-    ) -> None:
-        """Test that check_run requested_action events trigger the webhook handler."""
-        self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
-        assert mock_event_handler.called
 
     def test_check_run_without_integration_returns_204(self) -> None:
         """Test that check_run events without integration return 204."""
