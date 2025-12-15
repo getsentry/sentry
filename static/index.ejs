@@ -395,50 +395,6 @@
         <div class="loading-message">
           <p>Loading a <scraps-bleep>$#!%</scraps-bleep>-ton of JavaScript&hellip;</p>
           <p><small>You may need to disable adblocking extensions to load Sentry.</small></p>
-          <script>
-            function randomFrom(arr) {
-              return arr[Math.floor(Math.random() * arr.length)];
-            }
-            function randomBetween(min, max) {
-              return Math.floor(Math.random() * (max - min - 1) + min);
-            }
-            customElements.define('scraps-bleep', class extends HTMLElement {
-              constructor() {
-                super();
-                this.shapes = '◆●▴▪×'.split('');
-                this.chars = '@#$%&*!+'.split('');
-                this.length = this.textContent.trim().length;
-              }
-              random() {
-                const set = new Set();
-                let hasShape = false;
-                while (set.size < this.length) {
-                  if (!hasShape && Math.random() > 0.75) {
-                    set.add(randomFrom(this.shapes));
-                    hasShape = true;
-                  } else {
-                    set.add(randomFrom(this.chars));
-                  }
-                }
-                return Array.from(set.values()).join('');
-              }
-              shuffle() {
-                this.raf = requestAnimationFrame(() => {
-                  this.textContent = this.random();
-                  this.timeout = setTimeout(() => this.shuffle(), randomBetween(50, 250));
-                })
-              }
-              connectedCallback() {
-                if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                  this.shuffle();
-                }
-              }
-              disconnectedCallback() {
-                cancelAnimationFrame(this.raf);
-                clearTimeout(this.timeout);
-              }
-            })
-          </script>
         </div>
       </div>
     </div>
