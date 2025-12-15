@@ -45,6 +45,8 @@ interface ContainerLayoutProps {
   left?: Responsive<React.CSSProperties['left']>;
   right?: Responsive<React.CSSProperties['right']>;
 
+  inset?: Responsive<React.CSSProperties['inset']>;
+
   overflow?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
   overflowX?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
   overflowY?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
@@ -169,6 +171,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'flexGrow',
   'flexShrink',
   'height',
+  'inset',
   'justifySelf',
   'left',
   'margin',
@@ -224,6 +227,8 @@ export const Container = styled(
   ${p => rc('bottom', p.bottom, p.theme)};
   ${p => rc('left', p.left, p.theme)};
   ${p => rc('right', p.right, p.theme)};
+
+  ${p => rc('inset', p.inset, p.theme)};
 
   ${p => rc('overflow', p.overflow, p.theme)};
   ${p => rc('overflow-x', p.overflowX, p.theme)};
