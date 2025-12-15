@@ -30,6 +30,12 @@ export function getUnityContextData({data}: {data: UnityContext}): KeyValueListD
           subject: t('Install Mode'),
           value: data.install_mode,
         };
+      case UnityContextKey.IS_MAIN_THREAD:
+        return {
+          key: ctxKey,
+          subject: t('Is Main Thread'),
+          value: data.is_main_thread,
+        };
       case UnityContextKey.RENDERING_THREADING_MODE:
         return {
           key: ctxKey,
