@@ -92,13 +92,13 @@ class NotificationService[T: NotificationData]:
 
         option_key = None
         if internal_testing:
-            option_key = "notifications.platform-rollout.internal-testing.internal-testing"
+            option_key = "notifications.platform-rollout.internal-testing"
         elif is_sentry:
-            option_key = "notifications.platform-rollout.is-sentry.is-sentry"
+            option_key = "notifications.platform-rollout.is-sentry"
         elif early_adopter:
-            option_key = "notifications.platform-rollout.early-adopter.early-adopter"
+            option_key = "notifications.platform-rollout.early-adopter"
         elif general_access:
-            option_key = "notifications.platform-rollout.general-access.general-access"
+            option_key = "notifications.platform-rollout.general-access"
 
         return option_key
 
