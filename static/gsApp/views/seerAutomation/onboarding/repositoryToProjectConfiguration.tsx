@@ -53,12 +53,12 @@ export function RepositoryToProjectConfiguration({
       repos.has(repoId)
     );
     const result = repoList.every(([, projectIds]) => projectIds.length > 0);
-    return repoList.length > 0 && result;
+    return repoList.length === 0 || result;
   }, [repositoryProjectMapping, selectedRootCauseAnalysisRepositories]);
 
   return (
     <Fragment>
-      {!isValidMappings && (
+      {!isPending && !isValidMappings && (
         <Alert type="error">
           {t('Each repository must have at least one project mapped')}
         </Alert>
