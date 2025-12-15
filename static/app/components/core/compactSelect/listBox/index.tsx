@@ -134,6 +134,7 @@ export function ListBox<T extends ObjectLike>({
   showDetails = true,
   onAction,
   virtualized,
+  className,
   ...props
 }: ListBoxProps<T>) {
   const listElementRef = useRef<HTMLUListElement>(null);
@@ -184,7 +185,12 @@ export function ListBox<T extends ObjectLike>({
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
-      <Container ref={virtualizer.scrollElementRef} height="100%" overflowY="auto">
+      <Container
+        ref={virtualizer.scrollElementRef}
+        height="100%"
+        overflowY="auto"
+        className={className}
+      >
         <Container {...virtualizer.wrapperProps}>
           <ListWrap
             {...mergedProps}
