@@ -29,7 +29,6 @@ from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
-from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
@@ -39,6 +38,7 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -55,6 +55,7 @@ from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
 from .tasks.codecov_account_unlink import codecov_account_unlink
 from .types import IssueEvenntWebhookActionType
+from .utils import should_create_or_increment_contributor_seat
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -452,7 +453,7 @@ class PushEventWebhook(GitHubWebhook):
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
 
-                    file_changes = []
+                    file_changes: list[CommitFileChange] = []
 
                     for fname in commit["added"]:
                         languages.add(get_file_language(fname))
@@ -547,14 +548,43 @@ class IssuesEventWebhook(GitHubWebhook):
         """
         Handle issue assignment and unassignment events.
 
+        When switching assignees, GitHub sends two webhooks (assigned and unassigned) in
+        non-deterministic order. To avoid race conditions, we sync based on the current
+        state in issue.assignees rather than the delta in the assignee field.
+
         Args:
             integration: The GitHub integration
             event: The webhook event payload
             external_issue_key: The formatted issue key
             action: The action type ('assigned' or 'unassigned')
         """
-        assignee = event.get("assignee", {})
-        assignee_gh_name = assignee.get("login")
+        # Use issue.assignees (current state) instead of assignee (delta) to avoid race conditions
+        issue = event.get("issue", {})
+        assignees = issue.get("assignees", [])
+
+        # If there are no assignees, deassign
+        if not assignees:
+            sync_group_assignee_inbound_by_external_actor(
+                integration=integration,
+                external_user_name="",  # Not used for deassignment
+                external_issue_key=external_issue_key,
+                assign=False,
+            )
+            logger.info(
+                "github.webhook.assignment.synced",
+                extra={
+                    "integration_id": integration.id,
+                    "external_issue_key": external_issue_key,
+                    "assignee_name": None,
+                    "action": "deassigned",
+                },
+            )
+            return
+
+        # GitHub supports multiple assignees, but Sentry currently only supports one
+        # Take the first assignee from the current state
+        first_assignee = assignees[0]
+        assignee_gh_name = first_assignee.get("login")
 
         if not assignee_gh_name:
             logger.warning(
@@ -574,7 +604,7 @@ class IssuesEventWebhook(GitHubWebhook):
             integration=integration,
             external_user_name=assignee_name,
             external_issue_key=external_issue_key,
-            assign=(action == IssueEvenntWebhookActionType.ASSIGNED.value),
+            assign=True,
         )
 
         logger.info(
@@ -584,6 +614,7 @@ class IssuesEventWebhook(GitHubWebhook):
                 "external_issue_key": external_issue_key,
                 "assignee_name": assignee_name,
                 "action": action,
+                "total_assignees": len(assignees),
             },
         )
 
@@ -737,13 +768,35 @@ class PullRequestEventWebhook(GitHubWebhook):
                 },
             )
 
-            installation = integration.get_installation(organization_id=organization.id)
-            if (
-                action == "opened"
-                and created
-                and isinstance(installation, CommitContextIntegration)
-            ):
-                installation.queue_open_pr_comment_task_if_needed(pr=pr, organization=organization)
+            if created:
+                # Track AI contributor if eligible
+                contributor, _ = OrganizationContributors.objects.get_or_create(
+                    organization_id=organization.id,
+                    integration_id=repo.integration_id,
+                    external_identifier=user["id"],
+                    defaults={
+                        "alias": user["login"],
+                    },
+                )
+
+                if should_create_or_increment_contributor_seat(organization, repo, contributor):
+                    metrics.incr(
+                        "github.webhook.organization_contributor.should_create",
+                        sample_rate=1.0,
+                        tags={
+                            "organization_id": organization.id,
+                            "repository_id": repo.id,
+                        },
+                    )
+
+                metrics.incr(
+                    "github.webhook.pull_request.created",
+                    sample_rate=1.0,
+                    tags={
+                        "organization_id": organization.id,
+                        "repository_id": repo.id,
+                    },
+                )
 
         except IntegrityError:
             pass

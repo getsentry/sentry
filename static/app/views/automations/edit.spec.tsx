@@ -10,10 +10,12 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useParams} from 'sentry/utils/useParams';
 import AutomationEdit from 'sentry/views/automations/edit';
 
 jest.mock('sentry/utils/useParams');
+jest.mock('sentry/utils/analytics');
 
 describe('EditAutomation', () => {
   const automation = AutomationFixture();
@@ -62,6 +64,13 @@ describe('EditAutomation', () => {
       url: `/organizations/${organization.slug}/users/${automation.createdBy}/`,
       method: 'GET',
       body: {id: automation.createdBy, name: 'Test User'},
+    });
+
+    // Mock the organization tags
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/tags/`,
+      method: 'GET',
+      body: [],
     });
 
     jest.mocked(useParams).mockReturnValue({
@@ -131,5 +140,62 @@ describe('EditAutomation', () => {
 
     // Verify the button text has changed to "Enable"
     expect(await screen.findByRole('button', {name: 'Enable'})).toBeInTheDocument();
+  });
+
+  it('updates automation', async () => {
+    const mockUpdateAutomation = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
+      method: 'PUT',
+      body: automation,
+    });
+
+    const {router} = render(<AutomationEdit />, {
+      organization,
+    });
+
+    expect(await screen.findAllByText(/Automation 1/i)).toHaveLength(2);
+
+    // Update an existing filter value field
+    const valueInput = screen.getByRole('textbox', {name: 'Value'});
+    await userEvent.clear(valueInput);
+    await userEvent.type(valueInput, 'updated value');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    await waitFor(() => {
+      expect(mockUpdateAutomation).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            actionFilters: expect.arrayContaining([
+              expect.objectContaining({
+                conditions: expect.arrayContaining([
+                  expect.objectContaining({
+                    comparison: expect.objectContaining({
+                      value: 'updated value',
+                    }),
+                  }),
+                ]),
+              }),
+            ]),
+          }),
+        })
+      );
+    });
+
+    expect(trackAnalytics).toHaveBeenCalledWith('automation.updated', {
+      organization,
+      frequency_minutes: 1440,
+      environment: 'production',
+      detectors_count: 1,
+      trigger_conditions_count: 0,
+      actions_count: 1,
+    });
+
+    await waitFor(() =>
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/monitors/alerts/${automation.id}/`
+      )
+    );
   });
 });

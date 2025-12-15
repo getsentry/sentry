@@ -2,6 +2,8 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {HighlightComponent} from 'sentry/components/highlight';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -9,7 +11,7 @@ import Panel from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
 import {space} from 'sentry/styles/space';
 import {NumberContainer} from 'sentry/utils/discover/styles';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
@@ -40,6 +42,20 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
 
     &:not(:last-child) {
       border-bottom: 0;
+    }
+  }
+
+  .log-table-row-pseudo-row-chevron-replacement {
+    width: 23px;
+    height: 24px;
+  }
+
+  &[data-row-highlighted='true']:not(thead > &) {
+    background-color: ${p => p.theme.yellow100};
+    color: ${p => p.theme.red300};
+
+    &:hover {
+      background-color: ${p => p.theme.yellow200};
     }
   }
 
@@ -156,7 +172,7 @@ export const DetailsWrapper = styled('tr')`
   display: grid;
   border-top: 1px solid ${p => p.theme.border};
   border-bottom: 1px solid ${p => p.theme.border};
-  z-index: ${2 /* place above the grid resizing lines */};
+  z-index: ${1 /* place above the grid resizing lines */};
 `;
 
 export const DetailsContent = styled(StyledPanel)`
@@ -182,7 +198,7 @@ export const DetailsBody = styled('div')`
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   padding: ${space(1)} 0;
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => p.theme.fontSize.sm};
 
   &:last-child {
     border-bottom: 0;
@@ -252,7 +268,7 @@ export const AlignedCellContent = styled('div')<{
   flex-direction: row;
   justify-content: ${p => p.align || 'left'};
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 export const FirstTableHeadCell = styled(TableHeadCell)`
@@ -383,7 +399,7 @@ export const LogsSidebarCollapseButton = withChonk(
     ${p =>
       p.sidebarOpen &&
       css`
-        border-left-color: ${p.theme.background};
+        border-left-color: ${p.theme.tokens.background.primary};
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
         margin-left: -13px;
@@ -406,7 +422,7 @@ export const LogsSidebarCollapseButton = withChonk(
         margin-left: -13px;
 
         &::after {
-          border-left-color: ${p.theme.background};
+          border-left-color: ${p.theme.tokens.background.primary};
           border-top-left-radius: 0px;
           border-bottom-left-radius: 0px;
         }
@@ -478,5 +494,30 @@ export const LogsFilterSection = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: minmax(300px, auto) 1fr min-content;
+  }
+`;
+
+export const TraceIconStyleWrapper = styled(Flex)`
+  width: 18px;
+  height: 18px;
+
+  .TraceIcon {
+    background-color: ${p => p.theme.red300};
+    position: absolute;
+    transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    margin-right: -2px;
+  }
+
+  .TraceIcon svg {
+    width: 12px;
+    height: 12px;
+    fill: #ffffff;
   }
 `;

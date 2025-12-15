@@ -472,7 +472,7 @@ function getEventsRequest(
   url: string,
   api: Client,
   query: WidgetQuery,
-  _organization: Organization,
+  organization: Organization,
   pageFilters: PageFilters,
   limit?: number,
   cursor?: string,
@@ -481,6 +481,9 @@ function getEventsRequest(
   queryExtras?: DiscoverQueryExtras
 ) {
   const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
 
   const eventView = eventViewFromWidget('', query, pageFilters);
 
@@ -506,10 +509,13 @@ function getEventsRequest(
     },
     // Tries events request up to 3 times on rate limit
     {
-      retry: {
-        statusCodes: [429],
-        tries: 10,
-      },
+      retry: hasQueueFeature
+        ? // The queue will handle retries, so we don't need to retry here
+          undefined
+        : {
+            statusCodes: [429],
+            tries: 10,
+          },
     }
   );
 }

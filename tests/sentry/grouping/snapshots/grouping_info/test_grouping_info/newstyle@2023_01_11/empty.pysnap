@@ -1,15 +1,16 @@
 ---
-created: '2025-10-06T21:57:33.102394+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
-  "fallback": {
-    "contributes": true,
-    "description": "fallback grouping",
-    "hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "hint": null,
-    "key": "fallback",
-    "type": "fallback"
+  "grouping_config": null,
+  "variants": {
+    "fallback": {
+      "contributes": true,
+      "description": "fallback grouping",
+      "hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "hint": null,
+      "key": "fallback",
+      "type": "fallback"
+    }
   }
 }

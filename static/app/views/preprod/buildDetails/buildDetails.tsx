@@ -5,6 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {
   fetchMutation,
   useApiQuery,
@@ -95,6 +96,8 @@ export default function BuildDetails() {
   const buildDetails = buildDetailsQuery.data;
   const version = buildDetails?.app_info?.version;
   const buildNumber = buildDetails?.app_info?.build_number;
+  const project = ProjectsStore.getBySlug(projectId);
+  const projectType = project?.platform ?? null;
 
   let title = t('Build details');
   if (
@@ -136,6 +139,7 @@ export default function BuildDetails() {
             buildDetailsQuery={buildDetailsQuery}
             projectId={projectId}
             artifactId={artifactId}
+            projectType={projectType}
           />
         </Layout.Header>
 
@@ -156,6 +160,8 @@ export default function BuildDetails() {
                 isRerunning={isRerunning}
                 buildDetailsData={buildDetailsQuery.data}
                 isBuildDetailsPending={buildDetailsQuery.isLoading}
+                projectType={projectType}
+                projectId={projectId}
               />
             </BuildDetailsMain>
           </UrlParamBatchProvider>

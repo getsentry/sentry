@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from re import Match
@@ -39,23 +39,22 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.api import event_search
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     AggregateDefinition,
-    AnyResolved,
     AttributeArgumentDefinition,
     ColumnDefinitions,
-    ConditionalAggregateDefinition,
     FormulaDefinition,
-    ResolvedAggregate,
     ResolvedAttribute,
-    ResolvedConditionalAggregate,
+    ResolvedColumn,
     ResolvedEquation,
-    ResolvedFormula,
+    ResolvedFunction,
     ResolvedLiteral,
     ValueArgumentDefinition,
     VirtualColumnDefinition,
 )
+from sentry.search.eap.rpc_utils import and_trace_item_filters
 from sentry.search.eap.sampling import validate_sampling
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
@@ -83,20 +82,18 @@ class SearchResolver:
     _resolved_function_cache: dict[
         str,
         tuple[
-            ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate,
+            ResolvedFunction,
             VirtualColumnDefinition | None,
         ],
     ] = field(default_factory=dict)
 
     def get_function_definition(
         self, function_name: str
-    ) -> ConditionalAggregateDefinition | FormulaDefinition | AggregateDefinition:
+    ) -> FormulaDefinition | AggregateDefinition:
         if function_name in self.definitions.aggregates:
             return self.definitions.aggregates[function_name]
         elif function_name in self.definitions.formulas:
             return self.definitions.formulas[function_name]
-        elif function_name in self.definitions.conditional_aggregates:
-            return self.definitions.conditional_aggregates[function_name]
         else:
             raise InvalidSearchQuery(f"Unknown function {function_name}")
 
@@ -105,16 +102,30 @@ class SearchResolver:
         self,
         referrer: str,
         sampling_mode: SAMPLING_MODES | None = None,
+        filter_project: Callable[[Project], bool] | None = None,
     ) -> RequestMeta:
         if self.params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
         span = sentry_sdk.get_current_span()
         if span:
             span.set_tag("SearchResolver.params", self.params)
+
+        projects = self.params.projects
+
+        # If a filter is specified, use it to narrow down the list
+        # of projects to query on.
+        if filter_project:
+            projects = [project for project in projects if filter_project(project)]
+
+            # if filtering removed all projects, we reset to all
+            # selected project again to prevent potential snuba errors
+            if not projects:
+                projects = self.params.projects
+
         return RequestMeta(
             organization_id=self.params.organization_id,
             referrer=referrer,
-            project_ids=self.params.project_ids,
+            project_ids=[project.id for project in projects],
             start_timestamp=self.params.rpc_start_date,
             end_timestamp=self.params.rpc_end_date,
             trace_item_type=self.definitions.trace_item_type,
@@ -139,31 +150,34 @@ class SearchResolver:
             span.set_tag("SearchResolver.resolved_query", where)
             span.set_tag("SearchResolver.environment_query", environment_query)
 
-        # The RPC request meta does not contain the environment.
-        # So we have to inject it as a query condition.
-        #
-        # To do so, we want to AND it with the query.
-        # So if either one is not defined, we just use the other.
-        # But if both are defined, we AND them together.
-
-        if not environment_query:
-            return where, having, contexts
-
-        if not where:
-            return environment_query, having, []
-
-        return (
-            TraceItemFilter(
-                and_filter=AndFilter(
-                    filters=[
-                        environment_query,
-                        where,
-                    ]
-                )
-            ),
-            having,
-            contexts,
+        where = and_trace_item_filters(
+            where,
+            # The RPC request meta does not contain the environment.
+            # So we have to inject it as a query condition.
+            environment_query,
         )
+
+        return where, having, contexts
+
+    @sentry_sdk.trace
+    def resolve_query_with_columns(
+        self,
+        querystring: str | None,
+        selected_columns: list[str] | None,
+        equations: list[str] | None,
+    ) -> tuple[
+        TraceItemFilter | None,
+        AggregationFilter | None,
+        list[VirtualColumnDefinition | None],
+    ]:
+        where, having, contexts = self.resolve_query(querystring)
+
+        # Some datasets like trace metrics require we inject additional
+        # conditions in the top level.
+        dataset_conditions = self.resolve_dataset_conditions(selected_columns, equations)
+        where = and_trace_item_filters(where, dataset_conditions)
+
+        return where, having, contexts
 
     def __resolve_environment_query(self) -> TraceItemFilter | None:
         resolved_column, _ = self.resolve_column("environment")
@@ -560,6 +574,9 @@ class SearchResolver:
             else:
                 raise InvalidSearchQuery(f"Unsupported operator for empty strings {term.operator}")
 
+        if not self.params.is_timeseries_request and context_definition:
+            value = self.remap_value_using_context_definition(context_definition, value)
+
         return (
             TraceItemFilter(
                 comparison_filter=ComparisonFilter(
@@ -628,6 +645,8 @@ class SearchResolver:
         def remap_value(old_value: str) -> list[str]:
             if old_value in inverse_value_map:
                 return inverse_value_map[old_value]
+            elif old_value in context.value_map:
+                return [old_value]
             elif context.default_value:
                 return [context.default_value]
             else:
@@ -781,9 +800,7 @@ class SearchResolver:
 
     @sentry_sdk.trace
     def resolve_columns(self, selected_columns: list[str], has_aggregates: bool = False) -> tuple[
-        list[
-            ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula
-        ],
+        list[ResolvedAttribute | ResolvedFunction],
         list[VirtualColumnDefinition | None],
     ]:
         """Given a list of columns resolve them and get their context if applicable
@@ -823,7 +840,7 @@ class SearchResolver:
         match: Match[str] | None = None,
         public_alias_override: str | None = None,
     ) -> tuple[
-        ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
+        ResolvedAttribute | ResolvedFunction,
         VirtualColumnDefinition | None,
     ]:
         """Column is either an attribute or an aggregate, this function will determine which it is and call the relevant
@@ -929,7 +946,7 @@ class SearchResolver:
 
     @sentry_sdk.trace
     def resolve_functions(self, columns: list[str]) -> tuple[
-        list[ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate],
+        list[ResolvedFunction],
         list[VirtualColumnDefinition | None],
     ]:
         """Helper function to resolve a list of functions instead of 1 attribute at a time"""
@@ -945,10 +962,7 @@ class SearchResolver:
         column: str,
         match: Match[str] | None = None,
         public_alias_override: str | None = None,
-    ) -> tuple[
-        ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate,
-        VirtualColumnDefinition | None,
-    ]:
+    ) -> tuple[ResolvedFunction, VirtualColumnDefinition | None]:
         if match is None:
             match = fields.is_function(column)
             if match is None:
@@ -987,7 +1001,7 @@ class SearchResolver:
 
             # If there are missing arguments, and the argument definition has a default arg, use the default arg
             # this assumes the missing args are at the beginning or end of the arguments list
-            if missing_args > 0 and argument_definition.default_arg:
+            if missing_args > 0 and argument_definition.default_arg is not None:
                 if isinstance(argument_definition, ValueArgumentDefinition):
                     parsed_args.append(argument_definition.default_arg)
                 else:
@@ -1072,7 +1086,7 @@ class SearchResolver:
         return self._resolved_function_cache[alias]
 
     def resolve_equations(self, equations: list[str]) -> tuple[
-        list[AnyResolved],
+        list[ResolvedColumn],
         list[VirtualColumnDefinition],
     ]:
         formulas = []
@@ -1084,7 +1098,7 @@ class SearchResolver:
         return formulas, contexts
 
     def resolve_equation(self, equation: str) -> tuple[
-        AnyResolved,
+        ResolvedColumn,
         list[VirtualColumnDefinition],
     ]:
         """Resolve an equation creating a ResolvedEquation object, we don't just return a Column.BinaryFormula since
@@ -1162,15 +1176,54 @@ class SearchResolver:
             )
         elif isinstance(operation, float):
             return Column(literal=LiteralValue(val_double=operation)), []
-        else:
-            # Resolve the column, and turn it into a RPC Column so it can be used in a BinaryFormula
-            col, context = self.resolve_column(operation)
-            contexts = [context] if context is not None else []
-            if isinstance(col, ResolvedAttribute):
-                return Column(key=col.proto_definition), contexts
-            elif isinstance(col, ResolvedAggregate):
-                return Column(aggregation=col.proto_definition), contexts
-            elif isinstance(col, ResolvedConditionalAggregate):
-                return Column(conditional_aggregation=col.proto_definition), contexts
-            elif isinstance(col, ResolvedFormula):
-                return Column(formula=col.proto_definition), contexts
+
+        # Resolve the column, and turn it into a RPC Column so it can be used in a BinaryFormula
+        col, context = self.resolve_column(operation)
+        contexts = [context] if context is not None else []
+        proto_definition = col.proto_definition
+
+        if isinstance(proto_definition, AttributeKey):
+            return Column(key=proto_definition), contexts
+
+        if isinstance(proto_definition, AttributeAggregation):
+            return Column(aggregation=proto_definition), contexts
+
+        if isinstance(proto_definition, AttributeConditionalAggregation):
+            return Column(conditional_aggregation=proto_definition), contexts
+
+        if isinstance(proto_definition, Column.BinaryFormula):
+            return Column(formula=proto_definition), contexts
+
+        raise TypeError(f"Unsupported proto definition type: {type(proto_definition)}")
+
+    def resolve_dataset_conditions(
+        self,
+        selected_columns: list[str] | None,
+        equations: list[str] | None,
+    ) -> TraceItemFilter | None:
+        extra_conditions = self.config.extra_conditions(self, selected_columns, equations)
+
+        return and_trace_item_filters(extra_conditions)
+
+    def remap_value_using_context_definition(
+        self, context_definition: VirtualColumnDefinition, value: str | int | list[str] | Any
+    ) -> str | int | list[str] | Any:
+        context = context_definition.constructor(self.params)
+
+        # if the value passed is one of the potential values, then it's expected
+        # and we should pass it through as is
+        for val in context.value_map.values():
+            if val == value:
+                return value
+
+        # if the value passed is one of the potential keys, then it should before
+        # remapped to the value
+        if isinstance(value, str) and value in context.value_map:
+            value = context.value_map[value]
+
+        # now that we've checked all potentially allowed values, we should fall back
+        # to using the default
+        if context.default_value:
+            return context.default_value
+
+        return value

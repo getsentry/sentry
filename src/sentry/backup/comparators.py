@@ -736,6 +736,17 @@ class UUID4Comparator(RegexComparator):
         return findings
 
 
+class DataSourceComparator(IgnoredComparator):
+    """
+    DataSource.source_id is a dynamic foreign key that gets remapped during import via the
+    normalize_before_relocation_import method. Since the remapping is handled there, we just
+    need to verify that both sides have a valid source_id value, without comparing the actual values.
+    """
+
+    def __init__(self):
+        super().__init__("source_id")
+
+
 def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
     """Automatically assigns the DateAddedComparator to any `DateTimeField` that is not already
     claimed by the `DateUpdatedComparator`."""
@@ -929,7 +940,10 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "workflow_engine.dataconditiongroupaction": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
-            "workflow_engine.datasource": [DateUpdatedComparator("date_updated", "date_added")],
+            "workflow_engine.datasource": [
+                DateUpdatedComparator("date_updated", "date_added"),
+                DataSourceComparator(),
+            ],
             "workflow_engine.datasourcedetector": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
@@ -968,6 +982,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_updated", "date_added")
             ],
             "monitors.monitor": [UUID4Comparator("guid")],
+            "replays.organizationmemberreplayaccess": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
         },
     )
 

@@ -9,6 +9,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueTitle} from 'sentry/types/group';
 import * as utils from 'sentry/utils/isActiveSuperuser';
 import ProjectPerformance, {
@@ -49,10 +50,17 @@ const manageDetectorData = [
     label: 'HTTP/1.1 Overhead Detection',
     key: 'http_overhead_detection_enabled',
   },
+  {label: 'Web Vitals Detection', key: 'web_vitals_detection_enabled'},
 ];
 
 describe('projectPerformance', () => {
-  const org = OrganizationFixture({features: ['performance-view']});
+  const org = OrganizationFixture({
+    features: [
+      'performance-view',
+      'performance-web-vitals-seer-suggestions',
+      'gen-ai-features',
+    ],
+  });
   const project = ProjectFixture();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
   let getMock: jest.Mock;
@@ -65,10 +73,15 @@ describe('projectPerformance', () => {
       pathname: `/organizations/${org.slug}/settings/projects/${project.slug}/performance/`,
       query: {},
     },
+    params: {
+      orgId: org.slug,
+      projectId: project.slug,
+    },
   };
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([project]);
     getMock = MockApiClient.addMockResponse({
       url: configUrl,
       method: 'GET',
@@ -97,7 +110,7 @@ describe('projectPerformance', () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'GET',
-      body: {},
+      body: project,
       statusCode: 200,
     });
     MockApiClient.addMockResponse({
@@ -111,6 +124,25 @@ describe('projectPerformance', () => {
       method: 'GET',
       body: {},
       statusCode: 200,
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/seer/preferences/',
+      method: 'GET',
+      body: {
+        code_mapping_repos: [
+          {provider: 'github', owner: 'owner', name: 'repo', externalId: '123'},
+        ],
+      },
+      statusCode: 200,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/setup-check/',
+      method: 'GET',
+      body: {
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+        },
+      },
     });
   });
 
@@ -327,6 +359,17 @@ describe('projectPerformance', () => {
         index: 1,
       },
     },
+    {
+      title: IssueTitle.WEB_VITALS,
+      threshold: DetectorConfigCustomer.WEB_VITALS_COUNT,
+      allowedValues: allowedCountValues,
+      defaultValue: 10,
+      newValue: 20,
+      sliderIdentifier: {
+        label: 'Minimum Sample Count',
+        index: 0,
+      },
+    },
   ])(
     'renders detector thresholds settings for $title issue',
     async ({
@@ -350,6 +393,7 @@ describe('projectPerformance', () => {
         large_http_payload_detection_enabled: true,
         n_plus_one_api_calls_detection_enabled: true,
         consecutive_http_spans_detection_enabled: true,
+        web_vitals_detection_enabled: true,
       };
       const performanceIssuesGetMock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/performance-issues/configure/',
@@ -463,7 +507,11 @@ describe('projectPerformance', () => {
 
       render(<ProjectPerformance />, {
         organization: OrganizationFixture({
-          features: ['performance-view'],
+          features: [
+            'performance-view',
+            'performance-web-vitals-seer-suggestions',
+            'gen-ai-features',
+          ],
         }),
         initialRouterConfig,
       });
@@ -526,7 +574,11 @@ describe('projectPerformance', () => {
 
       render(<ProjectPerformance />, {
         organization: OrganizationFixture({
-          features: ['performance-view'],
+          features: [
+            'performance-view',
+            'performance-web-vitals-seer-suggestions',
+            'gen-ai-features',
+          ],
           access: ['project:read'],
         }),
         initialRouterConfig,

@@ -44,6 +44,7 @@ export function DetectorQueryFilterBuilder() {
       name={METRIC_DETECTOR_FORM_FIELDS.query}
       inline={false}
       flexibleControlStateSize
+      preserveOnUnmount
       label={t('Filter')}
       hideLabel
       disabled={dataset === DetectorDataset.TRANSACTIONS}

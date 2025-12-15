@@ -1,5 +1,7 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
+import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 import {
   ActionHandlerFixture,
   DataConditionHandlerFixture,
@@ -14,12 +16,19 @@ import {
   DataConditionHandlerSubgroupType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import AutomationNewSettings from 'sentry/views/automations/new';
+
+jest.mock('sentry/utils/analytics');
 
 describe('AutomationNewSettings', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const mockMember = MemberFixture({
+    user: UserFixture({id: '1', name: 'Moo Deng', email: 'moo.deng@sentry.io'}),
+  });
 
   beforeEach(() => {
+    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
 
     // Available actions (include Slack with a default integration)
@@ -32,7 +41,19 @@ describe('AutomationNewSettings', () => {
           handlerGroup: ActionGroup.NOTIFICATION,
           integrations: [{id: '1', name: 'My Slack Workspace'}],
         }),
+        ActionHandlerFixture({
+          type: ActionType.EMAIL,
+          handlerGroup: ActionGroup.NOTIFICATION,
+          integrations: [],
+        }),
       ],
+    });
+
+    // Mock the tags for an organization
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/tags/`,
+      method: 'GET',
+      body: [],
     });
 
     MockApiClient.addMockResponse({
@@ -63,11 +84,16 @@ describe('AutomationNewSettings', () => {
       ],
     });
 
-    // Users endpoint fetched by AutomationBuilder for member selectors
+    // Users/members endpoints fetched by AutomationBuilder for member selectors
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
       method: 'GET',
-      body: [],
+      body: [mockMember],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      method: 'GET',
+      body: [mockMember],
     });
 
     // Detectors list used by EditConnectedMonitors inside the form
@@ -100,12 +126,24 @@ describe('AutomationNewSettings', () => {
       screen.getByRole('textbox', {name: 'Add filter'}),
       /tagged event/i
     );
-    await userEvent.type(screen.getByRole('textbox', {name: 'Tag'}), 'env');
+    const tagInput = await screen.findByRole('textbox', {name: 'Tag'});
+    await userEvent.type(tagInput, 'env{enter}');
     await userEvent.type(screen.getByRole('textbox', {name: 'Value'}), 'prod');
 
-    // Add an action to the block (Slack)
+    // Add an action to the block (Slack), also updates the automatic naming
     await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
     await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+
+    // Add an email action
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Add action'}),
+      'Notify on preferred channel'
+    );
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Notification target type'}),
+      'Member'
+    );
+    await selectEvent.select(screen.getByRole('textbox', {name: 'User'}), 'Moo Deng');
 
     // Submit the form
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
@@ -115,7 +153,7 @@ describe('AutomationNewSettings', () => {
         expect.anything(),
         expect.objectContaining({
           data: {
-            name: 'New Alert',
+            name: 'Notify #alerts via Slack, Notify Moo Deng',
             triggers: {
               logicType: 'any-short',
               conditions: [
@@ -141,10 +179,20 @@ describe('AutomationNewSettings', () => {
                     type: 'slack',
                     config: {
                       targetType: 'specific',
-                      targetIdentifier: '',
+                      targetIdentifier: null,
                       targetDisplay: '#alerts',
                     },
                     integrationId: '1',
+                    data: {},
+                    status: 'active',
+                  },
+                  {
+                    type: 'email',
+                    config: {
+                      targetType: 'user',
+                      targetIdentifier: '1',
+                      targetDisplay: null,
+                    },
                     data: {},
                     status: 'active',
                   },
@@ -165,5 +213,16 @@ describe('AutomationNewSettings', () => {
         `/organizations/${organization.slug}/monitors/alerts/${created.id}/`
       )
     );
+
+    // Verify analytics was called with correct event and payload structure
+    expect(trackAnalytics).toHaveBeenCalledWith('automation.created', {
+      organization,
+      frequency_minutes: expect.any(Number),
+      environment: null,
+      detectors_count: expect.any(Number),
+      trigger_conditions_count: expect.any(Number),
+      success: true,
+      actions_count: expect.any(Number),
+    });
   });
 });

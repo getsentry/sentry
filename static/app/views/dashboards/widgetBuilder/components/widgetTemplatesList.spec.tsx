@@ -1,6 +1,4 @@
 import debounce from 'lodash/debounce';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -29,10 +27,6 @@ jest.mock('sentry/views/dashboards/widgetLibrary/data', () => ({
 }));
 
 const mockUseNavigate = jest.mocked(useNavigate);
-
-const router = RouterFixture({
-  location: LocationFixture({query: {}}),
-});
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -70,10 +64,7 @@ describe('WidgetTemplatesList', () => {
           setIsPreviewDraggable={jest.fn()}
           setCustomizeFromLibrary={jest.fn()}
         />
-      </WidgetBuilderProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      </WidgetBuilderProvider>
     );
 
     expect(await screen.findByText('Duration Distribution')).toBeInTheDocument();
@@ -91,10 +82,7 @@ describe('WidgetTemplatesList', () => {
           setIsPreviewDraggable={jest.fn()}
           setCustomizeFromLibrary={jest.fn()}
         />
-      </WidgetBuilderProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      </WidgetBuilderProvider>
     );
 
     const widgetTemplate = await screen.findByText('Duration Distribution');
@@ -120,11 +108,7 @@ describe('WidgetTemplatesList', () => {
           setIsPreviewDraggable={jest.fn()}
           setCustomizeFromLibrary={jest.fn()}
         />
-      </WidgetBuilderProvider>,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
+      </WidgetBuilderProvider>
     );
 
     const widgetTemplate = screen.getByText('Duration Distribution');
@@ -134,7 +118,6 @@ describe('WidgetTemplatesList', () => {
 
     expect(mockNavigate).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        ...router.location,
         query: expect.objectContaining({
           description: 'some description',
           title: 'Duration Distribution',
@@ -157,10 +140,7 @@ describe('WidgetTemplatesList', () => {
           setIsPreviewDraggable={jest.fn()}
           setCustomizeFromLibrary={jest.fn()}
         />
-      </WidgetBuilderProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      </WidgetBuilderProvider>
     );
 
     const widgetTemplate = await screen.findByText('Duration Distribution');

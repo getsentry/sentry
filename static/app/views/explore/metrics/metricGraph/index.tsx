@@ -1,9 +1,11 @@
 import {Fragment, useMemo} from 'react';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -17,6 +19,8 @@ import {
   useMetricVisualize,
   useSetMetricVisualize,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
+import {METRICS_CHART_GROUP} from 'sentry/views/explore/metrics/metricsTab';
+import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
   useQueryParamsQuery,
   useQueryParamsTopEventsLimit,
@@ -27,8 +31,12 @@ import {
   combineConfidenceForSeries,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {
+  ChartType,
+  useSynchronizeCharts,
+} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 import {WidgetWrapper} from './styles';
 
@@ -41,6 +49,7 @@ interface MetricsGraphProps {
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   additionalActions?: React.ReactNode;
   infoContentHidden?: boolean;
+  isMetricOptionsEmpty?: boolean;
 }
 
 export function MetricsGraph({
@@ -49,9 +58,17 @@ export function MetricsGraph({
   orientation,
   additionalActions,
   infoContentHidden,
+  isMetricOptionsEmpty,
 }: MetricsGraphProps) {
+  const metricQueries = useMultiMetricsQueryParams();
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
+
+  useSynchronizeCharts(
+    metricQueries.length,
+    !timeseriesResult.isPending,
+    METRICS_CHART_GROUP
+  );
 
   function handleChartTypeChange(newChartType: ChartType) {
     setVisualize(visualize.replace({chartType: newChartType}));
@@ -66,6 +83,7 @@ export function MetricsGraph({
       orientation={orientation}
       additionalActions={additionalActions}
       infoContentHidden={infoContentHidden}
+      isMetricOptionsEmpty={isMetricOptionsEmpty}
     />
   );
 }
@@ -84,6 +102,7 @@ function Graph({
   visualize,
   infoContentHidden,
   additionalActions,
+  isMetricOptionsEmpty,
 }: GraphProps) {
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
@@ -156,14 +175,34 @@ function Graph({
     </Fragment>
   );
 
+  const showEmptyState = isMetricOptionsEmpty && visualize.visible;
+  const showChart = visualize.visible && !isMetricOptionsEmpty;
+
   return (
     <WidgetWrapper hideFooterBorder={orientation === 'bottom'}>
       <Widget
         Title={Title}
         Actions={Actions}
-        Visualization={visualize.visible && <ChartVisualization chartInfo={chartInfo} />}
+        Visualization={
+          showEmptyState ? (
+            <GenericWidgetEmptyStateWarning
+              message={tct(
+                'No metrics found for this time period. If this is unexpected, try updating your filters or [link:learn more] about how to use metrics.',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/explore/metrics/">
+                      {t('learn more')}
+                    </ExternalLink>
+                  ),
+                }
+              )}
+            />
+          ) : showChart ? (
+            <ChartVisualization chartInfo={chartInfo} />
+          ) : undefined
+        }
         Footer={
-          visualize.visible && (
+          showChart && (
             <ConfidenceFooter
               chartInfo={chartInfo}
               isLoading={timeseriesResult.isFetching}

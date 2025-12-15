@@ -536,12 +536,19 @@ class GitHubBaseClient(
         endpoint = f"/repos/{repo}/issues"
         return self.post(endpoint, data=data)
 
-    def update_issue(self, repo: str, issue_number: str, assignees: list[str]) -> Any:
+    def update_issue_assignees(self, repo: str, issue_number: str, assignees: list[str]) -> Any:
         """
         https://docs.github.com/en/rest/issues/issues#update-an-issue
         """
         endpoint = f"/repos/{repo}/issues/{issue_number}"
         return self.patch(endpoint, data={"assignees": assignees})
+
+    def update_issue_status(self, repo: str, issue_number: str, status: str) -> Any:
+        """
+        https://docs.github.com/en/rest/issues/issues#update-an-issue
+        """
+        endpoint = f"/repos/{repo}/issues/{issue_number}"
+        return self.patch(endpoint, data={"state": status})
 
     def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         """

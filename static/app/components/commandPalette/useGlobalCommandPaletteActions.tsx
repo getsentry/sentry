@@ -30,6 +30,11 @@ import {t} from 'sentry/locale';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
+import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {MCP_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mcp/settings';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useNavContext} from 'sentry/views/nav/context';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
@@ -154,13 +159,37 @@ function useNavigationActions(): CommandPaletteAction[] {
       display: {
         label: t('Frontend'),
       },
-      to: `${prefix}/insights/frontend/`,
+      to: `${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`,
     }),
     makeCommandPaletteLink({
       display: {
         label: t('Backend'),
       },
-      to: `${prefix}/insights/backend/`,
+      to: `${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`,
+    }),
+    makeCommandPaletteLink({
+      display: {
+        label: t('Mobile'),
+      },
+      to: `${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`,
+    }),
+    makeCommandPaletteLink({
+      display: {
+        label: t('Agents'),
+      },
+      to: `${prefix}/insights/${AGENTS_LANDING_SUB_PATH}/`,
+    }),
+    makeCommandPaletteLink({
+      display: {
+        label: t('MCP'),
+      },
+      to: `${prefix}/insights/${MCP_LANDING_SUB_PATH}/`,
+    }),
+    makeCommandPaletteLink({
+      display: {
+        label: t('Crons'),
+      },
+      to: `${prefix}/insights/crons/`,
     }),
     makeCommandPaletteLink({
       display: {
@@ -178,13 +207,6 @@ function useNavigationActions(): CommandPaletteAction[] {
   ];
 
   const preventChildren: CommandPaletteActionChild[] = [
-    makeCommandPaletteLink({
-      display: {
-        label: t('Coverage'),
-      },
-      to: `${prefix}/prevent/coverage/commits/`,
-      hidden: !organization.features.includes('codecov-ui'),
-    }),
     makeCommandPaletteLink({
       display: {
         label: t('Tests'),

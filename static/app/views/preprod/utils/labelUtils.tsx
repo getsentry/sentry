@@ -1,10 +1,12 @@
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
   BuildDetailsArtifactType,
+  getMainArtifactSizeMetric,
   isSizeInfoCompleted,
-  type BuildDetailsApiResponse,
+  type BuildDetailsSizeInfo,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 
@@ -74,8 +76,8 @@ export function getLabels(platform: Platform | undefined): Labels {
   switch (platform) {
     case 'android':
       return {
-        installSizeLabel: t('Uncompressed size'),
-        downloadSizeLabel: t('Download size'),
+        installSizeLabel: t('Uncompressed Size'),
+        downloadSizeLabel: t('Download Size'),
         appId: t('Package name'),
         installSizeDescription: t('Uncompressed size on disk not including AOT DEX'),
         downloadSizeDescription: t('Bytes transferred over the network'),
@@ -90,7 +92,7 @@ export function getLabels(platform: Platform | undefined): Labels {
         appId: t('Bundle identifier'),
         installSizeDescription: t('Unencrypted install size'),
         downloadSizeDescription: t('Bytes transferred over the network'),
-        downloadSizeLabel: t('Download size'),
+        downloadSizeLabel: t('Download Size'),
         buildConfiguration: t('Build configuration'),
         installUnavailableTooltip: t(
           'Code signature must be valid for this app to be installed.'
@@ -114,16 +116,51 @@ export function getReadablePlatformLabel(platform: Platform): string {
   }
 }
 
-export function formattedInstallSize(build: BuildDetailsApiResponse): string {
-  if (isSizeInfoCompleted(build?.size_info)) {
-    return formatBytesBase10(build.size_info.install_size_bytes);
+export function formattedPrimaryMetricInstallSize(
+  sizeInfo: BuildDetailsSizeInfo | undefined
+): string {
+  if (isSizeInfoCompleted(sizeInfo)) {
+    const primarySizeMetric = getMainArtifactSizeMetric(sizeInfo);
+    if (!primarySizeMetric) {
+      return '-';
+    }
+
+    return formatBytesBase10(primarySizeMetric.install_size_bytes);
   }
   return '-';
 }
 
-export function formattedDownloadSize(build: BuildDetailsApiResponse): string {
-  if (isSizeInfoCompleted(build?.size_info)) {
-    return formatBytesBase10(build.size_info.download_size_bytes);
+export function formattedPrimaryMetricDownloadSize(
+  sizeInfo: BuildDetailsSizeInfo | undefined
+): string {
+  if (isSizeInfoCompleted(sizeInfo)) {
+    const primarySizeMetric = getMainArtifactSizeMetric(sizeInfo);
+    if (!primarySizeMetric) {
+      return '-';
+    }
+
+    return formatBytesBase10(primarySizeMetric.download_size_bytes);
   }
   return '-';
+}
+
+export function getTrend(diff: number): {
+  variant: 'danger' | 'success' | 'muted';
+  icon?: React.ReactNode;
+} {
+  if (diff > 0) {
+    return {
+      variant: 'danger',
+      icon: <IconArrow direction="up" size="xs" />,
+    };
+  }
+
+  if (diff < 0) {
+    return {
+      variant: 'success',
+      icon: <IconArrow direction="down" size="xs" />,
+    };
+  }
+
+  return {variant: 'muted'};
 }

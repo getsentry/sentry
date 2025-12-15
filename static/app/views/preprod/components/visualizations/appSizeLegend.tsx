@@ -2,7 +2,8 @@ import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTheme';
 import {TreemapType, type TreemapElement} from 'sentry/views/preprod/types/appSizeTypes';
 
@@ -262,7 +263,7 @@ const LegendItem = styled('div')<{isActive: boolean}>`
   gap: ${p => p.theme.space.xs};
   cursor: pointer;
   padding: ${p => p.theme.space.xs};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   opacity: ${p => (p.isActive ? 1 : 0.4)};
   flex-shrink: 0;
   transition:
@@ -286,7 +287,7 @@ const LegendDot = styled('div')<{isActive: boolean}>`
 
 const LegendLabel = styled('span')`
   font-size: 12px;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: 400;
 `;
 
@@ -297,7 +298,7 @@ const MoreContainer = styled('div')`
 
 const MoreLabel = styled('span')`
   font-size: 12px;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: 500;
   white-space: nowrap;
 `;
@@ -309,7 +310,7 @@ const MoreDropdown = styled('div')`
   margin-top: 2px;
   background: ${p => p.theme.backgroundElevated};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   padding: ${p => p.theme.space.xs};
   display: flex;

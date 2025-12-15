@@ -1,6 +1,5 @@
-import type {CSSProperties} from 'react';
+import type {CSSProperties, RefObject} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Virtualizer} from '@tanstack/react-virtual';
 import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
@@ -17,6 +16,7 @@ import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {
@@ -51,12 +51,15 @@ import {
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {
+  createPseudoLogResponseItem,
   getDynamicLogsNextFetchThreshold,
   getLogBodySearchTerms,
   getLogRowTimestampMillis,
   getTableHeaderLabel,
+  isRegularLogResponseItem,
   logsFieldAlignment,
   quantizeTimestampToMinutes,
+  type LogTableRowItem,
 } from 'sentry/views/explore/logs/utils';
 import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/logsReplayUtils';
 import {
@@ -68,6 +71,10 @@ import {
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
 type LogsTableProps = {
+  additionalData?: {
+    event?: Event;
+    scrollToDisabled?: boolean;
+  };
   allowPagination?: boolean;
   embedded?: boolean;
   embeddedOptions?: {
@@ -100,8 +107,8 @@ export function LogsInfiniteTable({
   scrollContainer,
   embeddedStyling,
   embeddedOptions,
+  additionalData,
 }: LogsTableProps) {
-  const theme = useTheme();
   const fields = useQueryParamsFields();
   const search = useQueryParamsSearch();
   const autoRefresh = useLogsAutoRefreshEnabled();
@@ -123,16 +130,61 @@ export function LogsInfiniteTable({
     resumeAutoFetch,
   } = useLogsPageDataQueryResult();
 
-  // Use filtered items if provided, otherwise use original data
-  const data = localOnlyItemFilters?.filteredItems ?? originalData;
+  const baseData = localOnlyItemFilters?.filteredItems ?? originalData;
+  const baseDataLength = useBox(baseData.length);
+
+  const pseudoRowIndex = useMemo(() => {
+    if (
+      !additionalData?.event ||
+      !baseData ||
+      baseData.length === 0 ||
+      isPending ||
+      isError
+    ) {
+      return -1;
+    }
+    const event = additionalData.event;
+    const eventTimestamp = new Date(event.dateCreated || new Date()).getTime();
+    const index = baseData.findIndex(
+      row =>
+        isRegularLogResponseItem(row) && getLogRowTimestampMillis(row) < eventTimestamp
+    );
+    return index === -1 ? -2 : index; // If the event is older than all the data, add it to the end with a sentinel value of -2. This causes the useEffect to not continously add it.
+  }, [additionalData, baseData, isPending, isError]);
+
+  const data: LogTableRowItem[] = useMemo(() => {
+    if (
+      !additionalData?.event ||
+      !baseData ||
+      baseData.length === 0 ||
+      isPending ||
+      isError ||
+      pseudoRowIndex === -1
+    ) {
+      return baseData || [];
+    }
+
+    const newData: LogTableRowItem[] = [...baseData];
+    const newSelectedIndex =
+      pseudoRowIndex === -2 ? baseDataLength.current : pseudoRowIndex;
+    newData.splice(
+      newSelectedIndex,
+      0,
+      createPseudoLogResponseItem(
+        additionalData.event,
+        additionalData.event.projectID || ''
+      )
+    );
+    return newData;
+  }, [baseData, additionalData, isPending, isError, pseudoRowIndex, baseDataLength]);
 
   // Calculate quantized start and end times for replay links
   const {logStart, logEnd} = useMemo(() => {
-    if (!data || data.length === 0) {
+    if (!baseData || baseData.length === 0) {
       return {logStart: undefined, logEnd: undefined};
     }
 
-    const timestamps = data.map(row => getLogRowTimestampMillis(row)).filter(Boolean);
+    const timestamps = baseData.map(row => getLogRowTimestampMillis(row)).filter(Boolean);
     if (timestamps.length === 0) {
       return {logStart: undefined, logEnd: undefined};
     }
@@ -150,7 +202,7 @@ export function LogsInfiniteTable({
       logStart: new Date(quantizedStart).toISOString(),
       logEnd: new Date(quantizedEnd).toISOString(),
     };
-  }, [data]);
+  }, [baseData]);
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
@@ -228,6 +280,29 @@ export function LogsInfiniteTable({
     },
     [virtualizer]
   );
+
+  useEffect(() => {
+    if (
+      pseudoRowIndex !== -1 &&
+      scrollContainer?.current &&
+      !additionalData?.scrollToDisabled
+    ) {
+      setTimeout(() => {
+        const scrollToIndex =
+          pseudoRowIndex === -2 ? baseDataLength.current : pseudoRowIndex;
+        containerVirtualizer.scrollToIndex(scrollToIndex, {
+          behavior: 'smooth',
+          align: 'center',
+        });
+      }, 100);
+    }
+  }, [
+    pseudoRowIndex,
+    containerVirtualizer,
+    scrollContainer,
+    baseDataLength,
+    additionalData?.scrollToDisabled,
+  ]);
 
   const hasReplay = !!embeddedOptions?.replay;
 
@@ -334,8 +409,8 @@ export function LogsInfiniteTable({
   const tableStaticCSS = useMemo(() => {
     return {
       '.log-table-row-chevron-button': {
-        width: theme.isChonk ? '24px' : '18px',
-        height: theme.isChonk ? '24px' : '18px',
+        width: '24px',
+        height: '24px',
         padding: `${space(0.5)} ${space(0.75)}`,
         marginRight: '4px',
         display: 'flex',
@@ -343,7 +418,7 @@ export function LogsInfiniteTable({
         justifyContent: 'center',
       },
     };
-  }, [theme.isChonk]);
+  }, []);
 
   // For replay context, render empty states outside the table for proper centering
   if (hasReplay && (isPending || isError || isEmpty)) {
@@ -455,7 +530,9 @@ export function LogsInfiniteTable({
         {!embeddedOptions?.replay && (
           <BackToTopButton
             virtualizer={virtualizer}
-            hidden={isPending || (firstItemIndex ?? 0) === 0}
+            hidden={
+              isPending || ((firstItemIndex ?? 0) === 0 && (scrollOffset ?? 0) < 550)
+            }
             setIsFunctionScrolling={setIsFunctionScrolling}
           />
         )}
@@ -711,4 +788,10 @@ function BackToTopButton({
       <IconArrow direction="up" size="md" />
     </Button>
   );
+}
+
+function useBox<T>(value: T): RefObject<T> {
+  const box = useRef(value);
+  box.current = value;
+  return box;
 }

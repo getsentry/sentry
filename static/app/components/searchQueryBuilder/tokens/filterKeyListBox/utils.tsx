@@ -11,6 +11,7 @@ import type {
   FilterValueItem,
   KeyItem,
   KeySectionItem,
+  LogicFilterItem,
   RawSearchFilterIsValueItem,
   RawSearchItem,
   RecentQueryItem,
@@ -36,12 +37,14 @@ import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
 export const ALL_CATEGORY_VALUE = '__all';
 export const RECENT_SEARCH_CATEGORY_VALUE = '__recent_searches';
+export const LOGIC_CATEGORY_VALUE = '__logic_filters';
 
 export const ALL_CATEGORY = {value: ALL_CATEGORY_VALUE, label: t('All')};
 export const RECENT_SEARCH_CATEGORY = {
   value: RECENT_SEARCH_CATEGORY_VALUE,
   label: t('Recent'),
 };
+export const LOGIC_CATEGORY = {value: LOGIC_CATEGORY_VALUE, label: t('Logic')};
 
 const RECENT_FILTER_KEY_PREFIX = '__recent_filter_key__';
 const RECENT_QUERY_KEY_PREFIX = '__recent_search__';
@@ -116,7 +119,7 @@ export function createItem(
     textValue: tag.key,
     hideCheck: true,
     showDetailsInOverlay: true,
-    details: <KeyDescription tag={tag} />,
+    details: () => <KeyDescription tag={tag} />,
     type: 'item',
   };
 }
@@ -188,6 +191,29 @@ export function createRawSearchFilterContainsValueItem(
   };
 }
 
+export function createRawSearchFuzzyFilterItem(
+  key: string,
+  value: string
+): RawSearchFilterIsValueItem {
+  const formattedValue = escapeFilterValue(value)
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replaceAll(' ', '*');
+
+  const filter = `${key}:*${formattedValue}*`;
+
+  return {
+    key: getEscapedKey(filter),
+    label: <FormattedQuery query={filter} />,
+    value: filter,
+    textValue: filter,
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: null,
+    type: 'raw-search-filter-is-value',
+  };
+}
+
 export function createRecentFilterItem({filter}: {filter: TokenResult<Token.FILTER>}) {
   const key = getKeyName(filter.key);
   return {
@@ -228,9 +254,9 @@ export function createAskSeerItem(): AskSeerItem {
   return {
     key: getEscapedKey(ASK_SEER_ITEM_KEY),
     value: ASK_SEER_ITEM_KEY,
-    textValue: 'Ask Seer to build your query',
+    textValue: 'Ask AI to build your query',
     type: 'ask-seer' as const,
-    label: t('Ask Seer to build your query'),
+    label: t('Ask AI to build your query'),
     hideCheck: true,
   };
 }
@@ -243,6 +269,22 @@ export function createAskSeerConsentItem(): AskSeerConsentItem {
     type: 'ask-seer-consent' as const,
     label: t('Enable Gen AI'),
     hideCheck: true,
+  };
+}
+
+export function createLogicFilterItem({
+  value,
+}: {
+  value: 'AND' | 'OR' | '(' | ')';
+}): LogicFilterItem {
+  return {
+    key: getEscapedKey(value),
+    type: 'logic-filter' as const,
+    value,
+    label: value,
+    textValue: value,
+    hideCheck: true,
+    showDetailsInOverlay: true,
   };
 }
 

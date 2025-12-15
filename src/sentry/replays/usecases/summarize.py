@@ -247,10 +247,19 @@ def get_summary_logs(
     error_events: list[EventDict],
     project_id: int,
     is_mobile_replay: bool = False,
+    replay_start: str | None = None,
 ) -> list[str]:
     # Sort error events by timestamp. This list includes all feedback events still.
     error_events.sort(key=lambda x: x["timestamp"])
-    return list(generate_summary_logs(segment_data, error_events, project_id, is_mobile_replay))
+    return list(
+        generate_summary_logs(
+            segment_data,
+            error_events,
+            project_id,
+            is_mobile_replay=is_mobile_replay,
+            replay_start=replay_start,
+        )
+    )
 
 
 def generate_summary_logs(
@@ -258,6 +267,7 @@ def generate_summary_logs(
     error_events: list[EventDict],
     project_id,
     is_mobile_replay: bool = False,
+    replay_start: str | None = None,
 ) -> Generator[str]:
     """
     Generate log messages from events and errors in chronological order.
@@ -265,6 +275,11 @@ def generate_summary_logs(
     """
     error_idx = 0
     seen_feedback_ids = {error["id"] for error in error_events if error["category"] == "feedback"}
+    replay_start_ms = _parse_iso_timestamp_to_ms(replay_start) if replay_start else 0.0
+
+    # Skip errors that occurred before replay start
+    while error_idx < len(error_events) and error_events[error_idx]["timestamp"] < replay_start_ms:
+        error_idx += 1
 
     # Process segments
     for _, segment in segment_data:
@@ -272,13 +287,14 @@ def generate_summary_logs(
         for event in events:
             event_type = which(event)
             timestamp = get_replay_event_timestamp_ms(event, event_type)
+            if timestamp < replay_start_ms:
+                continue
 
             # Check if we need to yield any error messages that occurred before this event
             while (
                 error_idx < len(error_events) and error_events[error_idx]["timestamp"] < timestamp
             ):
                 error = error_events[error_idx]
-
                 if error["category"] == "error":
                     yield generate_error_log_message(error)
                 elif error["category"] == "feedback":
@@ -302,7 +318,6 @@ def generate_summary_logs(
     # Yield any remaining error messages
     while error_idx < len(error_events):
         error = error_events[error_idx]
-
         if error["category"] == "error":
             yield generate_error_log_message(error)
         elif error["category"] == "feedback":
@@ -582,5 +597,11 @@ def rpc_get_replay_summary_logs(
     segment_data = iter_segment_data(segment_md)
 
     # Combine replay and error data and parse into logs.
-    logs = get_summary_logs(segment_data, error_events, project.id, is_mobile_replay)
+    logs = get_summary_logs(
+        segment_data,
+        error_events,
+        project.id,
+        is_mobile_replay=is_mobile_replay,
+        replay_start=replay_start,
+    )
     return {"logs": logs}

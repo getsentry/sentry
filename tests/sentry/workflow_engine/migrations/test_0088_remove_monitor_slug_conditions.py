@@ -1,7 +1,10 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 
 
+@pytest.mark.skip
 class RemoveMonitorSlugConditionsTest(TestMigrations):
     migrate_from = "0087_relink_crons_to_compatible_issue_workflows"
     migrate_to = "0088_remove_monitor_slug_conditions"

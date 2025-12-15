@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import aiDetectedConfig from 'sentry/utils/issueTypeConfig/aiDetectedConfig';
 import cronConfig from 'sentry/utils/issueTypeConfig/cronConfig';
 import dbQueryConfig from 'sentry/utils/issueTypeConfig/dbQueryConfig';
 import {
@@ -15,6 +16,7 @@ import metricIssueConfig from 'sentry/utils/issueTypeConfig/metricIssueConfig';
 import mobileConfig from 'sentry/utils/issueTypeConfig/mobileConfig';
 import outageConfig from 'sentry/utils/issueTypeConfig/outageConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
+import preprodConfig from 'sentry/utils/issueTypeConfig/preprodConfig';
 import replayConfig from 'sentry/utils/issueTypeConfig/replayConfig';
 import type {
   IssueCategoryConfigMapping,
@@ -46,7 +48,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   },
   defaultTimePeriod: {sinceFirstSeen: true},
   header: {
-    filterBar: {enabled: true, fixedEnvironment: false},
+    filterBar: {enabled: true, fixedEnvironment: false, searchBar: {enabled: true}},
     graph: {enabled: true, type: 'discover-events'},
     tagDistribution: {enabled: true},
     occurrenceSummary: {enabled: false},
@@ -86,6 +88,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   usesIssuePlatform: true,
   issueSummary: {enabled: false},
   useOpenPeriodChecks: false,
+  groupingInfo: {enabled: true},
 };
 
 const issueTypeConfig: Config = {
@@ -102,6 +105,8 @@ const issueTypeConfig: Config = {
   [IssueCategory.DB_QUERY]: dbQueryConfig,
   [IssueCategory.MOBILE]: mobileConfig,
   [IssueCategory.METRIC]: metricConfig,
+  [IssueCategory.AI_DETECTED]: aiDetectedConfig,
+  [IssueCategory.PREPROD]: preprodConfig,
 };
 
 /**
@@ -109,7 +114,7 @@ const issueTypeConfig: Config = {
  * errors that may otherwise be difficult to debug. For example, common framework
  * errors that have no stack trace.
  */
-export function shouldShowCustomErrorResourceConfig(
+function shouldShowCustomErrorResourceConfig(
   params: GetConfigForIssueTypeParams,
   project: Project
 ): boolean {

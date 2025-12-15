@@ -2,7 +2,8 @@ import type {SerializedStyles} from '@emotion/react';
 import {css} from '@emotion/react';
 
 import type {AlertProps} from 'sentry/components/core/alert';
-import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme.chonk';
+import type {Theme} from 'sentry/utils/theme';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -19,7 +20,7 @@ export const chonkAlertPropMapping: ChonkPropMapping<
 
 interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
   type: 'subtle' | 'info' | 'warning' | 'success' | 'danger';
-  theme?: ReturnType<typeof useChonkTheme>;
+  theme?: Theme;
 }
 
 export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
@@ -29,7 +30,7 @@ export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   border-width: ${p => (p.system ? '0px 0px 1px 0px' : '1px')};
   border-style: solid;
-  border-radius: ${p => (p.system ? '0px' : p.theme.borderRadius)};
+  border-radius: ${p => (p.system ? '0px' : p.theme.radius.md)};
   cursor: ${p => (p.expand ? 'pointer' : 'inherit')};
   gap: ${p => p.theme.space.lg};
   row-gap: 0;
@@ -59,10 +60,7 @@ function makeChonkAlertTheme(props: ChonkAlertProps): SerializedStyles {
   `;
 }
 
-function getChonkAlertTokens(
-  type: ChonkAlertProps['type'],
-  theme: ReturnType<typeof useChonkTheme>
-) {
+function getChonkAlertTokens(type: ChonkAlertProps['type'], theme: Theme) {
   switch (type) {
     case 'info':
       return {
@@ -104,7 +102,7 @@ function getChonkAlertTokens(
 function generateAlertBackground(
   props: ChonkAlertProps,
   tokens: ReturnType<typeof getChonkAlertTokens>,
-  theme: ReturnType<typeof useChonkTheme>
+  theme: Theme
 ) {
   const width = 44;
   if (props.showIcon) {
@@ -120,14 +118,14 @@ function generateAlertBackground(
           ${tokens.background} ${width}px,
           ${tokens.background} ${width + 1}px
         ),
-        linear-gradient(${theme.colors.background.primary});
+        linear-gradient(${theme.tokens.background.primary});
       padding-left: calc(${width}px + ${props.theme!.space.lg});
     `;
   }
   return css`
     background-image:
       linear-gradient(${tokens.background}),
-      linear-gradient(${theme.colors.background.primary});
+      linear-gradient(${theme.tokens.background.primary});
   `;
 }
 
@@ -137,7 +135,7 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
   grid-auto-columns: max-content;
   grid-template-rows: 100%;
   gap: ${p => p.theme.space.md};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   grid-row: 2;
   grid-column: 1 / -1;
   justify-items: start;
@@ -159,7 +157,7 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
 `;
 
 export const Message = chonkStyled('div')`
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
   place-content: center;
   padding-block: ${p => p.theme.space.xs};
 `;

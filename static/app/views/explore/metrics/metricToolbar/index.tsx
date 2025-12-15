@@ -5,6 +5,7 @@ import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMetricVisualize,
   useSetMetricVisualize,
+  useSetTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {AggregateDropdown} from 'sentry/views/explore/metrics/metricToolbar/aggregateDropdown';
 import {DeleteMetricButton} from 'sentry/views/explore/metrics/metricToolbar/deleteMetricButton';
@@ -26,6 +27,7 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
   const toggleVisibility = useCallback(() => {
     setVisualize(visualize.replace({visible: !visualize.visible}));
   }, [setVisualize, visualize]);
+  const setTraceMetric = useSetTraceMetric();
 
   return (
     <Grid
@@ -33,13 +35,14 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
       align="center"
       gap="md"
       columns={`24px auto auto auto 1fr ${metricQueries.length > 1 ? '40px' : '0'}`}
+      data-test-id="metric-toolbar"
     >
       <VisualizeLabel
         index={queryIndex}
         visualize={visualize}
         onClick={toggleVisibility}
       />
-      <MetricSelector traceMetric={traceMetric} />
+      <MetricSelector traceMetric={traceMetric} onChange={setTraceMetric} />
       <AggregateDropdown traceMetric={traceMetric} />
       <GroupBySelector traceMetric={traceMetric} />
       <Filter traceMetric={traceMetric} />

@@ -78,13 +78,17 @@ def _process_suspect_commits(
                     project, group_id, event_frames, event_platform, sdk_name=sdk_name
                 )
             owner_scores: dict[str, int] = {}
+            owner_commits: dict[str, int] = {}
             for committer in committers:
                 author = cast(UserSerializerResponse, committer["author"])
                 if author and "id" in author:
                     author_id = author["id"]
-                    for _, score in committer["commits"]:
+                    for commit, score in committer["commits"]:
                         if score >= MIN_COMMIT_SCORE:
-                            owner_scores[author_id] = max(score, owner_scores.get(author_id, 0))
+                            current_score = owner_scores.get(author_id, 0)
+                            if score > current_score:
+                                owner_scores[author_id] = score
+                                owner_commits[author_id] = commit.id
 
             if owner_scores:
                 for owner_id, _ in sorted(
@@ -99,11 +103,13 @@ def _process_suspect_commits(
                                     "user_id": owner_id,
                                     "project_id": project.id,
                                     "organization_id": project.organization_id,
+                                    "context__asjsonb__commitId": owner_commits[owner_id],
                                 },
                                 defaults={
                                     "date_added": timezone.now(),
                                 },
                                 context_defaults={
+                                    "commitId": owner_commits[owner_id],
                                     "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED,
                                 },
                             )

@@ -5,6 +5,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   makeMonitorBasePathname,
   makeMonitorDetailsPathname,
+  makeMonitorTypePathname,
 } from 'sentry/views/detectors/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
@@ -16,6 +17,10 @@ export function NewDetectorBreadcrumbs({detectorType}: {detectorType: DetectorTy
         {
           label: t('Monitors'),
           to: makeMonitorBasePathname(organization.slug),
+        },
+        {
+          label: getDetectorTypeLabel(detectorType),
+          to: makeMonitorTypePathname(organization.slug, detectorType),
         },
         {
           label: t('New %s Monitor', getDetectorTypeLabel(detectorType)),
@@ -33,6 +38,10 @@ export function EditDetectorBreadcrumbs({detector}: {detector: Detector}) {
         {
           label: t('Monitors'),
           to: makeMonitorBasePathname(organization.slug),
+        },
+        {
+          label: getDetectorTypeLabel(detector.type),
+          to: makeMonitorTypePathname(organization.slug, detector.type),
         },
         {
           label: detector.name,

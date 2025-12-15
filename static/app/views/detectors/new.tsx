@@ -1,26 +1,21 @@
 import {useTheme} from '@emotion/react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
-import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import {DetectorTypeForm} from 'sentry/views/detectors/components/detectorTypeForm';
+import {
+  DetectorTypeForm,
+  useDetectorTypeQueryState,
+} from 'sentry/views/detectors/components/detectorTypeForm';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
-
-interface NewDetectorFormData {
-  detectorType: DetectorType;
-  project: string;
-}
 
 function NewDetectorBreadcrumbs() {
   const organization = useOrganization();
@@ -43,34 +38,26 @@ export default function DetectorNew() {
   const navigate = useNavigate();
   const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
-  const location = useLocation();
-  const {projects} = useProjects();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
-  const detectorType = location.query.detectorType as DetectorType;
-
-  const projectIdFromLocation =
-    typeof location.query.project === 'string' ? location.query.project : undefined;
-  const defaultProject = projects.find(p => p.isMember) ?? projects[0];
+  const [detectorType] = useDetectorTypeQueryState();
+  const [projectId] = useQueryState('project', parseAsString);
 
   const newMonitorName = t('New Monitor');
 
   const formProps = {
-    onSubmit: (formData: any) => {
-      // Form doesn't allow type to be defined, cast to the expected shape
-      const data = formData as NewDetectorFormData;
+    onSubmit: () => {
       navigate({
         pathname: `${makeMonitorBasePathname(organization.slug)}new/settings/`,
         query: {
-          detectorType: location.query.detectorType as DetectorType,
-          project: data.project,
+          detectorType,
+          project: projectId ?? undefined,
         },
       });
     },
     initialData: {
       detectorType,
-      project: projectIdFromLocation ?? defaultProject?.id ?? '',
-    } satisfies NewDetectorFormData,
+    },
   };
 
   return (
@@ -95,15 +82,9 @@ export default function DetectorNew() {
         <LinkButton priority="default" to={makeMonitorBasePathname(organization.slug)}>
           {t('Cancel')}
         </LinkButton>
-        <Tooltip
-          title={t('Select a monitor type to continue')}
-          disabled={!!detectorType}
-          skipWrapper
-        >
-          <Button priority="primary" type="submit" disabled={!detectorType}>
-            {t('Next')}
-          </Button>
-        </Tooltip>
+        <Button priority="primary" type="submit">
+          {t('Next')}
+        </Button>
       </EditLayout.Footer>
     </EditLayout>
   );

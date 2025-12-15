@@ -263,7 +263,12 @@ describe('AggregateColumnEditorModal', () => {
       'span.op',
       'span.self_time',
     ];
-    await userEvent.click(screen.getByRole('button', {name: 'Group By geo.country'}));
+
+    const row = screen.getAllByTestId('editor-row')[0]!;
+
+    await userEvent.click(
+      within(row).getByRole('button', {name: 'Group By geo.country'})
+    );
     const groupByOptions = await screen.findAllByRole('option');
     groupByOptions.forEach((option, i) => {
       expect(option).toHaveTextContent(options[i]!);

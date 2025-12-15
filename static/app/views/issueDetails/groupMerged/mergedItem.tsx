@@ -185,9 +185,7 @@ const Controls = styled('div')<{expanded: boolean}>`
 
   ${MergedGroup}:last-child & {
     ${p => !p.expanded && `border-bottom: none`};
-    ${p =>
-      !p.expanded &&
-      `border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
+    ${p => !p.expanded && `border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md}`};
   }
 `;
 
@@ -204,7 +202,7 @@ const FingerprintLabel = styled('label')`
 const MergedEventList = styled('div')`
   overflow: hidden;
   border: none;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const EventDetails = styled('div')`

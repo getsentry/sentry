@@ -13,7 +13,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {displayBudgetName} from 'getsentry/utils/billing';
 import {listDisplayNames} from 'getsentry/utils/dataCategory';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
 type Props = StepProps;
@@ -141,7 +141,7 @@ const Header = styled('div')`
   display: inline-grid;
   gap: ${space(1)};
   font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Description = styled(TextBlock)`
@@ -156,7 +156,7 @@ const InputContainer = styled('div')`
   gap: ${space(1.5)};
   align-items: center;
   justify-items: end;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const InputHeader = styled('div')`
@@ -176,7 +176,7 @@ const Currency = styled('span')`
 
 const OnDemandInput = styled(Input)`
   padding-left: ${space(4)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   text-align: right;
   height: 36px;
 `;

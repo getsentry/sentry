@@ -7,11 +7,11 @@ from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.fields import URLField
 
-from sentry import audit_log
+from sentry import audit_log, quotas
 from sentry.api.fields import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.environment import Environment
 from sentry.uptime.models import (
     UptimeSubscription,
@@ -28,6 +28,10 @@ from sentry.uptime.subscriptions.subscriptions import (
     check_url_limits,
     create_uptime_detector,
     create_uptime_subscription,
+    delete_uptime_subscription,
+    disable_uptime_detector,
+    enable_uptime_detector,
+    remove_uptime_seat,
     update_uptime_detector,
     update_uptime_subscription,
 )
@@ -459,10 +463,146 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
         return uptime_subscription
 
 
+class UptimeDomainCheckFailureConfigValidator(CamelSnakeSerializer):
+    """
+    Validator for the uptime detector config field.
+    """
+
+    environment = serializers.CharField(
+        max_length=64,
+        required=False,
+        allow_null=True,
+        help_text="Name of the environment to create uptime issues in.",
+    )
+    recovery_threshold = serializers.IntegerField(
+        required=False,
+        default=DEFAULT_RECOVERY_THRESHOLD,
+        min_value=1,
+        help_text="Number of consecutive successful checks required to mark monitor as recovered.",
+    )
+    downtime_threshold = serializers.IntegerField(
+        required=False,
+        default=DEFAULT_DOWNTIME_THRESHOLD,
+        min_value=1,
+        help_text="Number of consecutive failed checks required to mark monitor as down.",
+    )
+    mode = serializers.IntegerField(required=False, default=UptimeMonitorMode.MANUAL)
+
+    def bind(self, field_name, parent):
+        super().bind(field_name, parent)
+        if not parent:
+            return
+        if parent.partial:
+            self.partial = True
+        if parent.instance and hasattr(parent.instance, field_name):
+            self.instance = getattr(parent.instance, field_name)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """
+        Handle mode validation and automatic mode switching.
+
+        Rules:
+        1. Non-superusers updating AUTO_DETECTED monitors: Always switch to MANUAL
+        2. Non-superusers trying to set non-MANUAL mode: Reject with validation error
+        3. Superusers: Can set any mode
+        4. Partial updates: Merge with existing config to preserve unspecified fields
+        """
+        request = self.context["request"]
+        is_superuser = is_active_superuser(request)
+
+        # On partial updates, merge attrs with existing config to preserve unspecified fields
+        # DRF's partial=True makes fields optional but doesn't auto-merge with instance data
+        if self.instance and self.partial:
+            existing_config = self.instance.copy()
+            existing_config.update(attrs)
+            attrs = existing_config
+
+        # On updates, check if we need to auto-switch from AUTO_DETECTED to MANUAL
+        if self.instance:
+            current_mode = self.instance.get("mode")
+
+            # For full updates, preserve the mode if it wasn't in the request
+            # DRF includes fields with defaults even when not provided, so we
+            # need to check the parent's initial_data to see if mode was
+            # actually provided
+            mode_in_request = (
+                self.parent
+                and hasattr(self.parent, "initial_data")
+                and "mode" in self.parent.initial_data.get("config", {})
+            )
+
+            # If mode wasn't explicitly provided, use the current mode
+            if not mode_in_request:
+                attrs["mode"] = current_mode
+
+            requested_mode = attrs.get("mode")
+
+            # If currently AUTO_DETECTED and not a superuser, force switch to MANUAL
+            if current_mode != UptimeMonitorMode.MANUAL and not is_superuser:
+                attrs["mode"] = UptimeMonitorMode.MANUAL
+
+            # If non-superuser is trying to change mode to something other than MANUAL
+            elif (
+                mode_in_request
+                and requested_mode != current_mode
+                and requested_mode != UptimeMonitorMode.MANUAL
+                and not is_superuser
+            ):
+                raise serializers.ValidationError({"mode": ["Only superusers can modify `mode`"]})
+        else:
+            # On create, non-superusers can only set MANUAL mode
+            if "mode" in attrs and attrs["mode"] != UptimeMonitorMode.MANUAL and not is_superuser:
+                raise serializers.ValidationError({"mode": ["Only superusers can modify `mode`"]})
+
+        return attrs
+
+
 class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
+    enforce_single_datasource = True
     data_sources = serializers.ListField(child=UptimeMonitorDataSourceValidator(), required=False)
+    config = UptimeDomainCheckFailureConfigValidator(required=False)  # type: ignore[assignment]
+
+    def validate_enabled(self, value: bool) -> bool:
+        """
+        Validate that enabling a detector is allowed based on seat availability.
+
+        This check will ONLY be performed when a detector instance is provided via
+        context (i.e., during updates). For creation, seat assignment is handled
+        in the create() method after the detector is created.
+        """
+        detector = self.instance
+
+        # Only validate on updates when trying to enable a currently disabled detector
+        if detector and value and not detector.enabled:
+            result = quotas.backend.check_assign_seat(DataCategory.UPTIME, detector)
+            if not result.assignable:
+                raise serializers.ValidationError(result.reason)
+
+        return value
+
+    def create(self, validated_data):
+        detector = super().create(validated_data)
+
+        try:
+            enable_uptime_detector(detector, ensure_assignment=True)
+        except UptimeMonitorNoSeatAvailable:
+            # No need to do anything if we failed to handle seat
+            # assignment. The monitor will be created, but not enabled
+            pass
+
+        return detector
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+        # Handle seat management when enabling/disabling
+        was_enabled = instance.enabled
+        enabled = validated_data.get("enabled", was_enabled)
+
+        if was_enabled != enabled:
+            if enabled:
+                enable_uptime_detector(instance)
+            else:
+                disable_uptime_detector(instance)
+
         super().update(instance, validated_data)
 
         data_source = None
@@ -497,5 +637,11 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
 
         return instance
 
-    def create(self, validated_data):
-        return super().create(validated_data)
+    def delete(self) -> None:
+        assert self.instance is not None
+
+        remove_uptime_seat(self.instance)
+        uptime_subscription = get_uptime_subscription(self.instance)
+        delete_uptime_subscription(uptime_subscription)
+
+        super().delete()

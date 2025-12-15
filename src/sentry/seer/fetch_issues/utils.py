@@ -21,14 +21,20 @@ MAX_NUM_ISSUES_DEFAULT = 10
 MAX_NUM_DAYS_AGO_DEFAULT = 90
 
 
-def handle_fetch_issues_exceptions(func: Callable[..., Any]) -> Callable[..., Any]:
+class SeerResponseError(TypedDict):
+    error: str
+
+
+def handle_fetch_issues_exceptions[R](
+    func: Callable[..., R],
+) -> Callable[..., R | SeerResponseError]:
     @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
+    def wrapper(*args: Any, **kwargs: Any) -> R | SeerResponseError:
         try:
             return func(*args, **kwargs)
         except Exception as e:
             logger.warning("Exception in fetch_issues function", exc_info=True)
-            return {"error": str(e)}
+            return SeerResponseError(error=str(e))
 
     return wrapper
 
@@ -50,10 +56,6 @@ class RepoProjects(RepoInfo):
 class SeerResponse(TypedDict):
     issues: list[int]
     issues_full: list[dict[str, Any]]
-
-
-class SeerResponseError(TypedDict):
-    error: str
 
 
 def get_repo_and_projects(

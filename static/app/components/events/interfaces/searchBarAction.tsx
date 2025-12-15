@@ -12,12 +12,12 @@ import {t, tn} from 'sentry/locale';
 
 type Props = {
   onChange: (value: string) => void;
+  onFilterChange: (options: Array<SelectOption<string>>) => void;
   placeholder: string;
   query: string;
   className?: string;
   filterOptions?: Array<SelectOptionOrSection<string>>;
   filterSelections?: Array<SelectOption<string>>;
-  onFilterChange?: (options: Array<SelectOption<string>>) => void;
 };
 
 function SearchBarAction({
@@ -92,12 +92,12 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
     p.blendWithFilter &&
     css`
       input {
-        border-radius: 0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0;
+        border-radius: 0 ${p.theme.radius.md} ${p.theme.radius.md} 0;
         border-left-width: 0;
       }
     `}
 `;
 
 const StyledTrigger = styled(DropdownButton)`
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
 `;

@@ -50,7 +50,6 @@ type Props = {
    * if true, non-billing users clicking will trigger trial and plan upgrade requests
    */
   triggerMemberRequests?: boolean;
-  upsellDefaultSelection?: string;
 };
 
 function LoadingButton(props: {
@@ -84,7 +83,6 @@ function UpsellProvider({
   extraAnalyticsParams,
   triggerMemberRequests,
   showConfirmation,
-  upsellDefaultSelection,
   children,
 }: Props) {
   // if the org or subscription isn't loaded yet, don't render anything
@@ -224,7 +222,6 @@ function UpsellProvider({
                 openUpsellModal({
                   organization,
                   source,
-                  defaultSelection: upsellDefaultSelection,
                 });
               }
             }

@@ -15,8 +15,8 @@ import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
+import {InvoiceStatus} from 'getsentry/types';
 import type {BillingDetails, Invoice} from 'getsentry/types';
-import {InvoiceItemType, InvoiceStatus} from 'getsentry/types';
 import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
@@ -230,7 +230,7 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
         </tfoot>
         <tbody>
           {invoice.items.map((item, i) => {
-            if (item.type === InvoiceItemType.SUBSCRIPTION) {
+            if (item.type === 'subscription') {
               return (
                 <tr key={i}>
                   <td>

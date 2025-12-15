@@ -457,6 +457,12 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     metric.endSpan({name: 'saveAlertRule'});
 
+    if (isNew) {
+      trackAnalytics('issue_alert_rule.created', {
+        organization,
+      });
+    }
+
     router.push(
       makeAlertsPathname({
         path: `/rules/${project.slug}/${rule.id}/details/`,
@@ -1244,12 +1250,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                     <StepConnector />
                     <StepContainer>
                       <ChevronContainer>
-                        <IconChevron
-                          color="gray200"
-                          isCircled
-                          direction="right"
-                          size="sm"
-                        />
+                        <IconChevron color="gray200" direction="right" size="sm" />
                       </ChevronContainer>
                       <StepContent>
                         <StepLead>
@@ -1334,12 +1335,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
                     <StepContainer>
                       <ChevronContainer>
-                        <IconChevron
-                          color="gray200"
-                          isCircled
-                          direction="right"
-                          size="sm"
-                        />
+                        <IconChevron color="gray200" direction="right" size="sm" />
                       </ChevronContainer>
 
                       <StepContent data-test-id="rule-filters">
@@ -1410,12 +1406,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                   <Step>
                     <StepContainer>
                       <ChevronContainer>
-                        <IconChevron
-                          isCircled
-                          color="gray200"
-                          direction="right"
-                          size="sm"
-                        />
+                        <IconChevron color="gray200" direction="right" size="sm" />
                       </ChevronContainer>
                       <StepContent>
                         <StepLead>
@@ -1681,7 +1672,7 @@ const Badge = styled('span')`
   min-width: 56px;
   background-color: ${p => p.theme.purple300};
   padding: 0 ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.white};
   text-transform: uppercase;
   text-align: center;

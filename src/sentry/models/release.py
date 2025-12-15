@@ -134,7 +134,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         operator: str,
         value,
         project_ids: Sequence[int] | None = None,
-        environments: list[str] | None = None,
+        environments: Sequence[str | int] | None = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_stage(
             organization_id, operator, value, project_ids, environments

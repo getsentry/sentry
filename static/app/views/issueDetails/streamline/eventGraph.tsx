@@ -1,4 +1,3 @@
-import type React from 'react';
 import {
   useCallback,
   useEffect,
@@ -453,7 +452,7 @@ export function EventGraph({
     data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
-    inactiveColor: theme.isChonk ? theme.tokens.content.muted : theme.gray200,
+    inactiveColor: theme.tokens.content.muted,
   });
 
   const onLegendSelectChanged = useMemo(
@@ -495,9 +494,9 @@ export function EventGraph({
         ) : (
           <div />
         )}
-        <LoadingChartContainer ref={chartContainerRef}>
-          <Placeholder height="96px" testId="event-graph-loading" />
-        </LoadingChartContainer>
+        <Flex ref={chartContainerRef} justify="center" align="center" margin="0 md 0 xs">
+          <Placeholder height="90px" testId="event-graph-loading" />
+        </Flex>
       </Grid>
     );
   }
@@ -602,8 +601,7 @@ function GraphButton({
   label: string;
   count?: string;
 } & Partial<ButtonProps>) {
-  const theme = useTheme();
-  const textVariant = theme.isChonk ? undefined : props.disabled ? 'accent' : 'muted';
+  const textVariant = undefined;
 
   return (
     <CalloutButton
@@ -624,15 +622,8 @@ function GraphButton({
 }
 
 function SummaryContainer(props: FlexProps) {
-  const theme = useTheme();
   return (
-    <Flex
-      padding="lg"
-      direction="column"
-      gap={theme.isChonk ? 'sm' : 'xs'}
-      radius="md"
-      {...props}
-    />
+    <Flex padding="lg xs lg lg" direction="column" gap="sm" radius="md" {...props} />
   );
 }
 
@@ -668,13 +659,7 @@ const ChartContainer = styled('div')`
   }
 `;
 
-const LoadingChartContainer = styled('div')`
-  position: relative;
-  padding: ${p => p.theme.space.sm} 0 ${p => p.theme.space.sm} 0;
-  margin: 0 ${p => p.theme.space.md};
-`;
-
-const GraphAlert = styled(Alert)`
+export const GraphAlert = styled(Alert)`
   padding-left: ${p => p.theme.space['2xl']};
   margin: 0 0 0 -${p => p.theme.space['2xl']};
   border: 0;

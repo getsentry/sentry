@@ -46,6 +46,7 @@ from sentry.explore.models import (
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
 )
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.incident import IncidentActivity, IncidentTrigger
 from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.data_forwarder import DataForwarder
@@ -98,15 +99,18 @@ from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
+from sentry.models.repositorysettings import CodeReviewTrigger, RepositorySettings
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
+from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.snuba.models import QuerySubscriptionDataSourceHandler
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
@@ -121,6 +125,7 @@ from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
 from sentry.workflow_engine.models import Action, DataConditionAlertRuleTrigger, DataConditionGroup
 from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
+from sentry.workflow_engine.registry import data_source_type_registry
 
 __all__ = [
     "export_to_file",
@@ -469,6 +474,9 @@ class ExhaustiveFixtures(Fixtures):
             organization=org, key="sentry:scrape_javascript", value=True
         )
 
+        owner_member = OrganizationMember.objects.get(organization=org, user_id=owner_id)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=owner_member)
+
         # Team
         team = self.create_team(name=f"test_team_in_{slug}", organization=org)
         self.create_team_membership(user=owner, team=team)
@@ -636,6 +644,15 @@ class ExhaustiveFixtures(Fixtures):
         repo.external_id = "https://git.example.com:1234"
         repo.save()
 
+        RepositorySettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[
+                CodeReviewTrigger.ON_NEW_COMMIT,
+                CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            ],
+        )
+
         # Group*
         group = self.create_group(project=project)
         group_search_view = GroupSearchView.objects.create(
@@ -677,7 +694,7 @@ class ExhaustiveFixtures(Fixtures):
 
         # Setup a test 'Issue Rule' and 'Automation'
         workflow = self.create_workflow(organization=org)
-        detector = self.create_detector(project=project)
+        detector = self.create_detector(project=project, type=MetricIssue.slug)
         self.create_detector_workflow(detector=detector, workflow=workflow)
         self.create_detector_state(detector=detector)
 
@@ -696,7 +713,14 @@ class ExhaustiveFixtures(Fixtures):
             workflow=workflow, condition_group=notification_condition_group
         )
 
-        data_source = self.create_data_source(organization=org)
+        # Use the alert_rule's QuerySubscription for the DataSource
+        query_subscription = alert.snuba_query.subscriptions.first()
+        assert query_subscription is not None
+        data_source = self.create_data_source(
+            organization=org,
+            source_id=str(query_subscription.id),
+            type=data_source_type_registry.get_key(QuerySubscriptionDataSourceHandler),
+        )
 
         self.create_data_source_detector(data_source, detector)
         detector_conditions = self.create_data_condition_group(

@@ -3,13 +3,14 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {ECharts, TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text';
 import {IconClose, IconContract, IconExpand, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,6 +24,7 @@ interface AppSizeTreemapProps {
   root: TreemapElement | null;
   searchQuery: string;
   alertMessage?: string;
+  onAlertClick?: () => void;
   onSearchChange?: (query: string) => void;
   unfilteredRoot?: TreemapElement;
 }
@@ -31,11 +33,13 @@ function FullscreenModalContent({
   unfilteredRoot,
   initialSearch,
   alertMessage,
+  onAlertClick,
   onSearchChange,
 }: {
   initialSearch: string;
   unfilteredRoot: TreemapElement;
   alertMessage?: string;
+  onAlertClick?: () => void;
   onSearchChange?: (query: string) => void;
 }) {
   const [localSearch, setLocalSearch] = useState(initialSearch);
@@ -75,6 +79,7 @@ function FullscreenModalContent({
           root={filteredRoot}
           searchQuery={localSearch}
           alertMessage={alertMessage}
+          onAlertClick={onAlertClick}
         />
       </Container>
     </Flex>
@@ -83,7 +88,8 @@ function FullscreenModalContent({
 
 export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const theme = useTheme();
-  const {root, searchQuery, unfilteredRoot, alertMessage, onSearchChange} = props;
+  const {root, searchQuery, unfilteredRoot, alertMessage, onAlertClick, onSearchChange} =
+    props;
   const appSizeCategoryInfo = getAppSizeCategoryInfo(theme);
   const renderingContext = useContext(ChartRenderingContext);
   const isFullscreen = renderingContext?.isFullscreen ?? false;
@@ -128,6 +134,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       value: element.size,
       path: element.path,
       category: element.type,
+      misc: element.misc,
       itemStyle: {
         color: 'transparent',
         borderColor,
@@ -181,7 +188,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
               fontFamily: 'monospace',
               backgroundColor: theme.gray100,
               padding: theme.space.xs,
-              borderRadius: theme.borderRadius,
+              borderRadius: theme.radius.md,
             }}
           >
             {props.searchQuery}
@@ -203,6 +210,12 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       height: `calc(100% - 22px)`,
       width: '100%',
       top: '22px',
+      // Very mysteriously this controls the initial breadcrumbs:
+      // https://github.com/apache/echarts/blob/6f305b497adc47fa2987a450d892d09741342c56/src/chart/treemap/TreemapView.ts#L665
+      // If truthy the root is selected else the 'middle' node is selected.
+      // It has to be set to large number to avoid problems caused by
+      // leafDepth's main use - controlling how many layers to render.
+      leafDepth: 100000,
       breadcrumb: {
         show: true,
         left: '0',
@@ -282,13 +295,13 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const tooltip: TooltipOption = {
     trigger: 'item',
     borderWidth: 0,
-    backgroundColor: theme.background,
+    backgroundColor: theme.tokens.background.primary,
     hideDelay: 0,
     transitionDuration: 0,
     padding: 12,
     extraCssText: 'border-radius: 6px;',
     textStyle: {
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       fontFamily: 'Rubik',
     },
     formatter: function (params: any) {
@@ -297,15 +310,21 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       const pathElement = params.data?.path
         ? `<p style="font-size: 12px; margin-bottom: -4px;">${params.data.path}</p>`
         : null;
+      const scaleElement = params.data?.misc?.scale
+        ? `<span style="font-size: 10px; background-color: ${theme.tokens.background.secondary}; color: ${theme.tokens.content.primary}; padding: 4px; border-radius: 3px; font-weight: normal;">@${params.data.misc.scale}x</span>`
+        : '';
 
       return `
             <div style="font-family: Rubik;">
               <div style="display: flex; align-items: center; font-size: 12px; font-weight: bold; line-height: 1; margin-bottom: ${theme.space.md}; gap: ${theme.space.md}">
                 <div style="flex: initial; width: 8px !important; height: 8px !important; border-radius: 50%; background-color: ${params.data?.itemStyle?.borderColor || theme.border};"></div>
-                <span style="color: ${theme.textColor}">${params.data?.category || 'Other'}</span>
+                <span style="color: ${theme.tokens.content.primary}">${params.data?.category || 'Other'}</span>
               </div>
               <div style="display: flex; flex-direction: column; line-height: 1; gap: ${theme.space.sm}">
-                <p style="font-size: 14px; font-weight: bold; margin-bottom: -2px;">${params.name}</p>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 14px; font-weight: bold;">${params.name}</span>
+                  ${scaleElement}
+                </div>
                 ${pathElement || ''}
                 <p style="font-size: 12px; margin-bottom: -4px;">${formatBytesBase10(value)} (${percent}%)</p>
               </div>
@@ -316,7 +335,15 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
 
   return (
     <Flex direction="column" gap="sm" height="100%" width="100%">
-      {alertMessage && <Alert type="warning">{alertMessage}</Alert>}
+      {alertMessage && (
+        <ClickableAlert
+          type="warning"
+          onClick={onAlertClick}
+          style={{cursor: onAlertClick ? 'pointer' : 'default'}}
+        >
+          {alertMessage}
+        </ClickableAlert>
+      )}
       <Container
         height="100%"
         width="100%"
@@ -365,6 +392,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
                       unfilteredRoot={unfilteredRoot}
                       initialSearch={searchQuery}
                       alertMessage={alertMessage}
+                      onAlertClick={onAlertClick}
                       onSearchChange={onSearchChange}
                     />
                   ) : (
@@ -373,6 +401,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
                         root={root}
                         searchQuery={searchQuery}
                         alertMessage={alertMessage}
+                        onAlertClick={onAlertClick}
                       />
                     </Container>
                   ),
@@ -385,6 +414,12 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     </Flex>
   );
 }
+
+const ClickableAlert = styled(Alert)`
+  &:hover {
+    opacity: ${p => (p.onClick ? 0.9 : 1)};
+  }
+`;
 
 const ButtonContainer = styled(Flex)`
   top: 0px;
@@ -404,7 +439,7 @@ const ButtonContainer = styled(Flex)`
     max-height: 20px;
     padding: 0 ${space(0.5)};
     background: rgba(0, 0, 0, 0.8);
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     box-shadow: ${p => p.theme.dropShadowMedium};
 
     &:hover {

@@ -62,8 +62,8 @@ class GroupTagsEndpoint(GroupEndpoint):
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
 
-        include_empty_values = features.has(
-            "organizations:issue-tags-include-empty-values",
+        use_subtraction_query = features.has(
+            "organizations:issue-tags-subtraction-query",
             group.project.organization,
             actor=request.user,
         )
@@ -74,7 +74,7 @@ class GroupTagsEndpoint(GroupEndpoint):
             keys=keys,
             value_limit=value_limit,
             tenant_ids={"organization_id": group.project.organization_id},
-            include_empty_values=include_empty_values,
+            use_subtraction_query=use_subtraction_query,
         )
 
         data = serialize(tag_keys, request.user)

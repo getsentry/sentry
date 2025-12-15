@@ -1,229 +1,190 @@
 ---
-created: '2025-10-30T17:09:39.381048+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
-  "app_exception_stacktrace": {
-    "component": {
+  "grouping_config": "newstyle:2025-11-21",
+  "variants": {
+    "app_exception_stacktrace": {
+      "component": {
+        "contributes": false,
+        "hint": "ignored because built-in fingerprint takes precedence",
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": false,
+            "hint": "ignored because this variant does not have a contributing stacktrace, but the system variant does",
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "ChunkLoadError"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "value",
+                "name": null,
+                "values": [
+                  "ChunkLoadError: something something..."
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because it contains no in-app frames",
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "foo.bar"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "bar.tsx"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "main"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": false,
+      "description": "exception stacktrace — in-app frames",
+      "hash": null,
       "hint": "ignored because built-in fingerprint takes precedence",
-      "id": "app",
-      "name": "in-app",
+      "key": "app_exception_stacktrace",
+      "type": "component"
+    },
+    "built_in_fingerprint": {
+      "contributes": true,
+      "description": "Sentry-defined fingerprint",
+      "hash": "5d731dcf8ecc4f042eeacf528d8d8da9",
+      "hint": null,
+      "key": "built_in_fingerprint",
+      "matched_rule": "family:\"javascript\" type:\"ChunkLoadError\" -> \"chunkloaderror\"",
+      "type": "custom_fingerprint",
       "values": [
-        {
-          "contributes": false,
-          "hint": "ignored because this variant does not have a contributing stacktrace, but the system variant does",
-          "id": "exception",
-          "name": "exception",
-          "values": [
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "ChunkLoadError"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": [
-                "ChunkLoadError: something something..."
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because it contains no in-app frames",
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": [
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "foo.bar"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "bar.tsx"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "main"
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
+        "chunkloaderror"
       ]
     },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": false,
-    "description": "exception stacktrace — in-app frames",
-    "hash": null,
-    "hint": "ignored because built-in fingerprint takes precedence",
-    "key": "app_exception_stacktrace",
-    "type": "component"
-  },
-  "built_in_fingerprint": {
-    "contributes": true,
-    "description": "Sentry-defined fingerprint",
-    "hash": "5d731dcf8ecc4f042eeacf528d8d8da9",
-    "hint": null,
-    "key": "built_in_fingerprint",
-    "matched_rule": "family:\"javascript\" type:\"ChunkLoadError\" -> \"chunkloaderror\"",
-    "type": "custom_fingerprint",
-    "values": [
-      "chunkloaderror"
-    ]
-  },
-  "system_exception_stacktrace": {
-    "component": {
+    "system_exception_stacktrace": {
+      "component": {
+        "contributes": false,
+        "hint": "ignored because built-in fingerprint takes precedence",
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "ChunkLoadError"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "ChunkLoadError: something something..."
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "foo.bar"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "bar.tsx"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "main"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": false,
+      "description": "exception stacktrace — all frames",
+      "hash": null,
       "hint": "ignored because built-in fingerprint takes precedence",
-      "id": "system",
-      "name": null,
-      "values": [
-        {
-          "contributes": true,
-          "hint": null,
-          "id": "exception",
-          "name": "exception",
-          "values": [
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "ChunkLoadError"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "ChunkLoadError: something something..."
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": [
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "foo.bar"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "bar.tsx"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "main"
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": false,
-    "description": "exception stacktrace — all frames",
-    "hash": null,
-    "hint": "ignored because built-in fingerprint takes precedence",
-    "key": "system_exception_stacktrace",
-    "type": "component"
+      "key": "system_exception_stacktrace",
+      "type": "component"
+    }
   }
 }

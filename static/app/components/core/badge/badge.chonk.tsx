@@ -1,4 +1,5 @@
-import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme.chonk';
+import type {Theme} from 'sentry/utils/theme';
+import {chonkStyled} from 'sentry/utils/theme/theme';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -34,20 +35,17 @@ export function ChonkBadge(props: ChonkBadgeProps) {
 const StyledChonkBadge = chonkStyled('span')<ChonkBadgeProps>`
   ${p => ({...makeChonkBadgeTheme(p, p.theme)})};
   border-radius: ${p => p.theme.radius.sm};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   display: inline-flex;
   align-items: center;
   line-height: initial;
   height: 20px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.medium};
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.xs};
 `;
 
-function makeChonkBadgeTheme(
-  p: ChonkBadgeProps,
-  theme: ReturnType<typeof useChonkTheme>
-): React.CSSProperties {
+function makeChonkBadgeTheme(p: ChonkBadgeProps, theme: Theme): React.CSSProperties {
   switch (p.type) {
     // @TODO(jonasbadalic) these should use feature badge variants
     case 'alpha':
@@ -81,27 +79,27 @@ function makeChonkBadgeTheme(
     case 'highlight':
     case 'info':
       return {
-        color: theme.colors.content.accent,
+        color: theme.tokens.content.accent,
         background: theme.colors.blue100,
       };
     case 'promotion':
       return {
-        color: theme.colors.content.promotion,
+        color: theme.tokens.content.promotion,
         background: theme.colors.pink100,
       };
     case 'danger':
       return {
-        color: theme.colors.content.danger,
+        color: theme.tokens.content.danger,
         background: theme.colors.red100,
       };
     case 'warning':
       return {
-        color: theme.colors.content.warning,
+        color: theme.tokens.content.warning,
         background: theme.colors.yellow100,
       };
     case 'success':
       return {
-        color: theme.colors.content.success,
+        color: theme.tokens.content.success,
         background: theme.colors.green100,
       };
     default:

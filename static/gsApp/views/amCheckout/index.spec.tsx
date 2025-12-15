@@ -4,10 +4,7 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
-import {
-  SubscriptionFixture,
-  SubscriptionWithSeerFixture,
-} from 'getsentry-test/fixtures/subscription';
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {
   act,
   render,
@@ -19,7 +16,7 @@ import {
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as SubscriptionType} from 'getsentry/types';
-import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {AddOnCategory, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/onDemandBudgets/utils';
@@ -696,26 +693,20 @@ describe('AM2 Checkout', () => {
       method: 'GET',
       body: {},
     });
-
     mockResponse = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       method: 'GET',
       body: BillingConfigFixture(PlanTier.AM2),
     });
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
     });
-
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
       method: 'GET',
       body: {},
     });
-  });
-
-  it('renders for checkout v3', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -724,7 +715,9 @@ describe('AM2 Checkout', () => {
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
     });
+  });
 
+  it('renders for checkout v3', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -1050,39 +1043,6 @@ describe('AM2 Checkout', () => {
     expect(screen.getAllByText('53.40')).toHaveLength(2);
   });
 
-  it('skips step 1 for business plan in same tier', async () => {
-    const am2BizSubscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_business',
-      planTier: 'am2',
-      categories: {
-        errors: MetricHistoryFixture({reserved: 100_000}),
-        transactions: MetricHistoryFixture({reserved: 20_000_000}),
-        attachments: MetricHistoryFixture({reserved: 1}),
-        monitorSeats: MetricHistoryFixture({reserved: 1}),
-        profileDuration: MetricHistoryFixture({reserved: 1}),
-        replays: MetricHistoryFixture({reserved: 10_000}),
-      },
-      onDemandMaxSpend: 2000,
-    });
-
-    SubscriptionStore.set(organization.slug, am2BizSubscription);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {organization}
-    );
-    await screen.findByText('Choose Your Plan');
-    expect(screen.queryByTestId('body-choose-your-plan')).not.toBeInTheDocument();
-    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
-  });
-
   it('does not skip step 1 for business plan pre-backfill', async () => {
     const launchOrg = OrganizationFixture({features: ['seer-billing']});
     const am2BizSubscription = SubscriptionFixture({
@@ -1117,31 +1077,6 @@ describe('AM2 Checkout', () => {
     expect(screen.queryByTestId('errors-volume-item')).not.toBeInTheDocument();
   });
 
-  it('skips step 1 for business plan with seer', async () => {
-    const seerOrg = OrganizationFixture({features: ['seer-billing']});
-    const seerSubscription = SubscriptionWithSeerFixture({
-      organization: seerOrg,
-      planTier: 'am2',
-      plan: 'am2_business',
-    });
-
-    SubscriptionStore.set(organization.slug, seerSubscription);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {organization: seerOrg}
-    );
-    await screen.findByText('Choose Your Plan');
-    expect(screen.queryByTestId('body-choose-your-plan')).not.toBeInTheDocument();
-    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
-  });
-
   it('does not skip step 1 for business plan without seer', async () => {
     const nonSeerOrg = OrganizationFixture({features: ['seer-billing']});
     const nonSeerSubscription = SubscriptionFixture({
@@ -1167,7 +1102,7 @@ describe('AM2 Checkout', () => {
     expect(screen.queryByTestId('errors-volume-item')).not.toBeInTheDocument();
   });
 
-  it('test business bundle standard checkout', async () => {
+  it('renders standard checkout for business bundle', async () => {
     const am2BizSubscription = SubscriptionFixture({
       organization,
       plan: 'am2_business_bundle',
@@ -1191,20 +1126,24 @@ describe('AM2 Checkout', () => {
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
+        isNewCheckout
       />,
       {organization}
     );
 
-    // wait for page load
-    await screen.findByText('Choose Your Plan');
+    await waitFor(() => {
+      expect(mockResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am2'},
+        })
+      );
+    });
 
-    // "Choose Your Plan" should be skipped and "Reserved Volumes" should be visible
-    // This is existing behavior to skip "Choose Your Plan" step for existing business customers
-    expect(screen.queryByTestId('body-choose-your-plan')).not.toBeInTheDocument();
-    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
+    assertCheckoutV3Steps(PlanTier.AM2);
 
-    // Click on "Choose Your Plan" and verify that Business is selected
-    await userEvent.click(screen.getByText('Choose Your Plan'));
+    // Verify that Business is preselected
     expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
   });
 
@@ -1227,7 +1166,18 @@ describe('AM2 Checkout', () => {
       },
       onDemandMaxSpend: 2000,
     });
-
+    // set all add-ons as unavailable so we don't check for them in order to skip the step
+    sub.addOns = {
+      ...sub.addOns,
+      [AddOnCategory.SEER]: {
+        ...sub.addOns?.[AddOnCategory.SEER]!,
+        isAvailable: false,
+      },
+      [AddOnCategory.LEGACY_SEER]: {
+        ...sub.addOns?.[AddOnCategory.LEGACY_SEER]!,
+        isAvailable: false,
+      },
+    };
     SubscriptionStore.set(organization.slug, sub);
 
     render(
@@ -1846,6 +1796,19 @@ describe('AM3 Checkout', () => {
       isFree: false,
     });
 
+    // set all add-ons as unavailable so we don't check for them in order to skip the step
+    sub.addOns = {
+      ...sub.addOns,
+      [AddOnCategory.SEER]: {
+        ...sub.addOns?.[AddOnCategory.SEER]!,
+        isAvailable: false,
+      },
+      [AddOnCategory.LEGACY_SEER]: {
+        ...sub.addOns?.[AddOnCategory.LEGACY_SEER]!,
+        isAvailable: false,
+      },
+    };
+
     SubscriptionStore.set(organization.slug, sub);
 
     render(
@@ -1922,6 +1885,19 @@ describe('AM3 Checkout', () => {
       isFree: false,
       isTrial: true, // isTrial is true for both subscription trials and plan trials
     });
+
+    // set all add-ons as unavailable so we don't check for them in order to skip the step
+    sub.addOns = {
+      ...sub.addOns,
+      [AddOnCategory.SEER]: {
+        ...sub.addOns?.[AddOnCategory.SEER]!,
+        isAvailable: false,
+      },
+      [AddOnCategory.LEGACY_SEER]: {
+        ...sub.addOns?.[AddOnCategory.LEGACY_SEER]!,
+        isAvailable: false,
+      },
+    };
 
     SubscriptionStore.set(organization.slug, sub);
 
@@ -2051,6 +2027,19 @@ describe('AM3 Checkout', () => {
       supportsOnDemand: true,
       isFree: false,
     });
+
+    // set all add-ons as unavailable so we don't check for them in order to skip the step
+    sub.addOns = {
+      ...sub.addOns,
+      [AddOnCategory.SEER]: {
+        ...sub.addOns?.[AddOnCategory.SEER]!,
+        isAvailable: false,
+      },
+      [AddOnCategory.LEGACY_SEER]: {
+        ...sub.addOns?.[AddOnCategory.LEGACY_SEER]!,
+        isAvailable: false,
+      },
+    };
 
     SubscriptionStore.set(organization.slug, sub);
 

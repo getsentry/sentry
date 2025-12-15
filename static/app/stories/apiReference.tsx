@@ -345,7 +345,7 @@ function stripNodeModulesPrefix(str: string): string {
 const StoryTableContainer = styled('div')`
   overflow: hidden;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const StoryTypesSearchContainer = styled('div')`
@@ -356,7 +356,7 @@ const StoryTypesTable = styled('table')`
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   word-break: normal;
   table-layout: fixed;
 
@@ -406,7 +406,7 @@ const StoryTypesTableDefinitionCell = styled('td')`
   }
 
   > span {
-    font-size: ${p => p.theme.fontSizeRelativeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     font-weight: ${p => p.theme.fontWeight.bold};
     margin-right: ${p => p.theme.space.xs};
   }
@@ -417,7 +417,7 @@ const StoryType = styled('div')`
 `;
 
 const StoryPropDescription = styled('div')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-bottom: ${p => p.theme.space.xs};
 `;
 

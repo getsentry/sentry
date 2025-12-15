@@ -9,6 +9,7 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.group import Group
 from sentry.rules.match import MatchType
@@ -138,7 +139,6 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
 
 class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest):
-    @with_feature("organizations:issue-metric-issue-post-process-group")
     def test_workflow_engine__workflows(self) -> None:
         """
         This test ensures that the workflow engine is correctly hooked up to tasks/post_process.py.
@@ -151,7 +151,6 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             self.call_post_process_group(self.group.id)
             mock_process_workflow.assert_called_once()
 
-    @with_feature("organizations:issue-metric-issue-post-process-group")
     def test_workflow_engine__workflows__other_events(self) -> None:
         """
         Ensure that the workflow engine only supports MetricIssue events for now.
@@ -175,19 +174,6 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             self.call_post_process_group(error_event.group_id)
 
             # We currently don't have a detector for this issue type, so it should not call workflow_engine.
-            mock_process_workflow.assert_not_called()
-
-    def test_workflow_engine__workflows__no_flag(self) -> None:
-        self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
-
-        assert self.group
-
-        with mock.patch(
-            "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
-        ) as mock_process_workflow:
-            self.call_post_process_group(self.group.id)
-
-            # While this is the same test as the first one, it doesn't invoke the workflow engine because the feature flag is off.
             mock_process_workflow.assert_not_called()
 
 
@@ -269,7 +255,6 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             **kwargs,
         )
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_default_workflow(self, mock_trigger: MagicMock) -> None:
         from sentry.models.group import GroupStatus
         from sentry.types.group import GroupSubStatus
@@ -538,3 +523,33 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             )
             == {}
         )
+
+
+class TestWorkflowEngineIntegrationFromFeedbackPostProcess(BaseWorkflowIntegrationTest):
+    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [6001]})
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    def test_workflow_engine(self) -> None:
+        occurrence_data = self.build_occurrence_data(
+            type=FeedbackGroup.type_id,
+            event_id=self.event.event_id,
+            project_id=self.project.id,
+            evidence_data={
+                "contact_email": "test@test.com",
+                "message": "test",
+                "name": "Name Test",
+                "source": "new_feedback_envelope",
+                "summary": "test",
+            },
+        )
+
+        self.occurrence, group_info = save_issue_occurrence(occurrence_data, self.event)
+        assert group_info is not None
+
+        self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
+        assert self.group.type == FeedbackGroup.type_id
+
+        with mock.patch(
+            "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
+        ) as mock_process_workflow:
+            self.call_post_process_group(self.group.id)
+            mock_process_workflow.assert_called_once()

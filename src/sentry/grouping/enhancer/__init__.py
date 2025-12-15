@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import logging
 import os
+import re
 import zlib
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -43,6 +44,8 @@ DEFAULT_ENHANCEMENTS_BASE = "all-platforms:2023-01-11"
 # base64 strings never contain '#')
 BASE64_ENHANCEMENTS_DELIMITER = b"#"
 
+HINT_STACKTRACE_RULE_REGEX = re.compile(r"stack trace rule \((.+)\)$")
+
 VALID_PROFILING_MATCHER_PREFIXES = (
     "stack.abs_path",
     "path",  # stack.abs_path alias
@@ -58,7 +61,10 @@ VALID_PROFILING_ACTIONS_SET = frozenset(["+app", "-app"])
 
 @dataclass
 class EnhancementsConfigData:
+    # Note: This is not an actual config, just a container to make it easier to pass data between
+    # functions while loading a config.
     rules: list[EnhancementRule]
+    rule_strings: list[str]
     rust_enhancements: RustEnhancements
     version: int | None = None
     bases: list[str] | None = None
@@ -168,12 +174,26 @@ def _can_use_hint(
     return True
 
 
+def _add_rule_source_to_hint(hint: str | None, custom_rules: set[str]) -> str | None:
+    """Add 'custom' or 'built-in' to the rule description in the given hint (if any)."""
+    if not hint:
+        return None
+
+    def _add_type_to_rule(rule_regex_match: re.Match) -> str:
+        rule_str = rule_regex_match.group(1)
+        rule_type = "custom" if rule_str in custom_rules else "built-in"
+        return f"{rule_type} stack trace rule ({rule_str})"
+
+    return HINT_STACKTRACE_RULE_REGEX.sub(_add_type_to_rule, hint)
+
+
 def _get_hint_for_frame(
     variant_name: str,
     frame: dict[str, Any],
     frame_component: FrameGroupingComponent,
     rust_frame: RustFrame,
     desired_hint_type: Literal["in-app", "contributes"],
+    custom_rules: set[str],
 ) -> str | None:
     """
     Determine a hint to use for the frame, handling special-casing and precedence.
@@ -208,7 +228,10 @@ def _get_hint_for_frame(
     if variant_name == "app" and rust_hint_type == "in-app" and rust_in_app == client_in_app:
         can_use_rust_hint = False
 
-    return rust_hint if can_use_rust_hint else incoming_hint if can_use_incoming_hint else None
+    raw_hint = rust_hint if can_use_rust_hint else incoming_hint if can_use_incoming_hint else None
+
+    # Add 'custom' or 'built-in' to any stacktrace rule description as appropriate
+    return _add_rule_source_to_hint(raw_hint, custom_rules)
 
 
 def _split_rules(
@@ -241,15 +264,22 @@ def _split_rules(
         if rule is not None  # mypy appeasment
     ]
 
-    classifier_rules_text = "\n".join(rule.text for rule in classifier_rules)
-    contributes_rules_text = "\n".join(rule.text for rule in contributes_rules)
+    classifier_rule_strings = [rule.text for rule in classifier_rules]
+    contributes_rule_strings = [rule.text for rule in contributes_rules]
+
+    classifier_rules_text = "\n".join(classifier_rule_strings)
+    contributes_rules_text = "\n".join(contributes_rule_strings)
 
     classifier_rust_enhancements = _get_rust_enhancements("config_string", classifier_rules_text)
     contributes_rust_enhancements = _get_rust_enhancements("config_string", contributes_rules_text)
 
     return (
-        EnhancementsConfigData(classifier_rules, classifier_rust_enhancements),
-        EnhancementsConfigData(contributes_rules, contributes_rust_enhancements),
+        EnhancementsConfigData(
+            classifier_rules, classifier_rule_strings, classifier_rust_enhancements
+        ),
+        EnhancementsConfigData(
+            contributes_rules, contributes_rule_strings, contributes_rust_enhancements
+        ),
     )
 
 
@@ -361,6 +391,12 @@ class EnhancementsConfig:
             self.bases, contributes_config.rust_enhancements, type="contributes"
         )
 
+        # We store the rule strings individually in a set so it's quick to test if a given rule
+        # mentioned in a hint is custom or built-in
+        self.custom_rule_strings = set(
+            classifier_config.rule_strings + contributes_config.rule_strings
+        )
+
     def apply_category_and_updated_in_app_to_frames(
         self,
         frames: Sequence[dict[str, Any]],
@@ -456,13 +492,23 @@ class EnhancementsConfig:
 
             in_app_hint = (
                 _get_hint_for_frame(
-                    variant_name, frame, frame_component, in_app_rust_frame, "in-app"
+                    variant_name,
+                    frame,
+                    frame_component,
+                    in_app_rust_frame,
+                    "in-app",
+                    self.custom_rule_strings,
                 )
                 if variant_name == "app"
                 else None  # In-app hints don't apply to the system stacktrace
             )
             contributes_hint = _get_hint_for_frame(
-                variant_name, frame, frame_component, contributes_rust_frame, "contributes"
+                variant_name,
+                frame,
+                frame_component,
+                contributes_rust_frame,
+                "contributes",
+                self.custom_rule_strings,
             )
             hint = _combine_hints(variant_name, frame_component, in_app_hint, contributes_hint)
 
@@ -522,7 +568,9 @@ class EnhancementsConfig:
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid stack trace rule config: %s" % e)
 
-        return EnhancementsConfigData(rules, rust_enhancements, version, bases)
+        return EnhancementsConfigData(
+            rules, [rule.text for rule in rules], rust_enhancements, version, bases
+        )
 
     @classmethod
     def from_base64_string(

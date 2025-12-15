@@ -12,7 +12,7 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
+import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
 interface PlatformInsightsTableProps<DataRow extends Record<string, any>>
   extends Omit<
@@ -58,7 +58,7 @@ export function PlatformInsightsTable<DataRow extends Record<string, any>>({
           columnSortBy={[]}
           minimumColWidth={COL_WIDTH_MINIMUM}
           emptyMessage={
-            <EmptyMessage size="large" icon={<IconSearch size="xl" />}>
+            <EmptyMessage size="lg" icon={<IconSearch />}>
               {t('No results found')}
             </EmptyMessage>
           }
@@ -82,7 +82,7 @@ const LoadingOverlay = styled('div')`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   opacity: 0.5;
   z-index: 1;
 `;

@@ -288,7 +288,7 @@ class VitalCard extends Component<Props, State> {
       type: 'value' as const,
       max,
       axisLabel: {
-        color: theme.chartLabel,
+        color: theme.tokens.content.muted,
         formatter: (value: string | number) => formatAbbreviatedNumber(value),
       },
     };
@@ -444,7 +444,7 @@ class VitalCard extends Component<Props, State> {
         show: false,
       },
       lineStyle: {
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
         type: 'solid',
       },
       tooltip: {

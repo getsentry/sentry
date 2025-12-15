@@ -46,7 +46,7 @@ describe('ResourcesLandingPage', () => {
   });
 
   it('renders a list of resources', async () => {
-    render(<ResourcesLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<ResourcesLandingPage />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(
@@ -59,7 +59,7 @@ describe('ResourcesLandingPage', () => {
   });
 
   it('fetches domain data', async () => {
-    render(<ResourcesLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<ResourcesLandingPage />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(requestMocks.domainSelector!.mock.calls).toMatchInlineSnapshot(`
@@ -93,7 +93,7 @@ describe('ResourcesLandingPage', () => {
   });
 
   it('contains correct query in charts', async () => {
-    render(<ResourcesLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<ResourcesLandingPage />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(requestMocks.mainTable!.mock.calls).toMatchInlineSnapshot(`

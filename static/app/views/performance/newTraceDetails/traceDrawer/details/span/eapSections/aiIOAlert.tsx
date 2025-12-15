@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -9,14 +9,13 @@ import {ExternalLink} from 'sentry/components/core/link';
 import {Heading, Prose} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiGenerationNode,
   getIsExecuteToolNode,
   getTraceNodeAttribute,
-} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {hasAIInputAttribute} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {hasAIOutputAttribute} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -77,8 +76,6 @@ export function AIIOAlert({
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
-  const theme = useTheme();
-  const isChonk = isChonkTheme(theme);
   const {dismiss, isDismissed} = useDismissAlert({key: 'genai-io-alert-dismissed'});
 
   const isSupportedNodeType = getIsAiGenerationNode(node) || getIsExecuteToolNode(node);
@@ -106,13 +103,7 @@ export function AIIOAlert({
     <Alert.Container>
       <Alert type="info">
         <Stack direction="column" gap="md" paddingTop="2xs">
-          <Heading
-            as="h4"
-            variant="accent"
-            style={{
-              color: isChonk ? undefined : 'inherit',
-            }}
-          >
+          <Heading as="h4" variant="accent">
             {t('Missing the input and output of your AI model?')}
           </Heading>
           {instrumentationType === 'automatic' ? (

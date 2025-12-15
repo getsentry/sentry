@@ -24,6 +24,7 @@ export type Permissions = {
   Release: PermissionValue;
   Team: PermissionValue;
   Alerts?: PermissionValue;
+  Distribution?: PermissionValue;
 };
 
 export type PermissionResource = keyof Permissions;
@@ -84,6 +85,24 @@ export type Repository = {
   status: RepositoryStatus;
   url: string;
 };
+
+type CodeReviewTrigger = 'on_command_phrase' | 'on_new_commit' | 'on_ready_for_review';
+
+/**
+ * Available only when calling API with `expand=settings` query parameter
+ */
+export interface RepositoryWithSettings extends Repository {
+  settings: null | {
+    codeReviewTriggers: CodeReviewTrigger[];
+    enabledCodeReview: boolean;
+  };
+}
+
+export const DEFAULT_CODE_REVIEW_TRIGGERS: CodeReviewTrigger[] = [
+  'on_command_phrase',
+  'on_ready_for_review',
+  'on_new_commit',
+];
 
 /**
  * Integration Repositories from OrganizationIntegrationReposEndpoint
@@ -576,7 +595,7 @@ export type CodeOwner = {
     users_without_access: string[];
   };
   id: string;
-  provider: 'github' | 'gitlab';
+  provider: 'github' | 'gitlab' | 'perforce';
   raw: string;
   codeMapping?: RepositoryProjectPathConfig;
   ownershipSyntax?: string;

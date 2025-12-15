@@ -23,14 +23,20 @@ import {
   AlertRuleThresholdType,
   Dataset,
   EventTypes,
+  ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
+import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
+import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {getBackendDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
 import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import type {IncidentPeriod} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorAnomalyPeriods} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyPeriods';
+import {useMetricDetectorAnomalyThresholds} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
+import {useMetricTimestamps} from 'sentry/views/detectors/hooks/useMetricTimestamps';
 import {useTimePeriodSelection} from 'sentry/views/detectors/hooks/useTimePeriodSelection';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
 
@@ -133,6 +139,11 @@ interface MetricDetectorChartProps {
    * Used in anomaly detection
    */
   thresholdType: AlertRuleThresholdType | undefined;
+  /**
+   * Detector ID - only available when editing an existing detector
+   */
+  detectorId?: string;
+  extrapolationMode?: ExtrapolationMode | undefined;
 }
 
 export function MetricDetectorChart({
@@ -149,12 +160,23 @@ export function MetricDetectorChart({
   comparisonDelta,
   sensitivity,
   thresholdType,
+  extrapolationMode,
+  detectorId,
 }: MetricDetectorChartProps) {
   const {selectedTimePeriod, setSelectedTimePeriod, timePeriodOptions} =
     useTimePeriodSelection({
       dataset: getBackendDataset(detectorDataset),
       interval,
     });
+
+  const shouldAlterExtrapolationMode = useIsMigratedExtrapolation({
+    dataset: detectorDataset,
+    extrapolationMode,
+  });
+
+  const adjustedExtrapolationMode = shouldAlterExtrapolationMode
+    ? ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED
+    : extrapolationMode;
 
   const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
     detectorDataset,
@@ -167,12 +189,14 @@ export function MetricDetectorChart({
     statsPeriod: selectedTimePeriod,
     comparisonDelta,
     eventTypes,
+    extrapolationMode: adjustedExtrapolationMode,
   });
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
     useMetricDetectorThresholdSeries({
       conditions,
       detectionType,
+      aggregate,
       comparisonSeries,
     });
 
@@ -212,33 +236,27 @@ export function MetricDetectorChart({
     markLineTooltip: anomalyMarklineTooltip,
   });
 
-  // Calculate y-axis bounds to ensure all thresholds are visible
-  const maxValue = useMemo(() => {
-    // Get max from series data
-    let seriesMax = 0;
-    if (series.length > 0) {
-      const allSeriesValues = series.flatMap(s =>
-        s.data
-          .map(point => point.value)
-          .filter(val => typeof val === 'number' && !isNaN(val))
-      );
-      seriesMax = allSeriesValues.length > 0 ? Math.max(...allSeriesValues) : 0;
-    }
+  const metricTimestamps = useMetricTimestamps(series);
 
-    // Combine with threshold max and round to nearest whole number
-    const combinedMax = thresholdMaxValue
-      ? Math.max(seriesMax, thresholdMaxValue)
-      : seriesMax;
+  const shouldFetchThresholds = Boolean(detectorId && isAnomalyDetection);
+  const {anomalyThresholdSeries} = useMetricDetectorAnomalyThresholds({
+    detectorId: detectorId ?? '',
+    detectionType,
+    startTimestamp: metricTimestamps.start,
+    endTimestamp: metricTimestamps.end,
+    series: shouldFetchThresholds ? series : [],
+  });
 
-    const roundedMax = Math.round(combinedMax);
+  const filteredAnomalyThresholdSeries = useFilteredAnomalyThresholdSeries({
+    anomalyThresholdSeries: detectorId ? anomalyThresholdSeries : [],
+    isAnomalyDetection,
+    thresholdType,
+  });
 
-    // Add padding to the bounds
-    const padding = roundedMax * 0.1;
-    return roundedMax + padding;
-  }, [series, thresholdMaxValue]);
+  const {maxValue, minValue} = useDetectorChartAxisBounds({series, thresholdMaxValue});
 
   const additionalSeries = useMemo(() => {
-    const baseSeries = [...thresholdAdditionalSeries];
+    const baseSeries = [...thresholdAdditionalSeries, ...filteredAnomalyThresholdSeries];
 
     if (isAnomalyDetection && anomalyMarkerResult.incidentMarkerSeries) {
       // Line series not working well with the custom series type
@@ -249,21 +267,27 @@ export function MetricDetectorChart({
   }, [
     isAnomalyDetection,
     thresholdAdditionalSeries,
+    filteredAnomalyThresholdSeries,
     anomalyMarkerResult.incidentMarkerSeries,
   ]);
 
   const yAxes = useMemo(() => {
-    const {formatYAxisLabel} = getDetectorChartFormatters({
+    const {formatYAxisLabel, outputType} = getDetectorChartFormatters({
       detectionType,
       aggregate,
     });
 
+    const isPercentage = outputType === 'percentage';
+    // For percentage aggregates, use fixed max of 1 (100%) and calculated min
+    const yAxisMax = isPercentage ? 1 : maxValue > 0 ? maxValue : undefined;
+    const yAxisMin = isPercentage ? minValue : 0;
+
     const mainYAxis: YAXisComponentOption = {
-      max: maxValue > 0 ? maxValue : undefined,
-      min: 0,
+      max: yAxisMax,
+      min: yAxisMin,
       axisLabel: {
-        // Hide the maximum y-axis label to avoid showing arbitrary threshold values
-        showMaxLabel: false,
+        // Show max label for percentage (100%) but hide for other types to avoid arbitrary values
+        showMaxLabel: isPercentage,
         // Format the axis labels with units
         formatter: formatYAxisLabel,
       },
@@ -281,6 +305,7 @@ export function MetricDetectorChart({
     return axes;
   }, [
     maxValue,
+    minValue,
     isAnomalyDetection,
     anomalyMarkerResult.incidentMarkerYAxis,
     detectionType,

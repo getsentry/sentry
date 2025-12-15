@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
@@ -16,7 +17,6 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategory} from 'sentry/types/core';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -26,7 +26,7 @@ import type {EventType} from 'getsentry/components/addEventsCTA';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
-import {getPotentialProductTrial} from 'getsentry/utils/billing';
+import {getPotentialProductTrial, getSeerTrialCategory} from 'getsentry/utils/billing';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
 type AiSetupDataConsentProps = {
@@ -54,10 +54,11 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     : orgSetup.setupAcknowledgement.orgHasAcknowledged;
   const refetch = isGroupMode ? groupSetup.refetch : orgSetup.refetch;
 
-  const trial = getPotentialProductTrial(
-    subscription?.productTrials ?? null,
-    DataCategory.SEER_AUTOFIX
-  );
+  // Get the appropriate Seer category (SEER_USER for seat-based, SEER_AUTOFIX for legacy)
+  const seerCategory = getSeerTrialCategory(subscription?.productTrials ?? null);
+  const trial = seerCategory
+    ? getPotentialProductTrial(subscription?.productTrials ?? null, seerCategory)
+    : null;
 
   const shouldShowBilling =
     organization.features.includes('seer-billing') && !hasAutofixQuota;
@@ -152,7 +153,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     source="ai-setup-consent"
                     requestData={{
                       productTrial: {
-                        category: DataCategory.SEER_AUTOFIX,
+                        category: trial?.category,
                         reasonCode: trial?.reasonCode,
                       },
                     }}
@@ -282,18 +283,9 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
             </ButtonWrapper>
           </Fragment>
         )}
-        {!orgHasAcknowledged && (
-          <LegalText>
-            {tct(
-              'Seer models are powered by generative AI. Per our [dataLink:data usage policies], Sentry does not share AI-generated output from your data with other customers or use your data to train generative AI models without your express consent.',
-              {
-                dataLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features" />
-                ),
-              }
-            )}
-          </LegalText>
-        )}
+        <LegalText>
+          <AiPrivacyNotice />
+        </LegalText>
       </SingleCard>
       {warnAboutGithubIntegration && (
         <Alert type="warning" showIcon={false}>
@@ -322,9 +314,9 @@ const SingleCard = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1.5)};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   padding: ${space(2)} ${space(2)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   margin-top: ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};

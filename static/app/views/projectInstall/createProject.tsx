@@ -7,7 +7,6 @@ import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
-import {removeProject} from 'sentry/actionCreators/projects';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
@@ -35,7 +34,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import slugify from 'sentry/utils/slugify';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -138,7 +136,6 @@ function getSubmitTooltipText({
 
 export function CreateProject() {
   const globalModal = useGlobalModal();
-  const api = useApi();
   const navigate = useNavigate();
   const organization = useOrganization();
   const location = useLocation();
@@ -268,8 +265,6 @@ export function CreateProject() {
       }) => {
       const selectedPlatform = selectedFramework ?? platform;
 
-      let projectToRollback: Project | undefined;
-
       try {
         const {project, notificationRule, ruleIds} =
           await createProjectAndRules.mutateAsync({
@@ -279,7 +274,6 @@ export function CreateProject() {
             alertRuleConfig,
             createNotificationAction,
           });
-        projectToRollback = project;
 
         trackAnalytics('project_creation_page.created', {
           organization,
@@ -291,6 +285,7 @@ export function CreateProject() {
           project_id: project.id,
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
+          notification_rule_created: !!notificationRule,
         });
 
         addSuccessMessage(
@@ -345,34 +340,12 @@ export function CreateProject() {
             Sentry.captureMessage('Project creation failed');
           });
         }
-
-        if (projectToRollback) {
-          Sentry.logger.error('Rolling back project', {
-            projectToRollback,
-          });
-          try {
-            // Rolling back the project also deletes its associated alert rules
-            // due to the cascading delete constraint.
-            await removeProject({
-              api,
-              orgSlug: organization.slug,
-              projectSlug: projectToRollback.slug,
-              origin: 'getting_started',
-            });
-          } catch (err) {
-            Sentry.withScope(scope => {
-              scope.setExtra('error', err);
-              Sentry.captureMessage('Failed to rollback project');
-            });
-          }
-        }
       }
     },
     [
       organization,
       setCreatedProject,
       navigate,
-      api,
       createProjectAndRules,
       createNotificationAction,
       alertRuleConfig,
@@ -621,7 +594,7 @@ const FormFieldGroup = styled('div')`
   gap: ${space(2)};
   align-items: end;
   padding: ${space(3)} 0;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const FormLabel = styled('div')`
@@ -634,13 +607,13 @@ const ProjectNameInputWrap = styled('div')`
 `;
 
 const ProjectNameInput = styled(Input)`
-  padding-left: calc(${p => p.theme.formPadding.md.paddingLeft}px * 1.5 + 20px);
+  padding-left: calc(${p => p.theme.form.md.paddingLeft}px * 1.5 + 20px);
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   position: absolute;
   top: 50%;
-  left: ${p => p.theme.formPadding.md.paddingLeft}px;
+  left: ${p => p.theme.form.md.paddingLeft}px;
   transform: translateY(-50%);
 `;
 

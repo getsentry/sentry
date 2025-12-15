@@ -1,5 +1,6 @@
 import type {StripeConstructor} from '@stripe/stripe-js';
 
+import type {DATA_CATEGORY_INFO} from 'sentry/constants';
 import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 
@@ -136,7 +137,7 @@ export type ReservedBudgetCategory = {
 
 export enum AddOnCategory {
   SEER = 'seer',
-  PREVENT = 'prevent',
+  LEGACY_SEER = 'legacySeer',
 }
 
 export type AddOnCategoryInfo = {
@@ -148,14 +149,26 @@ export type AddOnCategoryInfo = {
   productName: string;
 };
 
-type AddOn = AddOnCategoryInfo & {
+export type AddOn = AddOnCategoryInfo & {
+  /**
+   * Whether the subscription has bought the add-on
+   */
   enabled: boolean;
+  /**
+   * Whether the subscription can buy the add-on
+   */
+  isAvailable: boolean;
 };
 
 type AddOns = Partial<Record<AddOnCategory, AddOn>>;
 
 // how addons are represented in the checkout form data
 export type CheckoutAddOns = Partial<Record<AddOnCategory, Pick<AddOn, 'enabled'>>>;
+
+type RetentionSettings = {
+  downsampled: number | null;
+  standard: number | null;
+};
 
 export type Plan = {
   addOnCategories: Partial<Record<AddOnCategory, AddOnCategoryInfo>>;
@@ -202,9 +215,7 @@ export type Plan = {
     Record<DataCategory, {plural: string; singular: string}>
   >;
   checkoutType?: CheckoutType;
-  retentions?: Partial<
-    Record<DataCategory, {downsampled: number | null; standard: number}>
-  >;
+  retentions?: Partial<Record<DataCategory, RetentionSettings>>;
 };
 
 type PendingChanges = {
@@ -333,6 +344,15 @@ export type Subscription = {
   dataRetention: string | null;
   // Event details
   dateJoined: string;
+  effectiveRetentions: Partial<
+    Record<
+      'span' | 'log' | 'traceMetric',
+      {
+        downsampled: number;
+        standard: number;
+      }
+    >
+  >;
   // GDPR Info
   gdprDetails: GDPRDetails | null;
   gracePeriodEnd: string | null;
@@ -376,13 +396,15 @@ export type Subscription = {
   onDemandPeriodEnd: string;
   onDemandPeriodStart: string;
   onDemandSpendUsed: number;
+  orgRetention: RetentionSettings | null;
   partner: Partner | null;
   paymentSource: {
-    countryCode: string;
+    brand: string;
+    countryCode: string | null;
     expMonth: number;
     expYear: number;
     last4: string;
-    zipCode: string;
+    zipCode: string | null;
   } | null;
   pendingChanges: PendingChanges | null;
   // Subscription details
@@ -648,51 +670,141 @@ export type InvoiceItem = BaseInvoiceItem & {
   periodStart: string;
 };
 
-// TODO(data categories): BIL-969
-export enum InvoiceItemType {
-  UNKNOWN = '',
-  SUBSCRIPTION = 'subscription',
-  ONDEMAND = 'ondemand',
-  RESERVED_EVENTS = 'reserved',
-  DAILY_EVENTS = 'daily_events',
-  BALANCE_CHANGE = 'balance_change',
-  CANCELLATION_FEE = 'cancellation_fee',
-  SUBSCRIPTION_CREDIT = 'subscription_credit',
-  CREDIT_APPLIED = 'credit_applied',
-  RECURRING_DISCOUNT = 'recurring_discount',
-  DISCOUNT = 'discount',
-  SALES_TAX = 'sales_tax',
-  /**
-   * Used for AM plans
-   */
-  ATTACHMENTS = 'attachments',
-  TRANSACTIONS = 'transactions',
-  ONDEMAND_ATTACHMENTS = 'ondemand_attachments',
-  ONDEMAND_ERRORS = 'ondemand_errors',
-  ONDEMAND_TRANSACTIONS = 'ondemand_transactions',
-  ONDEMAND_REPLAYS = 'ondemand_replays',
-  ONDEMAND_SPANS = 'ondemand_spans',
-  ONDEMAND_SPANS_INDEXED = 'ondemand_spans_indexed',
-  ONDEMAND_MONITOR_SEATS = 'ondemand_monitor_seats',
-  ONDEMAND_UPTIME = 'ondemand_uptime',
-  ONDEMAND_PROFILE_DURATION = 'ondemand_profile_duration',
-  ONDEMAND_SEER_AUTOFIX = 'ondemand_seer_autofix',
-  ONDEMAND_SEER_SCANNER = 'ondemand_seer_scanner',
-  RESERVED_ATTACHMENTS = 'reserved_attachments',
-  RESERVED_ERRORS = 'reserved_errors',
-  RESERVED_TRANSACTIONS = 'reserved_transactions',
-  RESERVED_REPLAYS = 'reserved_replays',
-  RESERVED_SPANS = 'reserved_spans',
-  RESERVED_SPANS_INDEXED = 'reserved_spans_indexed',
-  RESERVED_MONITOR_SEATS = 'reserved_monitor_seats',
-  RESERVED_UPTIME = 'reserved_uptime',
-  RESERVED_PROFILE_DURATION = 'reserved_profile_duration',
-  RESERVED_SEER_AUTOFIX = 'reserved_seer_autofix',
-  RESERVED_SEER_SCANNER = 'reserved_seer_scanner',
-  RESERVED_SEER_BUDGET = 'reserved_seer_budget',
-  RESERVED_PREVENT_USERS = 'reserved_prevent_users',
-  RESERVED_LOG_BYTES = 'reserved_log_bytes',
-}
+/**
+ * Converts camelCase string to snake_case. Consecutive capitals are treated as
+ * a single acronym (e.g. "profileDurationUI" -> "profile_duration_ui").
+ * Examples: "monitorSeats" -> "monitor_seats", "errors" -> "errors"
+ */
+type CamelToSnake<
+  S extends string,
+  Prev extends 'lower' | 'upper' | '' = '',
+> = S extends `${infer First}${infer Rest}`
+  ? First extends Lowercase<First>
+    ? `${First}${CamelToSnake<Rest, 'lower'>}`
+    : First extends Uppercase<First>
+      ? Rest extends ''
+        ? `${Prev extends '' ? '' : Prev extends 'lower' ? '_' : ''}${Lowercase<First>}`
+        : Rest extends `${infer Next}${infer _Tail}`
+          ? Next extends Lowercase<Next>
+            ? `${Prev extends '' ? '' : '_'}${Lowercase<First>}${CamelToSnake<Rest, 'upper'>}`
+            : `${Prev extends 'lower' ? '_' : ''}${Lowercase<First>}${CamelToSnake<Rest, 'upper'>}`
+          : never
+      : `${First}${CamelToSnake<Rest, Prev>}`
+  : S;
+
+/**
+ * Dynamically generate ondemand invoice item types from DATA_CATEGORY_INFO.
+ * This automatically includes new billing categories without manual enum updates.
+ *
+ * Follows the pattern: `ondemand_${snake_case_plural}`
+ * Example: DATA_CATEGORY_INFO.ERROR (plural: "errors") -> "ondemand_errors"
+ * Example: DATA_CATEGORY_INFO.MONITOR_SEAT (plural: "monitorSeats") -> "ondemand_monitor_seats"
+ */
+type OnDemandInvoiceItemType = {
+  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+    ? `ondemand_${CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['plural']>}`
+    : never;
+}[keyof typeof DATA_CATEGORY_INFO];
+
+/**
+ * Dynamically generate reserved invoice item types from DATA_CATEGORY_INFO.
+ * This automatically includes new billing categories without manual enum updates.
+ *
+ * Follows the pattern: `reserved_${snake_case_plural}`
+ * Example: DATA_CATEGORY_INFO.ERROR (plural: "errors") -> "reserved_errors"
+ * Example: DATA_CATEGORY_INFO.MONITOR_SEAT (plural: "monitorSeats") -> "reserved_monitor_seats"
+ */
+type ReservedInvoiceItemType = {
+  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+    ? `reserved_${CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['plural']>}`
+    : never;
+}[keyof typeof DATA_CATEGORY_INFO];
+
+/**
+ * Credit-related invoice item types (discounts, credits, refunds).
+ * Exported as const array to enable runtime usage in filters.
+ */
+export const CREDIT_INVOICE_ITEM_TYPES = [
+  'subscription_credit',
+  'recurring_discount',
+  'discount',
+  'credit_applied', // Deprecated: replaced by balance_change
+] as const;
+
+type CreditInvoiceItemType = (typeof CREDIT_INVOICE_ITEM_TYPES)[number];
+
+/**
+ * Fee-related invoice item types (taxes, penalties).
+ * Exported as const array to enable runtime usage in filters.
+ */
+export const FEE_INVOICE_ITEM_TYPES = ['sales_tax', 'cancellation_fee'] as const;
+
+type FeeInvoiceItemType = (typeof FEE_INVOICE_ITEM_TYPES)[number];
+
+/**
+ * Seer/AI-related invoice item types (special billing for AI features).
+ */
+const _SEER_INVOICE_ITEM_TYPES = [
+  'reserved_seer_budget', // Special case: shared budget for seer_autofix and seer_scanner
+  'reserved_seer_users', // Special case: reserved prevent users (PREVENT_USER category maps to this)
+  'activated_seer_users', // Activation-based prevent users billing (PREVENT_USER category)
+] as const;
+
+type SeerInvoiceItemType = (typeof _SEER_INVOICE_ITEM_TYPES)[number];
+
+/**
+ * Legacy/deprecated invoice item types (AM1 plans and old formats).
+ */
+const _LEGACY_INVOICE_ITEM_TYPES = [
+  'ondemand', // Legacy: generic ondemand for AM1 plans
+  'attachments', // Legacy: AM1 plans
+  'transactions', // Legacy: AM1 plans
+  'daily_events', // Deprecated
+  'reserved', // Deprecated: legacy name for reserved_events
+] as const;
+
+type LegacyInvoiceItemType = (typeof _LEGACY_INVOICE_ITEM_TYPES)[number];
+
+/**
+ * Core subscription type.
+ */
+type SubscriptionInvoiceItemType = 'subscription';
+
+/**
+ * Balance change can be both credit (negative) or fee (positive).
+ */
+type BalanceChangeInvoiceItemType = 'balance_change';
+
+/**
+ * Unknown invoice item type (empty string).
+ */
+type UnknownInvoiceItemType = '';
+
+/**
+ * Static invoice item types that are not tied to data categories.
+ * These must be manually maintained but change infrequently.
+ */
+type StaticInvoiceItemType =
+  | UnknownInvoiceItemType
+  | SubscriptionInvoiceItemType
+  | BalanceChangeInvoiceItemType
+  | CreditInvoiceItemType
+  | FeeInvoiceItemType
+  | SeerInvoiceItemType
+  | LegacyInvoiceItemType;
+
+/**
+ * Complete invoice item type union.
+ * Automatically stays in sync with backend when new billing categories are added.
+ *
+ * Migration from enum: Use string literals instead of enum members.
+ * Before: InvoiceItemType.SUBSCRIPTION
+ * After:  'subscription'
+ */
+export type InvoiceItemType =
+  | OnDemandInvoiceItemType
+  | ReservedInvoiceItemType
+  | StaticInvoiceItemType;
 
 export enum InvoiceStatus {
   PAID = 'paid',
@@ -768,19 +880,39 @@ export type PreviewInvoiceItem = BaseInvoiceItem & {
   period_start: string;
 };
 
-// TODO(data categories): BIL-970
-export enum CreditType {
-  ERROR = 'error',
-  TRANSACTION = 'transaction',
-  SPAN = 'span',
-  PROFILE_DURATION = 'profile_duration',
-  PROFILE_DURATION_UI = 'profile_duration_ui',
-  ATTACHMENT = 'attachment',
-  REPLAY = 'replay',
-  DISCOUNT = 'discount',
-  PERCENT = 'percent',
-  LOG_BYTE = 'log_byte',
-}
+/**
+ * Dynamically generate credit types from DATA_CATEGORY_INFO.
+ * Uses SINGULAR form (unlike InvoiceItemType which uses plural).
+ * This automatically includes new billing categories without manual enum updates.
+ *
+ * Follows the pattern: snake_case of singular
+ * Example: DATA_CATEGORY_INFO.ERROR (singular: "error") -> "error"
+ * Example: DATA_CATEGORY_INFO.LOG_BYTE (singular: "logByte") -> "log_byte"
+ */
+type DynamicCreditType = {
+  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+    ? CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['singular']>
+    : never;
+}[keyof typeof DATA_CATEGORY_INFO];
+
+/**
+ * Static credit types not tied to data categories.
+ * These must be manually maintained but change infrequently.
+ */
+type StaticCreditType =
+  | 'discount' // Dollar-based recurring discount
+  | 'percent' // Percentage-based recurring discount
+  | 'seer_user'; // Special: maps to PREVENT_USER category (temporary until category renamed)
+
+/**
+ * Complete credit type union.
+ * Automatically stays in sync with backend when new billing categories are added.
+ *
+ * Migration from enum: Use string literals instead of enum members.
+ * Before: CreditType.ERROR
+ * After:  'error'
+ */
+export type CreditType = DynamicCreditType | StaticCreditType;
 
 type BaseRecurringCredit = {
   amount: number;
@@ -791,26 +923,27 @@ type BaseRecurringCredit = {
 
 interface RecurringDiscount extends BaseRecurringCredit {
   totalAmountRemaining: number;
-  type: CreditType.DISCOUNT;
+  type: 'discount';
 }
 
 interface RecurringPercentDiscount extends BaseRecurringCredit {
   percentPoints: number;
   totalAmountRemaining: number;
-  type: CreditType.PERCENT;
+  type: 'percent';
 }
 
 interface RecurringEventCredit extends BaseRecurringCredit {
   totalAmountRemaining: null;
   type:
-    | CreditType.ERROR
-    | CreditType.TRANSACTION
-    | CreditType.SPAN
-    | CreditType.PROFILE_DURATION
-    | CreditType.PROFILE_DURATION_UI
-    | CreditType.ATTACHMENT
-    | CreditType.REPLAY
-    | CreditType.LOG_BYTE;
+    | 'error'
+    | 'transaction'
+    | 'span'
+    | 'profile_duration'
+    | 'profile_duration_ui'
+    | 'attachment'
+    | 'replay'
+    | 'log_byte'
+    | 'seer_user';
 }
 
 export type RecurringCredit =
@@ -1069,3 +1202,22 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   shortenedUnitName?: string;
 }
+
+type SeatStatus =
+  | 'UNKNOWN'
+  | 'ASSIGNED'
+  | 'OVER_QUOTA'
+  | 'DISABLED_FOR_BILLING'
+  | 'REMOVED'
+  | 'REALLOCATED';
+
+export type BillingSeatAssignment = {
+  billingMetric: DataCategory;
+  created: string;
+  displayName: string;
+  id: number;
+  isTrialSeat: boolean;
+  projectId: number;
+  seatIdentifier: string;
+  status: SeatStatus;
+};

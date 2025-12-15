@@ -6,10 +6,12 @@ from uuid import uuid4
 import pytest
 import urllib3
 from django.utils.timezone import now
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.insights.models import InsightsStarredSegment
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.snuba_rpc import _make_rpc_requests, table_rpc
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 # Downsampling is deterministic, so unless the algorithm changes we can find a known id that will appear in the
@@ -188,6 +190,82 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["span.module"] == "cache"
         assert data[0]["span.description"] == "EXEC *"
         assert meta["dataset"] == "spans"
+
+    def test_device_class_filter(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"device.class": "3"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"device.class": "2"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"device.class": "1"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span({"sentry_tags": {"device.class": ""}}, start_ts=self.ten_mins_ago),
+                self.create_span({}, start_ts=self.ten_mins_ago),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["device.class", "count()"],
+                "query": 'device.class:"high"',
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        meta = response.data["meta"]
+        assert meta["dataset"] == "spans"
+
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["device.class"] == "high"
+        assert data[0]["count()"] == 1
+
+    def test_device_class_filter_for_empty(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"device.class": "3"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"device.class": "2"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"device.class": "1"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span({"sentry_tags": {"device.class": ""}}, start_ts=self.ten_mins_ago),
+                self.create_span({}, start_ts=self.ten_mins_ago),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["device.class", "count()"],
+                "query": 'device.class:""',
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        meta = response.data["meta"]
+        assert meta["dataset"] == "spans"
+
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["device.class"] == "Unknown"
+        assert data[0]["count()"] == 2
 
     def test_device_class_filter_for_unknown(self):
         self.store_spans(
@@ -2037,6 +2115,56 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert confidence[0]["count()"] == "low"
         assert data[1]["count()"] == 1
         assert confidence[1]["count()"] in ("high", "low")
+
+    @mock.patch(
+        "sentry.utils.snuba_rpc._make_rpc_requests",
+        wraps=_make_rpc_requests,
+    )
+    def test_extrapolation_mode_server_only(self, mock_rpc_request: mock.MagicMock) -> None:
+        spans = []
+        spans.append(
+            self.create_span(
+                {
+                    "description": "foo",
+                    "sentry_tags": {"status": "success"},
+                    "measurements": {"server_sample_rate": {"value": 0.1}},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+        spans.append(
+            self.create_span(
+                {
+                    "description": "bar",
+                    "sentry_tags": {"status": "success"},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+        self.store_spans(spans, is_eap=True)
+        response = self.do_request(
+            {
+                "field": ["description", "count()"],
+                "orderby": "-count()",
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spans",
+                "extrapolationMode": "serverOnly",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        assert (
+            mock_rpc_request.call_args.kwargs["table_requests"][0]
+            .columns[1]
+            .aggregation.extrapolation_mode
+            == ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY
+        )
+
+        # TODO: Ensure server only extrapolation actually gets applied
+        data = response.data["data"]
+        assert len(data) == 2
 
     def test_span_duration(self) -> None:
         spans = [
@@ -6119,6 +6247,51 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.status_code == 400, response.content
         assert "Invalid Parameter " in response.data["detail"].title()
 
+    def test_count_if_integer(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo"},
+                    measurements={"gen_ai.usage.total_tokens": {"value": 100}},
+                    start_ts=self.ten_mins_ago,
+                    duration=400,
+                ),
+                self.create_span(
+                    {"description": "bar"},
+                    measurements={"gen_ai.usage.total_tokens": {"value": 200}},
+                    start_ts=self.ten_mins_ago,
+                    duration=400,
+                ),
+                self.create_span(
+                    {"description": "baz"},
+                    measurements={"gen_ai.usage.total_tokens": {"value": 300}},
+                    start_ts=self.ten_mins_ago,
+                    duration=200,
+                ),
+            ],
+            is_eap=True,
+        )
+        response = self.do_request(
+            {
+                "field": ["count_if(gen_ai.usage.total_tokens,greater,200)"],
+                "query": "",
+                "orderby": "count_if(gen_ai.usage.total_tokens,greater,200)",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "count_if(gen_ai.usage.total_tokens,greater,200)": 1,
+            },
+        ]
+        assert meta["dataset"] == "spans"
+
     def test_apdex_function(self) -> None:
         """Test the apdex function with span.duration and threshold."""
         # Create spans with different durations to test apdex calculation
@@ -6702,3 +6875,152 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         response = self.do_request(request)
         assert response.status_code == 200
         assert response.data["data"] == [{"count(span.duration)": 1}]
+
+    def test_wildcard_operator_with_backslash(self):
+        span = self.create_span({"description": r"foo\bar"}, start_ts=self.ten_mins_ago)
+        self.store_spans([span], is_eap=True)
+        base_request = {
+            "field": ["project.name", "id"],
+            "project": self.project.id,
+            "dataset": "spans",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request({**base_request, "query": r"span.description:foo\bar"})
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]
+
+        response = self.do_request({**base_request, "query": r"span.description:*foo\\bar*"})
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]
+
+        response = self.do_request(
+            {**base_request, "query": "span.description:\uf00dContains\uf00dfoo\\bar"}
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]
+
+        response = self.do_request(
+            {**base_request, "query": "span.description:\uf00dStartsWith\uf00dfoo\\bar"}
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]
+
+        response = self.do_request(
+            {**base_request, "query": "span.description:\uf00dEndsWith\uf00dfoo\\bar"}
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]
+
+    def test_in_query_matches_is_query_with_truncated_strings(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo *"},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        is_query = self.do_request(
+            {
+                "field": ["span.description"],
+                "query": 'span.description:"foo \\*"',
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert is_query.status_code == 200, is_query.content
+
+        in_query = self.do_request(
+            {
+                "field": ["span.description"],
+                "query": 'span.description:["foo \\*"]',
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert in_query.status_code == 200, in_query.content
+        assert is_query.data["data"] == in_query.data["data"]
+
+    def test_in_query_with_numeric_values(self) -> None:
+        span1 = self.create_span(
+            {"data": {"ai_total_tokens_used": 100}},
+            start_ts=self.ten_mins_ago,
+        )
+        span2 = self.create_span(
+            {"data": {"ai_total_tokens_used": 200}},
+            start_ts=self.ten_mins_ago,
+        )
+        span3 = self.create_span(
+            {"data": {"ai_total_tokens_used": 300}},
+            start_ts=self.ten_mins_ago,
+        )
+
+        self.store_spans([span1, span2, span3], is_eap=True)
+
+        in_query = self.do_request(
+            {
+                "field": ["id", "ai.total_tokens.used"],
+                "query": "ai.total_tokens.used:[100, 200]",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert in_query.status_code == 200, in_query.content
+        assert len(in_query.data["data"]) == 2
+
+        returned_ids = {row["id"] for row in in_query.data["data"]}
+        assert returned_ids == {span1["span_id"], span2["span_id"]}
+
+        assert span3["span_id"] not in returned_ids
+
+    def test_no_project_sent_spans(self):
+        project1 = self.create_project(flags=0)
+        project2 = self.create_project(flags=0)
+
+        request = {
+            "field": ["timestamp", "span.description"],
+            "project": [project1.id, project2.id],
+            "dataset": "spans",
+            "sort": "-timestamp",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == []
+
+    @mock.patch("sentry.utils.snuba_rpc.table_rpc", wraps=table_rpc)
+    def test_sent_spans_project_optimization(self, mock_table_rpc):
+        project1 = self.create_project(flags=0)
+        project2 = self.create_project(flags=0)
+
+        spans = [
+            self.create_span({"description": "foo"}, project=project1, start_ts=self.ten_mins_ago),
+        ]
+        self.store_spans(spans, is_eap=True)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "timestamp",
+                    "span.description",
+                ],
+                "dataset": "spans",
+                "project": [project1.id, project2.id],
+            }
+        )
+        assert response.status_code == 200
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "timestamp": mock.ANY,
+                "span.description": "foo",
+                "project.name": project1.slug,
+            }
+        ]
+
+        mock_table_rpc.assert_called_once()
+        assert mock_table_rpc.call_args.args[0][0].meta.project_ids == [project1.id]

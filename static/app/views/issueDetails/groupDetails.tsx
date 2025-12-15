@@ -6,7 +6,7 @@ import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
 import {TabPanels, Tabs} from 'sentry/components/core/tabs';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import FloatingFeedbackButton from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -34,6 +34,7 @@ import {
   getTitle,
 } from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeBoolean} from 'sentry/utils/queryString';
@@ -43,7 +44,6 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -918,7 +918,7 @@ function GroupDetails() {
           forceProject={group?.project}
           shouldForceProject
         >
-          {config?.showFeedbackWidget && <FloatingFeedbackWidget />}
+          {config?.showFeedbackWidget && <FloatingFeedbackButton />}
           <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group}>
             <Outlet />
           </GroupDetailsPageContent>

@@ -68,14 +68,23 @@ class SiloRouter:
     historical_silo_assignments = {
         "authidentity_duplicate": SiloMode.CONTROL,
         "authprovider_duplicate": SiloMode.CONTROL,
+        "feedback_feedback": SiloMode.REGION,
+        "releases_commit": SiloMode.REGION,
+        "releases_commitfilechange": SiloMode.REGION,
         "sentry_actor": SiloMode.REGION,
         "sentry_alertruleactivations": SiloMode.REGION,
+        "sentry_dashboardwidgetsnapshot": SiloMode.REGION,
+        "sentry_datasecrecywaiver": SiloMode.REGION,
+        "sentry_incidentseen": SiloMode.REGION,
+        "sentry_incidentsubscription": SiloMode.REGION,
         "sentry_monitorlocation": SiloMode.REGION,
         "sentry_notificationsetting": SiloMode.CONTROL,
         "sentry_pagerdutyservice": SiloMode.REGION,
         "sentry_projectavatar": SiloMode.REGION,
         "sentry_scheduledjob": SiloMode.CONTROL,
         "sentry_teamavatar": SiloMode.REGION,
+        "uptime_projectuptimesubscription": SiloMode.REGION,
+        "workflow_engine_actiongroupstatus": SiloMode.REGION,
         "workflow_engine_workflowaction": SiloMode.REGION,
     }
     """

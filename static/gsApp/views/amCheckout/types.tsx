@@ -2,6 +2,7 @@ import type {Client} from 'sentry/api';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
+import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
 import type {
   AddOnCategory,
   BillingConfig,
@@ -29,7 +30,7 @@ export type CheckoutAPIData = Omit<BaseCheckoutData, 'addOns'> & {
   paymentIntent?: string;
   previewToken?: string;
   referrer?: string;
-} & Partial<Record<`reserved${Capitalize<DataCategory>}`, number>> &
+} & Partial<Reservations> &
   Partial<Record<`addOn${Capitalize<AddOnCategory>}`, boolean>>;
 
 type BaseStepProps = {

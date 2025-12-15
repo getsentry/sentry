@@ -19,7 +19,6 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 type DeletableTokenProps = {
   children: React.ReactNode;
@@ -86,7 +85,7 @@ export function DeletableToken({
 }
 
 const FloatingCloseButton = styled('button')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   outline: none;
   user-select: none;
   padding: 0;
@@ -106,10 +105,7 @@ const FloatingCloseButton = styled('button')`
   &:hover {
     outline: none;
     border: none;
-    background: ${p =>
-      isChonkTheme(p.theme)
-        ? p.theme.button.default.background
-        : p.theme.button.default.backgroundActive};
+    background: ${p => p.theme.button.default.background};
   }
 
   &:focus-visible {

@@ -486,6 +486,13 @@ function AutofixSolutionDisplay({
     });
   };
 
+  // Check if instructions were provided (either typed in input or already added to solution and active)
+  const hasInstructions =
+    instructions.trim().length > 0 ||
+    solutionItems.some(
+      item => item.timeline_item_type === 'human_instruction' && item.is_active !== false
+    );
+
   useEffect(() => {
     setSolutionItems(
       solution.map(item => ({
@@ -650,6 +657,9 @@ function AutofixSolutionDisplay({
               onClick={handleCodeItUp}
               analyticsEventName="Autofix: Code It Up"
               analyticsEventKey="autofix.solution.code"
+              analyticsParams={{
+                instruction_provided: hasInstructions,
+              }}
               title={t('Implement this solution in code with Seer')}
             >
               {t('Code It Up')}
@@ -694,11 +704,11 @@ const NoSolutionPadding = styled('div')`
 
 const SolutionContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${p => p.theme.space.lg};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const Content = styled('div')`
@@ -743,7 +753,7 @@ const HeaderIconWrapper = styled('div')`
 const InstructionsInputWrapper = styled('form')`
   display: flex;
   position: relative;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   margin-left: ${p => p.theme.space['3xl']};
   width: 250px;
 `;

@@ -5,7 +5,7 @@ from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.utils.process_update_helpers import calculate_event_date_from_update_date
-from sentry.models.groupopenperiod import GroupOpenPeriod, get_last_checked_for_open_period
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.types.group import PriorityLevel
 
@@ -22,7 +22,6 @@ class GroupOpenPeriodResponse(TypedDict):
     start: datetime
     end: datetime | None
     isOpen: bool
-    lastChecked: datetime
     activities: list[GroupOpenPeriodActivityResponse] | None
 
 
@@ -42,12 +41,30 @@ class GroupOpenPeriodActivitySerializer(Serializer):
 @register(GroupOpenPeriod)
 class GroupOpenPeriodSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
+        query_start = kwargs.get("query_start")
+        query_end = kwargs.get("query_end")
         result: defaultdict[GroupOpenPeriod, dict[str, list[GroupOpenPeriodActivityResponse]]] = (
             defaultdict(dict)
         )
-        activities = GroupOpenPeriodActivity.objects.filter(
-            group_open_period__in=item_list
-        ).order_by("id")
+
+        activities = GroupOpenPeriodActivity.objects.filter(group_open_period__in=item_list)
+
+        first_activity_qs = GroupOpenPeriodActivity.objects.none()
+
+        if query_start:
+            first_activity = (
+                activities.filter(date_added__lt=query_start).order_by("-date_added").first()
+            )
+
+            if first_activity:
+                first_activity_qs = GroupOpenPeriodActivity.objects.filter(pk=first_activity.pk)
+
+            activities = activities.filter(date_added__gte=query_start)
+
+        if query_end:
+            activities = activities.filter(date_added__lte=query_end)
+
+        activities = first_activity_qs.union(activities).order_by("date_added")
 
         gopas = defaultdict(list)
         for activity, serialized_activity in zip(
@@ -72,6 +89,5 @@ class GroupOpenPeriodSerializer(Serializer):
                 else None
             ),
             isOpen=obj.date_ended is None,
-            lastChecked=get_last_checked_for_open_period(obj.group),
             activities=attrs.get("activities"),
         )

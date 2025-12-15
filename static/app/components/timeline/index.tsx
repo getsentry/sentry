@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {space} from 'sentry/styles/space';
 import type {Color} from 'sentry/utils/theme';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 export interface TimelineItemProps {
   title: React.ReactNode;
@@ -74,14 +73,11 @@ function Item({
 }
 
 function makeDefaultColorConfig(theme: Theme) {
-  if (isChonkTheme(theme)) {
-    return {
-      title: theme.colors.content.primary,
-      icon: theme.colors.content.muted,
-      iconBorder: theme.colors.content.muted,
-    };
-  }
-  return {title: theme.gray400, icon: theme.gray300, iconBorder: theme.gray200};
+  return {
+    title: theme.tokens.content.primary,
+    icon: theme.tokens.content.muted,
+    iconBorder: theme.tokens.content.muted,
+  };
 }
 
 const Row = styled('div')<{showLastLine?: boolean}>`
@@ -98,7 +94,8 @@ const Row = styled('div')<{showLastLine?: boolean}>`
   &:last-child {
     margin-bottom: 0;
     /* Show/hide connecting line from the last element of the timeline */
-    background: ${p => (p.showLastLine ? 'transparent' : p.theme.background)};
+    background: ${p =>
+      p.showLastLine ? 'transparent' : p.theme.tokens.background.primary};
   }
 `;
 
@@ -106,7 +103,7 @@ const IconWrapper = styled('div')`
   grid-column: span 1;
   border-radius: 100%;
   border: 1px solid;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   z-index: 10;
   svg {
     display: block;
