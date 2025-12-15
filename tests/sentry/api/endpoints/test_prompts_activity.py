@@ -81,13 +81,14 @@ class PromptsActivityTest(APITestCase):
         }
         resp = self.client.get(self.path, data)
         assert resp.status_code == 200
+        project_id = self.project.id
         self.project.delete()
         # project doesn't exist
         resp = self.client.put(
             self.path,
             {
                 "organization_id": self.org.id,
-                "project_id": self.project.id,
+                "project_id": project_id,
                 "feature": "releases",
                 "status": "dismissed",
             },
