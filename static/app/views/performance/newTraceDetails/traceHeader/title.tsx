@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -90,9 +90,9 @@ function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>)
     ? findSpanAttributeValue(rootEventResults.data.attributes, FieldKey.REPLAY_ID)
     : rootEventResults.data.contexts.replay?.[ReplayContextKey.REPLAY_ID];
 
-  if (!replayId) {
-    return null;
-  }
+  // if (!replayId) {
+  //   return null;
+  // }
 
   return (
     <Fragment>
@@ -126,15 +126,17 @@ export function Title({representativeEvent, rootEventResults}: TitleProps) {
 
   if (traceTitle) {
     return (
-      <Stack align="start" gap="md" width="80%">
+      <Stack align="start" width="75%">
         <Text size="xl" bold ellipsis>
           {traceTitle.title}
         </Text>
         {traceTitle.subtitle && (
-          <Text size="md" ellipsis variant="muted">
-            {traceTitle.subtitle}
+          <Flex align="center" gap="sm" width="100%">
+            <Text size="md" ellipsis variant="muted">
+              {traceTitle.subtitle}
+            </Text>
             <ContextBadges rootEventResults={rootEventResults} />
-          </Text>
+          </Flex>
         )}
       </Stack>
     );
