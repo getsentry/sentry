@@ -1,5 +1,5 @@
 import {Fragment, useRef, useState} from 'react';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
@@ -188,7 +188,7 @@ const AlertPanel = styled('div')<AlertProps & {hovered: boolean}>`
   gap: ${space(1)};
   color: ${p => getAlertColors(p.theme, p.type).color};
   font-size: ${p => p.theme.font.size.md};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => getAlertColors(p.theme, p.type).border};
   padding: ${space(1.5)} ${space(2)};
   background-image: ${p =>
@@ -338,8 +338,7 @@ const Container = styled('div')`
 Alert.Container = Container;
 
 function AlertButton(props: DistributedOmit<ButtonProps, 'size'>) {
-  const theme = useTheme();
-  return <Button {...props} size={theme.isChonk ? 'zero' : 'sm'} />;
+  return <Button {...props} size="zero" />;
 }
 
 Alert.Button = AlertButton;

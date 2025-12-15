@@ -122,7 +122,7 @@ function getAISpanAttributes({
     });
   }
 
-  const totalCosts = attributes['gen_ai.usage.total_cost'];
+  const totalCosts = attributes['gen_ai.cost.total_tokens'];
   if (totalCosts && Number(totalCosts) > 0) {
     highlightedAttributes.push({
       name: t('Cost'),

@@ -565,7 +565,6 @@ const commonTheme = {
     },
   },
 
-  borderRadius: '6px',
   ...legacyTypography,
   ...typography,
 };
@@ -1628,7 +1627,6 @@ const deprecatedColorMappings = (colors: Colors) => ({
 });
 
 const lightThemeDefinition = {
-  isChonk: true,
   type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
@@ -1679,7 +1677,6 @@ export const lightTheme: SentryTheme = lightThemeDefinition;
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const darkTheme: SentryTheme = {
-  isChonk: true,
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,

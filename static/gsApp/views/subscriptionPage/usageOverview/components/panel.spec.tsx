@@ -22,11 +22,18 @@ describe('ProductBreakdownPanel', () => {
   const usageData = CustomerUsageFixture();
 
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
     setMockDate(new Date('2021-05-07'));
     organization.features = ['subscriptions-v3', 'seer-billing'];
     organization.access = ['org:billing'];
     subscription = SubscriptionFixture({organization, plan: 'am3_business'});
     SubscriptionStore.set(organization.slug, subscription);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/onboarding-check/`,
+      body: {
+        isSeerConfigured: true,
+      },
+    });
   });
 
   afterEach(() => {
@@ -246,6 +253,112 @@ describe('ProductBreakdownPanel', () => {
     expect(await screen.findByRole('button', {name: 'Upgrade now'})).toBeInTheDocument();
   });
 
+  it('renders setup CTA for Seer', async () => {
+    subscription.addOns!.seer = {
+      ...subscription.addOns?.seer!,
+      enabled: true,
+    };
+    SubscriptionStore.set(organization.slug, subscription);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/onboarding-check/`,
+      body: {
+        isSeerConfigured: false,
+      },
+    });
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={AddOnCategory.SEER}
+      />
+    );
+
+    await screen.findByText('Get started with Seer');
+    expect(screen.getByRole('button', {name: 'Set Up Seer'})).toBeInTheDocument();
+  });
+
+  it('does not render setup CTA for Seer when already setup', async () => {
+    subscription.addOns!.seer = {
+      ...subscription.addOns?.seer!,
+      enabled: true,
+    };
+    SubscriptionStore.set(organization.slug, subscription);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/onboarding-check/`,
+      body: {
+        isSeerConfigured: true,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`,
+      body: {},
+    });
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={AddOnCategory.SEER}
+      />
+    );
+
+    await screen.findByRole('heading', {name: 'Seer'});
+    expect(screen.queryByText('Get started with Seer')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Set Up Seer'})).not.toBeInTheDocument();
+  });
+
+  it('does not render setup CTA for Seer when not yet enabled', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/onboarding-check/`,
+      body: {
+        isSeerConfigured: false,
+      },
+    });
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={AddOnCategory.SEER}
+      />
+    );
+
+    await screen.findByText('Find and fix issues anywhere with Seer AI debugger'); // subscription hasn't bought Seer so we show upgrade CTA
+    expect(screen.queryByText('Get started with Seer')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Set Up Seer'})).not.toBeInTheDocument();
+  });
+
+  it('does not render setup CTA for non-Seer', async () => {
+    subscription.addOns!.seer = {
+      ...subscription.addOns?.seer!,
+      enabled: true,
+    };
+    subscription.addOns!.legacySeer = {
+      ...subscription.addOns?.legacySeer!,
+      enabled: true, // for testing purposes but you'd never have both IRL
+    };
+    SubscriptionStore.set(organization.slug, subscription);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/onboarding-check/`,
+      body: {
+        isSeerConfigured: false,
+      },
+    });
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={AddOnCategory.LEGACY_SEER}
+      />
+    );
+
+    await screen.findByRole('heading', {name: 'Seer'});
+    expect(screen.queryByText('Get started with Seer')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Set Up Seer'})).not.toBeInTheDocument();
+  });
+
   it('renders active product trial status', async () => {
     subscription.productTrials = [
       {
@@ -336,7 +449,7 @@ describe('ProductBreakdownPanel', () => {
 
   it('renders for Seer add-on', async () => {
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=${DataCategory.SEER_USER}`,
+      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`,
       method: 'GET',
       body: [
         {
@@ -403,9 +516,8 @@ describe('ProductBreakdownPanel', () => {
     expect(screen.queryByText('Reserved spend')).not.toBeInTheDocument();
     expect(screen.getByText('Active contributors spend')).toBeInTheDocument();
     expect(screen.getByText('$80.00')).toBeInTheDocument();
-    expect(
-      screen.getByRole('columnheader', {name: 'Active Contributors (3)'})
-    ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Configure Seer'})).toBeInTheDocument();
+
+    await screen.findByText('Active Contributors (3)'); // wait for billed seats to be loaded
   });
 });

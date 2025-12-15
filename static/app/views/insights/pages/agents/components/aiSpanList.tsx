@@ -8,6 +8,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
+import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
@@ -221,8 +222,23 @@ const TraceListItem = memo(function TraceListItem({
       onClick={onClick}
       indent={indent}
     >
-      <Flex align="center" style={{color: safeColor}}>
+      <Flex
+        align="center"
+        position="relative"
+        style={{color: safeColor, background: 'inherit'}}
+      >
         {icon}
+        {hasErrors && (
+          <Tooltip delay={300} title={t('This span encountered an error')} skipWrapper>
+            <Container
+              position="absolute"
+              radius="full"
+              style={{bottom: -6, right: -6, padding: 1, background: 'inherit'}}
+            >
+              <IconFire display="block" size="xs" color="red300" />
+            </Container>
+          </Tooltip>
+        )}
       </Flex>
       <Stack gap="xs" flex="1" minWidth="0">
         <Flex align="center" gap="xs">
@@ -362,7 +378,7 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
     nodeInfo.color = colors[0];
   } else if (getIsAiGenerationSpan(genAiOpType)) {
     const tokens = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
-    const cost = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_COST);
+    const cost = getNodeAttribute(SpanFields.GEN_AI_COST_TOTAL_TOKENS);
     nodeInfo.title = node.value.description || nodeInfo.title;
     nodeInfo.icon = <IconChat size="md" />;
     nodeInfo.subtitle = tokens ? (
@@ -397,7 +413,6 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
 
   // Override the color and icon if the node has errors
   if (hasError(node)) {
-    nodeInfo.icon = <IconFire size="md" color="red300" />;
     nodeInfo.color = colors[6];
   }
 
