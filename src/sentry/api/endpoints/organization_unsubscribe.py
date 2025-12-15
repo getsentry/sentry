@@ -88,15 +88,11 @@ class OrganizationUnsubscribeProject(OrganizationUnsubscribeBase[Project]):
         self, request: Request, organization_id_or_slug: int | str, id: int
     ) -> Project:
         try:
-            project = Project.objects.select_related("organization").get(id=id)
+            project = Project.objects.select_related("organization").get(
+                id=id, organization__slug__id_or_slug=organization_id_or_slug
+            )
         except Project.DoesNotExist:
             raise NotFound()
-        if str(organization_id_or_slug).isdecimal():
-            if project.organization.id != int(organization_id_or_slug):
-                raise NotFound()
-        else:
-            if project.organization.slug != organization_id_or_slug:
-                raise NotFound()
         if not OrganizationMember.objects.filter(
             user_id=request.user.pk, organization_id=project.organization_id
         ).exists():
@@ -126,15 +122,11 @@ class OrganizationUnsubscribeIssue(OrganizationUnsubscribeBase[Group]):
         self, request: Request, organization_id_or_slug: int | str, issue_id: int
     ) -> Group:
         try:
-            issue = Group.objects.get_from_cache(id=issue_id)
+            issue = Group.objects.select_related("project__organization").get(
+                id=issue_id, project__organization__slug__id_or_slug=organization_id_or_slug
+            )
         except Group.DoesNotExist:
             raise NotFound()
-        if str(organization_id_or_slug).isdecimal():
-            if issue.organization.id != int(organization_id_or_slug):
-                raise NotFound()
-        else:
-            if issue.organization.slug != organization_id_or_slug:
-                raise NotFound()
 
         if not OrganizationMember.objects.filter(
             user_id=request.user.pk, organization=issue.organization

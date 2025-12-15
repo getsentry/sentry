@@ -104,6 +104,18 @@ class OrganizationUnsubscribeProjectTest(APITestCase):
                 value="never",
             ).exists()
 
+    def test_idor_project_from_different_org(self) -> None:
+        """Regression test: Cannot access projects from other organizations (IDOR)."""
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        # Try to access other_project using our organization's URL
+        path = generate_signed_link(
+            user_id=self.user.id, viewname=self.endpoint, args=[self.organization.slug, other_project.id]
+        )
+        resp = self.client.get(path)
+        # Should return 404 to prevent ID enumeration
+        assert resp.status_code == 404
+
 
 class OrganizationUnsubscribeIssueTest(APITestCase):
     endpoint = "sentry-api-0-organization-unsubscribe-issue"
@@ -176,3 +188,16 @@ class OrganizationUnsubscribeIssueTest(APITestCase):
 
         sub = GroupSubscription.objects.get(group=group, user_id=self.user.id)
         assert sub.is_active is False
+
+    def test_idor_issue_from_different_org(self) -> None:
+        """Regression test: Cannot access issues from other organizations (IDOR)."""
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_group = self.create_group(project=other_project)
+        # Try to access other_group using our organization's URL
+        path = generate_signed_link(
+            user_id=self.user.id, viewname=self.endpoint, args=[self.organization.slug, other_group.id]
+        )
+        resp = self.client.get(path)
+        # Should return 404 to prevent ID enumeration
+        assert resp.status_code == 404
