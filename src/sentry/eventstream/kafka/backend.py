@@ -54,13 +54,15 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         return self.__producers[topic]
 
-    def delivery_callback(self, error: KafkaError | None, value: bytes) -> None:
+    def delivery_callback(self, error: KafkaError | None, value: bytes | None) -> None:
         now = int(time.time())
         if error is not None:
             if self.error_last_logged_time is None or now > self.error_last_logged_time + 60:
                 self.error_last_logged_time = now
                 logger.error(
-                    "Could not publish message (error: %s): %s", error, value.decode("utf-8")
+                    "Could not publish message (error: %s): %s",
+                    error,
+                    value.decode("utf-8") if value is not None else None,
                 )
 
     def _get_headers_for_insert(
@@ -208,7 +210,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             produce_future.add_done_callback(
                 lambda future: self.delivery_callback(
                     future.exception() if future.exception() is not None else None,
-                    future.result().payload.value if future.exception() is None else None,
+                    future.result().payload.value if future.result() is not None else None,
                 )
             )
         except Exception as error:
