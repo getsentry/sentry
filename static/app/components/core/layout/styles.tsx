@@ -2,7 +2,6 @@ import {useCallback, useMemo, useSyncExternalStore} from 'react';
 import {css, useTheme, type SerializedStyles} from '@emotion/react';
 
 import type {Theme} from 'sentry/utils/theme';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 // It is unfortunate, but Emotion seems to use the fn callback name in the classname, so lets keep it short.
 export function rc<T>(
@@ -102,7 +101,7 @@ function resolveRadius(sizeComponent: RadiusSize | undefined, theme: Theme) {
     return undefined;
   }
 
-  return isChonkTheme(theme) ? theme.radius[sizeComponent] : theme.radius.md;
+  return theme.radius[sizeComponent];
 }
 
 function resolveSpacing(sizeComponent: SpacingSize, theme: Theme) {

@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {space} from 'sentry/styles/space';
 import type {Color} from 'sentry/utils/theme';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 export interface TimelineItemProps {
   title: React.ReactNode;
@@ -74,14 +73,11 @@ function Item({
 }
 
 function makeDefaultColorConfig(theme: Theme) {
-  if (isChonkTheme(theme)) {
-    return {
-      title: theme.tokens.content.primary,
-      icon: theme.tokens.content.muted,
-      iconBorder: theme.tokens.content.muted,
-    };
-  }
-  return {title: theme.gray400, icon: theme.gray300, iconBorder: theme.gray200};
+  return {
+    title: theme.tokens.content.primary,
+    icon: theme.tokens.content.muted,
+    iconBorder: theme.tokens.content.muted,
+  };
 }
 
 const Row = styled('div')<{showLastLine?: boolean}>`

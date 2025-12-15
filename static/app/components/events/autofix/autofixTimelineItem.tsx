@@ -12,7 +12,6 @@ import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import type {AutofixTimelineEvent} from './types';
 
@@ -39,17 +38,10 @@ function getEventColor(
   theme: Theme,
   isActive?: boolean
 ): TimelineItemProps['colorConfig'] {
-  if (isChonkTheme(theme)) {
-    return {
-      title: theme.tokens.content.primary,
-      icon: isActive ? theme.colors.pink400 : theme.tokens.content.muted,
-      iconBorder: isActive ? theme.colors.pink400 : theme.tokens.content.muted,
-    };
-  }
   return {
-    title: theme.gray400,
-    icon: isActive ? theme.pink400 : theme.gray400,
-    iconBorder: isActive ? theme.pink400 : theme.gray400,
+    title: theme.tokens.content.primary,
+    icon: isActive ? theme.colors.pink400 : theme.tokens.content.muted,
+    iconBorder: isActive ? theme.colors.pink400 : theme.tokens.content.muted,
   };
 }
 

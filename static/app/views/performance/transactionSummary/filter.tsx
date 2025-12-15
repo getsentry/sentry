@@ -12,7 +12,6 @@ import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {SpanOpBreakdown} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import {decodeHistogramZoom} from './transactionOverview/latencyChart/utils';
 
@@ -88,7 +87,7 @@ function OperationDot({backgroundColor}: {backgroundColor: string}) {
       height={theme.space.md}
       alignSelf="center"
       style={{
-        borderRadius: isChonkTheme(theme) ? theme.radius.full : '100%',
+        borderRadius: theme.radius.full,
         backgroundColor,
       }}
     />
