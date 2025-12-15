@@ -64,3 +64,13 @@ function resolveIconColor(theme: Theme, providedProps: SVGIconProps): string {
   const themeValue = theme[normalizedColor];
   return typeof themeValue === 'string' ? themeValue : normalizedColor;
 }
+
+export type SVGIconDirection = 'up' | 'right' | 'down' | 'left';
+const ICON_DIRECTION_TO_ROTATION_ANGLE = {
+  up: 0,
+  right: 90,
+  down: 180,
+  left: 270,
+} as const;
+
+SvgIcon.ICON_DIRECTION_TO_ROTATION_ANGLE = ICON_DIRECTION_TO_ROTATION_ANGLE;

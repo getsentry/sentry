@@ -1,10 +1,8 @@
 import type React from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
 
 import type {Theme} from 'sentry/utils/theme';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import {baseAvatarStyles, type BaseAvatarStyleProps} from './baseAvatarComponentStyles';
 
@@ -21,7 +19,6 @@ interface LetterAvatarProps
  * the svg, etc) will also need to be changed there.
  */
 export function LetterAvatar({displayName, ref, ...props}: LetterAvatarProps) {
-  const theme = useTheme();
   return (
     <LetterAvatarComponent ref={ref} viewBox="0 0 120 120" {...props}>
       <rect x="0" y="0" width="120" height="120" rx="15" ry="15" />
@@ -29,7 +26,7 @@ export function LetterAvatar({displayName, ref, ...props}: LetterAvatarProps) {
         x="50%"
         y="50%"
         fontSize="65"
-        fontWeight={theme.isChonk ? 'bold' : 'inherit'}
+        fontWeight="bold"
         style={{dominantBaseline: 'central'}}
         textAnchor="middle"
       >
@@ -44,43 +41,18 @@ const LetterAvatarComponent = styled('svg')<LetterAvatarProps>`
 
   rect {
     fill: ${props =>
-      isChonkTheme(props.theme)
-        ? props.suggested
-          ? props.theme.tokens.background.primary
-          : getChonkColor(props.identifier, props.theme).background
-        : props.suggested
-          ? props.theme.tokens.background.primary
-          : getColor(props.identifier)};
+      props.suggested
+        ? props.theme.tokens.background.primary
+        : getChonkColor(props.identifier, props.theme).background};
   }
 
   text {
     fill: ${props =>
-      isChonkTheme(props.theme)
-        ? props.suggested
-          ? props.theme.subText
-          : getChonkColor(props.identifier, props.theme).content
-        : props.suggested
-          ? props.theme.subText
-          : props.theme.white};
+      props.suggested
+        ? props.theme.subText
+        : getChonkColor(props.identifier, props.theme).content};
   }
 `;
-
-const COLORS = [
-  '#4674ca', // blue
-  '#315cac', // blue_dark
-  '#57be8c', // green
-  '#3fa372', // green_dark
-  '#f9a66d', // yellow_orange
-  '#ec5e44', // red
-  '#e63717', // red_dark
-  '#f868bc', // pink
-  '#6c5fc7', // purple
-  '#4e3fb4', // purple_dark
-  '#57b1be', // teal
-  '#847a8c', // gray
-] as const;
-
-type Color = (typeof COLORS)[number];
 
 function hashIdentifier(identifier: string) {
   identifier += '';
@@ -89,16 +61,6 @@ function hashIdentifier(identifier: string) {
     hash += identifier.charCodeAt(i);
   }
   return hash;
-}
-
-function getColor(identifier: string | undefined): Color {
-  // Gray if the identifier is not set
-  if (identifier === undefined) {
-    return '#847a8c';
-  }
-
-  const id = hashIdentifier(identifier);
-  return COLORS[id % COLORS.length]!;
 }
 
 function getChonkColor(

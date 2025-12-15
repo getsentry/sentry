@@ -37,8 +37,8 @@ export function useCodeMappings({enabled}: UseCodeMappingsParams) {
     const map = new Map<string, Set<string>>();
     codeMappings.forEach(mapping => {
       const existingProjects = map.get(mapping.repoId) || new Set<string>();
-      if (!existingProjects.has(mapping.projectSlug)) {
-        existingProjects.add(mapping.projectSlug);
+      if (!existingProjects.has(mapping.projectId)) {
+        existingProjects.add(mapping.projectId);
         map.set(mapping.repoId, existingProjects);
       }
     });

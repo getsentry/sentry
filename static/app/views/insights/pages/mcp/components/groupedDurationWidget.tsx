@@ -99,7 +99,7 @@ export default function GroupedDurationWidget(props: GroupedDurationWidgetProps)
         plottables: timeSeries.map(
           (ts, index) =>
             new Line(ts, {
-              color: ts.meta.isOther ? theme.chartOther : colorPalette[index],
+              color: ts.meta.isOther ? theme.tokens.content.muted : colorPalette[index],
             })
         ),
       }}

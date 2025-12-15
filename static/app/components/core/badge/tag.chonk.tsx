@@ -13,8 +13,6 @@ interface ChonkTagProps extends Omit<TagProps, 'type'> {
 const legacyMapping: Partial<Record<NonNullable<TagProps['type']>, TagType>> = {
   highlight: 'info',
   error: 'danger',
-  white: 'default',
-  black: 'default',
 };
 
 export function chonkTagPropMapping(props: TagProps): ChonkTagProps {
@@ -30,7 +28,7 @@ export const TagPill = chonkStyled('div')<{
   ${p => ({...makeTagPillTheme(p.type, p.theme)})};
 
   height: 20px;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   display: inline-flex;
   align-items: center;
   border-radius: ${p => p.theme.radius.xs};

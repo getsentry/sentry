@@ -84,14 +84,27 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   },
 
   get_issue_details: (args, isLoading) => {
-    const issueId = args.issue_id || '';
-    const selectedEvent = args.selected_event;
-    if (selectedEvent) {
+    const {issue_id, event_id, start, end} = args;
+
+    if (issue_id) {
+      if (start && end) {
+        return isLoading
+          ? `Inspecting issue ${issue_id} between ${start} to ${end}...`
+          : `Inspected issue ${issue_id} between ${start} to ${end}`;
+      }
       return isLoading
-        ? `Inspecting issue ${issueId} (${selectedEvent} event)...`
-        : `Inspected issue ${issueId} (${selectedEvent} event)`;
+        ? `Inspecting issue ${issue_id}...`
+        : `Inspected issue ${issue_id}`;
     }
-    return isLoading ? `Inspecting issue ${issueId}...` : `Inspected issue ${issueId}`;
+
+    if (event_id) {
+      return isLoading
+        ? `Inspecting event ${event_id}...`
+        : `Inspected event ${event_id}`;
+    }
+
+    // Should not happen unless there's a bug.
+    return isLoading ? `Inspecting issue...` : `Inspected issue`;
   },
 
   code_search: (args, isLoading) => {
@@ -310,6 +323,16 @@ export function getToolsStringFromBlock(block: Block): string[] {
       // Use custom formatter with tool link params for metadata like rejection status
       const args = parseToolArgs(tool.args);
       tools.push(formatter(args, isLoading, toolLink?.params));
+    } else if (tool.function.startsWith('artifact_write_')) {
+      // Handle artifact_write_<artifact_name> tools
+      const artifactName = tool.function
+        .replace('artifact_write_', '')
+        .replace(/_/g, ' ');
+      tools.push(
+        isLoading
+          ? `Submitting ${artifactName} artifact...`
+          : `Submitted ${artifactName} artifact`
+      );
     } else {
       // Fall back to generic message
       const verb = isLoading ? 'Using' : 'Used';
@@ -579,7 +602,11 @@ export function buildToolLinkUrl(
     case 'get_issue_details': {
       const {event_id, issue_id} = toolLink.params;
 
-      return {pathname: `/issues/${issue_id}/events/${event_id}/`};
+      if (event_id && issue_id) {
+        return {pathname: `/issues/${issue_id}/events/${event_id}/`};
+      }
+
+      return null;
     }
     case 'get_replay_details': {
       const {replay_id} = toolLink.params;
