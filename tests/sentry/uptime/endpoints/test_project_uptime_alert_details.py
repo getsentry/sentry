@@ -25,6 +25,18 @@ class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         resp = self.get_error_response(self.organization.slug, self.project.slug, 3)
         assert resp.status_code == 404
 
+    def test_onboarding_detector_returns_404(self) -> None:
+        from sentry.uptime.types import UptimeMonitorMode
+
+        onboarding_detector = self.create_uptime_detector(
+            mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING
+        )
+
+        resp = self.get_error_response(
+            self.organization.slug, onboarding_detector.project.slug, onboarding_detector.id
+        )
+        assert resp.status_code == 404
+
 
 class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
     method = "put"
