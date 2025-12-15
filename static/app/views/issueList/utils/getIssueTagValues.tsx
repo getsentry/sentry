@@ -1,5 +1,6 @@
-import type {Tag, TagValue} from 'sentry/types/group';
+import type {TagValue} from 'sentry/types/group';
 import {DEVICE_CLASS_TAG_VALUES, isDeviceClass} from 'sentry/utils/fields';
+import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 
 /**
  * Returns a function that fetches tag values for a given tag key. Useful as
@@ -9,8 +10,8 @@ import {DEVICE_CLASS_TAG_VALUES, isDeviceClass} from 'sentry/utils/fields';
  */
 export function makeGetIssueTagValues(
   tagValueLoader: (key: string, search: string) => Promise<TagValue[]>
-) {
-  return async (tag: Tag, query: string): Promise<string[]> => {
+): GetTagValues {
+  return async (tag, query) => {
     // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
     // and low search filter values because discover maps device.class to these values.
     if (isDeviceClass(tag.key)) {
