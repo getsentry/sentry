@@ -197,7 +197,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
           }
         >
           <Stack gap="xs">
-            <Flex align="end" gap="sm" wrap="wrap">
+            <Flex align="center" gap="sm" wrap="wrap">
               <Heading as="h3">
                 {card.watchBreakdown ? (
                   <Tooltip
@@ -225,8 +225,8 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
                   return (
                     <LinkButton
                       to={card.comparisonUrl}
-                      size="xs"
-                      priority="link"
+                      size="zero"
+                      priority="transparent"
                       aria-label={t('Compare builds')}
                     >
                       <Flex align="center" gap="xs">
