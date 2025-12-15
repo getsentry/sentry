@@ -201,14 +201,14 @@ const SECTIONS: TSection[] = [
         groups: ['product', 'seer'],
         keywords: ['seer', 'ai', 'eye', 'pyramid'],
         name: 'Seer',
-        defaultProps: {variant: 'waiting'},
+        defaultProps: {animation: 'waiting'},
       },
       {
         id: 'seer-loading',
         groups: ['product', 'seer'],
         keywords: ['seer', 'ai', 'eye', 'pyramid'],
         name: 'Seer',
-        defaultProps: {variant: 'loading'},
+        defaultProps: {animation: 'loading'},
       },
       {
         id: 'my-projects',
@@ -1569,6 +1569,7 @@ export default function IconsStories() {
       <StyledSticky>
         <Flex padding="xl 0" direction="column" gap="lg">
           <Input
+            value={searchTerm}
             placeholder="Search icons by name or keyword"
             onChange={e => setSearchTerm(e.target.value.toLowerCase())}
           />
@@ -1591,7 +1592,7 @@ export default function IconsStories() {
       <Flex direction="row" gap="md" justify="between" width="100%">
         {picked
           .map((icon, idx) => {
-            const variant = variants[idx % variants.length];
+            const variant = variants[idx % variants.length]!;
             const IconComponent = (Icons as any)[`Icon${icon.name}`];
             return (
               <Stack key={idx} align="center" gap="xs">
