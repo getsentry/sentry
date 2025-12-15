@@ -46,6 +46,7 @@ from sentry.plugins.providers.integration_repository import (
     get_integration_repository_provider,
 )
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
+from sentry.seer.error_prediction.webhooks import handle_github_check_run_event
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -795,7 +796,7 @@ class CheckRunEventWebhook(GitHubWebhook):
 
     @property
     def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.PULL_REQUEST
+        return IntegrationWebhookEventType.CHECK_RUN
 
     def _handle(
         self,
@@ -810,8 +811,6 @@ class CheckRunEventWebhook(GitHubWebhook):
             return
 
         # XXX: Add support for registering functions to call
-        from sentry.seer.error_prediction.webhooks import handle_github_check_run_event
-
         handle_github_check_run_event(organization=organization, event=event)
 
 
