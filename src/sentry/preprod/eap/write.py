@@ -26,7 +26,9 @@ def write_preprod_size_metric_to_eap(
     Write a PreprodArtifactSizeMetrics to EAP as a TRACE_ITEM_TYPE_PREPROD trace item.
 
     NOTE: EAP is append-only, so this function should only be called after the size metric has been successfully committed
-    since we cannot update fields later on.
+    since we cannot update fields later on. EAP does support ReplacingMergeTree deduplication,
+    so we can safely write the same metric multiple times (say after reprocessing an artifact), but we shouldn't rely on that
+    for mutability.
     """
     proto_timestamp = Timestamp()
     proto_timestamp.FromDatetime(size_metric.date_added)
@@ -54,86 +56,37 @@ def write_preprod_size_metric_to_eap(
         "preprod_artifact_id": size_metric.preprod_artifact_id,
         "size_metric_id": size_metric.id,
         "sub_item_type": "size_metric",
+        "metrics_artifact_type": size_metric.metrics_artifact_type,
+        "identifier": size_metric.identifier,
+        "min_install_size": size_metric.min_install_size,
+        "max_install_size": size_metric.max_install_size,
+        "min_download_size": size_metric.min_download_size,
+        "max_download_size": size_metric.max_download_size,
+        "processing_version": size_metric.processing_version,
+        "analysis_file_id": size_metric.analysis_file_id,
+        "artifact_state": artifact.state,
+        "artifact_type": artifact.artifact_type,
+        "app_id": artifact.app_id,
+        "app_name": artifact.app_name,
+        "build_version": artifact.build_version,
+        "build_number": artifact.build_number,
+        "main_binary_identifier": artifact.main_binary_identifier,
+        "artifact_date_built": int(artifact.date_built.timestamp()) if artifact.date_built else None,
+        "build_configuration_name": artifact.build_configuration.name if artifact.build_configuration else None,
     }
 
-    if size_metric.metrics_artifact_type is not None:
-        attributes["metrics_artifact_type"] = size_metric.metrics_artifact_type
-
-    if size_metric.identifier is not None:
-        attributes["identifier"] = size_metric.identifier
-
-    if size_metric.min_install_size is not None:
-        attributes["min_install_size"] = size_metric.min_install_size
-
-    if size_metric.max_install_size is not None:
-        attributes["max_install_size"] = size_metric.max_install_size
-
-    if size_metric.min_download_size is not None:
-        attributes["min_download_size"] = size_metric.min_download_size
-
-    if size_metric.max_download_size is not None:
-        attributes["max_download_size"] = size_metric.max_download_size
-
-    if size_metric.processing_version is not None:
-        attributes["processing_version"] = size_metric.processing_version
-
-    if size_metric.analysis_file_id is not None:
-        attributes["analysis_file_id"] = size_metric.analysis_file_id
-
-    # PreprodArtifact fields
-    attributes["artifact_state"] = artifact.state
-
-    if artifact.artifact_type is not None:
-        attributes["artifact_type"] = artifact.artifact_type
-
-    if artifact.app_id is not None:
-        attributes["app_id"] = artifact.app_id
-
-    if artifact.app_name is not None:
-        attributes["app_name"] = artifact.app_name
-
-    if artifact.build_version is not None:
-        attributes["build_version"] = artifact.build_version
-
-    if artifact.build_number is not None:
-        attributes["build_number"] = artifact.build_number
-
-    if artifact.main_binary_identifier is not None:
-        attributes["main_binary_identifier"] = artifact.main_binary_identifier
-
-    if artifact.date_built is not None:
-        # Convert datetime to unix timestamp for easier querying
-        attributes["artifact_date_built"] = int(artifact.date_built.timestamp())
-
-    # PreprodBuildConfiguration fields
-    if artifact.build_configuration is not None:
-        attributes["build_configuration_name"] = artifact.build_configuration.name
-
-    # CommitComparison fields
     if artifact.commit_comparison is not None:
         commit_comparison = artifact.commit_comparison
-        attributes["git_head_sha"] = commit_comparison.head_sha
-
-        if commit_comparison.base_sha is not None:
-            attributes["git_base_sha"] = commit_comparison.base_sha
-
-        if commit_comparison.provider is not None:
-            attributes["git_provider"] = commit_comparison.provider
-
-        if commit_comparison.head_repo_name is not None:
-            attributes["git_head_repo_name"] = commit_comparison.head_repo_name
-
-        if commit_comparison.base_repo_name is not None:
-            attributes["git_base_repo_name"] = commit_comparison.base_repo_name
-
-        if commit_comparison.head_ref is not None:
-            attributes["git_head_ref"] = commit_comparison.head_ref
-
-        if commit_comparison.base_ref is not None:
-            attributes["git_base_ref"] = commit_comparison.base_ref
-
-        if commit_comparison.pr_number is not None:
-            attributes["git_pr_number"] = commit_comparison.pr_number
+        attributes.update({
+            "git_head_sha": commit_comparison.head_sha,
+            "git_base_sha": commit_comparison.base_sha,
+            "git_provider": commit_comparison.provider,
+            "git_head_repo_name": commit_comparison.head_repo_name,
+            "git_base_repo_name": commit_comparison.base_repo_name,
+            "git_head_ref": commit_comparison.head_ref,
+            "git_base_ref": commit_comparison.base_ref,
+            "git_pr_number": commit_comparison.pr_number,
+        })
 
     trace_item = EAPTraceItem(
         organization_id=organization_id,
@@ -144,7 +97,7 @@ def write_preprod_size_metric_to_eap(
         trace_id=trace_id,
         received=received,
         retention_days=90,  # Default retention for preprod data
-        attributes={k: anyvalue(v) for k, v in attributes.items()},
+        attributes={k: anyvalue(v) for k, v in attributes.items() if v is not None},
         client_sample_rate=1.0,
         server_sample_rate=1.0,
     )
