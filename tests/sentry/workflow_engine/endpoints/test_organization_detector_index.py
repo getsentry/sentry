@@ -753,7 +753,9 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
         # Should return validation error (not 403) to prevent ID enumeration
-        assert response.data == {"projectId": [ErrorDetail(string="Project not found", code="invalid")]}
+        assert response.data == {
+            "projectId": [ErrorDetail(string="Project not found", code="invalid")]
+        }
 
     def test_reject_upsampled_count_aggregate(self) -> None:
         """Users should not be able to submit upsampled_count() directly in ACI."""
