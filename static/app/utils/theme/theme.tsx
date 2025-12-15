@@ -1396,11 +1396,6 @@ const generateAliases = (
   chartLineColor: colors.gray300,
 
   /**
-   * Color for chart label text
-   */
-  chartLabel: tokens.content.muted,
-
-  /**
    * Default Progressbar color
    */
   progressBar: colors.chonk.blue400,

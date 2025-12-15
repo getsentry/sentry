@@ -228,7 +228,7 @@ class MiniGraph extends Component<Props> {
                 show: false,
               },
               axisLabel: {
-                color: theme.chartLabel,
+                color: theme.tokens.content.muted,
                 fontFamily: theme.text.family,
                 fontSize: 12,
                 formatter: (value: number) =>
