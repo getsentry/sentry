@@ -5,7 +5,6 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useChonkPrompt} from 'sentry/utils/theme/useChonkPrompt';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
@@ -52,15 +51,10 @@ export function PrimaryNavigationHelp() {
   const contactSupportItem = getContactSupportItem({organization});
   const openForm = useFeedbackForm();
   const {startTour} = useStackedNavigationTour();
-  const chonkPrompt = useChonkPrompt();
 
   return (
     <SidebarMenu
       triggerWrap={StackedNavigationTourReminder}
-      onOpen={() => {
-        chonkPrompt.snoozeDotIndicatorPrompt();
-        chonkPrompt.snoozeBannerPrompt();
-      }}
       items={[
         {
           key: 'search',
