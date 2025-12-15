@@ -71,22 +71,28 @@ def write_preprod_size_metric_to_eap(
         "build_version": artifact.build_version,
         "build_number": artifact.build_number,
         "main_binary_identifier": artifact.main_binary_identifier,
-        "artifact_date_built": int(artifact.date_built.timestamp()) if artifact.date_built else None,
-        "build_configuration_name": artifact.build_configuration.name if artifact.build_configuration else None,
+        "artifact_date_built": (
+            int(artifact.date_built.timestamp()) if artifact.date_built else None
+        ),
+        "build_configuration_name": (
+            artifact.build_configuration.name if artifact.build_configuration else None
+        ),
     }
 
     if artifact.commit_comparison is not None:
         commit_comparison = artifact.commit_comparison
-        attributes.update({
-            "git_head_sha": commit_comparison.head_sha,
-            "git_base_sha": commit_comparison.base_sha,
-            "git_provider": commit_comparison.provider,
-            "git_head_repo_name": commit_comparison.head_repo_name,
-            "git_base_repo_name": commit_comparison.base_repo_name,
-            "git_head_ref": commit_comparison.head_ref,
-            "git_base_ref": commit_comparison.base_ref,
-            "git_pr_number": commit_comparison.pr_number,
-        })
+        attributes.update(
+            {
+                "git_head_sha": commit_comparison.head_sha,
+                "git_base_sha": commit_comparison.base_sha,
+                "git_provider": commit_comparison.provider,
+                "git_head_repo_name": commit_comparison.head_repo_name,
+                "git_base_repo_name": commit_comparison.base_repo_name,
+                "git_head_ref": commit_comparison.head_ref,
+                "git_base_ref": commit_comparison.base_ref,
+                "git_pr_number": commit_comparison.pr_number,
+            }
+        )
 
     trace_item = EAPTraceItem(
         organization_id=organization_id,
