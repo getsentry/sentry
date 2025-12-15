@@ -5,6 +5,7 @@ import {IconBusiness} from 'sentry/icons';
 import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 
+import AiSetupConfiguration from 'getsentry/components/ai/aiSetupConfiguration';
 import AiSetupDataConsent from 'getsentry/components/ai/AiSetupDataConsent';
 import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
 import DashboardBanner from 'getsentry/components/dashboardBanner';
@@ -198,6 +199,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    */
   'component:insights-date-range-query-limit-footer': () =>
     InsightsDateRangeQueryLimitFooter,
+  'component:ai-setup-configuration': () => AiSetupConfiguration,
   'component:ai-setup-data-consent': () => AiSetupDataConsent,
   'component:codecov-integration-settings-link': () => CodecovSettingsLink,
   'component:continuous-profiling-beta-banner': () => ContinuousProfilingBetaAlertBanner,

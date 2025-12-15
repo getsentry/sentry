@@ -72,7 +72,7 @@ export function useGroupSummaryData(group: Group) {
   return {data, isPending};
 }
 
-function useGroupSummary(
+export function useGroupSummary(
   group: Group,
   event: Event | null | undefined,
   project: Project,
