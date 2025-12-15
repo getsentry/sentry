@@ -7,6 +7,7 @@ from django.utils import timezone
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.promptsactivity import PromptsActivity
 from sentry.models.repository import Repository
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.endpoints.group_autofix_setup_check import (
     get_autofix_integration_setup_problems,
     get_repos_and_access,
@@ -141,6 +142,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200
         assert response.data == {
+            "autofixEnabled": False,
             "integration": {
                 "ok": True,
                 "reason": None,
@@ -242,6 +244,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200
         assert response.data == {
+            "autofixEnabled": False,
             "integration": {
                 "ok": True,
                 "reason": None,
@@ -315,6 +318,48 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200
         assert response.data["seerReposLinked"] is False
+
+    def test_autofix_automation_tuning_non_seat_based(self) -> None:
+        self.login_as(user=self.user)
+
+        for setting in [None] + list(AutofixAutomationTuningSettings):
+            self.project.update_option("sentry:autofix_automation_tuning", setting)
+            group = self.create_group()
+            url = f"/api/0/issues/{group.id}/autofix/setup/"
+            response = self.client.get(url, format="json")
+
+            assert response.status_code == 200
+            assert response.data["autofixEnabled"] is False
+
+    def test_autofix_automation_tuning_off(self) -> None:
+        self._set_seat_based_tier_cache(True)
+        self.login_as(user=self.user)
+
+        for setting in [None, AutofixAutomationTuningSettings.OFF]:
+            self.project.update_option("sentry:autofix_automation_tuning", setting)
+            group = self.create_group()
+            url = f"/api/0/issues/{group.id}/autofix/setup/"
+            response = self.client.get(url, format="json")
+
+            assert response.status_code == 200
+            assert response.data["autofixEnabled"] is False
+
+    def test_autofix_automation_tuning_on(self) -> None:
+        self._set_seat_based_tier_cache(True)
+        self.login_as(user=self.user)
+
+        for setting in [
+            setting
+            for setting in AutofixAutomationTuningSettings
+            if setting != AutofixAutomationTuningSettings.OFF
+        ]:
+            self.project.update_option("sentry:autofix_automation_tuning", setting)
+            group = self.create_group()
+            url = f"/api/0/issues/{group.id}/autofix/setup/"
+            response = self.client.get(url, format="json")
+
+            assert response.status_code == 200
+            assert response.data["autofixEnabled"] is True
 
 
 class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):

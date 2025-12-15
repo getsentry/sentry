@@ -589,6 +589,7 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/artifact-bundles/$bundleId/files/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/artifact-bundles/$bundleId/files/$fileId/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/artifact-lookup/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/autofix/automation-settings/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/cluster-transaction-names/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/$codeownersId/'

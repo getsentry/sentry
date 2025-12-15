@@ -31,10 +31,16 @@ import useRepositoryWithSettings, {
 } from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
 
 interface Props {
+  mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
+  mutationData: Record<string, RepositoryWithSettings>;
   repository: RepositoryWithSettings;
 }
 
-export default function SeerRepoTableRow({repository: initialRepository}: Props) {
+export default function SeerRepoTableRow({
+  mutateRepositorySettings,
+  mutationData,
+  repository: initialRepository,
+}: Props) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
@@ -46,13 +52,10 @@ export default function SeerRepoTableRow({repository: initialRepository}: Props)
   // do optimistic updates, without re-rendering the entire table.
   // `initialRepository` will become stale at that point, but we'll have fresh data
   // in the cache to override it.
-  const {mutate: mutateRepositorySettings, data: mutationData} =
-    useBulkUpdateRepositorySettings();
-
   const {data, isError, isPending} = useRepositoryWithSettings({
     repositoryId: initialRepository.id,
     initialData: [initialRepository, undefined, undefined],
-    enabled: Boolean(mutationData),
+    enabled: mutationData[initialRepository.id] !== undefined,
   });
   const repository = isError || isPending ? initialRepository : data;
 
