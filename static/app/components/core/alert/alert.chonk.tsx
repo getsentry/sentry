@@ -1,9 +1,8 @@
-import type {SerializedStyles} from '@emotion/react';
+import type {SerializedStyles, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {AlertProps} from 'sentry/components/core/alert';
-import {type useChonkTheme} from 'sentry/utils/theme/theme';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -20,7 +19,6 @@ export const chonkAlertPropMapping: ChonkPropMapping<
 
 interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
   type: 'subtle' | 'info' | 'warning' | 'success' | 'danger';
-  theme?: Theme;
 }
 
 export const AlertPanel = styled('div')<ChonkAlertProps>`
@@ -36,7 +34,7 @@ export const AlertPanel = styled('div')<ChonkAlertProps>`
   row-gap: 0;
   overflow: hidden;
   min-height: 44px;
-  ${props => makeChonkAlertTheme(props)};
+  ${props => makeChonkAlertTheme(props, props.theme)};
 
   a:not([role='button']) {
     text-decoration: underline;
@@ -47,15 +45,15 @@ function getAlertGridLayout(p: ChonkAlertProps) {
   return `1fr ${p.trailingItems ? 'auto' : ''} ${p.expand ? 'min-content' : ''}`;
 }
 
-function makeChonkAlertTheme(props: ChonkAlertProps): SerializedStyles {
-  const tokens = getChonkAlertTokens(props.type, props.theme!);
+function makeChonkAlertTheme(props: ChonkAlertProps, theme: Theme): SerializedStyles {
+  const tokens = getChonkAlertTokens(props.type, theme);
   return css`
-    ${generateAlertBackground(props, tokens, props.theme!)};
+    ${generateAlertBackground(props, tokens, theme)};
     border-color: ${tokens.border};
 
     /* We dont want to override the color of any elements inside buttons */
     :not(button *) {
-      color: ${props.theme!.tokens.content.primary};
+      color: ${theme.tokens.content.primary};
     }
   `;
 }
@@ -119,7 +117,7 @@ function generateAlertBackground(
           ${tokens.background} ${width + 1}px
         ),
         linear-gradient(${theme.tokens.background.primary});
-      padding-left: calc(${width}px + ${props.theme!.space.lg});
+      padding-left: calc(${width}px + ${theme.space.lg});
     `;
   }
   return css`

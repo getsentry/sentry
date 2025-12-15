@@ -1,6 +1,6 @@
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {type useChonkTheme} from 'sentry/utils/theme/theme';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
