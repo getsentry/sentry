@@ -366,7 +366,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     )
 
                 try:
-                    widget = DashboardWidget.objects.get(id=dashboard_widget_id)
+                    widget = DashboardWidget.objects.get(
+                        id=dashboard_widget_id, dashboard__organization_id=organization.id
+                    )
                     does_widget_have_split = widget.discover_widget_split is not None
 
                     if does_widget_have_split:
