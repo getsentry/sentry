@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert/alert';
@@ -37,9 +37,7 @@ export function AttributeDistribution() {
     fieldName: 'attributeBreakdownsSearch',
   });
 
-  const [cursor, setCursor] = useQueryParamState({
-    fieldName: 'attributeBreakdownsCursor',
-  });
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
 
   const query = useQueryParamsQuery();
   const dataset = useSpansDataset();
