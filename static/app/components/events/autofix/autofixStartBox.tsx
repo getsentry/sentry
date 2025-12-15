@@ -111,7 +111,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               }}
             />
             <StartTextRow>
-              <IconSeer animation="waiting" color="textColor" size="xl" />
+              <IconSeer animation="waiting" variant="primary" size="xl" />
             </StartTextRow>
           </AutofixStartText>
           <InputWrapper onSubmit={handleSubmit}>
