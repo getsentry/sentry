@@ -14,6 +14,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
     SeerAutofixSettingsSerializer,
     bulk_set_project_preferences,
     default_seer_project_preference,
@@ -53,7 +54,8 @@ class ProjectAutofixAutomationSettingsEndpoint(ProjectEndpoint):
             data={
                 "projectId": project.id,
                 "autofixAutomationTuning": autofix_automation_tuning,
-                "automatedRunStoppingPoint": seer_pref.automated_run_stopping_point,
+                "automatedRunStoppingPoint": seer_pref.automated_run_stopping_point
+                or AutofixStoppingPoint.CODE_CHANGES.value,
                 "reposCount": len(seer_pref.repositories),
             },
         )
