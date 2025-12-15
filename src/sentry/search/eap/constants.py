@@ -17,6 +17,7 @@ SUPPORTED_TRACE_ITEM_TYPE_MAP = {
     SupportedTraceItemType.UPTIME_RESULTS: TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
     SupportedTraceItemType.TRACEMETRICS: TraceItemType.TRACE_ITEM_TYPE_METRIC,
     SupportedTraceItemType.PROFILE_FUNCTIONS: TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
+    SupportedTraceItemType.PREPROD: TraceItemType.TRACE_ITEM_TYPE_PREPROD,
 }
 
 SUPPORTED_STATS_TYPES = {"attributeDistributions"}
