@@ -123,7 +123,7 @@ function applyImageFilters(
   return filteredImages;
 }
 
-export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
+export function DebugMeta({data, projectSlug, event}: DebugMetaProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const listRef = useRef<List>(null);
@@ -212,7 +212,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     });
   }, [data]);
 
-  const handleReprocessEvent = useCallback(
+  const _handleReprocessEvent = useCallback(
     (id: Group['id']) => {
       openReprocessEventModal({
         organization,
@@ -286,15 +286,13 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             organization={organization}
             projSlug={projectSlug}
             event={event}
-            onReprocessEvent={
-              defined(groupId) ? () => handleReprocessEvent(groupId) : undefined
-            }
+            onReprocessEvent={undefined}
           />
         ),
         {modalCss: modalCss(theme)}
       );
     },
-    [event, groupId, handleReprocessEvent, organization, projectSlug, theme]
+    [event, organization, projectSlug, theme]
   );
 
   // This hook replaces the componentDidMount/WillUnmount calls from its class component
