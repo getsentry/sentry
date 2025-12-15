@@ -52,6 +52,7 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
         if len(features) == 0:
             return Response({"details": "No feature specified"}, status=400)
 
+        organization = kwargs.get("organization")
         conditions: Q | None = None
         for feature in features:
             if not prompt_config.has(feature):
@@ -62,6 +63,15 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
                 if field not in request.GET:
                     return Response({"detail": 'Missing required field "%s"' % field}, status=400)
             filters = {k: request.GET.get(k) for k in required_fields}
+
+            # Validate project_id belongs to the organization (IDOR protection)
+            if "project_id" in required_fields and organization:
+                project_id = filters.get("project_id")
+                if project_id and not Project.objects.filter(
+                    id=project_id, organization_id=organization.id
+                ).exists():
+                    return Response({"detail": "Project not found"}, status=404)
+
             condition = Q(feature=feature, **filters)
             conditions = condition if conditions is None else (conditions | condition)
 

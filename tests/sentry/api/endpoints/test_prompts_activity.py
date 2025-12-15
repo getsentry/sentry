@@ -290,3 +290,21 @@ class PromptsActivityTest(APITestCase):
 
         assert resp.status_code == 400
         assert resp.data["detail"] == "Project does not belong to this organization"
+
+    def test_idor_get_project_from_different_org(self) -> None:
+        """Regression test: GET cannot access projects from other organizations (IDOR)."""
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+
+        resp = self.client.get(
+            self.path,
+            {
+                "organization_id": self.org.id,
+                "project_id": other_project.id,
+                "feature": "releases",
+            },
+        )
+
+        # Should return 404 to prevent ID enumeration
+        assert resp.status_code == 404
+        assert resp.data["detail"] == "Project not found"
