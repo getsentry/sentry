@@ -1368,7 +1368,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/projects/')),
     withOrgPath: true,
     children: projectsChildren,
-    deprecatedRouteProps: true,
   };
 
   const traceView: SentryRouteObject = {
