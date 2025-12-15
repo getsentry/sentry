@@ -22,6 +22,7 @@ import {
   getReservedBudgetCategoryForAddOn,
   getSoftCapType,
   MILLISECONDS_IN_HOUR,
+  normalizeMetricHistory,
   supportsPayg,
 } from 'getsentry/utils/billing';
 import {
@@ -91,31 +92,24 @@ function UsageOverviewTableRow({
   }
 
   const metricHistory = subscription.categories[billedCategory];
-  const {reserved, usage, prepaid, free} = metricHistory ?? {
-    reserved: 0,
-    usage: 0,
-    prepaid: 0,
-    free: 0,
-  };
 
-  if (!metricHistory || !isEnabled) {
-    if (isEnabled) {
-      throw new Error('Missing metric history for enabled product');
-    } else {
-      return (
-        <DisabledProductRow
-          product={product}
-          onRowClick={onRowClick}
-          displayName={displayName}
-          potentialProductTrial={potentialProductTrial}
-          showPanelInline={showPanelInline}
-          organization={organization}
-          selectedProduct={selectedProduct}
-          usageData={usageData}
-          subscription={subscription}
-        />
-      );
-    }
+  const normalizedMetricHistory = normalizeMetricHistory(billedCategory, metricHistory);
+  const {reserved, usage, prepaid, free} = normalizedMetricHistory;
+
+  if (!isEnabled) {
+    return (
+      <DisabledProductRow
+        product={product}
+        onRowClick={onRowClick}
+        displayName={displayName}
+        potentialProductTrial={potentialProductTrial}
+        showPanelInline={showPanelInline}
+        organization={organization}
+        selectedProduct={selectedProduct}
+        usageData={usageData}
+        subscription={subscription}
+      />
+    );
   }
   let percentUsed = 0;
   let formattedUsage = '';
@@ -143,12 +137,10 @@ function UsageOverviewTableRow({
             ? (reservedBudget.categories[product]?.reservedSpend ?? 0)
             : reservedBudget.totalReservedSpend,
         })
-      : metricHistory
-        ? formatUsageWithUnits(metricHistory.usage, billedCategory, {
-            isAbbreviated: true,
-            useUnitScaling: true,
-          })
-        : '';
+      : formatUsageWithUnits(usage, billedCategory, {
+          isAbbreviated: true,
+          useUnitScaling: true,
+        });
 
     if (isUnlimited) {
       percentUsed = 0;
@@ -171,7 +163,7 @@ function UsageOverviewTableRow({
     }
 
     paygSpend = isChildProduct
-      ? (metricHistory?.onDemandSpendUsed ?? 0)
+      ? (normalizedMetricHistory.onDemandSpendUsed ?? 0)
       : addOnInfo.dataCategories.reduce((acc, category) => {
           return acc + (subscription.categories[category]?.onDemandSpendUsed ?? 0);
         }, 0);
@@ -185,9 +177,9 @@ function UsageOverviewTableRow({
         : isContinuousProfiling(billedCategory)
           ? prepaid * MILLISECONDS_IN_HOUR
           : prepaid;
-    percentUsed = rawPrepaid ? getPercentage(metricHistory.usage, rawPrepaid) : 0;
+    percentUsed = rawPrepaid ? getPercentage(usage, rawPrepaid) : 0;
 
-    formattedUsage = formatUsageWithUnits(metricHistory.usage, billedCategory, {
+    formattedUsage = formatUsageWithUnits(usage, billedCategory, {
       isAbbreviated: true,
       useUnitScaling: true,
     });
@@ -202,18 +194,18 @@ function UsageOverviewTableRow({
         })
       : null;
 
-    paygSpend = metricHistory.onDemandSpendUsed ?? 0;
+    paygSpend = normalizedMetricHistory.onDemandSpendUsed ?? 0;
   }
   const bucket = getBucket({
     events: reserved ?? 0, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
     buckets: subscription.planDetails.planCategories[billedCategory],
   });
-  otherSpend = calculateSeerUserSpend(metricHistory);
+  otherSpend = calculateSeerUserSpend(normalizedMetricHistory);
   const recurringReservedSpend = isChildProduct ? 0 : (bucket.price ?? 0);
   const additionalSpend = recurringReservedSpend + paygSpend + otherSpend;
 
   const formattedSoftCapType =
-    isChildProduct || !isAddOn ? getSoftCapType(metricHistory) : null;
+    isChildProduct || !isAddOn ? getSoftCapType(normalizedMetricHistory) : null;
   const formattedDisplayName = formattedSoftCapType
     ? `${displayName} (${formattedSoftCapType})`
     : displayName;
