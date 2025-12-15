@@ -613,7 +613,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 'The thresholds on this chart may look off. This is because, once saved, alerts will now take into account [samplingLink:sampling rate]. Before clicking save, take the time to update your [thresholdsLink:thresholds]. Click cancel to continue running this alert in compatibility mode.',
                 {
                   thresholdsLink: (
-                    <Button
+                    // had to use a button and style it as a link because you can't use onClick on a link element
+                    <LinkStyledButton
                       priority="link"
                       aria-label="Go to thresholds"
                       onClick={() => {
@@ -888,6 +889,12 @@ const StyledListTitle = styled('div')`
   span {
     margin-left: ${space(1)};
   }
+`;
+
+const LinkStyledButton = styled(Button)`
+  padding: 0;
+  font-weight: normal;
+  text-decoration: underline;
 `;
 
 // This is a temporary hacky solution to hide list items without changing the numbering of the rest of the list

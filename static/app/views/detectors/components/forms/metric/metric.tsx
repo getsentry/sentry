@@ -640,7 +640,7 @@ function MigratedAlertWarningListener() {
                 />
               ),
               thresholdsLink: (
-                <Button
+                <LinkStyledButton
                   priority="link"
                   aria-label="Go to thresholds"
                   onClick={() => {
@@ -670,6 +670,12 @@ function WarningIcon({id, tooltipProps}: {id: string; tooltipProps?: TooltipProp
 
 const StyledIconWarning = styled(IconWarning)`
   animation: ${() => pulse(1.15)} 1s ease infinite;
+`;
+
+const LinkStyledButton = styled(Button)`
+  padding: 0;
+  font-weight: normal;
+  text-decoration: underline;
 `;
 
 const HeadingContainer = styled('div')`
