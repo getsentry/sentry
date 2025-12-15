@@ -2,15 +2,12 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
-
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.silo.base import SiloMode
 from sentry.tasks.organization_contributors import (
     assign_seat_to_organization_contributor,
     reset_num_actions_for_organization_contributors,
 )
-from sentry.taskworker.retry import RetryTaskError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.outcomes import Outcome
@@ -165,8 +162,7 @@ class AssignSeatToOrganizationContributorTest(TestCase):
 
         mock_assign_seat.return_value = Outcome.RATE_LIMITED
 
-        with pytest.raises(RetryTaskError):
-            assign_seat_to_organization_contributor(contributor.id)
+        assign_seat_to_organization_contributor(contributor.id)
 
         mock_assign_seat.assert_called_once()
         mock_logger.warning.assert_called_once_with(
