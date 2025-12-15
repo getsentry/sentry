@@ -183,7 +183,7 @@ class UptimeTestValidator(CamelSnakeSerializer):
     )
 
     def validate(self, attrs):
-        headers = []
+        headers: list[str] = []
         method = "GET"
         body = None
         url = ""

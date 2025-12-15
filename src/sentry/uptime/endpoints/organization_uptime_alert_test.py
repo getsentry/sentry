@@ -1,3 +1,5 @@
+import logging
+
 import requests
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -20,6 +22,8 @@ from sentry.ratelimits.config import RateLimit, RateLimitCategory, RateLimitConf
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
 from sentry.uptime.endpoints.validators import UptimeTestValidator
 from sentry.uptime.types import CheckConfig
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -70,12 +74,23 @@ class OrganizationUptimeAlertTestEndpoint(OrganizationEndpoint):
 
         api_endpoint = region[0].api_endpoint
 
-        result = requests.post(
-            f"http://{api_endpoint}/execute_config",
-            headers={
-                "content-type": "application/json;charset=utf-8",
-            },
-            json=check,
-        )
-
-        return self.respond(result.json())
+        try:
+            result = requests.post(
+                f"http://{api_endpoint}/execute_config",
+                headers={
+                    "content-type": "application/json;charset=utf-8",
+                },
+                json=check,
+                timeout=10,
+            )
+            result.raise_for_status()
+            return self.respond(result.json())
+        except requests.RequestException as e:
+            logger.exception(
+                "uptime.test_endpoint",
+                extra={
+                    "organization_id": organization.id,
+                    "error": str(e),
+                },
+            )
+            return self.respond(status=500)

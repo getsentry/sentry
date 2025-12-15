@@ -105,6 +105,11 @@ class CheckConfig(TypedDict, total=False):
     Defines how we'll schedule checks based on other active regions.
     """
 
+    assertion: str
+    """
+    The JSON-encoded string of the runtime assertion to execute, or null.
+    """
+
 
 class IncidentStatus(IntEnum):
     """
