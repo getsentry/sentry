@@ -87,7 +87,6 @@ from sentry.seer.explorer.on_completion_hook import call_on_completion_hook
 from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
-    get_issue_and_event_details,
     get_issue_and_event_details_v2,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
@@ -1028,7 +1027,6 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
     "get_trace_waterfall": rpc_get_trace_waterfall,
-    "get_issue_and_event_details": get_issue_and_event_details,
     "get_issue_and_event_details_v2": get_issue_and_event_details_v2,
     "get_profile_flamegraph": rpc_get_profile_flamegraph,
     "execute_table_query": execute_table_query,
