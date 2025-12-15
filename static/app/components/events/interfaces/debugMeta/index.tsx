@@ -4,7 +4,7 @@ import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualize
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
 import {
@@ -211,16 +211,6 @@ export function DebugMeta({data, projectSlug, event}: DebugMetaProps) {
       filterSelections: defaultFilterSelections,
     });
   }, [data]);
-
-  const _handleReprocessEvent = useCallback(
-    (id: Group['id']) => {
-      openReprocessEventModal({
-        organization,
-        groupId: id,
-      });
-    },
-    [organization]
-  );
 
   const getScrollbarWidth = useCallback(() => {
     const panelTableWidth = panelTableRef?.current?.clientWidth ?? 0;
