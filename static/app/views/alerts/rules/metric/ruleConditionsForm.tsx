@@ -3,8 +3,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {Button} from '@sentry/scraps/button/button';
-
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
@@ -13,7 +11,7 @@ import {
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
 import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
@@ -613,14 +611,16 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 'The thresholds on this chart may look off. This is because, once saved, alerts will now take into account [samplingLink:sampling rate]. Before clicking save, take the time to update your [thresholdsLink:thresholds]. Click cancel to continue running this alert in compatibility mode.',
                 {
                   thresholdsLink: (
-                    // had to use a button and style it as a link because you can't use onClick on a link element
-                    <LinkStyledButton
-                      priority="link"
+                    <Link
                       aria-label="Go to thresholds"
+                      to="#thresholds-warning-icon"
+                      preventScrollReset
                       onClick={() => {
-                        document
-                          .getElementById('thresholds-warning-icon')
-                          ?.scrollIntoView({behavior: 'smooth'});
+                        requestAnimationFrame(() => {
+                          document
+                            .getElementById('thresholds-warning-icon')
+                            ?.scrollIntoView({behavior: 'smooth'});
+                        });
                       }}
                     />
                   ),
@@ -889,12 +889,6 @@ const StyledListTitle = styled('div')`
   span {
     margin-left: ${space(1)};
   }
-`;
-
-const LinkStyledButton = styled(Button)`
-  padding: 0;
-  font-weight: normal;
-  text-decoration: underline;
 `;
 
 // This is a temporary hacky solution to hide list items without changing the numbering of the rest of the list
