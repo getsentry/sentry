@@ -117,6 +117,11 @@ class SearchResolver:
         if filter_project:
             projects = [project for project in projects if filter_project(project)]
 
+            # if filtering removed all projects, we reset to all
+            # selected project again to prevent potential snuba errors
+            if not projects:
+                projects = self.params.projects
+
         return RequestMeta(
             organization_id=self.params.organization_id,
             referrer=referrer,
