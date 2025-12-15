@@ -1,4 +1,4 @@
-import {useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 
 import type {ColorOrAlias, IconSize} from 'sentry/utils/theme';
 
@@ -6,6 +6,10 @@ import {useIconDefaults} from './useIconDefaults';
 
 export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
   className?: string;
+  /**
+   * Please use the `variant` prop instead.
+   * @deprecated
+   */
   color?: ColorOrAlias | 'currentColor';
   /**
    * DO NOT USE THIS! Please use the `size` prop
@@ -15,50 +19,50 @@ export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
   legacySize?: string;
   ref?: React.Ref<SVGSVGElement>;
   size?: IconSize;
+  variant?: keyof Theme['tokens']['content'];
 }
 
 export function SvgIcon(props: SVGIconProps) {
-  const {
-    color: providedColor = 'currentColor',
-    size: providedSize = 'sm',
-    viewBox = '0 0 16 16',
-    legacySize,
-    ...rest
-  } = useIconDefaults(props);
-
   const theme = useTheme();
-  const color = useResolvedIconColor(providedColor);
-  const size = legacySize ?? theme.iconSizes[providedSize];
+  const iconProps = useIconDefaults(props);
+  const size = iconProps.legacySize ?? theme.iconSizes[iconProps.size ?? 'sm'];
+
+  const {
+    variant: _variant,
+    color: _color,
+    size: _size,
+    legacySize: _legacySize,
+    ...rest
+  } = iconProps;
 
   return (
     <svg
       // The icons only ever contain a single graphic, so we can use the img role
       role="img"
-      viewBox={viewBox}
+      viewBox="0 0 16 16"
       {...rest}
-      fill={color}
+      fill={
+        iconProps.variant
+          ? theme.tokens.content[iconProps.variant]
+          : resolveIconColor(theme, iconProps)
+      }
       height={size}
       width={size}
     />
   );
 }
 
-export function useResolvedIconColor(
-  color: ColorOrAlias | 'currentColor' | undefined
-): string {
-  const theme = useTheme();
-  const {color: providedColor = 'currentColor'} = useIconDefaults({color});
-  if (providedColor === 'currentColor') {
+function resolveIconColor(theme: Theme, providedProps: SVGIconProps): string {
+  if (!providedProps.color || providedProps.color === 'currentColor') {
     return 'currentColor';
   }
 
   // Remap gray300 to subText since we no longer support the old theme
-  const normalizedColor = providedColor === 'gray300' ? 'subText' : providedColor;
-  const resolvedColor = theme[normalizedColor];
-  if (typeof resolvedColor === 'string') {
-    return resolvedColor;
-  }
-  return normalizedColor;
+  const normalizedColor =
+    providedProps.color === 'gray300' ? 'subText' : providedProps.color;
+
+  const themeValue = theme[normalizedColor];
+  return typeof themeValue === 'string' ? themeValue : normalizedColor;
 }
 
 export type SVGIconDirection = 'up' | 'right' | 'down' | 'left';

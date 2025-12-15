@@ -154,7 +154,7 @@ function ActiveLogDisplay({
     return (
       <ActiveLogWrapper>
         <SeerIconContainer>
-          <IconSeer variant="waiting" size="lg" />
+          <IconSeer animation="waiting" size="lg" />
         </SeerIconContainer>
         <ActiveLog>{errorMessage}</ActiveLog>
         <Button
@@ -186,7 +186,7 @@ function ActiveLogDisplay({
           )}
         >
           <SeerIconContainer ref={seerIconRef}>
-            <StyledAnimatedSeerIcon variant="loading" size="lg" />
+            <StyledAnimatedSeerIcon animation="loading" size="lg" />
             {seerIconRef?.current && isInitializingRun && (
               <FlyingLinesEffect targetElement={seerIconRef.current} />
             )}

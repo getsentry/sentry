@@ -15,7 +15,7 @@ function EmptyState({isLoading}: EmptyStateProps) {
       {isLoading ? (
         <LoadingIndicator size={32} />
       ) : (
-        <IconSeer size="xl" variant="waiting" />
+        <IconSeer size="xl" animation="waiting" />
       )}
       <Text>{!isLoading && t('Ask Seer anything about your application.')}</Text>
     </Container>
