@@ -549,6 +549,7 @@ def set_default_project_auto_open_prs(organization: Organization, project: Proje
         if organization.get_option("sentry:auto_open_prs"):
             stopping_point = AutofixStoppingPoint.OPEN_PR
 
+        # We need to make an API call to Seer to set this preference
         preference = SeerProjectPreference(
             organization_id=organization.id,
             project_id=project.id,
