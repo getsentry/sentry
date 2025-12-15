@@ -24,7 +24,7 @@ const mockReservations: Reservations = {
   reservedSpans: undefined,
   reservedSeerAutofix: 0,
   reservedSeerScanner: 0,
-  reservedSeerUsers: undefined,
+  reservedSeerUsers: 0,
   reservedPreventUsers: undefined,
 };
 
