@@ -204,8 +204,14 @@ function SpanTabContentSection({
     'traces-page-cross-event-querying'
   );
 
-  const queryType: 'aggregate' | 'samples' | 'traces' =
-    tab === Mode.AGGREGATE ? 'aggregate' : tab === Tab.TRACE ? 'traces' : 'samples';
+  const queryType =
+    tab === Mode.AGGREGATE
+      ? 'aggregate'
+      : tab === Tab.TRACE
+        ? 'traces'
+        : tab === Tab.ATTRIBUTE_BREAKDOWNS
+          ? 'attribute_breakdowns'
+          : 'samples';
 
   const limit = 50;
 
@@ -264,7 +270,6 @@ function SpanTabContentSection({
   const [interval] = useChartInterval();
 
   useAnalytics({
-    tab,
     queryType,
     aggregatesTableResult,
     spansTableResult,
