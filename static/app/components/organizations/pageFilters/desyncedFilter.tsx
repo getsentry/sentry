@@ -42,7 +42,7 @@ export const DesyncedFilterIndicator = styled('div')`
   background: ${p => p.theme.active};
   border: solid 1px ${p => p.theme.tokens.background.primary};
   position: absolute;
-  top: -${space(0.25)};
+  top: 0;
   right: -${space(0.75)};
 `;
 

@@ -6,8 +6,10 @@ from pydantic import BaseModel, Field
 class SolutionStep(BaseModel):
     """A single step in the solution plan."""
 
-    title: str = Field(description="Short title for this step")
-    description: str = Field(description="Detailed description of what needs to be done")
+    title: str = Field(description="Short, concrete title for this step")
+    description: str = Field(
+        description="One line description of what specifically needs to be done"
+    )
 
 
 class ImpactItem(BaseModel):
@@ -26,8 +28,15 @@ class ImpactItem(BaseModel):
 class SuspectCommit(BaseModel):
     """A commit that may have introduced the issue."""
 
-    sha: str = Field(description="Git commit SHA")
-    description: str = Field(description="Why this commit is suspected")
+    sha: str = Field(description="Git commit SHA (7+ characters)")
+    repo_name: str = Field(description="Full repository name, e.g. 'getsentry/sentry'")
+    message: str = Field(description="Commit message/title")
+    author_name: str = Field(description="Name of the commit author")
+    author_email: str = Field(description="Email of the commit author")
+    committed_date: str = Field(description="Commit date in YYYY-MM-DD format")
+    description: str = Field(
+        description="Why this commit is suspected of causing the issue, under 20 words"
+    )
 
 
 class SuggestedAssignee(BaseModel):
@@ -35,7 +44,7 @@ class SuggestedAssignee(BaseModel):
 
     name: str = Field(description="Name of the suggested assignee")
     email: str = Field(description="Email of the suggested assignee")
-    why: str = Field(description="Reason for suggesting this person")
+    why: str = Field(description="Reason for suggesting this person, under 20 words")
 
 
 # Artifact schemas for each step
@@ -48,7 +57,7 @@ class RootCauseArtifact(BaseModel):
         description="A concise summary of the root cause in under 30 words"
     )
     five_whys: list[str] = Field(
-        description="Chain of one line 'why' statements leading to the root cause"
+        description="Chain of one line 'why' statements, each under 15 words, leading to the root cause"
     )
     reproduction_steps: list[str] = Field(
         default_factory=list, description="Steps to reproduce the issue"

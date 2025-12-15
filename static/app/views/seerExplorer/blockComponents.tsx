@@ -2,6 +2,8 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {inlineCodeStyles} from '@sentry/scraps/code/inlineCode';
+
 import {Button} from 'sentry/components/core/button';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
@@ -95,7 +97,7 @@ function getToolStatus(
     let hasFailure = false;
 
     toolLinks.forEach(link => {
-      if (link?.params?.empty_results === true) {
+      if (link?.params?.empty_results === true || link?.params?.is_error === true) {
         hasFailure = true;
       } else if (link !== null) {
         hasSuccess = true;
@@ -164,6 +166,11 @@ function BlockComponent({
     const mappedLinks = (block.tool_links || [])
       .map((link, idx) => {
         if (!link) {
+          return null;
+        }
+
+        // Don't show links for tools that returned errors, but do show for empty results
+        if (link.params?.is_error === true) {
           return null;
         }
 
@@ -327,15 +334,23 @@ function BlockComponent({
                 <BlockContent
                   text={processedContent}
                   onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-                    // Intercept clicks on links to use client-side navigation
+                    // Intercept clicks on links to use client-side navigation for internal links
+                    // and open external links in a new tab
                     const anchor = (e.target as HTMLElement).closest('a');
                     if (anchor) {
+                      const href = anchor.getAttribute('href');
+                      if (!href) {
+                        return;
+                      }
+
                       e.preventDefault();
                       e.stopPropagation();
-                      const href = anchor.getAttribute('href');
-                      if (href?.startsWith('/')) {
+
+                      if (href.startsWith('/')) {
                         navigate(href);
                         onNavigate?.();
+                      } else {
+                        window.open(href, '_blank', 'noopener,noreferrer');
                       }
                     }
                   }}
@@ -508,6 +523,10 @@ const BlockContent = styled(MarkedText)`
   word-wrap: break-word;
   padding-bottom: 0;
   margin-bottom: -${space(1)};
+
+  code:not(pre code) {
+    ${p => inlineCodeStyles(p.theme)};
+  }
 
   p,
   li,

@@ -1,7 +1,13 @@
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Function
 
-from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
+from sentry.search.eap import constants
+from sentry.search.eap.columns import (
+    AggregateDefinition,
+    AttributeArgumentDefinition,
+    ColumnDefinitions,
+    ResolvedAttribute,
+)
 from sentry.search.eap.common_columns import COMMON_COLUMNS
 
 OCCURRENCES_ALWAYS_PRESENT_ATTRIBUTES = [
@@ -29,7 +35,25 @@ OCCURRENCE_COLUMNS = {
 }
 
 OCCURRENCE_DEFINITIONS = ColumnDefinitions(
-    aggregates={},  # c.f. SPAN_AGGREGATE_DEFINITIONS when we're ready.
+    aggregates={
+        "avg": AggregateDefinition(
+            internal_function=Function.FUNCTION_AVG,
+            default_search_type="duration",
+            arguments=[
+                AttributeArgumentDefinition(
+                    attribute_types={
+                        "duration",
+                        "number",
+                        "percentage",
+                        "integer",
+                        "currency",
+                        *constants.SIZE_TYPE,
+                        *constants.DURATION_TYPE,
+                    },
+                )
+            ],
+        ),
+    },  # c.f. SPAN_AGGREGATE_DEFINITIONS when we're ready.
     formulas={},
     columns=OCCURRENCE_COLUMNS,
     contexts={},

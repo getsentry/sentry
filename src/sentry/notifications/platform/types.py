@@ -309,3 +309,10 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
         implementation should be pure, and not populate with any live data.
         """
         return self.render(data=self.example_data)
+
+    @classmethod
+    def get_data_class(cls) -> type[NotificationData]:
+        """
+        Returns NotificationData type for this template.
+        """
+        return cls.example_data.__class__

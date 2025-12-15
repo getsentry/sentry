@@ -76,9 +76,8 @@ class Occurrences(rpc_dataset_common.RPCBase):
         tags should be formatted appropriately - e.g. {tags[foo], tags[bar]}
         """
 
-        columns = Occurrences.DEFINITIONS.columns.copy()
-        for name in tag_names:
-            tag_name = f"tags[{name}]"
+        columns = cls.DEFINITIONS.columns.copy()
+        for tag_name in tag_names:
             columns[tag_name] = ResolvedAttribute(
                 public_alias=tag_name,
                 internal_name=tag_name,
@@ -86,14 +85,14 @@ class Occurrences(rpc_dataset_common.RPCBase):
             )
 
         definitions = ColumnDefinitions(
-            aggregates=Occurrences.DEFINITIONS.aggregates,
-            formulas=Occurrences.DEFINITIONS.formulas,
+            aggregates=cls.DEFINITIONS.aggregates,
+            formulas=cls.DEFINITIONS.formulas,
             columns=columns,
-            contexts=Occurrences.DEFINITIONS.contexts,
-            trace_item_type=Occurrences.DEFINITIONS.trace_item_type,
-            filter_aliases=Occurrences.DEFINITIONS.filter_aliases,
-            alias_to_column=Occurrences.DEFINITIONS.alias_to_column,
-            column_to_alias=Occurrences.DEFINITIONS.column_to_alias,
+            contexts=cls.DEFINITIONS.contexts,
+            trace_item_type=cls.DEFINITIONS.trace_item_type,
+            filter_aliases=cls.DEFINITIONS.filter_aliases,
+            alias_to_column=cls.DEFINITIONS.alias_to_column,
+            column_to_alias=cls.DEFINITIONS.column_to_alias,
         )
 
         return cls._run_table_query(
