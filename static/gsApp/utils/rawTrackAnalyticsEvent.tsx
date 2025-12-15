@@ -82,7 +82,7 @@ const getCustomReferrer = () => {
       sessionStorage.getItem(CUSTOM_REFERRER_KEY) &&
       typeof sessionStorage.getItem(CUSTOM_REFERRER_KEY) === 'string'
     ) {
-      const sessionReferrer = sessionStorage.getItem(CUSTOM_REFERRER_KEY);
+      const sessionReferrer = JSON.parse(sessionStorage.getItem(CUSTOM_REFERRER_KEY));
       sessionStorage.removeItem(CUSTOM_REFERRER_KEY);
       return sessionReferrer;
     }

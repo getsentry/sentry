@@ -187,7 +187,7 @@ describe('rawTrackAnalyticsEvent', () => {
   });
 
   it('sets custom_referrer if found in local storage', () => {
-    sessionStorage.setItem(CUSTOM_REFERRER_KEY, 'batman');
+    sessionStorage.setItem(CUSTOM_REFERRER_KEY, JSON.stringify('batman'));
     setWindowLocation('http:/localhost');
     rawTrackAnalyticsEvent({
       eventKey: 'test_event',
