@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field, fields
 from datetime import datetime
 
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -26,41 +26,47 @@ from sentry.utils import snuba_rpc
 
 @dataclass
 class PreprodSizeFilters:
-    # IDs
+    # IDs (handled specially - converted to trace_id)
     artifact_id: int | None = None
 
     # App/Artifact attributes
-    app_id: str | None = None
-    artifact_type: int | None = None
+    app_id: str | None = field(
+        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
+    )
+    artifact_type: int | None = field(
+        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_INT}
+    )
 
     # Build configuration
-    build_configuration_name: str | None = None
+    build_configuration_name: str | None = field(
+        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
+    )
 
     # Git attributes
-    git_head_ref: str | None = None
-    git_head_sha: str | None = None
-    git_base_ref: str | None = None
-    git_base_sha: str | None = None
-    git_provider: str | None = None
-    git_head_repo_name: str | None = None
-    git_base_repo_name: str | None = None
-    git_pr_number: int | None = None
-
-
-_FIELD_TYPES: dict[str, AttributeKey.Type.ValueType] = {
-    "app_id": AttributeKey.Type.TYPE_STRING,
-    "artifact_type": AttributeKey.Type.TYPE_INT,
-    "build_configuration_name": AttributeKey.Type.TYPE_STRING,
-    "git_head_ref": AttributeKey.Type.TYPE_STRING,
-    "git_head_sha": AttributeKey.Type.TYPE_STRING,
-    "git_base_ref": AttributeKey.Type.TYPE_STRING,
-    "git_base_sha": AttributeKey.Type.TYPE_STRING,
-    "git_provider": AttributeKey.Type.TYPE_STRING,
-    "git_head_repo_name": AttributeKey.Type.TYPE_STRING,
-    "git_base_repo_name": AttributeKey.Type.TYPE_STRING,
-    "git_pr_number": AttributeKey.Type.TYPE_INT,
-    # Note: artifact_id is handled specially (converted to trace_id)
-}
+    git_head_ref: str | None = field(
+        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
+    )
+    git_head_sha: str | None = field(
+        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
+    )
+    git_base_ref: str | None = field(
+        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
+    )
+    git_base_sha: str | None = field(
+        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
+    )
+    git_provider: str | None = field(
+        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
+    )
+    git_head_repo_name: str | None = field(
+        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
+    )
+    git_base_repo_name: str | None = field(
+        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_STRING}
+    )
+    git_pr_number: int | None = field(
+        default=None, metadata={"attr_type": AttributeKey.Type.TYPE_INT}
+    )
 
 
 def query_preprod_size_metrics(
@@ -249,12 +255,13 @@ def query_preprod_size_metrics(
 def _build_filters(filters: PreprodSizeFilters) -> list[TraceItemFilter]:
     result = []
 
-    for field_name, value in filters.__dict__.items():
+    for field in fields(filters):
+        value = getattr(filters, field.name)
         if value is None:
             continue
 
         # Special case: artifact_id needs to be converted to trace_id format using UUID5
-        if field_name == "artifact_id":
+        if field.name == "artifact_id":
             trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(value)).hex
             result.append(
                 TraceItemFilter(
@@ -269,17 +276,17 @@ def _build_filters(filters: PreprodSizeFilters) -> list[TraceItemFilter]:
             )
             continue
 
-        attr_type = _FIELD_TYPES.get(field_name)
+        attr_type = field.metadata.get("attr_type")
         if attr_type is None:
             raise ValueError(
-                f"Field '{field_name}' is missing from _FIELD_TYPES mapping. "
-                f"Add it to the mapping in read.py"
+                f"Field '{field.name}' is missing 'attr_type' metadata. "
+                f"Add metadata={{'attr_type': ...}} to the field definition"
             )
 
         result.append(
             TraceItemFilter(
                 comparison_filter=ComparisonFilter(
-                    key=AttributeKey(name=field_name, type=attr_type),
+                    key=AttributeKey(name=field.name, type=attr_type),
                     op=ComparisonFilter.OP_EQUALS,
                     value=create_attribute_value(attr_type, value),
                 )
