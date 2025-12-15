@@ -1,49 +1,22 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 
-import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
+import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/privateGamingSdkAccessModal';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useReopenGamingSdkModal} from 'sentry/utils/useReopenGamingSdkModal';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import {
   useConsoleSdkInvites,
   useRevokeConsoleSdkInvite,
 } from 'getsentry/views/consoleSdkInvites/hooks';
-
-function ConsoleSDKInviteButton({organization}: {organization: Organization}) {
-  const buttonProps: PrivateGamingSdkAccessModalProps = useMemo(
-    () => ({
-      projectId: 'Console SDK invites settings page',
-      projectSlug: 'Console SDK invites settings page',
-      sdkName: 'Console SDK invites settings page',
-      organization,
-      origin: 'onboarding',
-    }),
-    [organization]
-  );
-
-  useReopenGamingSdkModal(buttonProps);
-
-  return (
-    <Button
-      priority="primary"
-      onClick={() => openPrivateGamingSdkAccessModal(buttonProps)}
-    >
-      {t('Get Console SDK access')}
-    </Button>
-  );
-}
 
 function ConsoleSDKInvitesSettings() {
   const organization = useOrganization();
@@ -56,7 +29,14 @@ function ConsoleSDKInvitesSettings() {
       <SentryDocumentTitle title={t('Console SDK Invites')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Console SDK Invites')}
-        action={ConsoleSDKInviteButton({organization})}
+        action={
+          <RequestSdkAccessButton
+            organization={organization}
+            origin="org-settings"
+            sdkName="None"
+            projectId="None"
+          />
+        }
       />
       <Alert type="info">
         {tct(

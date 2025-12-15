@@ -44,9 +44,8 @@ interface ConsoleSdkInviteRequest {
 
 export interface PrivateGamingSdkAccessModalProps {
   organization: Organization;
-  origin: 'onboarding' | 'project-creation' | 'project-settings';
+  origin: 'onboarding' | 'project-creation' | 'project-settings' | 'org-settings';
   projectId: string;
-  projectSlug: string;
   sdkName: string;
   gamingPlatform?: GamingPlatform;
   onSubmit?: () => void;
@@ -106,7 +105,7 @@ export function PrivateGamingSdkAccessModal({
       addSuccessMessage(
         tct('Invitation to these platforms has been sent: [platforms]', {
           platforms: platforms
-            .filter(platform => platformsWithErrors.includes(platform))
+            .filter(platform => !platformsWithErrors.includes(platform))
             .join(','),
         })
       );
@@ -152,11 +151,11 @@ export function PrivateGamingSdkAccessModal({
     setRequestError(undefined);
 
     trackAnalytics('gaming.private_sdk_access_modal_submitted', {
-      platforms: gamingPlatforms,
-      project_id: projectId,
       platform: gamingPlatform,
+      project_id: projectId,
       organization,
       origin,
+      platforms: gamingPlatforms,
     });
 
     onSubmit?.();
