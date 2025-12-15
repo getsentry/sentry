@@ -544,22 +544,24 @@ def set_default_project_seer_scanner_automation(
 
 def set_default_project_auto_open_prs(organization: Organization, project: Project) -> None:
     """Called once at project creation time to set the initial auto open PRs."""
-    if is_seer_seat_based_tier_enabled(organization):
-        stopping_point = AutofixStoppingPoint.CODE_CHANGES
-        if organization.get_option("sentry:auto_open_prs"):
-            stopping_point = AutofixStoppingPoint.OPEN_PR
+    if not is_seer_seat_based_tier_enabled(organization):
+        return
 
-        # We need to make an API call to Seer to set this preference
-        preference = SeerProjectPreference(
-            organization_id=organization.id,
-            project_id=project.id,
-            repositories=[],
-            automated_run_stopping_point=stopping_point,
-        )
-        try:
-            set_project_seer_preference(preference)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
+    stopping_point = AutofixStoppingPoint.CODE_CHANGES
+    if organization.get_option("sentry:auto_open_prs"):
+        stopping_point = AutofixStoppingPoint.OPEN_PR
+
+    # We need to make an API call to Seer to set this preference
+    preference = SeerProjectPreference(
+        organization_id=organization.id,
+        project_id=project.id,
+        repositories=[],
+        automated_run_stopping_point=stopping_point,
+    )
+    try:
+        set_project_seer_preference(preference)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 def report_token_count_metric(
