@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button/linkButton';
@@ -81,6 +82,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
   } = props;
 
   const organization = useOrganization();
+  const theme = useTheme();
 
   if (!isSizeInfoCompleted(sizeInfo)) {
     return null;
@@ -230,7 +232,14 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
                       aria-label={t('Compare builds')}
                     >
                       <Flex align="center" gap="xs">
-                        <IconWrapper>{icon}</IconWrapper>
+                        <Flex
+                          as="span"
+                          display="inline-flex"
+                          align="center"
+                          style={{color: theme.tokens.content.primary}}
+                        >
+                          {icon}
+                        </Flex>
                         <Text
                           as="span"
                           variant={variant}
@@ -353,10 +362,4 @@ const MetricValue = styled('span')<{$interactive?: boolean}>`
     cursor: help;
   `
       : ''}
-`;
-
-const IconWrapper = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  color: ${p => p.theme.tokens.content.primary};
 `;
