@@ -2,48 +2,23 @@ from __future__ import annotations
 
 from typing import Any
 
-import sentry_sdk
 from django.db import router, transaction
-from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import ProjectPermission
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
+    SeerAutofixSettingsSerializer,
     bulk_set_project_preferences,
     get_project_seer_preferences,
 )
-from sentry.seer.models import SeerApiResponseValidationError
-
-
-class SeerAutofixSettingPutSerializer(serializers.Serializer):
-    """Serializer for OrganizationAutofixAutomationSettingsEndpoint.put"""
-
-    autofixAutomationTuning = serializers.ChoiceField(
-        choices=[opt.value for opt in AutofixAutomationTuningSettings],
-        required=False,
-        help_text="The tuning setting for the projects.",
-    )
-    automatedRunStoppingPoint = serializers.ChoiceField(
-        choices=[opt.value for opt in AutofixStoppingPoint],
-        required=False,
-        help_text="The stopping point for the projects.",
-    )
-
-    def validate(self, data):
-        if "autofixAutomationTuning" not in data and "automatedRunStoppingPoint" not in data:
-            raise serializers.ValidationError(
-                "At least one of 'autofixAutomationTuning' or 'automatedRunStoppingPoint' must be provided."
-            )
-        return data
 
 
 @region_silo_endpoint
@@ -57,8 +32,6 @@ class ProjectAutofixAutomationSettingsEndpoint(ProjectEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
 
-    permission_classes = (ProjectPermission,)
-
     def get(self, request: Request, project: Project) -> Response:
         """
         Specific project with its autofix automation settings.
@@ -71,15 +44,9 @@ class ProjectAutofixAutomationSettingsEndpoint(ProjectEndpoint):
         autofix_automation_tuning = ProjectOption.objects.get_value(
             project, "sentry:autofix_automation_tuning"
         )
-        seer_pref = None
-        try:
-            raw_prefs = get_project_seer_preferences(project.id)
-            seer_pref = raw_prefs.preference if raw_prefs else None
-        except SeerApiResponseValidationError:
-            pass
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            return Response(status=500, data={"error": "Failed to read Seer project preferences"})
+
+        raw_prefs = get_project_seer_preferences(project.id)
+        seer_pref = raw_prefs.preference if raw_prefs else None
 
         return Response(
             status=200,
@@ -103,7 +70,7 @@ class ProjectAutofixAutomationSettingsEndpoint(ProjectEndpoint):
         :pparam string project_id_or_slug: the id or slug of the project.
         :auth: required
         """
-        serializer = SeerAutofixSettingPutSerializer(data=request.data)
+        serializer = SeerAutofixSettingsSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
@@ -112,17 +79,8 @@ class ProjectAutofixAutomationSettingsEndpoint(ProjectEndpoint):
 
         preferences_to_set: list[dict[str, Any]] = []
         if automated_run_stopping_point:
-            seer_pref = None
-            try:
-                raw_prefs = get_project_seer_preferences(project.id)
-                seer_pref = raw_prefs.preference if raw_prefs else None
-            except SeerApiResponseValidationError:
-                pass
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
-                return Response(
-                    status=500, data={"error": "Failed to read Seer project preferences"}
-                )
+            raw_prefs = get_project_seer_preferences(project.id)
+            seer_pref = raw_prefs.preference if raw_prefs else None
 
             preferences_to_set.append(
                 {

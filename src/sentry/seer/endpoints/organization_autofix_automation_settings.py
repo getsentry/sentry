@@ -19,6 +19,7 @@ from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
+    SeerAutofixSettingsSerializer,
     bulk_get_project_preferences,
     bulk_set_project_preferences,
 )
@@ -35,7 +36,7 @@ class SeerAutofixSettingGetResponseSerializer(serializers.Serializer):
     )
 
 
-class SeerAutofixSettingsPostSerializer(serializers.Serializer):
+class SeerAutofixSettingsPostSerializer(SeerAutofixSettingsSerializer):
     """Serializer for OrganizationAutofixAutomationSettingsEndpoint.post"""
 
     projectIds = serializers.ListField(
@@ -45,26 +46,8 @@ class SeerAutofixSettingsPostSerializer(serializers.Serializer):
         max_length=1000,
         help_text="List of project IDs to create/update settings for.",
     )
-    autofixAutomationTuning = serializers.ChoiceField(
-        choices=[opt.value for opt in AutofixAutomationTuningSettings],
-        required=False,
-        help_text="The tuning setting for the projects.",
-    )
-    automatedRunStoppingPoint = serializers.ChoiceField(
-        choices=[opt.value for opt in AutofixStoppingPoint],
-        required=False,
-        help_text="The stopping point for the projects.",
-    )
-
-    def validate(self, data):
-        if "autofixAutomationTuning" not in data and "automatedRunStoppingPoint" not in data:
-            raise serializers.ValidationError(
-                "At least one of 'autofixAutomationTuning' or 'automatedRunStoppingPoint' must be provided."
-            )
-        return data
 
 
-#
 @region_silo_endpoint
 class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
     """Bulk endpoint for managing project level autofix automation settings."""
