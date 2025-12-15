@@ -275,7 +275,7 @@ const outputChartColors = (theme: Theme) => {
         theme.chart.colors[5][3],
         theme.chart.colors[5][4],
         theme.chart.colors[5][5],
-        theme.chartOther, // Projected
+        theme.tokens.content.muted, // Projected
       ] as const);
 };
 
@@ -478,7 +478,7 @@ function UsageChartBody({
         minInterval: yAxisMinInterval,
         axisLabel: {
           formatter: yAxisLabelFormatter,
-          color: theme.chartLabel,
+          color: theme.tokens.content.muted,
         },
       }}
       series={series}
