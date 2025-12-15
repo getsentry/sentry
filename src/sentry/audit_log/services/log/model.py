@@ -12,7 +12,7 @@ from sentry.hybridcloud.rpc import DEFAULT_DATE, RpcModel
 
 class UserIpEvent(RpcModel):
     user_id: int = -1
-    ip_address: str = "127.0.0.1"  # TODO(Gabe): Verify whether we want this to be in the repr
+    ip_address: str = "127.0.0.1"
     last_seen: datetime.datetime = DEFAULT_DATE
     country_code: str | None = None
     region_code: str | None = None

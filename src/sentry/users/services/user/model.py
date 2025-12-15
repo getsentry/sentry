@@ -31,9 +31,7 @@ class RpcAuthenticator(RpcModel):
     created_at: datetime.datetime = DEFAULT_DATE
     last_used_at: datetime.datetime | None = None
     type: int = -1
-    config: Any = Field(
-        repr=False, default=None
-    )  # TODO(Gabe): Verify whether we want this to be in the repr
+    config: Any = Field(repr=False, default=None)
 
 
 class RpcUserProfile(RpcModel):
@@ -64,9 +62,7 @@ class RpcUser(RpcUserProfile):
     roles: frozenset[str] = frozenset()
     permissions: frozenset[str] = frozenset()
     avatar: RpcAvatar | None = None
-    emails: frozenset[str] = (
-        frozenset()
-    )  # TODO(Gabe): Verify whether we want this to be in the repr
+    emails: frozenset[str] = frozenset()
     useremails: list[RpcUserEmail] = Field(default_factory=list)
     authenticators: list[RpcAuthenticator] = Field(default_factory=list)
 
@@ -76,7 +72,7 @@ class RpcUser(RpcUserProfile):
         # TODO: Remove the need for this
         return hash((self.id, self.pk))
 
-    def __str__(self) -> str:  # API compatibility with ORM Usern
+    def __str__(self) -> str:  # API compatibility with ORM User
         return self.get_username()
 
     def by_email(self, email: str) -> "RpcUser":
