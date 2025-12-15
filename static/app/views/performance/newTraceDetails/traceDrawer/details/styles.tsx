@@ -1,12 +1,16 @@
 import {Fragment, useCallback, useMemo, useState, type PropsWithChildren} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useHover} from '@react-aria/interactions';
 import type {LocationDescriptor} from 'history';
 
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
+import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
@@ -48,7 +52,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {ellipsize} from 'sentry/utils/string/ellipsize';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {Color, ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -1271,44 +1275,113 @@ const CardValueText = styled('span')`
   overflow-wrap: anywhere;
 `;
 
-const MAX_TEXT_LENGTH = 300;
-const MAX_NEWLINES = 5;
-
 function MultilineText({children}: {children: string}) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const newLineMatches = Array.from(children.matchAll(/\n/g));
-  const maxNewlinePosition = newLineMatches.at(MAX_NEWLINES - 1)?.index ?? Infinity;
-
-  const truncatePosition = Math.min(maxNewlinePosition, MAX_TEXT_LENGTH);
-  const needsTruncation = truncatePosition < children.length;
+  const [showRaw, setShowRaw] = useState<boolean>(false);
+  const {hoverProps, isHovered} = useHover({});
+  const theme = useTheme();
 
   return (
-    <MultilineTextWrapper>
-      {isExpanded || !needsTruncation ? (
-        children
-      ) : (
-        <Fragment>{ellipsize(children, truncatePosition)}</Fragment>
-      )}
-      {needsTruncation ? (
-        <Flex justify="center" paddingTop="md">
-          <Button size="xs" onClick={() => setIsExpanded(!isExpanded)}>
-            {isExpanded ? t('Show less') : t('Show all')}
-          </Button>
-        </Flex>
-      ) : null}
-    </MultilineTextWrapper>
+    <Fragment>
+      <StyledClippedBox clipHeight={150} buttonProps={{priority: 'default', size: 'xs'}}>
+        <MultilineTextWrapper {...hoverProps}>
+          <Container
+            position="absolute"
+            style={{top: theme.space.xs, right: theme.space.xs}}
+          >
+            {isHovered && (
+              <SegmentedControl
+                size="xs"
+                value={showRaw ? 'raw' : 'formatted'}
+                onChange={value => setShowRaw(value === 'raw')}
+              >
+                <SegmentedControl.Item key="formatted">
+                  {t('Pretty')}
+                </SegmentedControl.Item>
+                <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
+              </SegmentedControl>
+            )}
+          </Container>
+          {showRaw ? (
+            children.trim()
+          ) : (
+            <MarkedText as={MarkdownContainer} text={children} />
+          )}
+        </MultilineTextWrapper>
+      </StyledClippedBox>
+    </Fragment>
   );
 }
 
+const StyledClippedBox = styled(ClippedBox)`
+  padding: 0;
+  margin-bottom: ${p => p.theme.space.md};
+`;
+
+/**
+ * Markdown wrapper including styles for markdown elements
+ * Optimized for inline use, with minimal padding and margin and smaller heading font size
+ */
+const MarkdownContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.sm};
+  white-space: normal;
+  p {
+    margin: 0;
+    padding: 0;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-size: ${p => p.theme.fontSize.md};
+    margin: 0;
+    padding-bottom: ${p => p.theme.space.sm};
+  }
+  ul,
+  ol {
+    margin: 0;
+  }
+  blockquote {
+    margin: 0;
+    padding: ${p => p.theme.space.sm};
+    border-left: 2px solid ${p => p.theme.border};
+  }
+  pre {
+    margin: 0;
+    padding: ${p => p.theme.space.sm};
+    border-radius: ${p => p.theme.borderRadius};
+  }
+  img {
+    max-height: 200px;
+  }
+  hr {
+    margin: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+    border-top: 1px solid ${p => p.theme.border};
+  }
+  table {
+    border-collapse: collapse;
+    width: auto;
+    width: max-content;
+  }
+  table th,
+  table td {
+    border: 1px solid ${p => p.theme.border};
+    padding: ${p => p.theme.space.xs};
+  }
+`;
+
 const MultilineTextWrapper = styled('div')`
+  position: relative;
   white-space: pre-wrap;
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)};
   word-break: break-word;
   &:not(:last-child) {
-    margin-bottom: ${space(1.5)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
@@ -1327,19 +1400,49 @@ function MultilineJSON({
   value: any;
   maxDefaultDepth?: number;
 }) {
+  const [showRaw, setShowRaw] = useState<boolean>(false);
+  const {hoverProps, isHovered} = useHover({});
+  const theme = useTheme();
+
   const json = tryParseJson(value);
   return (
-    <MultilineTextWrapperMonospace>
-      <StructuredData
-        config={{
-          isString: v => typeof v === 'string',
-          isBoolean: v => typeof v === 'boolean',
-          isNumber: v => typeof v === 'number',
-        }}
-        value={json}
-        maxDefaultDepth={maxDefaultDepth}
-        withAnnotatedText
-      />
+    <MultilineTextWrapperMonospace {...hoverProps}>
+      {isHovered && (
+        <Container
+          position="absolute"
+          style={{
+            top: theme.space.xs,
+            right: theme.space.xs,
+            // Ensure the segmented control is on top of the text StructuredData
+            zIndex: 1,
+          }}
+        >
+          <SegmentedControl
+            size="xs"
+            value={showRaw ? 'raw' : 'formatted'}
+            onChange={v => setShowRaw(v === 'raw')}
+          >
+            <SegmentedControl.Item key="formatted">{t('Pretty')}</SegmentedControl.Item>
+            <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
+          </SegmentedControl>
+        </Container>
+      )}
+      {showRaw ? (
+        <pre>
+          <code>{JSON.stringify(json, null, 2)}</code>
+        </pre>
+      ) : (
+        <StructuredData
+          config={{
+            isString: v => typeof v === 'string',
+            isBoolean: v => typeof v === 'boolean',
+            isNumber: v => typeof v === 'number',
+          }}
+          value={json}
+          maxDefaultDepth={maxDefaultDepth}
+          withAnnotatedText
+        />
+      )}
     </MultilineTextWrapperMonospace>
   );
 }
@@ -1347,6 +1450,11 @@ function MultilineJSON({
 const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
+  pre {
+    margin: 0;
+    padding: 0;
+    font-size: ${p => p.theme.fontSize.sm};
+  }
 `;
 
 const MultilineTextLabel = styled('div')`
