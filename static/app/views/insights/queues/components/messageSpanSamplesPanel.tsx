@@ -5,9 +5,10 @@ import keyBy from 'lodash/keyBy';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -22,6 +23,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 // TODO(release-drawer): Move InsightsLineChartWidget into separate, self-contained component
 // eslint-disable-next-line no-restricted-imports
@@ -47,6 +49,28 @@ import {
 import decodeRetryCount from 'sentry/views/insights/queues/utils/queryParameterDecoders/retryCount';
 import decodeTraceStatus from 'sentry/views/insights/queues/utils/queryParameterDecoders/traceStatus';
 import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
+
+interface MessageSpanSamplesPanelSearchQueryBuilderProps {
+  handleSearch: (query: string) => void;
+  query: string;
+  selection: PageFilters;
+}
+
+function MessageSpanSamplesPanelSearchQueryBuilder({
+  query,
+  selection,
+  handleSearch,
+}: MessageSpanSamplesPanelSearchQueryBuilderProps) {
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    searchSource: `${ModuleName.QUEUE}-sample-panel`,
+    initialQuery: query,
+    onSearch: handleSearch,
+    placeholder: t('Search for span attributes'),
+    projects: selection.projects,
+  });
+
+  return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
+}
 
 export function MessageSpanSamplesPanel() {
   const navigate = useNavigate();
@@ -333,12 +357,10 @@ export function MessageSpanSamplesPanel() {
             </ModuleLayout.Full>
 
             <ModuleLayout.Full>
-              <EapSpanSearchQueryBuilderWrapper
-                searchSource={`${ModuleName.QUEUE}-sample-panel`}
-                initialQuery={query.spanSearchQuery}
-                onSearch={handleSearch}
-                placeholder={t('Search for span attributes')}
-                projects={selection.projects}
+              <MessageSpanSamplesPanelSearchQueryBuilder
+                selection={selection}
+                handleSearch={handleSearch}
+                query={query.spanSearchQuery}
               />
             </ModuleLayout.Full>
 

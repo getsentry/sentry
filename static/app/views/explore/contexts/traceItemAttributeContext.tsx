@@ -124,14 +124,24 @@ function useTraceItemAttributeConfig({
     };
   }, [stringAttributes, traceItemType]);
 
-  return {
-    number: allNumberAttributes.attributes,
-    string: allStringAttributes.attributes,
-    numberSecondaryAliases: allNumberAttributes.secondaryAliases,
-    stringSecondaryAliases: allStringAttributes.secondaryAliases,
-    numberAttributesLoading,
-    stringAttributesLoading,
-  };
+  return useMemo(
+    () => ({
+      number: allNumberAttributes.attributes,
+      string: allStringAttributes.attributes,
+      numberSecondaryAliases: allNumberAttributes.secondaryAliases,
+      stringSecondaryAliases: allStringAttributes.secondaryAliases,
+      numberAttributesLoading,
+      stringAttributesLoading,
+    }),
+    [
+      allNumberAttributes.attributes,
+      allNumberAttributes.secondaryAliases,
+      allStringAttributes.attributes,
+      allStringAttributes.secondaryAliases,
+      numberAttributesLoading,
+      stringAttributesLoading,
+    ]
+  );
 }
 
 function processTraceItemAttributes(

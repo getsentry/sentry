@@ -6,7 +6,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import {
-  useSearchQueryBuilderProps,
+  useTraceItemSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
@@ -71,7 +71,7 @@ export function useLogsSearchQueryBuilderProps({
     replaceRawSearchKeys: hasRawSearchReplacement ? ['message'] : undefined,
   };
 
-  const searchQueryBuilderProviderProps = useSearchQueryBuilderProps(
+  const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(
     tracesItemSearchQueryBuilderProps
   );
 
