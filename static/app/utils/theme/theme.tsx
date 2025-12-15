@@ -1731,6 +1731,4 @@ export type StrictCSSObject = {
   [key: `> ${string}:first-child`]: StrictCSSObject; // Allow some nested selectors
 }>;
 
-// tkdodo: kept for backwards compatibility, to be deleted
-
 export const chonkStyled = styled;
