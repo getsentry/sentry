@@ -11,8 +11,8 @@ import type {DatePageFilterProps} from 'sentry/components/organizations/datePage
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {
-  EAPSpanSearchQueryBuilder,
-  useEAPSpanSearchQueryBuilderProps,
+  useSpanSearchQueryBuilderProps,
+  type UseSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
@@ -29,6 +29,7 @@ import useProjects from 'sentry/utils/useProjects';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
@@ -78,22 +79,14 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
 
   const [fields, setFields] = useFieldsQueryParam();
 
-  const {
-    tags: numberTags,
-    secondaryAliases: numberSecondaryAliases,
-    isLoading: numberTagsLoading,
-  } = useTraceItemTags('number');
-  const {
-    tags: stringTags,
-    secondaryAliases: stringSecondaryAliases,
-    isLoading: stringTagsLoading,
-  } = useTraceItemTags('string');
+  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
+  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
 
-  const eapSpanSearchQueryBuilderProps = useMemo(
+  const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
@@ -101,10 +94,6 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
         unsetCursor();
       },
       searchSource: 'ai-generations',
-      numberTags,
-      stringTags,
-      numberSecondaryAliases,
-      stringSecondaryAliases,
       replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
@@ -116,20 +105,15 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
     [
       caseInsensitive,
       hasRawSearchReplacement,
-      numberSecondaryAliases,
-      numberTags,
       searchQuery,
       setCaseInsensitive,
       setSearchQuery,
-      stringSecondaryAliases,
-      stringTags,
       unsetCursor,
     ]
   );
 
-  const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
-    eapSpanSearchQueryBuilderProps
-  );
+  const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
+    useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -150,7 +134,7 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
   }, [fields, setFields, stringTags, numberTags]);
 
   return (
-    <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
+    <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
       <ModuleFeature moduleName={ModuleName.AI_GENERATIONS}>
         <Stack
           direction="column"
@@ -169,7 +153,7 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
             </PageFilterBar>
             {!showOnboarding && (
               <Flex flex={2} minWidth="50%">
-                <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
+                <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
               </Flex>
             )}
           </Flex>

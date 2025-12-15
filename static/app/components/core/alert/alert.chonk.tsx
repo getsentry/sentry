@@ -20,7 +20,7 @@ export const chonkAlertPropMapping: ChonkPropMapping<
 
 interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
   type: 'subtle' | 'info' | 'warning' | 'success' | 'danger';
-  theme?: ReturnType<typeof useChonkTheme>;
+  theme?: Theme;
 }
 
 export const AlertPanel = styled('div')<ChonkAlertProps>`
@@ -60,10 +60,7 @@ function makeChonkAlertTheme(props: ChonkAlertProps): SerializedStyles {
   `;
 }
 
-function getChonkAlertTokens(
-  type: ChonkAlertProps['type'],
-  theme: ReturnType<typeof useChonkTheme>
-) {
+function getChonkAlertTokens(type: ChonkAlertProps['type'], theme: Theme) {
   switch (type) {
     case 'info':
       return {
@@ -105,7 +102,7 @@ function getChonkAlertTokens(
 function generateAlertBackground(
   props: ChonkAlertProps,
   tokens: ReturnType<typeof getChonkAlertTokens>,
-  theme: ReturnType<typeof useChonkTheme>
+  theme: Theme
 ) {
   const width = 44;
   if (props.showIcon) {

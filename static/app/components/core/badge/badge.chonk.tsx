@@ -46,10 +46,7 @@ const StyledChonkBadge = styled('span')<ChonkBadgeProps>`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.xs};
 `;
 
-function makeChonkBadgeTheme(
-  p: ChonkBadgeProps,
-  theme: ReturnType<typeof useChonkTheme>
-): React.CSSProperties {
+function makeChonkBadgeTheme(p: ChonkBadgeProps, theme: Theme): React.CSSProperties {
   switch (p.type) {
     // @TODO(jonasbadalic) these should use feature badge variants
     case 'alpha':
