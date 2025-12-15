@@ -13,8 +13,6 @@ interface ChonkTagProps extends Omit<TagProps, 'type'> {
 const legacyMapping: Partial<Record<NonNullable<TagProps['type']>, TagType>> = {
   highlight: 'info',
   error: 'danger',
-  white: 'default',
-  black: 'default',
 };
 
 export function chonkTagPropMapping(props: TagProps): ChonkTagProps {
