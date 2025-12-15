@@ -13,7 +13,6 @@ import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -344,7 +343,7 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   `}
 `;
 
-const ChonkNavLinkIconContainer = chonkStyled('span')`
+const ChonkNavLinkIconContainer = styled('span')`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -386,7 +385,7 @@ const NavLinkLabel = styled('div')`
   letter-spacing: -0.05em;
 `;
 
-const ChonkNavLink = chonkStyled(Link, {
+const ChonkNavLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
   display: flex;
@@ -396,7 +395,8 @@ const ChonkNavLink = chonkStyled(Link, {
   justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
   align-items: center;
 
-  padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : `${space(0.75)} ${space(1.5)}`)};
+  padding: ${p =>
+    p.isMobile ? `${space(1)} ${space(3)}` : `${space(0.75)} ${space(1.5)}`};
 
   /* On mobile, the buttons are horizontal, so we need a gap between the icon and label */
   gap: ${p => (p.isMobile ? space(1) : space(0.5))};
@@ -449,7 +449,9 @@ const ChonkNavLink = chonkStyled(Link, {
   &[aria-current='page'] {
     color: ${p => p.theme.tokens.content.accent};
 
-    &::before { opacity: 1; }
+    &::before {
+      opacity: 1;
+    }
     ${NavLinkIconContainer} {
       background-color: ${p => p.theme.colors.blue100};
     }

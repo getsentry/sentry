@@ -9,7 +9,6 @@
  */
 import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import modifyColor from 'color';
 import {spring, type Transition} from 'framer-motion';
 
@@ -1366,7 +1365,6 @@ const generateAliases = (
   linkColor: tokens.component.link.accent.default,
   linkHoverColor: tokens.component.link.accent.hover,
   linkUnderline: tokens.component.link.accent.default,
-  linkFocus: tokens.border.accent,
 
   /**
    * Form placeholder text color
@@ -1695,5 +1693,3 @@ export type StrictCSSObject = {
   [key: `> ${string}:last-child`]: StrictCSSObject; // Allow some nested selectors
   [key: `> ${string}:first-child`]: StrictCSSObject; // Allow some nested selectors
 }>;
-
-export const chonkStyled = styled;

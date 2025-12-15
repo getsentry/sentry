@@ -44,7 +44,7 @@ export type TracingEventParameters = {
     query_status: 'success' | 'error' | 'pending';
     result_length: number;
     result_missing_root: number;
-    result_mode: 'trace samples' | 'span samples' | 'aggregates';
+    result_mode: 'trace samples' | 'span samples' | 'aggregates' | 'attribute breakdowns';
     sample_counts: number[];
     title: string;
     user_queries: string;
