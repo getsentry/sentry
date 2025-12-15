@@ -50,6 +50,25 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 ],
                 "number": ["span.duration"],
             },
+            "built_in_fields": [
+                {"key": "id", "type": "string"},
+                {"key": "project", "type": "string"},
+                {"key": "span.description", "type": "string"},
+                {"key": "span.op", "type": "string"},
+                {"key": "timestamp", "type": "string"},
+                {"key": "transaction", "type": "string"},
+                {"key": "trace", "type": "string"},
+                {"key": "is_transaction", "type": "string"},
+                {"key": "sentry.normalized_description", "type": "string"},
+                {"key": "release", "type": "string"},
+                {"key": "project.id", "type": "string"},
+                {"key": "sdk.name", "type": "string"},
+                {"key": "sdk.version", "type": "string"},
+                {"key": "span.system", "type": "string"},
+                {"key": "span.category", "type": "string"},
+                {"key": "span.duration", "type": "number"},
+                {"key": "span.self_time", "type": "number"},
+            ],
         }
 
     def test_get_attribute_values_with_substring(self) -> None:
