@@ -6019,26 +6019,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert "meta" not in response.data
         assert "debug_info" not in response.data
 
-    def test_idor_dashboard_widget_from_different_org(self) -> None:
-        """Regression test: Cannot access dashboard widgets from other organizations (IDOR)."""
-        other_org = self.create_organization()
-        other_dashboard = self.create_dashboard(organization=other_org)
-        other_widget = self.create_dashboard_widget(dashboard=other_dashboard)
-
-        # Request with cross-org widget ID should not use that widget's configuration
-        response = self.do_request(
-            {
-                "field": ["count()"],
-                "project": [self.project.id],
-                "dashboardWidgetId": other_widget.id,
-            },
-        )
-        # Should still return 200 (falls back to default behavior)
-        assert response.status_code == 200
-        # Should NOT have discoverSplitDecision from the cross-org widget
-        meta = response.data.get("meta", {})
-        assert "discoverSplitDecision" not in meta
-
 
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")

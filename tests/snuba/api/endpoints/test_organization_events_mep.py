@@ -4075,6 +4075,40 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         assert response.status_code == 200, response.content
         mock_mep_query.assert_called_once()
 
+    def test_idor_dashboard_widget_from_different_org(self) -> None:
+        """Regression test: Cannot access dashboard widgets from other organizations (IDOR)."""
+        # Create a widget in a DIFFERENT organization with discover_widget_split set
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        _, other_widget, __ = create_widget(
+            ["count()"],
+            "",
+            other_project,
+            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
+        )
+
+        # Request with cross-org widget ID should NOT use that widget's configuration
+        # The widget should be ignored because it belongs to a different organization
+        response = self.do_request(
+            {
+                "field": ["count()"],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": other_widget.id,
+            }
+        )
+
+        # Request should succeed (the widget query fails silently and falls back)
+        assert response.status_code == 200, response.content
+        # The cross-org widget had ERROR_EVENTS split, but since it's not accessible,
+        # the response should NOT have the split decision from that widget.
+        meta = response.data.get("meta", {})
+        # The key assertion: the response should NOT show ERROR_EVENTS from the other org's widget
+        assert meta.get("discoverSplitDecision") != DashboardWidgetTypes.get_type_name(
+            DashboardWidgetTypes.ERROR_EVENTS
+        )
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
