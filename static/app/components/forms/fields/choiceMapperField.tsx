@@ -1,8 +1,9 @@
-import {Component, Fragment} from 'react';
+import {Component, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import type {DistributedOmit} from 'type-fest';
 
-import {AsyncCompactSelect} from 'sentry/components/core/asyncCompactSelect';
+import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {
   CompactSelect,
@@ -18,6 +19,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
@@ -119,6 +121,104 @@ export interface ChoiceMapperFieldProps
       'onBlur' | 'onChange' | 'value' | 'formatMessageValue' | 'disabled'
     > {}
 
+type AsyncCompactSelectProps<Value extends string> = Omit<
+  SingleSelectProps<Value>,
+  'options' | 'searchable' | 'disableSearchFilter' | 'loading' | 'onSearch'
+> & {
+  /**
+   * Function to transform query string into API params
+   */
+  onQuery: (query: string) => Record<string, any>;
+  /**
+   * Function to transform API response into options
+   */
+  onResults: (data: any) => Array<SelectOption<Value>>;
+  /**
+   * URL to fetch options from
+   */
+  url: string;
+  /**
+   * Initial options to show before search
+   */
+  defaultOptions?: Array<SelectOption<Value>>;
+};
+
+/**
+ * AsyncCompactSelect combines CompactSelect's button-trigger UI with async search capabilities.
+ * It fetches options from an API endpoint as the user types.
+ *
+ * This component is specific to Integration Configuration page's needs and is not exported for general use.
+ */
+function AsyncCompactSelectForIntegrationConfig<Value extends string = string>({
+  url,
+  onQuery,
+  onResults,
+  defaultOptions,
+  clearable: _clearable,
+  onChange,
+  onOpenChange,
+  emptyMessage,
+  ...compactSelectProps
+}: AsyncCompactSelectProps<Value>) {
+  const [query, setQuery] = useState('');
+  const debouncedQuery = useDebouncedValue(query, 250);
+
+  // Use empty baseUrl since /extensions/ endpoints are not under /api/0/
+  const [api] = useState(() => new Client({baseUrl: '', headers: {}}));
+  useEffect(() => {
+    return () => {
+      api.clear();
+    };
+  }, [api]);
+
+  const {data, isFetching} = useQuery({
+    queryKey: [url, onQuery(debouncedQuery)],
+    queryFn: async () => {
+      // This exists because /extensions/type/search API is not prefixed with /api/0/
+      // We do this in the externalIssues modal as well unfortunately.
+      const response = await api.requestPromise(url, {
+        query: onQuery(debouncedQuery),
+      });
+      return response;
+    },
+    enabled: !!debouncedQuery,
+    staleTime: 30_000,
+  });
+
+  const options = data ? onResults(data) : defaultOptions || [];
+
+  const handleSearch = (value: string) => {
+    setQuery(value);
+  };
+
+  const handleChange = (option: SelectOption<Value>) => {
+    setQuery('');
+    onChange?.(option);
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setQuery('');
+    }
+    onOpenChange?.(isOpen);
+  };
+
+  return (
+    <CompactSelect
+      {...compactSelectProps}
+      searchable
+      disableSearchFilter
+      clearable={false}
+      options={options}
+      onSearch={handleSearch}
+      onChange={handleChange}
+      onOpenChange={handleOpenChange}
+      loading={isFetching}
+      emptyMessage={isFetching ? t('Loading\u2026') : emptyMessage}
+    />
+  );
+}
+
 export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps> {
   static defaultProps = defaultProps;
 
@@ -188,13 +288,21 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
         return map;
       }, {}) ?? {};
 
-    // Use async search if url is provided, otherwise use prepopulated dropdown
-    const dropdown = addDropdown.url ? (
-      <AsyncCompactSelect
-        url={addDropdown.url}
+    const {
+      url: asyncUrl,
+      searchField,
+      items: _items,
+      noResultsMessage,
+      ...restDropdownProps
+    } = addDropdown;
+
+    const dropdown = asyncUrl ? (
+      <AsyncCompactSelectForIntegrationConfig
+        {...restDropdownProps}
+        url={asyncUrl}
         value={undefined}
         onQuery={(query: string) => ({
-          field: addDropdown.searchField,
+          field: searchField,
           query,
         })}
         onResults={(data: any) =>
@@ -210,9 +318,9 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
         size="xs"
         menuWidth={250}
         disabled={false}
-        emptyMessage={addDropdown.noResultsMessage ?? t('No results found')}
+        emptyMessage={noResultsMessage ?? t('No results found')}
         triggerProps={{
-          ...addDropdown.triggerProps,
+          ...restDropdownProps.triggerProps,
           children: (
             <Flex gap="xs">
               <IconAdd /> {addButtonText}
