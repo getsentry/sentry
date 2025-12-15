@@ -19,7 +19,7 @@ export default function YAxis({theme, ...props}: Props): YAXisComponentOption {
       },
       splitLine: {
         lineStyle: {
-          color: theme.chartLineColor,
+          color: theme.colors.gray300,
           opacity: 0.3,
         },
       },
