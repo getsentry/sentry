@@ -40,11 +40,6 @@ interface ContainerLayoutProps {
 
   position?: Responsive<'static' | 'relative' | 'absolute' | 'fixed' | 'sticky'>;
 
-  top?: Responsive<React.CSSProperties['top']>;
-  bottom?: Responsive<React.CSSProperties['bottom']>;
-  left?: Responsive<React.CSSProperties['left']>;
-  right?: Responsive<React.CSSProperties['right']>;
-
   overflow?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
   overflowX?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
   overflowY?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
@@ -161,7 +156,6 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'borderBottom',
   'borderLeft',
   'borderRight',
-  'bottom',
   'column',
   'display',
   'flex',
@@ -170,7 +164,6 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'flexShrink',
   'height',
   'justifySelf',
-  'left',
   'margin',
   'marginTop',
   'marginBottom',
@@ -191,9 +184,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'paddingRight',
   'position',
   'radius',
-  'right',
   'row',
-  'top',
   'width',
 ]);
 
@@ -219,11 +210,6 @@ export const Container = styled(
 )`
   ${p => rc('display', p.display, p.theme)};
   ${p => rc('position', p.position, p.theme)};
-
-  ${p => rc('top', p.top, p.theme)};
-  ${p => rc('bottom', p.bottom, p.theme)};
-  ${p => rc('left', p.left, p.theme)};
-  ${p => rc('right', p.right, p.theme)};
 
   ${p => rc('overflow', p.overflow, p.theme)};
   ${p => rc('overflow-x', p.overflowX, p.theme)};
