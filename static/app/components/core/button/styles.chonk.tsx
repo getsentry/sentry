@@ -83,7 +83,10 @@ export function DO_NOT_USE_getChonkButtonStyles(
 
     background: 'none',
 
-    ...buttonSizes[p.size],
+    height: buttonSizes[p.size].height,
+    minHeight: buttonSizes[p.size].minHeight,
+    fontSize: buttonSizes[p.size].fontSize,
+    lineHeight: buttonSizes[p.size].lineHeight,
 
     '&::before': {
       content: '""',
