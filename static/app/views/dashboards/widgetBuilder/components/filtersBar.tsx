@@ -1,4 +1,3 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -40,15 +39,11 @@ function WidgetBuilderFilterBar({releases}: {releases: string[]}) {
 export default WidgetBuilderFilterBar;
 
 // Override the styles of the trigger button of the releases selection
-// control under the chonk UI. This is because filter buttons are
+// control. This is because filter buttons are
 // translated back to slightly overlap the border, which causes
 // the last button not to extend the full width
 const StyledPageFilterBar = styled(PageFilterBar)`
-  ${p =>
-    p.theme.isChonk &&
-    css`
-      #releases-select-control button {
-        min-width: calc(100% + 3px);
-      }
-    `}
+  #releases-select-control button {
+    min-width: calc(100% + 3px);
+  }
 `;

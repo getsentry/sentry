@@ -91,6 +91,13 @@ function UsageOverviewTableRow({
   }
 
   const metricHistory = subscription.categories[billedCategory];
+  const {reserved, usage, prepaid, free} = metricHistory ?? {
+    reserved: 0,
+    usage: 0,
+    prepaid: 0,
+    free: 0,
+  };
+
   if (!metricHistory || !isEnabled) {
     if (isEnabled) {
       throw new Error('Missing metric history for enabled product');
@@ -123,17 +130,13 @@ function UsageOverviewTableRow({
       return null;
     }
 
-    isUnlimited = !!activeProductTrial;
+    isUnlimited = !!activeProductTrial || prepaid === UNLIMITED_RESERVED;
     const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(
       (parentProduct ?? product) as AddOnCategory
     );
     const reservedBudget = subscription.reservedBudgets?.find(
       budget => budget.apiName === reservedBudgetCategory
     );
-    const free = reservedBudget?.freeBudget ?? 0;
-    percentUsed = reservedBudget
-      ? getPercentage(reservedBudget.totalReservedSpend, reservedBudget.reservedBudget)
-      : 0;
     formattedUsage = reservedBudget
       ? displayPriceWithCents({
           cents: isChildProduct
@@ -148,10 +151,23 @@ function UsageOverviewTableRow({
         : '';
 
     if (isUnlimited) {
+      percentUsed = 0;
       formattedPrepaid = formatReservedWithUnits(UNLIMITED_RESERVED, billedCategory);
     } else if (reservedBudget) {
+      percentUsed = getPercentage(
+        reservedBudget.totalReservedSpend,
+        reservedBudget.reservedBudget
+      );
       formattedPrepaid = displayPriceWithCents({cents: reservedBudget.reservedBudget});
-      formattedFree = free ? displayPriceWithCents({cents: free}) : null;
+      formattedFree = reservedBudget.freeBudget
+        ? displayPriceWithCents({cents: reservedBudget.freeBudget})
+        : null;
+    } else {
+      formattedPrepaid = prepaid
+        ? formatReservedWithUnits(prepaid, billedCategory)
+        : null;
+      formattedFree = free ? formatReservedWithUnits(free, billedCategory) : null;
+      percentUsed = prepaid ? getPercentage(usage, prepaid) : 0;
     }
 
     paygSpend = isChildProduct
@@ -161,7 +177,6 @@ function UsageOverviewTableRow({
         }, 0);
   } else {
     // convert prepaid amount to the same unit as usage to accurately calculate percent used
-    const {prepaid, free} = metricHistory;
     isUnlimited = prepaid === UNLIMITED_RESERVED || !!activeProductTrial;
     const rawPrepaid = isUnlimited
       ? prepaid
@@ -189,8 +204,6 @@ function UsageOverviewTableRow({
 
     paygSpend = metricHistory.onDemandSpendUsed ?? 0;
   }
-
-  const {reserved, prepaid, usage} = metricHistory ?? {reserved: 0, prepaid: 0, usage: 0};
   const bucket = getBucket({
     events: reserved ?? 0, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
     buckets: subscription.planDetails.planCategories[billedCategory],
@@ -407,13 +420,14 @@ const Row = styled('tr')`
   }
 
   &:last-child {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   }
 `;
 
 const ProductRow = styled(Row)<{isSelected: boolean}>`
   position: relative;
-  background: ${p => (p.isSelected ? p.theme.backgroundSecondary : p.theme.background)};
+  background: ${p =>
+    p.isSelected ? p.theme.backgroundSecondary : p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.xl};
   cursor: pointer;
 

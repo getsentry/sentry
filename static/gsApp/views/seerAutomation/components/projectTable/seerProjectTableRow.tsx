@@ -5,28 +5,32 @@ import {Flex} from '@sentry/scraps/layout/flex';
 import {Link} from '@sentry/scraps/link/link';
 import {Switch} from '@sentry/scraps/switch/switch';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import {useUpdateProjectAutomation} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectAutomation';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
-  organization: Organization;
   project: Project;
 }
 
-export default function SeerProjectTableRow({project, organization}: Props) {
+export default function SeerProjectTableRow({project}: Props) {
+  const organization = useOrganization();
   const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
@@ -43,7 +47,7 @@ export default function SeerProjectTableRow({project, organization}: Props) {
     codeMappingRepos,
   } = useProjectSeerPreferences(project);
 
-  const {mutate: mutateProject} = useUpdateProjectAutomation(project);
+  const {mutate: mutateProject} = useUpdateProject(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
   // We used to support multiple sensitivity values for Auto-Fix. Now we only support 'off' and 'medium'.
@@ -77,7 +81,7 @@ export default function SeerProjectTableRow({project, organization}: Props) {
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Link to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}>
-          <ProjectBadge project={project} avatarSize={16} />
+          <ProjectBadge disableLink project={project} avatarSize={16} />
         </Link>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
@@ -89,6 +93,7 @@ export default function SeerProjectTableRow({project, organization}: Props) {
             checked={hasAutoFixEnabled}
             onChange={e => {
               const autofixAutomationTuning = e.target.checked ? 'medium' : 'off';
+              addLoadingMessage(t('Updating Auto-Fix for %s', project.name));
               mutateProject(
                 {autofixAutomationTuning, seerScannerAutomation: true},
                 {
@@ -123,6 +128,7 @@ export default function SeerProjectTableRow({project, organization}: Props) {
               const automatedRunStoppingPoint = e.target.checked
                 ? 'open_pr'
                 : 'code_changes';
+              addLoadingMessage(t('Updating PR Creation for %s', project.name));
               updateProjectSeerPreferences(
                 {
                   repositories: preference?.repositories || [],
@@ -155,6 +161,7 @@ export default function SeerProjectTableRow({project, organization}: Props) {
               onChange={() => {
                 // This preference can only be turned off, not on, from here.
                 // You need to go to the project settings page to turn it on.
+                addLoadingMessage(t('Updating background agent for %s', project.name));
                 updateProjectSeerPreferences(
                   {
                     repositories: preference?.repositories || [],
@@ -164,11 +171,13 @@ export default function SeerProjectTableRow({project, organization}: Props) {
                   {
                     onError: () => {
                       addErrorMessage(
-                        t('Failed to update Cursor Agent for %s', project.name)
+                        t('Failed to update background agent for %s', project.name)
                       );
                     },
                     onSuccess: () => {
-                      addSuccessMessage(t('Updated Cursor Agent for %s', project.name));
+                      addSuccessMessage(
+                        t('Updated background agent for %s', project.name)
+                      );
                     },
                   }
                 );

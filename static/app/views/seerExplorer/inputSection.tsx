@@ -6,8 +6,10 @@ import {Button} from '@sentry/scraps/button';
 import {ButtonBar} from '@sentry/scraps/button/buttonBar';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {TextArea} from '@sentry/scraps/textarea/textarea';
 
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconPause} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface FileApprovalActions {
@@ -35,6 +37,7 @@ interface InputSectionProps {
   onClear: () => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onInputClick: () => void;
+  onInterrupt: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   fileApprovalActions?: FileApprovalActions;
@@ -52,6 +55,7 @@ function InputSection({
   isVisible = false,
   onInputChange,
   onInputClick,
+  onInterrupt,
   onKeyDown,
   textAreaRef,
   fileApprovalActions,
@@ -60,12 +64,6 @@ function InputSection({
   const getPlaceholder = () => {
     if (focusedBlockIndex !== -1) {
       return 'Press Tab ⇥ to return here';
-    }
-    if (interruptRequested) {
-      return 'Winding down...';
-    }
-    if (isPolling) {
-      return 'Press Esc to interrupt';
     }
     return 'Type your message or / command and press Enter ↵';
   };
@@ -88,7 +86,7 @@ function InputSection({
       if (e.key === 'Enter') {
         e.preventDefault();
         fileApprovalActions.onApprove();
-      } else if (e.key === 'Backspace' || e.key === 'Delete') {
+      } else if (e.key === 'Escape') {
         e.preventDefault();
         fileApprovalActions.onReject();
       }
@@ -164,10 +162,10 @@ function InputSection({
             </Flex>
             <ButtonBar gap="md">
               <Button size="md" onClick={onReject}>
-                {t('Reject')} ⌫
+                {t('Reject')} <Kbd>esc</Kbd>
               </Button>
               <Button size="md" priority="primary" onClick={onApprove}>
-                {t('Approve')} ⏎
+                {t('Approve')} <Kbd>↵</Kbd>
               </Button>
             </ButtonBar>
           </Flex>
@@ -178,7 +176,13 @@ function InputSection({
 
   // Render question action bar
   if (questionActions) {
-    const {currentIndex, totalQuestions, onBack, onNext, canSubmit} = questionActions;
+    const {
+      currentIndex,
+      totalQuestions,
+      onBack,
+      onNext,
+      canSubmit: canSubmitQuestion,
+    } = questionActions;
     const hasMultiple = totalQuestions > 1;
     const isLastQuestion = currentIndex >= totalQuestions - 1;
 
@@ -207,7 +211,12 @@ function InputSection({
                   {t('Back')} ⌫
                 </Button>
               )}
-              <Button size="md" priority="primary" onClick={onNext} disabled={!canSubmit}>
+              <Button
+                size="md"
+                priority="primary"
+                onClick={onNext}
+                disabled={!canSubmitQuestion}
+              >
                 {isLastQuestion ? t('Submit') : t('Next')} ⏎
               </Button>
             </ButtonBar>
@@ -217,10 +226,35 @@ function InputSection({
     );
   }
 
+  const renderActionButton = () => {
+    if (interruptRequested) {
+      return (
+        <ActionButtonWrapper title={t('Winding down...')}>
+          <LoadingIndicator size={16} />
+        </ActionButtonWrapper>
+      );
+    }
+
+    if (isPolling) {
+      return (
+        <Button
+          icon={<IconPause color="subText" />}
+          onClick={onInterrupt}
+          size="sm"
+          priority="transparent"
+          aria-label={t('Interrupt')}
+          title={t('Press Esc to interrupt')}
+        />
+      );
+    }
+
+    return null;
+  };
+
   return (
     <InputBlock>
-      <InputRow>
-        <InputTextarea
+      <StyledInputGroup>
+        <InputGroup.TextArea
           ref={textAreaRef}
           value={inputValue}
           onChange={onInputChange}
@@ -230,7 +264,8 @@ function InputSection({
           rows={1}
           data-test-id="seer-explorer-input"
         />
-      </InputRow>
+        <InputGroup.TrailingItems>{renderActionButton()}</InputGroup.TrailingItems>
+      </StyledInputGroup>
     </InputBlock>
   );
 }
@@ -240,30 +275,48 @@ export default InputSection;
 // Styled components
 const InputBlock = styled('div')`
   width: 100%;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   position: sticky;
   bottom: 0;
 `;
 
-const InputRow = styled('div')`
-  display: flex;
-  align-items: stretch;
-  width: 100%;
-  padding: 0;
-`;
-
-const InputTextarea = styled(TextArea)`
-  width: 100%;
+const StyledInputGroup = styled(InputGroup)`
   margin: ${p => p.theme.space.sm};
-  color: ${p => p.theme.tokens.content.primary};
-  resize: none;
-  overflow-y: auto;
+
+  textarea {
+    resize: none;
+  }
+
+  [data-test-id='input-trailing-items'] {
+    right: ${p => p.theme.space.xs};
+  }
 `;
 
 const ActionBar = styled(motion.div)`
   flex-shrink: 0;
   width: 100%;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   position: sticky;
   bottom: 0;
+`;
+
+const ActionButtonWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+
+  .loading-indicator {
+    margin: 0;
+    padding: 0;
+  }
+`;
+
+const Kbd = styled('kbd')`
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSize.xs};
+  background: transparent;
+  left: 4px;
+  position: relative;
 `;

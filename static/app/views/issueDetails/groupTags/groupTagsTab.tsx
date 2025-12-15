@@ -201,7 +201,7 @@ const TagBarBackground = styled('div')<{widthPercent: string}>`
   bottom: 0;
   left: 0;
   background: ${p => p.theme.surface100};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   width: ${p => p.widthPercent};
 `;
 
@@ -213,14 +213,14 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
   margin-bottom: ${space(0.5)};
   padding: 0 ${space(1)};
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 
   &:hover {
     color: ${p => p.theme.tokens.content.primary};
     text-decoration: underline;
     ${TagBarBackground} {
-      background: ${p => (p.theme.isChonk ? p.theme.blue300 : p.theme.purple200)};
+      background: ${p => p.theme.blue300};
     }
   }
 `;

@@ -66,7 +66,7 @@ interface SelectRowProps {
   stringFields?: string[];
 }
 
-function renderDropdownMenuFooter() {
+export function renderDropdownMenuFooter() {
   return (
     <FooterWrapper>
       <IconInfo size="xs" />

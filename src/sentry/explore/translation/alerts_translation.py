@@ -15,6 +15,7 @@ from sentry.seer.anomaly_detection.store_data_workflow_engine import (
     handle_send_historical_data_to_seer,
 )
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.snuba.models import (
     ExtrapolationMode,
     QuerySubscription,
@@ -68,7 +69,8 @@ def _get_old_query_info(snuba_query: SnubaQuery):
 
 def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
     query_subscription_qs = QuerySubscription.objects.filter(
-        snuba_query_id=snuba_query.id, status=QuerySubscription.Status.ACTIVE.value
+        snuba_query_id=snuba_query.id,
+        status__in=[QuerySubscription.Status.ACTIVE.value, QuerySubscription.Status.UPDATING.value],
     )
     query_subscription = query_subscription_qs.first()
 
@@ -107,13 +109,29 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
     old_query_type, old_dataset, old_query, old_aggregate = _get_old_query_info(snuba_query)
 
     snapshot_aggregate = snapshot["aggregate"]
+    snapshot_query = snapshot["query"]
+
+    # handles count functions with arguments (even custom measurement arguments)
     if snapshot["aggregate"].startswith(COUNT_AGGREGATE_PREFIX):
+        aggregate, arguments, _ = parse_function(snapshot_aggregate)
         snapshot_aggregate = "count()"
+        if len(arguments) > 0:
+            argument = arguments[0]
+            # add has:argument condition to simulate count(argument)
+            parsed_argument_mri = parse_mri(argument)
+            if parsed_argument_mri is not None:
+                parsed_argument = parsed_argument_mri.name
+            else:
+                parsed_argument = argument
+            if len(snapshot_query) > 0:
+                snapshot_query = f"({snapshot_query}) AND has:{parsed_argument}"
+            else:
+                snapshot_query = f"has:{parsed_argument}"
 
     eap_query_parts, dropped_fields = translate_mep_to_eap(
         QueryParts(
             selected_columns=[snapshot_aggregate],
-            query=snapshot["query"],
+            query=snapshot_query,
             equations=None,
             orderby=None,
         )

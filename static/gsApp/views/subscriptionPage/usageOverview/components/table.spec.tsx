@@ -202,18 +202,22 @@ describe('UsageOverviewTable', () => {
     expect(screen.queryByRole('cell', {name: /Prevent*Reviews/})).not.toBeInTheDocument();
   });
 
-  it('renders add-on sub-categories if unlimited', async () => {
+  it('renders multi-category add-on sub-categories if unlimited', async () => {
     const sub = SubscriptionFixture({organization});
     sub.categories.seerAutofix = {
       ...sub.categories.seerAutofix!,
       reserved: UNLIMITED_RESERVED,
       prepaid: UNLIMITED_RESERVED,
     };
+    sub.addOns!.legacySeer = {
+      ...sub.addOns!.legacySeer!,
+      enabled: true,
+    };
     sub.addOns!.seer = {
       ...sub.addOns!.seer!,
       isAvailable: false,
     };
-    SubscriptionStore.set(organization.slug, sub);
+
     render(
       <UsageOverviewTable
         subscription={sub}
@@ -237,17 +241,22 @@ describe('UsageOverviewTable', () => {
     expect(screen.queryByRole('cell', {name: 'Seer'})).not.toBeInTheDocument();
   });
 
-  it('renders add-on sub-categories if non-zero non-unlimited reserved volume', async () => {
+  it('renders multi-category add-on sub-categories if non-zero non-unlimited reserved volume', async () => {
     const sub = SubscriptionFixture({organization});
     sub.categories.seerAutofix = {
       ...sub.categories.seerAutofix!,
       reserved: 100,
       prepaid: 100,
     };
+    sub.addOns!.legacySeer = {
+      ...sub.addOns!.legacySeer!,
+      enabled: true,
+    };
     sub.addOns!.seer = {
       ...sub.addOns!.seer!,
       isAvailable: false,
     };
+
     render(
       <UsageOverviewTable
         subscription={sub}
@@ -269,5 +278,41 @@ describe('UsageOverviewTable', () => {
 
     // add-on is not rendered since at least one of its sub-categories is unlimited
     expect(screen.queryByRole('cell', {name: 'Seer'})).not.toBeInTheDocument();
+  });
+
+  it('renders singular category add-on if non-zero non-unlimited reserved volume', async () => {
+    const sub = SubscriptionFixture({organization});
+    sub.categories.seerUsers = {
+      ...sub.categories.seerUsers!,
+      reserved: 100,
+      prepaid: 110,
+      free: 10,
+    };
+    sub.addOns!.legacySeer = {
+      ...sub.addOns!.legacySeer!,
+      isAvailable: false,
+    };
+    sub.addOns!.seer = {
+      ...sub.addOns!.seer!,
+      enabled: true,
+    };
+
+    render(
+      <UsageOverviewTable
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    // issue fixes is unlimited
+    expect(screen.getByRole('cell', {name: 'Seer'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('cell', {name: '0 / 110 active contributors (10 gifted)'})
+    ).toBeInTheDocument();
   });
 });

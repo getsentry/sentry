@@ -939,6 +939,7 @@ class PullRequestEventWebhook(APITestCase):
             external_id="35129377",
             provider="integrations:github",
             name="baxterthehacker/public-repo",
+            integration_id=integration.id,
         )
 
         response = self.client.post(

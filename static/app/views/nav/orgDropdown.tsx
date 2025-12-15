@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
@@ -57,8 +56,6 @@ export function OrgDropdown({
   hideOrgLinks?: boolean;
   onClick?: () => void;
 }) {
-  const theme = useTheme();
-
   const config = useLegacyStore(ConfigStore);
   const organization = useOrganization();
 
@@ -103,8 +100,8 @@ export function OrgDropdown({
       className={className}
       trigger={props => (
         <OrgDropdownTrigger
-          borderless={!theme.isChonk}
-          size={theme.isChonk ? 'xs' : undefined}
+          borderless={false}
+          size="xs"
           width={isMobile ? 32 : 48}
           aria-label={t('Toggle organization menu')}
           {...props}
@@ -204,7 +201,7 @@ export function OrgDropdown({
 const OrgDropdownTrigger = styled(Button)<{width: number}>`
   height: ${p => p.width}px;
   width: ${p => p.width}px;
-  min-height: ${p => (p.theme.isChonk ? `${p.width}px` : undefined)};
+  min-height: ${p => `${p.width}px`};
   padding: 0; /* Without this the icon will be cutoff due to overflow */
 `;
 
