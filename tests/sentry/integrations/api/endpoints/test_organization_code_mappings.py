@@ -290,12 +290,14 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 400, response.content
         assert response.data == "Invalid projectId param. Expected an integer."
 
-    def test_project_does_not_exist(self) -> None:
-        bad_org = self.create_organization()
-        bad_project = self.create_project(organization=bad_org)
-        response = self.make_post({"projectId": bad_project.id})
-        assert response.status_code == 400
-        assert response.data == {"projectId": ["Project does not exist"]}
+    def test_idor_project_from_different_org(self) -> None:
+        """Regression test: Cannot access projects from other organizations (IDOR)."""
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        response = self.make_post({"projectId": other_project.id})
+        # Should return 404 (not found), not 403 (forbidden) to prevent ID enumeration
+        assert response.status_code == 404
+        assert response.data == "Could not find project"
 
     def test_repo_does_not_exist_on_given_integrationId(self) -> None:
         bad_integration = self.create_integration(
