@@ -61,13 +61,12 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     sessionData?.status === 'completed' && !!sessionData?.run_id && !!organization?.slug
   );
 
-  const {copySessionToClipboard, isCopying: isCopyingSessionData} =
-    useCopySessionDataToClipboard({
-      blocks: sessionData?.blocks || [],
-      orgSlug: organization?.slug ?? '',
-      projects,
-      enabled: copySessionEnabled,
-    });
+  const {copySessionToClipboard} = useCopySessionDataToClipboard({
+    blocks: sessionData?.blocks || [],
+    orgSlug: organization?.slug ?? '',
+    projects,
+    enabled: copySessionEnabled,
+  });
 
   // Handle external open events (from openSeerExplorer() calls)
   const {isWaitingForSessionData} = useExternalOpen({
@@ -491,8 +490,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         onPRWidgetClick={openPRWidget}
         onCopySessionClick={copySessionToClipboard}
         onSessionHistoryClick={openSessionHistory}
-        isCopySessionEnabled={Boolean(copySessionEnabled)}
-        isCopyingSession={isCopyingSessionData}
+        isCopySessionEnabled={copySessionEnabled}
         onSizeToggleClick={handleSizeToggle}
         panelSize={panelSize}
         prWidgetButtonRef={prWidgetButtonRef}

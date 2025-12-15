@@ -23,7 +23,6 @@ import {toggleSeerExplorerPanel} from 'sentry/views/seerExplorer/utils';
 interface TopBarProps {
   blocks: Block[];
   isCopySessionEnabled: boolean;
-  isCopyingSession: boolean;
   isEmptyState: boolean;
   isPolling: boolean;
   isSessionHistoryOpen: boolean;
@@ -56,7 +55,6 @@ function TopBar({
   prWidgetButtonRef,
   repoPRStates,
   isCopySessionEnabled,
-  isCopyingSession,
   sessionHistoryButtonRef,
 }: TopBarProps) {
   // Check if there are any file patches
@@ -103,7 +101,7 @@ function TopBar({
           size="sm"
           aria-label={t('Copy conversation to clipboard')}
           title={t('Copy conversation to clipboard')}
-          disabled={!isCopySessionEnabled || isCopyingSession}
+          disabled={!isCopySessionEnabled}
         />
       </Flex>
       <AnimatePresence initial={false}>

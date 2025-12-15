@@ -819,14 +819,14 @@ function formatSessionData(
     });
 
     const lines: string[] = [];
-    lines.push(`* ${role.toUpperCase()} ${timestamp} *`);
+    lines.push(`# ${role.toUpperCase()} ${timestamp}`);
     if (messageContent) {
       lines.push(messageContent);
     }
 
     if (toolCallsWithLinks.length > 0) {
       lines.push('');
-      lines.push('* TOOL CALLS *');
+      lines.push('## TOOL CALLS');
       toolCallsWithLinks.forEach((item, idx) => {
         const isError = !!item.metadata?.is_error;
         const emptyResults = !!item.metadata?.empty_results;
@@ -849,7 +849,7 @@ function formatSessionData(
 
   return blocks
     .map(block => formatBlock(block))
-    .join('\n----------------------------------------------\n\n');
+    .join('\n--------------------------------------------------\n\n');
 }
 
 function locationToUrl(location: LocationDescriptor): string | null {
