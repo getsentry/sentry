@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -74,10 +76,22 @@ export function Meta(props: MetaProps) {
   const traceNode = props.tree.root.children[0];
   const {timestamp} = useTraceQueryParams();
 
-  const spansCount =
-    props.tree.eap_spans_count > 0
-      ? props.tree.eap_spans_count
-      : (props.meta?.span_count ?? 0);
+  let spansCount = 0;
+  let loadedSpansCount = 0;
+  let totalSpansCount = 0;
+  if (
+    traceNode &&
+    props.meta?.span_count &&
+    props.tree.eap_spans_count !== props.meta.span_count
+  ) {
+    loadedSpansCount = props.tree.eap_spans_count;
+    totalSpansCount = props.meta.span_count;
+    spansCount = totalSpansCount;
+  } else if (traceNode) {
+    spansCount = props.tree.eap_spans_count;
+  } else if (props.meta?.span_count) {
+    spansCount = props.meta.span_count;
+  }
 
   const uniqueIssuesCount = traceNode ? traceNode.uniqueIssues.length : 0;
 
@@ -86,7 +100,8 @@ export function Meta(props: MetaProps) {
   const ageStartTimestamp =
     traceNode?.space[0] ?? (timestamp ? timestamp * 1000 : undefined);
 
-  const hasSpans = spansCount > 0;
+  const hasDifferentSpansCount = loadedSpansCount !== 0 && totalSpansCount !== 0;
+  const hasSpans = spansCount > 0 || loadedSpansCount > 0 || totalSpansCount > 0;
   const hasLogs = (props.logs?.length ?? 0) > 0;
 
   const repEvent = props.representativeEvent?.event;
@@ -102,7 +117,17 @@ export function Meta(props: MetaProps) {
           uniqueIssuesCount
         )}
       </MetaSection>
-      {hasSpans ? <MetaSection headingText={t('Spans')}>{spansCount}</MetaSection> : null}
+      {hasSpans ? (
+        <MetaSection headingText={t('Spans')}>
+          <Tooltip
+            disabled={!hasDifferentSpansCount}
+            showUnderline
+            title={t('Showing %s of %s spans', loadedSpansCount, totalSpansCount)}
+          >
+            {spansCount}
+          </Tooltip>
+        </MetaSection>
+      ) : null}
       {ageStartTimestamp ? (
         <MetaSection headingText={t('Age')}>
           <TimeSince
