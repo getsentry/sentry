@@ -7,9 +7,12 @@ errors: null
 tags:
 - - device
   - iPad
+- - device.device_type
+  - Handheld
 to_json:
   device:
     arch: arm64
+    device_type: Handheld
     model: iPad
     model_id: 1234AB
     name: My iPad
