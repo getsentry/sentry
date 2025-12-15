@@ -185,14 +185,9 @@ export type IssueEventParameters = {
   'issue_details.similar_issues.diff_clicked': {
     error_message?: string;
     group_id?: string;
-    parent_error_message?: string;
     parent_group_id?: string;
-    parent_stacktrace?: string;
-    parent_transaction?: string;
     project_id?: string;
     shouldBeGrouped?: string;
-    stacktrace?: string;
-    transaction?: string;
   };
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved': {
     groupId: string;

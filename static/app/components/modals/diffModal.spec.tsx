@@ -38,7 +38,6 @@ describe('DiffModal', () => {
 
     render(
       <DiffModal
-        orgId="123"
         baseIssueId="123"
         targetIssueId="234"
         project={project}
@@ -47,15 +46,6 @@ describe('DiffModal', () => {
         Header={c => <span>{c.children}</span>}
         CloseButton={({children}) => <div>{children}</div>}
         closeModal={() => {}}
-        location={{
-          pathname: '',
-          query: {cursor: '0:1:1', statsPeriod: '14d'},
-          search: '',
-          hash: '',
-          state: null,
-          action: 'PUSH',
-          key: 'default',
-        }}
       />
     );
   });
