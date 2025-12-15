@@ -640,6 +640,7 @@ function MigratedAlertWarningListener() {
                 />
               ),
               thresholdsLink: (
+                // had to use a button and style it as a link because you can't use onClick on a link element
                 <LinkStyledButton
                   priority="link"
                   aria-label="Go to thresholds"
