@@ -39,6 +39,12 @@ MATCHERS = {
     "thread.state": "thread_state",
     "thread.crashed": "thread_crashed",
     "thread.current": "thread_current",
+    # internal keys that need to be deserializable (for backwards compat / JSON roundtrip)
+    "thread_id": "thread_id",
+    "thread_name": "thread_name",
+    "thread_state": "thread_state",
+    "thread_crashed": "thread_crashed",
+    "thread_current": "thread_current",
 }
 
 
