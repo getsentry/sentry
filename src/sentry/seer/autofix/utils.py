@@ -24,6 +24,7 @@ from sentry.seer.models import (
     SeerApiError,
     SeerApiResponseValidationError,
     SeerPermissionError,
+    SeerProjectPreference,
     SeerRawPreferenceResponse,
     SeerRepoDefinition,
 )
@@ -163,6 +164,16 @@ class SeerAutofixSettingsSerializer(serializers.Serializer):
                 "At least one of 'autofixAutomationTuning' or 'automatedRunStoppingPoint' must be provided."
             )
         return data
+
+
+def default_seer_project_preference(project: Project) -> SeerProjectPreference:
+    return SeerProjectPreference(
+        organization_id=project.organization.id,
+        project_id=project.id,
+        repositories=[],
+        automated_run_stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
+        automation_handoff=None,
+    )
 
 
 def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:

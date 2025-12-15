@@ -79,9 +79,8 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                 or AutofixAutomationTuningSettings.OFF.value
             )
             seer_pref = seer_preferences_map.get(str(project.id)) or {}
-            automated_run_stopping_point = (
-                seer_pref.get("automated_run_stopping_point")
-                or AutofixStoppingPoint.CODE_CHANGES.value
+            automated_run_stopping_point = seer_pref.get(
+                "automated_run_stopping_point", AutofixStoppingPoint.CODE_CHANGES.value
             )
             repos_count = len(seer_pref.get("repositories") or [])
 

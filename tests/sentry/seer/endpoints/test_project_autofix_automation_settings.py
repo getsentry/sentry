@@ -36,7 +36,7 @@ class OrganizationAutofixAutomationProjectSettingsEndpointTest(APITestCase):
 
     @patch("sentry.seer.endpoints.project_autofix_automation_settings.get_project_seer_preferences")
     def test_get_returns_default_settings(self, mock_get_preferences):
-        mock_get_preferences.return_value = None
+        mock_get_preferences.return_value = SeerRawPreferenceResponse(preference=None)
 
         response = self.client.get(self.url)
 

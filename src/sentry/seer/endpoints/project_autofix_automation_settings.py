@@ -14,9 +14,9 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
-    AutofixStoppingPoint,
     SeerAutofixSettingsSerializer,
     bulk_set_project_preferences,
+    default_seer_project_preference,
     get_project_seer_preferences,
 )
 
@@ -42,23 +42,19 @@ class ProjectAutofixAutomationSettingsEndpoint(ProjectEndpoint):
         """
 
         autofix_automation_tuning = ProjectOption.objects.get_value(
-            project, "sentry:autofix_automation_tuning"
+            project, "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF.value
         )
 
         raw_prefs = get_project_seer_preferences(project.id)
-        seer_pref = raw_prefs.preference if raw_prefs else None
+        seer_pref = raw_prefs.preference or default_seer_project_preference(project)
 
         return Response(
             status=200,
             data={
                 "projectId": project.id,
-                "autofixAutomationTuning": autofix_automation_tuning
-                or AutofixAutomationTuningSettings.OFF.value,
-                "automatedRunStoppingPoint": (
-                    (seer_pref.automated_run_stopping_point if seer_pref else None)
-                    or AutofixStoppingPoint.CODE_CHANGES.value
-                ),
-                "reposCount": len(seer_pref.repositories if seer_pref else []),
+                "autofixAutomationTuning": autofix_automation_tuning,
+                "automatedRunStoppingPoint": seer_pref.automated_run_stopping_point,
+                "reposCount": len(seer_pref.repositories),
             },
         )
 
@@ -80,11 +76,11 @@ class ProjectAutofixAutomationSettingsEndpoint(ProjectEndpoint):
         preferences_to_set: list[dict[str, Any]] = []
         if automated_run_stopping_point:
             raw_prefs = get_project_seer_preferences(project.id)
-            seer_pref = raw_prefs.preference if raw_prefs else None
+            seer_pref = raw_prefs.preference or default_seer_project_preference(project)
 
             preferences_to_set.append(
                 {
-                    **(seer_pref.dict() if seer_pref else {}),
+                    **seer_pref.dict(),
                     "automated_run_stopping_point": automated_run_stopping_point,
                 }
             )
