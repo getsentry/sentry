@@ -92,12 +92,6 @@ def _process_segment(
         },
         emit_metrics=True,
     ):
-        logger.info(
-            "Dropping segment due to killswitch",
-            extra={
-                "org_id": project.organization_id,
-            },
-        )
         return []
 
     safe_execute(_normalize_segment_name, segment_span, project)
