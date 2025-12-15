@@ -2,6 +2,7 @@ import {useCallback, useState} from 'react';
 import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
   LOGS_GROUP_BY_KEY,
@@ -759,27 +760,23 @@ export function useCopySessionDataToClipboard({
   orgSlug: string;
   projects?: Array<{id: string; slug: string}>;
 }) {
-  const [isCopying, setIsCopying] = useState(false);
   const [isError, setIsError] = useState(false);
 
   const copySessionToClipboard = useCallback(async () => {
     if (!enabled || !orgSlug || !blocks) {
       return;
     }
-
-    setIsCopying(true);
     setIsError(false);
-
     try {
       await navigator.clipboard.writeText(formatSessionData(blocks, orgSlug, projects));
     } catch (err) {
       setIsError(true);
     } finally {
-      setIsCopying(false);
+      addSuccessMessage(`Copied conversation to clipboard`);
     }
   }, [enabled, blocks, orgSlug, projects]);
 
-  return {copySessionToClipboard, isCopying, isError};
+  return {copySessionToClipboard, isError};
 }
 
 function formatSessionData(
