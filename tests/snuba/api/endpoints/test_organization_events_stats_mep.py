@@ -962,6 +962,43 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
         assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
 
+    def test_idor_dashboard_widget_from_different_org(self) -> None:
+        """Regression test: Cannot access dashboard widgets from other organizations (IDOR)."""
+        # Create a widget in a DIFFERENT organization with discover_widget_split set
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        _, other_widget, __ = create_widget(
+            ["count()"],
+            "",
+            other_project,
+            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
+        )
+
+        # Request with cross-org widget ID should NOT use that widget's configuration
+        # The widget should be ignored because it belongs to a different organization
+        response = self.do_request(
+            {
+                "field": ["count()"],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": other_widget.id,
+            }
+        )
+
+        # Request should succeed (the widget query fails silently and falls back)
+        assert response.status_code == 200, response.content
+        # The cross-org widget had ERROR_EVENTS split, but since it's not accessible,
+        # the response should NOT have the split decision from that widget.
+        # The fallback behavior (without a valid widget) runs the split detection logic
+        # which will either return no split decision or a different one based on the current org's data.
+        meta = response.data.get("meta", {})
+        # The key assertion: the response should NOT show ERROR_EVENTS from the other org's widget
+        # Since we have no error events in our org, it should be TRANSACTION_LIKE or not present
+        assert meta.get("discoverSplitDecision") != DashboardWidgetTypes.get_type_name(
+            DashboardWidgetTypes.ERROR_EVENTS
+        )
+
     def test_inp_percentile(self) -> None:
         for hour in range(6):
             timestamp = self.day_ago + timedelta(hours=hour, minutes=30)
