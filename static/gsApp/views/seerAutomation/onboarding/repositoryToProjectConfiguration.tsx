@@ -60,7 +60,7 @@ export function RepositoryToProjectConfiguration({
     <Fragment>
       {!isValidMappings && (
         <Alert type="error">
-          {t('All repositories must have at least one project mapped')}
+          {t('Each repository must have at least one project mapped')}
         </Alert>
       )}
 
