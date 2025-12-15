@@ -1,6 +1,5 @@
 import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {FormSize} from 'sentry/utils/theme';
@@ -13,8 +12,7 @@ export interface InputProps
   ref?: React.Ref<HTMLInputElement>;
 }
 
-export const inputStyles = (p: InputStylesProps & {theme: Theme}) =>
-  p.theme.isChonk ? chonkInputStyles(p as any) : legacyInputStyles(p);
+export const inputStyles = (p: InputStylesProps & {theme: Theme}) => chonkInputStyles(p);
 
 /**
  * Basic input component.
@@ -50,57 +48,3 @@ export interface InputStylesProps {
   size?: FormSize;
   type?: React.HTMLInputTypeAttribute;
 }
-
-const legacyInputStyles = (p: InputStylesProps & {theme: Theme}) => css`
-  display: block;
-  width: 100%;
-  color: ${p.theme.gray400};
-  background: ${p.theme.background};
-  border: 1px solid ${p.theme.border};
-  border-radius: ${p.theme.borderRadius};
-  box-shadow: inset ${p.theme.dropShadowMedium};
-  resize: vertical;
-  transition:
-    border 0.1s,
-    box-shadow 0.1s;
-
-  ${p.monospace ? `font-family: ${p.theme.text.familyMono};` : ''}
-  ${p.readOnly ? 'cursor: default;' : ''}
-
-  ${p.theme.form[p.size ?? 'md']}
-  ${p.theme.formPadding[p.size ?? 'md']}
-
-  &::placeholder {
-    color: ${p.theme.formPlaceholder};
-    opacity: 1;
-  }
-
-  &[disabled],
-  &[aria-disabled='true'] {
-    background: ${p.theme.background};
-    color: ${p.theme.disabled};
-    cursor: not-allowed;
-
-    &::placeholder {
-      color: ${p.theme.disabled};
-    }
-  }
-
-  &:focus,
-  &:focus-visible,
-  :focus-within {
-    outline: none;
-    border-color: ${p.theme.focusBorder};
-    box-shadow: ${p.theme.focusBorder} 0 0 0 1px;
-  }
-  &[type='number'] {
-    appearance: textfield;
-    -moz-appearance: textfield;
-    font-variant-numeric: tabular-nums;
-  }
-  &::-webkit-outer-spin-button,
-  &::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-`;

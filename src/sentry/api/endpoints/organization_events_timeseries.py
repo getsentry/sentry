@@ -28,7 +28,7 @@ from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
 )
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import AdditionalQueries, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import (
     discover,
@@ -159,6 +159,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 )
             except NoProjects:
                 return Response(EMPTY_STATS_RESPONSE, status=200)
+            additional_queries = self.get_additional_queries(request)
 
         with handle_query_errors():
             self.validate_comparison_delta(comparison_delta, snuba_params, organization)
@@ -175,6 +176,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 snuba_params,
                 rollup,
                 comparison_delta,
+                additional_queries,
             )
             return Response(
                 self.serialize_stats_data(events_stats, axes, snuba_params, rollup, dataset),
@@ -192,6 +194,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         snuba_params: SnubaParams,
         rollup: int,
         comparison_delta: timedelta | None,
+        additional_queries: AdditionalQueries,
     ) -> SnubaTSResult | dict[str, SnubaTSResult]:
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
         include_other = request.GET.get("excludeOther") != "1"
@@ -275,6 +278,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     config=get_rpc_config(),
                     sampling_mode=snuba_params.sampling_mode,
                     equations=self.get_equation_list(organization, request, param_name="groupBy"),
+                    additional_queries=additional_queries,
                 )
             return dataset.top_events_timeseries(
                 timeseries_columns=query_columns,
@@ -304,6 +308,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 config=get_rpc_config(),
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,
+                additional_queries=additional_queries,
             )
 
         return dataset.timeseries_query(

@@ -40,11 +40,7 @@ import type {
   ProductTrial,
   Subscription,
 } from 'getsentry/types';
-import {
-  getCategoryInfoFromPlural,
-  isByteCategory,
-  isContinuousProfiling,
-} from 'getsentry/utils/dataCategory';
+import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
@@ -156,7 +152,11 @@ export function formatReservedWithUnits(
   if (isReservedBudget) {
     return displayPriceWithCents({cents: reservedQuantity ?? 0});
   }
-  if (!isByteCategory(dataCategory)) {
+
+  const categoryInfo = getCategoryInfoFromPlural(dataCategory);
+  const unitType = categoryInfo?.formatting.unitType ?? 'count';
+
+  if (unitType !== 'bytes') {
     return formatReservedNumberToString(reservedQuantity, options);
   }
 
@@ -193,7 +193,10 @@ export function formatUsageWithUnits(
   dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
-  if (isByteCategory(dataCategory)) {
+  const categoryInfo = getCategoryInfoFromPlural(dataCategory);
+  const unitType = categoryInfo?.formatting.unitType ?? 'count';
+
+  if (unitType === 'bytes') {
     if (options.useUnitScaling) {
       return formatByteUnits(usageQuantity);
     }
@@ -203,7 +206,7 @@ export function formatUsageWithUnits(
       ? `${displayNumber(usageGb)} GB`
       : `${usageGb.toLocaleString(undefined, {maximumFractionDigits: 2})} GB`;
   }
-  if (isContinuousProfiling(dataCategory)) {
+  if (unitType === 'durationHours') {
     const usageProfileHours = usageQuantity / MILLISECONDS_IN_HOUR;
     if (usageProfileHours === 0) {
       return '0';
@@ -221,10 +224,13 @@ export function convertUsageToReservedUnit(
   usage: number,
   category: DataCategory | string
 ): number {
-  if (isByteCategory(category)) {
+  const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+  const unitType = categoryInfo?.formatting.unitType ?? 'count';
+
+  if (unitType === 'bytes') {
     return usage / GIGABYTE;
   }
-  if (isContinuousProfiling(category)) {
+  if (unitType === 'durationHours') {
     return usage / MILLISECONDS_IN_HOUR;
   }
   return usage;
@@ -634,10 +640,10 @@ export function hasBillingAccess(organization: Organization) {
 }
 
 export function hasAccessToSubscriptionOverview(
-  subscription: Subscription,
+  subscription: Subscription | null,
   organization: Organization
-) {
-  return hasBillingAccess(organization) || subscription.canSelfServe;
+): boolean {
+  return hasBillingAccess(organization) || Boolean(subscription?.canSelfServe);
 }
 
 /**
@@ -732,6 +738,45 @@ export function getPotentialProductTrial(
     .sort((a, b) => (b.lengthDays ?? 0) - (a.lengthDays ?? 0));
 
   return potentialTrials[0] ?? null;
+}
+
+/**
+ * Gets the appropriate Seer data category for product trials.
+ * Uses SEER_USER for seat-based billing, falls back to SEER_AUTOFIX for legacy.
+ *
+ * Priority order:
+ * 1. SEER_USER (seat-based billing)
+ * 2. SEER_AUTOFIX (legacy billing)
+ */
+export function getSeerTrialCategory(
+  productTrials: ProductTrial[] | null
+): DataCategory | null {
+  if (!productTrials) {
+    return null;
+  }
+
+  // Check for SEER_USER trial first (seat-based billing takes precedence)
+  // For unstarted trials, endDate is the "start by" deadline
+  // For started trials, endDate is the expiration date
+  // In both cases, endDate must not have passed
+  const seerUserTrial = productTrials.find(
+    pt =>
+      pt.category === DataCategory.SEER_USER && getDaysSinceDate(pt.endDate ?? '') <= 0
+  );
+  if (seerUserTrial) {
+    return DataCategory.SEER_USER;
+  }
+
+  // Fall back to SEER_AUTOFIX (legacy)
+  const seerAutofixTrial = productTrials.find(
+    pt =>
+      pt.category === DataCategory.SEER_AUTOFIX && getDaysSinceDate(pt.endDate ?? '') <= 0
+  );
+  if (seerAutofixTrial) {
+    return DataCategory.SEER_AUTOFIX;
+  }
+
+  return null;
 }
 
 export function trialPromptIsDismissed(prompt: PromptData, subscription: Subscription) {

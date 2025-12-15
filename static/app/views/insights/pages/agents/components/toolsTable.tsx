@@ -12,7 +12,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
@@ -27,6 +26,8 @@ import {
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
+import {getExploreUrlWithProjectSelection} from 'sentry/views/insights/pages/agents/utils/getExploreUrlWithProjectSelection';
+import {getToolSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
@@ -63,7 +64,7 @@ export function ToolsTable() {
     columns: defaultColumnOrder,
   });
 
-  const fullQuery = useCombinedQuery(`span.op:gen_ai.execute_tool`);
+  const fullQuery = useCombinedQuery(getToolSpansFilter());
 
   const {cursor, setCursor} = useTableCursor();
 
@@ -172,7 +173,7 @@ const BodyCell = memo(function BodyCell({
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const exploreUrl = getExploreUrl({
+  const exploreUrl = getExploreUrlWithProjectSelection({
     selection,
     organization,
     mode: Mode.SAMPLES,
@@ -203,7 +204,7 @@ const BodyCell = memo(function BodyCell({
       return (
         <ErrorCell
           value={dataRow.errors}
-          target={getExploreUrl({
+          target={getExploreUrlWithProjectSelection({
             query: `${query} span.status:internal_error gen_ai.tool.name:"${dataRow.tool}"`,
             organization,
             selection,

@@ -9,7 +9,6 @@ import {NoAccess} from 'sentry/components/noAccess';
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {DataCategory} from 'sentry/types/core';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
@@ -18,6 +17,7 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
@@ -41,6 +41,7 @@ import ToolUsageWidget from 'sentry/views/insights/pages/agents/components/toolC
 import {TracesTable} from 'sentry/views/insights/pages/agents/components/tracesTable';
 import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/useAgentSpanSearchProps';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
+import {getAgentRunsFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
@@ -76,7 +77,7 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
   // If there are not, we show the count/duration of all AI spans
   const agentRunsRequest = useSpans(
     {
-      search: 'span.op:"gen_ai.invoke_agent"',
+      search: getAgentRunsFilter(),
       fields: ['id'],
       limit: 1,
     },
@@ -113,7 +114,9 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
                   </PageFilterBar>
                   {!showOnboarding && (
                     <Flex flex={2}>
-                      <EAPSpanSearchQueryBuilder {...agentSpanSearchProps.queryBuilder} />
+                      <TraceItemSearchQueryBuilder
+                        {...agentSpanSearchProps.queryBuilder}
+                      />
                     </Flex>
                   )}
                 </ToolRibbon>
@@ -203,7 +206,7 @@ function LoadingPanel() {
 }
 
 const LoadingMask = styled(TransparentLoadingMask)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 export default PageWithProviders;

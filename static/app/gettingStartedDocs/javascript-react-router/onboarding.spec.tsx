@@ -11,98 +11,26 @@ describe('javascript-react-router onboarding docs', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
-    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', {name: /Upload Source Maps/i})
+      screen.getByRole('heading', {name: 'Automatic Configuration (Recommended)'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-
-    // Includes Sentry import statement in multiple configure sections
-    expect(
-      screen.getAllByText(
-        textWithMarkupMatcher(/import \* as Sentry from ["']@sentry\/react-router["'];/)
-      )
-    ).toHaveLength(4);
-  });
-
-  it('displays sample rates by default', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.ERROR_MONITORING,
-        ProductSolution.PERFORMANCE_MONITORING,
-        ProductSolution.SESSION_REPLAY,
-      ],
-    });
 
     expect(
-      screen.getAllByText(textWithMarkupMatcher(/tracesSampleRate/)).length
-    ).toBeGreaterThan(0);
-    expect(
-      screen.getAllByText(textWithMarkupMatcher(/replaysSessionSampleRate/)).length
-    ).toBeGreaterThan(0);
-    expect(
-      screen.getAllByText(textWithMarkupMatcher(/replaysOnErrorSampleRate/)).length
-    ).toBeGreaterThan(0);
-  });
-
-  it('enables performance by setting tracesSampleRate to 1 and adding integration', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.ERROR_MONITORING,
-        ProductSolution.PERFORMANCE_MONITORING,
-      ],
-    });
-
-    expect(
-      screen.getAllByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/)).length
-    ).toBeGreaterThan(0);
-    expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry\.reactRouterTracingIntegration\(\)/))
+      screen.getByText(textWithMarkupMatcher(/npx @sentry\/wizard@latest -i reactRouter/))
     ).toBeInTheDocument();
   });
 
-  it('enables replay by setting replay sample rates', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.ERROR_MONITORING,
-        ProductSolution.SESSION_REPLAY,
-      ],
-    });
+  it('displays the verify instructions', () => {
+    renderWithOnboardingLayout(docs);
 
+    // Shows sentry-example-page instruction
     expect(
-      screen.getByText(textWithMarkupMatcher(/replaysSessionSampleRate: 0\.1/))
+      screen.getByText(textWithMarkupMatcher(/visit \/sentry-example-page/))
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(/replaysOnErrorSampleRate: 1\.0/))
-    ).toBeInTheDocument();
-  });
 
-  it('enables profiling by setting profiling sample rates', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
-    });
-
+    // Shows alternative verification method
     expect(
-      screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(/nodeProfilingIntegration\(\)/))
-    ).toBeInTheDocument();
-  });
-
-  it('enables logs by setting enableLogs to true and shows logger usage in verify step', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-    });
-
-    expect(
-      screen.getAllByText(textWithMarkupMatcher(/enableLogs: true/)).length
-    ).toBeGreaterThan(0);
-
-    // When logs are selected, verify step includes a Sentry logger call
-    expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry\.logger\.info\(/))
+      screen.getByText(textWithMarkupMatcher(/myUndefinedFunction\(\)/))
     ).toBeInTheDocument();
   });
 

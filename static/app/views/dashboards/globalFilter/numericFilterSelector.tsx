@@ -280,6 +280,7 @@ function NumericFilterSelector({
     <CompactSelect
       disabled={false}
       value=""
+      size="sm"
       options={[]}
       hideOptions
       onChange={() => {}}
@@ -394,10 +395,7 @@ const StyledButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
   padding: 0 ${p => p.theme.space.xs};
-  margin: ${p =>
-    p.theme.isChonk
-      ? `-${p.theme.space.xs} -${p.theme.space.xs}`
-      : `-${p.theme.space['2xs']} -${p.theme.space['2xs']}`};
+  margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
 `;
 
 const StyledInput = styled(Input)`
