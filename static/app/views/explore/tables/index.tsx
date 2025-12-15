@@ -92,21 +92,19 @@ export function ExploreTables(props: ExploreTablesProps) {
   return (
     <Fragment>
       <SamplesTableHeader>
-        <ChartSelectionRegion data-explore-chart-selection-region>
-          <Tabs value={props.tab} onChange={props.setTab} size="sm">
-            <TabList hideBorder variant="floating">
-              <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
-              <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
-              <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
-              {attributeBreakdownsEnabled ? (
-                <TabList.Item key={Tab.ATTRIBUTE_BREAKDOWNS}>
-                  {t('Attribute Breakdowns')}
-                  <Badge type="beta">Beta</Badge>
-                </TabList.Item>
-              ) : null}
-            </TabList>
-          </Tabs>
-        </ChartSelectionRegion>
+        <Tabs value={props.tab} onChange={props.setTab} size="sm">
+          <TabList hideBorder variant="floating">
+            <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
+            <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
+            <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
+            {attributeBreakdownsEnabled ? (
+              <TabList.Item key={Tab.ATTRIBUTE_BREAKDOWNS}>
+                {t('Attribute Breakdowns')}
+                <Badge type="beta">Beta</Badge>
+              </TabList.Item>
+            ) : null}
+          </TabList>
+        </Tabs>
         {props.tab === Tab.SPAN ? (
           <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
             {t('Edit Table')}
@@ -142,8 +140,4 @@ const SamplesTableHeader = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   margin-bottom: ${space(1)};
-`;
-
-const ChartSelectionRegion = styled('div')`
-  width: 100%;
 `;
