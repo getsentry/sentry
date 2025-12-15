@@ -89,7 +89,6 @@ describe('CollapsedNode', () => {
       expect(node.children).toEqual([]);
       expect(node.errors).toBeInstanceOf(Set);
       expect(node.occurrences).toBeInstanceOf(Set);
-      expect(node.profiles).toBeInstanceOf(Set);
       expect(node.canFetchChildren).toBe(false);
       expect(node.fetchStatus).toBe('idle');
     });

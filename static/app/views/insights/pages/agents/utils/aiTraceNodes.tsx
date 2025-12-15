@@ -9,13 +9,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {
-  isEAPSpanNode,
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
 // TODO(aknaus): Remove the special handling for tags once the endpoint returns the correct type
 function getAttributeValue(
@@ -38,11 +32,11 @@ function getAttributeValue(
 }
 
 export function ensureAttributeObject(
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: AITraceSpanNode,
   event?: EventTransaction,
   attributes?: TraceItemResponseAttribute[]
 ) {
-  if (isEAPSpanNode(node) && attributes) {
+  if (attributes) {
     return attributes.reduce(
       (acc, attribute) => {
         // Some attribute keys include prefixes and metadata (e.g. "tags[ai.prompt_tokens.used,number]")
@@ -54,15 +48,11 @@ export function ensureAttributeObject(
     );
   }
 
-  if (isTransactionNode(node) && event) {
+  if (event) {
     return event.contexts.trace?.data;
   }
 
-  if (isSpanNode(node)) {
-    return node.value.data;
-  }
-
-  return undefined;
+  return node.attributes;
 }
 
 /**
@@ -71,29 +61,18 @@ export function ensureAttributeObject(
  *
  * **Note:** To keep the complexity manageable, this logic does not work for the edge case of transactions without `span.op` on the old data model.
  */
-export function getGenAiOpType(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): string | undefined {
-  if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-    return undefined;
-  }
-
-  const op = isTransactionNode(node) ? node.value?.['transaction.op'] : node.value?.op;
-  const attributeObject = isSpanNode(node)
-    ? node.value.data
-    : isEAPSpanNode(node)
-      ? node.value.additional_attributes
-      : undefined;
+export function getGenAiOpType(node: BaseNode): string | undefined {
+  const attributeObject = node.attributes;
 
   return (
-    attributeObject?.[SpanFields.GEN_AI_OPERATION_TYPE] ??
-    getGenAiOperationTypeFromSpanOp(op)
+    (attributeObject?.[SpanFields.GEN_AI_OPERATION_TYPE] as string | undefined) ??
+    getGenAiOperationTypeFromSpanOp(node.op)
   );
 }
 
 export function getTraceNodeAttribute(
   name: string,
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: AITraceSpanNode,
   event?: EventTransaction,
   attributes?: TraceItemResponseAttribute[]
 ): string | number | boolean | undefined {
@@ -102,11 +81,7 @@ export function getTraceNodeAttribute(
 }
 
 function createGetIsAiNode(predicate: (genAiOpType: string | undefined) => boolean) {
-  return (node: TraceTreeNode<TraceTree.NodeValue>): node is AITraceSpanNode => {
-    if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-      return false;
-    }
-
+  return (node: BaseNode): node is AITraceSpanNode => {
     return predicate(getGenAiOpType(node));
   };
 }

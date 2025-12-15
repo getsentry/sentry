@@ -13,28 +13,21 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {
-  isTraceItemDetailsResponse,
-  type RepresentativeTraceEvent,
-} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
+import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {findSpanAttributeValue} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
-import {
-  isEAPError,
-  isTraceError,
-  isUptimeCheck,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface TitleProps {
-  representativeEvent: RepresentativeTraceEvent;
+  representativeEvent: TraceTree.RepresentativeTraceEvent | null;
   rootEventResults: TraceRootEventQueryResults;
 }
 
-function getTitle(representativeEvent: RepresentativeTraceEvent): {
-  subtitle: string | undefined;
+function getTitle(representativeEvent: TraceTree.RepresentativeTraceEvent | null): {
   title: string;
+  subtitle?: string;
 } | null {
-  const {event} = representativeEvent;
+  const event = representativeEvent?.event;
   if (!event) {
     return null;
   }
@@ -47,36 +40,7 @@ function getTitle(representativeEvent: RepresentativeTraceEvent): {
     };
   }
 
-  // Handle error events
-  if (isEAPError(event) || isTraceError(event)) {
-    const subtitle = isEAPError(event) ? event.description : event.title || event.message;
-
-    return {
-      title: t('Trace'),
-      subtitle,
-    };
-  }
-
-  // Handle uptime check traces
-  if (isUptimeCheck(event)) {
-    return {
-      title: t('Uptime Monitor Check'),
-      subtitle: `${event.additional_attributes?.method} ${event.additional_attributes?.request_url}`,
-    };
-  }
-
-  if (!('transaction' in event)) {
-    return null;
-  }
-
-  // Normalize operation field access across event types
-  const op =
-    'transaction.op' in event ? event['transaction.op'] : 'op' in event ? event.op : '';
-
-  return {
-    title: op || t('Trace'),
-    subtitle: event.transaction,
-  };
+  return event.traceHeaderTitle ?? null;
 }
 
 function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>) {
