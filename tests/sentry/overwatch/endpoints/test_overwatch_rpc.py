@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS, ObjectStatus
+from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS, DataCategory, ObjectStatus
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.prevent.models import PreventAIConfiguration
@@ -854,7 +854,10 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    def test_returns_false_when_contributor_has_less_than_2_actions(self):
+    @patch("sentry.overwatch.endpoints.overwatch_rpc.quotas.backend.check_seer_quota")
+    def test_returns_false_when_quota_check_fails(self, mock_check_quota):
+        mock_check_quota.return_value = False
+
         org = self.create_organization()
         project = self.create_project(organization=org)
         external_repo_id = "12345"
@@ -886,7 +889,6 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
             integration_id=integration.id,
             external_identifier=pr_author_id,
             alias="testuser",
-            num_actions=1,
         )
 
         url = reverse("sentry-api-0-prevent-pr-review-eligibility")
@@ -895,12 +897,16 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
         assert resp.data == {"is_eligible": False}
+        mock_check_quota.assert_called_once()
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    def test_returns_true_when_code_review_enabled_and_contributor_has_seat(self):
+    @patch("sentry.overwatch.endpoints.overwatch_rpc.quotas.backend.check_seer_quota")
+    def test_returns_true_when_code_review_enabled_and_quota_available(self, mock_check_quota):
+        mock_check_quota.return_value = True
+
         org = self.create_organization()
         project = self.create_project(organization=org)
         external_repo_id = "12345"
@@ -927,12 +933,11 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
             code_review_triggers=["on_command_phrase"],
         )
 
-        OrganizationContributors.objects.create(
+        contributor = OrganizationContributors.objects.create(
             organization=org,
             integration_id=integration.id,
             external_identifier=pr_author_id,
             alias="testuser",
-            num_actions=2,
         )
 
         url = reverse("sentry-api-0-prevent-pr-review-eligibility")
@@ -941,12 +946,20 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
         assert resp.data == {"is_eligible": True}
+        mock_check_quota.assert_called_once_with(
+            org_id=org.id,
+            data_category=DataCategory.SEER_USER,
+            seat_object=contributor,
+        )
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    def test_returns_true_when_any_org_is_eligible(self):
+    @patch("sentry.overwatch.endpoints.overwatch_rpc.quotas.backend.check_seer_quota")
+    def test_returns_true_when_any_org_is_eligible(self, mock_check_quota):
+        mock_check_quota.return_value = True
+
         org1 = self.create_organization()
         org2 = self.create_organization()
         project1 = self.create_project(organization=org1)
@@ -991,7 +1004,6 @@ class TestPreventPrReviewEligibilityEndpoint(APITestCase):
             integration_id=integration2.id,
             external_identifier=pr_author_id,
             alias="testuser",
-            num_actions=5,
         )
 
         url = reverse("sentry-api-0-prevent-pr-review-eligibility")
