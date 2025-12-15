@@ -66,6 +66,7 @@ function ReleasesSelectControl({
       clearable
       searchable
       id={id}
+      size="sm"
       disabled={isDisabled}
       loading={loading}
       menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
