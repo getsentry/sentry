@@ -1,15 +1,18 @@
 from slack_sdk.models.blocks import (
     ActionsBlock,
     ButtonElement,
+    ContextBlock,
     InputBlock,
-    InputInteractiveElement,
     MarkdownTextObject,
+    PlainTextInputElement,
+    PlainTextObject,
     SectionBlock,
 )
 
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
+    SeerAutofixError,
     SeerAutofixTrigger,
     SeerContextInput,
     SeerContextInputComplete,
@@ -18,9 +21,6 @@ from sentry.notifications.platform.types import NotificationData, NotificationRe
 
 
 class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
-    """
-    Custom SlackRenderer for 'seer-autofix-trigger', 'seer-context-input', and 'seer-context-input-complete'.
-    """
 
     @classmethod
     def render[DataT: NotificationData](
@@ -32,6 +32,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 blocks=[ActionsBlock(elements=[autofix_button])],
                 text="Seer Autofix Trigger",
             )
+        elif isinstance(data, SeerAutofixError):
+            return cls.render_autofix_error(data)
         elif isinstance(data, SeerContextInput):
             return cls.render_context_input(data)
         elif isinstance(data, SeerContextInputComplete):
@@ -51,6 +53,16 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         )
 
     @classmethod
+    def render_autofix_error(cls, data: SeerAutofixError) -> SlackRenderable:
+        return SlackRenderable(
+            blocks=[
+                SectionBlock(text=data.error_title),
+                SectionBlock(text=MarkdownTextObject(text=f">{data.error_message}")),
+            ],
+            text="Seer Autofix Error",
+        )
+
+    @classmethod
     def render_context_input(cls, data: SeerContextInput) -> SlackRenderable:
         from sentry.integrations.slack.message_builder.types import SlackAction
 
@@ -58,11 +70,13 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             blocks=[
                 InputBlock(
                     dispatch_action=True,
-                    label=data.label,
-                    element=InputInteractiveElement(
-                        placeholder=data.placeholder, action_id=SlackAction.SEER_CONTEXT_INPUT.value
+                    label=PlainTextObject(text=data.label),
+                    element=PlainTextInputElement(
+                        placeholder=PlainTextObject(text=data.placeholder),
+                        action_id=SlackAction.SEER_CONTEXT_INPUT.value,
                     ),
-                )
+                ),
+                ContextBlock(elements=[PlainTextObject(text=f"Run ID: {data.run_id}")]),
             ],
             text="Seer Context Input",
         )
@@ -72,7 +86,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         return SlackRenderable(
             blocks=[
                 SectionBlock(text=MarkdownTextObject(text="*Seer says thanks.*")),
-                SectionBlock(text=MarkdownTextObject(text=f"> {data.provided_context}")),
+                SectionBlock(text=MarkdownTextObject(text=f">{data.provided_context}")),
             ],
             text="Seer Context Input Complete",
         )

@@ -115,11 +115,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
     ) -> type[NotificationRenderer[SlackRenderable]]:
         from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
 
-        if data.source in {
-            "seer-autofix-trigger",
-            "seer-context-input",
-            "seer-context-input-complete",
-        }:
+        if category == NotificationCategory.SEER:
             return SeerSlackRenderer
         return cls.default_renderer
 

@@ -2,12 +2,12 @@ from dataclasses import dataclass
 
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
-    CodeTextBlock,
     NotificationCategory,
     NotificationData,
     NotificationRenderedTemplate,
     NotificationTemplate,
     ParagraphBlock,
+    PlainTextBlock,
 )
 
 
@@ -45,14 +45,14 @@ class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
     def render(self, data: SeerAutofixError) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject=data.error_title,
-            body=[
-                ParagraphBlock(blocks=[CodeTextBlock(text=data.error_message)]),
-            ],
+            body=[ParagraphBlock(blocks=[PlainTextBlock(text=data.error_message)])],
         )
 
 
 @dataclass(frozen=True)
 class SeerContextInput(NotificationData):
+    run_id: int
+    organization_id: int
     source: str = "seer-context-input"
     label: str = "Share helpful context with Seer"
     placeholder: str = "There might be a file..."
@@ -62,7 +62,10 @@ class SeerContextInput(NotificationData):
 class SeerContextInputTemplate(NotificationTemplate[SeerContextInput]):
     category = NotificationCategory.SEER
     example_data = SeerContextInput(
-        source="seer-context-input", placeholder="There might be a file..."
+        source="seer-context-input",
+        run_id=12152025,
+        organization_id=1,
+        placeholder="There might be a file...",
     )
     hide_from_debugger = True
 
