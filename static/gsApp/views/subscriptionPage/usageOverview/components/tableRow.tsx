@@ -112,9 +112,6 @@ function UsageOverviewTableRow({
     const reservedBudget = subscription.reservedBudgets?.find(
       budget => budget.apiName === reservedBudgetCategory
     );
-    percentUsed = reservedBudget
-      ? getPercentage(reservedBudget.totalReservedSpend, reservedBudget.reservedBudget)
-      : 0;
     formattedUsage = reservedBudget
       ? displayPriceWithCents({
           cents: isChildProduct
@@ -127,8 +124,13 @@ function UsageOverviewTableRow({
         });
 
     if (isUnlimited) {
+      percentUsed = 0;
       formattedPrepaid = formatReservedWithUnits(UNLIMITED_RESERVED, billedCategory);
     } else if (reservedBudget) {
+      percentUsed = getPercentage(
+        reservedBudget.totalReservedSpend,
+        reservedBudget.reservedBudget
+      );
       formattedPrepaid = displayPriceWithCents({cents: reservedBudget.reservedBudget});
       formattedFree = reservedBudget.freeBudget
         ? displayPriceWithCents({cents: reservedBudget.freeBudget})
@@ -138,6 +140,7 @@ function UsageOverviewTableRow({
         ? formatReservedWithUnits(prepaid, billedCategory)
         : null;
       formattedFree = free ? formatReservedWithUnits(free, billedCategory) : null;
+      percentUsed = prepaid ? getPercentage(usage, prepaid) : 0;
     }
 
     paygSpend = isChildProduct
