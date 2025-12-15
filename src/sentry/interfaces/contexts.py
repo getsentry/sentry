@@ -236,6 +236,15 @@ class OtelContextType(ContextType):
     context_to_tag_mapping = {}
 
 
+@contexttype
+class UnityContextType(ContextType):
+    type = "unity"
+    context_to_tag_mapping = {
+        "is_main_thread": "{is_main_thread}",
+        "install_mode": "{install_mode}",
+    }
+
+
 class Contexts(Interface):
     """
     This interface stores context specific information.
