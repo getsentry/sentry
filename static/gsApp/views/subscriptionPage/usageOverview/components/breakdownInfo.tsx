@@ -200,31 +200,28 @@ function DataCategoryUsageBreakdownInfo({
   const productCanUsePayg =
     plan.onDemandCategories.includes(category) &&
     hasPaygBudgetForCategory(subscription, category);
-  const platformReserved =
-    plan.planCategories[category]?.find(
-      bucket => bucket.price === 0 && bucket.events >= 0
-    )?.events ?? 0;
-  const platformReservedField = tct('[planName] plan', {planName: plan.name});
   const reserved = metricHistory.reserved ?? 0;
-  const isUnlimited = reserved === UNLIMITED_RESERVED;
-  const isAddOnChildCategory = checkIsAddOnChildCategory(subscription, category, true);
+  const platformReserved = subscription.canSelfServe
+    ? (plan.planCategories[category]?.find(
+        bucket => bucket.price === 0 && bucket.events >= 0
+      )?.events ?? 0)
+    : reserved;
+  const platformReservedField = tct('[planName] plan', {planName: plan.name});
 
   const additionalReserved = Math.max(0, reserved - platformReserved);
-  const shouldShowAdditionalReserved =
-    !isAddOnChildCategory &&
-    !isUnlimited &&
-    subscription.canSelfServe &&
-    additionalReserved > 0;
+  const shouldShowAdditionalReserved = additionalReserved > 0;
   const formattedAdditionalReserved = shouldShowAdditionalReserved
     ? formatReservedWithUnits(additionalReserved, category)
     : null;
   const formattedPlatformReserved =
-    isAddOnChildCategory || !reserved
-      ? null
-      : formatReservedWithUnits(
+    reserved > 0
+      ? formatReservedWithUnits(
           shouldShowAdditionalReserved ? platformReserved : reserved,
           category
-        );
+        )
+      : reserved === UNLIMITED_RESERVED
+        ? t('Unlimited')
+        : null;
 
   const gifted = metricHistory.free ?? 0;
   const formattedGifted = gifted ? formatReservedWithUnits(gifted, category) : null;
@@ -232,6 +229,7 @@ function DataCategoryUsageBreakdownInfo({
   const paygSpend = metricHistory.onDemandSpendUsed ?? 0;
   const paygCategoryBudget = metricHistory.onDemandBudget ?? 0;
 
+  const isAddOnChildCategory = checkIsAddOnChildCategory(subscription, category, true);
   const recurringReservedSpend = isAddOnChildCategory
     ? null
     : (plan.planCategories[category]?.find(bucket => bucket.events === reserved)?.price ??
