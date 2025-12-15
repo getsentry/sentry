@@ -8,6 +8,7 @@ export function AutofixSetupFixture(
       ok: true,
       reason: null,
     },
+    seerReposLinked: true,
     setupAcknowledgement: {
       orgHasAcknowledged: true,
       userHasAcknowledged: true,
