@@ -108,7 +108,7 @@ function TopBar({
                 onToggleMenu={onPRWidgetClick}
               />
             ) : (
-              <IconSeer kind={isPolling ? 'loading' : 'waiting'} size="md" />
+              <IconSeer animation={isPolling ? 'loading' : 'waiting'} size="md" />
             )}
           </CenterSection>
         )}

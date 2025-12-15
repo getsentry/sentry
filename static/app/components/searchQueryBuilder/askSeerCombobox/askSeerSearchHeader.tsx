@@ -11,7 +11,7 @@ interface SeerSearchHeaderProps {
 export function AskSeerSearchHeader({title, loading = false}: SeerSearchHeaderProps) {
   return (
     <HeaderWrapper>
-      <StyledIconSeer kind={loading ? 'loading' : undefined} />
+      <StyledIconSeer animation={loading ? 'loading' : undefined} />
       <Text>{title}</Text>
     </HeaderWrapper>
   );
