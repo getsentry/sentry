@@ -20,7 +20,6 @@ import {
   getIsAiNode,
   getTraceNodeAttribute,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {getNodeId} from 'sentry/views/insights/pages/agents/utils/getNodeId';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
@@ -237,26 +236,26 @@ export function AIInputSection({
       {/* If parsing fails, we'll just show the raw string */}
       {typeof messages === 'string' ? (
         // We set the key to the node id to ensure the internal collapse state is reset when the user switches between nodes
-        <TraceDrawerComponents.MultilineText key={getNodeId(node)}>
+        <TraceDrawerComponents.MultilineText key={node.id}>
           {messages}
         </TraceDrawerComponents.MultilineText>
       ) : null}
       {Array.isArray(messages) ? (
         <MessagesArrayRenderer
-          key={getNodeId(node)}
+          key={node.id}
           messages={messages}
           originalLength={originalMessagesLength}
         />
       ) : null}
       {toolArgs ? (
         <TraceDrawerComponents.MultilineJSON
-          key={getNodeId(node)}
+          key={node.id}
           value={toolArgs}
           maxDefaultDepth={1}
         />
       ) : null}
       {embeddingsInput ? (
-        <TraceDrawerComponents.MultilineText key={getNodeId(node)}>
+        <TraceDrawerComponents.MultilineText key={node.id}>
           {embeddingsInput.toString()}
         </TraceDrawerComponents.MultilineText>
       ) : null}
