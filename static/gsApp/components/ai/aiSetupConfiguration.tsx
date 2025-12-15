@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 import seerAutofixImg from 'sentry-images/autofix.png';
@@ -12,9 +12,9 @@ import {Heading} from '@sentry/scraps/text/heading';
 import {Text} from '@sentry/scraps/text/text';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Image as ImageBase} from 'sentry/components/core/image/image';
 import {
   AutofixConfigureSeer,
-  Image,
   ImageContainer,
   SeerFeaturesPanel,
 } from 'sentry/components/events/autofix/v2/autofixConfigureSeer';
@@ -43,9 +43,7 @@ export default function AiSetupConfiguration({
 }: AiSetupConfigurationProps) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
-  const noAutofixQuota =
-    !aiConfig.hasAutofixQuota && organization.features.includes('seer-billing');
-  if (noAutofixQuota) {
+  if (organization.features.includes('seer-billing') && !aiConfig.hasAutofixQuota) {
     return <AutofixConfigureQuota />;
   }
   return <AutofixConfigureSeer event={event} group={group} project={project} />;
@@ -56,7 +54,7 @@ function AutofixConfigureQuota() {
   const subscription = useSubscription();
   return (
     <Fragment>
-      <HeroImage src={seerConfigMainImg} />
+      <HeroImage src={seerConfigMainImg} alt="" />
       <Stack align="center">
         <MeetSeerPanel>
           <Stack gap="2xl" padding="2xl">
@@ -89,12 +87,12 @@ function AutofixConfigureQuota() {
         </MeetSeerPanel>
         <Stack width="70%" align="center">
           <ImageContainer width="250px" height="120px">
-            <Image alignSelf="flex-start" src={seerAutofixImg} />
+            <Image alignSelf="flex-start" src={seerAutofixImg} alt="" width="100%" />
           </ImageContainer>
           <SeerFeaturesPanel width="100%">
             <Stack direction="row" gap="md" padding="md">
               <ImageContainer aspectRatio="16 / 9" minWidth="30px" width="10%">
-                <Image src={seerConfigConnectImg} />
+                <Image src={seerConfigConnectImg} alt="" />
               </ImageContainer>
               <Stack gap="sm" padding="sm">
                 <Heading as="h3">{t('Root Cause Analysis & Code Fixes')}</Heading>
@@ -109,7 +107,7 @@ function AutofixConfigureQuota() {
           <SeerFeaturesPanel width="100%">
             <Stack direction="row" gap="md" padding="md">
               <ImageContainer aspectRatio="16 / 9" minWidth="30px" width="10%">
-                <Image src={seerConfigCheckImg} />
+                <Image src={seerConfigCheckImg} alt="" />
               </ImageContainer>
               <Stack gap="sm" padding="sm">
                 <Heading as="h3">{t('AI Code Review')}</Heading>
@@ -123,12 +121,16 @@ function AutofixConfigureQuota() {
   );
 }
 
-const HeroImage = styled('img')`
+const HeroImage = styled(ImageBase)`
   position: absolute;
   z-index: ${p => p.theme.zIndex.initial};
   min-width: 150%;
   left: 50%;
   transform: translateX(-47%) translateY(-35%);
+`;
+
+const Image = styled(ImageBase)<{alignSelf?: CSSProperties['alignSelf']}>`
+  align-self: ${p => p.alignSelf ?? 'center'};
 `;
 
 const MeetSeerPanel = styled(Panel)`

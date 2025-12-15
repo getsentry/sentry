@@ -4,11 +4,13 @@ import styled from '@emotion/styled';
 import seerAutofixImg from 'sentry-images/autofix.png';
 import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';
 
+import {Flex} from '@sentry/scraps/layout/flex';
 import {Stack} from '@sentry/scraps/layout/stack';
 import {Heading} from '@sentry/scraps/text/heading';
 import {Text} from '@sentry/scraps/text/text';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Image} from 'sentry/components/core/image/image';
 import {useGroupSummary} from 'sentry/components/group/groupSummary';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
@@ -36,7 +38,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
       <SeerFeaturesPanel width="100%">
         <Stack direction="row" gap="2xl" padding="2xl">
           <ImageContainer aspectRatio="16 / 9" maxWidth="150px" width="40%">
-            <Image src={seerConfigSeerImg} />
+            <Image src={seerConfigSeerImg} alt="" />
           </ImageContainer>
           <Stack gap="sm" padding="sm">
             <Heading as="h2" size="2xl">
@@ -57,7 +59,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
       </SeerFeaturesPanel>
       <Stack>
         <AngledImageContainer>
-          <Image src={seerAutofixImg} />
+          <Image src={seerAutofixImg} alt="" />
         </AngledImageContainer>
         <SeerPreviewPanel alignSelf="flex-start">
           <Stack gap="md" padding="md">
@@ -134,21 +136,6 @@ const SeerPreviewPanel = styled(Panel)<{alignSelf: CSSProperties['alignSelf']}>`
   max-width: 70%;
 `;
 
-export const ImageContainer = styled('div')<{
-  aspectRatio?: CSSProperties['aspectRatio'];
-  height?: CSSProperties['height'];
-  maxWidth?: CSSProperties['maxWidth'];
-  minWidth?: CSSProperties['maxWidth'];
-  width?: CSSProperties['width'];
-}>`
-  display: flex;
-  ${p => p.aspectRatio && `aspect-ratio: ${p.aspectRatio}`};
-  ${p => p.height && `height: ${p.height}`};
-  ${p => p.width && `width: ${p.width}`};
-  ${p => p.minWidth && `min-width: ${p.minWidth}`};
-  ${p => p.maxWidth && `max-width: ${p.maxWidth}`};
-`;
-
 const AngledImageContainer = styled('div')`
   position: absolute;
   right: -50px;
@@ -157,14 +144,14 @@ const AngledImageContainer = styled('div')`
   transform: rotate(45deg); /* Rotates the image 45 degrees clockwise */
 `;
 
-export const Image = styled('img')<{alignSelf?: CSSProperties['alignSelf']}>`
-  align-self: ${p => p.alignSelf ?? 'center'};
-  justify-self: center;
-  width: 100%;
-`;
-
 const SeerPreviewText = styled('div')`
   p {
     margin-bottom: 0;
   }
+`;
+
+export const ImageContainer = styled(Flex)<{
+  aspectRatio?: CSSProperties['aspectRatio'];
+}>`
+  ${p => p.aspectRatio && `aspect-ratio: ${p.aspectRatio}`};
 `;
