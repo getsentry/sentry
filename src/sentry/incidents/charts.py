@@ -219,7 +219,7 @@ def build_metric_alert_chart(
     query_type = SnubaQuery.Type(snuba_query.type)
     is_crash_free_alert = query_type == SnubaQuery.Type.CRASH_RATE
     using_new_charts = features.has(
-        "organizations:new-metric-issue-charts",
+        "organizations:workflow-engine-ui",
         organization,
     )
     if is_crash_free_alert:
