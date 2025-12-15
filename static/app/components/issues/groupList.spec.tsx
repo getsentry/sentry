@@ -11,7 +11,7 @@ import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metr
 import GroupList from './groupList';
 
 describe('GroupList', () => {
-  const organization = OrganizationFixture({slug: 'org-slug'});
+  const organization = OrganizationFixture();
   const group = GroupFixture();
   const membersUrl = `/organizations/${organization.slug}/users/`;
   const issuesUrl = `/organizations/${organization.slug}/issues/`;
