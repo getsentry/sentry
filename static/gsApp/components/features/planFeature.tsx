@@ -111,7 +111,7 @@ function PlanFeature({subscription, features, organization, children}: Props) {
     features.map(descopeFeatureName).every(f => plan.features.includes(f))
   );
 
-  if (!requiredPlan && features.includes('dashboards-edit')) {
+  if (!requiredPlan && features.some(f => descopeFeatureName(f) === 'dashboards-edit')) {
     // XXX(isabella): This is a temporary fix to allow upsells using dashboards-edit
     // to work as expected before the feature was migrated to flagpole (to represent unlimited dashboards)
     requiredPlan = plans.find(plan => plan.dashboardLimit === UNLIMITED_RESERVED);
