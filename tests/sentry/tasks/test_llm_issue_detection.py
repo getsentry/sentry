@@ -23,8 +23,8 @@ from sentry.utils import json
 
 
 class LLMIssueDetectionTest(TestCase):
-    @patch("sentry.tasks.llm_issue_detection.detection.detect_llm_issues_for_project.delay")
-    def test_run_detection_dispatches_sub_tasks(self, mock_delay):
+    @patch("sentry.tasks.llm_issue_detection.detection.detect_llm_issues_for_project.apply_async")
+    def test_run_detection_dispatches_sub_tasks(self, mock_apply_async):
         """Test run_detection spawns sub-tasks for each project."""
         project = self.create_project()
 
@@ -36,8 +36,7 @@ class LLMIssueDetectionTest(TestCase):
         ):
             run_llm_issue_detection()
 
-        assert mock_delay.called
-        assert mock_delay.call_args[0][0] == project.id
+        mock_apply_async.assert_called_once_with(args=[project.id], countdown=0)
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
@@ -87,6 +86,8 @@ class LLMIssueDetectionTest(TestCase):
             offender_span_ids=["span_1", "span_2"],
             trace_id="abc123xyz",
             transaction_name="test_transaction",
+            subcategory="Connection Pool Exhaustion",
+            category="Database",
         )
 
         create_issue_occurrence_from_detection(
@@ -192,6 +193,8 @@ class LLMIssueDetectionTest(TestCase):
                     "offender_span_ids": ["span_1", "span_2"],
                     "trace_id": "trace_id_1",
                     "transaction_name": "POST /some/thing",
+                    "category": "Database",
+                    "subcategory": "N+1 Query",
                 },
                 {
                     "title": "Memory Leak Risk",
@@ -202,6 +205,8 @@ class LLMIssueDetectionTest(TestCase):
                     "offender_span_ids": ["span_3"],
                     "trace_id": "trace_id_2",
                     "transaction_name": "GET /another/",
+                    "category": "Memory",
+                    "subcategory": "Memory Leak",
                 },
             ]
         }
@@ -295,6 +300,8 @@ class LLMIssueDetectionTest(TestCase):
                     "offender_span_ids": ["span_1"],
                     "trace_id": "trace_id_2",
                     "transaction_name": "GET /another/",
+                    "category": "General",
+                    "subcategory": "Success",
                 }
             ]
         }

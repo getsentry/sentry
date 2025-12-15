@@ -5,6 +5,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -79,17 +80,21 @@ export function EditDetectorAction({detector}: {detector: Detector}) {
       );
 
   return (
-    <LinkButton
-      to={`${makeMonitorDetailsPathname(organization.slug, detector.id)}edit/`}
-      priority="primary"
-      icon={<IconEdit />}
-      size="sm"
-      disabled={!canEdit}
+    <Tooltip
       title={canEdit ? undefined : permissionTooltipText}
-      tooltipProps={{isHoverable: true}}
+      disabled={canEdit}
+      isHoverable
     >
-      {t('Edit')}
-    </LinkButton>
+      <LinkButton
+        to={`${makeMonitorDetailsPathname(organization.slug, detector.id)}edit/`}
+        priority="primary"
+        icon={<IconEdit />}
+        size="sm"
+        disabled={!canEdit}
+      >
+        {t('Edit')}
+      </LinkButton>
+    </Tooltip>
   );
 }
 

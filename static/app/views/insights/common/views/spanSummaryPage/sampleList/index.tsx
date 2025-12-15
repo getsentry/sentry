@@ -2,10 +2,11 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -16,6 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
 import decodeSubregions from 'sentry/views/insights/browser/resources/utils/queryParameterDecoders/subregions';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
@@ -34,6 +36,30 @@ import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanFields;
+
+interface SampleListSearchQueryBuilderProps {
+  handleSearch: (query: string) => void;
+  moduleName: ModuleName;
+  query: string;
+  selection: PageFilters;
+}
+
+function SampleListSearchQueryBuilder({
+  query,
+  handleSearch,
+  selection,
+  moduleName,
+}: SampleListSearchQueryBuilderProps) {
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects: selection.projects,
+    initialQuery: query,
+    onSearch: handleSearch,
+    placeholder: t('Search for span attributes'),
+    searchSource: `${moduleName}-sample-panel`,
+  });
+
+  return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
+}
 
 type Props = {
   groupId: string;
@@ -178,12 +204,11 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
           />
 
           <StyledSearchBar>
-            <EapSpanSearchQueryBuilderWrapper
-              projects={selection.projects}
-              initialQuery={spanSearchQuery ?? ''}
-              onSearch={handleSearch}
-              placeholder={t('Search for span attributes')}
-              searchSource={`${moduleName}-sample-panel`}
+            <SampleListSearchQueryBuilder
+              query={spanSearchQuery ?? ''}
+              moduleName={moduleName}
+              selection={selection}
+              handleSearch={handleSearch}
             />
           </StyledSearchBar>
 

@@ -1,8 +1,10 @@
-import {useEffect, useState, useTransition} from 'react';
+import {useEffect, useId, useState, useTransition} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type Transition} from 'framer-motion';
+
+import {BoundaryContextProvider} from '@sentry/scraps/boundaryContext';
 
 import {space} from 'sentry/styles/space';
 
@@ -81,6 +83,8 @@ export function SlideOverPanel({
     });
   }, []);
 
+  const id = useId();
+
   const renderFunctionProps: ChildRenderProps = {
     isOpening: isTransitioning || !isContentVisible,
   };
@@ -90,33 +94,36 @@ export function SlideOverPanel({
   const collapsedStyle = position ? COLLAPSED_STYLES[position] : COLLAPSED_STYLES.right;
 
   return (
-    <_SlideOverPanel
-      ref={ref}
-      initial={collapsedStyle}
-      animate={openStyle}
-      exit={collapsedStyle}
-      position={position}
-      transition={{
-        ...theme.motion.framer.spring.moderate,
-        ...transitionProps,
-      }}
-      role="complementary"
-      aria-hidden={false}
-      aria-label={ariaLabel ?? 'slide out drawer'}
-      className={className}
-      data-test-id={testId}
-      panelWidth={panelWidth}
-    >
-      {/* Render the child content. If it's a render prop, pass the `isOpening`
+    <BoundaryContextProvider value={id}>
+      <_SlideOverPanel
+        ref={ref}
+        id={id}
+        initial={collapsedStyle}
+        animate={openStyle}
+        exit={collapsedStyle}
+        position={position}
+        transition={{
+          ...theme.motion.framer.spring.moderate,
+          ...transitionProps,
+        }}
+        role="complementary"
+        aria-hidden={false}
+        aria-label={ariaLabel ?? 'slide out drawer'}
+        className={className}
+        data-test-id={testId}
+        panelWidth={panelWidth}
+      >
+        {/* Render the child content. If it's a render prop, pass the `isOpening`
       prop. We expect the render prop to render a skeleton UI if `isOpening` is
       true. If `children` is not a render prop, render nothing while
       transitioning. */}
-      {typeof children === 'function'
-        ? children(renderFunctionProps)
-        : renderFunctionProps.isOpening
-          ? null
-          : children}
-    </_SlideOverPanel>
+        {typeof children === 'function'
+          ? children(renderFunctionProps)
+          : renderFunctionProps.isOpening
+            ? null
+            : children}
+      </_SlideOverPanel>
+    </BoundaryContextProvider>
   );
 }
 
@@ -140,8 +147,7 @@ const _SlideOverPanel = styled(motion.div, {
 
   z-index: ${p => p.theme.zIndex.modal - 1};
 
-  box-shadow: ${p => (p.theme.isChonk ? undefined : p.theme.dropShadowHeavy)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.tokens.content.primary};
 
   text-align: left;

@@ -1,7 +1,9 @@
 import logging
 import time
 import uuid
-from datetime import timedelta
+from collections.abc import Generator
+from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -25,14 +27,14 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     @pytest.fixture(autouse=True)
-    def patch_get_producer(self):
+    def patch_get_producer(self) -> Generator[None]:
         self.kafka_eventstream = KafkaEventStream()
         self.producer_mock = Mock()
 
         with patch.object(KafkaEventStream, "get_producer", return_value=self.producer_mock):
             yield
 
-    def __build_event(self, timestamp):
+    def __build_event(self, timestamp: datetime) -> Event:
         raw_event = {
             "event_id": "a" * 32,
             "message": "foo",
@@ -45,12 +47,12 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         manager.normalize()
         return manager.save(self.project.id)
 
-    def __build_transaction_event(self):
+    def __build_transaction_event(self) -> Event:
         manager = EventManager(load_data("transaction"))
         manager.normalize()
         return manager.save(self.project.id)
 
-    def __produce_event(self, *insert_args, **insert_kwargs):
+    def __produce_event(self, *insert_args: Any, **insert_kwargs: Any) -> None:
         event_type = self.kafka_eventstream._get_event_type(insert_kwargs["event"])
 
         # pass arguments on to Kafka EventManager
@@ -84,7 +86,9 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             event_type=event_type,
         )
 
-    def __produce_payload(self, *insert_args, **insert_kwargs):
+    def __produce_payload(
+        self, *insert_args: Any, **insert_kwargs: Any
+    ) -> tuple[list[tuple[str, str | None]] | dict[str, str | None], Any]:
         # pass arguments on to Kafka EventManager
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
 
@@ -98,7 +102,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         # only return headers and body payload
         return produce_kwargs["headers"], payload2
 
-    def test_init_options(self):
+    def test_init_options(self) -> None:
         # options in the constructor shouldn't cause errors
         stream = KafkaEventStream(foo="bar")
         assert stream
@@ -206,7 +210,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     def test_invalid_groupevent_passed(self, logger: MagicMock) -> None:
         event = self.__build_transaction_event()
         event.group_id = None
-        event.group_ids = [self.group.id]
+        event.groups = [self.group]
         insert_args = ()
         insert_kwargs = {
             "event": event.for_group(self.group),
@@ -416,7 +420,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             contexts_after_processing = send_extra_data_data["contexts"]
             assert contexts_after_processing == {**{"geo": geo_interface}}
 
-    def test_event_forwarding_to_items(self):
+    def test_event_forwarding_to_items(self) -> None:
         create_default_projects()
         es = self.kafka_eventstream
 
@@ -467,7 +471,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 assert trace_item.retention_days == 90
                 assert trace_item.attributes["group_id"].int_value == group_info.group.id
 
-    def test_snuba_event_stream_forwarding_to_items(self):
+    def test_snuba_event_stream_forwarding_to_items(self) -> None:
         create_default_projects()
         es = SnubaEventStream()
 
@@ -518,7 +522,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 assert trace_item.retention_days == 90
                 assert trace_item.attributes["group_id"].int_value == group_info.group.id
 
-    def test_snuba_event_stream_no_forwarding_when_rate_zero(self):
+    def test_snuba_event_stream_no_forwarding_when_rate_zero(self) -> None:
         create_default_projects()
         es = SnubaEventStream()
 
