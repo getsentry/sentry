@@ -44,7 +44,7 @@ class NotificationService[T: NotificationData]:
     @staticmethod
     def has_access(organization: Organization | RpcOrganization, source: str) -> bool:
 
-        option_key = NotificationService._has_feature_flag_access(organization, source)
+        option_key = NotificationService._has_feature_flag_access(organization)
         if option_key is None:
             return False
 
