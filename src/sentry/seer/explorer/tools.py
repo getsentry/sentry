@@ -120,7 +120,7 @@ def execute_table_query(
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
 
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
-        Providing start or end with stats_period will result in a ValueError.
+        Start/end params take precedence over stats_period.
     """
     stats_period, start, end = validate_date_params(stats_period, start, end)
 
@@ -171,6 +171,7 @@ def execute_table_query(
         )
         return {"data": resp.data["data"]}
     except client.ApiError as e:
+        # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
             logger.exception("execute_table_query: bad request", extra={"org_id": org_id})
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
@@ -206,7 +207,7 @@ def execute_timeseries_query(
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
 
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
-        Providing start or end with stats_period will result in a ValueError.
+        Start/end params take precedence over stats_period.
     """
     stats_period, start, end = validate_date_params(stats_period, start, end)
 
@@ -280,6 +281,78 @@ def execute_timeseries_query(
             return {metric_name: data}
 
     return data
+
+
+def execute_trace_table_query(
+    *,
+    organization_id: int,
+    query: str | None = None,
+    sort: str = "-timestamp",
+    per_page: int,
+    project_ids: list[int] | None = None,
+    project_slugs: list[str] | None = None,
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+    sampling_mode: SAMPLING_MODES = "NORMAL",
+    case_insensitive: bool | None = None,
+):
+    """
+    Execute a query to get trace samples by passing through the OrganizationTracesEndpoint.
+    This endpoint does not support any kind of aggregation.
+
+    Arg notes:
+        project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
+        project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
+        If neither project_ids nor project_slugs are provided, all active projects will be queried.
+        Start/end params take precedence over stats_period. Default time range is the last 24 hours.
+    """
+    stats_period, start, end = validate_date_params(
+        stats_period, start, end, default_stats_period="24h"
+    )
+
+    organization = Organization.objects.get(id=organization_id)
+    if not project_ids and not project_slugs:
+        project_ids = [ALL_ACCESS_PROJECT_ID]
+
+    params: dict[str, Any] = {
+        "dataset": "spans",  # the only supported value.
+        "query": query or None,
+        "sort": sort,
+        "per_page": per_page,
+        "statsPeriod": stats_period,
+        "start": start,
+        "end": end,
+        "project": project_ids,
+        "projectSlug": project_slugs,
+        "sampling": sampling_mode,
+        "referrer": Referrer.SEER_EXPLORER_TOOLS,
+    }
+
+    # Add boolean params only if provided.
+    if case_insensitive is not None:
+        params["caseInsensitive"] = "1" if case_insensitive else "0"
+
+    # Remove None values
+    params = {k: v for k, v in params.items() if v is not None}
+
+    try:
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+            user=None,
+            path=f"/organizations/{organization.slug}/traces/",
+            params=params,
+        )
+        return {"data": resp.data["data"]}
+    except client.ApiError as e:
+        # For 400 errors, return an error string for the query builder agent.
+        if e.status_code == 400:
+            logger.exception(
+                "execute_trace_table_query: bad request", extra={"org_id": organization_id}
+            )
+            error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
+            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
+        raise
 
 
 def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
@@ -648,41 +721,6 @@ def _get_issue_event_timeseries(
     return data, stats_period, interval
 
 
-def _get_trace_with_spans(
-    trace_ids: list[str], organization: Organization, start: datetime, end: datetime
-) -> str | None:
-    """
-    Given a list of trace IDs, return a trace ID with at least one span (non-deterministic).
-    """
-    # Allow errors if start is outside retention.
-    _, start = outside_retention_with_modified_start(start, end, organization)
-
-    if not trace_ids:
-        return None
-
-    if len(trace_ids) == 1:
-        query = f"trace:{trace_ids[0]}"
-    else:
-        query = f"trace:[{','.join(trace_ids)}]"
-
-    # Table query for a single item that has one of the trace IDs.
-    result = execute_table_query(
-        org_id=organization.id,
-        dataset="spans",
-        per_page=1,
-        fields=["trace"],
-        query=query,
-        sort="-timestamp",
-        start=start.isoformat(),
-        end=end.isoformat(),
-    )
-
-    if not result or not result.get("data"):
-        return None
-
-    return result["data"][0]["trace"]
-
-
 def _get_recommended_event(
     group: Group,
     organization: Organization,
@@ -907,7 +945,7 @@ def get_issue_and_event_details_v2(
 
     if group is None:
         logger.warning(
-            "get_issue_and_event_details: Missing group",
+            "get_issue_and_event_details_v2: Missing group",
             extra={
                 "organization_id": organization_id,
                 "project_slug": project_slug,
@@ -919,7 +957,7 @@ def get_issue_and_event_details_v2(
 
     if event is None:
         logger.warning(
-            "get_issue_and_event_details: Missing event",
+            "get_issue_and_event_details_v2: Missing event",
             extra={
                 "organization_id": organization_id,
                 "project_slug": project_slug,
@@ -935,230 +973,6 @@ def get_issue_and_event_details_v2(
         return get_issue_and_event_response(event, group, organization)
 
     return get_issue_and_event_response(event, None, organization)
-
-
-def get_issue_and_event_details(
-    *,
-    organization_id: int,
-    issue_id: str | None,
-    selected_event: str,
-) -> dict[str, Any] | None:
-    """
-    Tool to get details for a Sentry issue and one of its associated events. null issue_id can be passed so the
-    is issue is looked up from the event. We assume the event is always associated with an issue, otherwise None is returned.
-
-    Args:
-        organization_id: The ID of the organization to query.
-        issue_id: The issue/group ID (numeric) or short ID (string) to look up. If None, we fill this in with the event's `group` property.
-        selected_event:
-          If issue_id is provided, this is the event to return and must exist in the issue - the options are "oldest", "latest", "recommended", or a UUID.
-          If issue_id is not provided, this must be a UUID.
-
-    Returns:
-        A dict containing:
-            Issue fields: aside from `issue` these are nullable if an error occurred.
-            `issue`: Serialized issue details.
-            `tags_overview`: A summary of all tags in the issue.
-            `event_timeseries`: Event counts over time for the issue.
-            `timeseries_stats_period`: The stats period used for the event timeseries.
-            `timeseries_interval`: The interval used for the event timeseries.
-
-            Event fields:
-            `event`: Serialized event details.
-            `event_id`: The event ID of the selected event.
-            `event_trace_id`: The trace ID of the selected event. Nullable.
-            `project_id`: The event and issue's project ID.
-            `project_slug`: The event and issue's project slug.
-
-        Returns None when the requested event or issue is not found, or an error occurred.
-    """
-    try:
-        organization = Organization.objects.get(id=organization_id)
-    except Organization.DoesNotExist:
-        logger.warning(
-            "Organization does not exist",
-            extra={"organization_id": organization_id, "issue_id": issue_id},
-        )
-        return None
-
-    org_project_ids = list(
-        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values_list(
-            "id", flat=True
-        )
-    )
-    if not org_project_ids:
-        return None
-
-    event: Event | GroupEvent | None = None
-    group: Group
-
-    # Fetch the group object.
-    if issue_id is None:
-        # If issue_id is not provided, first find the event. Then use this to fetch the group.
-        uuid.UUID(selected_event)  # Raises ValueError if not valid UUID
-        # We can't use get_event_by_id since we don't know the exact project yet.
-        events_result = eventstore.backend.get_events(
-            filter=eventstore.Filter(
-                event_ids=[selected_event],
-                organization_id=organization_id,
-                project_ids=org_project_ids,
-            ),
-            limit=1,
-            tenant_ids={"organization_id": organization_id},
-        )
-        if not events_result:
-            logger.warning(
-                "Could not find the requested event ID",
-                extra={
-                    "organization_id": organization_id,
-                    "issue_id": issue_id,
-                    "selected_event": selected_event,
-                },
-            )
-            return None
-
-        event = events_result[0]
-        assert event is not None
-        if event.group is None:
-            logger.warning(
-                "Event is not associated with a group",
-                extra={"organization_id": organization_id, "event_id": event.event_id},
-            )
-            return None
-
-        group = event.group
-
-    else:
-        # Fetch the group from issue_id.
-        try:
-            if issue_id.isdigit():
-                group = Group.objects.get(project_id__in=org_project_ids, id=int(issue_id))
-            else:
-                group = Group.objects.by_qualified_short_id(organization_id, issue_id)
-
-        except Group.DoesNotExist:
-            logger.warning(
-                "Requested issue does not exist for organization",
-                extra={"organization_id": organization_id, "issue_id": issue_id},
-            )
-            return None
-
-    # Get the issue data, tags overview, and event count timeseries.
-    serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
-    # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
-    serialized_group["issueTypeDescription"] = group.issue_type.description
-
-    try:
-        tags_overview = get_all_tags_overview(group)
-    except Exception:
-        logger.exception(
-            "Failed to get tags overview for issue",
-            extra={"organization_id": organization_id, "issue_id": issue_id},
-        )
-        tags_overview = None
-
-    ts_result = _get_issue_event_timeseries(
-        organization=organization,
-        project_id=group.project_id,
-        issue_short_id=group.qualified_short_id,
-        first_seen_delta=datetime.now(UTC) - group.first_seen,
-        issue_category=group.issue_category,
-    )
-    if ts_result:
-        timeseries, timeseries_stats_period, timeseries_interval = ts_result
-    else:
-        timeseries, timeseries_stats_period, timeseries_interval = None, None, None
-
-    # Fetch event from group, if not already fetched.
-    if event is None:
-        if selected_event == "oldest":
-            event = group.get_oldest_event()
-        elif selected_event == "latest":
-            event = group.get_latest_event()
-        elif selected_event == "recommended":
-            event = group.get_recommended_event()
-        else:
-            uuid.UUID(selected_event)  # Raises ValueError if not valid UUID
-            event = eventstore.backend.get_event_by_id(
-                project_id=group.project_id,
-                event_id=selected_event,
-                group_id=group.id,
-                tenant_ids={"organization_id": organization_id},
-            )
-
-    # If the recommended event (default when agent doesn't specify an event) doesn't have a useful trace, try finding a different event.
-    try:
-        if selected_event == "recommended" and (
-            event is None
-            or event.trace_id is None
-            or _get_trace_with_spans(
-                [event.trace_id],
-                organization,
-                group.first_seen - timedelta(days=1),
-                group.last_seen + timedelta(days=1),
-            )
-            is None
-        ):
-            logger.info(
-                "No spans found for recommended event, trying a different event.",
-                extra={
-                    "organization_id": organization_id,
-                    "issue_id": group.id,
-                    "recommended_event_id": event.event_id if event else None,
-                    "event_trace_id": event.trace_id if event else None,
-                },
-            )
-
-            candidate_event = _get_recommended_event(group, organization)
-            if candidate_event:
-                event = candidate_event
-
-                logger.info(
-                    "Replaced recommended event with an event with spans.",
-                    extra={
-                        "organization_id": organization_id,
-                        "issue_id": group.id,
-                        "candidate_event_id": candidate_event.event_id,
-                        "candidate_event_trace_id": candidate_event.trace_id,
-                    },
-                )
-
-    except Exception:
-        logger.exception(
-            "Error getting event with valid trace",
-            extra={
-                "organization_id": organization_id,
-                "issue_id": group.id,
-                "selected_event": selected_event,
-            },
-        )
-
-    if event is None:
-        logger.warning(
-            "Could not find the selected event.",
-            extra={
-                "organization_id": organization_id,
-                "issue_id": issue_id,
-                "selected_event": selected_event,
-            },
-        )
-        return None
-
-    # Serialize event.
-    serialized_event = serialize(event, user=None, serializer=EventSerializer())
-
-    return {
-        "issue": serialized_group,
-        "event_timeseries": timeseries,
-        "timeseries_stats_period": timeseries_stats_period,
-        "timeseries_interval": timeseries_interval,
-        "tags_overview": tags_overview,
-        "event": serialized_event,
-        "event_id": event.event_id,
-        "event_trace_id": event.trace_id,
-        "project_id": event.project_id,
-        "project_slug": event.project.slug,
-    }
 
 
 def get_replay_metadata(

@@ -19,7 +19,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -387,7 +386,7 @@ const ChevronButton = withChonk(
         border-bottom-left-radius: 0px;
       `}
   `,
-  chonkStyled(Button)<{expanded: boolean}>`
+  styled(Button)<{expanded: boolean}>`
     display: none;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
