@@ -53,7 +53,7 @@ export function RepositoryToProjectConfiguration({
       repos.has(repoId)
     );
     const result = repoList.every(([, projectIds]) => projectIds.length > 0);
-    return repoList.length === 0 || result;
+    return repoList.length === selectedRootCauseAnalysisRepositories.length && result;
   }, [repositoryProjectMapping, selectedRootCauseAnalysisRepositories]);
 
   return (
