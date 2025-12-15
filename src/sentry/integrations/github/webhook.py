@@ -12,7 +12,6 @@ import orjson
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest, HttpResponse
-from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -823,11 +822,10 @@ class PullRequestEventWebhook(GitHubWebhook):
                             },
                         )
                         contributor.num_actions += 1
-                        contributor.date_updated = django_timezone.now()
                         is_active = (
                             contributor.num_actions >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
                         )
-                        contributor.save(update_fields=["num_actions", "date_updated"])
+                        contributor.save(update_fields=["num_actions"])
 
                     if is_active and is_contributor_eligible_for_seat_assignment(
                         user_type, author_association
