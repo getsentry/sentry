@@ -142,6 +142,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200
         assert response.data == {
+            "autofixEnabled": False,
             "integration": {
                 "ok": True,
                 "reason": None,
@@ -243,6 +244,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200
         assert response.data == {
+            "autofixEnabled": False,
             "integration": {
                 "ok": True,
                 "reason": None,
