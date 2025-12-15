@@ -627,9 +627,9 @@ def onboarding_seer_settings_update(
         "onboarding_seer_settings_update for new org completed",
         extra={
             "organization_id": organization_id,
+            "default_autofix_automation_tuning": rca_default_tuning,
+            "auto_open_prs": is_auto_open_prs_enabled,
             "org_slug": organization.slug,
-            "is_rca_enabled": is_rca_enabled,
-            "is_auto_open_prs_enabled": is_auto_open_prs_enabled,
             "num_projects": len(project_repo_dict),
         },
     )
