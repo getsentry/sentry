@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 import toNumber from 'lodash/toNumber';
 
 import {Alert} from '@sentry/scraps/alert/alert';
-import {Button} from '@sentry/scraps/button/button';
-import {ExternalLink} from '@sentry/scraps/link/link';
+import {ExternalLink, Link} from '@sentry/scraps/link/link';
 
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {Flex, Stack} from 'sentry/components/core/layout';
@@ -26,6 +25,7 @@ import {PriorityLevel} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import {useLocation} from 'sentry/utils/useLocation';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -625,6 +625,7 @@ function MigratedAlertWarningListener() {
     dataset,
     extrapolationMode,
   });
+  const location = useLocation();
 
   if (isMigratedExtrapolation) {
     return (
@@ -640,13 +641,16 @@ function MigratedAlertWarningListener() {
                 />
               ),
               thresholdsLink: (
-                <Button
-                  priority="link"
+                <Link
                   aria-label="Go to thresholds"
+                  preventScrollReset
+                  to={{...location, hash: '#thresholds-warning-icon'}}
                   onClick={() => {
-                    document
-                      .getElementById('thresholds-warning-icon')
-                      ?.scrollIntoView({behavior: 'smooth'});
+                    requestAnimationFrame(() => {
+                      document
+                        .getElementById('thresholds-warning-icon')
+                        ?.scrollIntoView({behavior: 'smooth'});
+                    });
                   }}
                 />
               ),
