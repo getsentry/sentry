@@ -226,11 +226,11 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
                     <LinkButton
                       to={card.comparisonUrl}
                       size="zero"
-                      priority="transparent"
+                      priority="link"
                       aria-label={t('Compare builds')}
                     >
                       <Flex align="center" gap="xs">
-                        {icon}
+                        <IconWrapper>{icon}</IconWrapper>
                         <Text
                           as="span"
                           variant={variant}
@@ -353,4 +353,10 @@ const MetricValue = styled('span')<{$interactive?: boolean}>`
     cursor: help;
   `
       : ''}
+`;
+
+const IconWrapper = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  color: ${p => p.theme.tokens.content.primary};
 `;
