@@ -1272,6 +1272,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200
         assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
+
 class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
