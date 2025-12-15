@@ -174,7 +174,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
         setSelectedFilterKey(null);
         setIsSelectingFilterKey(true);
       }}
-      size="sm"
+      size="md"
       menuWidth="300px"
       menuTitle={
         <MenuTitleWrapper>
@@ -190,9 +190,8 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
       trigger={triggerProps => (
         <Button
           {...triggerProps}
-          size="sm"
           aria-label={t('Add Global Filter')}
-          icon={<IconAdd />}
+          icon={<IconAdd size="sm" />}
         />
       )}
     />
