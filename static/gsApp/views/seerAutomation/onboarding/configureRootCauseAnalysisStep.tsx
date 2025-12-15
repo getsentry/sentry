@@ -7,7 +7,7 @@ import configureRootCauseAnalysisImg from 'sentry-images/spot/seer-config-connec
 import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Switch} from 'sentry/components/core/switch';
@@ -145,6 +145,7 @@ export function ConfigureRootCauseAnalysisStep() {
       },
       {
         onSuccess: () => {
+          addSuccessMessage(t('Root Cause Analysis settings saved successfully'));
           setCurrentStep(currentStep + 1);
         },
         onError: () => {
