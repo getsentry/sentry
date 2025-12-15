@@ -110,7 +110,9 @@ class OrganizationUnsubscribeProjectTest(APITestCase):
         other_project = self.create_project(organization=other_org)
         # Try to access other_project using our organization's URL
         path = generate_signed_link(
-            user_id=self.user.id, viewname=self.endpoint, args=[self.organization.slug, other_project.id]
+            user_id=self.user.id,
+            viewname=self.endpoint,
+            args=[self.organization.slug, other_project.id],
         )
         resp = self.client.get(path)
         # Should return 404 to prevent ID enumeration
@@ -196,7 +198,9 @@ class OrganizationUnsubscribeIssueTest(APITestCase):
         other_group = self.create_group(project=other_project)
         # Try to access other_group using our organization's URL
         path = generate_signed_link(
-            user_id=self.user.id, viewname=self.endpoint, args=[self.organization.slug, other_group.id]
+            user_id=self.user.id,
+            viewname=self.endpoint,
+            args=[self.organization.slug, other_group.id],
         )
         resp = self.client.get(path)
         # Should return 404 to prevent ID enumeration
