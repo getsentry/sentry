@@ -1932,7 +1932,7 @@ function serializeProps(props: Record<string, unknown>) {
 }
 
 const StyledSticky = styled(Sticky)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   z-index: ${p => p.theme.zIndex.initial};
   top: 52px;
 `;
@@ -1954,7 +1954,7 @@ const Cell = styled('button')`
   gap: ${p => p.theme.space.md};
   align-items: center;
   border: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.md};
   cursor: pointer;
   text-align: left;

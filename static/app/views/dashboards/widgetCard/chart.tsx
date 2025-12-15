@@ -77,10 +77,11 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
-import {type SpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -206,6 +207,15 @@ function WidgetCardChart(props: WidgetCardChartProps) {
       <TransitionChart loading={loading} reloading={loading}>
         <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
         <DetailsComponent tableResults={tableResults} {...props} />
+      </TransitionChart>
+    );
+  }
+
+  if (widget.displayType === DisplayType.WHEEL) {
+    return (
+      <TransitionChart loading={loading} reloading={loading}>
+        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
+        <WheelComponent tableResults={tableResults} {...props} />
       </TransitionChart>
     );
   }
@@ -689,6 +699,16 @@ function DetailsComponent(props: TableComponentProps): React.ReactNode {
   return <DetailsWidgetVisualization span={singleSpan} />;
 }
 
+function WheelComponent(props: TableComponentProps): React.ReactNode {
+  return (
+    <WheelWidgetVisualization
+      tableResults={props.tableResults}
+      loading={props.loading}
+      selection={props.selection}
+    />
+  );
+}
+
 function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {
   const stacked = widget.queries[0]?.columns.length! > 0;
 
@@ -810,8 +830,8 @@ const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boole
 const TableWrapper = styled('div')`
   margin-top: ${space(1.5)};
   min-height: 0;
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  border-bottom-left-radius: ${p => p.theme.radius.md};
+  border-bottom-right-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`

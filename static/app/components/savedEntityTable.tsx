@@ -93,7 +93,7 @@ SavedEntityTable.Row = styled(SimpleTable.Row, {
   height: 40px;
 
   &:last-child {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   }
 
   ${p =>

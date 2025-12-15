@@ -73,7 +73,7 @@ const StyledVersion = styled(Version)<{isPending: boolean}>`
     p.isPending &&
     css`
       background-color: ${p.theme.backgroundTertiary};
-      border-radius: ${p.theme.borderRadius};
+      border-radius: ${p.theme.radius.md};
       color: transparent;
       pointer-events: none;
       user-select: none;

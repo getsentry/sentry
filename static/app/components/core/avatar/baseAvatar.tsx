@@ -154,7 +154,7 @@ const AvatarContainer = styled('span')<{
   flex-shrink: 0;
   border-radius: ${p => (p.round ? '50%' : '3px')};
   border: ${p => (p.suggested ? `1px dashed ${p.theme.subText}` : 'none')};
-  background-color: ${p => (p.suggested ? p.theme.background : 'none')};
+  background-color: ${p => (p.suggested ? p.theme.tokens.background.primary : 'none')};
 `;
 
 const ImageAvatar = styled('img')<BaseAvatarStyleProps>`

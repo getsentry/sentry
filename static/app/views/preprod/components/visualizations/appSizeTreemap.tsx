@@ -134,6 +134,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       value: element.size,
       path: element.path,
       category: element.type,
+      misc: element.misc,
       itemStyle: {
         color: 'transparent',
         borderColor,
@@ -187,7 +188,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
               fontFamily: 'monospace',
               backgroundColor: theme.gray100,
               padding: theme.space.xs,
-              borderRadius: theme.borderRadius,
+              borderRadius: theme.radius.md,
             }}
           >
             {props.searchQuery}
@@ -294,7 +295,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const tooltip: TooltipOption = {
     trigger: 'item',
     borderWidth: 0,
-    backgroundColor: theme.background,
+    backgroundColor: theme.tokens.background.primary,
     hideDelay: 0,
     transitionDuration: 0,
     padding: 12,
@@ -309,6 +310,9 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       const pathElement = params.data?.path
         ? `<p style="font-size: 12px; margin-bottom: -4px;">${params.data.path}</p>`
         : null;
+      const scaleElement = params.data?.misc?.scale
+        ? `<span style="font-size: 10px; background-color: ${theme.tokens.background.secondary}; color: ${theme.tokens.content.primary}; padding: 4px; border-radius: 3px; font-weight: normal;">@${params.data.misc.scale}x</span>`
+        : '';
 
       return `
             <div style="font-family: Rubik;">
@@ -317,7 +321,10 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
                 <span style="color: ${theme.tokens.content.primary}">${params.data?.category || 'Other'}</span>
               </div>
               <div style="display: flex; flex-direction: column; line-height: 1; gap: ${theme.space.sm}">
-                <p style="font-size: 14px; font-weight: bold; margin-bottom: -2px;">${params.name}</p>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 14px; font-weight: bold;">${params.name}</span>
+                  ${scaleElement}
+                </div>
                 ${pathElement || ''}
                 <p style="font-size: 12px; margin-bottom: -4px;">${formatBytesBase10(value)} (${percent}%)</p>
               </div>
@@ -432,7 +439,7 @@ const ButtonContainer = styled(Flex)`
     max-height: 20px;
     padding: 0 ${space(0.5)};
     background: rgba(0, 0, 0, 0.8);
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     box-shadow: ${p => p.theme.dropShadowMedium};
 
     &:hover {

@@ -98,7 +98,8 @@ const Row = styled('div')<{showLastLine?: boolean}>`
   &:last-child {
     margin-bottom: 0;
     /* Show/hide connecting line from the last element of the timeline */
-    background: ${p => (p.showLastLine ? 'transparent' : p.theme.background)};
+    background: ${p =>
+      p.showLastLine ? 'transparent' : p.theme.tokens.background.primary};
   }
 `;
 
@@ -106,7 +107,7 @@ const IconWrapper = styled('div')`
   grid-column: span 1;
   border-radius: 100%;
   border: 1px solid;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   z-index: 10;
   svg {
     display: block;

@@ -437,6 +437,7 @@ from sentry.notifications.api.endpoints.user_notification_settings_providers imp
 from sentry.notifications.platform.api.endpoints import urls as notification_platform_urls
 from sentry.objectstore.endpoints.organization import OrganizationObjectstoreEndpoint
 from sentry.overwatch.endpoints.overwatch_rpc import (
+    CodeReviewRepoSettingsEndpoint,
     PreventPrReviewResolvedConfigsEndpoint,
     PreventPrReviewSentryOrgEndpoint,
 )
@@ -516,6 +517,9 @@ from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.seer.endpoints.group_autofix_update import GroupAutofixUpdateEndpoint
+from sentry.seer.endpoints.organization_autofix_automation_settings import (
+    OrganizationAutofixAutomationSettingsEndpoint,
+)
 from sentry.seer.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
 from sentry.seer.endpoints.organization_seer_explorer_chat import (
     OrganizationSeerExplorerChatEndpoint,
@@ -526,6 +530,7 @@ from sentry.seer.endpoints.organization_seer_explorer_runs import (
 from sentry.seer.endpoints.organization_seer_explorer_update import (
     OrganizationSeerExplorerUpdateEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_onboarding import OrganizationSeerOnboardingEndpoint
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheck
@@ -2350,6 +2355,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-onboarding-check",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/onboarding/$",
+        OrganizationSeerOnboardingEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-onboarding",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/autofix/automation-settings/$",
+        OrganizationAutofixAutomationSettingsEndpoint.as_view(),
+        name="sentry-api-0-organization-autofix-automation-settings",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer-rpc/(?P<method_name>\w+)/$",
         OrganizationSeerRpcEndpoint.as_view(),
         name="sentry-api-0-organization-seer-rpc",
@@ -3520,6 +3535,11 @@ INTERNAL_URLS = [
         r"^prevent/pr-review/github/sentry-org/$",
         PreventPrReviewSentryOrgEndpoint.as_view(),
         name="sentry-api-0-prevent-pr-review-github-sentry-org",
+    ),
+    re_path(
+        r"^code-review/repo-settings/$",
+        CodeReviewRepoSettingsEndpoint.as_view(),
+        name="sentry-api-0-code-review-repo-settings",
     ),
     re_path(
         r"^feature-flags/$",
