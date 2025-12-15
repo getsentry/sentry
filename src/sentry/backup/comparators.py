@@ -982,6 +982,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_updated", "date_added")
             ],
             "monitors.monitor": [UUID4Comparator("guid")],
+            "replays.organizationmemberreplayaccess": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
         },
     )
 
