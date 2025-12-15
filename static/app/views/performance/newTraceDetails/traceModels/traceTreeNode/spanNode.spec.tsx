@@ -177,14 +177,7 @@ describe('SpanNode', () => {
       const transaction = makeTransaction({
         event_id: 'txn-abc-123',
       });
-      const mockFn = jest.fn();
-      const transactionNode = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFn,
-        mockFn
-      );
+      const transactionNode = new TransactionNode(null, transaction, createMockExtra());
 
       const span = makeSpan({
         span_id: 'span-def-456',
@@ -319,6 +312,79 @@ describe('SpanNode', () => {
 
       expect(node.matchByPath('span-123')).toBe(true);
       expect(node.matchByPath('span-456')).toBe(false);
+    });
+  });
+
+  describe('attributes getter', () => {
+    it('should return span data as attributes', () => {
+      const span = makeSpan({
+        data: {
+          'http.method': 'GET',
+          'http.status_code': 200,
+          'server.address': 'api.example.com',
+        },
+      });
+      const node = new SpanNode(null, span, createMockExtra());
+
+      expect(node.attributes).toEqual({
+        'http.method': 'GET',
+        'http.status_code': 200,
+        'server.address': 'api.example.com',
+      });
+    });
+
+    it('should return undefined when span has no data', () => {
+      const span = makeSpan({
+        data: undefined,
+      });
+      const node = new SpanNode(null, span, createMockExtra());
+
+      expect(node.attributes).toBeUndefined();
+    });
+  });
+
+  describe('resolveValueFromSearchKey', () => {
+    it('should resolve span.self_time to exclusive_time', () => {
+      const span = makeSpan({
+        exclusive_time: 150,
+      });
+      const node = new SpanNode(null, span, createMockExtra());
+
+      expect(node.resolveValueFromSearchKey('span.self_time')).toBe(150);
+      expect(node.resolveValueFromSearchKey('span.exclusive_time')).toBe(150);
+    });
+
+    it('should resolve duration aliases to span duration', () => {
+      const span = makeSpan({
+        start_timestamp: 1000,
+        timestamp: 1500,
+      });
+      const node = new SpanNode(null, span, createMockExtra());
+
+      expect(node.resolveValueFromSearchKey('duration')).toBe(500 * 1e3);
+      expect(node.resolveValueFromSearchKey('span.duration')).toBe(500 * 1e3);
+      expect(node.resolveValueFromSearchKey('span.total_time')).toBe(500 * 1e3);
+    });
+
+    it('should resolve span-prefixed keys to value properties', () => {
+      const span = makeSpan({
+        op: 'db.query',
+        description: 'SELECT * FROM users',
+      });
+      const node = new SpanNode(null, span, createMockExtra());
+
+      expect(node.resolveValueFromSearchKey('span.op')).toBe('db.query');
+      expect(node.resolveValueFromSearchKey('span.description')).toBe(
+        'SELECT * FROM users'
+      );
+    });
+
+    it('should return null for unrecognized keys', () => {
+      const span = makeSpan({});
+      const node = new SpanNode(null, span, createMockExtra());
+
+      expect(node.resolveValueFromSearchKey('unknown.key')).toBeNull();
+      expect(node.resolveValueFromSearchKey('transaction.duration')).toBeNull();
     });
   });
 });

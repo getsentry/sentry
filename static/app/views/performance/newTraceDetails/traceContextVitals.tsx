@@ -24,7 +24,6 @@ import {
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import {isEAPTraceNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   TRACE_VIEW_MOBILE_VITALS,
@@ -56,9 +55,8 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
     ? TRACE_VIEW_WEB_VITALS
     : TRACE_VIEW_MOBILE_VITALS;
 
-  const isEAPTrace = isEAPTraceNode(traceNode);
   const collectedVitals =
-    isEAPTrace && tree.vital_types.has('mobile')
+    traceNode.isEAPEvent && tree.vital_types.has('mobile')
       ? getMobileVitalsFromRootEventResults(rootEventResults.data)
       : Array.from(tree.vitals.values()).flat();
 

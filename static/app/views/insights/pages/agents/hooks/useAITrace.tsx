@@ -10,10 +10,8 @@ import {
   isEAPSpanNode,
   isSpanNode,
   isTransactionNode,
-  isTransactionNodeEquivalent,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 interface UseAITraceResult {
@@ -70,19 +68,14 @@ export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceRes
 
         tree.build();
 
-        const fetchableTransactions = TraceTree.FindAll(tree.root, node => {
-          return isTransactionNode(node) && node.canFetch && node.value !== null;
-        }).filter((node): node is TraceTreeNode<TraceTree.Transaction> =>
-          isTransactionNode(node)
-        );
+        const fetchableNodes = tree.root.findAllChildren(node => node.canFetchChildren);
 
-        const uniqueTransactions = fetchableTransactions.filter(
-          (node, index, array) =>
-            index === array.findIndex(tx => tx.value.event_id === node.value.event_id)
+        const uniqueTransactions = fetchableNodes.filter(
+          (node, index, array) => index === array.findIndex(n => n.id === node.id)
         );
 
         const zoomPromises = uniqueTransactions.map(node =>
-          tree.zoom(node, true, {
+          tree.fetchNodeSubTree(true, node, {
             api,
             organization,
             preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -92,17 +85,13 @@ export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceRes
         await Promise.all(zoomPromises);
 
         // Keep only transactions that include AI spans and the AI spans themselves
-        const flattenedNodes = TraceTree.FindAll(tree.root, node => {
-          if (
-            !isTransactionNodeEquivalent(node) &&
-            !isSpanNode(node) &&
-            !isEAPSpanNode(node)
-          ) {
+        const flattenedNodes = tree.root.findAllChildren<AITraceSpanNode>(node => {
+          if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
             return false;
           }
 
           return getIsAiNode(node);
-        }) as AITraceSpanNode[];
+        });
 
         setNodes(flattenedNodes);
         setIsLoading(false);

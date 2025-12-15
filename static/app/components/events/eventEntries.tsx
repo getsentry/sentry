@@ -139,7 +139,7 @@ function EventEntries({
 // Because replays are not an interface, we need to manually insert the replay section
 // into the array of entries. The long-term solution here is to move the ordering
 // logic to this component, similar to how GroupEventDetailsContent works.
-export function partitionEntriesForReplay(entries: Entry[]) {
+function partitionEntriesForReplay(entries: Entry[]) {
   let replayIndex = 0;
 
   for (const [i, entry] of entries.entries()) {

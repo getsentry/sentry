@@ -10,9 +10,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {type OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {getRepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 interface PartialTraceDataWarningProps {
@@ -29,18 +28,9 @@ export function PartialTraceDataWarning({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const rep = getRepresentativeTraceEvent(tree, logs);
+  const rep = tree.findRepresentativeTraceNode({logs});
 
-  let op = '';
-  if (rep?.event) {
-    op =
-      'transaction.op' in rep.event
-        ? `${rep.event?.['transaction.op']}`
-        : 'op' in rep.event
-          ? `${rep.event.op}`
-          : '';
-  }
-
+  const op = rep?.event?.op ? String(rep.event.op) : '';
   const queryString = useMemo(() => {
     const search = new MutableSearch('');
     search.addFilterValue('is_transaction', 'true');
@@ -64,7 +54,7 @@ export function PartialTraceDataWarning({
   }
 
   const projects =
-    typeof rep.event?.project_id === 'number' ? [rep.event?.project_id] : [];
+    typeof rep?.event?.projectId === 'number' ? [rep.event?.projectId] : [];
 
   const exploreUrl = getExploreUrl({
     organization,

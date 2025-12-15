@@ -55,7 +55,7 @@ describe('ErrorNode', () => {
       expect(node.extra).toBe(extra);
       expect(node.errors.size).toBe(1);
       expect(node.errors.has(value)).toBe(true);
-      expect(node.isEAPEvent).toBe(true);
+      expect(node.isEAPEvent).toBe(false);
     });
 
     it('should handle different timestamp formats', () => {
@@ -111,17 +111,6 @@ describe('ErrorNode', () => {
 
       // EAPError doesn't have timestamp, so should use base space calculation
       expect(node.space).toEqual([0, 0]);
-    });
-
-    it('should handle null value gracefully', () => {
-      const extra = createMockExtra();
-
-      const node = new ErrorNode(null, null as any, extra);
-
-      expect(node.parent).toBeNull();
-      expect(node.value).toBeNull();
-      expect(node.extra).toBe(extra);
-      expect(node.errors.size).toBe(0);
     });
 
     it('should add error to errors set', () => {

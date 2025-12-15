@@ -132,9 +132,6 @@ export type TracingEventParameters = {
     num_children: number;
     project_platform: string;
     type: string;
-    next_op?: string;
-    parent_op?: string;
-    previous_op?: string;
   };
   'trace.trace_layout.tab_pin': Record<string, unknown>;
   'trace.trace_layout.tab_view': {

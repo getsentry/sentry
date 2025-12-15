@@ -308,34 +308,6 @@ describe('EapSpanNode', () => {
 
       expect(node.description).toBe('GET /api/users');
     });
-
-    it('should return name when OTEL-friendly UI is enabled', () => {
-      const extra = createMockExtra({
-        organization: OrganizationFixture({features: ['performance-otel-friendly-ui']}),
-      });
-      const value = makeEAPSpan({
-        description: 'GET /api/users',
-        name: 'request-span',
-      });
-
-      const node = new EapSpanNode(null, value, extra);
-
-      expect(node.description).toBe('request-span');
-    });
-
-    it('should handle undefined name with OTEL-friendly UI enabled', () => {
-      const extra = createMockExtra({
-        organization: OrganizationFixture({features: ['performance-otel-friendly-ui']}),
-      });
-      const value = makeEAPSpan({
-        description: 'GET /api/users',
-        name: undefined,
-      });
-
-      const node = new EapSpanNode(null, value, extra);
-
-      expect(node.description).toBeUndefined();
-    });
   });
 
   describe('getter methods', () => {
@@ -406,7 +378,7 @@ describe('EapSpanNode', () => {
       const child = new EapSpanNode(parent, childValue, extra);
       parent.children = [child];
 
-      expect(parent.directChildren).toEqual([child]);
+      expect(parent.directVisibleChildren).toEqual([child]);
     });
 
     it('should filter directChildren for collapsed EAP transactions', () => {
@@ -432,7 +404,7 @@ describe('EapSpanNode', () => {
       transaction.expanded = false;
 
       // Should only return child transactions when collapsed
-      expect(transaction.directChildren).toEqual([childTransaction]);
+      expect(transaction.directVisibleChildren).toEqual([childTransaction]);
     });
 
     it('should return all children for expanded EAP transactions', () => {
@@ -457,7 +429,7 @@ describe('EapSpanNode', () => {
       transaction.children = [childTransaction, childSpan];
       transaction.expanded = true;
 
-      expect(transaction.directChildren).toEqual([childTransaction, childSpan]);
+      expect(transaction.directVisibleChildren).toEqual([childTransaction, childSpan]);
     });
   });
 
@@ -894,8 +866,53 @@ describe('EapSpanNode', () => {
       const node = new EapSpanNode(null, value, extra);
 
       expect(node.children).toEqual([]);
-      expect(node.directChildren).toEqual([]);
+      expect(node.directVisibleChildren).toEqual([]);
       expect(node.visibleChildren).toEqual([]);
+    });
+  });
+
+  describe('resolveValueFromSearchKey', () => {
+    it('should resolve duration aliases to span duration', () => {
+      const extra = createMockExtra();
+      const value = makeEAPSpan({
+        event_id: 'test-span',
+        is_transaction: false,
+        start_timestamp: 1000,
+        end_timestamp: 1500,
+      });
+      const node = new EapSpanNode(null, value, extra);
+
+      expect(node.resolveValueFromSearchKey('duration')).toBe(500 * 1e3);
+      expect(node.resolveValueFromSearchKey('span.duration')).toBe(500 * 1e3);
+      expect(node.resolveValueFromSearchKey('span.total_time')).toBe(500 * 1e3);
+    });
+
+    it('should resolve span-prefixed keys to value properties', () => {
+      const extra = createMockExtra();
+      const value = makeEAPSpan({
+        event_id: 'test-span',
+        is_transaction: false,
+        op: 'db.query',
+        description: 'SELECT * FROM users',
+      });
+      const node = new EapSpanNode(null, value, extra);
+
+      expect(node.resolveValueFromSearchKey('span.op')).toBe('db.query');
+      expect(node.resolveValueFromSearchKey('span.description')).toBe(
+        'SELECT * FROM users'
+      );
+    });
+
+    it('should return null for unrecognized keys', () => {
+      const extra = createMockExtra();
+      const value = makeEAPSpan({
+        event_id: 'test-span',
+        is_transaction: false,
+      });
+      const node = new EapSpanNode(null, value, extra);
+
+      expect(node.resolveValueFromSearchKey('unknown.key')).toBeNull();
+      expect(node.resolveValueFromSearchKey('transaction.duration')).toBeNull();
     });
   });
 });

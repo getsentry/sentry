@@ -15,14 +15,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useTraceAverageTransactionDuration} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceAverageTransactionDuration';
 import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/highlightedAttributes';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 type HighlightProps = {
   event: EventTransaction;
-  node: TraceTreeNode<TraceTree.Transaction>;
+  node: TransactionNode;
   organization: Organization;
   project: Project | undefined;
   hideNodeActions?: boolean;
@@ -42,10 +40,6 @@ export function TransactionHighlights(props: HighlightProps) {
       Number(averageDurationQueryResult?.data?.[0]?.['avg(transaction.duration)']) / 1000
     );
   }, [averageDurationQueryResult]);
-
-  if (!isTransactionNode(props.node)) {
-    return null;
-  }
 
   const headerContent = (
     <HeaderContentWrapper>
@@ -82,12 +76,15 @@ export function TransactionHighlights(props: HighlightProps) {
   return (
     <TraceDrawerComponents.Highlights
       node={props.node}
-      transaction={props.event}
       project={props.project}
       avgDuration={avgDurationInSeconds}
       headerContent={headerContent}
       bodyContent={bodyContent}
+      footerContent={<TraceDrawerComponents.HighLightsOpsBreakdown event={props.event} />}
       hideNodeActions={props.hideNodeActions}
+      comparisonDescription={t(
+        'Average duration for this transaction over the last 24 hours'
+      )}
       highlightedAttributes={getHighlightedSpanAttributes({
         attributes: props.event.contexts.trace?.data,
         spanId: props.node.value.span_id,

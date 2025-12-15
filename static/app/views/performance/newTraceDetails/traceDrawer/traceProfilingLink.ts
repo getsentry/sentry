@@ -6,30 +6,7 @@ import {
   generateContinuousProfileFlamechartRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
-import {
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
-
-function getNodeId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
-  if (isTransactionNode(node)) {
-    return node.value.event_id;
-  }
-  if (isSpanNode(node)) {
-    return node.value.span_id;
-  }
-  return undefined;
-}
-
-// In the current version, a segment is a parent transaction
-function getEventId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
-  if (isTransactionNode(node)) {
-    return node.value.event_id;
-  }
-  return TraceTree.ParentTransaction(node)?.value?.event_id;
-}
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
 export function makeTransactionProfilingLink(
   profileId: string,
@@ -54,7 +31,7 @@ export function makeTransactionProfilingLink(
  * Generates a link to a continuous profile for a given trace element type
  */
 export function makeTraceContinuousProfilingLink(
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: BaseNode,
   profilerId: string,
   options: {
     organization: Organization;
@@ -70,8 +47,15 @@ export function makeTraceContinuousProfilingLink(
 
   // We compute a time offset based on the duration of the span so that
   // users can see some context of things that occurred before and after the span.
-  const transaction = isTransactionNode(node) ? node : TraceTree.ParentTransaction(node);
-  if (!transaction) {
+  const transactionId = node.transactionId;
+
+  // If the node is the transaction, we can use it directly. Otherwise, we need to find the parent transaction.
+  const transaction =
+    node.id === transactionId ? node : node.findParent(n => n.id === transactionId);
+
+  // TransactionId is required to generate a link because
+  // we need to link to the segment of the trace and fetch its spans
+  if (!transaction || !transactionId) {
     return null;
   }
 
@@ -99,16 +83,9 @@ export function makeTraceContinuousProfilingLink(
     return null;
   }
 
-  // TransactionId is required to generate a link because
-  // we need to link to the segment of the trace and fetch its spans
-  const eventId = getEventId(node);
-  if (!eventId) {
-    return null;
-  }
-
   const queryWithEventData: Record<string, string> = {
     ...query,
-    eventId,
+    eventId: transactionId,
     traceId: options.traceId,
   };
 
@@ -116,9 +93,9 @@ export function makeTraceContinuousProfilingLink(
     queryWithEventData.tid = options.threadId;
   }
 
-  const spanId = getNodeId(node);
-  if (spanId) {
-    queryWithEventData.spanId = spanId;
+  const nodeId = node.id;
+  if (nodeId) {
+    queryWithEventData.spanId = nodeId;
   }
 
   return generateContinuousProfileFlamechartRouteWithQuery({

@@ -23,9 +23,7 @@ import {
   type SectionCardKeyValueList,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
-import {isSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 const SIZE_DATA_KEYS = [
@@ -71,18 +69,19 @@ function partitionSizes(data: RawSpanType['data']): {
   };
 }
 
-function getSpanAggregateMeasurements(node: TraceTreeNode<TraceTree.Span>) {
+function getSpanAggregateMeasurements(node: SpanNode) {
   if (!/^ai\.pipeline($|\.)/.test(node.value.op ?? '')) {
     return [];
   }
 
   let sum = 0;
-  TraceTree.ForEachChild(node, n => {
-    if (
-      isSpanNode(n) &&
-      typeof n?.value?.measurements?.ai_total_tokens_used?.value === 'number'
-    ) {
-      sum += n.value.measurements.ai_total_tokens_used.value;
+  node.forEachChild(n => {
+    const tokens =
+      typeof n.measurements?.ai_total_tokens_used === 'number'
+        ? n.measurements?.ai_total_tokens_used
+        : (n.measurements?.ai_total_tokens_used?.value ?? 0);
+    if (tokens) {
+      sum += tokens;
     }
   });
   return [
@@ -94,19 +93,17 @@ function getSpanAggregateMeasurements(node: TraceTreeNode<TraceTree.Span>) {
   ];
 }
 
-export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>, theme: Theme) {
-  const span = node.value;
-  const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
+export function hasSpanKeys(node: SpanNode, theme: Theme) {
+  const {sizeKeys, nonSizeKeys} = partitionSizes(node.value?.data ?? {});
   const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
     value => value === 0
   );
-  const unknownKeys = Object.keys(span).filter(key => {
+  const unknownKeys = Object.keys(node.value).filter(key => {
     return !isHiddenDataKey(key) && !rawSpanKeys.has(key as any);
   });
-  const timingKeys = getSpanSubTimings(span, theme) ?? [];
+  const timingKeys = getSpanSubTimings(node.value, theme) ?? [];
   const aggregateMeasurements: SectionCardKeyValueList =
     getSpanAggregateMeasurements(node);
-
   return (
     allZeroSizes ||
     unknownKeys.length > 0 ||
@@ -117,7 +114,7 @@ export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>, theme: Theme) {
   );
 }
 
-export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
+export function SpanKeys({node}: {node: SpanNode}) {
   const theme = useTheme();
   const span = node.value;
   const projectIds = node.event?.projectID;

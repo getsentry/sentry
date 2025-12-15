@@ -16,8 +16,8 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {Attributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
 
 function UptimeNodeDetailsHeader({
   node,
@@ -25,8 +25,8 @@ function UptimeNodeDetailsHeader({
   onTabScrollToNode,
   hideNodeActions,
 }: {
-  node: TraceTreeNode<TraceTree.UptimeCheck>;
-  onTabScrollToNode: (node: TraceTreeNode<any>) => void;
+  node: UptimeCheckNode;
+  onTabScrollToNode: (node: BaseNode) => void;
   organization: Organization;
   hideNodeActions?: boolean;
 }) {
@@ -55,16 +55,14 @@ function UptimeNodeDetailsHeader({
   );
 }
 
-export function UptimeNodeDetails(
-  props: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.UptimeCheck>>
-) {
+export function UptimeNodeDetails(props: TraceTreeNodeDetailsProps<UptimeCheckNode>) {
   const {node} = props;
   const location = useLocation();
   const theme = useTheme();
   const {projects} = useProjects();
 
   const project = projects.find(
-    proj => proj.slug === (node.value.project_slug ?? node.event?.projectSlug)
+    proj => proj.slug === (node.value.project_slug ?? node.projectSlug)
   );
 
   return (
@@ -78,9 +76,7 @@ export function UptimeNodeDetails(
   );
 }
 
-type UptimeSpanNodeDetailsProps = TraceTreeNodeDetailsProps<
-  TraceTreeNode<TraceTree.UptimeCheck>
-> & {
+type UptimeSpanNodeDetailsProps = TraceTreeNodeDetailsProps<UptimeCheckNode> & {
   location: Location;
   project: Project | undefined;
   theme: Theme;
@@ -95,7 +91,7 @@ function UptimeSpanNodeDetails(props: UptimeSpanNodeDetailsProps) {
   } = useTraceItemDetails({
     traceItemId: node.value.event_id,
     projectId: node.value.project_id.toString(),
-    traceId: node.metadata.replayTraceSlug ?? traceId,
+    traceId: node.extra?.replayTraceSlug ?? traceId,
     traceItemType: TraceItemDataset.UPTIME_RESULTS,
     referrer: 'api.explore.log-item-details', // TODO: change to span details
     enabled: true,

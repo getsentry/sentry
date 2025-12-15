@@ -4,7 +4,7 @@ import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
-import type {TraceTreeNode} from './traceModels/traceTreeNode';
+import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import type {
   ViewManagerScrollAnchor,
   VirtualizedViewManager,
@@ -21,11 +21,9 @@ export function useTraceWaterfallScroll({
   tree: TraceTree;
   viewManager: VirtualizedViewManager;
 }): {
-  onScrollToNode: (
-    node: TraceTreeNode<TraceTree.NodeValue>
-  ) => Promise<TraceTreeNode<TraceTree.NodeValue> | null>;
+  onScrollToNode: (node: BaseNode) => Promise<BaseNode | null>;
   scrollRowIntoView: (
-    node: TraceTreeNode<TraceTree.NodeValue>,
+    node: BaseNode,
     index: number,
     anchor?: ViewManagerScrollAnchor,
     force?: boolean
@@ -33,9 +31,7 @@ export function useTraceWaterfallScroll({
 } {
   const api = useApi();
   const traceDispatch = useTraceStateDispatch();
-  const previouslyScrolledToNodeRef = useRef<TraceTreeNode<TraceTree.NodeValue> | null>(
-    null
-  );
+  const previouslyScrolledToNodeRef = useRef<BaseNode | null>(null);
   const traceState = useTraceState();
 
   const traceStateRef = useRef<TraceReducerState>(traceState);
@@ -48,7 +44,7 @@ export function useTraceWaterfallScroll({
 
   const scrollRowIntoView = useCallback(
     (
-      node: TraceTreeNode<TraceTree.NodeValue>,
+      node: BaseNode,
       index: number,
       anchor?: ViewManagerScrollAnchor,
       force?: boolean
@@ -69,15 +65,13 @@ export function useTraceWaterfallScroll({
   );
 
   const onScrollToNode = useCallback(
-    (
-      node: TraceTreeNode<TraceTree.NodeValue>
-    ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> => {
-      return TraceTree.ExpandToPath(tree, TraceTree.PathToNode(node), {
+    (node: BaseNode): Promise<BaseNode | null> => {
+      return TraceTree.ExpandToPath(tree, node.pathToNode(), {
         api,
         organization,
         preferences: traceStatePreferencesRef.current,
       }).then(() => {
-        const maybeNode = TraceTree.Find(tree.root, n => n === node);
+        const maybeNode = tree.root.findChild(n => n === node);
 
         if (!maybeNode) {
           return null;

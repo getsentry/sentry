@@ -1,58 +1,8 @@
-import * as Sentry from '@sentry/react';
-
-import {t} from 'sentry/locale';
-import {
-  isAutogroupedNode,
-  isEAPErrorNode,
-  isEAPSpanNode,
-  isMissingInstrumentationNode,
-  isSpanNode,
-  isTraceErrorNode,
-  isTraceNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
-export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
-  if (isTransactionNode(node)) {
-    return (
-      node.value['transaction.op'] +
-      (node.value.transaction ? ' - ' + node.value.transaction : '')
-    );
-  }
-
-  if (isSpanNode(node) || isEAPSpanNode(node)) {
-    return node.value.op + (node.value.description ? ' - ' + node.value.description : '');
-  }
-
-  if (isAutogroupedNode(node)) {
-    return t('Autogroup') + ' - ' + node.value.autogrouped_by.op;
-  }
-
-  if (isMissingInstrumentationNode(node)) {
-    return t('No Instrumentation');
-  }
-
-  if (isTraceErrorNode(node)) {
-    return node.value.message ?? node.value.title ?? 'Error';
-  }
-
-  if (isEAPErrorNode(node)) {
-    return node.value.description ?? 'Error';
-  }
-
-  if (isTraceNode(node)) {
-    return t('Trace');
-  }
-
-  Sentry.captureMessage('Unknown node type in trace drawer');
-  return 'Unknown';
-}
-
 type Tab = {
-  node: TraceTreeNode<TraceTree.NodeValue> | 'trace' | 'profiles' | 'vitals';
+  node: BaseNode | 'trace' | 'profiles' | 'vitals';
   label?: string;
 };
 

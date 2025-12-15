@@ -1,12 +1,7 @@
 import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
-import {
-  isEAPTraceNode,
-  isTraceNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TraceNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/traceNode';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
@@ -15,11 +10,7 @@ import {
   type TraceRowProps,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
-export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>>) {
-  if (!isTraceNode(props.node) && !isEAPTraceNode(props.node)) {
-    throw new Error('Trace row rendered called on row that is not root');
-  }
-
+export function TraceRootRow(props: TraceRowProps<TraceNode>) {
   return (
     <div
       key={props.index}
@@ -43,7 +34,7 @@ export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>
           {' '}
           <div className="TraceChildrenCountWrapper Root">
             <TraceRowConnectors node={props.node} manager={props.manager} />
-            {props.node.children.length > 0 || props.node.canFetch ? (
+            {props.node.children.length > 0 || props.node.canFetchChildren ? (
               <TraceChildrenButton
                 icon=""
                 status={props.node.fetchStatus}

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState, type PropsWithChildren} from 'react';
+import {Fragment, useMemo, useState, type PropsWithChildren} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
@@ -60,23 +60,13 @@ import {useParams} from 'sentry/utils/useParams';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
-import {
-  isEAPSpanNode,
-  isEAPTransactionNode,
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
-import type {ParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/parentAutogroupNode';
-import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/siblingAutogroupNode';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {
   useTraceState,
   useTraceStateDispatch,
@@ -335,8 +325,9 @@ const getDurationComparison = (
 type DurationProps = {
   baseline: number | undefined;
   duration: number;
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: BaseNode;
   baseDescription?: string;
+  precision?: number;
   ratio?: number;
 };
 
@@ -345,8 +336,7 @@ function Duration(props: DurationProps) {
     return <DurationContainer>{t('unknown')}</DurationContainer>;
   }
 
-  // Since transactions have ms precision, we show 2 decimal places only if the duration is greater than 1 second.
-  const precision = isTransactionNode(props.node) ? (props.duration > 1 ? 2 : 0) : 2;
+  const precision = props.precision ?? 2;
   if (props.baseline === undefined || props.baseline === 0) {
     return (
       <DurationContainer>
@@ -418,37 +408,27 @@ type HighlightProps = {
   avgDuration: number | undefined;
   bodyContent: React.ReactNode;
   headerContent: React.ReactNode;
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: BaseNode;
   project: Project | undefined;
-  transaction: EventTransaction | undefined;
+  comparisonDescription?: string;
+  footerContent?: React.ReactNode;
   hideNodeActions?: boolean;
   highlightedAttributes?: Array<{name: string; value: React.ReactNode}>;
 };
 
 function Highlights({
   node,
-  transaction: event,
   avgDuration,
   project,
   headerContent,
   bodyContent,
+  footerContent,
   highlightedAttributes,
+  comparisonDescription,
   hideNodeActions,
 }: HighlightProps) {
   const location = useLocation();
-  const dispatch = useTraceStateDispatch();
   const organization = useOrganization();
-
-  const onOpsBreakdownRowClick = useCallback(
-    (op: string) => {
-      dispatch({type: 'set query', query: `op:${op}`, source: 'external'});
-    },
-    [dispatch]
-  );
-
-  if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-    return null;
-  }
 
   const isAiNode = getIsAiNode(node);
   const isMCPNode = getIsMCPNode(node);
@@ -459,22 +439,19 @@ function Highlights({
   const endTimestamp = node.space[0] + node.space[1];
   const durationInSeconds = (endTimestamp - startTimestamp) / 1e3;
 
-  const baseDescription = isTransactionNode(node)
-    ? t('Average duration for this transaction over the last 24 hours')
-    : t('Average duration for this span over the last 24 hours');
   const comparison = getDurationComparison(
     avgDuration,
     durationInSeconds,
-    baseDescription
+    comparisonDescription
   );
 
   return (
     <Fragment>
       <HighlightsWrapper>
         <HighlightsLeftColumn>
-          <Tooltip title={node.value?.project_slug}>
+          <Tooltip title={node.projectSlug}>
             <ProjectBadge
-              project={project ? project : {slug: node.value?.project_slug ?? ''}}
+              project={project ? project : {slug: node.projectSlug ?? ''}}
               avatarSize={18}
               hideName
             />
@@ -482,9 +459,7 @@ function Highlights({
           <VerticalLine />
         </HighlightsLeftColumn>
         <HighlightsRightColumn>
-          <HighlightOp>
-            {isTransactionNode(node) ? node.value?.['transaction.op'] : node.value?.op}
-          </HighlightOp>
+          <HighlightOp>{node.op}</HighlightOp>
           <HighlightsDurationWrapper>
             <HighlightDuration>
               {getDuration(durationInSeconds, 2, true)}
@@ -530,17 +505,7 @@ function Highlights({
                 <StyledPanelHeader>{headerContent}</StyledPanelHeader>
                 <PanelBody>{bodyContent}</PanelBody>
               </StyledPanel>
-              {isEAPSpanNode(node) ? (
-                <HighLightEAPOpsBreakdown
-                  onRowClick={onOpsBreakdownRowClick}
-                  node={node}
-                />
-              ) : event ? (
-                <HighLightsOpsBreakdown
-                  onRowClick={onOpsBreakdownRowClick}
-                  event={event}
-                />
-              ) : null}
+              {footerContent}
             </Fragment>
           )}
         </HighlightsRightColumn>
@@ -554,15 +519,10 @@ const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
 
-function HighLightsOpsBreakdown({
-  event,
-  onRowClick,
-}: {
-  event: EventTransaction;
-  onRowClick: (op: string) => void;
-}) {
+function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
   const theme = useTheme();
   const breakdown = generateStats(event, {type: 'no_filter'});
+  const dispatch = useTraceStateDispatch();
 
   return (
     <HighlightsOpsBreakdownWrapper>
@@ -580,7 +540,13 @@ function HighLightsOpsBreakdown({
           return (
             <HighlightsOpRow
               key={operationName}
-              onClick={() => onRowClick(operationName)}
+              onClick={() =>
+                dispatch({
+                  type: 'set query',
+                  query: `op:${operationName}`,
+                  source: 'external',
+                })
+              }
             >
               <IconCircleFill size="xs" color={color as Color} />
               {operationName}
@@ -593,15 +559,10 @@ function HighLightsOpsBreakdown({
   );
 }
 
-function HighLightEAPOpsBreakdown({
-  node,
-  onRowClick,
-}: {
-  node: TraceTreeNode<TraceTree.EAPSpan>;
-  onRowClick: (op: string) => void;
-}) {
+function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
   const theme = useTheme();
-  const breakdown = node.eapSpanOpsBreakdown;
+  const breakdown = node.opsBreakdown;
+  const dispatch = useTraceStateDispatch();
 
   if (breakdown.length === 0) {
     return null;
@@ -636,7 +597,13 @@ function HighLightEAPOpsBreakdown({
           return (
             <HighlightsOpRow
               key={operationName}
-              onClick={() => onRowClick(operationName)}
+              onClick={() =>
+                dispatch({
+                  type: 'set query',
+                  query: `op:${operationName}`,
+                  source: 'external',
+                })
+              }
             >
               <IconCircleFill size="xs" color={color as Color} />
               {operationName}
@@ -771,13 +738,7 @@ const HighlightsRightColumn = styled('div')`
   overflow: hidden;
 `;
 
-function IssuesLink({
-  node,
-  children,
-}: {
-  children: React.ReactNode;
-  node: TraceTreeNode<TraceTree.NodeValue>;
-}) {
+function IssuesLink({node, children}: {children: React.ReactNode; node: BaseNode}) {
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
   const traceSlug = params.traceSlug?.trim() ?? '';
@@ -844,21 +805,6 @@ const TableRowButtonContainer = styled('div')`
 const ValueTd = styled('td')`
   position: relative;
 `;
-
-function getThreadIdFromNode(
-  node: TraceTreeNode<TraceTree.NodeValue>,
-  transaction: EventTransaction | undefined
-): string | undefined {
-  if (isSpanNode(node) && node.value.data?.['thread.id']) {
-    return node.value.data['thread.id'];
-  }
-
-  if (transaction) {
-    return transaction.contexts?.trace?.data?.['thread.id'];
-  }
-
-  return undefined;
-}
 
 // Renders the dropdown menu list at the root trace drawer content container level, to prevent
 // being stacked under other content.
@@ -1003,63 +949,43 @@ function PanelPositionDropDown({organization}: {organization: Organization}) {
 }
 
 function NodeActions(props: {
-  node: TraceTreeNode<any>;
-  onTabScrollToNode: (
-    node:
-      | TraceTreeNode<any>
-      | ParentAutogroupNode
-      | SiblingAutogroupNode
-      | MissingInstrumentationNode
-  ) => void;
+  node: BaseNode;
+  onTabScrollToNode: (node: BaseNode) => void;
   organization: Organization;
   eventSize?: number | undefined;
+  profileId?: string;
+  profilerId?: string;
+  showJSONLink?: boolean;
+  threadId?: string;
 }) {
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
 
-  const transactionId = isTransactionNode(props.node)
-    ? props.node.value.event_id
-    : isEAPTransactionNode(props.node)
-      ? props.node.value.transaction_id
-      : '';
-
-  const {data: transaction} = useTransaction({
-    event_id: transactionId,
-    project_slug: props.node.value.project_slug,
-    organization,
-  });
+  const transactionId = props.node.transactionId ?? '';
 
   const transactionProfileTarget = useMemo(() => {
-    const profileId = isTransactionNode(props.node)
-      ? props.node.value.profile_id
-      : isSpanNode(props.node)
-        ? (props.node.event?.contexts?.profile?.profile_id ?? '')
-        : '';
-    if (!profileId) {
+    if (!props.profileId) {
       return null;
     }
-    return makeTransactionProfilingLink(profileId, {
+
+    return makeTransactionProfilingLink(props.profileId, {
       organization,
-      projectSlug: props.node.metadata.project_slug ?? '',
+      projectSlug: props.node.projectSlug ?? '',
     });
-  }, [organization, props.node]);
+  }, [organization, props.node, props.profileId]);
 
   const continuousProfileTarget = useMemo(() => {
-    const profilerId = isTransactionNode(props.node)
-      ? props.node.value.profiler_id
-      : isSpanNode(props.node)
-        ? (props.node.value.sentry_tags?.profiler_id ?? null)
-        : null;
-    if (!profilerId) {
+    if (!props.profilerId) {
       return null;
     }
-    return makeTraceContinuousProfilingLink(props.node, profilerId, {
+
+    return makeTraceContinuousProfilingLink(props.node, props.profilerId, {
       organization,
-      projectSlug: props.node.metadata.project_slug ?? '',
+      projectSlug: props.node.projectSlug ?? '',
       traceId: params.traceSlug ?? '',
-      threadId: getThreadIdFromNode(props.node, transaction),
+      threadId: props.threadId,
     });
-  }, [organization, params.traceSlug, props.node, transaction]);
+  }, [organization, params.traceSlug, props.node, props.profilerId, props.threadId]);
 
   return (
     <ActionWrapper>
@@ -1074,12 +1000,11 @@ function NodeActions(props: {
           icon={<IconFocus />}
         />
       </Tooltip>
-      {transactionId &&
-      (isTransactionNode(props.node) || isEAPTransactionNode(props.node)) ? (
+      {props.showJSONLink && transactionId ? (
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${transactionId}/json/`}
+            href={`/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/events/${transactionId}/json/`}
             size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
@@ -1487,6 +1412,8 @@ export const TraceDrawerComponents = {
   HeaderContainer,
   LegacyHeaderContainer,
   Highlights,
+  HighLightEAPOpsBreakdown,
+  HighLightsOpsBreakdown,
   Actions,
   NodeActions,
   KeyValueAction,

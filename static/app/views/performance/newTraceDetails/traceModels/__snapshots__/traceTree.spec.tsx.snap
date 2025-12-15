@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`TraceTree ExpandToPath discards non txns segments 1`] = `
 "
@@ -28,8 +28,16 @@ trace root
 exports[`TraceTree FromTrace if parent span does not exist in span tree, the transaction stays under its previous parent 1`] = `
 "
 trace root
-  span.op - span.description
   root - transaction.op
+    child - transaction.op
+"
+`;
+
+exports[`TraceTree FromTrace if parent span does not exist in span tree, the transaction stays under its previous parent 2`] = `
+"
+trace root
+  root - transaction.op
+    span.op - span.description
     child - transaction.op
 "
 `;
