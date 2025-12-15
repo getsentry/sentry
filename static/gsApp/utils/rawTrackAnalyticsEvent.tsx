@@ -1,12 +1,12 @@
 import * as qs from 'query-string';
 
+import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {uniqueId} from 'sentry/utils/guid';
-import localStorage from 'sentry/utils/localStorage';
 import sessionStorage from 'sentry/utils/sessionStorage';
 
 import type {Subscription} from 'getsentry/types';
@@ -71,19 +71,20 @@ const hasAnalyticsDebug = () => localStorage.getItem('DEBUG_ANALYTICS_GETSENTRY'
 
 const getCustomReferrer = () => {
   try {
-    // pull the referrer from local storage.
-    if (
-      localStorage.getItem('customReferrer') &&
-      typeof localStorage.getItem('customReferrer') === 'string'
-    ) {
-      const referrer = localStorage.getItem('customReferrer');
-      localStorage.removeItem('customReferrer');
-      return referrer;
-    }
     // pull the referrer from the query parameter of the page
     const {referrer} = qs.parse(window.location.search) || {};
     if (referrer && typeof referrer === 'string') {
       return referrer;
+    }
+
+    // pull the referrer from session storage.
+    if (
+      sessionStorage.getItem(CUSTOM_REFERRER_KEY) &&
+      typeof sessionStorage.getItem(CUSTOM_REFERRER_KEY) === 'string'
+    ) {
+      const sessionReferrer = sessionStorage.getItem(CUSTOM_REFERRER_KEY);
+      sessionStorage.removeItem(CUSTOM_REFERRER_KEY);
+      return sessionReferrer;
     }
   } catch {
     // ignore if this fails to parse

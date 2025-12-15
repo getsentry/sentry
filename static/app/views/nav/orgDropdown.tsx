@@ -9,6 +9,7 @@ import {Button} from 'sentry/components/core/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -16,14 +17,16 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import localStorage from 'sentry/utils/localStorage';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+const ORG_DROPDOWN_REFERRER = 'org-dropdown';
 
 function createOrganizationMenuItem(): MenuItemProps {
   const configFeatures = ConfigStore.get('features');
@@ -64,6 +67,7 @@ export function OrgDropdown({
   const config = useLegacyStore(ConfigStore);
   const organization = useOrganization();
   const navigate = useNavigate();
+  const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
   // It's possible we do not have an org in context (e.g. RouteNotFound)
   // Otherwise, we should have the full org
@@ -148,7 +152,7 @@ export function OrgDropdown({
               key: 'projects',
               label: t('Projects'),
               onAction: () => {
-                localStorage.setItem('customReferrer', 'org-dropdown');
+                setReferrer(ORG_DROPDOWN_REFERRER);
                 navigate(makeProjectsPathname({path: '/', organization}));
               },
               hidden: hideOrgLinks,
