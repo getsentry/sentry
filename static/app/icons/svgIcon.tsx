@@ -19,7 +19,7 @@ export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
   legacySize?: string;
   ref?: React.Ref<SVGSVGElement>;
   size?: IconSize;
-  variant?: keyof Theme['tokens']['graphics'];
+  variant?: keyof Theme['tokens']['content'];
 }
 
 export function SvgIcon(props: SVGIconProps) {
@@ -43,7 +43,7 @@ export function SvgIcon(props: SVGIconProps) {
       {...rest}
       fill={
         iconProps.variant
-          ? theme.tokens.graphics[iconProps.variant]
+          ? theme.tokens.content[iconProps.variant]
           : resolveIconColor(theme, iconProps)
       }
       height={size}
