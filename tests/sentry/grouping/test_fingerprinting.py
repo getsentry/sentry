@@ -983,3 +983,44 @@ function:target_func | [ function:callee_func ] -> target-calls-callee
     match = restored_rules.get_fingerprint_values_for_event(event_with_caller)
     assert match is not None
     assert match.fingerprint == ["caller-calls-target"]
+
+
+def test_thread_matchers_json_roundtrip() -> None:
+    """Test that thread matchers can be serialized and deserialized via JSON"""
+    rules = FingerprintingConfig.from_config_string(
+        """
+thread.name:MainThread -> main-thread-error
+thread.id:123 -> thread-123
+thread.crashed:true -> crashed
+thread.current:true -> current
+thread.state:RUNNABLE -> runnable
+"""
+    )
+
+    # Serialize to JSON
+    config_structure = rules._to_config_structure()
+
+    # Deserialize from JSON
+    restored_rules = FingerprintingConfig._from_config_structure(config_structure)
+
+    # Verify the restored rules match the original
+    assert restored_rules._to_config_structure() == config_structure
+
+    # Test that restored rules work correctly
+    event_with_threads = {
+        "threads": {
+            "values": [
+                {
+                    "id": "123",
+                    "name": "MainThread",
+                    "crashed": True,
+                    "current": False,
+                    "state": "RUNNABLE",
+                }
+            ]
+        }
+    }
+
+    match = restored_rules.get_fingerprint_values_for_event(event_with_threads)
+    assert match is not None
+    assert match.fingerprint == ["main-thread-error"]
