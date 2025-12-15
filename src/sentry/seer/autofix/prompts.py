@@ -37,7 +37,9 @@ def solution_prompt(*, short_id: str, title: str, culprit: str) -> str:
         Steps:
         1. Review the root cause that was identified
         2. Explore the codebase to understand the affected areas
-        3. Design a clear, step-by-step solution plan
+        3. Consider different possible approaches and pick the single most pragmatic one.
+
+        Do NOT include testing as part of your plan.
 
         When you have a solid plan, generate the solution artifact with:
         - one_line_summary: A concise summary of the fix in under 30 words
