@@ -29,15 +29,8 @@ def has_replay_permission(organization: Organization, user: User | AnonymousUser
     if not features.has("organizations:granular-replay-permissions", organization):
         return True
 
-    if user is None or not user.is_authenticated:
-        return False
+    member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
 
-    try:
-        member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
-    except OrganizationMember.DoesNotExist:
-        return False
-
-    # if the feature to gate replays by organization option is disabled, return True to allow access to all members
     org_option = OrganizationOption.objects.filter(
         organization=organization, key="sentry:granular-replay-permissions"
     ).first()
@@ -48,6 +41,7 @@ def has_replay_permission(organization: Organization, user: User | AnonymousUser
         organizationmember__organization=organization
     ).exists()
 
+    # if no allowlist records exist, return False to deny access to all members
     if not allowlist_exists:
         return False
 
