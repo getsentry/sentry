@@ -41,8 +41,8 @@ export default function ModelCostWidget() {
 
   const tokensRequest = useSpans(
     {
-      fields: ['gen_ai.request.model', 'sum(gen_ai.usage.total_cost)'],
-      sorts: [{field: 'sum(gen_ai.usage.total_cost)', kind: 'desc'}],
+      fields: ['gen_ai.request.model', 'sum(gen_ai.cost.total_tokens)'],
+      sorts: [{field: 'sum(gen_ai.cost.total_tokens)', kind: 'desc'}],
       search: fullQuery,
       limit: 3,
     },
@@ -54,8 +54,8 @@ export default function ModelCostWidget() {
       ...pageFilterChartParams,
       query: fullQuery,
       groupBy: [SpanFields.GEN_AI_REQUEST_MODEL],
-      yAxis: ['sum(gen_ai.usage.total_cost)'],
-      sort: {field: 'sum(gen_ai.usage.total_cost)', kind: 'desc'},
+      yAxis: ['sum(gen_ai.cost.total_tokens)'],
+      sort: {field: 'sum(gen_ai.cost.total_tokens)', kind: 'desc'},
       topEvents: 3,
       enabled: !!tokensRequest.data,
     },
@@ -122,7 +122,7 @@ export default function ModelCostWidget() {
             <ModelText>
               <ModelName modelId={modelId} />
             </ModelText>
-            <span>{formatLLMCosts(item['sum(gen_ai.usage.total_cost)'] || 0)}</span>
+            <span>{formatLLMCosts(item['sum(gen_ai.cost.total_tokens)'] || 0)}</span>
           </Fragment>
         );
       })}
@@ -144,12 +144,12 @@ export default function ModelCostWidget() {
               visualize: [
                 {
                   chartType: ChartType.BAR,
-                  yAxes: ['sum(gen_ai.usage.total_cost)'],
+                  yAxes: ['sum(gen_ai.cost.total_tokens)'],
                 },
               ],
               groupBy: ['gen_ai.request.model'],
               query: fullQuery,
-              sort: `-sum(gen_ai.usage.total_cost)`,
+              sort: `-sum(gen_ai.cost.total_tokens)`,
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {
