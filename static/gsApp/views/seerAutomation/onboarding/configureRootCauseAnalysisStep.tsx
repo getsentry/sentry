@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import configureRootCauseAnalysisImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
@@ -14,15 +15,21 @@ import {
   GuidedSteps,
   useGuidedStepsContext,
 } from 'sentry/components/guidedSteps/guidedSteps';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {useCodeMappings} from './hooks/useCodeMappings';
+import {
+  useSubmitSeerOnboarding,
+  type BackendRepository,
+} from './hooks/useSubmitSeerOnboarding';
 import {
   Field,
   FieldDescription,
@@ -34,8 +41,13 @@ import {
 import {RepositoryToProjectConfiguration} from './repositoryToProjectConfiguration';
 
 export function ConfigureRootCauseAnalysisStep() {
-  const [proposeFixesEnabled, setProposeFixesEnabled] = useState(true);
-  const [autoCreatePREnabled, setAutoCreatePREnabled] = useState(true);
+  const organization = useOrganization();
+  const [proposeFixesEnabled, setProposeFixesEnabled] = useState(
+    organization.defaultAutofixAutomationTuning !== 'off'
+  );
+  const [autoCreatePREnabled, setAutoCreatePREnabled] = useState(
+    organization.autoOpenPrs ?? false
+  );
 
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
   const {
@@ -58,6 +70,9 @@ export function ConfigureRootCauseAnalysisStep() {
     enabled: selectedRootCauseAnalysisRepositories.length > 0,
   });
 
+  const {mutate: submitOnboarding, isPending: isSubmitOnboardingPending} =
+    useSubmitSeerOnboarding();
+
   useEffect(() => {
     if (!isCodeMappingsLoading && codeMappingsMap.size > 0) {
       const additionalMappings: Record<string, string[]> = {};
@@ -79,9 +94,74 @@ export function ConfigureRootCauseAnalysisStep() {
   }, [setCurrentStep, currentStep]);
 
   const handleNextStep = useCallback(() => {
-    // TODO: Save to backend
-    setCurrentStep(currentStep + 1);
-  }, [setCurrentStep, currentStep]);
+    // Build a map from repo ID to full repo object
+    const repoMap = new Map(
+      selectedRootCauseAnalysisRepositories.map(repo => [repo.id, repo])
+    );
+
+    // Transform repositoryProjectMapping from {repoId: projectIds[]} to {projectId: repos[]}
+    const projectRepoMapping: Record<string, BackendRepository[]> = {};
+    for (const [repoId, projectIds] of Object.entries(repositoryProjectMapping)) {
+      const repo = repoMap.get(repoId);
+      if (!repo) {
+        continue;
+      }
+      for (const projectId of projectIds) {
+        if (!projectRepoMapping[projectId]) {
+          projectRepoMapping[projectId] = [];
+        }
+
+        // repo.name = `githubOrg/repositoryName`, need to split it for backend
+        const [owner, name] = (repo.name || '/').split('/');
+        if (!owner || !name || !repo.provider) {
+          Sentry.logger.error('Seer Onboarding: Invalid repository name', {
+            repoName: repo.name,
+          });
+          continue;
+        }
+        projectRepoMapping[projectId].push({
+          external_id: repo.externalId,
+          integration_id: repo.integrationId,
+          organization_id: parseInt(organization.id, 10),
+          owner,
+          provider: repo.provider?.name,
+          name,
+        });
+      }
+    }
+
+    // Only submit if RCA is disabled (empty mapping is fine) or there are valid mappings
+    const hasMappings = Object.keys(projectRepoMapping).length > 0;
+    if (proposeFixesEnabled && !hasMappings) {
+      addErrorMessage(t('At least one repository must be mapped to a project'));
+      return;
+    }
+
+    submitOnboarding(
+      {
+        fixes: proposeFixesEnabled,
+        pr_creation: autoCreatePREnabled,
+        project_repo_mapping: projectRepoMapping,
+      },
+      {
+        onSuccess: () => {
+          setCurrentStep(currentStep + 1);
+        },
+        onError: () => {
+          addErrorMessage(t('Failed to save settings'));
+        },
+      }
+    );
+  }, [
+    setCurrentStep,
+    currentStep,
+    submitOnboarding,
+    repositoryProjectMapping,
+    selectedRootCauseAnalysisRepositories,
+    proposeFixesEnabled,
+    autoCreatePREnabled,
+    organization.id,
+  ]);
 
   const handleRepositoryProjectMappingsChange = useCallback(
     (repoId: string, index: number, newValue: string | undefined) => {
@@ -225,11 +305,12 @@ export function ConfigureRootCauseAnalysisStep() {
           size="md"
           onClick={handleNextStep}
           priority={isFinishDisabled ? 'default' : 'primary'}
-          disabled={isFinishDisabled}
+          disabled={isSubmitOnboardingPending || isFinishDisabled}
           aria-label={t('Last Step')}
         >
           {t('Last Step')}
         </Button>
+        {isSubmitOnboardingPending && <InlineLoadingIndicator size={20} />}
       </GuidedSteps.ButtonWrapper>
     </Fragment>
   );
@@ -243,4 +324,8 @@ const StepContentWithBackground = styled(StepContent)`
 const AddRepoRow = styled(PanelItem)`
   align-items: center;
   justify-content: flex-end;
+`;
+
+const InlineLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
 `;
