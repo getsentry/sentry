@@ -398,7 +398,6 @@ class OrganizationDetectorIndexPostTest(APITestCase):
         assert "Only superusers can modify `mode`" in str(response.data["config"]["mode"])
 
 
-
 class OrganizationDetectorIndexGetFilterTest(UptimeDetectorBaseTest):
     """Test that AUTO_DETECTED_ONBOARDING detectors are filtered from the list endpoint."""
 
