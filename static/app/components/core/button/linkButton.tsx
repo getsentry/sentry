@@ -94,6 +94,9 @@ const StyledLinkButton = styled(
   }
 )<LinkButtonProps>`
   ${p => getChonkLinkButtonStyles(p)}
+  &:focus-visible {
+    box-shadow: none;
+  }
 `;
 
 const getChonkLinkButtonStyles = (p: LinkButtonProps) => {
