@@ -371,18 +371,6 @@ const generateTagTheme = (colors: Colors): TagColors => ({
     border: colors.blue100,
     color: colors.blue500,
   },
-
-  white: {
-    background: colors.white,
-    border: colors.white,
-    color: colors.black,
-  },
-
-  black: {
-    background: colors.black,
-    border: colors.black,
-    color: colors.white,
-  },
 });
 
 /**
@@ -398,10 +386,7 @@ type Tag =
   | 'warning'
   | 'success'
   | 'error'
-  | 'info'
-  // @TODO(jonasbadalic): What are white and black tags?
-  | 'white'
-  | 'black';
+  | 'info';
 
 type TagColors = Record<
   Tag,
@@ -444,23 +429,6 @@ export type FormSize = 'xs' | 'sm' | 'md';
 
 export type Space = keyof typeof space;
 
-type FormTheme = {
-  form: Record<
-    FormSize,
-    {
-      borderRadius: string;
-      fontSize: string;
-      height: string;
-      lineHeight: string;
-      minHeight: string;
-      paddingBottom: number;
-      paddingLeft: number;
-      paddingRight: number;
-      paddingTop: number;
-    }
-  >;
-};
-
 const iconSizes: Record<Size, string> = {
   xs: '12px',
   sm: '14px',
@@ -483,6 +451,64 @@ const legacyTypography = {
     lineHeightBody: typography.font.lineHeight.comfortable,
   },
 } as const;
+
+type FormTheme = {
+  form: Record<
+    FormSize,
+    {
+      borderRadius: string;
+      fontSize: string;
+      height: string;
+      lineHeight: string;
+      minHeight: string;
+      paddingBottom: number;
+      paddingLeft: number;
+      paddingRight: number;
+      paddingTop: number;
+    }
+  >;
+};
+const formTheme: FormTheme = {
+  /**
+   * Common styles for form inputs & buttons, separated by size.
+   * Should be used to ensure consistent sizing among form elements.
+   */
+  form: {
+    md: {
+      height: '36px',
+      minHeight: '36px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+      paddingLeft: 16,
+      paddingRight: 16,
+      paddingTop: 12,
+      paddingBottom: 12,
+      borderRadius: radius.lg,
+    },
+    sm: {
+      height: '32px',
+      minHeight: '32px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingTop: 8,
+      paddingBottom: 8,
+      borderRadius: radius.md,
+    },
+    xs: {
+      height: '28px',
+      minHeight: '28px',
+      fontSize: '0.75rem',
+      lineHeight: '1rem',
+      paddingLeft: 8,
+      paddingRight: 8,
+      paddingTop: 6,
+      paddingBottom: 6,
+      borderRadius: radius.sm,
+    },
+  },
+};
 
 /**
  * Values shared between light and dark theme
@@ -565,9 +591,9 @@ const commonTheme = {
     },
   },
 
-  borderRadius: '6px',
   ...legacyTypography,
   ...typography,
+  ...formTheme,
 };
 
 export type Color = keyof ReturnType<typeof deprecatedColorMappings>;
@@ -967,48 +993,6 @@ function makeChartColorPalette<T extends ChartColorPalette>(
   };
 }
 
-const formTheme: FormTheme = {
-  /**
-   * Common styles for form inputs & buttons, separated by size.
-   * Should be used to ensure consistent sizing among form elements.
-   */
-  form: {
-    md: {
-      height: '36px',
-      minHeight: '36px',
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-      paddingLeft: 16,
-      paddingRight: 16,
-      paddingTop: 12,
-      paddingBottom: 12,
-      borderRadius: radius.lg,
-    },
-    sm: {
-      height: '32px',
-      minHeight: '32px',
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-      paddingLeft: 12,
-      paddingRight: 12,
-      paddingTop: 8,
-      paddingBottom: 8,
-      borderRadius: radius.md,
-    },
-    xs: {
-      height: '28px',
-      minHeight: '28px',
-      fontSize: '0.75rem',
-      lineHeight: '1rem',
-      paddingLeft: 8,
-      paddingRight: 8,
-      paddingTop: 6,
-      paddingBottom: 6,
-      borderRadius: radius.sm,
-    },
-  },
-};
-
 // @TODO(jonasbadalic): eventually, we should port component usage to these values
 function generateChonkTokens(colorScheme: typeof lightColors) {
   return {
@@ -1390,22 +1374,6 @@ const generateAliases = (
   formPlaceholder: colors.gray300,
 
   /**
-   * Color of lines that flow across the background of the chart to indicate axes levels
-   * (This should only be used for yAxis)
-   */
-  chartLineColor: colors.gray300,
-
-  /**
-   * Color for chart label text
-   */
-  chartLabel: tokens.content.muted,
-
-  /**
-   * Color for the 'others' series in topEvent charts
-   */
-  chartOther: tokens.content.muted,
-
-  /**
    * Default Progressbar color
    */
   progressBar: colors.chonk.blue400,
@@ -1631,8 +1599,6 @@ const lightThemeDefinition = {
   type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-
-  ...formTheme,
   ...deprecatedColorMappings(lightColors),
   ...lightAliases,
   ...lightShadows,
@@ -1682,7 +1648,6 @@ export const darkTheme: SentryTheme = {
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
 
-  ...formTheme,
   ...deprecatedColorMappings(darkColors),
   ...darkAliases,
   ...darkShadows,

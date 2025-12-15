@@ -313,6 +313,7 @@ function FilterSelector({
       <CompactSelect
         multiple={false}
         disabled={false}
+        size="sm"
         options={options}
         value={activeFilterValues.length > 0 ? activeFilterValues[0] : undefined}
         onChange={option => {
@@ -340,6 +341,7 @@ function FilterSelector({
       checkboxPosition="leading"
       searchable
       disabled={false}
+      size="sm"
       options={options}
       value={activeFilterValues}
       searchPlaceholder={t('Search or enter a custom value...')}
