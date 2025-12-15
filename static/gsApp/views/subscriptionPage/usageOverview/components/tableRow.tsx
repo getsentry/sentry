@@ -105,7 +105,7 @@ function UsageOverviewTableRow({
       return null;
     }
 
-    isUnlimited = !!activeProductTrial;
+    isUnlimited = !!activeProductTrial || prepaid === UNLIMITED_RESERVED;
     const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(
       (parentProduct ?? product) as AddOnCategory
     );
