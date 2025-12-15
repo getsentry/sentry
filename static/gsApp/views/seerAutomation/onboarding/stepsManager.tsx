@@ -1,5 +1,6 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 
@@ -8,6 +9,8 @@ import {
   useGuidedStepsContext,
 } from 'sentry/components/guidedSteps/guidedSteps';
 import {t} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
 import {Steps} from 'getsentry/views/seerAutomation/onboarding/types';
@@ -18,35 +21,56 @@ import {ConfigureRootCauseAnalysisStep} from './configureRootCauseAnalysisStep';
 import {ConnectGithubStep} from './connectGithubStep';
 import {NextStepsStep} from './nextStepsStep';
 
-export function StepsManager() {
-  const {currentStep, setCurrentStep} = useGuidedStepsContext();
+interface OnboardingStatus {
+  hasSupportedScmIntegration: boolean;
+  isAutofixEnabled: boolean;
+  isCodeReviewEnabled: boolean;
+  isSeerConfigured: boolean;
+}
 
-  const {provider, isProviderPending, installationData, isInstallationPending} =
-    useSeerOnboardingContext();
-
-  const handleStepChange = useCallback(
-    (newStep: number) => {
-      setCurrentStep(newStep);
-    },
-    [setCurrentStep]
-  );
+function useOnboardingStatus() {
+  const {setCurrentStep} = useGuidedStepsContext();
+  const organization = useOrganization();
+  const statusQuery = useQuery({
+    ...apiOptions.as<OnboardingStatus>()(
+      '/organizations/$organizationIdOrSlug/seer/onboarding-check/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+        },
+        staleTime: 60_000,
+      }
+    ),
+  });
 
   useEffect(() => {
-    // If we have *any* valid GitHub installations, we can skip to next step
-    if (
-      currentStep === 1 &&
-      !isInstallationPending &&
-      installationData?.find(installation => installation.provider.key === 'github')
-    ) {
-      handleStepChange(2);
+    if (!statusQuery.isPending && statusQuery.data) {
+      let nextStep = 1;
+      const {hasSupportedScmIntegration, isCodeReviewEnabled, isSeerConfigured} =
+        statusQuery.data;
+
+      if (hasSupportedScmIntegration && !isCodeReviewEnabled && !isSeerConfigured) {
+        nextStep = 2;
+      }
+      if (hasSupportedScmIntegration && isCodeReviewEnabled && !isSeerConfigured) {
+        nextStep = 3;
+      }
+      if (hasSupportedScmIntegration && isCodeReviewEnabled && isSeerConfigured) {
+        nextStep = 4;
+      }
+
+      if (nextStep > 1) {
+        setCurrentStep(nextStep);
+      }
     }
-  }, [
-    currentStep,
-    isInstallationPending,
-    installationData,
-    handleStepChange,
-    setCurrentStep,
-  ]);
+  }, [statusQuery.isPending, statusQuery.data, setCurrentStep]);
+
+  return statusQuery;
+}
+
+export function StepsManager() {
+  const {provider, isProviderPending, isInstallationPending} = useSeerOnboardingContext();
+  useOnboardingStatus();
 
   if (!isInstallationPending && !isProviderPending && !provider) {
     Sentry.logger.error('Seer: No valid integration found for Seer onboarding');
