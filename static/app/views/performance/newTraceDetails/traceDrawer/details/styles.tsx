@@ -1352,7 +1352,7 @@ const MarkdownContainer = styled('div')`
   pre {
     margin: 0;
     padding: ${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
   }
   img {
     max-height: 200px;
