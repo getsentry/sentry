@@ -446,7 +446,7 @@ function FunctionChart<F extends BreakdownFunction>({
       },
       yAxis: {
         axisLabel: {
-          color: theme.chartLabel,
+          color: theme.tokens.content.muted,
           formatter: (value: number) => axisLabelFormatter(value, 'duration'),
         },
       },
@@ -457,7 +457,7 @@ function FunctionChart<F extends BreakdownFunction>({
         valueFormatter: (value: number) => tooltipFormatter(value, 'duration'),
       },
     };
-  }, [theme.chartLabel]);
+  }, [theme.tokens.content.muted]);
 
   if (stats?.isPending) {
     return (

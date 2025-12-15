@@ -188,7 +188,7 @@ const AlertPanel = styled('div')<AlertProps & {hovered: boolean}>`
   gap: ${space(1)};
   color: ${p => getAlertColors(p.theme, p.type).color};
   font-size: ${p => p.theme.font.size.md};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => getAlertColors(p.theme, p.type).border};
   padding: ${space(1.5)} ${space(2)};
   background-image: ${p =>

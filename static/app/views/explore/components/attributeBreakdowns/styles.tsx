@@ -394,7 +394,7 @@ function Chart({
                 hideOverlap: false,
                 showMaxLabel: false,
                 showMinLabel: false,
-                color: theme.chartLabel,
+                color: theme.tokens.content.muted,
                 interval: 0,
                 fontSize: CHART_AXIS_LABEL_FONT_SIZE,
                 formatter: (value: string) =>
