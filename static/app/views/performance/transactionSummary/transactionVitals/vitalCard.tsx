@@ -288,7 +288,7 @@ class VitalCard extends Component<Props, State> {
       type: 'value' as const,
       max,
       axisLabel: {
-        color: theme.chartLabel,
+        color: theme.tokens.content.muted,
         formatter: (value: string | number) => formatAbbreviatedNumber(value),
       },
     };

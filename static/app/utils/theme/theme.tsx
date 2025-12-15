@@ -1389,22 +1389,6 @@ const generateAliases = (
   formPlaceholder: colors.gray300,
 
   /**
-   * Color of lines that flow across the background of the chart to indicate axes levels
-   * (This should only be used for yAxis)
-   */
-  chartLineColor: colors.gray300,
-
-  /**
-   * Color for chart label text
-   */
-  chartLabel: tokens.content.muted,
-
-  /**
-   * Color for the 'others' series in topEvent charts
-   */
-  chartOther: tokens.content.muted,
-
-  /**
    * Default Progressbar color
    */
   progressBar: colors.chonk.blue400,

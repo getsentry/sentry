@@ -1310,7 +1310,7 @@ const BaseRow = styled('div')`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.chartLabel};
+  color: ${p => p.theme.tokens.content.muted};
   font-size: ${p => p.theme.fontSize.md};
 `;
 

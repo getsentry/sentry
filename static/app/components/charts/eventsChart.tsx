@@ -279,7 +279,7 @@ class Chart extends Component<ChartProps, State> {
           .slice())
       : undefined;
     if (chartColors?.length && hasOther) {
-      chartColors.push(theme.chartOther);
+      chartColors.push(theme.tokens.content.muted);
     }
     const chartOptions = {
       colors: chartColors,
@@ -317,7 +317,7 @@ class Chart extends Component<ChartProps, State> {
         : undefined,
       yAxis: {
         axisLabel: {
-          color: theme.chartLabel,
+          color: theme.tokens.content.muted,
           formatter: (value: number) => {
             if (timeseriesResultsTypes) {
               // Check to see if all series output types are the same. If not, then default to number.
