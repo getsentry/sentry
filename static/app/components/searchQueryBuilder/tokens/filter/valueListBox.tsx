@@ -208,7 +208,6 @@ const SectionedOverlay = styled(Overlay)`
   overflow: hidden;
   max-height: 340px;
   width: min-content;
-  min-width: 200px;
 `;
 
 const StyledListBox = styled(ListBox)`
