@@ -825,7 +825,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                         is_active = (
                             contributor.num_actions >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
                         )
-                        contributor.save(update_fields=["num_actions"])
+                        contributor.save(update_fields=["num_actions", "date_updated"])
 
                     if is_active and is_contributor_eligible_for_seat_assignment(
                         user_type, author_association
