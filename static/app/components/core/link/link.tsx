@@ -49,9 +49,8 @@ const getLinkStyles = ({
   }
 
   &:focus-visible {
-    box-shadow: ${theme.linkFocus} 0 0 0 2px;
     text-decoration: none;
-    outline: none;
+    ${theme.focusRing()}
   }
 `;
 
