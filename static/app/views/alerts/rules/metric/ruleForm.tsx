@@ -370,6 +370,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       }
       if (alertRule) {
         addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
+
+        if (!ruleId) {
+          trackAnalytics('metric_alert_rule.created', {
+            organization,
+            aggregate: alertRule.aggregate,
+            dataset: alertRule.dataset,
+          });
+        }
+
         if (onSubmitSuccess) {
           onSubmitSuccess(alertRule, model);
         }
@@ -849,6 +858,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           IndicatorStore.remove(loadingIndicator);
           this.setState({loading: false});
           addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
+
+          if (!ruleId) {
+            trackAnalytics('metric_alert_rule.created', {
+              organization,
+              aggregate: data.aggregate,
+              dataset: data.dataset,
+            });
+          }
+
           if (onSubmitSuccess) {
             onSubmitSuccess(data, model);
           }
@@ -1604,7 +1622,7 @@ const AlertInfo = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`

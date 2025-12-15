@@ -42,11 +42,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_region_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
-from sentry.constants import (
-    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-    HIDE_AI_FEATURES_DEFAULT,
-    ObjectStatus,
-)
+from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
@@ -87,10 +83,12 @@ from sentry.seer.explorer.index_data import (
     rpc_get_trace_for_transaction,
     rpc_get_transactions_for_project,
 )
+from sentry.seer.explorer.on_completion_hook import call_on_completion_hook
 from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
     get_issue_and_event_details,
+    get_issue_and_event_details_v2,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
     get_replay_metadata,
@@ -107,6 +105,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.env import in_test_environment
+from sentry.utils.seer import can_use_prevent_ai_features
 from sentry.utils.snuba_rpc import table_rpc
 
 logger = logging.getLogger(__name__)
@@ -224,6 +223,8 @@ class SeerRpcServiceEndpoint(Endpoint):
 
     @sentry_sdk.trace
     def post(self, request: Request, method_name: str) -> Response:
+        sentry_sdk.set_tag("rpc.method", method_name)
+
         if not self._is_authorized(request):
             raise PermissionDenied
 
@@ -279,20 +280,6 @@ def get_organization_project_ids(*, org_id: int) -> dict:
     return {"projects": projects}
 
 
-def _can_use_prevent_ai_features(org: Organization) -> bool:
-    if not features.has("organizations:gen-ai-features", org):
-        return False
-
-    hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
-    pr_review_test_generation_enabled = bool(
-        org.get_option(
-            "sentry:enable_pr_review_test_generation",
-            ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-        )
-    )
-    return not hide_ai_features and pr_review_test_generation_enabled
-
-
 class SentryOrganizaionIdsAndSlugs(TypedDict):
     org_ids: list[int]
     org_slugs: list[str]
@@ -329,7 +316,7 @@ def get_sentry_organization_ids(
     )
     organizations = Organization.objects.filter(id__in=organization_ids)
     # We then filter out all orgs that didn't give us consent to use AI features.
-    orgs_with_consent = [org for org in organizations if _can_use_prevent_ai_features(org)]
+    orgs_with_consent = [org for org in organizations if can_use_prevent_ai_features(org)]
 
     return {
         "org_ids": [organization.id for organization in orgs_with_consent],
@@ -360,7 +347,7 @@ def get_organization_seer_consent_by_org_name(
     for org_integration in org_integrations:
         try:
             org = Organization.objects.get(id=org_integration.organization_id)
-            if _can_use_prevent_ai_features(org):
+            if can_use_prevent_ai_features(org):
                 return {"consent": True}
             # If this is the last org we will return this URL as the consent URL
             consent_url = org.absolute_url("/settings/organization/")
@@ -1042,12 +1029,14 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
     "get_trace_waterfall": rpc_get_trace_waterfall,
     "get_issue_and_event_details": get_issue_and_event_details,
+    "get_issue_and_event_details_v2": get_issue_and_event_details_v2,
     "get_profile_flamegraph": rpc_get_profile_flamegraph,
     "execute_table_query": execute_table_query,
     "execute_timeseries_query": execute_timeseries_query,
     "get_trace_item_attributes": get_trace_item_attributes,
     "get_repository_definition": get_repository_definition,
     "call_custom_tool": call_custom_tool,
+    "call_on_completion_hook": call_on_completion_hook,
     "get_log_attributes_for_trace": get_log_attributes_for_trace,
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
     #

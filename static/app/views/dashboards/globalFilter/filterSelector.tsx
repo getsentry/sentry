@@ -50,6 +50,7 @@ type FilterSelectorProps = {
   onRemoveFilter: (filter: GlobalFilter) => void;
   onUpdateFilter: (filter: GlobalFilter) => void;
   searchBarData: SearchBarData;
+  disableRemoveFilter?: boolean;
 };
 
 function FilterSelector({
@@ -57,6 +58,7 @@ function FilterSelector({
   searchBarData,
   onRemoveFilter,
   onUpdateFilter,
+  disableRemoveFilter,
 }: FilterSelectorProps) {
   const {selection} = usePageFilters();
 
@@ -89,11 +91,7 @@ function FilterSelector({
       };
     }
 
-    const operatorInfo = getOperatorInfo({
-      filterToken,
-      hasWildcardOperators: true,
-      fieldDefinition,
-    });
+    const operatorInfo = getOperatorInfo({filterToken, fieldDefinition});
 
     return {
       initialOperator: operatorInfo?.operator ?? TermOperator.DEFAULT,
@@ -147,22 +145,31 @@ function FilterSelector({
     : true;
 
   const baseQueryKey = useMemo(
-    () => [
-      'global-dashboard-filters-tag-values',
+    () =>
+      [
+        'global-dashboard-filters-tag-values',
+        {
+          key: globalFilter.tag.key,
+          name: globalFilter.tag.name,
+          kind: globalFilter.tag.kind,
+        },
+        selection,
+        searchQuery,
+      ] as const,
+    [
       globalFilter.tag.key,
+      globalFilter.tag.name,
+      globalFilter.tag.kind,
       selection,
       searchQuery,
-    ],
-    [globalFilter.tag.key, selection, searchQuery]
+    ]
   );
   const queryKey = useDebouncedValue(baseQueryKey);
 
-  const queryResult = useQuery<string[]>({
-    // Disable exhaustive deps because we want to debounce the query key above
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const queryResult = useQuery({
     queryKey,
-    queryFn: async () => {
-      const result = await searchBarData.getTagValues(globalFilter.tag, searchQuery);
+    queryFn: async ctx => {
+      const result = await searchBarData.getTagValues(ctx.queryKey[1], ctx.queryKey[3]);
       return result ?? [];
     },
     placeholderData: keepPreviousData,
@@ -251,7 +258,7 @@ function FilterSelector({
 
     if (stagedOperator !== initialOperator) {
       const newToken = parseFilterValue(newValue, globalFilter)[0] ?? filterToken;
-      newValue = modifyFilterOperatorQuery(newToken.text, newToken, stagedOperator, true);
+      newValue = modifyFilterOperatorQuery(newToken.text, newToken, stagedOperator);
     }
 
     onUpdateFilter({
@@ -279,13 +286,15 @@ function FilterSelector({
           {t('Clear')}
         </StyledButton>
       )}
-      <StyledButton
-        aria-label={t('Remove Filter')}
-        size="zero"
-        onClick={() => onRemoveFilter(globalFilter)}
-      >
-        {t('Remove Filter')}
-      </StyledButton>
+      {!disableRemoveFilter && (
+        <StyledButton
+          aria-label={t('Remove Filter')}
+          size="zero"
+          onClick={() => onRemoveFilter(globalFilter)}
+        >
+          {t('Remove Filter')}
+        </StyledButton>
+      )}
     </Flex>
   );
 
@@ -389,10 +398,7 @@ const StyledButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
   padding: 0 ${p => p.theme.space.xs};
-  margin: ${p =>
-    p.theme.isChonk
-      ? `-${p.theme.space.xs} -${p.theme.space.xs}`
-      : `-${p.theme.space['2xs']} -${p.theme.space['2xs']}`};
+  margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
 `;
 
 export const MenuTitleWrapper = styled('span')`

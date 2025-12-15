@@ -8,7 +8,7 @@ from typing import Any, TypedDict, TypeVar
 import sentry_sdk
 from tokenizers import Tokenizer
 
-from sentry import features, options
+from sentry import options
 from sentry.constants import DATA_ROOT
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
@@ -17,6 +17,7 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.autofix.utils import is_seer_seat_based_tier_enabled
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -506,10 +507,12 @@ def set_default_project_autofix_automation_tuning(
     """Called once at project creation time to set the initial autofix automation tuning."""
     org_default = organization.get_option("sentry:default_autofix_automation_tuning")
 
-    if org_default == "off":
+    if org_default == AutofixAutomationTuningSettings.OFF:
         # Explicit "off" is always respected, regardless of feature flag
-        project.update_option("sentry:autofix_automation_tuning", "off")
-    elif features.has("organizations:triage-signals-v0-org", organization):
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
+        )
+    elif is_seer_seat_based_tier_enabled(organization):
         # Feature flag ON overrides everything except explicit "off"
         project.update_option(
             "sentry:autofix_automation_tuning",
@@ -524,7 +527,7 @@ def set_default_project_seer_scanner_automation(
     organization: Organization, project: Project
 ) -> None:
     """Called once at project creation time to set the initial seer scanner automation."""
-    if features.has("organizations:triage-signals-v0-org", organization):
+    if is_seer_seat_based_tier_enabled(organization):
         # Feature flag ON always sets scanner to True
         project.update_option("sentry:seer_scanner_automation", True)
     else:

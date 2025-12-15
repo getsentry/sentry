@@ -382,7 +382,9 @@ register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIAB
 # Whether to use redis to cache `FileBlob.id` lookups
 register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# New `objectstore` service configuration
+# New `objectstore` service configuration. Additional supported options:
+# - propagate_traces: bool
+
 register(
     "objectstore.config",
     default={"base_url": "http://127.0.0.1:8888"},
@@ -1862,11 +1864,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "performance.issues.experimental_m_n_plus_one_db_queries.problem-creation",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "performance.issues.http_overhead.problem-creation",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1999,6 +1996,12 @@ register(
     "performance.traces.pagination.max-iterations",
     type=Int,
     default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.pagination.query-limit",
+    type=Int,
+    default=10_000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2767,6 +2770,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "profiling.killswitch.ingest-profiles",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # max number of profiles to use for computing
 # the aggregated flamegraph.
 register(
@@ -2911,6 +2921,22 @@ register(
     "grouping.ingest_grouphash_object_cache_expiry",
     type=Int,
     default=60,  # seconds
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# TODO: Temporary options to let us play around with expiry times and see what hit rates they give
+# us. Once we've decided, we can stick our values into the two expiry options above and get rid of
+# these two options.
+register(
+    "grouping.ingest_grouphash_existence_cache_expiry.trial_values",
+    type=Sequence,
+    default=[60, 120, 600],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "grouping.ingest_grouphash_object_cache_expiry.trial_values",
+    type=Sequence,
+    default=[60, 120, 600],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3075,6 +3101,13 @@ register(
 # Data Export Failure notifications
 register(
     "notifications.platform-rate.data-export-failure",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Custom Rule Samples Fulfilled notifications
+register(
+    "notifications.platform-rate.custom-rule-samples-fulfilled",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3297,12 +3330,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "workflow_engine.use_cohort_selection",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "workflow_engine.schedule.min_cohort_scheduling_age_seconds",
     type=Int,
@@ -3656,6 +3683,26 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Controls whether an org should read data both from Snuba and EAP.
+# Will not use or display the EAP data to the user; rather, will just compare the
+# data from each source and log whether they match.
+register(
+    "eap.occurrences.should_double_read",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls whether a callsite should use EAP data instead of Snuba data.
+# Callsites should only be added after they're known to be safe.
+register(
+    "eap.occurrences.callsites_using_eap_data_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
 # Killswich for LLM issue detection
 register(
     "issue-detection.llm-detection.enabled",
@@ -3742,4 +3789,12 @@ register(
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enabled Prebuilt Dashboard IDs
+register(
+    "dashboards.prebuilt-dashboard-ids",
+    default=[],
+    type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

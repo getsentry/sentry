@@ -920,6 +920,18 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       );
     },
   },
+  'opportunity_score(measurements.score.total)': {
+    sortField: 'opportunity_score(measurements.score.total)',
+    renderFunc: data => {
+      const score = data['opportunity_score(measurements.score.total)'];
+      if (typeof score !== 'number') {
+        return <Container>{emptyValue}</Container>;
+      }
+      return (
+        <RightAlignedContainer>{Math.round(score * 10000) / 100}</RightAlignedContainer>
+      );
+    },
+  },
   'browser.name': {
     sortField: 'browser.name',
     renderFunc: data => {
@@ -1430,7 +1442,11 @@ function getDashboardUrl(
     if (dashboardLink && dashboardLink.dashboardId !== '-1') {
       const newTemporaryFilters: GlobalFilter[] = [
         ...(dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? []),
-      ].filter(filter => Boolean(filter.value));
+      ].filter(
+        filter =>
+          Boolean(filter.value) &&
+          !(filter.tag.key === field && filter.dataset === widget.widgetType)
+      );
 
       // Format the value as a proper filter condition string
       const mutableSearch = new MutableSearch('');
@@ -1440,6 +1456,7 @@ function getDashboardUrl(
         dataset: widget.widgetType,
         tag: {key: field, name: field, kind: FieldKind.TAG},
         value: formattedValue,
+        isTemporary: true,
       });
 
       // Preserve project, environment, and time range query params
@@ -1455,7 +1472,7 @@ function getDashboardUrl(
       const url = `/organizations/${organization.slug}/dashboard/${dashboardLink.dashboardId}/?${qs.stringify(
         {
           ...filterParams,
-          [DashboardFilterKeys.TEMPORARY_FILTERS]: newTemporaryFilters.map(filter =>
+          [DashboardFilterKeys.GLOBAL_FILTER]: newTemporaryFilters.map(filter =>
             JSON.stringify(filter)
           ),
         }

@@ -35,7 +35,7 @@ export function transformLegacySeriesToPlottables(
         series.seriesName,
         createEventsStatsFromSeries(series, valueType as AggregationOutputType, valueUnit)
       );
-      return createPlottableFromTimeSeries(timeSeries[1], widget.displayType);
+      return createPlottableFromTimeSeries(timeSeries[1], widget);
     })
     .filter(plottable => plottable !== null);
   return plottables;
@@ -68,15 +68,18 @@ function createEventsStatsFromSeries(
 
 function createPlottableFromTimeSeries(
   timeSeries: TimeSeries,
-  displayType: DisplayType
+  widget: Widget
 ): Plottable | null {
+  const shouldStack = widget.queries[0]?.columns.length! > 0;
+
+  const {displayType, title} = widget;
   switch (displayType) {
     case DisplayType.LINE:
       return new Line(timeSeries);
     case DisplayType.AREA:
       return new Area(timeSeries);
     case DisplayType.BAR:
-      return new Bars(timeSeries);
+      return new Bars(timeSeries, {stack: shouldStack ? title : undefined});
     default:
       return null;
   }
@@ -87,6 +90,8 @@ function mapAggregationTypeToValueTypeAndUnit(aggregationType: AggregationOutput
   valueUnit: TimeSeries['meta']['valueUnit'];
 } {
   switch (aggregationType) {
+    case 'score':
+      return {valueType: 'score', valueUnit: null};
     case 'percentage':
       return {valueType: 'percentage', valueUnit: null};
     case 'integer':

@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Flex, Grid} from 'sentry/components/core/layout';
+import {Grid} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text/text';
 import TimeSince from 'sentry/components/timeSince';
@@ -40,18 +40,16 @@ export function IssueCell({group, className}: IssueCellProps) {
         </Text>
       </Grid>
       <Text variant="muted">
-        <Flex align="center" gap="xs">
-          {tct('Last seen [time]', {
-            time: (
-              <TimeSince
-                date={group.lastSeen}
-                liveUpdateInterval="second"
-                unitStyle="short"
-                disabledAbsoluteTooltip
-              />
-            ),
-          })}
-        </Flex>
+        {tct('Last seen [time]', {
+          time: (
+            <TimeSince
+              date={group.lastSeen}
+              liveUpdateInterval="second"
+              unitStyle="short"
+              disabledAbsoluteTooltip
+            />
+          ),
+        })}
       </Text>
     </IssueWrapper>
   );
@@ -66,7 +64,7 @@ const IssueWrapper = styled(Link)`
 
   ${p => css`
     &:hover [data-group-title] {
-      color: ${p.theme.textColor};
+      color: ${p.theme.tokens.content.primary};
       text-decoration: underline;
     }
   `}

@@ -73,7 +73,6 @@ function useNativeOperatorFilter(
       globalFilterToken &&
       getOperatorInfo({
         filterToken: globalFilterToken,
-        hasWildcardOperators: false,
         fieldDefinition: getFieldDefinitionForDataset(
           globalFilter.tag,
           globalFilter.dataset
@@ -205,6 +204,7 @@ function NumericFilterSelector({
   globalFilter,
   onRemoveFilter,
   onUpdateFilter,
+  disableRemoveFilter,
 }: GenericFilterSelectorProps) {
   const globalFilterQueries = useMemo(
     () => globalFilter.value.split(FILTER_QUERY_SEPARATOR),
@@ -292,15 +292,19 @@ function NumericFilterSelector({
           {t('%s Filter', getDatasetLabel(globalFilter.dataset))}
         </MenuTitleWrapper>
       }
-      menuHeaderTrailingItems={() => (
-        <StyledButton
-          aria-label={t('Remove Filter')}
-          size="zero"
-          onClick={() => onRemoveFilter(globalFilter)}
-        >
-          {t('Remove Filter')}
-        </StyledButton>
-      )}
+      menuHeaderTrailingItems={
+        disableRemoveFilter
+          ? undefined
+          : () => (
+              <StyledButton
+                aria-label={t('Remove Filter')}
+                size="zero"
+                onClick={() => onRemoveFilter(globalFilter)}
+              >
+                {t('Remove Filter')}
+              </StyledButton>
+            )
+      }
       menuBody={
         <MenuBodyWrap>
           <Flex gap="xs" direction="column">
@@ -390,10 +394,7 @@ const StyledButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
   padding: 0 ${p => p.theme.space.xs};
-  margin: ${p =>
-    p.theme.isChonk
-      ? `-${p.theme.space.xs} -${p.theme.space.xs}`
-      : `-${p.theme.space['2xs']} -${p.theme.space['2xs']}`};
+  margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
 `;
 
 const StyledInput = styled(Input)`

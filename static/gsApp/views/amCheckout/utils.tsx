@@ -20,6 +20,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 
+import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
 import {
   DEFAULT_TIER,
   MONTHLY,
@@ -347,6 +348,21 @@ type PreviousData = {
   previous_plan: string;
 } & Partial<Record<`previous_${DataCategory}`, number>>;
 
+/**
+ * Nested structure for category reservations in checkout.upgrade event.
+ * This provides a cleaner structure for Amplitude analytics while maintaining
+ * backwards compatibility with flat fields.
+ */
+type CategoryReservations = Partial<
+  Record<
+    DataCategory,
+    {
+      previous_reserved: number | undefined;
+      reserved: number | undefined;
+    }
+  >
+>;
+
 function recordAnalytics(
   organization: Organization,
   subscription: Subscription,
@@ -366,20 +382,45 @@ function recordAnalytics(
     previous_plan: subscription.plan,
   };
 
+  // Build nested categories structure for better Amplitude analytics
+  const categories: CategoryReservations = {};
+
+  // Parse previous data and populate both flat and nested structures
   Object.entries(subscription.categories).forEach(([category, metricHistory]) => {
     if (
       subscription.planDetails.checkoutCategories.includes(category as DataCategory) &&
       metricHistory.reserved !== null &&
       metricHistory.reserved !== undefined
     ) {
+      const cat = category as DataCategory;
+
+      // Legacy flat structure (backwards compatibility)
       (previousData as any)[`previous_${category}`] = metricHistory.reserved;
+
+      // New nested structure
+      if (!categories[cat]) {
+        categories[cat] = {reserved: undefined, previous_reserved: undefined};
+      }
+      categories[cat].previous_reserved = metricHistory.reserved;
     }
   });
 
+  // Parse current data and populate both flat and nested structures
   Object.keys(data).forEach(key => {
     if (key.startsWith('reserved')) {
-      const targetKey = key.charAt(8).toLowerCase() + key.slice(9);
-      (currentData as any)[targetKey] = data[key as keyof CheckoutAPIData];
+      const targetKey = (key.charAt(8).toLowerCase() + key.slice(9)) as DataCategory;
+      const value = data[key as keyof CheckoutAPIData] as number | undefined;
+
+      // Legacy flat structure (backwards compatibility)
+      (currentData as any)[targetKey] = value;
+
+      // New nested structure - only add if value is defined
+      if (value !== undefined) {
+        if (!categories[targetKey]) {
+          categories[targetKey] = {reserved: undefined, previous_reserved: undefined};
+        }
+        categories[targetKey].reserved = value;
+      }
     }
     if (key.startsWith('addOn')) {
       const targetKey = (key.charAt(5).toLowerCase() + key.slice(6)) as AddOnCategory;
@@ -392,11 +433,20 @@ function recordAnalytics(
     }
   });
 
+  // Filter out categories where both values are undefined
+  const filteredCategories: CategoryReservations = {};
+  Object.entries(categories).forEach(([category, values]) => {
+    if (values.reserved !== undefined || values.previous_reserved !== undefined) {
+      filteredCategories[category as DataCategory] = values;
+    }
+  });
+
   trackGetsentryAnalytics('checkout.upgrade', {
     organization,
     subscription,
     ...previousData,
     ...currentData,
+    categories: filteredCategories, // Add new nested structure
   });
 
   trackGetsentryAnalytics('checkout.product_select', {
@@ -492,7 +542,7 @@ export function getCheckoutAPIData({
       })}`,
       formatReservedData(value),
     ])
-  ) satisfies Partial<Record<`reserved${Capitalize<DataCategory>}`, number>>;
+  ) satisfies Partial<Reservations>;
 
   const onDemandMaxSpend = shouldUpdateOnDemand
     ? (formData.onDemandMaxSpend ?? 0)

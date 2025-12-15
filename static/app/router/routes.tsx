@@ -318,9 +318,9 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: '/stories/:storyType?/:storySlug?/',
-      component: make(() => import('sentry/stories/view/index')),
+      path: '/stories/*',
       withOrgPath: true,
+      component: make(() => import('sentry/stories/view/index')),
     },
     {
       path: '/debug/notifications/:notificationSource?/',
@@ -691,6 +691,11 @@ function buildRoutes(): RouteObject[] {
       path: 'playstation/',
       name: t('PlayStation'),
       component: make(() => import('sentry/views/settings/project/tempest')),
+    },
+    {
+      path: 'preprod/',
+      name: t('Preprod'),
+      component: make(() => import('sentry/views/settings/project/preprod')),
     },
     {
       path: 'keys/',
@@ -1160,7 +1165,6 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/settings/organizationAuthTokens/authTokenDetails')
           ),
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -1213,23 +1217,30 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('getsentry/views/seerAutomation/index')),
       children: [
         {
+          path: 'trial/',
+          component: make(() => import('getsentry/views/seerAutomation/trial')),
+        },
+        {
           index: true,
           component: make(() => import('getsentry/views/seerAutomation/seerAutomation')),
         },
         {
           path: 'projects/',
-          name: t('Seer'),
           component: make(() => import('getsentry/views/seerAutomation/projects')),
         },
         {
           path: 'repos/',
-          name: t('Seer'),
           component: make(() => import('getsentry/views/seerAutomation/repos')),
         },
         {
           path: 'onboarding/',
           name: t('Configure Seer for All Projects'),
           component: make(() => import('getsentry/views/seerAutomation/onboarding')),
+        },
+        {
+          path: 'onboarding-v2/',
+          name: t('Setup Wizard'),
+          component: make(() => import('getsentry/views/seerAutomation/onboardingV2')),
         },
       ],
     },
@@ -2442,82 +2453,10 @@ function buildRoutes(): RouteObject[] {
     children: exploreChildren,
   };
 
-  // This is a layout route that will render a header for a commit
-  const codecovCommitRoutes: SentryRouteObject = {
-    path: 'commits/:sha/',
-    component: make(() => import('sentry/views/prevent/coverage/commits/commitWrapper')),
-    children: [
-      {
-        index: true,
-        component: make(
-          () => import('sentry/views/prevent/coverage/commits/commitDetail')
-        ),
-      },
-      {
-        path: 'history/',
-        component: make(
-          () => import('sentry/views/prevent/coverage/commits/commitHistory')
-        ),
-      },
-      {
-        path: 'yaml/',
-        component: make(() => import('sentry/views/prevent/coverage/commits/commitYaml')),
-      },
-    ],
-  };
-
-  // This is a layout route that will render a header for a pull request
-  const codecovPRRoutes: SentryRouteObject = {
-    path: 'pulls/:pullId/',
-    component: make(() => import('sentry/views/prevent/coverage/pulls/pullWrapper')),
-    children: [
-      {
-        index: true,
-        component: make(() => import('sentry/views/prevent/coverage/pulls/pullDetail')),
-      },
-    ],
-  };
-
   const codecovChildren: SentryRouteObject[] = [
     {
       index: true,
       redirectTo: 'ai-code-review/new/',
-    },
-    {
-      path: 'coverage/',
-      children: [
-        // This is a layout route that will render a header for coverage
-        {
-          component: make(() => import('sentry/views/prevent/coverage/coverageWrapper')),
-          children: [
-            {
-              path: 'file-explorer/',
-              component: make(() => import('sentry/views/prevent/coverage/coverage')),
-            },
-            {
-              path: 'commits/',
-              component: make(() => import('sentry/views/prevent/coverage/commits')),
-            },
-            {
-              path: 'pulls/',
-              component: make(() => import('sentry/views/prevent/coverage/pulls')),
-            },
-            {
-              path: 'coverage-trend/',
-              component: make(
-                () => import('sentry/views/prevent/coverage/coverageTrend')
-              ),
-            },
-          ],
-        },
-        // Render coverage onboarding without any layout wrapping
-        {
-          path: 'new/',
-          component: make(() => import('sentry/views/prevent/coverage/onboarding')),
-        },
-        codecovCommitRoutes,
-        codecovPRRoutes,
-      ],
     },
     {
       path: 'tests/',
@@ -2546,10 +2485,6 @@ function buildRoutes(): RouteObject[] {
             {
               path: 'new/',
               component: make(() => import('sentry/views/prevent/preventAI/onboarding')),
-            },
-            {
-              path: 'home/',
-              component: make(() => import('sentry/views/prevent/preventAI/index')),
             },
           ],
         },
