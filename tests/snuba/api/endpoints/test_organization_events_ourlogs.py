@@ -1,8 +1,11 @@
 from datetime import datetime, timedelta, timezone
+from unittest.mock import ANY, patch
 from uuid import UUID, uuid4
 
 import pytest
+from django.test import override_settings
 
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import DataCategory
 from sentry.search.eap import constants
 from sentry.testutils.cases import OutcomesSnubaTest
@@ -10,6 +13,7 @@ from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.cursors import Cursor
 from sentry.utils.outcomes import Outcome
+from sentry.utils.snuba_rpc import table_rpc
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -923,3 +927,51 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         response = self.do_request(request)
         assert response.status_code == 200
         assert response.data["data"] == [{"count(message)": 1}]
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_no_project_sent_logs(self):
+        project1 = self.create_project()
+        project2 = self.create_project()
+
+        request = {
+            "field": ["timestamp", "message"],
+            "project": [project1.id, project2.id],
+            "dataset": self.dataset,
+            "sort": "-timestamp",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == []
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    @patch("sentry.utils.snuba_rpc.table_rpc", wraps=table_rpc)
+    def test_sent_logs_project_optimization(self, mock_table_rpc):
+        project1 = self.create_project()
+        project2 = self.create_project()
+
+        self.store_ourlogs(
+            [self.create_ourlog({"body": "log"}, project=project1, timestamp=self.ten_mins_ago)]
+        )
+
+        request = {
+            "field": ["timestamp", "message"],
+            "project": [project1.id, project2.id],
+            "dataset": self.dataset,
+            "sort": "-timestamp",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == [
+            {
+                "timestamp": ANY,
+                "timestamp_precise": ANY,
+                "message": "log",
+            }
+        ]
+
+        mock_table_rpc.assert_called_once()
+        assert mock_table_rpc.call_args.args[0][0].meta.project_ids == [project1.id]
