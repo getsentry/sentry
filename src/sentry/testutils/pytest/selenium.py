@@ -210,7 +210,7 @@ class Browser:
         Waits until ``selector`` is visible and enabled to be clicked, or until ``timeout``
         is hit, whichever happens first.
         """
-        wait = WebDriverWait(self.driver, timeout=666)
+        wait = WebDriverWait(self.driver, timeout=60)
         if selector:
             wait.until(expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector)))
         elif xpath:
@@ -225,7 +225,7 @@ class Browser:
         Waits until ``selector`` is found in the browser, or until ``timeout``
         is hit, whichever happens first.
         """
-        wait = WebDriverWait(self.driver, timeout=666)
+        wait = WebDriverWait(self.driver, timeout=60)
         if selector:
             wait.until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector)))
         elif xpath:
@@ -245,7 +245,7 @@ class Browser:
         Waits until ``selector`` is NOT found in the browser, or until
         ``timeout`` is hit, whichever happens first.
         """
-        wait = WebDriverWait(self.driver, timeout=666)
+        wait = WebDriverWait(self.driver, timeout=60)
         if selector:
             wait.until_not(
                 expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
@@ -264,7 +264,7 @@ class Browser:
         Waits until ``script`` executes and evaluates truthy,
         or until ``timeout`` is hit, whichever happens first.
         """
-        wait = WebDriverWait(self.driver, timeout=666)
+        wait = WebDriverWait(self.driver, timeout=60)
         wait.until(lambda driver: driver.execute_script(script))
 
         return self
