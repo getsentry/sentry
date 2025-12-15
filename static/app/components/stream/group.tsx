@@ -77,6 +77,11 @@ type Props = {
   canSelect?: boolean;
   customStatsPeriod?: TimePeriodType;
   displayReprocessingLayout?: boolean;
+  /**
+   * If you have access to the group data, it is preferred to pass it in as a prop here.
+   * Otherwise, the group data will come from the deprecated GroupStore.
+   */
+  group?: Group;
   hasGuideAnchor?: boolean;
   memberList?: User[];
   onPriorityChange?: (newPriority: PriorityLevel) => void;
@@ -265,6 +270,7 @@ export function LoadingStreamGroup({
 
 function StreamGroup({
   id,
+  group: incomingGroup,
   customStatsPeriod,
   displayReprocessingLayout,
   hasGuideAnchor,
@@ -285,10 +291,12 @@ function StreamGroup({
   const navigate = useNavigate();
   const location = useLocation();
   const groups = useLegacyStore(GroupStore);
-  const group = useMemo(
-    () => groups.find(item => item.id === id) as Group | undefined,
-    [groups, id]
-  );
+  const group = useMemo(() => {
+    if (incomingGroup) {
+      return incomingGroup;
+    }
+    return groups.find(item => item.id === id) as Group | undefined;
+  }, [incomingGroup, groups, id]);
   const originalInboxState = useRef(group?.inbox as InboxDetails | null);
   const {selection} = usePageFilters();
 

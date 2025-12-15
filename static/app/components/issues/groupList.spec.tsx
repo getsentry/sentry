@@ -1,4 +1,3 @@
-import * as qs from 'query-string';
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -16,7 +15,6 @@ describe('GroupList', () => {
   const membersUrl = `/organizations/${organization.slug}/users/`;
   const issuesUrl = `/organizations/${organization.slug}/issues/`;
   const defaultQueryParams = {query: '', sort: 'new', limit: '50'};
-  const issuesUrlWithDefaultQuery = `${issuesUrl}?${qs.stringify(defaultQueryParams)}`;
   const initialRouterConfig = {
     location: {
       pathname: `/organizations/${organization.slug}/issues/`,
@@ -31,7 +29,7 @@ describe('GroupList', () => {
 
     MockApiClient.addMockResponse({url: membersUrl, body: [MemberFixture()]});
     MockApiClient.addMockResponse({
-      url: issuesUrlWithDefaultQuery,
+      url: issuesUrl,
       method: 'GET',
       body: [group],
     });
@@ -59,7 +57,7 @@ describe('GroupList', () => {
   it('renders empty state when no groups are returned', async () => {
     MockApiClient.addMockResponse({url: membersUrl, body: []});
     MockApiClient.addMockResponse({
-      url: issuesUrlWithDefaultQuery,
+      url: issuesUrl,
       method: 'GET',
       body: [],
     });
@@ -77,7 +75,7 @@ describe('GroupList', () => {
   it('renders custom error when query has boolean logic', async () => {
     const renderErrorMessage = jest.fn(() => <div>custom error</div>);
     const issuesRequest = MockApiClient.addMockResponse({
-      url: `${issuesUrl}?${qs.stringify({...defaultQueryParams, query: 'issue.id:1'})}`,
+      url: issuesUrl,
       method: 'GET',
       body: [],
     });
@@ -113,7 +111,7 @@ describe('GroupList', () => {
     MockApiClient.addMockResponse({url: membersUrl, body: []});
     const linkHeader = '<https://sentry.io/?cursor=next>; rel="next"';
     MockApiClient.addMockResponse({
-      url: issuesUrlWithDefaultQuery,
+      url: issuesUrl,
       method: 'GET',
       body: [group],
       headers: {Link: linkHeader},
@@ -140,7 +138,7 @@ describe('GroupList', () => {
           groups: [group],
           loading: false,
           pageLinks: linkHeader,
-          memberList: undefined,
+          memberList: {},
         }),
         expect.any(Function)
       )
@@ -154,7 +152,7 @@ describe('GroupList', () => {
 
     MockApiClient.addMockResponse({url: membersUrl, body: []});
     MockApiClient.addMockResponse({
-      url: issuesUrlWithDefaultQuery,
+      url: issuesUrl,
       method: 'GET',
       body: [GroupFixture()],
       headers: {Link: pageLinks},
