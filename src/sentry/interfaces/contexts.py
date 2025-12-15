@@ -242,7 +242,6 @@ class UnityContextType(ContextType):
     context_to_tag_mapping = {
         "is_main_thread": "{is_main_thread}",
         "install_mode": "{install_mode}",
-        "device.device_type": "{device[device_type]}",
     }
 
 

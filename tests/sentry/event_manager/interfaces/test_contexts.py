@@ -190,7 +190,6 @@ def test_unity(make_ctx_snapshot) -> None:
         {
             "unity": {
                 "active_scene_name": "MainScene",
-                "device": {"device_type": "Handheld"},
                 "editor_version": "2022.3.1f1",
                 "install_mode": "Store",
                 "is_main_thread": True,

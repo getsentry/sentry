@@ -526,7 +526,6 @@ interface OtelContext extends Partial<Record<OtelContextKey, unknown>>, BaseCont
 export enum UnityContextKey {
   ACTIVE_SCENE_NAME = 'active_scene_name',
   COPY_TEXTURE_SUPPORT = 'copy_texture_support',
-  DEVICE = 'device',
   EDITOR_VERSION = 'editor_version',
   INSTALL_MODE = 'install_mode',
   IS_MAIN_THREAD = 'is_main_thread',
@@ -537,9 +536,6 @@ export enum UnityContextKey {
 export interface UnityContext {
   [UnityContextKey.ACTIVE_SCENE_NAME]: string;
   [UnityContextKey.COPY_TEXTURE_SUPPORT]: string;
-  [UnityContextKey.DEVICE]?: {
-    device_type?: string;
-  };
   [UnityContextKey.EDITOR_VERSION]: string;
   [UnityContextKey.INSTALL_MODE]: string;
   [UnityContextKey.IS_MAIN_THREAD]: boolean;

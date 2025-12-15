@@ -18,12 +18,6 @@ export function getUnityContextData({data}: {data: UnityContext}): KeyValueListD
           subject: t('Copy Texture Support'),
           value: data.copy_texture_support,
         };
-      case UnityContextKey.DEVICE:
-        return {
-          key: ctxKey,
-          subject: t('Device Type'),
-          value: data.device?.device_type,
-        };
       case UnityContextKey.EDITOR_VERSION:
         return {
           key: ctxKey,
