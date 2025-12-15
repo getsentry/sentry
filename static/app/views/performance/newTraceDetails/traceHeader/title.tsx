@@ -127,7 +127,7 @@ export function Title({representativeEvent, rootEventResults}: TitleProps) {
   if (traceTitle) {
     return (
       <Stack align="start" gap="md" width="80%">
-        <Text size="xl" bold>
+        <Text size="xl" bold ellipsis>
           {traceTitle.title}
         </Text>
         {traceTitle.subtitle && (
