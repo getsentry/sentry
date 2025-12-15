@@ -115,7 +115,10 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         client = self.get_client()
         try:
             client.chat_postMessage(
-                channel=channel_id, blocks=renderable["blocks"], thread_ts=thread_ts
+                channel=channel_id,
+                blocks=renderable["blocks"],
+                text=renderable["text"],
+                thread_ts=thread_ts,
             )
         except SlackApiError as e:
             translate_slack_api_error(e)
