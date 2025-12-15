@@ -139,6 +139,7 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
           {
             key: SpanFields.TRANSACTION,
             name: SpanFields.TRANSACTION,
+            kind: undefined,
           },
           query
         );

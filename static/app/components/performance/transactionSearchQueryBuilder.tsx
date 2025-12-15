@@ -11,7 +11,7 @@ import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {
   ALL_INSIGHTS_FILTER_KEY_SECTIONS,
@@ -25,6 +25,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useTags from 'sentry/utils/useTags';
+import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 
 interface TransactionSearchQueryBuilderProps {
   initialQuery: string;
@@ -94,8 +95,8 @@ export function TransactionSearchQueryBuilder({
   );
 
   // This is adapted from the `getEventFieldValues` function in `events/searchBar.tsx`
-  const getTransactionFilterTagValues = useCallback(
-    async (tag: Tag, queryString: string) => {
+  const getTransactionFilterTagValues = useCallback<GetTagValues>(
+    async (tag, queryString) => {
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't
