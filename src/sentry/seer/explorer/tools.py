@@ -162,13 +162,21 @@ def execute_table_query(
     # Remove None values
     params = {k: v for k, v in params.items() if v is not None}
 
-    resp = client.get(
-        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
-        user=None,
-        path=f"/organizations/{organization.slug}/events/",
-        params=params,
-    )
-    return {"data": resp.data["data"]}
+    try:
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+            user=None,
+            path=f"/organizations/{organization.slug}/events/",
+            params=params,
+        )
+        return {"data": resp.data["data"]}
+    except client.ApiError as e:
+        # For 400 errors, return an error string for the query builder agent.
+        if e.status_code == 400:
+            logger.exception("execute_table_query: bad request", extra={"org_id": org_id})
+            error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
+            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
+        raise
 
 
 def execute_timeseries_query(
@@ -297,7 +305,7 @@ def execute_trace_table_query(
         project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
         project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
-        Start/end params take precedence over stats_period.
+        Start/end params take precedence over stats_period. Default time range is the last 24 hours.
     """
     stats_period, start, end = validate_date_params(
         stats_period, start, end, default_stats_period="24h"
@@ -328,13 +336,23 @@ def execute_trace_table_query(
     # Remove None values
     params = {k: v for k, v in params.items() if v is not None}
 
-    resp = client.get(
-        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
-        user=None,
-        path=f"/organizations/{organization.slug}/traces/",
-        params=params,
-    )
-    return {"data": resp.data["data"]}
+    try:
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+            user=None,
+            path=f"/organizations/{organization.slug}/traces/",
+            params=params,
+        )
+        return {"data": resp.data["data"]}
+    except client.ApiError as e:
+        # For 400 errors, return an error string for the query builder agent.
+        if e.status_code == 400:
+            logger.exception(
+                "execute_trace_table_query: bad request", extra={"org_id": organization_id}
+            )
+            error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
+            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
+        raise
 
 
 def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
