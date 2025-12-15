@@ -44,7 +44,7 @@ export function TraceOpenInExploreButton({trace_id, traceEventView}: Props) {
   return (
     <LinkButton
       size="xs"
-      to={target}
+      to={{pathname: target.pathname, query: target.query}}
       onClick={() => {
         traceAnalytics.trackExploreSearch(
           organization,
