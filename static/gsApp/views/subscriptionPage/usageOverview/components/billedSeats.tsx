@@ -32,7 +32,7 @@ function BilledSeats({
   selectedProduct: DataCategory | AddOnCategory;
   subscription: Subscription;
 }) {
-  const {billedCategory, isEnabled} = useProductBillingMetadata(
+  const {billedCategory, isEnabled, activeProductTrial} = useProductBillingMetadata(
     subscription,
     selectedProduct
   );
@@ -72,6 +72,7 @@ function BilledSeats({
           // volume for the seat category is greater than 0 (info includes reserved
           // and gifted volumes)
           (billedSeats?.length ?? 0) > 0 ||
+          !!activeProductTrial ||
           (defined(metricHistory.prepaid) &&
             (metricHistory.prepaid > 0 || metricHistory.prepaid === UNLIMITED_RESERVED))
         }
