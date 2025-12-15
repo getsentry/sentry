@@ -8,6 +8,7 @@ import type {User} from 'sentry/types/user';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {uniqueId} from 'sentry/utils/guid';
 import sessionStorage from 'sentry/utils/sessionStorage';
+import {readStorageValue} from 'sentry/utils/useSessionStorage';
 
 import type {Subscription} from 'getsentry/types';
 import {hasNewBillingUI} from 'getsentry/utils/billing';
@@ -78,14 +79,9 @@ const getCustomReferrer = () => {
     }
 
     // pull the referrer from session storage.
-    if (
-      sessionStorage.getItem(CUSTOM_REFERRER_KEY) &&
-      typeof sessionStorage.getItem(CUSTOM_REFERRER_KEY) === 'string'
-    ) {
-      const sessionReferrer = JSON.parse(sessionStorage.getItem(CUSTOM_REFERRER_KEY));
-      sessionStorage.removeItem(CUSTOM_REFERRER_KEY);
-      return sessionReferrer;
-    }
+    const storedReferrer = readStorageValue<string | null>(CUSTOM_REFERRER_KEY, null);
+    sessionStorage.removeItem(CUSTOM_REFERRER_KEY);
+    return storedReferrer;
   } catch {
     // ignore if this fails to parse
     // this can happen if we have an invalid query string

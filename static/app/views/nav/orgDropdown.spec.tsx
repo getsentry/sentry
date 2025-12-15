@@ -7,6 +7,7 @@ import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import sessionStorage from 'sentry/utils/sessionStorage';
+import {readStorageValue} from 'sentry/utils/useSessionStorage';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
 
 describe('OrgDropdown', () => {
@@ -114,6 +115,8 @@ describe('OrgDropdown', () => {
     );
     // onClick should take precedence setting session storage value and navigating:
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Projects'}));
-    expect(sessionStorage.getItem(CUSTOM_REFERRER_KEY)).toBe('"org-dropdown"');
+    expect(readStorageValue<string | null>(CUSTOM_REFERRER_KEY, null)).toBe(
+      'org-dropdown'
+    );
   });
 });
