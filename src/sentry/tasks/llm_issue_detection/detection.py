@@ -69,22 +69,7 @@ class IssueDetectionRequest(BaseModel):
 
 
 class LLMIssueDetectionError(Exception):
-    def __init__(
-        self,
-        message: str,
-        status: int | None,
-        project_id: int | None = None,
-        organization_id: int | None = None,
-        response_data: str | None = None,
-        error_message: str | None = None,
-    ):
-        super().__init__(message)
-        self.message = message
-        self.status = status
-        self.project_id = project_id
-        self.organization_id = organization_id
-        self.response_data = response_data
-        self.error_message = error_message
+    pass
 
 
 def get_base_platform(platform: str | None) -> str | None:
@@ -272,24 +257,30 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                 body=json.dumps(seer_request.dict()).encode("utf-8"),
             )
         except Exception as network_error:
-            e = LLMIssueDetectionError(
-                message="Seer network error",
-                status=None,
-                project_id=project_id,
-                organization_id=organization_id,
-                response_data=None,
-                error_message=str(network_error),
+            e = LLMIssueDetectionError("Seer network error")
+            sentry_sdk.set_context(
+                "error_details",
+                {
+                    "project_id": project_id,
+                    "organization_id": organization_id,
+                    "status": None,
+                    "response_data": None,
+                    "error_message": str(network_error),
+                },
             )
             sentry_sdk.capture_exception(e)
             continue
 
         if response.status < 200 or response.status >= 300:
-            e = LLMIssueDetectionError(
-                message="Seer HTTP error",
-                status=response.status,
-                project_id=project_id,
-                organization_id=organization_id,
-                response_data=response.data.decode("utf-8"),
+            e = LLMIssueDetectionError("Seer HTTP error")
+            sentry_sdk.set_context(
+                "error_details",
+                {
+                    "project_id": project_id,
+                    "organization_id": organization_id,
+                    "status": response.status,
+                    "response_data": response.data.decode("utf-8"),
+                },
             )
             sentry_sdk.capture_exception(e)
             continue
@@ -298,15 +289,20 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             raw_response_data = response.json()
             response_data = IssueDetectionResponse.parse_obj(raw_response_data)
         except (ValueError, TypeError, ValidationError) as parse_error:
-            e = LLMIssueDetectionError(
-                message="Seer response parsing error",
-                status=response.status,
-                project_id=project_id,
-                organization_id=organization_id,
-                response_data=response.data.decode("utf-8"),
-                error_message=str(parse_error),
+            e = LLMIssueDetectionError("Seer response parsing error")
+            sentry_sdk.set_context(
+                "error_details",
+                {
+                    "project_id": project_id,
+                    "organization_id": organization_id,
+                    "status": response.status,
+                    "response_data": response.data.decode("utf-8"),
+                    "error_message": str(parse_error),
+                },
             )
-            sentry_sdk.capture_exception(e)
+            sentry_sdk.capture_exception(
+                e,
+            )
             continue
 
         n_found_issues = len(response_data.issues)
@@ -336,13 +332,16 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                     },
                 )
             except Exception as issue_creation_exception:
-                e = LLMIssueDetectionError(
-                    message="Error creating issue occurrence",
-                    status=None,
-                    project_id=project_id,
-                    organization_id=organization_id,
-                    response_data=detected_issue.title,
-                    error_message=str(issue_creation_exception),
+                e = LLMIssueDetectionError("Error creating issue occurrence")
+                sentry_sdk.set_context(
+                    "error_details",
+                    {
+                        "project_id": project_id,
+                        "organization_id": organization_id,
+                        "status": None,
+                        "response_data": detected_issue.title,
+                        "error_message": str(issue_creation_exception),
+                    },
                 )
                 sentry_sdk.capture_exception(e)
                 continue
