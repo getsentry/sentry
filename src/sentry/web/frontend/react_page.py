@@ -101,18 +101,6 @@ class ReactMixin:
         ):
             user_theme = f"theme-{react_config['user']['options']['theme']}"
 
-        prefers_chonk_ui = False
-        if organization is not None and features.has("organizations:chonk-ui", organization):
-            if features.has("organizations:chonk-ui-enforce", organization):
-                prefers_chonk_ui = True
-
-        if (
-            prefers_chonk_ui is False
-            and react_config.get("user", None)
-            and react_config["user"].get("options", {}).get("prefersChonkUI", False)
-        ):
-            prefers_chonk_ui = react_config["user"]["options"]["prefersChonkUI"]
-
         context = {
             "CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME,
             "meta_tags": [
@@ -127,7 +115,6 @@ class ReactMixin:
             "org_context": org_context,
             "react_config": react_config,
             "user_theme": user_theme,
-            "prefers_chonk_ui": prefers_chonk_ui,
         }
 
         # Force a new CSRF token to be generated and set in user's
