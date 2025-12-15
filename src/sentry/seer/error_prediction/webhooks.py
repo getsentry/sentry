@@ -28,10 +28,7 @@ SEER_PR_REVIEW_RERUN_PATH = "/v1/automation/codegen/pr-review/rerun"
 PREFIX = "seer.error_prediction.check_run"
 
 
-def handle_github_check_run_event(
-    organization: Organization,
-    event: Mapping[str, Any],
-) -> bool:
+def handle_github_check_run_event(organization: Organization, event: Mapping[str, Any]) -> bool:
     """
     Handle GitHub check_run webhook events for PR review rerun.
 
@@ -56,11 +53,11 @@ def handle_github_check_run_event(
     try:
         original_run_id = int(event["check_run"]["external_id"])
         extra["original_run_id"] = original_run_id
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, KeyError):
         logger.warning("%s.missing_external_id", PREFIX, extra=extra)
         return False
 
-    if not _should_handle_github_check_run_event(organization, event):
+    if not _should_handle_github_check_run_event(organization, action):
         return False
 
     # Forward the original run ID to Seer for PR review rerun
