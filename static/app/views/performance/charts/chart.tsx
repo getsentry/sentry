@@ -111,7 +111,7 @@ function Chart({
           minInterval: durationUnit,
           splitNumber: definedAxisTicks,
           axisLabel: {
-            color: theme.chartLabel,
+            color: theme.tokens.content.muted,
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
@@ -130,7 +130,7 @@ function Chart({
           minInterval: durationUnit,
           max: dataMax,
           axisLabel: {
-            color: theme.chartLabel,
+            color: theme.tokens.content.muted,
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
@@ -147,7 +147,7 @@ function Chart({
           max: dataMax,
           minInterval: durationUnit,
           axisLabel: {
-            color: theme.chartLabel,
+            color: theme.tokens.content.muted,
             formatter(value: number) {
               return axisLabelFormatter(
                 value,

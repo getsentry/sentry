@@ -58,7 +58,7 @@ export function makeMetricDetectorCharts(
     axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
     splitLine: {
       lineStyle: {
-        color: theme.chartLineColor,
+        color: theme.colors.gray300,
         opacity: 0.3,
       },
     },

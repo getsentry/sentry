@@ -103,7 +103,7 @@ function getBreakpointChartOptionsFromData(
     yAxis: {
       minInterval: durationUnit,
       axisLabel: {
-        color: theme.chartLabel,
+        color: theme.tokens.content.muted,
         formatter: (value: number) =>
           axisLabelFormatter(value, 'duration', undefined, durationUnit),
       },
