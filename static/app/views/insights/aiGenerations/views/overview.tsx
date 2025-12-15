@@ -20,7 +20,6 @@ import {IconChevron, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -283,23 +282,22 @@ const SidebarCollapseButton = withChonk(
       display: block;
     }
   `,
-  chonkStyled(Button)<{sidebarOpen: boolean}>`
+  styled(Button)<{sidebarOpen: boolean}>`
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+      display: inline-flex;
+    }
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: inline-flex;
-  }
+    ${p =>
+      p.sidebarOpen &&
+      css`
+        display: none;
+        margin-left: -13px;
 
-  ${p =>
-    p.sidebarOpen &&
-    css`
-      display: none;
-      margin-left: -13px;
-
-      &::after {
-        border-left-color: ${p.theme.tokens.background.primary};
-        border-top-left-radius: 0px;
-        border-bottom-left-radius: 0px;
-      }
-    `}
-`
+        &::after {
+          border-left-color: ${p.theme.tokens.background.primary};
+          border-top-left-radius: 0px;
+          border-bottom-left-radius: 0px;
+        }
+      `}
+  `
 );
