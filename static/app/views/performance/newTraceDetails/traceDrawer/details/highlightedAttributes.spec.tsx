@@ -15,7 +15,7 @@ describe('getHighlightedSpanAttributes', () => {
   it('should emit Sentry error when gen_ai span has model but no cost', () => {
     const attributes = {
       'gen_ai.request.model': 'gpt-4',
-      'gen_ai.usage.total_cost': '0',
+      'gen_ai.cost.total_tokens': '0',
       'gen_ai.operation.type': 'ai_client',
     };
 
@@ -46,7 +46,7 @@ describe('getHighlightedSpanAttributes', () => {
   it('should not emit Sentry error when gen_ai span has model and cost', () => {
     const attributes = {
       'gen_ai.request.model': 'gpt-4',
-      'gen_ai.usage.total_cost': '0.05',
+      'gen_ai.cost.total_tokens': '0.05',
       'gen_ai.operation.type': 'ai_client',
     };
 
@@ -60,7 +60,7 @@ describe('getHighlightedSpanAttributes', () => {
 
   it('should not emit Sentry error when gen_ai span has no model', () => {
     const attributes = {
-      'gen_ai.usage.total_cost': '0',
+      'gen_ai.cost.total_tokens': '0',
       'gen_ai.operation.type': 'ai_client',
     };
 
@@ -75,7 +75,7 @@ describe('getHighlightedSpanAttributes', () => {
   it('should not emit Sentry error for non-gen_ai spans', () => {
     const attributes = {
       'gen_ai.request.model': 'gpt-4',
-      'gen_ai.usage.total_cost': '0',
+      'gen_ai.cost.total_tokens': '0',
     };
 
     getHighlightedSpanAttributes({
@@ -90,7 +90,7 @@ describe('getHighlightedSpanAttributes', () => {
     const attributes = {
       'gen_ai.origin': 'auto.ai.openai',
       'gen_ai.request.model': 'gpt-4',
-      'gen_ai.usage.total_cost': '0.05',
+      'gen_ai.cost.total_tokens': '0.05',
       'sdk.name': 'sentry.python',
       'sdk.version': '2.0.0',
       'gen_ai.operation.type': 'ai_client',
@@ -123,7 +123,7 @@ describe('getHighlightedSpanAttributes', () => {
       'gen_ai.origin': 'auto.ai.openai',
       'gen_ai.system': 'openai',
       'gen_ai.request.model': 'gpt-4',
-      'gen_ai.usage.total_cost': '0.05',
+      'gen_ai.cost.total_tokens': '0.05',
       'gen_ai.operation.name': 'chat',
       'gen_ai.agent.name': 'my-agent',
       'gen_ai.operation.type': 'ai_client',
