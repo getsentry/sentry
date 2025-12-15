@@ -468,7 +468,7 @@ function UsageChartBody({
         minInterval: yAxisMinInterval,
         axisLabel: {
           formatter: yAxisLabelFormatter,
-          color: theme.chartLabel,
+          color: theme.tokens.content.muted,
         },
       }}
       series={series}

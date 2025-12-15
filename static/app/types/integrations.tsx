@@ -86,10 +86,24 @@ export type Repository = {
   url: string;
 };
 
+type CodeReviewTrigger = 'on_command_phrase' | 'on_new_commit' | 'on_ready_for_review';
+
+/**
+ * Available only when calling API with `expand=settings` query parameter
+ */
 export interface RepositoryWithSettings extends Repository {
-  codeReviewTriggers: string[];
-  enabledCodeReview: boolean;
+  settings: null | {
+    codeReviewTriggers: CodeReviewTrigger[];
+    enabledCodeReview: boolean;
+  };
 }
+
+export const DEFAULT_CODE_REVIEW_TRIGGERS: CodeReviewTrigger[] = [
+  'on_command_phrase',
+  'on_ready_for_review',
+  'on_new_commit',
+];
+
 /**
  * Integration Repositories from OrganizationIntegrationReposEndpoint
  */
