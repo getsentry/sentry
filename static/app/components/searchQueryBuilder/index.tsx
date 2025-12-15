@@ -28,10 +28,11 @@ import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {IconCase, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
+import type {SavedSearchType, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 
 export interface SearchQueryBuilderProps {
   /**
@@ -40,7 +41,7 @@ export interface SearchQueryBuilderProps {
    * Should be a stable reference.
    */
   filterKeys: TagCollection;
-  getTagValues: (key: Tag, query: string) => Promise<string[]>;
+  getTagValues: GetTagValues;
   initialQuery: string;
   /**
    * Indicates the usage of the search bar for analytics
@@ -336,7 +337,7 @@ const ActionButton = styled(Button)<{active?: boolean}>`
 const PositionedSearchIconContainer = styled('div')`
   position: absolute;
   left: ${p => p.theme.space.lg};
-  top: ${p => (p.theme.isChonk ? p.theme.space.sm : p.theme.space.md)};
+  top: ${p => p.theme.space.sm};
 `;
 
 const SearchIcon = styled(IconSearch)`

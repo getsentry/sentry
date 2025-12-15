@@ -29,7 +29,7 @@ prevent: 0002_alter_integration_id_not_null
 
 releases: 0004_cleanup_failed_safe_deletes
 
-replays: 0006_add_bulk_delete_job
+replays: 0007_organizationmember_replay_access
 
 sentry: 1013_add_repositorysettings_table
 

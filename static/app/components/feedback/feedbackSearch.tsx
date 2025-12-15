@@ -27,6 +27,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 
 const EXCLUDED_TAGS: string[] = [
   // These are found in issue platform and redundant (= __.name, ex os.name)
@@ -243,8 +244,8 @@ export default function FeedbackSearch() {
     return getFilterKeySections(issuePlatformTags);
   }, [issuePlatformTags]);
 
-  const getTagValues = useCallback(
-    (tag: Tag, searchQuery: string): Promise<string[]> => {
+  const getTagValues = useCallback<GetTagValues>(
+    (tag, searchQuery) => {
       if (isAggregateField(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't

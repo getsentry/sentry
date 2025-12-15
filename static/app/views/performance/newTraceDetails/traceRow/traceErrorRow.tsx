@@ -2,10 +2,8 @@ import type {Theme} from '@emotion/react';
 import {PlatformIcon} from 'platformicons';
 
 import {t} from 'sentry/locale';
-import {isEAPErrorNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {ErrorNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/errorNode';
 import {InvisibleTraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
 import {
   maybeFocusTraceRow,
@@ -26,17 +24,10 @@ const ERROR_LEVEL_LABELS: Record<keyof Theme['level'], string> = {
   unknown: t('Unknown'),
 };
 
-export function TraceErrorRow(
-  props: TraceRowProps<
-    TraceTreeNode<TraceTree.TraceError> | TraceTreeNode<TraceTree.EAPError>
-  >
-) {
-  const description = isEAPErrorNode(props.node)
-    ? props.node.value.description
-    : (props.node.value.title ?? props.node.value.message);
-  const timestamp = isEAPErrorNode(props.node)
-    ? props.node.value.start_timestamp
-    : props.node.value.timestamp;
+export function TraceErrorRow(props: TraceRowProps<ErrorNode>) {
+  const description = props.node.description;
+  const timestamp = props.node.space[0];
+
   return (
     <div
       key={props.index}
