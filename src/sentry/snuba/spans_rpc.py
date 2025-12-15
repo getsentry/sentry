@@ -17,6 +17,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry import options
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.project import Project
 from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING, SUPPORTED_STATS_TYPES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
@@ -40,6 +41,10 @@ logger = logging.getLogger("sentry.snuba.spans_rpc")
 
 class Spans(rpc_dataset_common.RPCBase):
     DEFINITIONS = SPAN_DEFINITIONS
+
+    @classmethod
+    def filter_project(cls, project: Project) -> bool:
+        return project.flags.has_transactions
 
     @classmethod
     @sentry_sdk.trace
