@@ -1,3 +1,5 @@
+import random
+
 from sentry.notifications.platform.rollout import NotificationRolloutService
 from sentry.notifications.platform.templates.types import NotificationTemplateSource
 from sentry.testutils.cases import TestCase
@@ -9,6 +11,7 @@ class NotificationRolloutServiceTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
+        random.seed(0)
 
     def test_no_feature_flags_enabled(self) -> None:
         service = NotificationRolloutService(organization=self.organization)
@@ -73,10 +76,7 @@ class NotificationRolloutServiceTest(TestCase):
     @with_feature("organizations:notification-platform.internal-testing")
     def test_partial_rollout_based_on_org_id(self) -> None:
         service = NotificationRolloutService(organization=self.organization)
-        expected_result = (self.organization.id % 100) < 50
-        assert (
-            service.should_notify(NotificationTemplateSource.DATA_EXPORT_SUCCESS) == expected_result
-        )
+        assert service.should_notify(NotificationTemplateSource.DATA_EXPORT_SUCCESS)
 
     def test_has_feature_flag_access_returns_none_when_no_flags(self) -> None:
         service = NotificationRolloutService(organization=self.organization)
@@ -139,7 +139,5 @@ class NotificationRolloutServiceTest(TestCase):
         service = NotificationRolloutService(organization=self.organization)
 
         assert service.should_notify(NotificationTemplateSource.DATA_EXPORT_SUCCESS)
-        assert service.should_notify(NotificationTemplateSource.DATA_EXPORT_FAILURE) == (
-            self.organization.id % 100 < 50
-        )
+        assert not service.should_notify(NotificationTemplateSource.DATA_EXPORT_FAILURE)
         assert not service.should_notify(NotificationTemplateSource.SLOW_LOAD_METRIC_ALERT)

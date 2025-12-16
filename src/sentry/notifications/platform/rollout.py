@@ -1,4 +1,5 @@
 import logging
+import random
 from dataclasses import dataclass
 
 from sentry import features, options
@@ -25,7 +26,7 @@ class NotificationRolloutService:
             return False
 
         source_rollout_rate = self.get_rollout_rate(option_key, source)
-        return (self.organization.id % 100) < 100 * source_rollout_rate
+        return random.randint(0, 99) < 100 * source_rollout_rate
 
     def has_feature_flag_access(self) -> str | None:
         internal_testing = features.has(
