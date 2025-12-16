@@ -1,4 +1,4 @@
-import {css, type Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
@@ -9,7 +9,7 @@ import type {Node, Orientation} from '@react-types/shared';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
-import {isChonkTheme, withChonk} from 'sentry/utils/theme/withChonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 
 import type {BaseTabProps} from './tab.chonk';
 import {
@@ -213,34 +213,6 @@ const TabWrap = withChonk(
   ChonkStyledTabWrap
 );
 
-const innerWrapStyles = ({
-  theme,
-  orientation,
-}: {
-  orientation: Orientation;
-  theme: Theme;
-}) => css`
-  display: flex;
-  align-items: center;
-  position: relative;
-  height: calc(
-    ${theme.form.sm.height} + ${orientation === 'horizontal' ? space(0.75) : '0px'}
-  );
-  border-radius: ${theme.radius.md};
-  transform: translateY(1px);
-
-  ${orientation === 'horizontal'
-    ? css`
-        /* Extra padding + negative margin trick, to expand click area */
-        padding: ${space(0.75)} ${space(1)} ${space(1.5)};
-        margin-left: -${space(1)};
-        margin-right: -${space(1)};
-      `
-    : css`
-        padding: ${space(0.75)} ${space(2)};
-      `};
-`;
-
 const TabLink = styled(Link)<{
   orientation: Orientation;
   selected: boolean;
@@ -248,15 +220,13 @@ const TabLink = styled(Link)<{
   variant: BaseTabProps['variant'];
 }>`
   ${p =>
-    isChonkTheme(p.theme)
-      ? chonkInnerWrapStyles({
-          variant: p.variant,
-          selected: p.selected,
-          orientation: p.orientation,
-          theme: p.theme,
-          size: p.size,
-        })
-      : innerWrapStyles(p)}
+    chonkInnerWrapStyles({
+      variant: p.variant,
+      selected: p.selected,
+      orientation: p.orientation,
+      theme: p.theme,
+      size: p.size,
+    })}
 
   &,
   &:hover {
@@ -271,15 +241,13 @@ const TabInnerWrap = styled('span')<{
   variant: BaseTabProps['variant'];
 }>`
   ${p =>
-    isChonkTheme(p.theme)
-      ? chonkInnerWrapStyles({
-          variant: p.variant,
-          selected: p.selected,
-          orientation: p.orientation,
-          size: p.size,
-          theme: p.theme,
-        })
-      : innerWrapStyles(p)}
+    chonkInnerWrapStyles({
+      variant: p.variant,
+      selected: p.selected,
+      orientation: p.orientation,
+      size: p.size,
+      theme: p.theme,
+    })}
 `;
 
 const TabSelectionIndicator = withChonk(

@@ -216,7 +216,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       {/* Collapsed summary */}
       {!isLoadingPreferences && anyStepIncomplete && stepsCollapsed && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
-          <IconSeer variant="waiting" size="lg" style={{marginRight: 8}} />
+          <IconSeer animation="waiting" size="lg" style={{marginRight: 8}} />
           <span>
             {t(
               'Only %s step%s left to get the most out of Seer.',
@@ -237,7 +237,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
             transition={{duration: 0.2}}
           >
             <StepsHeader>
-              <IconSeer variant="waiting" size="xl" />
+              <IconSeer animation="waiting" size="xl" />
               Debug Faster with Seer
             </StepsHeader>
             <StyledGuidedSteps>

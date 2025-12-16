@@ -27,6 +27,8 @@ const productionEntryPoints = [
   'static/app/icons/**/*.{js,mjs,ts,tsx}',
   // todo find out how chartcuterie works
   'static/app/chartcuterie/**/*.{js,mjs,ts,tsx}',
+  // temp, will be used soon
+  'static/gsApp/views/seerAutomation/onboarding/hooks/useShowNewSeer.tsx',
 ];
 
 const testingEntryPoints = [
@@ -64,8 +66,6 @@ const config: KnipConfig = {
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
     // ignore eslint plugins in production
     '!static/eslint/**/*.mjs!',
-    // TEMPORARY! Abdullah Khan: WILL BE REMOVING IN STACKED PRs. Trying to merge PRs in smaller batches.
-    '!static/app/views/performance/newTraceDetails/traceModels/traceTreeNode/**/*.{js,mjs,ts,tsx}!',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),

@@ -9,7 +9,7 @@ import {isChartDisplayType} from 'sentry/views/dashboards/utils';
 import {
   serializeFields,
   serializeThresholds,
-  serializeTraceMetrics,
+  serializeTraceMetric,
   type WidgetBuilderStateQueryParams,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -48,17 +48,16 @@ export function convertWidgetToBuilderStateParams(
     legendAlias = [];
   }
 
-  let traceMetrics: TraceMetric[] = [];
+  let traceMetric: TraceMetric | undefined = undefined;
   if (widget.widgetType === WidgetType.TRACEMETRICS) {
-    traceMetrics = firstWidgetQuery
-      ? firstWidgetQuery.aggregates.map(aggregate => {
-          const func = parseFunction(aggregate);
-          return {
-            name: func?.arguments?.[1] ?? '',
-            type: func?.arguments?.[2] ?? '',
-          };
-        })
-      : [];
+    const traceMetricReferenceAggregate = firstWidgetQuery?.aggregates[0];
+    if (traceMetricReferenceAggregate) {
+      const func = parseFunction(traceMetricReferenceAggregate);
+      traceMetric = {
+        name: func?.arguments?.[1] ?? '',
+        type: func?.arguments?.[2] ?? '',
+      };
+    }
   }
 
   return {
@@ -74,7 +73,6 @@ export function convertWidgetToBuilderStateParams(
     legendAlias,
     selectedAggregate: firstWidgetQuery?.selectedAggregate,
     thresholds: widget.thresholds ? serializeThresholds(widget.thresholds) : undefined,
-    traceMetrics:
-      traceMetrics.length > 0 ? serializeTraceMetrics(traceMetrics) : undefined,
+    traceMetric: traceMetric ? serializeTraceMetric(traceMetric) : undefined,
   };
 }

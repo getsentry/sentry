@@ -372,7 +372,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   hasCompleteSeerBudget = () =>
     this.isSettingSeerBudget() &&
     Object.entries(this.state.data)
-      .filter(([key, _]) => key.startsWith('reservedSeer'))
+      .filter(([key, _]) => key.startsWith('reservedSeer') && key !== 'reservedSeerUsers')
       .every(([_, value]) => value === RESERVED_BUDGET_QUOTA) &&
     this.state.data.seerBudget;
 

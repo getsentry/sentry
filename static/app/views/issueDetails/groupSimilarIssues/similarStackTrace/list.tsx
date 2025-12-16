@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Button} from 'sentry/components/core/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -11,7 +10,6 @@ import SimilarSpectrum from 'sentry/components/similarSpectrum';
 import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -26,9 +24,7 @@ type Props = {
   groupId: string;
   hasSimilarityEmbeddingsFeature: boolean;
   items: SimilarItem[];
-  location: Location;
   onMerge: () => void;
-  orgId: Organization['id'];
   pageLinks: string | null;
   project: Project;
 } & DefaultProps;
@@ -46,14 +42,12 @@ function Empty() {
 }
 
 function List({
-  orgId,
   groupId,
   project,
   items,
   filteredItems = [],
   pageLinks,
   onMerge,
-  location,
   hasSimilarityEmbeddingsFeature,
 }: Props) {
   const [showAllItems, setShowAllItems] = useState(false);
@@ -103,10 +97,8 @@ function List({
           {itemsWithFiltered.map(item => (
             <SimilarStackTraceItem
               key={item.issue.id}
-              orgId={orgId}
               groupId={groupId}
               project={project}
-              location={location}
               hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
               {...item}
             />

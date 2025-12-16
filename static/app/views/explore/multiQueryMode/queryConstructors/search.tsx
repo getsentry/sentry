@@ -1,8 +1,8 @@
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
   useUpdateQueryAtIndex,
   type ReadableExploreQueryParts,
@@ -17,12 +17,15 @@ type Props = {index: number; query: ReadableExploreQueryParts};
 
 export function SearchBarSection({query, index}: Props) {
   const {selection} = usePageFilters();
-  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemTags('number');
-  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemTags('string');
 
   const updateQuerySearch = useUpdateQueryAtIndex(index);
+
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects: selection.projects,
+    initialQuery: query.query ?? '',
+    onSearch: value => updateQuerySearch({query: value}),
+    searchSource: 'explore',
+  });
 
   return (
     <Section data-test-id={`section-filter-${index}`}>
@@ -31,16 +34,7 @@ export function SearchBarSection({query, index}: Props) {
           <SectionLabel>{t('Filter')}</SectionLabel>
         </Tooltip>
       </SectionHeader>
-      <EAPSpanSearchQueryBuilder
-        projects={selection.projects}
-        initialQuery={query.query ?? ''}
-        onSearch={value => updateQuerySearch({query: value})}
-        searchSource="explore"
-        numberTags={numberTags}
-        stringTags={stringTags}
-        numberSecondaryAliases={numberSecondaryAliases}
-        stringSecondaryAliases={stringSecondaryAliases}
-      />
+      <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
     </Section>
   );
 }

@@ -59,8 +59,13 @@ export interface ImpactAssessmentArtifact {
   one_line_description: string;
 }
 
-interface SuspectCommit {
+export interface SuspectCommit {
+  author_email: string;
+  author_name: string;
+  committed_date: string;
   description: string;
+  message: string;
+  repo_name: string;
   sha: string;
 }
 
@@ -197,27 +202,65 @@ export function getArtifactsFromBlocks(blocks: Block[]): Record<string, Artifact
 }
 
 /**
- * Extract file patches from Explorer blocks.
+ * Get the ordered list of artifact keys based on their first appearance in blocks.
+ * Returns keys sorted by the index of the first block where each artifact appeared.
  */
-export function getFilePatchesFromBlocks(blocks: Block[]): ExplorerFilePatch[] {
-  const patches: ExplorerFilePatch[] = [];
+export function getOrderedArtifactKeys(
+  blocks: Block[],
+  artifacts: Record<string, Artifact>
+): string[] {
+  // Map artifact key to the index of the first block where it appeared
+  const firstAppearanceIndex: Record<string, number> = {};
 
-  for (const block of blocks) {
-    if (block.file_patches) {
-      for (const filePatch of block.file_patches) {
-        patches.push(filePatch);
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    if (block?.artifacts) {
+      for (const artifact of block.artifacts) {
+        // Only record the first appearance
+        if (!(artifact.key in firstAppearanceIndex)) {
+          firstAppearanceIndex[artifact.key] = i;
+        }
       }
     }
   }
 
-  return patches;
+  // Get all artifact keys that exist in artifacts
+  const artifactKeys = Object.keys(artifacts).filter(key => key in firstAppearanceIndex);
+
+  // Sort by first appearance index
+  return artifactKeys.sort((a, b) => {
+    const indexA = firstAppearanceIndex[a] ?? Infinity;
+    const indexB = firstAppearanceIndex[b] ?? Infinity;
+    return indexA - indexB;
+  });
+}
+
+/**
+ * Extract merged file patches from Explorer blocks.
+ * Returns the latest merged patch (original → current) for each file.
+ */
+export function getMergedFilePatchesFromBlocks(blocks: Block[]): ExplorerFilePatch[] {
+  const mergedByFile = new Map<string, ExplorerFilePatch>();
+
+  for (const block of blocks) {
+    if (block.merged_file_patches) {
+      for (const patch of block.merged_file_patches) {
+        const key = `${patch.repo_name}:${patch.patch.path}`;
+        mergedByFile.set(key, patch);
+      }
+    }
+  }
+
+  return Array.from(mergedByFile.values());
 }
 
 /**
  * Check if there are code changes in the state.
  */
 export function hasCodeChanges(blocks: Block[]): boolean {
-  return blocks.some(block => block.file_patches && block.file_patches.length > 0);
+  return blocks.some(
+    block => block.merged_file_patches && block.merged_file_patches.length > 0
+  );
 }
 
 interface UseExplorerAutofixOptions {

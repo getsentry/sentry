@@ -71,6 +71,7 @@ export interface Organization extends OrganizationSummary {
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
+  hasGranularReplayPermissions: boolean;
   isDefault: boolean;
   isDynamicallySampled: boolean;
   onboardingTasks: OnboardingTaskStatus[];
@@ -88,6 +89,7 @@ export interface Organization extends OrganizationSummary {
     projectLimit: number | null;
   };
   relayPiiConfig: string | null;
+  replayAccessMembers: number[];
   requiresSso: boolean;
   safeFields: string[];
   samplingMode: 'organization' | 'project';

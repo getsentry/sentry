@@ -438,6 +438,7 @@ from sentry.notifications.platform.api.endpoints import urls as notification_pla
 from sentry.objectstore.endpoints.organization import OrganizationObjectstoreEndpoint
 from sentry.overwatch.endpoints.overwatch_rpc import (
     CodeReviewRepoSettingsEndpoint,
+    PreventPrReviewEligibilityEndpoint,
     PreventPrReviewResolvedConfigsEndpoint,
     PreventPrReviewSentryOrgEndpoint,
 )
@@ -535,6 +536,9 @@ from sentry.seer.endpoints.organization_seer_onboarding_check import Organizatio
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheck
 from sentry.seer.endpoints.organization_trace_summary import OrganizationTraceSummaryEndpoint
+from sentry.seer.endpoints.project_autofix_automation_settings import (
+    ProjectAutofixAutomationSettingsEndpoint,
+)
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.seer.endpoints.seer_rpc import SeerRpcServiceEndpoint
 from sentry.seer.endpoints.trace_explorer_ai_query import TraceExplorerAIQuery
@@ -2676,6 +2680,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-alert-rules",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/autofix/automation-settings/$",
+        ProjectAutofixAutomationSettingsEndpoint.as_view(),
+        name="sentry-api-0-project-autofix-automation-settings",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/alert-rule-task/(?P<task_uuid>[^/]+)/$",
         ProjectAlertRuleTaskDetailsEndpoint.as_view(),
         name="sentry-api-0-project-alert-rule-task-details",
@@ -3530,6 +3539,11 @@ INTERNAL_URLS = [
         r"^prevent/pr-review/configs/resolved/$",
         PreventPrReviewResolvedConfigsEndpoint.as_view(),
         name="sentry-api-0-prevent-pr-review-configs-resolved",
+    ),
+    re_path(
+        r"^prevent/pr-review/eligibility/$",
+        PreventPrReviewEligibilityEndpoint.as_view(),
+        name="sentry-api-0-prevent-pr-review-eligibility",
     ),
     re_path(
         r"^prevent/pr-review/github/sentry-org/$",
