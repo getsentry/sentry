@@ -302,7 +302,6 @@ def get_group_hourly_count_eap(group: Group) -> int:
     if hourly_count is None:
         now = datetime.now()
         current_hour = now.replace(minute=0, second=0, microsecond=0)
-
         hourly_count = count_occurrences(
             organization=group.project.organization,
             projects=[group.project],
@@ -311,7 +310,6 @@ def get_group_hourly_count_eap(group: Group) -> int:
             referrer=Referrer.IS_ESCALATING_GROUP.value,
             group_id=group.id,
         )
-
         cache.set(key, hourly_count, GROUP_HOURLY_COUNT_TTL)
 
     return int(hourly_count)
