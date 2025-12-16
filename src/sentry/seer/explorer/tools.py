@@ -828,18 +828,14 @@ def _get_recommended_event(
     return events[0].for_group(group)
 
 
-# Activity types to include in issue details for Seer Explorer
+# Activity types to include in issue details for Seer Explorer (manual actions only)
 _SEER_EXPLORER_ACTIVITY_TYPES = [
     ActivityType.NOTE.value,
     ActivityType.SET_RESOLVED.value,
     ActivityType.SET_RESOLVED_IN_RELEASE.value,
-    ActivityType.SET_RESOLVED_BY_AGE.value,
     ActivityType.SET_RESOLVED_IN_COMMIT.value,
     ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
     ActivityType.SET_UNRESOLVED.value,
-    ActivityType.SET_REGRESSION.value,
-    ActivityType.SET_ESCALATING.value,
-    ActivityType.AUTO_SET_ONGOING.value,
     ActivityType.ASSIGNED.value,
 ]
 
@@ -889,7 +885,7 @@ def get_issue_and_event_response(
             activities = Activity.objects.filter(
                 group=group,
                 type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
-            ).order_by("-datetime")
+            ).order_by("-datetime")[:50]
             serialized_activities = serialize(
                 list(activities), user=None, serializer=ActivitySerializer()
             )
