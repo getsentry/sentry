@@ -61,8 +61,12 @@ ACTIVE_THRESHOLD_REDIS_TTL = timedelta(seconds=max(UptimeSubscription.IntervalSe
     minutes=60
 )
 
-# The TTL of the redis key used to track backfilled misses. This allows late results to upgrade backfilled
+# The delay before writing a backfilled miss to EAP. This allows late results to upgrade backfilled
 # misses within a reasonable time window.
+BACKFILLED_MISS_WRITE_DELAY = timedelta(minutes=5)
+
+# The TTL of the redis key storing backfilled miss data. Must be longer than WRITE_DELAY to ensure
+# the key doesn't expire before the background task reads it.
 BACKFILLED_MISS_TTL = timedelta(minutes=10)
 
 # We want to limit cardinality for provider tags. This controls how many tags we should include
@@ -386,12 +390,12 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                     if use_pending_misses:
                         # Store miss data and schedule for later writing
                         backfill_key = build_backfilled_miss_key(
-                            detector, missed_result["scheduled_check_time_ms"]
+                            detector, int(missed_result["scheduled_check_time_ms"])
                         )
                         cluster.set(backfill_key, json.dumps(missed_result), ex=BACKFILLED_MISS_TTL)
                         write_time_ms = (
                             datetime.now(timezone.utc).timestamp() * 1000
-                            + BACKFILLED_MISS_TTL.total_seconds() * 1000
+                            + BACKFILLED_MISS_WRITE_DELAY.total_seconds() * 1000
                         )
                         cluster.zadd(
                             build_pending_misses_key(),

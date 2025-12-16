@@ -1407,7 +1407,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             assert miss_data["subscription_id"] == self.subscription.subscription_id
             assert miss_data["status"] == CHECKSTATUS_MISSED_WINDOW
 
-            pending_misses_key = build_pending_misses_key(self.detector)
+            pending_misses_key = build_pending_misses_key()
             pending_misses = cluster.zrange(pending_misses_key, 0, -1)
             assert len(pending_misses) == 1
             assert backfill_key in [
