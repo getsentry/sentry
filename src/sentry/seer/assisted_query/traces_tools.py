@@ -115,9 +115,7 @@ def get_attribute_names(
     """
     organization = Organization.objects.get(id=org_id)
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     api_key = ApiKey(organization_id=org_id, scope_list=API_KEY_SCOPES)
 
@@ -188,9 +186,7 @@ def get_attribute_values_with_substring(
 
     organization = Organization.objects.get(id=org_id)
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
+    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     api_key = ApiKey(organization_id=org_id, scope_list=API_KEY_SCOPES)
 
