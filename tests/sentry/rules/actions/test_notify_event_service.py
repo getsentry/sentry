@@ -21,7 +21,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
-from sentry.workflow_engine.models import DataConditionGroup, DataConditionGroupAction
+from sentry.workflow_engine.models import DataConditionGroup, DataConditionGroupAction, Workflow
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from sentry.workflow_engine.typings.notification_action import ActionTarget
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -179,7 +179,8 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
         workflow = IssueAlertMigrator(rule, self.user.id).run()
 
         # fetch the if_dcg to get the action
-        dcg = DataConditionGroup.objects.exclude(workflow=workflow).first()
+        other_workflow = Workflow.objects.exclude(id=workflow.id).first()
+        dcg = DataConditionGroup.objects.get(workflow=other_workflow)
         dcga = DataConditionGroupAction.objects.get(condition_group=dcg.id)
         action = dcga.action
 
