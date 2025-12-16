@@ -1,3 +1,4 @@
+import {useMemo, type ReactNode} from 'react';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
@@ -12,14 +13,65 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import {useResettableState} from 'sentry/utils/useResettableState';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {
+  defaultAggregateFields,
+  defaultAggregateSortBys,
+  defaultFields,
+  defaultQuery,
+  defaultSortBys,
+} from 'sentry/views/explore/metrics/metricQuery';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
+import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
+
+function Wrapper(crossEvents?: CrossEvent[]) {
+  return function ({children}: {children: ReactNode}) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [query] = useResettableState(defaultQuery);
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const readableQueryParams = useMemo(
+      () =>
+        new ReadableQueryParams({
+          aggregateCursor: defaultCursor(),
+          aggregateFields: defaultAggregateFields(),
+          aggregateSortBys: defaultAggregateSortBys(defaultAggregateFields()),
+          cursor: defaultCursor(),
+          extrapolate: true,
+          fields: defaultFields(),
+          mode: Mode.AGGREGATE,
+          query,
+          sortBys: defaultSortBys(defaultFields()),
+          crossEvents,
+        }),
+      [query]
+    );
+
+    return (
+      <QueryParamsContextProvider
+        isUsingDefaultFields={false}
+        queryParams={readableQueryParams}
+        setQueryParams={jest.fn()}
+        shouldManageFields={false}
+      >
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          {children}
+        </TraceItemAttributeProvider>
+      </QueryParamsContextProvider>
+    );
+  };
+}
 
 describe('MultiQueryModeContent', () => {
   const {organization, project} = initializeOrg();
@@ -109,11 +161,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     const section = await screen.findByTestId('section-visualize-0');
     expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
@@ -126,11 +174,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     const section = await screen.findByTestId('section-visualize-0');
 
@@ -193,11 +237,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     const section = await screen.findByTestId('section-visualize-0');
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
@@ -212,11 +252,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     const section = await screen.findByTestId('section-visualize-0');
 
@@ -281,11 +317,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     const section = await screen.findByTestId('section-visualize-0');
 
@@ -348,11 +380,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     const section = await screen.findByTestId('section-visualize-0');
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
@@ -367,11 +395,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     const section = await screen.findByTestId('section-visualize-0');
 
@@ -454,11 +478,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     expect(await screen.findByRole('button', {name: 'Bar'})).toBeInTheDocument();
 
@@ -506,11 +526,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Bar'}));
     await userEvent.click(screen.getByRole('option', {name: 'Area'}));
@@ -546,11 +562,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     expect(queries).toEqual([
       {
@@ -592,11 +604,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     expect(queries).toEqual([
       {
@@ -638,11 +646,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     expect(queries).toEqual([
       {
@@ -733,11 +737,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     expect(queries).toEqual([
       {
@@ -791,11 +791,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     expect(queries).toEqual([
       {
@@ -856,11 +852,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     expect(queries).toEqual([
       {
@@ -964,11 +956,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     expect(queries).toEqual([
       {
@@ -1119,11 +1107,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Component />
-      </TraceItemAttributeProvider>
-    );
+    render(<Component />, {additionalWrapper: Wrapper()});
 
     expect(queries).toEqual([
       {
@@ -1176,16 +1160,12 @@ describe('MultiQueryModeContent', () => {
       },
     });
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <MultiQueryModeContent />
-      </TraceItemAttributeProvider>,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<MultiQueryModeContent />, {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+      additionalWrapper: Wrapper(),
+    });
 
     const section = screen.getByTestId('section-visualization-0');
     expect(
@@ -1208,6 +1188,7 @@ describe('MultiQueryModeContent', () => {
     render(<MultiQueryModeContent />, {
       organization,
       deprecatedRouterMocks: true,
+      additionalWrapper: Wrapper(),
     });
     expect(await screen.findByLabelText('Save')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Save'));
@@ -1256,16 +1237,12 @@ describe('MultiQueryModeContent', () => {
       },
     });
 
-    render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <MultiQueryModeContent />
-      </TraceItemAttributeProvider>,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<MultiQueryModeContent />, {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+      additionalWrapper: Wrapper(),
+    });
     // No good way to check for highlighted css, so we just check for the text
     expect(await screen.findByText('Save')).toBeInTheDocument();
   });
