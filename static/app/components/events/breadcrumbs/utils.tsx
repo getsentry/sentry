@@ -276,7 +276,11 @@ function getBreadcrumbColorConfig(
       return {title: theme.green400, icon: theme.green400, iconBorder: theme.green200};
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
-      return {title: theme.purple400, icon: theme.purple400, iconBorder: theme.purple200};
+      return {
+        title: theme.colors.blue500,
+        icon: theme.colors.blue500,
+        iconBorder: theme.colors.blue200,
+      };
     case BreadcrumbType.SYSTEM:
     case BreadcrumbType.SESSION:
     case BreadcrumbType.DEVICE:

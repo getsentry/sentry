@@ -143,7 +143,7 @@ const AppIcon = styled('div')`
   width: 24px;
   height: 24px;
   border-radius: 4px;
-  background: ${p => p.theme.purple400};
+  background: ${p => p.theme.colors.blue500};
   display: flex;
   align-items: center;
   justify-content: center;

@@ -223,7 +223,7 @@ const Visualization = styled('div')`
 function MetricVisualization() {
   const theme = useTheme();
   const danger = theme.red300;
-  const defaultChartColor = theme.chart.getColorPalette(0)[0] ?? theme.purple400;
+  const defaultChartColor = theme.chart.getColorPalette(0)[0] ?? theme.colors.blue500;
   return (
     <svg fill="none" viewBox="0 0 480 56">
       <path

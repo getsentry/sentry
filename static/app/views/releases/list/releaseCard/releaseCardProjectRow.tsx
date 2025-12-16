@@ -161,7 +161,7 @@ function ReleaseCardProjectRow({
 
                     return `${value.toLocaleString()} ${suffix}`;
                   }}
-                  colors={[theme.purple300, theme.gray200]}
+                  colors={[theme.colors.blue400, theme.gray200]}
                 />
               </LazyLoad>
             </AdoptionWrapper>
