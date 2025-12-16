@@ -115,10 +115,15 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             _query: Search query (not yet implemented)
         """
 
+        # Build query string combining base filter with user query
+        base_query = "has:gen_ai.conversation.id"
+        if _query and _query.strip():
+            base_query = f"{base_query} {_query.strip()}"
+
         # Step 1: Find conversation IDs with spans in the time range
         conversation_ids_results = Spans.run_table_query(
             params=snuba_params,
-            query_string="has:gen_ai.conversation.id",
+            query_string=base_query,
             selected_columns=[
                 "gen_ai.conversation.id",
                 "max(precise.finish_ts)",
@@ -145,17 +150,21 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         if not conversation_ids:
             return []
 
-        # Step 2 & 3: Run aggregation and enrichment queries in parallel
-        with ThreadPoolExecutor(max_workers=2) as executor:
+        # Step 2, 3, 4: Run aggregation, enrichment, and first/last IO queries in parallel
+        with ThreadPoolExecutor(max_workers=3) as executor:
             future_aggregations = executor.submit(
                 self._get_aggregations, snuba_params, conversation_ids
             )
             future_enrichment = executor.submit(
                 self._get_enrichment_data, snuba_params, conversation_ids
             )
+            future_first_last_io = executor.submit(
+                self._get_first_last_io, snuba_params, conversation_ids
+            )
 
             results = future_aggregations.result()
             enrichment_data = future_enrichment.result()
+            first_last_io_data = future_first_last_io.result()
 
         # Create a map of conversation data by ID
         conversations_map = {}
@@ -172,12 +181,16 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "duration": duration_ms,
                 "errors": int(row.get("failure_count()") or 0),
                 "llmCalls": int(row.get("count_if(gen_ai.operation.type,equals,ai_client)") or 0),
-                "toolCalls": int(row.get("count_if(span.op,equals,gen_ai.execute_tool)") or 0),
+                "toolCalls": int(
+                    row.get("count_if(gen_ai.operation.type,equals,execute_tool)") or 0
+                ),
                 "totalTokens": int(row.get("sum(gen_ai.usage.total_tokens)") or 0),
                 "totalCost": float(row.get("sum(gen_ai.usage.total_cost)") or 0),
                 "timestamp": timestamp_ms,
                 "traceCount": 0,  # Will be set in _apply_enrichment
                 "traceIds": [],
+                "firstInput": None,  # Will be set in _apply_first_last_io
+                "lastOutput": None,  # Will be set in _apply_first_last_io
             }
 
         logger.info(
@@ -194,6 +207,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         if conversations:
             self._apply_enrichment(conversations, enrichment_data)
+            self._apply_first_last_io(conversations, first_last_io_data)
 
         return conversations
 
@@ -212,7 +226,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "gen_ai.conversation.id",
                 "failure_count()",
                 "count_if(gen_ai.operation.type,equals,ai_client)",
-                "count_if(span.op,equals,gen_ai.execute_tool)",
+                "count_if(gen_ai.operation.type,equals,execute_tool)",
                 "sum(gen_ai.usage.total_tokens)",
                 "sum(gen_ai.usage.total_cost)",
                 "min(precise.start_ts)",
@@ -245,7 +259,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
             selected_columns=[
                 "gen_ai.conversation.id",
-                "span.op",
+                "gen_ai.operation.type",
                 "gen_ai.agent.name",
                 "trace",
                 "precise.start_ts",
@@ -262,6 +276,43 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             extra={"all_spans_results": json.dumps(all_spans_results)},
         )
         return cast(dict[str, Any], all_spans_results)
+
+    def _get_first_last_io(self, snuba_params, conversation_ids: list[str]) -> dict[str, Any]:
+        """
+        Get first input and last output for conversations (query 4).
+
+        Fetches ai_client spans ordered by timestamp to determine:
+        - firstInput: gen_ai.request.messages from earliest ai_client span per conversation
+        - lastOutput: gen_ai.request.messages from latest ai_client span per conversation
+        """
+        logger.info(
+            "[ai-conversations] Getting first input / last output",
+            extra={"conversation_ids": conversation_ids},
+        )
+
+        results = Spans.run_table_query(
+            params=snuba_params,
+            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}] gen_ai.operation.type:ai_client",
+            selected_columns=[
+                "gen_ai.conversation.id",
+                "gen_ai.request.messages",
+                "precise.start_ts",
+                "precise.finish_ts",
+            ],
+            orderby=["precise.start_ts"],
+            offset=0,
+            limit=10000,
+            referrer=Referrer.API_AI_CONVERSATIONS_FIRST_LAST_IO.value,
+            config=SearchResolverConfig(auto_fields=True),
+            sampling_mode="HIGHEST_ACCURACY",
+        )
+
+        logger.info(
+            "[ai-conversations] Got first input / last output results",
+            extra={"results_count": len(results.get("data", []))},
+        )
+
+        return cast(dict[str, Any], results)
 
     def _apply_enrichment(self, conversations: list[dict], enrichment_data: dict) -> None:
         """
@@ -284,7 +335,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 traces_by_conversation[conv_id].add(trace_id)
 
             # Collect agent flow (only from invoke_agent spans)
-            if row.get("span.op") == "gen_ai.invoke_agent":
+            if row.get("gen_ai.operation.type") == "invoke_agent":
                 agent_name = row.get("gen_ai.agent.name", "")
                 if agent_name:
                     flows_by_conversation[conv_id].append(agent_name)
@@ -300,3 +351,38 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             "[ai-conversations] Enriched conversations",
             extra={"conversations": json.dumps(conversations)},
         )
+
+    def _apply_first_last_io(self, conversations: list[dict], first_last_io_data: dict) -> None:
+        """
+        Apply first input and last output to conversations.
+
+        - firstInput: messages array from the FIRST ai_client span (by start_ts)
+        - lastOutput: messages array from the LAST ai_client span (by finish_ts)
+        """
+        # Track first/last messages per conversation
+        first_messages_by_conv: dict[str, list] = {}
+        last_messages_by_conv: dict[str, tuple[float, list]] = {}
+
+        for row in first_last_io_data.get("data", []):
+            conv_id = row.get("gen_ai.conversation.id", "")
+            if not conv_id:
+                continue
+
+            messages = row.get("gen_ai.request.messages")
+            finish_ts = row.get("precise.finish_ts", 0)
+
+            # First input: take from first span per conversation (data ordered by start_ts)
+            if conv_id not in first_messages_by_conv and messages:
+                first_messages_by_conv[conv_id] = messages
+
+            # Last output: track the one with latest finish_ts
+            if messages:
+                current = last_messages_by_conv.get(conv_id)
+                if current is None or finish_ts > current[0]:
+                    last_messages_by_conv[conv_id] = (finish_ts, messages)
+
+        for conversation in conversations:
+            conv_id = conversation["conversationId"]
+            conversation["firstInput"] = first_messages_by_conv.get(conv_id)
+            last_tuple = last_messages_by_conv.get(conv_id)
+            conversation["lastOutput"] = last_tuple[1] if last_tuple else None
