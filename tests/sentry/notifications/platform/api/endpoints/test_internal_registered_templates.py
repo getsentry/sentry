@@ -23,6 +23,8 @@ class InternalRegisteredTemplatesEndpointTest(APITestCase):
         response = self.get_response()
         assert response.status_code == 200
         for source, template_cls in template_registry.registrations.items():
+            if template_cls.hide_from_debugger:
+                continue
             template = template_cls()
             assert template.category.value in response.data
             assert (
