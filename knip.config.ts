@@ -27,8 +27,6 @@ const productionEntryPoints = [
   'static/app/icons/**/*.{js,mjs,ts,tsx}',
   // todo find out how chartcuterie works
   'static/app/chartcuterie/**/*.{js,mjs,ts,tsx}',
-  // temp, will be used soon
-  'static/gsApp/views/seerAutomation/onboarding/hooks/useShowNewSeer.tsx',
 ];
 
 const testingEntryPoints = [

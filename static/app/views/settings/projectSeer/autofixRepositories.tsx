@@ -51,7 +51,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
     | 'solution'
     | 'code_changes'
     | 'open_pr' => {
-    if (organization.features.includes('seer-settings-gtm')) {
+    if (organization.features.includes('seat-based-seer-enabled')) {
       return organization.autoOpenPrs ? 'open_pr' : 'code_changes';
     }
     return 'root_cause';
