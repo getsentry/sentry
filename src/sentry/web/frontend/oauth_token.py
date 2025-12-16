@@ -188,7 +188,7 @@ class OAuthTokenView(View):
 
         try:
             application = ApiApplication.objects.get(
-                client_id=client_id, client_secret=client_secret, status=ApiApplicationStatus.active
+                client_id=client_id, client_secret=client_secret
             )
         except ApiApplication.DoesNotExist:
             metrics.incr(
@@ -327,9 +327,7 @@ class OAuthTokenView(View):
 
         code = request.POST.get("code")
         try:
-            grant = ApiGrant.objects.get(
-                application=application, application__status=ApiApplicationStatus.active, code=code
-            )
+            grant = ApiGrant.objects.get(application=application, code=code)
         except ApiGrant.DoesNotExist:
             return {"error": "invalid_grant", "reason": "invalid grant"}
 
