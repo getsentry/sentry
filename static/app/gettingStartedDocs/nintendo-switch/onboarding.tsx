@@ -75,7 +75,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'After building the SDK, you can integrate it as a static library into your game. The SDK handles crash reporting automatically, with crash context forwarded to Sentry via CRPortal.',
+            'After building the SDK, you can integrate it as a static library into your game. The SDK handles crash reporting automatically, with crash context forwarded to Sentry via CRPORTAL.',
             {
               code: <code />,
             }
