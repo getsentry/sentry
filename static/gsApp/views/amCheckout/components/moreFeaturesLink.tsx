@@ -8,7 +8,6 @@ import {space} from 'sentry/styles/space';
 
 type Props = {
   color?: string;
-  iconSize?: SVGIconProps['size'];
   isNewCheckout?: boolean;
   legacySize?: SVGIconProps['legacySize'];
 };
