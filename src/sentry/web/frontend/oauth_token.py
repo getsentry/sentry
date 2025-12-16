@@ -346,9 +346,16 @@ class OAuthTokenView(View):
                 # Re-fetch grant inside lock to prevent TOCTOU race condition
                 # Another request may have already deleted the grant before we acquired the lock
                 try:
-                    grant = ApiGrant.objects.get(id=grant.id)
+                    grant = ApiGrant.objects.select_related("application").get(id=grant.id)
                 except ApiGrant.DoesNotExist:
                     return {"error": "invalid_grant", "reason": "invalid grant"}
+
+                # Verify application is still active inside the lock to prevent race condition
+                # where application could be deactivated between initial query and token creation
+                if grant.application.status != ApiApplicationStatus.active:
+                    with unguarded_write(using=router.db_for_write(ApiGrant)):
+                        grant.delete()
+                    return {"error": "invalid_grant", "reason": "application not active"}
 
                 # Perform all validation inside the lock to prevent race conditions
                 if grant.is_expired():

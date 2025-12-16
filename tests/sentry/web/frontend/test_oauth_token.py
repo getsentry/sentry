@@ -300,6 +300,42 @@ class OAuthTokenCodeTest(TestCase):
         assert resp.status_code == 400
         assert resp.json() == {"error": "invalid_grant"}
 
+    def test_inactive_application_rejects_token_creation(self) -> None:
+        """Test that tokens cannot be created for inactive applications.
+
+        This verifies the fix for a TOCTOU vulnerability where an application
+        could be deactivated between the initial grant query and token creation.
+        The application status check inside the lock prevents this race condition.
+        """
+        self.login_as(self.user)
+
+        # Deactivate the application after grant was created
+        from sentry.models.apiapplication import ApiApplicationStatus
+
+        self.application.status = ApiApplicationStatus.inactive
+        self.application.save()
+
+        # Attempt to exchange the authorization code for a token
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "code": self.grant.code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        # Should fail because application is not active
+        assert resp.status_code == 400
+        assert resp.json() == {"error": "invalid_grant"}
+
+        # Verify grant was deleted (RFC 6749 §10.5: invalidate on failure)
+        assert not ApiGrant.objects.filter(id=self.grant.id).exists()
+
+        # Verify no token was created
+        assert not ApiToken.objects.filter(application=self.application, user=self.user).exists()
+
     def test_invalid_redirect_uri(self) -> None:
         self.login_as(self.user)
 
