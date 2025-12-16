@@ -345,7 +345,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       disabled: !isZoomed,
     },
   ];
-  if (isFullscreen) {
+  if (!isFullscreen) {
     treemapControlButtons.push({
       ariaLabel: t('Open Full-Screen View'),
       title: t('Fullscreen'),
