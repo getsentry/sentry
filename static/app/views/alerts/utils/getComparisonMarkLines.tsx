@@ -60,7 +60,7 @@ export const getComparisonMarkLines = (
           lineStyle: {
             color:
               status === AlertRuleTriggerType.CRITICAL
-                ? theme.red300
+                ? theme.colors.red400
                 : status === AlertRuleTriggerType.WARNING
                   ? theme.yellow300
                   : theme.green300,

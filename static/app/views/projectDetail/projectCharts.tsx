@@ -368,7 +368,7 @@ class ProjectCharts extends Component<Props, State> {
                   location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.red300, theme.purple200]}
+                  colors={[theme.colors.red400, theme.purple200]}
                 />
               )}
               {displayMode === DisplayModes.TPM && (

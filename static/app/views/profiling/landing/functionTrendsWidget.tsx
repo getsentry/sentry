@@ -518,7 +518,7 @@ function getTrendLineColor(trend: TrendType, theme: Theme) {
     case 'improvement':
       return theme.green300;
     case 'regression':
-      return theme.red300;
+      return theme.colors.red400;
     default:
       throw new Error('Unknown trend type');
   }

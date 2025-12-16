@@ -266,7 +266,11 @@ function getBreadcrumbColorConfig(
 ): NonNullable<TimelineItemProps['colorConfig']> {
   switch (type) {
     case BreadcrumbType.ERROR:
-      return {title: theme.red400, icon: theme.red400, iconBorder: theme.red200};
+      return {
+        title: theme.colors.red500,
+        icon: theme.colors.red500,
+        iconBorder: theme.colors.red200,
+      };
     case BreadcrumbType.WARNING:
       return {title: theme.yellow400, icon: theme.yellow400, iconBorder: theme.yellow200};
     case BreadcrumbType.NAVIGATION:
@@ -377,7 +381,7 @@ const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
     switch (p.level) {
       case BreadcrumbLevelType.ERROR:
       case BreadcrumbLevelType.FATAL:
-        return p.theme.red400;
+        return p.theme.colors.red500;
       case BreadcrumbLevelType.WARNING:
         return p.theme.yellow400;
       default:

@@ -251,7 +251,11 @@ const ContentWrapper = styled('div')<{
         : p.theme.subText};
   box-shadow: inset 0 0 0 1px
     ${p =>
-      p.hasErrors ? p.theme.red100 : p.isSuspectFlag ? p.theme.yellow100 : 'transparent'};
+      p.hasErrors
+        ? p.theme.colors.red100
+        : p.isSuspectFlag
+          ? p.theme.yellow100
+          : 'transparent'};
   background-color: ${p =>
     p.hasErrors
       ? p.theme.alert.error.backgroundLight
