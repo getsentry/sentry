@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {defined} from 'sentry/utils';
@@ -60,9 +60,9 @@ export function useQueryParamState<T = string>({
       [fieldName]: decoder ?? decodeScalar,
     },
   });
-  const [localState, setLocalState] = useState<T | undefined>(() => {
-    const decodedValue = parsedQueryParams[fieldName];
 
+  const deserializeValue = useCallback((): T | undefined => {
+    const decodedValue = parsedQueryParams[fieldName];
     if (!defined(decodedValue)) {
       return undefined;
     }
@@ -71,9 +71,16 @@ export function useQueryParamState<T = string>({
       ? deserializer(decodedValue as any)
       : // TODO(nar): This is a temporary fix to avoid type errors
         // When the deserializer isn't provided, we should return the value
-        // if T is a string, or else return undefined
+        // if T is a string, number, boolean, or array, or else return undefined
         (decodedValue as T);
-  });
+  }, [parsedQueryParams, fieldName, deserializer]);
+
+  const [localState, setLocalState] = useState<T | undefined>(deserializeValue);
+
+  // Sync local state when URL query params change (e.g., browser back/forward navigation)
+  useEffect(() => {
+    setLocalState(deserializeValue());
+  }, [deserializeValue]);
 
   const updateField = useCallback(
     (newField: T | undefined, options: UseQueryParamStateOptions = {updateUrl: true}) => {
