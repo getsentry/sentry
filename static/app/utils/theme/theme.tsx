@@ -199,11 +199,15 @@ const generateThemePrismVariables = (
     ...prismColors,
   });
 
-const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
+const generateButtonTheme = (
+  colors: Colors,
+  alias: Aliases,
+  tokens: ReturnType<typeof generateChonkTokens>
+): ButtonColors => ({
   default: {
     // all alias-based, already derived from new theme
-    color: alias.textColor,
-    colorActive: alias.textColor,
+    color: tokens.content.primary,
+    colorActive: tokens.content.primary,
     background: alias.background,
     backgroundActive: alias.hover,
     border: alias.border,
@@ -257,8 +261,8 @@ const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
     focusShadow: 'transparent',
   },
   transparent: {
-    color: alias.textColor,
-    colorActive: alias.textColor,
+    color: tokens.content.primary,
+    colorActive: tokens.content.primary,
     background: 'transparent',
     backgroundActive: 'transparent',
     border: 'transparent',
@@ -1247,11 +1251,6 @@ const generateAliases = (
   colors: typeof lightColors
 ) => ({
   /**
-   * Primary text color
-   */
-  textColor: tokens.content.primary,
-
-  /**
    * Text that should not have as much emphasis
    */
   subText: tokens.content.muted,
@@ -1611,7 +1610,7 @@ const lightThemeDefinition = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(deprecatedColorMappings(lightColors), lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
-  button: generateButtonTheme(lightColors, lightAliases),
+  button: generateButtonTheme(lightColors, lightAliases, lightTokens),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightTokens, 'light'),
 
@@ -1660,7 +1659,7 @@ export const darkTheme: SentryTheme = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(deprecatedColorMappings(darkColors), darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
-  button: generateButtonTheme(darkColors, darkAliases),
+  button: generateButtonTheme(darkColors, darkAliases, darkTokens),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkTokens, 'dark'),
 

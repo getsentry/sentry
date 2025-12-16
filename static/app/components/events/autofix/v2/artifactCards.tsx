@@ -869,11 +869,11 @@ const TreeValue = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   word-break: break-word;
   grid-column: span 1;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const TreeKey = styled(TreeValue)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const ImpactTreeKey = styled(TreeKey)`
