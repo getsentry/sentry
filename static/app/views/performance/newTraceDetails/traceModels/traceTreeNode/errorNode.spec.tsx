@@ -1,5 +1,5 @@
-import type {Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {
   makeEAPError,
@@ -452,20 +452,6 @@ describe('ErrorNode', () => {
   });
 
   describe('makeBarColor', () => {
-    const mockTheme: Partial<Theme> = {
-      red300: '#ff6b6b',
-      yellow300: '#ffd93d',
-      level: {
-        error: '#ff4757',
-        warning: '#ffa502',
-        info: '#3742fa',
-        fatal: '#ff3838',
-        sample: '#ff6b6b',
-        unknown: '#ff6b6b',
-        default: '#ff6b6b',
-      },
-    };
-
     it('should return red300 for error level (overriding theme.level.error)', () => {
       const extra = createMockExtra();
       const value = makeTraceError({
@@ -475,8 +461,8 @@ describe('ErrorNode', () => {
 
       const node = new ErrorNode(null, value, extra);
 
-      // ErrorNode specifically returns red300 for errors, not theme.level.error
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
+      // ErrorNode specifically returns red400 for errors, not theme.level.error
+      expect(node.makeBarColor(ThemeFixture())).toBe(ThemeFixture().colors.red400);
     });
 
     it('should return red300 for fatal level (overriding theme.level.fatal)', () => {
@@ -489,7 +475,7 @@ describe('ErrorNode', () => {
       const node = new ErrorNode(null, value, extra);
 
       // ErrorNode specifically returns red300 for fatal, not theme.level.fatal
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
+      expect(node.makeBarColor(ThemeFixture())).toBe(ThemeFixture().colors.red400);
     });
 
     it('should return theme level color for warning', () => {
@@ -501,7 +487,7 @@ describe('ErrorNode', () => {
 
       const node = new ErrorNode(null, value, extra);
 
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ffa502');
+      expect(node.makeBarColor(ThemeFixture())).toBe(ThemeFixture().level.warning);
     });
 
     it('should return theme level color for info', () => {
@@ -513,7 +499,7 @@ describe('ErrorNode', () => {
 
       const node = new ErrorNode(null, value, extra);
 
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#3742fa');
+      expect(node.makeBarColor(ThemeFixture())).toBe(ThemeFixture().level.info);
     });
 
     it('should return theme level color for sample', () => {
@@ -525,7 +511,7 @@ describe('ErrorNode', () => {
 
       const node = new ErrorNode(null, value, extra);
 
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
+      expect(node.makeBarColor(ThemeFixture())).toBe(ThemeFixture().level.sample);
     });
 
     it('should return red fallback for level not in theme.level', () => {
@@ -537,7 +523,7 @@ describe('ErrorNode', () => {
 
       const node = new ErrorNode(null, value, extra);
 
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
+      expect(node.makeBarColor(ThemeFixture())).toBe(ThemeFixture().colors.red400);
     });
 
     it('should return red fallback for undefined level', () => {
@@ -549,7 +535,7 @@ describe('ErrorNode', () => {
 
       const node = new ErrorNode(null, value, extra);
 
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
+      expect(node.makeBarColor(ThemeFixture())).toBe(ThemeFixture().colors.red400);
     });
 
     it('should handle EAPError levels correctly', () => {
@@ -566,19 +552,11 @@ describe('ErrorNode', () => {
       const warningNode = new ErrorNode(null, warningValue, extra);
       const errorNode = new ErrorNode(null, errorValue, extra);
 
-      expect(warningNode.makeBarColor(mockTheme as Theme)).toBe('#ffa502');
-      expect(errorNode.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b'); // red300 for error
+      expect(warningNode.makeBarColor(ThemeFixture())).toBe(ThemeFixture().level.warning);
+      expect(errorNode.makeBarColor(ThemeFixture())).toBe(ThemeFixture().colors.red400);
     });
 
     it('should prioritize red300 over theme.level for error/fatal', () => {
-      const themeWithDifferentColors = {
-        red300: '#custom-red',
-        level: {
-          error: '#different-error-color',
-          fatal: '#different-fatal-color',
-        },
-      } as Theme;
-
       const extra = createMockExtra();
       const errorValue = makeTraceError({
         title: 'Test Error',
@@ -593,8 +571,8 @@ describe('ErrorNode', () => {
       const fatalNode = new ErrorNode(null, fatalValue, extra);
 
       // Should use red300, not theme.level colors
-      expect(errorNode.makeBarColor(themeWithDifferentColors)).toBe('#custom-red');
-      expect(fatalNode.makeBarColor(themeWithDifferentColors)).toBe('#custom-red');
+      expect(errorNode.makeBarColor(ThemeFixture())).toBe(ThemeFixture().colors.red400);
+      expect(fatalNode.makeBarColor(ThemeFixture())).toBe(ThemeFixture().colors.red400);
     });
   });
 });
