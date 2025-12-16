@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-interface IconSeerProps extends Omit<SVGIconProps, 'variant'> {
+interface IconSeerProps extends SVGIconProps {
   animation?: 'loading' | 'waiting';
 }
 
