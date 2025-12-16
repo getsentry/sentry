@@ -95,7 +95,7 @@ jobs:
 
       - name: Run acceptance test
         run: |
-          python3 -b -m pytest --reuse-db -m "not xdist_unsafe" -n3 --dist=loadscope tests/acceptance/test*
+          python3 -b -m pytest --reuse-db -m "not xdist_unsafe" -n2 --dist=loadscope tests/acceptance/test*
 
   acceptance-serial:
     name: acceptance-serial
@@ -169,4 +169,4 @@ jobs:
 
       - name: Run acceptance test
         run: |
-           python3 -b -m pytest --reuse-db -m "xdist_unsafe" tests/acceptance
+          python3 -b -m pytest --reuse-db -m "xdist_unsafe" tests/acceptance
