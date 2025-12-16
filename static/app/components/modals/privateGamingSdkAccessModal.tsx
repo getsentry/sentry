@@ -1,10 +1,12 @@
 import {Fragment, useEffect, useState} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {Prose} from '@sentry/scraps/text/prose';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconGithub} from 'sentry/icons';
@@ -12,7 +14,6 @@ import {t, tct} from 'sentry/locale';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
   fetchMutation,
   useApiQuery,
@@ -65,7 +66,11 @@ export function PrivateGamingSdkAccessModal({
   const [gamingPlatforms, setGamingPlatforms] = useState<GamingPlatform[]>(
     gamingPlatform ? [gamingPlatform] : []
   );
-  const [requestError, setRequestError] = useState<string | undefined>(undefined);
+  const [requestError, setRequestError] = useState<React.ReactElement | undefined>(
+    undefined
+  );
+  const [submittedPlatforms, setSubmittedPlatforms] = useState<GamingPlatform[]>([]);
+  const [showSuccessView, setShowSuccessView] = useState(false);
   const location = useLocation();
   const currentPath = location.pathname + location.search;
   const queryClient = useQueryClient();
@@ -90,7 +95,11 @@ export function PrivateGamingSdkAccessModal({
       }),
     onSuccess: (response, {platforms}) => {
       const platformsWithErrors = response.errors?.map(e => e.platform) ?? [];
-      if (platformsWithErrors) {
+      const successfulPlatforms = platforms.filter(
+        platform => !platformsWithErrors.includes(platform)
+      );
+
+      if (platformsWithErrors.length > 0) {
         addErrorMessage(
           tct(
             'Invitation to console repositories for these platforms have failed: [errors]',
@@ -100,24 +109,30 @@ export function PrivateGamingSdkAccessModal({
           )
         );
       }
-      addSuccessMessage(
-        tct('Invitation to these platforms has been sent: [platforms]', {
-          platforms: platforms
-            .filter(platform => !platformsWithErrors.includes(platform))
-            .join(','),
-        })
-      );
+
+      if (successfulPlatforms.length > 0) {
+        addSuccessMessage(
+          tct('Invitation to these platforms has been sent: [platforms]', {
+            platforms: successfulPlatforms.join(','),
+          })
+        );
+        setSubmittedPlatforms(successfulPlatforms);
+        setShowSuccessView(true);
+      }
+
+      setIsSubmitting(false);
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${organization.slug}/console-sdk-invites/`],
       });
     },
     onError: errorResponse => {
-      addErrorMessage(
-        tct('[error] [detail]', {
-          error: errorResponse.error,
-          detail: errorResponse.detail,
-        })
-      );
+      const errorMessage = tct('[error] [detail]', {
+        error: errorResponse.error,
+        detail: errorResponse.detail,
+      });
+      addErrorMessage(errorMessage);
+      setRequestError(errorMessage);
+      setIsSubmitting(false);
     },
   });
 
@@ -129,6 +144,11 @@ export function PrivateGamingSdkAccessModal({
     ['nintendo-switch', 'Nintendo Switch'],
     ['playstation', 'PlayStation'],
     ['xbox', 'Xbox'],
+  ]);
+  const consoleRepositoryUrls = new Map([
+    ['nintendo-switch', 'https://github.com/getsentry/sentry-switch'],
+    ['playstation', 'https://github.com/getsentry/sentry-playstation'],
+    ['xbox', 'https://github.com/getsentry/sentry-xbox'],
   ]);
 
   useEffect(() => {
@@ -157,26 +177,7 @@ export function PrivateGamingSdkAccessModal({
     });
 
     onSubmit?.();
-
-    try {
-      mutate({platforms: gamingPlatforms});
-      closeModal();
-    } catch (error: any) {
-      handleXhrErrorResponse(t('Unable to submit SDK access request'), error);
-
-      setRequestError(
-        // Ideally, we’d get an error code to use with our translation functions for showing the right message, but the API currently only returns a plain string.
-        error instanceof Error
-          ? error.message
-          : typeof error === 'string'
-            ? error
-            : t(
-                'Unable to submit the request. This could be because of network issues, or because you are using an ad-blocker.'
-              )
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+    mutate({platforms: gamingPlatforms});
   }
 
   function stringToConsoleOption(value: string): {label: string; value: string} {
@@ -192,7 +193,33 @@ export function PrivateGamingSdkAccessModal({
         <h3>{t('Request console SDK Access')}</h3>
       </Header>
       <Body>
-        {isPending ? (
+        {showSuccessView ? (
+          <Prose>
+            <p>
+              {t(
+                'You have been invited to our private game console SDK GitHub repositories!'
+              )}
+            </p>
+            <p>
+              {t(
+                'You should get your invites in your GitHub notifications any minute. If you have notifications disabled, click the link below to access the private repos:'
+              )}
+            </p>
+            <ul>
+              {submittedPlatforms.map(platform => {
+                const repoUrl = consoleRepositoryUrls.get(platform);
+                const consoleName = readableConsoleNames.get(platform);
+                return (
+                  <li key={platform}>
+                    <a href={repoUrl} target="_blank" rel="noopener noreferrer">
+                      {consoleName}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </Prose>
+        ) : isPending ? (
           <LoadingIndicator />
         ) : hasGithubIdentity ? (
           <Fragment>
@@ -238,16 +265,24 @@ export function PrivateGamingSdkAccessModal({
       </Body>
       <Footer>
         <ButtonBar>
-          <Button onClick={closeModal}>{t('Cancel')}</Button>
-          {hasGithubIdentity && (
-            <Button
-              priority="primary"
-              onClick={handleSubmit}
-              disabled={!isFormValid || isSubmitting}
-              busy={isSubmitting}
-            >
-              {isSubmitting ? t('Sending Invitation') : t('Send Invitation')}
+          {showSuccessView ? (
+            <Button priority="primary" onClick={closeModal}>
+              {t('Done')}
             </Button>
+          ) : (
+            <Fragment>
+              <Button onClick={closeModal}>{t('Cancel')}</Button>
+              {hasGithubIdentity && (
+                <Button
+                  priority="primary"
+                  onClick={handleSubmit}
+                  disabled={!isFormValid}
+                  busy={isSubmitting}
+                >
+                  {isSubmitting ? t('Sending Invitation') : t('Send Invitation')}
+                </Button>
+              )}
+            </Fragment>
           )}
         </ButtonBar>
       </Footer>

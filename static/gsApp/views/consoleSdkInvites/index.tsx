@@ -12,6 +12,7 @@ import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {
   useConsoleSdkInvites,
@@ -37,15 +38,20 @@ function ConsoleSDKInvitesSettings() {
           />
         }
       />
-      <Alert type="info">
-        {tct(
-          'Currently this organization "[orgSlug]" can invite [quota] GitHub users to our Console SDK GitHub repositories',
-          {
-            orgSlug: organization.slug,
-            quota: organization.consoleSdkInviteQuota,
-          }
+      <TextBlock>
+        {t('Manage invitations to our private gaming console SDK GitHub repositories.')}
+      </TextBlock>
+      {!isPending &&
+        (organization.consoleSdkInviteQuota ?? 0) <= (invites?.length ?? 0) && (
+          <Alert type="info">
+            {tct(
+              'This organization ([orgSlug]) has used all GitHub invites available. Contact your sales representative to increase the quota.',
+              {
+                orgSlug: organization.slug,
+              }
+            )}
+          </Alert>
         )}
-      </Alert>
       <InvitesTable>
         <SimpleTable.Header>
           <SimpleTable.HeaderCell>{t('Email')}</SimpleTable.HeaderCell>
