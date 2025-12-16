@@ -208,7 +208,8 @@ class LLMIssueDetectionTest(TestCase):
                     "category": "Memory",
                     "subcategory": "Memory Leak",
                 },
-            ]
+            ],
+            "traces_analyzed": 1,
         }
 
         mock_response_with_2_issues = Mock()
@@ -216,7 +217,7 @@ class LLMIssueDetectionTest(TestCase):
         mock_response_with_2_issues.json.return_value = seer_response_data
         mock_response_with_no_issues = Mock()
         mock_response_with_no_issues.status = 200
-        mock_response_with_no_issues.json.return_value = {"issues": []}
+        mock_response_with_no_issues.json.return_value = {"issues": [], "traces_analyzed": 1}
         mock_seer_request.side_effect = [mock_response_with_2_issues, mock_response_with_no_issues]
 
         detect_llm_issues_for_project(self.project.id)
@@ -303,7 +304,8 @@ class LLMIssueDetectionTest(TestCase):
                     "category": "General",
                     "subcategory": "Success",
                 }
-            ]
+            ],
+            "traces_analyzed": 1,
         }
 
         mock_seer_request.side_effect = [mock_error_response, mock_success_response]
