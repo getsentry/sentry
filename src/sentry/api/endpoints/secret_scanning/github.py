@@ -28,8 +28,8 @@ from sentry.web.frontend.base import control_silo_view
 logger = logging.getLogger(__name__)
 
 TOKEN_TYPE_HUMAN_READABLE = {
-    AuthTokenType.USER: "User Auth Token",
-    AuthTokenType.ORG: "Organization Auth Token",
+    AuthTokenType.USER: "Personal Token",
+    AuthTokenType.ORG: "Organization Token",
 }
 
 REVOKE_URLS = {
@@ -121,7 +121,7 @@ class SecretScanningGitHubEndpoint(View):
                 # Send an email
                 url_prefix = options.get("system.url-prefix")
                 if isinstance(token, ApiToken):
-                    # for user token, send an alert to the token owner
+                    # for personal token, send an alert to the token owner
                     users = User.objects.filter(id=token.user_id)
                 elif isinstance(token, OrgAuthToken):
                     # for org token, send an alert to all organization owners
@@ -161,6 +161,14 @@ class SecretScanningGitHubEndpoint(View):
                     context=context,
                 )
                 msg.send_async([u.username for u in users])
+
+                response.append(
+                    {
+                        "token_hash": hashed_alerted_token,
+                        "token_type": secret_alert["type"],
+                        "label": "true_positive",
+                    }
+                )
             except (
                 ApiToken.DoesNotExist,
                 ApiTokenReplica.DoesNotExist,
