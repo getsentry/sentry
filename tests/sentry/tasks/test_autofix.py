@@ -238,10 +238,10 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
     @patch("sentry.tasks.autofix.bulk_set_project_preferences")
     @patch("sentry.tasks.autofix.bulk_get_project_preferences")
-    def test_invalidates_seat_based_tier_cache(
+    def test_sets_seat_based_tier_cache_to_true(
         self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
     ) -> None:
-        """Test that the seat-based tier cache is invalidated after configuring org."""
+        """Test that the seat-based tier cache is set to True after configuring org."""
         self.create_project(organization=self.organization)
         mock_bulk_get.return_value = {}
 
@@ -252,8 +252,8 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        # Cache should be invalidated
-        assert cache.get(cache_key) is None
+        # Cache should be set to True to prevent race conditions
+        assert cache.get(cache_key) is True
 
     @patch("sentry.tasks.autofix.get_autofix_repos_from_project_code_mappings")
     @patch("sentry.tasks.autofix.bulk_set_project_preferences")
