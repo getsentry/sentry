@@ -184,10 +184,6 @@ function getDashboardLocation({
 }
 
 class DashboardDetail extends Component<Props, State> {
-  // constructor(props: Props) {
-  //   super(props);
-  // }
-
   state: State = {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
