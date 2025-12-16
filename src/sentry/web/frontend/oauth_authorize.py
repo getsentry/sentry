@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import logging
 import re
 from typing import Any, Literal
@@ -249,11 +248,6 @@ class OAuthAuthorizeView(AuthLoginView):
         }
         request.session["oa2"] = payload
 
-        # Store hash of state for CSRF protection validation during POST
-        # This ensures the session cannot be tampered with between GET and POST
-        if state:
-            request.session["oa2_state_hash"] = hashlib.sha256(state.encode()).hexdigest()
-
         if not request.user.is_authenticated:
             return super().get(request, application=application)
 
@@ -336,7 +330,6 @@ class OAuthAuthorizeView(AuthLoginView):
             # Regenerate session to prevent session fixation attacks
             # Save the OAuth payload before rotating the session key
             old_payload = request.session.get("oa2")
-            old_state_hash = request.session.get("oa2_state_hash")
 
             # Rotate session key (creates new session ID)
             request.session.cycle_key()
@@ -345,8 +338,6 @@ class OAuthAuthorizeView(AuthLoginView):
             if old_payload:
                 old_payload["uid"] = request.user.id
                 request.session["oa2"] = old_payload
-            if old_state_hash:
-                request.session["oa2_state_hash"] = old_state_hash
 
             request.session.modified = True
         return response
@@ -382,21 +373,6 @@ class OAuthAuthorizeView(AuthLoginView):
                     "error": "We were unable to complete your request. Please re-initiate the authorization flow."
                 },
             )
-
-        # Validate state parameter to prevent CSRF and session tampering
-        client_state = payload.get("st")
-        state_hash = request.session.get("oa2_state_hash")
-        if state_hash:
-            # Verify the state hasn't been tampered with in the session
-            if not client_state or hashlib.sha256(client_state.encode()).hexdigest() != state_hash:
-                return self.error(
-                    request=request,
-                    response_type=payload["rt"],
-                    redirect_uri=payload["ru"],
-                    name="invalid_request",
-                    state=client_state,
-                    client_id=payload["cid"],
-                )
 
         response_type = payload["rt"]
         redirect_uri = payload["ru"]

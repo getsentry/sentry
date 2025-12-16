@@ -113,7 +113,7 @@ class OAuthTokenView(View):
         if not CODE_VERIFIER_REGEX.match(code_verifier):
             return False, "invalid code_verifier format"
 
-        # OAuth 2.1: Only S256 method is supported (plain method deprecated for security)
+        # Require S256 method explicitly (plain method not supported for security)
         if grant.code_challenge_method != "S256":
             return False, f"unsupported challenge method: {grant.code_challenge_method}"
 
