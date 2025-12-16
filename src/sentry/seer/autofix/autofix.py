@@ -10,7 +10,6 @@ import requests
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.db import router, transaction
 from django.utils import timezone
 from rest_framework.response import Response
 
@@ -23,7 +22,6 @@ from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
@@ -593,36 +591,23 @@ def onboarding_seer_settings_update(
     """
     # Get organization and list of projects
     organization = Organization.objects.get(id=organization_id)
-    projects = Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
 
-    # If RCA is explicitly disabled, set the automation tuning to off for org and projects.
-    # If RCA is disabled then other settings don't matter.
-    if not is_rca_enabled:
-        # Ensure org and all projects are updated in a single transaction to maintain consistency
-        with transaction.atomic(using=router.db_for_write(OrganizationOption)):
-            organization.update_option(
-                "sentry:default_autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
-            )
-            for project in projects:
-                project.update_option(
-                    "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
-                )
-        logger.info(
-            "RCA is disabled for org and projects, setting automation tuning to off",
-            extra={
-                "organization_id": organization_id,
-                "org_slug": organization.slug,
-                "num_projects": len(projects),
-            },
-        )
-        return
+    # Set the default automation tuning for the org
+    if is_rca_enabled:
+        rca_default_tuning = AutofixAutomationTuningSettings.MEDIUM
+    else:
+        rca_default_tuning = AutofixAutomationTuningSettings.OFF
+    organization.update_option("sentry:default_autofix_automation_tuning", rca_default_tuning)
 
-    # Set the default stopping point for projects
-    stopping_point = AutofixStoppingPoint.CODE_CHANGES
+    # Set the default stopping point and auto open PRs for the org
     if is_auto_open_prs_enabled:
         stopping_point = AutofixStoppingPoint.OPEN_PR
+        organization.update_option("sentry:auto_open_prs", True)
+    else:
+        stopping_point = AutofixStoppingPoint.CODE_CHANGES
+        organization.update_option("sentry:auto_open_prs", False)
 
-    # Build preferences for each project with its repositories
+    # Update preferences for each project with its repositories
     preferences_to_set = []
     for project_id, repositories in project_repo_dict.items():
         preferences_to_set.append(
@@ -642,9 +627,9 @@ def onboarding_seer_settings_update(
         "onboarding_seer_settings_update for new org completed",
         extra={
             "organization_id": organization_id,
+            "default_autofix_automation_tuning": rca_default_tuning,
+            "auto_open_prs": is_auto_open_prs_enabled,
             "org_slug": organization.slug,
-            "is_rca_enabled": is_rca_enabled,
-            "is_auto_open_prs_enabled": is_auto_open_prs_enabled,
             "num_projects": len(project_repo_dict),
         },
     )

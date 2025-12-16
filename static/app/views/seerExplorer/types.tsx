@@ -47,7 +47,9 @@ export interface ToolLink {
   params: Record<string, any>;
 }
 
-interface ToolResult {
+export interface ToolResult {
+  content: string;
+  tool_call_function: string;
   tool_call_id: string;
 }
 

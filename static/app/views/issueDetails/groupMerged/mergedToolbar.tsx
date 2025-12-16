@@ -1,5 +1,3 @@
-import type {Location} from 'history';
-
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
@@ -9,26 +7,16 @@ import {t, tct} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
 type Props = {
   groupId: Group['id'];
-  location: Location;
   onToggleCollapse: () => void;
   onUnmerge: () => void;
-  orgId: Organization['slug'];
   project: Project;
 };
 
-export function MergedToolbar({
-  groupId,
-  project,
-  orgId,
-  onUnmerge,
-  onToggleCollapse,
-  location,
-}: Props) {
+export function MergedToolbar({groupId, project, onUnmerge, onToggleCollapse}: Props) {
   const {
     unmergeList,
     mergedItems,
@@ -58,10 +46,8 @@ export function MergedToolbar({
       targetIssueId: groupId,
       project,
       baseIssueId: groupId,
-      orgId,
       baseEventId,
       targetEventId,
-      location,
     });
   }
 

@@ -7,7 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   GuidedSteps,
   useGuidedStepsContext,
@@ -150,6 +150,7 @@ export function ConfigureCodeReviewStep() {
           // the user will have an overwhelming number of repositories to map.
           clearRootCauseAnalysisRepositories();
         }
+        addSuccessMessage(t('AI Code Review settings updated successfully'));
         setCurrentStep(currentStep + 1);
       })
       .catch(() => {

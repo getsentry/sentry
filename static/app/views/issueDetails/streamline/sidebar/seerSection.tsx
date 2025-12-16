@@ -172,7 +172,12 @@ export default function SeerSection({
 
     // When explorer is enabled and has artifacts, show artifact previews
     if (isExplorerEnabled && hasExplorerArtifacts) {
-      return <ExplorerArtifactPreviews artifacts={explorerArtifacts} />;
+      return (
+        <ExplorerArtifactPreviews
+          artifacts={explorerArtifacts}
+          blocks={explorerRunState?.blocks ?? []}
+        />
+      );
     }
 
     // Default: show group summary

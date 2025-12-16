@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import type {EAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
+import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {
   CaseInsensitive,
@@ -29,7 +29,7 @@ export type TraceItemSearchQueryBuilderProps = {
   namespace?: string;
   onCaseInsensitiveClick?: SetCaseInsensitive;
   replaceRawSearchKeys?: string[];
-} & Omit<EAPSpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
+} & Omit<SpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
 const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   if (!supportedAggregates?.length) {
@@ -62,7 +62,7 @@ function getTraceItemFieldDefinitionFunction(
   };
 }
 
-export function useSearchQueryBuilderProps({
+export function useTraceItemSearchQueryBuilderProps({
   itemType,
   numberAttributes,
   numberSecondaryAliases,
@@ -99,36 +99,56 @@ export function useSearchQueryBuilderProps({
     stringAttributes,
   });
 
-  return {
-    placeholder: placeholderText,
-    filterKeys: filterTags,
-    initialQuery,
-    fieldDefinitionGetter: getTraceItemFieldDefinitionFunction(itemType, filterTags),
-    onSearch,
-    onChange,
-    onBlur,
-    getFilterTokenWarning,
-    searchSource,
-    filterKeySections,
-    getSuggestedFilterKey: getSuggestedAttribute,
-    getTagValues: getTraceItemAttributeValues,
-    disallowUnsupportedFilters: true,
-    recentSearches: itemTypeToRecentSearches(itemType),
-    namespace,
-    showUnsubmittedIndicator: true,
-    portalTarget,
-    replaceRawSearchKeys,
-    matchKeySuggestions,
-    filterKeyAliases: {...numberSecondaryAliases, ...stringSecondaryAliases},
-    caseInsensitive,
-    onCaseInsensitiveClick,
-  };
+  return useMemo(
+    () => ({
+      placeholder: placeholderText,
+      filterKeys: filterTags,
+      initialQuery,
+      fieldDefinitionGetter: getTraceItemFieldDefinitionFunction(itemType, filterTags),
+      onSearch,
+      onChange,
+      onBlur,
+      getFilterTokenWarning,
+      searchSource,
+      filterKeySections,
+      getSuggestedFilterKey: getSuggestedAttribute,
+      getTagValues: getTraceItemAttributeValues,
+      disallowUnsupportedFilters: true,
+      recentSearches: itemTypeToRecentSearches(itemType),
+      namespace,
+      showUnsubmittedIndicator: true,
+      portalTarget,
+      replaceRawSearchKeys,
+      matchKeySuggestions,
+      filterKeyAliases: {...numberSecondaryAliases, ...stringSecondaryAliases},
+      caseInsensitive,
+      onCaseInsensitiveClick,
+    }),
+    [
+      caseInsensitive,
+      filterKeySections,
+      filterTags,
+      getFilterTokenWarning,
+      getSuggestedAttribute,
+      getTraceItemAttributeValues,
+      initialQuery,
+      itemType,
+      matchKeySuggestions,
+      namespace,
+      numberSecondaryAliases,
+      onBlur,
+      onCaseInsensitiveClick,
+      onChange,
+      onSearch,
+      placeholderText,
+      portalTarget,
+      replaceRawSearchKeys,
+      searchSource,
+      stringSecondaryAliases,
+    ]
+  );
 }
 
-/**
- * This component should replace EAPSpansSearchQueryBuilder in the future,
- * once spans support has been added to the trace-items attribute endpoints.
- */
 export function TraceItemSearchQueryBuilder({
   autoFocus,
   initialQuery,
@@ -148,8 +168,12 @@ export function TraceItemSearchQueryBuilder({
   supportedAggregates = [],
   disabled,
   namespace,
+  caseInsensitive,
+  onCaseInsensitiveClick,
+  matchKeySuggestions,
+  replaceRawSearchKeys,
 }: TraceItemSearchQueryBuilderProps) {
-  const searchQueryBuilderProps = useSearchQueryBuilderProps({
+  const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
     numberAttributes,
     stringAttributes,
@@ -165,6 +189,10 @@ export function TraceItemSearchQueryBuilder({
     projects,
     supportedAggregates,
     namespace,
+    caseInsensitive,
+    onCaseInsensitiveClick,
+    matchKeySuggestions,
+    replaceRawSearchKeys,
   });
 
   return (
