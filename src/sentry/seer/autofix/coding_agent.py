@@ -78,7 +78,7 @@ def store_coding_agent_states_to_seer(
     body = orjson.dumps(
         {
             "run_id": run_id,
-            "coding_agent_states": [state.dict() for state in coding_agent_states],
+            "coding_agent_states": [state.model_dump() for state in coding_agent_states],
         }
     )
 

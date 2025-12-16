@@ -25,7 +25,7 @@ MODEL_KEY = "model"
 
 
 def serialize_lazy_object_user(arg: SimpleLazyObject, key: str | None = None) -> dict[str, Any]:
-    raw_data = arg.dict()  # type: ignore[attr-defined]
+    raw_data = arg.model_dump()  # type: ignore[attr-defined]
     parsed_data = {}
     for k, v in raw_data.items():
         if isinstance(v, datetime):
@@ -120,7 +120,7 @@ def _send_notification(notification_class_name: str, arg_list: Iterable[Mapping[
             else:
                 output_args.append(instance)
         elif arg["type"] == LAZY_OBJECT_KEY:
-            user = RpcUser.parse_obj(arg["data"])
+            user = RpcUser.model_validate(arg["data"])
 
             if arg["key"]:
                 output_kwargs[arg["key"]] = user

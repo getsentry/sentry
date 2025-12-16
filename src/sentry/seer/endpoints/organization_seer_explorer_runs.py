@@ -58,7 +58,7 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
             except SeerPermissionError as e:
                 raise PermissionDenied(e.message) from e
 
-            return {"data": [run.dict() for run in runs]}
+            return {"data": [run.model_dump() for run in runs]}
 
         return self.paginate(
             request=request,

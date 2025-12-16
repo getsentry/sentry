@@ -7,7 +7,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -15,59 +15,56 @@ T = TypeVar("T", bound=BaseModel)
 class ToolCall(BaseModel):
     """A tool call in a message."""
 
+    model_config = ConfigDict(extra="allow")
+
     function: str
     args: str
-
-    class Config:
-        extra = "allow"
 
 
 class Message(BaseModel):
     """A message in the conversation."""
 
+    model_config = ConfigDict(extra="allow")
+
     role: Literal["user", "assistant", "tool_use"]
     content: str | None = None
     tool_calls: list[ToolCall] | None = None
-
-    class Config:
-        extra = "allow"
 
 
 class Artifact(BaseModel):
     """An artifact generated during an Explorer run."""
 
+    model_config = ConfigDict(extra="allow")
+
     key: str
     data: dict[str, Any] | None = None
     reason: str
 
-    class Config:
-        extra = "allow"
-
 
 class FilePatch(BaseModel):
     """A file patch from code editing."""
+
+    model_config = ConfigDict(extra="allow")
 
     path: str
     type: Literal["A", "M", "D"]  # A=add, M=modify, D=delete
     added: int
     removed: int
 
-    class Config:
-        extra = "allow"
-
 
 class ExplorerFilePatch(BaseModel):
     """A file patch associated with a repository."""
 
+    model_config = ConfigDict(extra="allow")
+
     repo_name: str
     patch: FilePatch
-
-    class Config:
-        extra = "allow"
 
 
 class RepoPRState(BaseModel):
     """PR state for a single repository."""
+
+    model_config = ConfigDict(extra="allow")
 
     repo_name: str
     branch_name: str | None = None
@@ -80,12 +77,11 @@ class RepoPRState(BaseModel):
     title: str | None = None
     description: str | None = None
 
-    class Config:
-        extra = "allow"
-
 
 class MemoryBlock(BaseModel):
     """A block in the Explorer agent's conversation/memory."""
+
+    model_config = ConfigDict(extra="allow")
 
     id: str
     message: Message
@@ -97,23 +93,21 @@ class MemoryBlock(BaseModel):
         None  # repository name -> commit SHA. Used to track which commit was associated with each repo's PR at the time this block was created.
     )
 
-    class Config:
-        extra = "allow"
-
 
 class PendingUserInput(BaseModel):
     """A pending user input request from the agent."""
+
+    model_config = ConfigDict(extra="allow")
 
     id: str
     input_type: str
     data: dict[str, Any]
 
-    class Config:
-        extra = "allow"
-
 
 class SeerRunState(BaseModel):
     """State of a Seer Explorer session."""
+
+    model_config = ConfigDict(extra="allow")
 
     run_id: int
     blocks: list[MemoryBlock]
@@ -122,9 +116,6 @@ class SeerRunState(BaseModel):
     pending_user_input: PendingUserInput | None = None
     repo_pr_states: dict[str, RepoPRState] = {}
     metadata: dict[str, Any] | None = None
-
-    class Config:
-        extra = "allow"
 
     def get_artifacts(self) -> dict[str, Artifact]:
         """
@@ -154,7 +145,7 @@ class SeerRunState(BaseModel):
         artifact = artifacts.get(key)
         if artifact is None or artifact.data is None:
             return None
-        return schema.parse_obj(artifact.data)
+        return schema.model_validate(artifact.data)
 
     def get_file_patches_by_repo(self) -> dict[str, list[ExplorerFilePatch]]:
         """Get file patches grouped by repository."""
@@ -215,12 +206,11 @@ class CustomToolDefinition(BaseModel):
 class ExplorerRun(BaseModel):
     """A single Explorer run record with metadata."""
 
+    model_config = ConfigDict(extra="allow")
+
     run_id: int
     title: str
     last_triggered_at: datetime
     created_at: datetime
     category_key: str | None = None
     category_value: str | None = None
-
-    class Config:
-        extra = "allow"

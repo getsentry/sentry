@@ -614,7 +614,7 @@ def onboarding_seer_settings_update(
             {
                 "organization_id": organization_id,
                 "project_id": project_id,
-                "repositories": [repo.dict() for repo in repositories],
+                "repositories": [repo.model_dump() for repo in repositories],
                 "automated_run_stopping_point": stopping_point,
             }
         )

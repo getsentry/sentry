@@ -9,7 +9,7 @@ from collections.abc import Collection, Generator, Mapping
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from django.http.request import HttpRequest
-from pydantic.fields import Field
+from pydantic import Field
 
 from sentry.hybridcloud.rpc import RpcModel
 from sentry.users.services.user import RpcUser

@@ -10,7 +10,7 @@ from hashlib import sha256
 from typing import Any, Protocol, TypedDict
 from urllib.parse import urljoin
 
-from pydantic.fields import Field
+from pydantic import Field
 
 from sentry import options
 from sentry.constants import SentryAppInstallationStatus

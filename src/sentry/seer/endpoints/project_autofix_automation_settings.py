@@ -82,7 +82,7 @@ class ProjectAutofixAutomationSettingsEndpoint(ProjectEndpoint):
 
             preferences_to_set.append(
                 {
-                    **seer_pref.dict(),
+                    **seer_pref.model_dump(),
                     "automated_run_stopping_point": automated_run_stopping_point,
                 }
             )

@@ -426,7 +426,7 @@ class RedisHashSortedSetBuffer:
         value = self._execute_redis_operation(key, "get")
         if value is None:
             return None
-        return model.parse_raw(value)
+        return model.model_validate_json(value)
 
     def put_parsed_key[T: pydantic.BaseModel](self, key: str, value: T) -> None:
-        self._execute_redis_operation(key, "set", value.json())
+        self._execute_redis_operation(key, "set", value.model_dump_json())

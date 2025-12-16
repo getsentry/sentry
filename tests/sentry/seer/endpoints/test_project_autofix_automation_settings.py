@@ -118,7 +118,7 @@ class OrganizationAutofixAutomationProjectSettingsEndpointTest(APITestCase):
             {
                 "organization_id": self.organization.id,
                 "project_id": self.project.id,
-                "repositories": [self.seer_repo.dict()],
+                "repositories": [self.seer_repo.model_dump()],
                 "automated_run_stopping_point": AutofixStoppingPoint.OPEN_PR.value,
                 "automation_handoff": None,
             }
@@ -167,7 +167,7 @@ class OrganizationAutofixAutomationProjectSettingsEndpointTest(APITestCase):
             {
                 "organization_id": self.organization.id,
                 "project_id": self.project.id,
-                "repositories": [self.seer_repo.dict()],
+                "repositories": [self.seer_repo.model_dump()],
                 "automated_run_stopping_point": AutofixStoppingPoint.OPEN_PR.value,
                 "automation_handoff": None,
             }

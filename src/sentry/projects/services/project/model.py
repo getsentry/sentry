@@ -7,7 +7,7 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Any, TypedDict
 
-from pydantic.fields import Field
+from pydantic import Field
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc import OptionValue, RpcModel

@@ -12,7 +12,7 @@ class RpcModelTest(TestCase):
     def test_schema_generation(self) -> None:
         for api_type in self._get_rpc_model_subclasses():
             # We're mostly interested in whether an error occurs
-            schema = api_type.schema_json()
+            schema = api_type.model_json_schema()
             assert schema
 
     def _get_rpc_model_subclasses(self) -> set[type[RpcModel]]:

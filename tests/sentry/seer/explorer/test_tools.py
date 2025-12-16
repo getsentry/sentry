@@ -1092,7 +1092,7 @@ class TestGetIssueAndEventDetailsV2(
                 assert result["tags_overview"] == mock_get_tags.return_value
                 _validate_event_timeseries(result["event_timeseries"], expected_total=3)
                 assert isinstance(result["issue"], dict)
-                _IssueMetadata.parse_obj(result["issue"])
+                _IssueMetadata.model_validate(result["issue"])
             else:
                 assert result.get("issue") is None
                 assert result.get("event_timeseries") is None
@@ -1105,7 +1105,7 @@ class TestGetIssueAndEventDetailsV2(
             # Validate fields of the selected event.
             event_dict = result["event"]
             assert isinstance(event_dict, dict)
-            _SentryEventData.parse_obj(event_dict)
+            _SentryEventData.model_validate(event_dict)
             assert result["event_id"] == event_dict["id"]
 
     def test_get_ie_details_from_issue_id_basic(
@@ -1167,7 +1167,7 @@ class TestGetIssueAndEventDetailsV2(
             assert result["tags_overview"] == mock_get_tags.return_value
             _validate_event_timeseries(result["event_timeseries"], expected_total=3)
             assert isinstance(result["issue"], dict)
-            _IssueMetadata.parse_obj(result["issue"])
+            _IssueMetadata.model_validate(result["issue"])
 
             # Check any event is returned with right structure.
             assert "event_id" in result
@@ -1175,7 +1175,7 @@ class TestGetIssueAndEventDetailsV2(
 
             event_dict = result["event"]
             assert isinstance(event_dict, dict)
-            _SentryEventData.parse_obj(event_dict)
+            _SentryEventData.model_validate(event_dict)
             assert result["event_id"] == event_dict["id"]
 
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
@@ -1225,7 +1225,7 @@ class TestGetIssueAndEventDetailsV2(
             assert result["tags_overview"] == mock_get_tags.return_value
             _validate_event_timeseries(result["event_timeseries"], expected_total=1)
             assert isinstance(result["issue"], dict)
-            _IssueMetadata.parse_obj(result["issue"])
+            _IssueMetadata.model_validate(result["issue"])
 
             # Check any event is returned with right structure.
             assert "event_id" in result
@@ -1233,7 +1233,7 @@ class TestGetIssueAndEventDetailsV2(
 
             event_dict = result["event"]
             assert isinstance(event_dict, dict)
-            _SentryEventData.parse_obj(event_dict)
+            _SentryEventData.model_validate(event_dict)
             assert result["event_id"] == event_dict["id"]
 
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
@@ -1273,7 +1273,7 @@ class TestGetIssueAndEventDetailsV2(
             assert result["tags_overview"] == mock_get_tags.return_value
             _validate_event_timeseries(result["event_timeseries"], expected_total=3)
             assert isinstance(result["issue"], dict)
-            _IssueMetadata.parse_obj(result["issue"])
+            _IssueMetadata.model_validate(result["issue"])
         else:
             assert result.get("issue") is None
             assert result.get("event_timeseries") is None
@@ -1900,7 +1900,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.model_validate(result)
 
             # With dashes
             result = get_replay_metadata(
@@ -1912,7 +1912,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.model_validate(result)
 
             # Invalid
             result = get_replay_metadata(
@@ -1932,7 +1932,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay2_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.model_validate(result)
 
             # No project slug
             result = get_replay_metadata(
@@ -1943,7 +1943,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.model_validate(result)
 
             # Different project slug
             result = get_replay_metadata(
@@ -1986,7 +1986,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.model_validate(result)
 
             # Replay 2
             result = get_replay_metadata(
@@ -1997,7 +1997,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay2_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.model_validate(result)
 
             # Upper (supported but not expected)
             result = get_replay_metadata(
@@ -2008,7 +2008,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.model_validate(result)
 
             # Short ID < 8 characters or not hex - returns None
             assert (

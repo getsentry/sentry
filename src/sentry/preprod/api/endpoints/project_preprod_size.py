@@ -5,7 +5,7 @@ from typing import Any, TypeVar, cast
 
 import orjson
 import pydantic
-from pydantic.tools import parse_obj_as
+from pydantic import TypeAdapter
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -35,9 +35,7 @@ def parse_request_with_pydantic(request: Request, model: type[T]) -> T:
     except orjson.JSONDecodeError:
         raise serializers.ValidationError("Invalid json")
     try:
-        # When we have Pydantic 2 availble TypeAdapter on the model
-        # can be used instead of parse_obj_as
-        return parse_obj_as(model, j)
+        return TypeAdapter(model).validate_python(j)
     except pydantic.ValidationError:
         logger.exception("Could not parse PutSize")
         raise serializers.ValidationError("Could not parse PutSize")

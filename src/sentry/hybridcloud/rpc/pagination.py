@@ -7,7 +7,7 @@
 from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
-from pydantic.fields import Field
+from pydantic import Field
 from rest_framework.request import Request
 
 from sentry.hybridcloud.rpc import RpcModel

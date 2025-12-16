@@ -5,7 +5,7 @@
 
 from typing import Any
 
-from pydantic.fields import Field
+from pydantic import Field
 
 from sentry.hybridcloud.rpc import RpcModel
 

@@ -255,7 +255,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             response = make_signed_seer_api_request(
                 connection_pool=seer_issue_detection_connection_pool,
                 path=SEER_ANALYZE_ISSUE_ENDPOINT_PATH,
-                body=json.dumps(seer_request.dict()).encode("utf-8"),
+                body=json.dumps(seer_request.model_dump()).encode("utf-8"),
             )
         except Exception as network_error:
             e = LLMIssueDetectionError("Seer network error")
@@ -288,7 +288,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
 
         try:
             raw_response_data = response.json()
-            response_data = IssueDetectionResponse.parse_obj(raw_response_data)
+            response_data = IssueDetectionResponse.model_validate(raw_response_data)
         except (ValueError, TypeError, ValidationError) as parse_error:
             e = LLMIssueDetectionError("Seer response parsing error")
             sentry_sdk.set_context(

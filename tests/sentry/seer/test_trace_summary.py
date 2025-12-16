@@ -127,7 +127,7 @@ class TraceSummaryTest(TestCase, SnubaTestCase):
 
         assert status_code == 200
         assert summary_data == convert_dict_key_case(
-            self.mock_summary_response.dict(), snake_to_camel_case
+            self.mock_summary_response.model_dump(), snake_to_camel_case
         )
         mock_has_feature.assert_called_once()
         mock_cache_get.assert_called_once()
@@ -136,7 +136,7 @@ class TraceSummaryTest(TestCase, SnubaTestCase):
 
     @patch("sentry.seer.trace_summary._call_seer")
     def test_get_trace_summary_cache_hit(self, mock_call_seer: MagicMock) -> None:
-        cached_summary = self.mock_summary_response.dict()
+        cached_summary = self.mock_summary_response.model_dump()
 
         cache.set(f"ai-trace-summary:{self.trace_id}", cached_summary, timeout=60 * 60 * 24 * 7)
 

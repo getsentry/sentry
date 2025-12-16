@@ -100,7 +100,7 @@ def model_to_ctype(val):
     if isinstance(val, Model):
         return {"pk": val.pk, "ctype": ContentType.objects.get_for_model(val).pk}
     if isinstance(val, RpcModel):
-        return val.dict()
+        return val.model_dump()
     return val
 
 
@@ -113,7 +113,7 @@ def ctype_to_model(val):
         return ModelClass.objects.get(pk=val["pk"])
 
     if isinstance(val, dict) and "username" in val and "name" in val:
-        return RpcUser.parse_obj(val)
+        return RpcUser.model_validate(val)
     return val
 
 

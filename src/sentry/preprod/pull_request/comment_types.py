@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AuthorAssociation(StrEnum):
@@ -52,6 +52,8 @@ class CommentUser(BaseModel):
 class CommentReactions(BaseModel):
     """Reaction counts on a comment."""
 
+    model_config = ConfigDict(populate_by_name=True)  # Allow both alias and field name
+
     url: str
     total_count: int
     plus_one: int = Field(alias="+1")
@@ -62,9 +64,6 @@ class CommentReactions(BaseModel):
     hooray: int
     eyes: int
     rocket: int
-
-    class Config:
-        populate_by_name = True  # Allow both alias and field name
 
 
 class IssueComment(BaseModel):
@@ -111,12 +110,11 @@ class ReviewCommentLinkObject(BaseModel):
 class ReviewCommentLinks(BaseModel):
     """Links related to the review comment."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     self_link: ReviewCommentLinkObject = Field(alias="self")
     html: ReviewCommentLinkObject
     pull_request: ReviewCommentLinkObject
-
-    class Config:
-        populate_by_name = True
 
 
 class ReviewComment(BaseModel):
@@ -155,8 +153,7 @@ class ReviewComment(BaseModel):
     body_html: str | None = None
     reactions: CommentReactions | None = None
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class PullRequestComments(BaseModel):

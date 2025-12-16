@@ -93,7 +93,7 @@ class NotificationTaskTests(TestCase):
         async_send_notification(AnotherDummyNotification, user=lazyuser)
         rpc_user = serialize_generic_user(self.user)
         assert rpc_user
-        expected_data = rpc_user.dict()
+        expected_data = rpc_user.model_dump()
         expected_data["emails"] = list(expected_data["emails"])
         expected_data["useremails"] = list(expected_data["useremails"])
         expected_data["roles"] = list(expected_data["roles"])

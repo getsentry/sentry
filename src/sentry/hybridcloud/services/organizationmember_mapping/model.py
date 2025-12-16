@@ -6,7 +6,7 @@
 from datetime import datetime
 
 from django.utils import timezone
-from pydantic.fields import Field
+from pydantic import Field
 
 from sentry.hybridcloud.rpc import RpcModel
 

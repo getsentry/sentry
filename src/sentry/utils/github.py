@@ -44,7 +44,7 @@ def verify_signature(payload: bytes, signature: str, key_id: str, subpath: str) 
     client_secret = options.get("github-login.client-secret")
     client = _GitHubClient(client_id=client_id, client_secret=client_secret)
     response = client.get(f"/meta/public_keys/{subpath}")
-    keys = GitHubKeysPayload.parse_obj(response)
+    keys = GitHubKeysPayload.model_validate(response)
 
     public_key = next((k for k in keys.public_keys if k["key_identifier"] == key_id), None)
     if not public_key:

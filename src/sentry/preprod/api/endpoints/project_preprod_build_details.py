@@ -66,4 +66,4 @@ class ProjectPreprodBuildDetailsEndpoint(PreprodArtifactEndpoint):
             return Response({"error": head_artifact.error_message}, status=400)
         else:
             build_details = transform_preprod_artifact_to_build_details(head_artifact)
-            return Response(build_details.dict())
+            return Response(build_details.model_dump())
