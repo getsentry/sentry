@@ -7,6 +7,7 @@ from typing import Any, NoReturn
 
 from django.urls import reverse
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
@@ -227,7 +228,10 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         # Check the repository belongs to the integration
         try:
             Repository.objects.get(
-                name=repo, integration_id=self.model.id, organization_id=self.organization_id
+                name=repo,
+                integration_id=self.model.id,
+                organization_id=self.organization_id,
+                status=ObjectStatus.ACTIVE,
             )
         except Repository.DoesNotExist:
             raise IntegrationFormError(
@@ -329,7 +333,10 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         try:
             Repository.objects.get(
-                name=repo, integration_id=self.model.id, organization_id=self.organization_id
+                name=repo,
+                integration_id=self.model.id,
+                organization_id=self.organization_id,
+                status=ObjectStatus.ACTIVE,
             )
         except Repository.DoesNotExist:
             raise IntegrationFormError(
