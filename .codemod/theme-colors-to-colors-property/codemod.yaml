@@ -1,0 +1,6 @@
+version: '1.0.0'
+name: theme-colors-to-colors-property
+description: Transform theme.gray100 to theme.colors.gray100 (and similar colors)
+author: Sentry
+engine: jssg
+language: tsx

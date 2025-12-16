@@ -1,0 +1,17 @@
+{
+  "name": "theme-colors-to-colors-property",
+  "version": "1.0.0",
+  "description": "Transform theme.gray100 to theme.colors.gray100",
+  "main": "scripts/codemod.ts",
+  "type": "module",
+  "scripts": {
+    "test": "codemod jssg test -l tsx ./scripts/codemod.ts"
+  },
+  "dependencies": {
+    "@codemod.com/jssg-types": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

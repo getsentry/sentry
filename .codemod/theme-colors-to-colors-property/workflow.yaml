@@ -1,0 +1,25 @@
+version: "1"
+
+nodes:
+  - id: transform
+    name: Transform theme colors to theme.colors
+    type: automatic
+    steps:
+      - id: run-codemod
+        name: Apply theme color transformations
+        js-ast-grep:
+          js_file: "scripts/codemod.ts"
+          base_path: "."
+          include:
+            - "**/*.tsx"
+            - "**/*.ts"
+            - "**/*.jsx"
+            - "**/*.js"
+          exclude:
+            - "**/node_modules/**"
+            - "**/*.test.ts"
+            - "**/*.test.tsx"
+            - "**/*.spec.ts"
+            - "**/*.spec.tsx"
+            - "**/dist/**"
+            - "**/build/**"
