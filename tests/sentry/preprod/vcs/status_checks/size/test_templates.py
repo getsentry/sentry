@@ -793,14 +793,18 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             [android_artifact, ios_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
         )
 
-        tables = summary.strip().split("\n\n")
-        assert len(tables) == 2
+        # Split by double newlines - should have 2 table sections (each with header + table)
+        sections = summary.strip().split("\n\n")
+        assert len(sections) == 4  # 2 headers + 2 tables
 
-        android_table = next(t for t in tables if "Uncompressed Size" in t.split("\n")[0])
-        ios_table = next(t for t in tables if "Install Size" in t.split("\n")[0])
+        # Check for headers and tables
+        assert "## Android Builds" in summary
+        assert "## iOS Builds" in summary
+        assert "Uncompressed Size" in summary
+        assert "Install Size" in summary
 
-        assert "com.example.android" in android_table
-        assert "com.example.ios" in ios_table
+        assert "com.example.android" in summary
+        assert "com.example.ios" in summary
 
 
 @region_silo_test

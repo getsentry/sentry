@@ -96,7 +96,7 @@ def _format_artifact_summary(
     """Format summary for artifacts with size data."""
     artifact_metric_rows = _create_sorted_artifact_metric_rows(artifacts, size_metrics_map)
 
-    grouped_rows: dict[str, list[str]] = {"android": [], "non_android": []}
+    grouped_rows: dict[str, list[str]] = {"android": [], "ios": []}
     group_order: list[str] = []
 
     for artifact, size_metrics in artifact_metric_rows:
@@ -162,7 +162,7 @@ def _format_artifact_summary(
 
         row = f"| {name_text} | {configuration_text} | {version_string} | {download_text} | {install_text} | {na_text} |"
 
-        group_key = "android" if artifact.is_android() else "non_android"
+        group_key = "android" if artifact.is_android() else "ios"
         grouped_rows[group_key].append(row)
         if group_key not in group_order:
             group_order.append(group_key)
@@ -176,13 +176,15 @@ def _format_artifact_summary(
 
     tables: list[str] = []
     for group_key in group_order:
-        if not grouped_rows[group_key]:
-            continue
-
-        if group_key == "android":
-            tables.append(_render_table(grouped_rows[group_key], str(_("Uncompressed Size"))))
-        else:
-            tables.append(_render_table(grouped_rows[group_key], str(_("Install Size"))))
+        if grouped_rows[group_key]:
+            if group_key == "android":
+                header = "### Android Builds\n\n"
+                table = _render_table(grouped_rows[group_key], str(_("Uncompressed Size")))
+                tables.append(f"{header}{table}")
+            else:
+                header = "### iOS Builds\n\n"
+                table = _render_table(grouped_rows[group_key], str(_("Install Size")))
+                tables.append(f"{header}{table}")
 
     return "\n\n".join(tables)
 
