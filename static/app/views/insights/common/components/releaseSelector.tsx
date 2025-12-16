@@ -31,9 +31,6 @@ import {
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/formatVersionAndCenterTruncate';
 import type {ModuleName} from 'sentry/views/insights/types';
 
-export const PRIMARY_RELEASE_ALIAS = 'R1';
-export const SECONDARY_RELEASE_ALIAS = 'R2';
-
 type Props = {
   allOptionDescription: string;
   allOptionTitle: string;

@@ -129,7 +129,7 @@ describe('ScreenLoadEventSamples', () => {
     );
 
     // Check that headers are set properly
-    expect(screen.getByRole('columnheader', {name: 'Event ID (R1)'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Event ID'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Profile'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'TTID'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'TTFD'})).toBeInTheDocument();
