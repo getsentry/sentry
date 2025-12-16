@@ -59,7 +59,7 @@ function TopBar({
 }: TopBarProps) {
   // Check if there are any file patches
   const hasCodeChanges = useMemo(() => {
-    return blocks.some(b => b.file_patches && b.file_patches.length > 0);
+    return blocks.some(b => b.merged_file_patches && b.merged_file_patches.length > 0);
   }, [blocks]);
 
   return (
