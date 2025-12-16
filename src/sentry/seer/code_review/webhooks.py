@@ -22,11 +22,10 @@ logger = logging.getLogger(__name__)
 
 
 # This needs to match the value defined in the Seer API:
-# https://github.com/getsentry/seer/blob/main/src/seer/automation/codegen/pr_review_coding_agent.py
-SEER_PR_REVIEW_RERUN_PATH = "/v1/automation/codegen/pr-review/rerun"
+# https://github.com/getsentry/seer/blob/main/src/seer/routes/codegen.py
+SEER_CODEGEN_PATH = "/v1/automation/codegen"
+SEER_PR_REVIEW_RERUN_PATH = f"{SEER_CODEGEN_PATH}/rerun"
 PREFIX = "seer.code_review.check_run.rerun"
-
-connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
 
 
 def handle_github_check_run_event(organization: Organization, event: Mapping[str, Any]) -> bool:
@@ -51,6 +50,7 @@ def handle_github_check_run_event(organization: Organization, event: Mapping[str
         # Handle validation errors to prevent sending a 500 error to GitHub
         # which would trigger a retry. Both ValidationError (Pydantic) and
         # ValueError (numeric check) are caught here.
+        metrics.incr(f"{PREFIX}.outcome", tags={"status": "invalid_payload"})
         return False
 
     if not _should_handle_github_check_run_event(organization, validated_event.action):
@@ -78,11 +78,9 @@ def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRun
         int(validated_event.check_run.external_id)
     except ValidationError:
         logger.exception("Invalid GitHub check_run event payload")
-        metrics.incr(f"{PREFIX}.outcome", tags={"status": "invalid_payload"})
         raise
     except ValueError:
         logger.exception("external_id must be numeric")
-        metrics.incr(f"{PREFIX}.outcome", tags={"status": "invalid_payload"})
         raise
 
     return validated_event
@@ -93,7 +91,7 @@ def _make_rerun_request(original_run_id: str, extra: dict[str, Any]) -> bool:
     status = "failure"
     try:
         response = make_signed_seer_api_request(
-            connection_pool=connection_pool,
+            connection_pool=connection_from_url(settings.SEER_AUTOFIX_URL),
             path=SEER_PR_REVIEW_RERUN_PATH,
             body=orjson.dumps(payload),
         )
@@ -105,8 +103,7 @@ def _make_rerun_request(original_run_id: str, extra: dict[str, Any]) -> bool:
         status = e.__class__.__name__
         logger.exception("Failed to make rerun request", extra=extra)
 
-    # Record metric for HTTP responses (both success and error)
-    metrics.incr(f"{PREFIX}.outcome", tags={"status": status == "success"})
+    metrics.incr(f"{PREFIX}.outcome", tags={"status": status})
     if status != "success":
         return False
 
