@@ -202,5 +202,5 @@ const StyledSelectField = styled(SelectField)`
 
 export const HighlightedText = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.colors.pink400};
 `;
