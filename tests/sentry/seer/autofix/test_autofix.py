@@ -19,7 +19,6 @@ from sentry.seer.autofix.autofix import (
     onboarding_seer_settings_update,
     trigger_autofix,
 )
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
 from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
@@ -1480,10 +1479,7 @@ class TestOnboardingSeerSettingsUpdate(TestCase):
         """Tests that org options are not set"""
         organization = self.create_organization()
 
-        assert (
-            organization.get_option("sentry:default_autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.OFF
-        )
+        assert organization.get_option("sentry:default_autofix_automation_tuning") is None
 
         onboarding_seer_settings_update(
             organization_id=organization.id,
@@ -1494,10 +1490,7 @@ class TestOnboardingSeerSettingsUpdate(TestCase):
 
         # Verify org-level option is set to OFF
         organization.refresh_from_db()
-        assert (
-            organization.get_option("sentry:default_autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.OFF
-        )
+        assert organization.get_option("sentry:default_autofix_automation_tuning") is None
 
     @patch("sentry.seer.autofix.autofix.bulk_set_project_preferences")
     def test_rca_disabled_with_auto_prs_and_project_sets_open_pr_stopping_point(
