@@ -247,13 +247,21 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     setIsMinimized(false);
   }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
+  const langfuseUrl = sessionData?.run_id
+    ? `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${sessionData.run_id}`
+    : undefined;
+
+  const handleOpenLangfuse = useCallback(() => {
+    // Command handler. Disabled in slash command menu for non-employees
+    if (langfuseUrl) {
+      window.open(langfuseUrl, '_blank');
+    }
+  }, [langfuseUrl]);
+
   const openFeedbackForm = useFeedbackForm();
 
   const handleFeedback = useCallback(() => {
     if (openFeedbackForm) {
-      const langfuseUrl = sessionData?.run_id
-        ? `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${sessionData.run_id}`
-        : undefined;
       openFeedbackForm({
         formTitle: 'Seer Explorer Feedback',
         messagePlaceholder: 'How can we make Seer Explorer better for you?',
@@ -263,7 +271,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         },
       });
     }
-  }, [openFeedbackForm, sessionData?.run_id]);
+  }, [openFeedbackForm, langfuseUrl]);
 
   const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
     useExplorerMenu({
@@ -274,10 +282,11 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       panelSize,
       panelVisible: isVisible,
       slashCommandHandlers: {
-        onFeedback: openFeedbackForm ? handleFeedback : undefined,
         onMaxSize: handleMaxSize,
         onMedSize: handleMedSize,
         onNew: startNewSession,
+        onFeedback: openFeedbackForm ? handleFeedback : undefined,
+        onLangfuse: handleOpenLangfuse,
       },
       onChangeSession: switchToRun,
       menuAnchorRef: sessionHistoryButtonRef,
