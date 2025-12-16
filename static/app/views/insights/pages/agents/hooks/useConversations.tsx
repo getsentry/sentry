@@ -48,8 +48,11 @@ export interface Conversation {
  * The firstInput field contains an array of content objects with type and text.
  */
 function extractFirstInputText(
-  firstInput: InputContent[] | null | undefined
+  firstInput: InputContent[] | null | undefined | string
 ): string | null {
+  if (typeof firstInput === 'string') {
+    return firstInput;
+  }
   if (!firstInput || firstInput.length === 0) {
     return null;
   }
