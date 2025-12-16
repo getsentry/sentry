@@ -10,6 +10,7 @@ import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette
 import {CommandPaletteList} from 'sentry/components/commandPalette/ui/list';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/useCommandPaletteState';
 import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
+import {SvgIcon} from 'sentry/icons/svgIcon';
 import {unreachable} from 'sentry/utils/unreachable';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -134,6 +135,6 @@ export function CommandPaletteContent() {
 }
 
 const IconWrap = styled(Flex)`
-  width: ${p => p.theme.iconSizes.md};
-  height: ${p => p.theme.iconSizes.md};
+  width: ${() => SvgIcon.ICON_SIZES.md};
+  height: ${() => SvgIcon.ICON_SIZES.md};
 `;

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {TooltipProps} from 'sentry/components/core/tooltip';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconInfo, IconQuestion} from 'sentry/icons';
-import type {IconSize} from 'sentry/utils/theme';
+import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
 
 interface QuestionProps
   extends Partial<
@@ -22,7 +22,7 @@ interface QuestionProps
    *
    * Remember to keep the size relative to the text or content it is near.
    */
-  size: IconSize;
+  size: NonNullable<SVGIconProps['size']>;
   /**
    * The message to show in the question icons tooltip.
    */
@@ -53,8 +53,8 @@ function QuestionTooltip({
 
 const QuestionIconContainer = styled('span')<Pick<QuestionProps, 'size' | 'className'>>`
   display: inline-block;
-  height: ${p => p.theme.iconSizes[p.size]};
-  line-height: ${p => p.theme.iconSizes[p.size]};
+  height: ${p => SvgIcon.ICON_SIZES[p.size]};
+  line-height: ${p => SvgIcon.ICON_SIZES[p.size]};
 
   & svg {
     transition: 120ms opacity;
