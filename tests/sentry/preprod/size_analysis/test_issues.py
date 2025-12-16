@@ -1,5 +1,5 @@
 from sentry.issues.grouptype import PreprodDeltaGroupType
-from sentry.preprod.models import PreprodArtifactSizeMetrics
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.size_analysis.issues import diff_to_occurrence
 from sentry.preprod.size_analysis.models import SizeMetricDiffItem
 
@@ -15,7 +15,7 @@ def test_diff_to_occurrence_install():
         head_download_size=400,
     )
 
-    occurrence, event = diff_to_occurrence(42, "install", diff)
+    occurrence, event = diff_to_occurrence(42, "install", diff, PreprodArtifact.ArtifactType.APK)
 
     assert occurrence.project_id == 42
     assert occurrence.issue_title == "50 byte install size regression"
@@ -28,7 +28,7 @@ def test_diff_to_occurrence_install():
     assert occurrence.detection_time.timestamp() == event["timestamp"]
 
     # Event has some required fields which need to be set correctly:
-    assert event["platform"] == "other"
+    assert event["platform"] == "android"
 
 
 def test_diff_to_occurrence_download():
@@ -42,7 +42,9 @@ def test_diff_to_occurrence_download():
         head_download_size=500,
     )
 
-    occurrence, event = diff_to_occurrence(43, "download", diff)
+    occurrence, event = diff_to_occurrence(
+        43, "download", diff, PreprodArtifact.ArtifactType.XCARCHIVE
+    )
 
     assert occurrence.project_id == 43
     assert occurrence.issue_title == "200 byte download size regression"
@@ -55,4 +57,4 @@ def test_diff_to_occurrence_download():
     assert occurrence.detection_time.timestamp() == event["timestamp"]
 
     # Event has some required fields which need to be set correctly:
-    assert event["platform"] == "other"
+    assert event["platform"] == "ios"

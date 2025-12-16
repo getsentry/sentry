@@ -4,11 +4,18 @@ from uuid import uuid4
 
 from sentry.issues.grouptype import PreprodDeltaGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.preprod.api.models.project_preprod_build_details_models import (
+    platform_from_artifact_type,
+)
+from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.size_analysis.models import SizeMetricDiffItem
 
 
 def diff_to_occurrence(
-    project_id: int, size: Literal["install", "download"], diff: SizeMetricDiffItem
+    project_id: int,
+    size: Literal["install", "download"],
+    diff: SizeMetricDiffItem,
+    artifact_type: PreprodArtifact.ArtifactType,
 ) -> tuple[IssueOccurrence, dict[str, Any]]:
 
     id = uuid4().hex
@@ -17,10 +24,11 @@ def diff_to_occurrence(
     current_timestamp = datetime.now(timezone.utc)
 
     # TODO(EME-80): Unclear if/what we should put in the event_data:
+    platform = platform_from_artifact_type(artifact_type)
     event_data = {
         "event_id": event_id,
         "project_id": project_id,
-        "platform": "other",
+        "platform": platform.lower(),
         "received": current_timestamp.timestamp(),
         "timestamp": current_timestamp.timestamp(),
     }
