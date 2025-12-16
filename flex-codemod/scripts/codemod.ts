@@ -363,18 +363,19 @@ function ensureImport(
     }
   }
 
-  // Add new import at the top
-  const firstImport = rootNode.find({
-    rule: {kind: 'import_statement'},
-  });
-
+  // Add new import after the last import
   const importStatement = `import {${componentName}} from '@sentry/scraps/layout';\n`;
 
-  if (firstImport) {
+  if (allImports.length > 0) {
+    const lastImport = allImports[allImports.length - 1];
+    // Check if the last import is a scraps/layout import we just added
+    const lastImportText = lastImport.text();
+    const needsBlankLine = !lastImportText.includes('@sentry/scraps/layout');
+
     return {
-      startPos: firstImport.range().start.index,
-      endPos: firstImport.range().start.index,
-      insertedText: importStatement,
+      startPos: lastImport.range().end.index,
+      endPos: lastImport.range().end.index,
+      insertedText: needsBlankLine ? `\n${importStatement}` : importStatement,
     };
   }
 
@@ -553,8 +554,13 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
             // Track that this component is exported so we don't replace its JSX usages
             exportedComponents.add(styledComponentName);
           } else {
-            // For non-exported components, just remove the declaration
-            edits.push(lexicalDecl.replace(''));
+            // For non-exported components, remove the declaration including trailing newline
+            const range = lexicalDecl.range();
+            edits.push({
+              startPos: range.start.index,
+              endPos: range.end.index + 1, // Include trailing newline
+              insertedText: '',
+            });
           }
         }
       }
@@ -637,11 +643,68 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
     }
   }
 
-  // Add imports
-  for (const componentName of importsToAdd) {
-    const importEdit = ensureImport(rootNode, componentName);
-    if (importEdit) {
-      edits.push(importEdit);
+  // Add imports - combine all needed imports into a single operation
+  if (importsToAdd.size > 0) {
+    const allImports = rootNode.findAll({
+      rule: {kind: 'import_statement'},
+    });
+
+    // Check if scraps/layout import exists
+    let existingScrapsImport: SgNode<TSX> | null = null;
+    for (const importStmt of allImports) {
+      if (importStmt.text().includes('@sentry/scraps/layout')) {
+        existingScrapsImport = importStmt;
+        break;
+      }
+    }
+
+    if (existingScrapsImport) {
+      // Add to existing import
+      const namedImports = existingScrapsImport.find({
+        rule: {kind: 'named_imports'},
+      });
+
+      if (namedImports) {
+        const existingImportText = existingScrapsImport.text();
+        const componentsToAdd = Array.from(importsToAdd).filter(
+          comp => !existingImportText.includes(comp)
+        );
+
+        if (componentsToAdd.length > 0) {
+          const lastSpecifier = namedImports
+            .findAll({rule: {kind: 'import_specifier'}})
+            .pop();
+
+          if (lastSpecifier) {
+            edits.push({
+              startPos: lastSpecifier.range().end.index,
+              endPos: lastSpecifier.range().end.index,
+              insertedText: `, ${componentsToAdd.join(', ')}`,
+            });
+          }
+        }
+      }
+    } else {
+      // Add new imports after last import
+      const sortedImports = Array.from(importsToAdd).sort();
+      const importStatements = sortedImports
+        .map(comp => `import {${comp}} from '@sentry/scraps/layout';\n`)
+        .join('');
+
+      if (allImports.length > 0) {
+        const lastImport = allImports[allImports.length - 1];
+        edits.push({
+          startPos: lastImport.range().end.index,
+          endPos: lastImport.range().end.index,
+          insertedText: `\n${importStatements}`,
+        });
+      } else {
+        edits.push({
+          startPos: 0,
+          endPos: 0,
+          insertedText: importStatements,
+        });
+      }
     }
   }
 
@@ -649,7 +712,69 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
     return null;
   }
 
-  return rootNode.commitEdits(edits);
+  const transformedCode = rootNode.commitEdits(edits);
+  if (!transformedCode) {
+    return null;
+  }
+
+  // Remove unused styled and space imports from the transformed code
+  const lines = transformedCode.split('\n');
+  const filteredLines: string[] = [];
+
+  for (const line of lines) {
+    let shouldKeep = true;
+
+    // Check if this is a styled import
+    if (
+      line.includes('import') &&
+      line.includes('styled') &&
+      (line.includes('@emotion/styled') || line.includes('styled-components'))
+    ) {
+      // Check if styled is used anywhere in the code outside this import line
+      const codeWithoutImport = lines.filter(l => l !== line).join('\n');
+      // Look for styled( usage - the styled function being called
+      if (!codeWithoutImport.match(/\bstyled\s*\(/)) {
+        shouldKeep = false;
+      }
+    }
+
+    // Check if this is a space import
+    if (
+      line.includes('import') &&
+      line.includes('space') &&
+      (line.includes('sentry/styles/space') || line.includes('@sentry/utils'))
+    ) {
+      // Check if space is used anywhere in the code outside this import line
+      const codeWithoutImport = lines.filter(l => l !== line).join('\n');
+      // Look for space( usage - the space function being called
+      if (!codeWithoutImport.match(/\bspace\s*\(/)) {
+        shouldKeep = false;
+      }
+    }
+
+    if (shouldKeep) {
+      filteredLines.push(line);
+    }
+  }
+
+  // Collapse consecutive blank lines to maximum of 1 blank line
+  const collapsedLines: string[] = [];
+  let consecutiveBlanks = 0;
+
+  for (const line of filteredLines) {
+    if (line.trim() === '') {
+      consecutiveBlanks++;
+      // Only keep the first blank line
+      if (consecutiveBlanks === 1) {
+        collapsedLines.push(line);
+      }
+    } else {
+      consecutiveBlanks = 0;
+      collapsedLines.push(line);
+    }
+  }
+
+  return collapsedLines.join('\n');
 };
 
 export default transform;
