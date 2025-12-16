@@ -16,7 +16,7 @@ export type ButtonTriggerProps = React.ComponentPropsWithoutRef<typeof DropdownB
   ref?: React.Ref<TriggerEl>;
 };
 
-export type InputTriggerProps = React.ComponentPropsWithoutRef<typeof Input> & {
+type InputTriggerProps = React.ComponentPropsWithoutRef<typeof Input> & {
   ref?: React.Ref<TriggerEl>;
 };
 
