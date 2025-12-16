@@ -3,6 +3,7 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import {getFramesByColumn} from 'sentry/components/replays/utils';
@@ -80,7 +81,8 @@ function Event({
 }) {
   const theme = useTheme();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
-  const {setActiveTab} = useActiveReplayTab({});
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
+  const {setActiveTab} = useActiveReplayTab({areAiFeaturesAllowed});
 
   const buttons = frames.map((frame, i) => (
     <BreadcrumbItem

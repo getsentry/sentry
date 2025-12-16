@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 
+import {defined} from 'sentry/utils';
 import useUrlParams from 'sentry/utils/url/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -47,7 +48,10 @@ function useActiveReplayTab({
   const hasAiSummary =
     organization.features.includes('replay-ai-summaries') && areAiFeaturesAllowed;
 
-  const defaultTab = hasAiSummary ? TabKey.AI : TabKey.BREADCRUMBS;
+  const defaultTab =
+    defined(areAiFeaturesAllowed) && areAiFeaturesAllowed && hasAiSummary
+      ? TabKey.AI
+      : TabKey.BREADCRUMBS;
 
   const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
 
