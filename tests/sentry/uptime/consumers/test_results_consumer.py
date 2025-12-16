@@ -450,6 +450,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 == "Miss was never reported for this scheduled check_time"
             )
 
+            # Verify backfilled misses use UUIDs without dashes (simple format)
+            assert "-" not in synth_1.attributes["guid"].string_value
+            assert "-" not in synth_1.trace_id
+            assert "-" not in synth_1.attributes["span_id"].string_value
+
             assert (
                 synth_1.attributes["scheduled_check_time_us"].int_value
                 == (last_update_time + 300 * 1000) * 1000
