@@ -166,7 +166,6 @@ export function ScreenLoadSpansContent() {
                 transaction={transactionName}
               />
             </SampleContainerItem>
-            )
           </SampleContainer>
         )}
         {sampleType === SPANS && (
