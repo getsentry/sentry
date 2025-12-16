@@ -6,6 +6,12 @@ on:
       - master
   pull_request:
   workflow_dispatch:
+    inputs:
+      matrix_count:
+        description: 'Number of parallel matrix jobs for backend-test (optional, overrides default)'
+        required: false
+        default: 22
+        type: number
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -76,7 +82,6 @@ jobs:
   backend-test:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
-    name: backend test
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -88,14 +93,11 @@ jobs:
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance:
-          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+        instance: ${{ fromJson(format('[{0}]', join(range(0, fromJson(github.event.inputs.matrix_count || '22')), ', '))) }}
 
     env:
-      # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
       # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.
-      MATRIX_INSTANCE_TOTAL: 22
+      MATRIX_INSTANCE_TOTAL: ${{ github.event.inputs.matrix_count || 22 }}
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
