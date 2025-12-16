@@ -1614,7 +1614,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-api-key-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/keys/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/project-keys/$",
         OrganizationProjectKeysEndpoint.as_view(),
         name="sentry-api-0-organization-project-keys",
     ),
