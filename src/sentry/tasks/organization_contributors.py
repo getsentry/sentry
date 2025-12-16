@@ -52,6 +52,10 @@ def assign_seat_to_organization_contributor(contributor_id) -> None:
         )
         return
 
+    logger.info(
+        "organization_contributors.assign_seat.start", extra={"contributor_id": contributor_id}
+    )
+
     outcome = quotas.backend.assign_seat(DataCategory.SEER_USER, organization_contributor)
 
     if outcome != Outcome.ACCEPTED:
