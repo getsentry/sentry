@@ -1346,11 +1346,6 @@ const generateAliases = (
   linkUnderline: tokens.component.link.accent.default,
 
   /**
-   * Form placeholder text color
-   */
-  formPlaceholder: colors.gray300,
-
-  /**
    * Default Progressbar color
    */
   progressBar: colors.chonk.blue400,
