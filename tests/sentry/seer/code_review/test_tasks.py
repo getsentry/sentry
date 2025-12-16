@@ -1,6 +1,8 @@
 from unittest.mock import MagicMock, patch
 
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import RetryState
 from urllib3 import BaseHTTPResponse
+from urllib3.exceptions import HTTPError
 
 from sentry.seer.code_review.tasks import PREFIX, process_github_webhook_event
 from sentry.testutils.cases import TestCase
@@ -8,6 +10,37 @@ from sentry.testutils.cases import TestCase
 
 class ProcessGitHubWebhookEventTest(TestCase):
     """Unit tests for the process_github_webhook_event task."""
+
+    def test_retry_configuration_includes_http_error(self) -> None:
+        """Test that the task is configured to retry on HTTPError exceptions.
+
+        This is a critical test that verifies the retry configuration itself.
+        Without on=(HTTPError,), the task would NOT retry despite times=3.
+        """
+        task = process_github_webhook_event
+
+        # Verify retry configuration exists
+        assert task.retry is not None, "Task should have retry configuration"
+
+        # Verify HTTPError is in the allowed exception types
+        # This is what allows the taskworker to actually retry on HTTPError
+        assert HTTPError in task.retry._allowed_exception_types, (
+            "HTTPError must be in retry allowlist for retries to work. "
+            "Without this, the task will fail immediately despite times=3."
+        )
+
+        # Verify retry count and delay
+        assert task.retry._times == 3, "Task should retry 3 times"
+        assert task.retry._delay == 60, "Task should delay 60 seconds between retries"
+
+        # Verify should_retry returns True for HTTPError
+        from urllib3.exceptions import MaxRetryError
+
+        retry_state = RetryState(attempts=0, max_attempts=3)
+        http_error = MaxRetryError(None, "test")  # type: ignore[arg-type]
+        assert task.retry.should_retry(
+            retry_state, http_error
+        ), "Task should retry on HTTPError exceptions"
 
     def _mock_response(self, status: int, data: bytes) -> BaseHTTPResponse:
         """Helper to create mock urllib3 response."""

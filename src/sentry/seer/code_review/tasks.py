@@ -19,9 +19,9 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
+SEER_CODEGEN_PATH = "/v1/automation/codegen"
 # This needs to match the value defined in the Seer API:
 # https://github.com/getsentry/seer/blob/main/src/seer/routes/codegen.py
-SEER_CODEGEN_PATH = "/v1/automation/codegen"
 SEER_PR_REVIEW_RERUN_PATH = f"{SEER_CODEGEN_PATH}/rerun"
 PREFIX = "seer.code_review.check_run.rerun"
 
@@ -29,7 +29,7 @@ PREFIX = "seer.code_review.check_run.rerun"
 @instrumented_task(
     name="sentry.seer.code_review.tasks.process_github_webhook_event",
     namespace=seer_code_review_tasks,
-    retry=Retry(times=3, delay=60),
+    retry=Retry(times=3, delay=60, on=(HTTPError,)),
     silo_mode=SiloMode.REGION,
     bind=True,  # Bind task instance to access self.request.retries for conditional logging
 )
