@@ -58,7 +58,7 @@ export function PlatformSelection(props: StepProps) {
 }
 
 const Wrapper = styled('div')`
-  max-width: 850px;
+  max-width: ${p => p.theme.breakpoints.md};
   margin-left: auto;
   margin-right: auto;
   width: 100%;
