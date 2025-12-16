@@ -11,6 +11,7 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from pydantic import ValidationError
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -285,6 +286,23 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             return HttpResponse(MALFORMED_SIGNATURE_ERROR, status=400)
 
         event_handler = handler()
+
+        # Validate payload using Pydantic if handler has a payload_model
+        if hasattr(event_handler, "payload_model"):
+            try:
+                event_handler.payload_model(**event)
+            except ValidationError as e:
+                logger.warning(
+                    "github_enterprise.webhook.invalid-payload",
+                    extra={
+                        **extra,
+                        "event_type": github_event,
+                        "validation_errors": e.errors(),
+                    },
+                )
+                sentry_sdk.capture_exception(e)
+                return HttpResponse("Invalid webhook payload structure", status=400)
+
         with IntegrationWebhookEvent(
             interaction_type=event_handler.event_type,
             domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,

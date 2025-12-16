@@ -15,6 +15,7 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from pydantic import ValidationError
 
 from sentry import analytics, options
 from sentry.analytics.events.webhook_repository_created import WebHookRepositoryCreatedEvent
@@ -24,6 +25,12 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.github.webhook_models import (
+    InstallationEventPayload,
+    IssuesEventPayload,
+    PullRequestEventPayload,
+    PushEventPayload,
+)
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -226,6 +233,10 @@ class InstallationEventWebhook(GitHubWebhook):
     def event_type(self) -> IntegrationWebhookEventType:
         return IntegrationWebhookEventType.INSTALLATION
 
+    @property
+    def payload_model(self) -> type[InstallationEventPayload]:
+        return InstallationEventPayload
+
     def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
         installation = event["installation"]
 
@@ -319,6 +330,10 @@ class PushEventWebhook(GitHubWebhook):
     @property
     def event_type(self) -> IntegrationWebhookEventType:
         return IntegrationWebhookEventType.PUSH
+
+    @property
+    def payload_model(self) -> type[PushEventPayload]:
+        return PushEventPayload
 
     def should_ignore_commit(self, commit: Mapping[str, Any]) -> bool:
         return GitHubRepositoryProvider.should_ignore_commit(commit["message"])
@@ -507,6 +522,10 @@ class IssuesEventWebhook(GitHubWebhook):
     def event_type(self) -> IntegrationWebhookEventType:
         return IntegrationWebhookEventType.INBOUND_SYNC
 
+    @property
+    def payload_model(self) -> type[IssuesEventPayload]:
+        return IssuesEventPayload
+
     def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs: Any) -> None:
         """
         Handle GitHub issue events, particularly assignment and status changes.
@@ -685,6 +704,10 @@ class PullRequestEventWebhook(GitHubWebhook):
     @property
     def event_type(self) -> IntegrationWebhookEventType:
         return IntegrationWebhookEventType.PULL_REQUEST
+
+    @property
+    def payload_model(self) -> type[PullRequestEventPayload]:
+        return PullRequestEventPayload
 
     def _handle(
         self,
@@ -909,6 +932,21 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             return HttpResponse(status=400)
 
         event_handler = handler()
+
+        # Validate payload using Pydantic if handler has a payload_model
+        if hasattr(event_handler, "payload_model"):
+            try:
+                event_handler.payload_model(**event)
+            except ValidationError as e:
+                logger.warning(
+                    "github.webhook.invalid-payload",
+                    extra={
+                        **self.get_logging_data(),
+                        "event_type": request.META.get("HTTP_X_GITHUB_EVENT"),
+                        "validation_errors": e.errors(),
+                    },
+                )
+                return HttpResponse(status=400)
 
         with IntegrationWebhookEvent(
             interaction_type=event_handler.event_type,
