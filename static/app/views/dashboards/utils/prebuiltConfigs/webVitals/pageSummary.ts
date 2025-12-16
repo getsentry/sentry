@@ -261,7 +261,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         y: 2,
         w: 1,
         h: 2,
-        x: 6,
+        x: 5,
         minH: 2,
       },
     },
