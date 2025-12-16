@@ -1092,8 +1092,8 @@ const TraceStylingWrapper = styled('div')`
 
       /* hardcoded until new color scales are added to theme */
       &.missing_instrumentation {
-        --pattern-odd: ${p => p.theme.surface100};
-        --pattern-even: ${p => p.theme.surface300};
+        --pattern-odd: ${p => p.theme.colors.surface200};
+        --pattern-even: ${p => p.theme.colors.surface400};
       }
 
       &.error,

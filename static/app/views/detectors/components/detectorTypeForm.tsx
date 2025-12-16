@@ -171,7 +171,7 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
   grid-template-columns: 1fr;
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.surface400};
+  background-color: ${p => p.theme.colors.surface500};
   font-weight: ${p => p.theme.fontWeight.normal};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   overflow: hidden;
