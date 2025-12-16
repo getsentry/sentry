@@ -6,6 +6,7 @@ from typing import Any
 
 import orjson
 from django.conf import settings
+from pydantic import ValidationError
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import options
@@ -15,7 +16,7 @@ from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import metrics
 from sentry.utils.seer import can_use_prevent_ai_features
 
-from .types import GitHubCheckRunAction
+from .types import GitHubCheckRunAction, GitHubCheckRunEvent
 
 logger = logging.getLogger(__name__)
 
@@ -43,30 +44,40 @@ def handle_github_check_run_event(organization: Organization, event: Mapping[str
     Returns:
         True if the event was handled successfully, False otherwise
     """
-    if not _should_handle_github_check_run_event(organization, event["action"]):
-        return False
-
-    # Build base extra dict for logging
-    extra = {
-        "organization_id": organization.id,
-        "action": event["action"],
-    }
+    # Validate event payload using Pydantic
     try:
-        check_run = event["check_run"]
-        extra["html_url"] = check_run["html_url"]
-        external_id_str = check_run["external_id"]
-        extra["external_id"] = external_id_str
-        original_run_id = int(external_id_str)
-    except (KeyError, ValueError) as e:
-        # We need to handle these errors to prevent sending a 500 error to GitHub
-        # which would trigger a retry.
-        extra["error"] = str(e)
-        # If this happens, we should report it to GitHub as their payload is invalid.
-        logger.warning("%s.invalid_payload", PREFIX, extra=extra)
-        metrics.incr(f"{PREFIX}.outcome", tags={"status": "invalid_payload"})
+        validated_event = _validate_github_check_run_event(event)
+    except (ValidationError, ValueError):
+        # Handle validation errors to prevent sending a 500 error to GitHub
+        # which would trigger a retry. Both ValidationError (Pydantic) and
+        # ValueError (numeric check) are caught here.
         return False
 
-    return _make_rerun_request(original_run_id, extra)
+    if not _should_handle_github_check_run_event(organization, validated_event.action):
+        return False
+
+    extra: dict[str, Any] = {
+        "organization_id": organization.id,
+        "action": validated_event.action,
+        "html_url": validated_event.check_run.html_url,
+        "external_id": validated_event.check_run.external_id,
+    }
+    return _make_rerun_request(validated_event.check_run.external_id, extra)
+
+
+def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRunEvent:
+    """
+    Validate GitHub check_run event payload using Pydantic.
+
+    Raises:
+        ValidationError: If the event payload is invalid or external_id is not numeric
+    """
+    try:
+        return GitHubCheckRunEvent.parse_obj(event)
+    except ValidationError:
+        logger.exception()
+        metrics.incr(f"{PREFIX}.outcome", tags={"status": "invalid_payload"})
+        raise
 
 
 def _make_rerun_request(original_run_id: int, extra: dict[str, Any]) -> bool:
@@ -84,7 +95,7 @@ def _make_rerun_request(original_run_id: int, extra: dict[str, Any]) -> bool:
             status = "success"
     except (TimeoutError, MaxRetryError) as e:
         status = e.__class__.__name__
-        logger.exception("%s.%s", PREFIX, status, extra=extra)
+        logger.exception()
 
     # Record metric for HTTP responses (both success and error)
     metrics.incr(f"{PREFIX}.outcome", tags={"status": status == "success"})
