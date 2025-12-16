@@ -36,4 +36,4 @@ codemod publish
 
 ## License
 
-MIT 
+MIT
