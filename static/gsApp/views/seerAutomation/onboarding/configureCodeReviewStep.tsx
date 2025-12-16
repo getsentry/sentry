@@ -52,9 +52,6 @@ export function ConfigureCodeReviewStep() {
     organization.autoEnableCodeReview ?? true
   );
 
-  const {mutate: updateOrganization, isPending: isUpdateOrganizationPending} =
-    useUpdateOrganization(organization);
-
   const {mutate: updateRepositorySettings, isPending: isUpdateRepositorySettingsPending} =
     useBulkUpdateRepositorySettings();
 
@@ -62,29 +59,6 @@ export function ConfigureCodeReviewStep() {
     const existingRepostoriesToRemove = unselectedCodeReviewRepositories
       .filter(repo => repo.settings?.enabledCodeReview)
       .map(repo => repo.id);
-
-    const updateOrganizationEnabledCodeReview = () =>
-      new Promise<void>((resolve, reject) => {
-        if (enableCodeReview === organization.autoEnableCodeReview) {
-          // No update needed, just resolve
-          resolve();
-          return;
-        }
-
-        updateOrganization(
-          {
-            autoEnableCodeReview: enableCodeReview,
-          },
-          {
-            onSuccess: () => {
-              resolve();
-            },
-            onError: () => {
-              reject(new Error(t('Failed to enable AI Code Review')));
-            },
-          }
-        );
-      });
 
     // Turn on code review for the selected repositories.
     const updateEnabledCodeReview = () =>
@@ -137,7 +111,6 @@ export function ConfigureCodeReviewStep() {
       });
 
     const promises = [
-      updateOrganizationEnabledCodeReview(),
       // This is intentionally serial bc they both mutate the same resource (the organization)
       // And react-query will only resolve the latest mutation
       updateEnabledCodeReview().then(() => updateUnselectedRepositories()),
@@ -162,11 +135,8 @@ export function ConfigureCodeReviewStep() {
     clearRootCauseAnalysisRepositories,
     selectedCodeReviewRepositories,
     unselectedCodeReviewRepositories,
-    enableCodeReview,
-    organization.autoEnableCodeReview,
     currentStep,
     setCurrentStep,
-    updateOrganization,
     updateRepositorySettings,
   ]);
 
@@ -198,7 +168,7 @@ export function ConfigureCodeReviewStep() {
                 <FieldDescription>
                   <p>
                     {t(
-                      'For all new repositories, Seer will review your PRs and flag potential bugs. '
+                      'For all checked repositories below, Seer will review your PRs and flag potential bugs. '
                     )}
                   </p>
                 </FieldDescription>
@@ -209,7 +179,7 @@ export function ConfigureCodeReviewStep() {
                 onChange={handleChangeCodeReview}
               />
             </Field>
-            <RepositorySelector />
+            <RepositorySelector disabled={!enableCodeReview} />
           </PanelBody>
         </MaxWidthPanel>
 
@@ -217,16 +187,14 @@ export function ConfigureCodeReviewStep() {
           <Flex direction="row" gap="xl" align="center">
             <Button
               size="md"
-              disabled={isUpdateRepositorySettingsPending || isUpdateOrganizationPending}
+              disabled={isUpdateRepositorySettingsPending}
               onClick={handleNextStep}
               priority="primary"
               aria-label={t('Next Step')}
             >
               {t('Next Step')}
             </Button>
-            {(isUpdateRepositorySettingsPending || isUpdateOrganizationPending) && (
-              <InlineLoadingIndicator size={20} />
-            )}
+            {isUpdateRepositorySettingsPending && <InlineLoadingIndicator size={20} />}
           </Flex>
         </GuidedSteps.ButtonWrapper>
       </StepContentWithBackground>

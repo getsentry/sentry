@@ -21,6 +21,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -39,6 +40,29 @@ import {
   StepContent,
 } from './common';
 import {RepositoryToProjectConfiguration} from './repositoryToProjectConfiguration';
+
+interface BulkUpdateAutofixSettingsData {
+  autofixAutomationTuning: 'off' | 'medium';
+  automatedRunStoppingPoint: 'code_changes' | 'open_pr';
+  projectIds: string[];
+}
+
+function useBulkUpdateAutofixSettings() {
+  const organization = useOrganization();
+  return useMutation<BulkUpdateAutofixSettingsData, Error>({
+    mutationFn: (data: BulkUpdateAutofixSettingsData) => {
+      return fetchMutation<void>({
+        method: 'PUT',
+        url: `/organizations/${organization.slug}/autofix/automation-settings/`,
+        data: {
+          projectIds: data.projectIds,
+          autofixAutomationTuning: data.autofixAutomationTuning,
+          automatedRunStoppingPoint: data.automatedRunStoppingPoint,
+        },
+      });
+    },
+  });
+}
 
 export function ConfigureRootCauseAnalysisStep() {
   const organization = useOrganization();
@@ -72,6 +96,8 @@ export function ConfigureRootCauseAnalysisStep() {
 
   const {mutate: submitOnboarding, isPending: isSubmitOnboardingPending} =
     useSubmitSeerOnboarding();
+  const {mutate: updateAutofixSettings, isPending: isUpdateAutofixPending} =
+    useUpdateBulkAutofixAutomationSettings(organization.id);
 
   useEffect(() => {
     if (!isCodeMappingsLoading && codeMappingsMap.size > 0) {
@@ -234,7 +260,7 @@ export function ConfigureRootCauseAnalysisStep() {
                 <FieldDescription>
                   <Text>
                     {t(
-                      'For all new projects, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution. '
+                      'For all projects below, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution. '
                     )}
                   </Text>
                 </FieldDescription>
@@ -250,7 +276,7 @@ export function ConfigureRootCauseAnalysisStep() {
                 <FieldLabel>{t('Automatic PR Creation')}</FieldLabel>
                 <FieldDescription>
                   {t(
-                    'For all projects below AND newly added projects, Seer will be able to create a pull request.'
+                    'For all projects below, Seer will be able to create a pull request.'
                   )}
                 </FieldDescription>
               </Flex>
@@ -307,9 +333,9 @@ export function ConfigureRootCauseAnalysisStep() {
           onClick={handleNextStep}
           priority={isFinishDisabled ? 'default' : 'primary'}
           disabled={isSubmitOnboardingPending || isFinishDisabled}
-          aria-label={t('Last Step')}
+          aria-label={t('Next Step')}
         >
-          {t('Last Step')}
+          {t('Next Step')}
         </Button>
         {isSubmitOnboardingPending && <InlineLoadingIndicator size={20} />}
       </GuidedSteps.ButtonWrapper>

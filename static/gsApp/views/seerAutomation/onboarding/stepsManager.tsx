@@ -13,6 +13,7 @@ import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboardin
 import {Steps} from 'getsentry/views/seerAutomation/onboarding/types';
 
 import {ConfigureCodeReviewStep} from './configureCodeReviewStep';
+import {ConfigureDefaultsStep} from './configureDefaultsStep';
 import {ConfigureRootCauseAnalysisStep} from './configureRootCauseAnalysisStep';
 import {ConnectGithubStep} from './connectGithubStep';
 import {NextStepsStep} from './nextStepsStep';
@@ -70,6 +71,10 @@ export function StepsManager() {
         title={t('Set Up AI Root Cause Analysis')}
       >
         <ConfigureRootCauseAnalysisStep />
+      </GuidedSteps.Step>
+
+      <GuidedSteps.Step stepKey={Steps.SETUP_DEFAULTS} title={t('Set Up Defaults')}>
+        <ConfigureDefaultsStep />
       </GuidedSteps.Step>
 
       <GuidedSteps.Step stepKey={Steps.NEXT_STEPS} title={t('Next Steps')}>
