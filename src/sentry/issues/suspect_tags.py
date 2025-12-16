@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime
 from typing import NamedTuple
 
@@ -17,8 +16,6 @@ from sentry.search.eap.occurrences.rollout_utils import (
 from sentry.seer.workflows.compare import KeyedValueCount, keyed_kl_score
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
-
-logger = logging.getLogger(__name__)
 
 
 class Score(NamedTuple):
