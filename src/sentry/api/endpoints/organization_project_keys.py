@@ -99,13 +99,9 @@ class OrganizationProjectKeysEndpoint(OrganizationEndpoint):
             except Team.DoesNotExist:
                 raise ResourceDoesNotExist(detail="Team not found")
 
-            # Filter projects to only those belonging to the team
-            projects = Project.objects.filter(id__in=project_id_set, teams=team)
-            project_id_set = {p.id for p in projects}
-
-        if not project_id_set:
-            # No projects accessible, return empty list
-            return Response([])
+            project_id_set = Project.objects.filter(id__in=project_id_set, teams=team).values_list(
+                "id", flat=True
+            )
 
         queryset = ProjectKey.objects.for_request(request).filter(
             project_id__in=project_id_set, roles=F("roles").bitor(ProjectKey.roles.store)

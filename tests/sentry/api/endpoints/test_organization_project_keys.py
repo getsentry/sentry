@@ -1,4 +1,4 @@
-from sentry.models.projectkey import ProjectKey
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.testutils.cases import APITestCase
 
 
@@ -29,8 +29,8 @@ class OrganizationProjectKeysTest(APITestCase):
 
     def test_filter_by_team_slug(self) -> None:
         """Test filtering keys by team"""
-        team1 = self.create_team(organization=self.organization)
-        team2 = self.create_team(organization=self.organization)
+        team1 = self.create_team(organization=self.organization, members=[self.user])
+        team2 = self.create_team(organization=self.organization, members=[self.user])
         project1 = self.create_project(organization=self.organization, teams=[team1])
         project2 = self.create_project(organization=self.organization, teams=[team2])
         project3 = self.create_project(organization=self.organization, teams=[team1, team2])
@@ -50,7 +50,7 @@ class OrganizationProjectKeysTest(APITestCase):
 
     def test_filter_by_team_id(self) -> None:
         """Test filtering keys by team ID"""
-        team = self.create_team(organization=self.organization)
+        team = self.create_team(organization=self.organization, members=[self.user])
         project = self.create_project(organization=self.organization, teams=[team])
         key = self._create_key(project)
         response = self.get_success_response(
@@ -70,7 +70,7 @@ class OrganizationProjectKeysTest(APITestCase):
         """Test filtering keys by active status"""
         project = self.create_project(organization=self.organization)
         active_key = self._create_key(project)
-        ProjectKey.objects.create(project=project, status=0)  # inactive
+        ProjectKey.objects.create(project=project, status=ProjectKeyStatus.INACTIVE)
         response = self.get_success_response(self.organization.slug, qs_params={"status": "active"})
         assert len(response.data) == 1
         assert response.data[0]["public"] == active_key.public_key
@@ -79,7 +79,7 @@ class OrganizationProjectKeysTest(APITestCase):
         """Test filtering keys by inactive status"""
         project = self.create_project(organization=self.organization)
         self._create_key(project)  # active
-        inactive_key = ProjectKey.objects.create(project=project, status=0)  # inactive
+        inactive_key = ProjectKey.objects.create(project=project, status=ProjectKeyStatus.INACTIVE)
         response = self.get_success_response(
             self.organization.slug, qs_params={"status": "inactive"}
         )
@@ -88,10 +88,10 @@ class OrganizationProjectKeysTest(APITestCase):
 
     def test_combined_filters(self) -> None:
         """Test combining team and status filters"""
-        team = self.create_team(organization=self.organization)
+        team = self.create_team(organization=self.organization, members=[self.user])
         project = self.create_project(organization=self.organization, teams=[team])
         active_key = self._create_key(project)
-        ProjectKey.objects.create(project=project, status=0)  # inactive
+        ProjectKey.objects.create(project=project, status=ProjectKeyStatus.INACTIVE)
         response = self.get_success_response(
             self.organization.slug, qs_params={"team": team.slug, "status": "active"}
         )
