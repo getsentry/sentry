@@ -105,7 +105,7 @@ class WaiveDataSecrecyTest(APITestCase):
         assert cache.get(self.cache_key) is not None
 
         # Make a request to update the grant
-        self.get_success_response(
+        response = self.get_success_response(
             self.organization.slug, method="put", access_end=self.access_end, status_code=201
         )
         grant.refresh_from_db()
@@ -113,8 +113,7 @@ class WaiveDataSecrecyTest(APITestCase):
         assert grant.grant_start == self.current_time
         assert grant.grant_end == self.access_end
 
-        # Confirm that we invalidated the cache
-        assert cache.get(self.cache_key) is None
+        self.assert_response(response, start=self.current_time, end=self.access_end)
 
     def test_put_invalid_grant_end(self) -> None:
         response = self.get_error_response(

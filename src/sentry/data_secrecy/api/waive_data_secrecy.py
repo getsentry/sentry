@@ -13,7 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationPermission
 from sentry.data_secrecy.cache import effective_grant_status_cache
-from sentry.data_secrecy.logic import data_access_grant_exists
+from sentry.data_secrecy.logic import cache_effective_grant_status, data_access_grant_exists
 from sentry.data_secrecy.models.data_access_grant import (
     DataAccessGrant,
     create_or_update_data_access_grant,
@@ -111,7 +111,7 @@ class WaiveDataSecrecyEndpoint(ControlSiloOrganizationEndpoint):
         organization: RpcOrganization,
     ) -> Response:
         """
-        Manually update or create a data secrecy waiver.
+        Manually update or create a data secrecy waiver. Caches and returns the new effective grant status.
 
         :param access_end: the timestamp at which data secrecy is reinstated.
         """
@@ -125,7 +125,22 @@ class WaiveDataSecrecyEndpoint(ControlSiloOrganizationEndpoint):
             organization.id, request.user.id, DataAccessGrant.GrantType.MANUAL, result["access_end"]
         )
 
-        return Response(status=status.HTTP_201_CREATED)
+        cache_effective_grant_status(organization_id=organization.id)
+        grant_status = effective_grant_status_cache.get(organization_id=organization.id)
+        if not grant_status.access_start or not grant_status.access_end:
+            logger.error(
+                "EffectiveGrantStatus with valid window missing start or end date",
+                extra={"organization_id": organization.id},
+            )
+            return Response("Effective grant status is malformed", status=status.HTTP_404_NOT_FOUND)
+
+        serialized_grant_status = {
+            "accessStart": grant_status.access_start.isoformat(),
+            "accessEnd": grant_status.access_end.isoformat(),
+            "zendeskTickets": get_active_tickets_for_organization(organization_id=organization.id),
+        }
+
+        return Response(serialized_grant_status, status=status.HTTP_201_CREATED)
 
     def delete(
         self,
