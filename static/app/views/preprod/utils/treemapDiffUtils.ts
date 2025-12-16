@@ -1,11 +1,4 @@
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import type {DiffItem, TreemapDiffElement} from 'sentry/views/preprod/types/appSizeTypes';
-
-// TODO
-export function formatSizeDiff(sizeDiff: number): string {
-  const sign = sizeDiff > 0 ? '+' : '';
-  return sign + formatBytesBase10(sizeDiff);
-}
 
 export function buildTreemapDiff(diffItems: DiffItem[]): TreemapDiffElement | null {
   if (diffItems.length === 0) {

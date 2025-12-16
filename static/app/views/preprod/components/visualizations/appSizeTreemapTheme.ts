@@ -4,7 +4,7 @@ import color from 'color';
 import {t} from 'sentry/locale';
 import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 
-export interface AppSizeCategoryInfo {
+interface AppSizeCategoryInfo {
   color: string;
   displayName: string;
   translucentColor?: string;

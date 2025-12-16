@@ -276,7 +276,3 @@ export interface TreemapDiffElement {
   path: string | null;
   size_diff: number;
 }
-
-export interface TreemapDiffResults {
-  root: TreemapDiffElement;
-}
