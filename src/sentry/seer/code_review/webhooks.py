@@ -1,30 +1,32 @@
+"""
+Webhooks for GitHub webhook events.
+
+This module handles GitHub webhook events for code review and schedules tasks to process them.
+
+See tasks.py for the tasks that are scheduled to process the webhook events.
+
+Currently, this module is only used to handle the webhook events from GitHub when a user clicks "Re-run" on a check run in GitHub UI.
+When a user clicks "Re-run" on a check run in GitHub UI, we enqueue a task to forward the original run ID to Seer so it can rerun the PR review.
+"""
+
 from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
 from typing import Any
 
-import orjson
-from django.conf import settings
 from pydantic import ValidationError
-from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry import options
 from sentry.models.organization import Organization
-from sentry.net.http import connection_from_url
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+
+# TODO: Move that functionality to src/sentry/seer/code_review/utils.py when we have more webhook events to handle.
+from sentry.overwatch.endpoints.overwatch_rpc import _is_eligible_for_code_review
 from sentry.utils import metrics
-from sentry.utils.seer import can_use_prevent_ai_features
 
 from .types import GitHubCheckRunAction, GitHubCheckRunEvent
 
 logger = logging.getLogger(__name__)
 
-
-# This needs to match the value defined in the Seer API:
-# https://github.com/getsentry/seer/blob/main/src/seer/routes/codegen.py
-SEER_CODEGEN_PATH = "/v1/automation/codegen"
-SEER_PR_REVIEW_RERUN_PATH = f"{SEER_CODEGEN_PATH}/rerun"
 PREFIX = "seer.code_review.check_run.rerun"
 
 
@@ -33,16 +35,19 @@ def handle_github_check_run_event(organization: Organization, event: Mapping[str
     Handle GitHub check_run webhook events for PR review rerun.
 
     This is called when a check_run event is received from GitHub.
-    When a user clicks "Re-run" on a check run in GitHub UI, we forward
-    the original run ID to Seer so it can rerun the PR review.
+    When a user clicks "Re-run" on a check run in GitHub UI, we enqueue
+    a task to forward the original run ID to Seer so it can rerun the PR review.
 
     Args:
         organization: The Sentry organization
         event: The webhook event payload
 
     Returns:
-        True if the event was handled successfully, False otherwise
+        True if the event was handled successfully (task enqueued), False otherwise
     """
+    if not _should_handle_github_check_run_event(organization, event["action"]):
+        return False
+
     # Validate event payload using Pydantic
     try:
         validated_event = _validate_github_check_run_event(event)
@@ -53,16 +58,19 @@ def handle_github_check_run_event(organization: Organization, event: Mapping[str
         metrics.incr(f"{PREFIX}.outcome", tags={"status": "invalid_payload"})
         return False
 
-    if not _should_handle_github_check_run_event(organization, validated_event.action):
-        return False
+    # Enqueue task to process the rerun request asynchronously
+    from .tasks import process_github_webhook_event
 
-    extra: dict[str, Any] = {
-        "organization_id": organization.id,
-        "action": validated_event.action,
-        "html_url": validated_event.check_run.html_url,
-        "external_id": validated_event.check_run.external_id,
-    }
-    return _make_rerun_request(validated_event.check_run.external_id, extra)
+    # Note: bind=True means self is automatically provided, mypy doesn't understand this
+    process_github_webhook_event.delay(  # type: ignore[call-arg]
+        original_run_id=validated_event.check_run.external_id,
+        organization_id=organization.id,
+        action=validated_event.action,
+        html_url=validated_event.check_run.html_url,
+    )
+
+    metrics.incr(f"{PREFIX}.enqueued", tags={"status": "success"})
+    return True
 
 
 def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRunEvent:
@@ -76,6 +84,7 @@ def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRun
     try:
         validated_event = GitHubCheckRunEvent.parse_obj(event)
         int(validated_event.check_run.external_id)
+    # These exceptions should be reported to GitHub as errors.
     except ValidationError:
         logger.exception("Invalid GitHub check_run event payload")
         raise
@@ -86,38 +95,18 @@ def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRun
     return validated_event
 
 
-def _make_rerun_request(original_run_id: str, extra: dict[str, Any]) -> bool:
-    payload = {"original_run_id": original_run_id}
-    status = "failure"
-    try:
-        response = make_signed_seer_api_request(
-            connection_pool=connection_from_url(settings.SEER_AUTOFIX_URL),
-            path=SEER_PR_REVIEW_RERUN_PATH,
-            body=orjson.dumps(payload),
-        )
-        if response.status >= 400:
-            logger.error("%s.error", PREFIX, extra=extra)
-        else:
-            status = "success"
-    except (TimeoutError, MaxRetryError) as e:
-        status = e.__class__.__name__
-        logger.exception("Failed to make rerun request", extra=extra)
-
-    metrics.incr(f"{PREFIX}.outcome", tags={"status": status})
-    if status != "success":
-        return False
-
-    return True
-
-
 def _should_handle_github_check_run_event(organization: Organization, action: str) -> bool:
     """
     Determine if the GitHub check_run event should be handled.
     """
-    if not options.get("coding_workflows.code_review.github.check_run.rerun.enabled"):
-        return False
 
-    if not can_use_prevent_ai_features(organization):
+    if not _is_eligible_for_code_review(
+        organization,
+        # XXX: Handle these later
+        repository_id=1,
+        integration_id=1,
+        external_identifier="",
+    ):
         return False
 
     return action == GitHubCheckRunAction.REREQUESTED

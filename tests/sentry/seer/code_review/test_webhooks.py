@@ -2,26 +2,17 @@ from unittest.mock import MagicMock, patch
 
 import orjson
 from django.http.response import HttpResponseBase
-from urllib3 import BaseHTTPResponse
 
 from fixtures.github import (
     CHECK_RUN_COMPLETED_EVENT_EXAMPLE,
     CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
 )
-from sentry.seer.code_review.webhooks import PREFIX, SEER_PR_REVIEW_RERUN_PATH
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.github import GitHubWebhookTestCase
 
 
 class CheckRunEventWebhookTest(GitHubWebhookTestCase):
     """Integration tests for GitHub check_run webhook events."""
-
-    def _mock_response(self, status: int, data: bytes) -> BaseHTTPResponse:
-        """Helper to create mock urllib3 response."""
-        mock_response = MagicMock(spec=BaseHTTPResponse)
-        mock_response.status = status
-        mock_response.data = data
-        return mock_response
 
     def _send_check_run_event(self, event_data: bytes | str) -> HttpResponseBase:
         """Helper to send check_run event with Pydantic validation."""
@@ -43,108 +34,74 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
         assert response.status_code == 204
         return response
 
-    @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
-    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
-    def test_base_case(self, mock_request: MagicMock) -> None:
-        """Test that rerequested action forwards original_run_id to Seer."""
-        mock_request.return_value = self._mock_response(200, b'{"success": true}')
-
+    @patch("sentry.seer.code_review.tasks.process_github_webhook_event")
+    @with_feature({"organizations:code-review-beta"})
+    def test_base_case(self, mock_task: MagicMock) -> None:
+        """Test that rerequested action enqueues task with correct parameters."""
         with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
             self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
 
-            # Verify request was made with correct payload
-            mock_request.assert_called_once()
-            call_kwargs = mock_request.call_args[1]
-            body = orjson.loads(call_kwargs["body"])
-            assert body == {"original_run_id": str(self.event_dict["check_run"]["external_id"])}
-            assert call_kwargs["path"] == SEER_PR_REVIEW_RERUN_PATH
+            # Verify task was enqueued with correct parameters
+            mock_task.delay.assert_called_once_with(
+                original_run_id=self.event_dict["check_run"]["external_id"],
+                organization_id=self.organization.id,
+                action="rerequested",
+                html_url=self.event_dict["check_run"]["html_url"],
+            )
 
-    @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
-    def test_check_run_skips_when_ai_features_disabled(self, mock_request: MagicMock) -> None:
-        """Test that the handler returns early when AI features are not enabled."""
+    @patch("sentry.seer.code_review.tasks.process_github_webhook_event")
+    def test_check_run_skips_when_ai_features_disabled(self, mock_task: MagicMock) -> None:
+        """Test that the handler returns early when AI features are not enabled (even though the option is enabled)."""
         self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
-        mock_request.assert_not_called()
+        mock_task.delay.assert_not_called()
 
-    @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
-    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
-    def test_check_run_skips_when_option_disabled(self, mock_request: MagicMock) -> None:
-        """Test that handler returns early since the option is disabled by default."""
-        self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
-        mock_request.assert_not_called()
-
-    @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
-    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
-    def test_check_run_fails_when_external_id_missing(self, mock_request: MagicMock) -> None:
+    @patch("sentry.seer.code_review.tasks.process_github_webhook_event")
+    @with_feature({"organizations:code-review-beta"})
+    def test_check_run_fails_when_external_id_missing(self, mock_task: MagicMock) -> None:
         """Test that missing external_id is handled gracefully."""
         # Create event without external_id
         event_without_external_id = orjson.loads(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
         del event_without_external_id["check_run"]["external_id"]
 
-        with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
-            with patch("sentry.seer.code_review.webhooks.logger") as mock_logger:
-                self._send_check_run_event(orjson.dumps(event_without_external_id))
+        with patch("sentry.seer.code_review.webhooks.logger") as mock_logger:
+            self._send_check_run_event(orjson.dumps(event_without_external_id))
 
-                # Verify NO request was made to Seer
-                mock_request.assert_not_called()
-                # Verify error was logged (validation errors are logged with exception)
-                mock_logger.exception.assert_called_once()
-                assert (
-                    "Invalid GitHub check_run event payload"
-                    in mock_logger.exception.call_args[0][0]
-                )
+            # Verify NO task was enqueued
+            mock_task.delay.assert_not_called()
+            # Verify error was logged (validation errors are logged with exception)
+            mock_logger.exception.assert_called_once()
+            assert "Invalid GitHub check_run event payload" in mock_logger.exception.call_args[0][0]
 
-    @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
-    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
-    def test_check_run_fails_when_external_id_not_numeric(self, mock_request: MagicMock) -> None:
+    @patch("sentry.seer.code_review.tasks.process_github_webhook_event")
+    @with_feature({"organizations:code-review-beta"})
+    def test_check_run_fails_when_external_id_not_numeric(self, mock_task: MagicMock) -> None:
         """Test that non-numeric external_id is handled gracefully."""
         # Create event with non-numeric external_id
         event_with_invalid_external_id = orjson.loads(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
         event_with_invalid_external_id["check_run"]["external_id"] = "not-a-number"
 
-        with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
-            with patch("sentry.seer.code_review.webhooks.logger") as mock_logger:
-                self._send_check_run_event(orjson.dumps(event_with_invalid_external_id))
+        with patch("sentry.seer.code_review.webhooks.logger") as mock_logger:
+            self._send_check_run_event(orjson.dumps(event_with_invalid_external_id))
 
-                # Verify NO request was made to Seer
-                mock_request.assert_not_called()
-                # Verify error was logged (ValueError for non-numeric external_id)
-                mock_logger.exception.assert_called_once()
-                assert "external_id must be numeric" in mock_logger.exception.call_args[0][0]
+            # Verify NO task was enqueued
+            mock_task.delay.assert_not_called()
+            # Verify error was logged (ValueError for non-numeric external_id)
+            mock_logger.exception.assert_called_once()
+            assert "external_id must be numeric" in mock_logger.exception.call_args[0][0]
 
-    @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
-    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
-    def test_check_run_handles_seer_error_gracefully(self, mock_request: MagicMock) -> None:
-        """Test that Seer errors are caught and logged without failing the webhook."""
-        # Mock Seer API to return an error
-        mock_request.return_value = self._mock_response(500, b'{"error": "Internal server error"}')
+    @patch("sentry.seer.code_review.tasks.process_github_webhook_event")
+    @with_feature({"organizations:code-review-beta"})
+    def test_check_run_enqueues_task_for_processing(self, mock_task: MagicMock) -> None:
+        """Test that webhook successfully enqueues task for async processing."""
 
-        with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
-            with patch("sentry.seer.code_review.webhooks.logger") as mock_logger:
-                self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
+        self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
 
-                # Verify the request was attempted
-                mock_request.assert_called_once()
-                # Verify error logging (not exception since we now handle the status code)
-                mock_logger.error.assert_called_once()
-                # Check format string and PREFIX argument (logger uses %-formatting)
-                assert mock_logger.error.call_args[0][0] == "%s.error"
-                assert mock_logger.error.call_args[0][1] == PREFIX
-
-    @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
-    @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
-    def test_check_run_includes_signed_headers(self, mock_request: MagicMock) -> None:
-        """Test that request is made through make_signed_seer_api_request which handles signing."""
-        mock_request.return_value = self._mock_response(200, b'{"success": true}')
-
-        with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
-            self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
-
-            # Verify request was made (signing is handled by make_signed_seer_api_request)
-            mock_request.assert_called_once()
-            # Verify the correct connection pool and path were used
-            call_kwargs = mock_request.call_args[1]
-            assert call_kwargs["path"] == SEER_PR_REVIEW_RERUN_PATH
-            assert "body" in call_kwargs
+        # Verify task was enqueued once
+        mock_task.delay.assert_called_once()
+        call_kwargs = mock_task.delay.call_args[1]
+        # Verify the external_id and organization_id are passed
+        assert call_kwargs["original_run_id"] == self.event_dict["check_run"]["external_id"]
+        assert call_kwargs["organization_id"] == self.organization.id
 
     def test_check_run_without_integration_returns_204(self) -> None:
         """Test that check_run events without integration return 204."""
