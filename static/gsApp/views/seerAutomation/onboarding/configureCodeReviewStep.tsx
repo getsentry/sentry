@@ -1,11 +1,11 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import configureCodeReviewImg from 'sentry-images/spot/seer-config-check.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -15,20 +15,11 @@ import {
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useUpdateOrganization} from 'sentry/utils/useUpdateOrganization';
 
 import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
 import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 
-import {
-  Field,
-  FieldDescription,
-  FieldLabel,
-  MaxWidthPanel,
-  PanelDescription,
-  StepContent,
-} from './common';
+import {MaxWidthPanel, PanelDescription, StepContent} from './common';
 import {RepositorySelector} from './repositorySelector';
 
 // This is the max # of repos that we will allow to be pre-selected.
@@ -40,17 +31,12 @@ const DEFAULT_CODE_REVIEW_TRIGGERS = [
 ];
 
 export function ConfigureCodeReviewStep() {
-  const organization = useOrganization();
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
   const {
     clearRootCauseAnalysisRepositories,
     selectedCodeReviewRepositories,
     unselectedCodeReviewRepositories,
   } = useSeerOnboardingContext();
-
-  const [enableCodeReview, setEnableCodeReview] = useState(
-    organization.autoEnableCodeReview ?? true
-  );
 
   const {mutate: updateRepositorySettings, isPending: isUpdateRepositorySettingsPending} =
     useBulkUpdateRepositorySettings();
@@ -140,13 +126,6 @@ export function ConfigureCodeReviewStep() {
     updateRepositorySettings,
   ]);
 
-  const handleChangeCodeReview = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setEnableCodeReview(e.target.checked);
-    },
-    [setEnableCodeReview]
-  );
-
   return (
     <Fragment>
       <StepContentWithBackground>
@@ -155,31 +134,14 @@ export function ConfigureCodeReviewStep() {
             <PanelDescription>
               <p>{t(`You've successfully connected to GitHub!`)}</p>
 
+              <Text bold>{t('AI Code Review')}</Text>
               <p>
                 {t(
-                  `Now, select which repositories you would like to run Seer’s AI Code Review on.`
+                  `For all selected repositories below, Seer's AI Code Review will be run to review your PRs and flag potential bugs. `
                 )}
               </p>
             </PanelDescription>
-
-            <Field>
-              <Flex direction="column" flex="1" gap="xs">
-                <FieldLabel>{t('Enable AI Code Review')}</FieldLabel>
-                <FieldDescription>
-                  <p>
-                    {t(
-                      'For all checked repositories below, Seer will review your PRs and flag potential bugs. '
-                    )}
-                  </p>
-                </FieldDescription>
-              </Flex>
-              <Switch
-                size="lg"
-                checked={enableCodeReview}
-                onChange={handleChangeCodeReview}
-              />
-            </Field>
-            <RepositorySelector disabled={!enableCodeReview} />
+            <RepositorySelector />
           </PanelBody>
         </MaxWidthPanel>
 

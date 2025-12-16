@@ -21,7 +21,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -41,34 +40,8 @@ import {
 } from './common';
 import {RepositoryToProjectConfiguration} from './repositoryToProjectConfiguration';
 
-interface BulkUpdateAutofixSettingsData {
-  autofixAutomationTuning: 'off' | 'medium';
-  automatedRunStoppingPoint: 'code_changes' | 'open_pr';
-  projectIds: string[];
-}
-
-function useBulkUpdateAutofixSettings() {
-  const organization = useOrganization();
-  return useMutation<BulkUpdateAutofixSettingsData, Error>({
-    mutationFn: (data: BulkUpdateAutofixSettingsData) => {
-      return fetchMutation<void>({
-        method: 'PUT',
-        url: `/organizations/${organization.slug}/autofix/automation-settings/`,
-        data: {
-          projectIds: data.projectIds,
-          autofixAutomationTuning: data.autofixAutomationTuning,
-          automatedRunStoppingPoint: data.automatedRunStoppingPoint,
-        },
-      });
-    },
-  });
-}
-
 export function ConfigureRootCauseAnalysisStep() {
   const organization = useOrganization();
-  const [proposeFixesEnabled, setProposeFixesEnabled] = useState(
-    organization.defaultAutofixAutomationTuning !== 'off'
-  );
   const [autoCreatePREnabled, setAutoCreatePREnabled] = useState(
     organization.autoOpenPrs ?? false
   );
@@ -96,8 +69,6 @@ export function ConfigureRootCauseAnalysisStep() {
 
   const {mutate: submitOnboarding, isPending: isSubmitOnboardingPending} =
     useSubmitSeerOnboarding();
-  const {mutate: updateAutofixSettings, isPending: isUpdateAutofixPending} =
-    useUpdateBulkAutofixAutomationSettings(organization.id);
 
   useEffect(() => {
     if (!isCodeMappingsLoading && codeMappingsMap.size > 0) {
@@ -158,14 +129,14 @@ export function ConfigureRootCauseAnalysisStep() {
 
     // Only submit if RCA is disabled (empty mapping is fine) or there are valid mappings
     const hasMappings = Object.keys(projectRepoMapping).length > 0;
-    if (proposeFixesEnabled && !hasMappings) {
+    if (!hasMappings) {
       addErrorMessage(t('At least one repository must be mapped to a project'));
       return;
     }
 
     submitOnboarding(
       {
-        fixes: proposeFixesEnabled,
+        fixes: true,
         pr_creation: autoCreatePREnabled,
         project_repo_mapping: projectRepoMapping,
       },
@@ -185,7 +156,6 @@ export function ConfigureRootCauseAnalysisStep() {
     submitOnboarding,
     repositoryProjectMapping,
     selectedRootCauseAnalysisRepositories,
-    proposeFixesEnabled,
     autoCreatePREnabled,
     organization.id,
   ]);
@@ -247,30 +217,14 @@ export function ConfigureRootCauseAnalysisStep() {
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
+              <Text bold>{t('Root Cause Analysis')}</Text>
               <p>
                 {t(
-                  'Pair your projects with your repositories to make sure Seer can analyze your codebase.'
+                  'For all projects added below, Seer will automatically analyze highly actionable issues, and create a root cause analysis and proposed solution without a user needing to prompt it. '
                 )}
               </p>
             </PanelDescription>
 
-            <Field>
-              <Flex direction="column" flex="1" gap="xs">
-                <FieldLabel>{t('Enable Root Cause Analysis')}</FieldLabel>
-                <FieldDescription>
-                  <Text>
-                    {t(
-                      'For all projects below, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution. '
-                    )}
-                  </Text>
-                </FieldDescription>
-              </Flex>
-              <Switch
-                size="lg"
-                checked={proposeFixesEnabled}
-                onChange={() => setProposeFixesEnabled(!proposeFixesEnabled)}
-              />
-            </Field>
             <Field>
               <Flex direction="column" flex="1" gap="xs">
                 <FieldLabel>{t('Automatic PR Creation')}</FieldLabel>

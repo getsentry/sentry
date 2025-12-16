@@ -19,7 +19,6 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUpdateOrganization} from 'sentry/utils/useUpdateOrganization';
 
-import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {
   Field,
   FieldDescription,
