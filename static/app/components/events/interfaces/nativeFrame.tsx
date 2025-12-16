@@ -28,6 +28,7 @@ import {IconChevron} from 'sentry/icons';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
+import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
@@ -573,7 +574,7 @@ const StackTraceFrame = styled('li')`
 `;
 
 const SymbolicatorIcon = styled('div')`
-  width: ${p => p.theme.iconSizes.sm};
+  width: ${() => SvgIcon.ICON_SIZES.sm};
 `;
 
 const ShowHideButton = styled(Button)`
