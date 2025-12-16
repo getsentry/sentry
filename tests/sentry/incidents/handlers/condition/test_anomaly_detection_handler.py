@@ -4,6 +4,7 @@ from unittest import mock
 import orjson
 from urllib3.response import HTTPResponse
 
+from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
 from sentry.incidents.utils.types import AnomalyDetectionUpdate
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
@@ -13,6 +14,7 @@ from sentry.seer.anomaly_detection.types import (
     DataSourceType,
     DetectAnomaliesResponse,
 )
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.subscriptions import create_snuba_subscription
 from sentry.workflow_engine.models import Condition, DataPacket
 from sentry.workflow_engine.types import ConditionError, DetectorPriorityLevel
@@ -75,27 +77,11 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
                         "anomaly_type": AnomalyType.HIGH_CONFIDENCE,
                     },
                     "timestamp": 1,
-                    "value": 10,
+                    "value": self.data_packet.packet.values["value"],
                 }
             ],
         }
-
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    def test_passes(self, mock_seer_request: mock.MagicMock) -> None:
-        seer_return_value = self.high_confidence_seer_response
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        assert (
-            self.dc.evaluate_value(self.data_packet.packet.values)
-            == DetectorPriorityLevel.HIGH.value
-        )
-
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    def test_passes_medium(self, mock_seer_request: mock.MagicMock) -> None:
-        seer_return_value: DetectAnomaliesResponse = {
+        self.low_confidence_seer_response: DetectAnomaliesResponse = {
             "success": True,
             "timeseries": [
                 {
@@ -104,14 +90,85 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
                         "anomaly_type": AnomalyType.LOW_CONFIDENCE,
                     },
                     "timestamp": 1,
-                    "value": 10,
+                    "value": self.data_packet.packet.values["value"],
                 }
             ],
         }
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+    def assert_seer_call(self, mock_seer_request: mock.MagicMock):
+        assert mock_seer_request.call_args.args[0] == "POST"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
+        deserialized_body = orjson.loads(mock_seer_request.call_args.kwargs["body"])
+
+        assert deserialized_body["organization_id"] == self.detector.project.organization.id
+        assert deserialized_body["project_id"] == self.detector.project_id
+        assert deserialized_body["config"]["time_period"] == self.snuba_query.time_window / 60
+        assert (
+            deserialized_body["config"]["sensitivity"]
+            == self.dc.comparison.get("sensitivity").value
+        )
+        assert (
+            deserialized_body["config"]["expected_seasonality"]
+            == self.dc.comparison.get("seasonality").value
+        )
+        assert deserialized_body["context"]["source_id"] == self.data_source.id
+        assert (
+            deserialized_body["context"]["source_type"] == DataSourceType.SNUBA_QUERY_SUBSCRIPTION
+        )
+        assert (
+            deserialized_body["context"]["cur_window"]["value"]
+            == self.data_packet.packet.values["value"]
+        )
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    def test_triggers(self, mock_seer_request: mock.MagicMock) -> None:
+        mock_seer_request.return_value = HTTPResponse(
+            orjson.dumps(self.high_confidence_seer_response), status=200
+        )
+        assert (
+            self.dc.evaluate_value(self.data_packet.packet.values)
+            == DetectorPriorityLevel.HIGH.value
+        )
+        self.assert_seer_call(mock_seer_request)
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    def test_does_not_trigger(self, mock_seer_request: mock.MagicMock) -> None:
+        mock_seer_request.return_value = HTTPResponse(
+            orjson.dumps(self.low_confidence_seer_response), status=200
+        )
         assert (
             self.dc.evaluate_value(self.data_packet.packet.values) == DetectorPriorityLevel.OK.value
         )
+        self.assert_seer_call(mock_seer_request)
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    def test_triggers_performance_detector(self, mock_seer_request: mock.MagicMock) -> None:
+        self.snuba_query.update(time_window=15 * 60, dataset=Dataset.Transactions)
+
+        # ensure that it triggers
+        mock_seer_request.return_value = HTTPResponse(
+            orjson.dumps(self.high_confidence_seer_response), status=200
+        )
+        assert (
+            self.dc.evaluate_value(self.data_packet.packet.values)
+            == DetectorPriorityLevel.HIGH.value
+        )
+        self.assert_seer_call(mock_seer_request)
+
+        # ensure that it resolves
+        mock_seer_request.return_value = HTTPResponse(
+            orjson.dumps(self.low_confidence_seer_response), status=200
+        )
+        assert (
+            self.dc.evaluate_value(self.data_packet.packet.values) == DetectorPriorityLevel.OK.value
+        )
+        self.assert_seer_call(mock_seer_request)
 
     @mock.patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
