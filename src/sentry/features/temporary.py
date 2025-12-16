@@ -386,6 +386,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-new-onboarding", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer GTM Settings page designs
     manager.add("organizations:seer-settings-gtm", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable Seer Workflows in Slack
+    manager.add("organizations:seer-slack-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable search query builder boolean operator select feature
     manager.add("organizations:search-query-builder-add-boolean-operator-select", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable search query builder case insensitivity features
@@ -451,9 +453,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable public RPC endpoint for local seer development
     manager.add("organizations:seer-public-rpc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Organizations on the old usage-based (v0) Seer plan
-    manager.add("organizations:seer-added", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:seer-added", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Organizations on the new seat-based Seer plan
-    manager.add("organizations:seat-based-seer-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:seat-based-seer-enabled", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable new SentryApp webhook request endpoint
     manager.add("organizations:sentry-app-webhook-requests", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable standalone span ingestion

@@ -1,8 +1,8 @@
 import {Fragment, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import seerAutofixImg from 'sentry-images/autofix.png';
 import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';
+import seerConfigShipImg from 'sentry-images/spot/seer-config-ship.svg';
 
 import {Flex} from '@sentry/scraps/layout/flex';
 import {Stack} from '@sentry/scraps/layout/stack';
@@ -59,7 +59,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
       </SeerFeaturesPanel>
       <Stack>
         <AngledImageContainer>
-          <Image src={seerAutofixImg} alt="" />
+          <Image src={seerConfigShipImg} alt="" />
         </AngledImageContainer>
         <SeerPreviewPanel alignSelf="flex-start">
           <Stack gap="md" padding="md">
@@ -110,7 +110,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
             <Stack align="start">
               <LinkButton
                 priority="primary"
-                to={`/settings/${organization.slug}/seer/onboarding/`}
+                to={`/organizations/${organization.slug}/settings/seer/onboarding/`}
                 icon={<IconSeer />}
               >
                 {t('Set Up Seer')}

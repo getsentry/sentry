@@ -1,22 +1,30 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert/alert';
+
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import {NoAccess} from 'sentry/components/noAccess';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
+import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+
 import {SeerOnboardingProvider} from './onboarding/hooks/seerOnboardingContext';
 import {StepsManager} from './onboarding/stepsManager';
 
 export default function SeerOnboardingV2() {
   const organization = useOrganization();
+  const canWrite = useCanWriteSettings();
 
-  if (!organization.features.includes('seer-new-onboarding')) {
-    return <NoAccess />;
+  if (!canWrite) {
+    return (
+      <Alert type="warning">
+        {t('Only organization administrators can access the Seer Setup Wizard')}
+      </Alert>
+    );
   }
 
   return (
