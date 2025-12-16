@@ -86,55 +86,55 @@
 
         g[data-index='0'] > path:nth-of-type(1) {
           animation-name: draw_g0_p1;
-        } /* i=1 */
+        }
         g[data-index='0'] > path:nth-of-type(2) {
           animation-name: draw_g0_p0;
-        } /* i=0 */
+        }
         g[data-index='0'] > path:nth-of-type(3) {
           animation-name: draw_g0_p2;
-        } /* i=2 */
+        }
 
         g[data-index='1'] > path:nth-of-type(1) {
           animation-name: draw_g1_p2;
-        } /* i=2 */
+        }
         g[data-index='1'] > path:nth-of-type(2) {
           animation-name: draw_g1_p0;
-        } /* i=0 */
+        }
         g[data-index='1'] > path:nth-of-type(3) {
           animation-name: draw_g1_p1;
-        } /* i=1 */
+        }
 
         g[data-index='2'] > path:nth-of-type(1) {
           animation-name: draw_g2_p0;
-        } /* i=0 */
+        }
         g[data-index='2'] > path:nth-of-type(2) {
           animation-name: draw_g2_p3;
-        } /* i=3 */
+        }
         g[data-index='2'] > path:nth-of-type(3) {
           animation-name: draw_g2_p1;
-        } /* i=1 */
+        }
 
         /*
-      Each baked timeline:
-      - Hold at 1150 until its start %
-      - Ease-out into 0 by its 40% point
-      - Ease-out to -1150 by end of loop
-      - Snap back to 1150 at 100% so the loop repeats cleanly
-    */
+          Each baked timeline:
+          - Hold at 1150 until its start %
+          - Ease-out into 0 by its 40% point
+          - Ease-out to -1150 by end of loop
+          - Snap back to 1150 at 100% so the loop repeats cleanly
+        */
         @keyframes draw_g0_p2 {
-          /* start=  50ms =>  2.127660%, 40% point=41.276596% */
+          /* start=  50ms =>  2.1%, 40% point=41.3% */
           0%,
-          2.127660% {
+          2.1% {
             stroke-dashoffset: 1150;
           }
-          2.127660% {
+          2.1% {
             animation-timing-function: ease-out;
           }
-          41.276596% {
+          41.3% {
             stroke-dashoffset: 0;
             animation-timing-function: ease-out;
           }
-          99.999% {
+          99.99% {
             stroke-dashoffset: -1150;
           }
           100% {
@@ -142,19 +142,19 @@
           }
         }
         @keyframes draw_g0_p1 {
-          /* start= 100ms =>  4.255319%, 40% point=42.553191% */
+          /* start= 100ms => 4.3%, 40% point=42.6% */
           0%,
-          4.255319% {
+          4.3% {
             stroke-dashoffset: 1150;
           }
-          4.255319% {
+          4.3% {
             animation-timing-function: ease-out;
           }
-          42.553191% {
+          42.6% {
             stroke-dashoffset: 0;
             animation-timing-function: ease-out;
           }
-          99.999% {
+          99.99% {
             stroke-dashoffset: -1150;
           }
           100% {
@@ -162,19 +162,19 @@
           }
         }
         @keyframes draw_g0_p0 {
-          /* start= 150ms =>  6.382979%, 40% point=43.829787% */
+          /* start= 150ms =>  6.4%, 40% point=43.8% */
           0%,
-          6.382979% {
+          6.4% {
             stroke-dashoffset: 1150;
           }
-          6.382979% {
+          6.4% {
             animation-timing-function: ease-out;
           }
-          43.829787% {
+          43.8% {
             stroke-dashoffset: 0;
             animation-timing-function: ease-out;
           }
-          99.999% {
+          99.99% {
             stroke-dashoffset: -1150;
           }
           100% {
@@ -183,19 +183,19 @@
         }
 
         @keyframes draw_g1_p2 {
-          /* start= 230ms =>  9.787234%, 40% point=45.872340% */
+          /* start= 230ms =>  9.8%, 40% point=45.9% */
           0%,
-          9.787234% {
+          9.8% {
             stroke-dashoffset: 1150;
           }
-          9.787234% {
+          9.8% {
             animation-timing-function: ease-out;
           }
-          45.872340% {
+          45.9% {
             stroke-dashoffset: 0;
             animation-timing-function: ease-out;
           }
-          99.999% {
+          99.99% {
             stroke-dashoffset: -1150;
           }
           100% {
@@ -203,19 +203,19 @@
           }
         }
         @keyframes draw_g1_p1 {
-          /* start= 280ms => 11.914894%, 40% point=47.148936% */
+          /* start= 280ms => 11.9%, 40% point=47.1% */
           0%,
-          11.914894% {
+          11.9% {
             stroke-dashoffset: 1150;
           }
-          11.914894% {
+          11.9% {
             animation-timing-function: ease-out;
           }
-          47.148936% {
+          47.1% {
             stroke-dashoffset: 0;
             animation-timing-function: ease-out;
           }
-          99.999% {
+          99.99% {
             stroke-dashoffset: -1150;
           }
           100% {
@@ -223,19 +223,19 @@
           }
         }
         @keyframes draw_g1_p0 {
-          /* start= 330ms => 14.042553%, 40% point=48.425532% */
+          /* start= 330ms => 14%, 40% point=48.4% */
           0%,
-          14.042553% {
+          14% {
             stroke-dashoffset: 1150;
           }
-          14.042553% {
+          14% {
             animation-timing-function: ease-out;
           }
-          48.425532% {
+          48.4% {
             stroke-dashoffset: 0;
             animation-timing-function: ease-out;
           }
-          99.999% {
+          99.99% {
             stroke-dashoffset: -1150;
           }
           100% {
@@ -244,19 +244,19 @@
         }
 
         @keyframes draw_g2_p3 {
-          /* start= 400ms => 17.021277%, 40% point=50.212766% */
+          /* start= 400ms => 17%, 40% point=50.2% */
           0%,
-          17.021277% {
+          17% {
             stroke-dashoffset: 1150;
           }
-          17.021277% {
+          17% {
             animation-timing-function: ease-out;
           }
-          50.212766% {
+          50.2% {
             stroke-dashoffset: 0;
             animation-timing-function: ease-out;
           }
-          99.999% {
+          99.99% {
             stroke-dashoffset: -1150;
           }
           100% {
@@ -264,19 +264,19 @@
           }
         }
         @keyframes draw_g2_p1 {
-          /* start= 500ms => 21.276596%, 40% point=52.765957% */
+          /* start= 500ms => 21.3%, 40% point=52.8% */
           0%,
-          21.276596% {
+          21.3% {
             stroke-dashoffset: 1150;
           }
-          21.276596% {
+          21.3% {
             animation-timing-function: ease-out;
           }
-          52.765957% {
+          52.8% {
             stroke-dashoffset: 0;
             animation-timing-function: ease-out;
           }
-          99.999% {
+          99.99% {
             stroke-dashoffset: -1150;
           }
           100% {
@@ -284,19 +284,19 @@
           }
         }
         @keyframes draw_g2_p0 {
-          /* start= 550ms => 23.404255%, 40% point=54.042553% */
+          /* start= 550ms => 23.4%, 40% point=54% */
           0%,
-          23.404255% {
+          23.4% {
             stroke-dashoffset: 1150;
           }
-          23.404255% {
+          23.4% {
             animation-timing-function: ease-out;
           }
-          54.042553% {
+          54% {
             stroke-dashoffset: 0;
             animation-timing-function: ease-out;
           }
-          99.999% {
+          99.99% {
             stroke-dashoffset: -1150;
           }
           100% {
