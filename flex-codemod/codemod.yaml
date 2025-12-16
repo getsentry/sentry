@@ -1,0 +1,20 @@
+schema_version: "1.0"
+
+name: "flex-migration"
+version: "0.1.0"
+description: "Migrate styled components with flexbox to Flex/Stack components"
+author: "Claude"
+license: "MIT"
+workflow: "workflow.yaml"
+
+
+targets:
+  languages: ["tsx"]
+
+keywords: ["transformation", "migration"]
+
+registry:
+  access: "public"
+  visibility: "public"
+
+capabilities: []

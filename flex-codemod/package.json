@@ -1,0 +1,14 @@
+{
+	"name": "flex-migration",
+	"version": "0.1.0",
+	"description": "Migrate styled components with flexbox to Flex/Stack components",
+	"type": "module",
+	"devDependencies": {
+		"@codemod.com/jssg-types": "^1.3.0",
+		"typescript": "^5.8.3"
+	},
+	"scripts": {
+		"test": "pnpm dlx codemod@latest jssg test -l tsx ./scripts/codemod.ts",
+		"check-types": "tsc --noEmit"
+	}
+}

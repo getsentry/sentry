@@ -1,0 +1,32 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    devDependencies:
+      '@codemod.com/jssg-types':
+        specifier: ^1.3.0
+        version: 1.3.1
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+packages:
+
+  '@codemod.com/jssg-types@1.3.1':
+    resolution: {integrity: sha512-poYNa8mfr8+4+kBPc3bAKBTaUtOQdg5z3voeGGAAr0tiTBvC4cmmoY/dyHXEWT8F+p8A1tWUnhmJZ4WQXV3HVA==}
+
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
+snapshots:
+
+  '@codemod.com/jssg-types@1.3.1': {}
+
+  typescript@5.9.3: {}
