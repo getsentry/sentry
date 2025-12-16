@@ -86,7 +86,7 @@ class OrganizationProjectKeysEndpoint(OrganizationEndpoint):
         """
         projects = self.get_projects(request, organization)
 
-        project_id_set = {p.id for p in projects}
+        project_id_set: set[int] = {p.id for p in projects}
 
         team_param = request.GET.get("team")
         if team_param:
@@ -98,7 +98,7 @@ class OrganizationProjectKeysEndpoint(OrganizationEndpoint):
             except Team.DoesNotExist:
                 raise ResourceDoesNotExist(detail="Team not found")
 
-            project_id_set: set[int] = set(
+            project_id_set = set(
                 Project.objects.filter(id__in=project_id_set, teams=team).values_list(
                     "id", flat=True
                 )
