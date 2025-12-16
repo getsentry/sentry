@@ -251,15 +251,33 @@ export function useChartXRangeSelection({
       return;
     }
 
-    // Initial selection is cleared, so we clear the selection
+    const hasInitialSelectionChanged = previousInitialSelection !== initialSelection;
+
+    // Initial selection changed to undefined, so we clear the selection
     // Example: Back navigation to an unselected chart region state
-    if (previousInitialSelection && !initialSelection) {
+    if (hasInitialSelectionChanged && !initialSelection) {
       clearSelection();
       return;
     }
 
-    // Initial selection is not set, so we don't need to sync the selection
+    // No initial selection to sync
     if (!initialSelection) {
+      return;
+    }
+
+    // Determine if we need to update state. This is the case when:
+    // 1. No current selection state BUT initialSelection is defined, so we initialize the selection state
+    // 2. Initial selection changed and range is different.
+    //    Example: Back navigation from one selected chart region state to another selected chart region state.
+    const hasRangeChanged =
+      selectionState &&
+      (selectionState.selection.range[0] !== initialSelection.range[0] ||
+        selectionState.selection.range[1] !== initialSelection.range[1]);
+
+    const shouldUpdateState =
+      !selectionState || (hasInitialSelectionChanged && hasRangeChanged);
+
+    if (!shouldUpdateState) {
       return;
     }
 
@@ -269,24 +287,7 @@ export function useChartXRangeSelection({
       panelId: initialSelection.panelId,
     });
 
-    if (!newState) {
-      return;
-    }
-
-    // Initialization of the selection state from the initialSelection prop
-    if (!selectionState) {
-      setSelectionState(newState);
-      return;
-    }
-
-    // This is the case where a selection already exists but we are now passing a
-    // new defined initialSelection prop.
-    // Example: Back navigating from a selected chart region state to a previous chart region selected state.
-    const hasRangeChanged =
-      selectionState.selection.range[0] !== initialSelection.range[0] ||
-      selectionState.selection.range[1] !== initialSelection.range[1];
-
-    if (hasRangeChanged) {
+    if (newState) {
       setSelectionState(newState);
     }
   }, [
