@@ -3690,9 +3690,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Controls whether an org should read data both from Snuba and EAP.
-# Will not use or display the EAP data to the user; rather, will just compare the
-# data from each source and log whether they match.
+# Controls whether occurrence data should be read from both Snuba and EAP.
+# Will not use or display the EAP data to the user; rather, will just (1) issue
+# the queries to ensure that reads are functional and (2) compare the data from
+# each source and log whether they match.
+# This option should be controlled on a region-by-region basis.
 register(
     "eap.occurrences.should_double_read",
     type=Bool,
@@ -3700,15 +3702,15 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Controls whether a callsite should use EAP data instead of Snuba data.
-# Callsites should only be added after they're known to be safe.
+# Controls whether a given callsite should use occurrence data from EAP instead
+# of Snuba. Callsites should only be added here after they're known to be safe.
+# This option should be controlled on a region-by-region basis.
 register(
     "eap.occurrences.callsites_using_eap_data_allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 
 # Killswich for LLM issue detection
 register(
