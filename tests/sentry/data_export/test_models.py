@@ -185,8 +185,10 @@ class ExportedDataTest(TestCase):
         }
         builder.assert_called_with(**expected_email_args)
 
-    @override_options({"notifications.platform-rate.data-export-success": 1.0})
-    @with_feature("organizations:notification-platform")
+    @override_options(
+        {"notifications.platform-rollout.internal-testing": {"data-export-success": 1.0}}
+    )
+    @with_feature("organizations:notification-platform.internal-testing")
     def test_email_success_with_notification_platform(self) -> None:
         self.data_export.finalize_upload(file=self.file1)
 
@@ -222,8 +224,10 @@ class ExportedDataTest(TestCase):
             html_content
         )
 
-    @override_options({"notifications.platform-rate.data-export-failure": 1.0})
-    @with_feature("organizations:notification-platform")
+    @override_options(
+        {"notifications.platform-rollout.internal-testing": {"data-export-failure": 1.0}}
+    )
+    @with_feature("organizations:notification-platform.internal-testing")
     def test_email_failure_with_notification_platform(self) -> None:
         with self.tasks():
             self.data_export.email_failure("Something went wrong!")
