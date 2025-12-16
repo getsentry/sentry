@@ -962,3 +962,40 @@ class OAuthTokenPKCETest(TestCase):
 
         # Grant should be immediately deleted
         assert not ApiGrant.objects.filter(id=grant.id).exists()
+
+    def test_pkce_verifier_too_long(self) -> None:
+        """Test that code_verifier longer than 128 chars is rejected.
+
+        Per RFC 7636 §4.1, code_verifier must be 43-128 characters.
+        """
+        code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+            code_challenge=code_challenge,
+            code_challenge_method="S256",
+        )
+
+        # Generate a 129-character verifier (exceeds max of 128)
+        invalid_verifier = "a" * 129
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant.code,
+                "code_verifier": invalid_verifier,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 400
+        data = json.loads(resp.content)
+        assert data["error"] == "invalid_grant"
+
+        # Grant should be immediately deleted on validation failure
+        assert not ApiGrant.objects.filter(id=grant.id).exists()
