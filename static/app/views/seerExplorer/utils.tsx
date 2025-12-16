@@ -2,7 +2,7 @@ import {useCallback, useState} from 'react';
 import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
   LOGS_GROUP_BY_KEY,
@@ -769,10 +769,10 @@ export function useCopySessionDataToClipboard({
     setIsError(false);
     try {
       await navigator.clipboard.writeText(formatSessionData(blocks, orgSlug, projects));
+      addSuccessMessage('Copied conversation to clipboard');
     } catch (err) {
       setIsError(true);
-    } finally {
-      addSuccessMessage(`Copied conversation to clipboard`);
+      addErrorMessage('Failed to copy conversation to clipboard');
     }
   }, [enabled, blocks, orgSlug, projects]);
 
