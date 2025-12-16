@@ -61,6 +61,13 @@
         .theme-dark #base {
           fill: #24202b;
         }
+        .theme-system {
+          @media (prefers-color-scheme: dark) {
+            #base {
+              fill: #24202b;
+            }
+          }
+        }
         :root {
           --loop: 2350ms;
         }
