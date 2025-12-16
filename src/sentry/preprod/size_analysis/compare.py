@@ -51,17 +51,15 @@ def compare_size_analysis(
 
     all_paths = set(head_files.keys()) | set(base_files.keys())
 
+    diff_items = []
+
     head_renamed_paths, base_renamed_paths = _find_renamed_paths(
         head_size_analysis_results.file_analysis,
         base_size_analysis_results.file_analysis,
     )
 
-    diff_items = []
-    insight_diff_items = []
-
     if not skip_diff_item_comparison:
         for path in sorted(all_paths):
-
             head_elements = head_files.get(path, [])
             base_elements = base_files.get(path, [])
 
@@ -138,10 +136,6 @@ def compare_size_analysis(
                         diff_items=None,
                     )
                 )
-
-        insight_diff_items = _compare_insights(
-            head_size_analysis_results, base_size_analysis_results
-        )
     else:
         logger.info(
             "preprod.size_analysis.compare.skipped_diff_item_comparison",
@@ -160,6 +154,22 @@ def compare_size_analysis(
         base_install_size=base_size_analysis.max_install_size,
         base_download_size=base_size_analysis.max_download_size,
     )
+
+    # Compare insights only if we're not skipping the comparison
+    insight_diff_items = []
+    if not skip_diff_item_comparison:
+        insight_diff_items = _compare_insights(
+            head_size_analysis_results, base_size_analysis_results
+        )
+    else:
+        logger.info(
+            "preprod.size_analysis.compare.skipped_insight_comparison",
+            extra={
+                "head_analysis_version": head_size_analysis_results.analysis_version,
+                "base_analysis_version": base_size_analysis_results.analysis_version,
+                "preprod_artifact_id": head_size_analysis.preprod_artifact_id,
+            },
+        )
 
     return ComparisonResults(
         diff_items=diff_items,
