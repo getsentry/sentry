@@ -500,7 +500,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         if not features.has("organizations:granular-replay-permissions", organization):
             raise NotFound("This feature is not enabled for your organization.")
 
-        if not request.access.has_scope("org:admin"):
+        if not request.access.has_scope("org:write"):
             raise PermissionDenied(
                 "You do not have permission to modify granular replay permissions."
             )
