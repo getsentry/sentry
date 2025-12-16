@@ -77,7 +77,7 @@ export function StepsManager() {
         <ConfigureDefaultsStep />
       </GuidedSteps.Step>
 
-      <GuidedSteps.Step stepKey={Steps.NEXT_STEPS} title={t('Next Steps')}>
+      <GuidedSteps.Step stepKey={Steps.NEXT_STEPS} title={t('Wrap Up')}>
         <NextStepsStep />
       </GuidedSteps.Step>
     </Fragment>

@@ -1,13 +1,14 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import configureRootCauseAnalysisImg from 'sentry-images/spot/seer-config-connect-2.svg';
+import defaultsImg from 'sentry-images/spot/seer-config-error.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Flex} from 'sentry/components/core/layout/flex';
+import {Link} from 'sentry/components/core/link';
 import {Switch} from 'sentry/components/core/switch';
 import {
   GuidedSteps,
@@ -15,7 +16,7 @@ import {
 } from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUpdateOrganization} from 'sentry/utils/useUpdateOrganization';
 
@@ -84,8 +85,11 @@ export function ConfigureDefaultsStep() {
           <PanelBody>
             <PanelDescription>
               <p>
-                {t(
-                  `Create default settings for all future projects and repositories. If you don’t turn this defaults on now, you can always manage them from the Seer Settings Page.`
+                {tct(
+                  `Create default settings for all future projects and repositories. If you don’t turn this defaults on now, you can always manage them from the [link:Seer Settings Page].`,
+                  {
+                    link: <Link to={`/settings/${organization.slug}/seer/`} />,
+                  }
                 )}
               </p>
               <p>
@@ -96,23 +100,23 @@ export function ConfigureDefaultsStep() {
             </PanelDescription>
 
             <Field>
-              <Field>
-                <Flex direction="column" flex="1" gap="xs">
-                  <FieldLabel>{t('Enable AI Code Review')}</FieldLabel>
-                  <FieldDescription>
-                    {t(
-                      'For all NEW projects, Seer will review your PRs and flag potential bugs.'
-                    )}
-                  </FieldDescription>
-                </Flex>
-                <Switch
-                  size="lg"
-                  checked={enableCodeReview}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setEnableCodeReview(e.target.checked)
-                  }
-                />
-              </Field>
+              <Flex direction="column" flex="1" gap="xs">
+                <FieldLabel>{t('Enable AI Code Review')}</FieldLabel>
+                <FieldDescription>
+                  {t(
+                    'For all NEW projects, Seer will review your PRs and flag potential bugs.'
+                  )}
+                </FieldDescription>
+              </Flex>
+              <Switch
+                size="lg"
+                checked={enableCodeReview}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setEnableCodeReview(e.target.checked)
+                }
+              />
+            </Field>
+            <Field>
               <Flex direction="column" flex="1" gap="xs">
                 <FieldLabel>{t('Enable Root Cause Analysis')}</FieldLabel>
                 <FieldDescription>
@@ -170,8 +174,8 @@ export function ConfigureDefaultsStep() {
 }
 
 const StepContentWithBackground = styled(StepContent)`
-  background: url(${configureRootCauseAnalysisImg}) no-repeat 638px 0;
-  background-size: 200px 256px;
+  background: url(${defaultsImg}) no-repeat 638px 0;
+  background-size: 192px 168px;
 `;
 
 const InlineLoadingIndicator = styled(LoadingIndicator)`
