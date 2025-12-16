@@ -231,7 +231,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             )
         except Repository.DoesNotExist:
             raise IntegrationFormError(
-                {"repo": f"Given repository, {repo} does not belong to this integration"}
+                {"repo": f"Given repository, {repo} does not belong to this installation"}
             )
 
         # Create clean issue data with required fields
@@ -326,6 +326,15 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         if not repo:
             raise IntegrationFormError({"repo": "Repository is required"})
+
+        try:
+            Repository.objects.get(
+                name=repo, integration_id=self.model.id, organization_id=self.organization_id
+            )
+        except Repository.DoesNotExist:
+            raise IntegrationFormError(
+                {"repo": f"Given repository, {repo} does not belong to this installation"}
+            )
 
         if not issue_num:
             raise IntegrationFormError({"externalIssue": "Issue number is required"})
