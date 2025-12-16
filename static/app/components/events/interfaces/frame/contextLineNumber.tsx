@@ -78,7 +78,7 @@ const Wrapper = styled('div')`
   }
 
   &.partial .line-number {
-    background: ${p => p.theme.yellow100};
+    background: ${p => p.theme.colors.yellow100};
     border-right: 3px dashed ${p => p.theme.tokens.border.warning};
   }
 
@@ -88,7 +88,7 @@ const Wrapper = styled('div')`
 
   &.active.partial .line-number {
     mix-blend-mode: screen;
-    background: ${p => p.theme.yellow200};
+    background: ${p => p.theme.colors.yellow200};
   }
 
   &.active.covered .line-number {

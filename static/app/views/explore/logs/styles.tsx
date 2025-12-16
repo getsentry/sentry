@@ -50,11 +50,11 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 
   &[data-row-highlighted='true']:not(thead > &) {
-    background-color: ${p => p.theme.yellow100};
+    background-color: ${p => p.theme.colors.yellow100};
     color: ${p => p.theme.red300};
 
     &:hover {
-      background-color: ${p => p.theme.yellow200};
+      background-color: ${p => p.theme.colors.yellow200};
     }
   }
 
@@ -338,11 +338,11 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       };
     case SeverityLevel.WARN:
       return {
-        background: theme.yellow300,
-        backgroundLight: theme.yellow100,
-        border: theme.yellow200,
-        borderHover: theme.yellow300,
-        color: theme.yellow400,
+        background: theme.colors.yellow400,
+        backgroundLight: theme.colors.yellow100,
+        border: theme.colors.yellow200,
+        borderHover: theme.colors.yellow400,
+        color: theme.colors.yellow500,
       };
     case SeverityLevel.ERROR:
       // All these colours are likely changing, so we'll hold off moving them into theme for now.
