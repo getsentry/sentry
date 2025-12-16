@@ -433,17 +433,6 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
     const firstArg = args.child(1); // Skip opening paren
     if (!firstArg) continue;
 
-    // Bailout if wrapping an existing component
-    if (isWrappingComponent(firstArg)) {
-      const componentNameNode = styledCall.ancestors().find(a => a.is('variable_declarator'))?.find({
-        rule: {kind: 'identifier'},
-      });
-      const componentName = componentNameNode?.text() || 'unknown';
-      const lineNumber = styledCall.range().start.line;
-      console.log(`[BAILOUT] ${fileName}:${lineNumber} - "${componentName}" wraps existing component`);
-      continue;
-    }
-
     // Get the element name from string
     let elementName = 'div';
     if (firstArg.is('string')) {
@@ -474,23 +463,29 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
     // Parse CSS and extract flex properties
     const flexProps = extractFlexProps(cssText, templateString);
 
+    // Not a viable candidate if it doesn't have display: flex - skip silently
     if (!flexProps) {
-      const componentNameNode = styledCall.ancestors().find(a => a.is('variable_declarator'))?.find({
-        rule: {kind: 'identifier'},
-      });
-      const componentName = componentNameNode?.text() || 'unknown';
-      const lineNumber = styledCall.range().start.line;
-      console.log(`[BAILOUT] ${fileName}:${lineNumber} - "${componentName}" missing display:flex`);
       continue;
     }
 
+    // Get component name for logging
+    const componentNameNode = styledCall.ancestors().find(a => a.is('variable_declarator'))?.find({
+      rule: {kind: 'identifier'},
+    });
+    const oldComponentName = componentNameNode?.text() || 'unknown';
+    const lineNumber = styledCall.range().start.line;
+
+    // Now check bailout conditions for viable candidates (has display: flex)
+
+    // Bailout if wrapping an existing component
+    if (isWrappingComponent(firstArg)) {
+      console.log(`[BAILOUT] ${fileName}:${lineNumber} - "${oldComponentName}" wraps existing component`);
+      continue;
+    }
+
+    // Bailout if has unsupported CSS properties
     if (flexProps.hasUnsupportedProps) {
-      const componentNameNode = styledCall.ancestors().find(a => a.is('variable_declarator'))?.find({
-        rule: {kind: 'identifier'},
-      });
-      const componentName = componentNameNode?.text() || 'unknown';
-      const lineNumber = styledCall.range().start.line;
-      console.log(`[BAILOUT] ${fileName}:${lineNumber} - "${componentName}" has unsupported CSS properties`);
+      console.log(`[BAILOUT] ${fileName}:${lineNumber} - "${oldComponentName}" has unsupported CSS properties`);
       continue;
     }
 
@@ -519,10 +514,10 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
         });
 
         if (componentNameNode) {
-          const oldComponentName = componentNameNode.text();
+          const styledComponentName = componentNameNode.text();
 
           // Store component replacement info
-          componentsToReplace.set(oldComponentName, {componentName, propsStr});
+          componentsToReplace.set(styledComponentName, {componentName, propsStr});
 
           // If this is an export statement, remove the entire export statement
           // Otherwise just remove the lexical declaration
