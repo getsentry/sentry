@@ -49,8 +49,14 @@ def handle_github_check_run_event(organization: Organization, event: Mapping[str
     Returns:
         True if the event was handled successfully, False otherwise
     """
-    check_run = event["check_run"]
     action = event["action"]
+
+    # Check if we should handle this event before extracting fields
+    if not _should_handle_github_check_run_event(organization, action):
+        return False
+
+    # Now extract and validate required fields for events we care about
+    check_run = event["check_run"]
     extra = {
         "organization_id": organization.id,
         "action": action,
@@ -61,9 +67,6 @@ def handle_github_check_run_event(organization: Organization, event: Mapping[str
         extra["original_run_id"] = original_run_id
     except (TypeError, ValueError, KeyError):
         logger.warning("%s.missing_external_id", PREFIX, extra=extra)
-        return False
-
-    if not _should_handle_github_check_run_event(organization, action):
         return False
 
     # Forward the original run ID to Seer for PR review rerun
