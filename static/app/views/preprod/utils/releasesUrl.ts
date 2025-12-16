@@ -1,9 +1,14 @@
+type ReleasesUrlParams = {
+  appId?: string;
+  query?: string;
+  tab?: string;
+  version?: string;
+};
+
 export function makeReleasesUrl(
   projectId: string | undefined,
-  query: {appId?: string; version?: string}
+  {appId, query, tab = 'mobile-builds', version}: ReleasesUrlParams = {}
 ): string {
-  const {appId, version} = query;
-
   // Not knowing the projectId should be transient.
   if (projectId === undefined) {
     return '#';
@@ -11,15 +16,22 @@ export function makeReleasesUrl(
 
   const params = new URLSearchParams();
   params.set('project', projectId);
-  const parts = [];
+  params.set('tab', tab);
+
+  const queries: string[] = [];
+  if (query) {
+    queries.push(query);
+  }
   if (appId) {
-    parts.push(`release.package:${appId}`);
+    queries.push(`release.package:${appId}`);
   }
   if (version) {
-    parts.push(`release.version:${version}`);
+    queries.push(`release.version:${version}`);
   }
-  if (parts.length) {
-    params.set('query', parts.join(' '));
+
+  if (queries.length) {
+    params.set('query', queries.join(' '));
   }
+
   return `/explore/releases/?${params}`;
 }

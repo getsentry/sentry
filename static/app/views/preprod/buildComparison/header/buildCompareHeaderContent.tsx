@@ -38,9 +38,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
   const labels = getLabels(buildDetails.app_info?.platform ?? undefined);
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(project?.id, {
-        appId: buildDetails.app_info.app_id ?? undefined,
-      }),
+      to: makeReleasesUrl(project?.id, {tab: 'mobile-builds'}),
       label: t('Releases'),
     },
   ];
@@ -48,8 +46,8 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
   if (buildDetails.app_info.version) {
     breadcrumbs.push({
       to: makeReleasesUrl(project?.id, {
-        version: buildDetails.app_info.version,
-        appId: buildDetails.app_info.app_id ?? undefined,
+        query: buildDetails.app_info.version,
+        tab: 'mobile-builds',
       }),
       label: buildDetails.app_info.version,
     });
