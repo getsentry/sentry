@@ -1,34 +1,22 @@
-import logging
 from collections import defaultdict
 from datetime import datetime
 from typing import TypedDict
 
 import sentry_sdk
-from google.protobuf.timestamp_pb2 import Timestamp
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column as EAPColumn
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableRequest
-from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
-    AttributeAggregation,
-    AttributeKey,
-    AttributeValue,
-)
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function as EAPFunction
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import StrArray
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
-    AndFilter,
-    ComparisonFilter,
-    TraceItemFilter,
-)
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
-from sentry.search.eap.occurrences.rollout_utils import should_double_read_from_eap, validate_read
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.search.eap.occurrences.common_queries import count_occurrences
+from sentry.search.eap.occurrences.rollout_utils import (
+    should_callsite_use_eap_data_in_read,
+    should_double_read_from_eap,
+    validate_read,
+)
 from sentry.seer.workflows.compare import KeyedValueCount, keyed_rrf_score_with_filter
 from sentry.snuba.referrer import Referrer
-from sentry.utils import snuba_rpc
 from sentry.utils.snuba import raw_snql_query
-
-logger = logging.getLogger(__name__)
 
 
 class Distribution(TypedDict):
@@ -308,85 +296,31 @@ def _query_error_counts_eap(
     project_id: int,
     start: datetime,
     end: datetime,
-    environments: list[str],
+    environment_names: list[str],
     group_id: int | None,
 ) -> int:
     """EAP implementation of query_error_counts."""
-    start_timestamp = Timestamp()
-    start_timestamp.FromDatetime(start)
-    end_timestamp = Timestamp()
-    end_timestamp.FromDatetime(end)
+    organization = Organization.objects.get(id=organization_id)
+    project = Project.objects.get(id=project_id)
 
-    count_column = EAPColumn(
-        aggregation=AttributeAggregation(
-            aggregate=EAPFunction.FUNCTION_COUNT,
-            key=AttributeKey(name="group_id", type=AttributeKey.TYPE_INT),
-        ),
-        label="count",
-    )
-
-    filters: list[TraceItemFilter] = []
-
-    if group_id is not None:
-        group_id_filter = TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="group_id", type=AttributeKey.TYPE_INT),
-                op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_int=group_id),
+    environments: list[Environment] = []
+    if environment_names:
+        environments = list(
+            Environment.objects.filter(
+                name__in=environment_names,
+                organization_id=organization_id,
             )
         )
-        filters.append(group_id_filter)
 
-    if environments:
-        environment_filter = TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="environment", type=AttributeKey.TYPE_STRING),
-                op=ComparisonFilter.OP_IN,
-                value=AttributeValue(val_str_array=StrArray(values=environments)),
-            )
-        )
-        filters.append(environment_filter)
-
-    item_filter = None
-    if len(filters) == 1:
-        item_filter = filters[0]
-    elif len(filters) > 1:
-        item_filter = TraceItemFilter(and_filter=AndFilter(filters=filters))
-
-    request = TraceItemTableRequest(
-        meta=RequestMeta(
-            organization_id=organization_id,
-            project_ids=[project_id],
-            cogs_category="issues",
-            referrer=Referrer.ISSUES_SUSPECT_FLAGS_QUERY_ERROR_COUNTS.value,
-            start_timestamp=start_timestamp,
-            end_timestamp=end_timestamp,
-            trace_item_type=TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,
-        ),
-        columns=[count_column],
-        filter=item_filter,
-        limit=1,
+    return count_occurrences(
+        organization=organization,
+        projects=[project],
+        start=start,
+        end=end,
+        referrer=Referrer.ISSUES_SUSPECT_FLAGS_QUERY_ERROR_COUNTS.value,
+        group_id=group_id,
+        environments=environments,
     )
-
-    try:
-        count = 0
-        responses = snuba_rpc.table_rpc([request])
-        if responses and responses[0].column_values:
-            results = responses[0].column_values[0].results
-            if results:
-                count = int(results[0].val_double)
-    except Exception:
-        logger.exception(
-            "Fetching error counts from EAP failed",
-            extra={
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "group_id": group_id,
-            },
-        )
-        count = 0
-
-    return count
 
 
 @sentry_sdk.trace
@@ -415,6 +349,7 @@ def query_error_counts(
     snuba_count = _query_error_counts_snuba(
         organization_id, project_id, start, end, environments, group_id
     )
+    error_count = snuba_count
 
     if should_double_read_from_eap():
         eap_count = _query_error_counts_eap(
@@ -422,4 +357,7 @@ def query_error_counts(
         )
         validate_read(snuba_count, eap_count, "issues.suspect_flags.query_error_counts")
 
-    return snuba_count
+        if should_callsite_use_eap_data_in_read("issues.suspect_flags.query_error_counts"):
+            error_count = eap_count
+
+    return error_count

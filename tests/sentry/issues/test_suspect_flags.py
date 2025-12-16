@@ -154,12 +154,15 @@ class SnubaTest(TestCase, SnubaTestCase):
 
 
 class QueryErrorCountsTest(TestCase):
-    @mock.patch("sentry.issues.suspect_flags.snuba_rpc.table_rpc")
+    @mock.patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
     def test_returns_count_from_eap(self, mock_table_rpc: mock.MagicMock) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+
         mock_response = TraceItemTableResponse(
             column_values=[
                 TraceItemColumnValues(
-                    attribute_name="count",
+                    attribute_name="count()",
                     results=[AttributeValue(val_double=42.0)],
                 )
             ]
@@ -170,19 +173,22 @@ class QueryErrorCountsTest(TestCase):
         end = datetime.datetime.now(tz=datetime.UTC)
 
         result = _query_error_counts_eap(
-            organization_id=1,
-            project_id=1,
+            organization_id=organization.id,
+            project_id=project.id,
             start=start,
             end=end,
-            environments=[],
+            environment_names=[],
             group_id=123,
         )
 
         assert result == 42
         mock_table_rpc.assert_called_once()
 
-    @mock.patch("sentry.issues.suspect_flags.snuba_rpc.table_rpc")
+    @mock.patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
     def test_eap_returns_zero_on_empty_response(self, mock_table_rpc: mock.MagicMock) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+
         mock_response = TraceItemTableResponse(column_values=[])
         mock_table_rpc.return_value = [mock_response]
 
@@ -190,29 +196,32 @@ class QueryErrorCountsTest(TestCase):
         end = datetime.datetime.now(tz=datetime.UTC)
 
         result = _query_error_counts_eap(
-            organization_id=1,
-            project_id=1,
+            organization_id=organization.id,
+            project_id=project.id,
             start=start,
             end=end,
-            environments=[],
+            environment_names=[],
             group_id=123,
         )
 
         assert result == 0
 
-    @mock.patch("sentry.issues.suspect_flags.snuba_rpc.table_rpc")
+    @mock.patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
     def test_eap_returns_zero_on_exception(self, mock_table_rpc: mock.MagicMock) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+
         mock_table_rpc.side_effect = Exception("RPC failed")
 
         start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
         end = datetime.datetime.now(tz=datetime.UTC)
 
         result = _query_error_counts_eap(
-            organization_id=1,
-            project_id=1,
+            organization_id=organization.id,
+            project_id=project.id,
             start=start,
             end=end,
-            environments=[],
+            environment_names=[],
             group_id=123,
         )
 
@@ -244,6 +253,43 @@ class QueryErrorCountsTest(TestCase):
             )
 
         assert result == 100
+        mock_snuba.assert_called_once()
+        mock_eap.assert_called_once()
+        mock_validate.assert_called_once_with(100, 50, "issues.suspect_flags.query_error_counts")
+
+    @mock.patch("sentry.issues.suspect_flags.validate_read")
+    @mock.patch("sentry.issues.suspect_flags._query_error_counts_eap")
+    @mock.patch("sentry.issues.suspect_flags._query_error_counts_snuba")
+    def test_uses_eap_as_source_of_truth(
+        self,
+        mock_snuba: mock.MagicMock,
+        mock_eap: mock.MagicMock,
+        mock_validate: mock.MagicMock,
+    ) -> None:
+        mock_snuba.return_value = 100
+        mock_eap.return_value = 50
+
+        start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
+        end = datetime.datetime.now(tz=datetime.UTC)
+
+        with self.options(
+            {
+                "eap.occurrences.should_double_read": True,
+                "eap.occurrences.callsites_using_eap_data_allowlist": [
+                    "issues.suspect_flags.query_error_counts"
+                ],
+            }
+        ):
+            result = query_error_counts(
+                organization_id=1,
+                project_id=1,
+                start=start,
+                end=end,
+                environments=[],
+                group_id=123,
+            )
+
+        assert result == 50
         mock_snuba.assert_called_once()
         mock_eap.assert_called_once()
         mock_validate.assert_called_once_with(100, 50, "issues.suspect_flags.query_error_counts")
