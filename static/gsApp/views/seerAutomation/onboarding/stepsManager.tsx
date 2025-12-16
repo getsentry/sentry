@@ -46,22 +46,24 @@ function useOnboardingStatus() {
   useEffect(() => {
     if (!statusQuery.isPending && statusQuery.data) {
       let nextStep = 1;
-      const {hasSupportedScmIntegration, isCodeReviewEnabled, isSeerConfigured} =
+      const {hasSupportedScmIntegration, isCodeReviewEnabled, isAutofixEnabled} =
         statusQuery.data;
 
-      if (hasSupportedScmIntegration && !isCodeReviewEnabled && !isSeerConfigured) {
+      if (!hasSupportedScmIntegration) {
+        return;
+      }
+
+      if (!isCodeReviewEnabled) {
         nextStep = 2;
       }
-      if (hasSupportedScmIntegration && isCodeReviewEnabled && !isSeerConfigured) {
+      if (isCodeReviewEnabled && !isAutofixEnabled) {
         nextStep = 3;
       }
-      if (hasSupportedScmIntegration && isCodeReviewEnabled && isSeerConfigured) {
+      if (isCodeReviewEnabled && isAutofixEnabled) {
         nextStep = 4;
       }
 
-      if (nextStep > 1) {
-        setCurrentStep(nextStep);
-      }
+      setCurrentStep(nextStep);
     }
   }, [statusQuery.isPending, statusQuery.data, setCurrentStep]);
 
