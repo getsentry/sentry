@@ -450,15 +450,19 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   const handleFeedbackClick = useCallback(() => {
     if (openFeedbackForm) {
+      const langfuseUrl = sessionData?.run_id
+        ? `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${sessionData.run_id}`
+        : undefined;
       openFeedbackForm({
         formTitle: 'Seer Explorer Feedback',
         messagePlaceholder: 'How can we make Seer Explorer better for you?',
         tags: {
           ['feedback.source']: 'seer_explorer',
+          ['langfuse_url']: langfuseUrl,
         },
       });
     }
-  }, [openFeedbackForm]);
+  }, [openFeedbackForm, sessionData?.run_id]);
 
   const handleSizeToggle = useCallback(() => {
     if (panelSize === 'max') {
