@@ -1,0 +1,128 @@
+from django.db.models import F
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.project_key import ProjectKeySerializerResponse
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
+from sentry.models.team import Team
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+
+@extend_schema(tags=["Organizations"])
+@region_silo_endpoint
+class OrganizationProjectKeysEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
+
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=40, window=1),
+                RateLimitCategory.USER: RateLimit(limit=40, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+            },
+        },
+    )
+
+    @extend_schema(
+        operation_id="List an Organization's Client Keys",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            CursorQueryParam,
+            inline_serializer(
+                name="OrganizationProjectKeysQueryParams",
+                fields={
+                    "team": serializers.CharField(
+                        help_text="Filter keys by team slug or ID. If provided, only keys for projects belonging to this team will be returned.",
+                        required=False,
+                    ),
+                    "status": serializers.ChoiceField(
+                        choices=["active", "inactive"],
+                        help_text="Filter keys by status. Options are 'active' or 'inactive'.",
+                        required=False,
+                    ),
+                },
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrganizationClientKeysResponse", list[ProjectKeySerializerResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: inline_serializer(
+                name="TeamNotFound",
+                fields={
+                    "detail": serializers.CharField(default="Team not found"),
+                },
+            ),
+        },
+    )
+    def get(self, request: Request, organization) -> Response:
+        """
+        Return a list of client keys (DSNs) for all projects in an organization.
+
+        This endpoint allows retrieving DSNs for multiple projects at once, which is
+        useful for bulk operations and dashboard views. Each key includes the project ID
+        to identify which project it belongs to.
+
+        Query Parameters:
+        - team: Filter by team slug or ID to get keys only for that team's projects
+        - status: Filter by 'active' or 'inactive' to get keys with specific status
+        """
+        projects = self.get_projects(request, organization)
+
+        project_id_set = {p.id for p in projects}
+
+        team_param = request.GET.get("team")
+        if team_param:
+            try:
+                if team_param.isdigit():
+                    team = Team.objects.get(id=team_param, organization=organization)
+                else:
+                    team = Team.objects.get(slug=team_param, organization=organization)
+            except Team.DoesNotExist:
+                raise ResourceDoesNotExist(detail="Team not found")
+
+            # Filter projects to only those belonging to the team
+            projects = Project.objects.filter(id__in=project_id_set, teams=team)
+            project_id_set = {p.id for p in projects}
+
+        if not project_id_set:
+            # No projects accessible, return empty list
+            return Response([])
+
+        queryset = ProjectKey.objects.for_request(request).filter(
+            project_id__in=project_id_set, roles=F("roles").bitor(ProjectKey.roles.store)
+        )
+
+        status = request.GET.get("status")
+        if status == "active":
+            queryset = queryset.filter(status=ProjectKeyStatus.ACTIVE)
+        elif status == "inactive":
+            queryset = queryset.filter(status=ProjectKeyStatus.INACTIVE)
+        elif status:
+            queryset = queryset.none()
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by="-id",
+            default_per_page=10,
+            on_results=lambda x: serialize(x, request.user, request=request),
+        )
