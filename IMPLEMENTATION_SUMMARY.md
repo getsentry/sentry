@@ -7,11 +7,13 @@ Successfully implemented Pydantic validation for GitHub webhook payloads in Sent
 ## 📁 Files Created/Modified
 
 ### Created:
+
 1. **`src/sentry/integrations/github/webhook_models.py`** (232 lines)
    - Comprehensive Pydantic models for all GitHub webhook event types
    - 11 model classes covering users, repositories, commits, pull requests, issues, and installations
 
 ### Modified:
+
 2. **`src/sentry/integrations/github/webhook.py`**
    - Added Pydantic imports and validation logic
    - Added `payload_model` property to all 4 webhook handler classes
@@ -26,6 +28,7 @@ Successfully implemented Pydantic validation for GitHub webhook payloads in Sent
 ### Pydantic Models Created
 
 **Base Models:**
+
 - `GitHubUser` - GitHub user representation
 - `GitHubRepository` - Repository information
 - `GitHubInstallation` - GitHub App installation
@@ -35,6 +38,7 @@ Successfully implemented Pydantic validation for GitHub webhook payloads in Sent
 - `GitHubIssue` - Issue details
 
 **Event Payload Models:**
+
 - `PushEventPayload` - Validates push events
 - `PullRequestEventPayload` - Validates PR events
 - `IssuesEventPayload` - Validates issue events
@@ -78,21 +82,25 @@ JSON Parsing (existing)
 ### Required Fields Enforced:
 
 **PushEventPayload:**
+
 - `ref` (string)
 - `commits` (list of GitHubCommit)
 - `repository` (GitHubRepository)
 
 **PullRequestEventPayload:**
+
 - `action` (string)
 - `pull_request` (GitHubPullRequest)
 - `repository` (GitHubRepository)
 
 **IssuesEventPayload:**
+
 - `action` (string)
 - `issue` (GitHubIssue)
 - `repository` (GitHubRepository)
 
 **InstallationEventPayload:**
+
 - `action` (string)
 - `installation` (GitHubInstallation)
 - `sender` (GitHubUser)
@@ -100,6 +108,7 @@ JSON Parsing (existing)
 ### All Other Fields: Optional
 
 This ensures compatibility with:
+
 - Different GitHub webhook versions
 - Future GitHub API changes
 - Variations in webhook payloads across different actions
@@ -107,11 +116,13 @@ This ensures compatibility with:
 ## 🛡️ Error Handling
 
 **New Error Responses:**
+
 - Invalid webhook payload → HTTP 400
 - Logged as `github.webhook.invalid-payload` (GitHub.com)
 - Logged as `github_enterprise.webhook.invalid-payload` (GitHub Enterprise)
 
 **Error Logs Include:**
+
 - Event type
 - Detailed validation errors from Pydantic
 - Request metadata for debugging
@@ -128,6 +139,7 @@ This ensures compatibility with:
 ## 🔄 Before vs After
 
 **Before:**
+
 ```python
 # No validation - trusting GitHub payload structure
 event = orjson.loads(body)
@@ -135,6 +147,7 @@ event_handler(event)
 ```
 
 **After:**
+
 ```python
 # Parse JSON
 event = orjson.loads(body)
@@ -163,6 +176,7 @@ event_handler(event)
 ## 🧪 Testing
 
 While the test environment wasn't fully set up to run tests directly, the implementation:
+
 - Follows existing Sentry patterns
 - Uses established Pydantic patterns from other parts of the codebase
 - Maintains backward compatibility with existing tests
@@ -171,6 +185,7 @@ While the test environment wasn't fully set up to run tests directly, the implem
 ## 📝 Documentation
 
 Created comprehensive documentation:
+
 - **PYDANTIC_WEBHOOK_VALIDATION.md**: Detailed technical documentation
 - **IMPLEMENTATION_SUMMARY.md**: This summary document
 
@@ -185,6 +200,7 @@ Created comprehensive documentation:
 ## ✨ Summary
 
 Successfully implemented comprehensive Pydantic validation for all GitHub webhook types in Sentry. The implementation is:
+
 - ✅ Complete
 - ✅ Backward compatible
 - ✅ Well documented

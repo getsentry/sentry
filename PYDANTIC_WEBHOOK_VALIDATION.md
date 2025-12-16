@@ -19,6 +19,7 @@ Created comprehensive Pydantic models for all supported GitHub webhook events:
 - **`GitHubIssue`**: Represents a GitHub issue
 
 Event-specific payload models:
+
 - **`PushEventPayload`**: Validates push event webhooks
 - **`PullRequestEventPayload`**: Validates pull request event webhooks
 - **`IssuesEventPayload`**: Validates issues event webhooks
@@ -35,6 +36,7 @@ Event-specific payload models:
 ### 2. Updated: `src/sentry/integrations/github/webhook.py`
 
 #### Imports Added:
+
 ```python
 from pydantic import ValidationError
 from sentry.integrations.github.webhook_models import (
@@ -78,6 +80,7 @@ if hasattr(event_handler, "payload_model"):
 ### 3. Updated: `src/sentry/integrations/github_enterprise/webhook.py`
 
 #### Imports Added:
+
 ```python
 from pydantic import ValidationError
 ```
@@ -129,10 +132,12 @@ if hasattr(event_handler, "payload_model"):
 ## Monitoring
 
 New log messages for tracking:
+
 - `github.webhook.invalid-payload`: When payload validation fails (GitHub.com)
 - `github_enterprise.webhook.invalid-payload`: When payload validation fails (GitHub Enterprise)
 
 Both include:
+
 - Event type
 - Validation errors (detailed Pydantic error messages)
 - Request metadata
