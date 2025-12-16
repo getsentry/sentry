@@ -12,11 +12,13 @@ from sentry import eventstore, features
 from sentry.api import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
 from sentry.api.serializers.base import serialize
+from sentry.api.serializers.models.activity import ActivitySerializer
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import default_start_end_dates
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.issues.grouptype import GroupCategory
+from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.group import EventOrdering, Group
 from sentry.models.organization import Organization
@@ -42,6 +44,7 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
+from sentry.types.activity import ActivityType
 from sentry.utils.dates import outside_retention_with_modified_start, parse_stats_period
 from sentry.utils.snuba_rpc import get_trace_rpc
 
@@ -825,6 +828,18 @@ def _get_recommended_event(
     return events[0].for_group(group)
 
 
+# Activity types to include in issue details for Seer Explorer (manual actions only)
+_SEER_EXPLORER_ACTIVITY_TYPES = [
+    ActivityType.NOTE.value,
+    ActivityType.SET_RESOLVED.value,
+    ActivityType.SET_RESOLVED_IN_RELEASE.value,
+    ActivityType.SET_RESOLVED_IN_COMMIT.value,
+    ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+    ActivityType.SET_UNRESOLVED.value,
+    ActivityType.ASSIGNED.value,
+]
+
+
 def get_issue_and_event_response(
     event: Event | GroupEvent, group: Group | None, organization: Organization
 ) -> dict[str, Any]:
@@ -865,6 +880,22 @@ def get_issue_and_event_response(
         else:
             timeseries, timeseries_stats_period, timeseries_interval = None, None, None
 
+        # Fetch user activity (comments, status changes, etc.)
+        try:
+            activities = Activity.objects.filter(
+                group=group,
+                type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
+            ).order_by("-datetime")[:50]
+            serialized_activities = serialize(
+                list(activities), user=None, serializer=ActivitySerializer()
+            )
+        except Exception:
+            logger.exception(
+                "Failed to get user activity for issue",
+                extra={"organization_id": organization.id, "issue_id": group.id},
+            )
+            serialized_activities = []
+
         result = {
             **result,
             "issue": serialized_group,
@@ -872,6 +903,7 @@ def get_issue_and_event_response(
             "timeseries_stats_period": timeseries_stats_period,
             "timeseries_interval": timeseries_interval,
             "tags_overview": tags_overview,
+            "user_activity": serialized_activities,
         }
 
     return result
