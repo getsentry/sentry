@@ -9,10 +9,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
-import {
-  DEFAULT_CODE_REVIEW_TRIGGERS,
-  type RepositoryWithSettings,
-} from 'sentry/types/integrations';
+import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {parseQueryKey} from 'sentry/utils/queryClient';
@@ -51,8 +48,6 @@ export default function SeerRepoTableHeader({
       selectedIds === 'all' ? repositories.map(repo => repo.id) : selectedIds;
     mutateRepositorySettings(
       {
-        // TODO: we should not be overriding the existing code review triggers for the repositories
-        codeReviewTriggers: DEFAULT_CODE_REVIEW_TRIGGERS,
         enabledCodeReview,
         repositoryIds,
       },
