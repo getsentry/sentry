@@ -276,7 +276,7 @@ function ScreensLandingPage() {
                       <DatePageFilter {...datePageFilterProps} />
                     </PageFilterBar>
                     <PageFilterBar condensed>
-                      <ReleaseComparisonSelector primaryOnly moduleName={moduleName} />
+                      <ReleaseComparisonSelector moduleName={moduleName} />
                     </PageFilterBar>
                   </ToolRibbon>
                 </Container>
