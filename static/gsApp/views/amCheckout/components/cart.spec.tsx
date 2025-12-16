@@ -18,7 +18,12 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PAYG_BUSINESS_DEFAULT} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {AddOnCategory, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {
+  AddOnCategory,
+  OnDemandBudgetMode,
+  PlanTier,
+  type Subscription,
+} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import Cart from 'getsentry/views/amCheckout/components/cart';
 import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
@@ -28,7 +33,7 @@ const MOCK_TODAY = 1654492173000;
 
 describe('Cart', () => {
   const {organization, routerProps} = initializeOrg();
-  const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
+  let subscription: Subscription;
   const billingConfig = BillingConfigFixture(PlanTier.AM3);
   const props = {
     ...routerProps,
@@ -54,6 +59,7 @@ describe('Cart', () => {
   };
 
   beforeEach(() => {
+    subscription = SubscriptionFixture({organization, plan: 'am3_f'});
     setMockDate(MOCK_TODAY);
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, subscription);
@@ -242,6 +248,37 @@ describe('Cart', () => {
   });
 
   it('does not fetch preview data if billing info is incomplete', async () => {
+    const mockResponse = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+      body: {
+        invoiceItems: [],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
+
+    render(
+      <Cart
+        activePlan={businessPlan}
+        formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
+        organization={organization}
+        subscription={subscription}
+        onSuccess={jest.fn()}
+      />
+    );
+
+    expect(await screen.findByRole('button', {name: 'Confirm'})).toBeDisabled(); // not Confirm and pay because we don't know the billed total without preview data
+    expect(mockResponse).not.toHaveBeenCalled();
+    expect(screen.getByText('Plan renews monthly.')).toBeInTheDocument(); // no renewal date specified
+  });
+
+  it('does not fetch preview data if subscription is suspended', async () => {
+    subscription.isSuspended = true;
+    SubscriptionStore.set(organization.slug, subscription);
     const mockResponse = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
