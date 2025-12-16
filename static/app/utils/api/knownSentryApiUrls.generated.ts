@@ -434,6 +434,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/join-request/'
   | '/organizations/$organizationIdOrSlug/key-transactions-list/'
   | '/organizations/$organizationIdOrSlug/key-transactions/'
+  | '/organizations/$organizationIdOrSlug/keys/'
   | '/organizations/$organizationIdOrSlug/measurements-meta/'
   | '/organizations/$organizationIdOrSlug/members/'
   | '/organizations/$organizationIdOrSlug/members/$memberId/'
