@@ -72,7 +72,14 @@ describe('NewWidgetBuilder', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: [],
+      body: {
+        data: [
+          [[1646100000], [{count: 1}]],
+          [[1646120000], [{count: 1}]],
+        ],
+        start: 1646100000,
+        end: 1646120000,
+      },
     });
 
     MockApiClient.addMockResponse({
