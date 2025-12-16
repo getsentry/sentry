@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import TimeSince from 'sentry/components/timeSince';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 
 type MenuMode = 'slash-commands-keyboard' | 'session-history' | 'pr-widget' | 'hidden';
@@ -16,6 +15,7 @@ interface ExplorerMenuProps {
   panelSize: 'max' | 'med';
   panelVisible: boolean;
   slashCommandHandlers: {
+    onFeedback: (() => void) | undefined;
     onMaxSize: () => void;
     onMedSize: () => void;
     onNew: () => void;
@@ -341,13 +341,13 @@ function useSlashCommands({
   onMaxSize,
   onMedSize,
   onNew,
+  onFeedback,
 }: {
+  onFeedback: (() => void) | undefined;
   onMaxSize: () => void;
   onMedSize: () => void;
   onNew: () => void;
 }): MenuItemProps[] {
-  const openFeedbackForm = useFeedbackForm();
-
   return useMemo(
     (): MenuItemProps[] => [
       {
@@ -374,25 +374,18 @@ function useSlashCommands({
         description: 'Set panel to medium size (default)',
         handler: onMedSize,
       },
-      ...(openFeedbackForm
+      ...(onFeedback
         ? [
             {
               title: '/feedback',
               key: '/feedback',
               description: 'Open feedback form to report issues or suggestions',
-              handler: () =>
-                openFeedbackForm({
-                  formTitle: 'Seer Explorer Feedback',
-                  messagePlaceholder: 'How can we make Seer Explorer better for you?',
-                  tags: {
-                    ['feedback.source']: 'seer_explorer',
-                  },
-                }),
+              handler: () => onFeedback(),
             },
           ]
         : []),
     ],
-    [onNew, onMaxSize, onMedSize, openFeedbackForm]
+    [onNew, onMaxSize, onMedSize, onFeedback]
   );
 }
 
