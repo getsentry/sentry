@@ -255,7 +255,9 @@ class OAuthAuthorizeView(AuthLoginView):
                 raise NotImplementedError(f"{pending_scopes} scopes did not have descriptions")
 
         if application.requires_org_level_access:
-            organization_options = user_service.get_organizations(user_id=request.user.id)
+            organization_options = user_service.get_organizations(
+                user_id=request.user.id, only_visible=True
+            )
             if not organization_options:
                 return self.respond(
                     "sentry/oauth-error.html",
@@ -365,6 +367,47 @@ class OAuthAuthorizeView(AuthLoginView):
         # access to that organization by selecting one. If None, means the application
         # has user level access and will be able to have access to all the organizations of that user.
         selected_organization_id = request.POST.get("selected_organization_id")
+
+        # Validate organization selection for org-level access applications
+        # This prevents privilege escalation and ensures apps that require org-level
+        # access always have an organization_id set
+        if application.requires_org_level_access:
+            # Organization ID is required for org-level access applications
+            if not selected_organization_id:
+                return self.error(
+                    request=request,
+                    client_id=application.client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="invalid_request",
+                    state=state,
+                )
+
+            # Validate that user is a member of the selected organization
+            user_orgs = user_service.get_organizations(user_id=user.id, only_visible=True)
+            org_ids = {org.id for org in user_orgs}
+
+            try:
+                selected_org_id_int = int(selected_organization_id)
+            except (ValueError, TypeError):
+                return self.error(
+                    request=request,
+                    client_id=application.client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="unauthorized_client",
+                    state=state,
+                )
+
+            if selected_org_id_int not in org_ids:
+                return self.error(
+                    request=request,
+                    client_id=application.client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="unauthorized_client",
+                    state=state,
+                )
 
         try:
             with transaction.atomic(router.db_for_write(ApiAuthorization)):
