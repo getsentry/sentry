@@ -353,12 +353,15 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 synthetic_metric_tags["status"] = CHECKSTATUS_MISSED_WINDOW
                 for i in range(0, num_missed_checks):
                     missed_result: CheckResult = {
-                        "guid": str(uuid.uuid4()),
+                        "guid": uuid.uuid4().hex,
                         "subscription_id": result["subscription_id"],
                         "status": CHECKSTATUS_MISSED_WINDOW,
-                        "status_reason": None,
-                        "trace_id": str(uuid.uuid4()),
-                        "span_id": str(uuid.uuid4()),
+                        "status_reason": {
+                            "type": "miss_backfill",
+                            "description": "Miss was never reported for this scheduled check_time",
+                        },
+                        "trace_id": uuid.uuid4().hex,
+                        "span_id": uuid.uuid4().hex,
                         "region": result["region"],
                         "scheduled_check_time_ms": last_update_ms
                         + ((i + 1) * subscription_interval_ms),

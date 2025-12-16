@@ -1,22 +1,30 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert/alert';
+
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import {NoAccess} from 'sentry/components/noAccess';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-import {SeerOnboardingProvider} from './onboarding/hooks/seerOnboardingContext';
-import {StepsManager} from './onboarding/stepsManager';
+import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
-export default function SeerOnboardingV2() {
+import {SeerOnboardingProvider} from './hooks/seerOnboardingContext';
+import {StepsManager} from './stepsManager';
+
+export default function SeerOnboardingSeatBased() {
   const organization = useOrganization();
+  const canWrite = useCanWriteSettings();
 
-  if (!organization.features.includes('seer-new-onboarding')) {
-    return <NoAccess />;
+  if (!canWrite) {
+    return (
+      <Alert type="warning">
+        {t('Only organization administrators can access the Seer Setup Wizard')}
+      </Alert>
+    );
   }
 
   return (
@@ -25,7 +33,7 @@ export default function SeerOnboardingV2() {
       <SettingsPageHeader
         title={t('Set Up Seer')}
         subtitle={t(
-          'Follow these steps to configure Seer for your organization. Seer helps automatically analyze,fix, and prevent issues in your codebase.'
+          'Follow these steps to configure Seer for your organization. Seer helps automatically analyze, fix, and prevent issues in your codebase.'
         )}
       />
 

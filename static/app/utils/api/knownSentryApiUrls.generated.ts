@@ -117,6 +117,7 @@ export type KnownSentryApiUrls =
   | '/internal/preprod-artifact/batch-delete/'
   | '/internal/preprod-artifact/rerun-analysis/'
   | '/internal/prevent/pr-review/configs/resolved/'
+  | '/internal/prevent/pr-review/eligibility/'
   | '/internal/prevent/pr-review/github/sentry-org/'
   | '/internal/project-config/'
   | '/internal/rpc/$serviceName/$methodName/'
