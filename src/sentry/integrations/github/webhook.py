@@ -832,6 +832,15 @@ class PullRequestEventWebhook(GitHubWebhook):
                                 },
                             )
 
+                    logger.info(
+                        "organization_contributors.assign_seat.start",
+                        extra={
+                            "contributor_id": locked_contributor.id,
+                            "user_type": user_type,
+                            "author_association": author_association,
+                        },
+                    )
+
                     if (
                         locked_contributor
                         and is_contributor_eligible_for_seat_assignment(
