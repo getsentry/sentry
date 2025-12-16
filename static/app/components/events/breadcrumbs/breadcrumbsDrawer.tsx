@@ -120,6 +120,9 @@ export function BreadcrumbsDrawer({
       </InputGroup>
       <CompactSelect
         size="xs"
+        multiple
+        clearable
+        menuTitle={t('Filter by')}
         value={filters}
         onChange={options => {
           const newFilters = options.map(({value}) => value);
@@ -129,7 +132,6 @@ export function BreadcrumbsDrawer({
             organization,
           });
         }}
-        multiple
         options={filterOptions}
         maxMenuHeight={400}
         trigger={props => (
@@ -138,6 +140,7 @@ export function BreadcrumbsDrawer({
             borderless
             icon={<IconFilter />}
             aria-label={t('Filter All Breadcrumbs')}
+            title={t('Filter')}
             {...props}
             {...getFocusProps(BreadcrumbControlOptions.FILTER)}
           >
@@ -153,6 +156,7 @@ export function BreadcrumbsDrawer({
             borderless
             icon={<IconSort />}
             aria-label={t('Sort All Breadcrumbs')}
+            title={t('Sort')}
             {...props}
             {...getFocusProps(BreadcrumbControlOptions.SORT)}
           />
@@ -182,6 +186,7 @@ export function BreadcrumbsDrawer({
               )
             }
             aria-label={t('Change Time Format for All Breadcrumbs')}
+            title={t('Time Format')}
             {...props}
           />
         )}
