@@ -79,9 +79,26 @@ jobs:
             devservices logs
           fi
 
-  backend-test:
+  generate-matrix:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      total: ${{ steps.set-matrix.outputs.total }}
+    steps:
+      - name: Generate matrix
+        id: set-matrix
+        run: |
+          matrix_count=${{ github.event.inputs.matrix_count || 22 }}
+          instances=$(python3 -c "print(list(range($matrix_count)))")
+          echo "matrix=$instances" >> $GITHUB_OUTPUT
+          echo "total=$matrix_count" >> $GITHUB_OUTPUT
+
+  backend-test:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: [files-changed, generate-matrix]
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -93,11 +110,11 @@ jobs:
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        instance: ${{ fromJson(format('[{0}]', join(range(0, fromJson(github.event.inputs.matrix_count || '22')), ', '))) }}
+        instance: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
 
     env:
       # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.
-      MATRIX_INSTANCE_TOTAL: ${{ github.event.inputs.matrix_count || 22 }}
+      MATRIX_INSTANCE_TOTAL: ${{ needs.generate-matrix.outputs.total }}
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
@@ -448,6 +465,7 @@ jobs:
         backend-migration-tests,
         cli,
         files-changed,
+        generate-matrix,
         requirements,
         migration,
         monolith-dbs,
