@@ -11,12 +11,9 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {DataCategory} from 'sentry/types/core';
-import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -40,6 +37,7 @@ import TokenUsageWidget from 'sentry/views/insights/pages/agents/components/toke
 import ToolUsageWidget from 'sentry/views/insights/pages/agents/components/toolCallsWidget';
 import {TracesTable} from 'sentry/views/insights/pages/agents/components/tracesTable';
 import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/useAgentSpanSearchProps';
+import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {getAgentRunsFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
@@ -47,24 +45,13 @@ import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 
-function useShowOnboarding() {
-  const {projects} = useProjects();
-  const pageFilters = usePageFilters();
-  const selectedProjects = getSelectedProjectList(
-    pageFilters.selection.projects,
-    projects
-  );
-
-  return !selectedProjects.some(p => p.hasInsightsAgentMonitoring);
-}
-
 interface AgentsOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
 }
 
 function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
   const organization = useOrganization();
-  const showOnboarding = useShowOnboarding();
+  const showOnboarding = useShowAgentOnboarding();
   useDefaultToAllProjects();
 
   const {value: conversationTable} = useConversationsTableSwitch();
