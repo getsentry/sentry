@@ -15,6 +15,7 @@ import {
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {DataCategory} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -117,8 +118,8 @@ function ConversationsOverviewPage({
                     </ToolRibbon>
                     <SchemaHintsList
                       supportedAggregates={DISABLE_AGGREGATES}
-                      numberTags={numberTags}
-                      stringTags={stringTags}
+                      numberTags={numberTags as TagCollection}
+                      stringTags={stringTags as TagCollection}
                       isLoading={numberTagsLoading || stringTagsLoading}
                       exploreQuery={searchQuery ?? ''}
                       source={SchemaHintsSources.CONVERSATIONS}
