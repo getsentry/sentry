@@ -130,6 +130,7 @@ const formGroups: JsonFormObject[] = [
         label: t('Replay Access Members'),
         help: t('Select the members who will have access to replay data.'),
         multiple: true,
+        formatMessageValue: false,
         visible: ({model, features}) =>
           features.has('granular-replay-permissions') &&
           model.getValue('hasGranularReplayPermissions'),
