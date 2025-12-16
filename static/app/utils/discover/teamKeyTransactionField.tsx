@@ -60,6 +60,7 @@ function TeamKeyTransactionField({
             {...triggerProps}
             disabled={disabled}
             borderless
+            showChevron={false}
             size="zero"
             icon={
               <IconStar
