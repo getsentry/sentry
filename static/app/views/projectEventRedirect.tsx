@@ -3,10 +3,8 @@ import {useEffect, useState} from 'react';
 import DetailedError from 'sentry/components/errors/detailedError';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-
-type Props = RouteComponentProps;
 
 /**
  * This component performs a client-side redirect to Event Details given only
@@ -18,10 +16,10 @@ type Props = RouteComponentProps;
  * See:
  * https://github.com/getsentry/sentry/blob/824c03089907ad22a9282303a5eaca33989ce481/src/sentry/web/urls.py#L578
  */
-function ProjectEventRedirect({router}: Props) {
+export default function ProjectEventRedirect() {
   const [error, setError] = useState<string | null>(null);
-
-  const params = useParams();
+  const navigate = useNavigate();
+  const params = useParams<{eventId: string; orgId: string; projectId: string}>();
 
   useEffect(() => {
     // This presumes that _this_ React view/route is only reachable at
@@ -55,7 +53,7 @@ function ProjectEventRedirect({router}: Props) {
       // this redirect business.
       const url = new URL(xhr.responseURL);
       if (url.origin === window.location.origin) {
-        router.replace(url.pathname);
+        navigate(url.pathname, {replace: true});
       } else {
         // If the origin has changed, we cannot do a simple replace with the router.
         // Instead, we opt to do a full redirect.
@@ -65,7 +63,7 @@ function ProjectEventRedirect({router}: Props) {
     xhr.onerror = () => {
       setError(t('Could not load the requested event'));
     };
-  }, [params, router]);
+  }, [params, navigate]);
 
   return error ? (
     <DetailedError heading={t('Not found')} message={error} hideSupportLinks />
@@ -73,5 +71,3 @@ function ProjectEventRedirect({router}: Props) {
     <Layout.Page withPadding />
   );
 }
-
-export default ProjectEventRedirect;
