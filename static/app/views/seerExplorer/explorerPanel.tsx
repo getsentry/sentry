@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import {createPortal} from 'react-dom';
 
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import AskUserQuestionBlock from 'sentry/views/seerExplorer/askUserQuestionBlock';
@@ -248,17 +247,16 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     setIsMinimized(false);
   }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
-  const isSentryEmployee = useIsSentryEmployee();
-
   const langfuseUrl = sessionData?.run_id
     ? `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${sessionData.run_id}`
     : undefined;
 
   const handleOpenLangfuse = useCallback(() => {
-    if (isSentryEmployee && langfuseUrl) {
+    // Command handler. Disabled in slash command menu for non-employees
+    if (langfuseUrl) {
       window.open(langfuseUrl, '_blank');
     }
-  }, [isSentryEmployee, langfuseUrl]);
+  }, [langfuseUrl]);
 
   const openFeedbackForm = useFeedbackForm();
 

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import TimeSince from 'sentry/components/timeSince';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 
 type MenuMode = 'slash-commands-keyboard' | 'session-history' | 'pr-widget' | 'hidden';
@@ -351,6 +352,8 @@ function useSlashCommands({
   onMedSize: () => void;
   onNew: () => void;
 }): MenuItemProps[] {
+  const isSentryEmployee = useIsSentryEmployee();
+
   return useMemo(
     (): MenuItemProps[] => [
       {
@@ -387,7 +390,7 @@ function useSlashCommands({
             },
           ]
         : []),
-      ...(onLangfuse
+      ...(isSentryEmployee
         ? [
             {
               title: '/langfuse',
@@ -398,7 +401,7 @@ function useSlashCommands({
           ]
         : []),
     ],
-    [onNew, onMaxSize, onMedSize, onFeedback, onLangfuse]
+    [onNew, onMaxSize, onMedSize, onFeedback, onLangfuse, isSentryEmployee]
   );
 }
 
