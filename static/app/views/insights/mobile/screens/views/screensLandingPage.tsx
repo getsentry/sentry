@@ -61,7 +61,7 @@ function ScreensLandingPage() {
       {
         ...location,
         query: {
-          ...omit(location.query, ['primaryRelease', 'secondaryRelease']),
+          ...omit(location.query, ['primaryRelease']),
         },
       },
       {replace: true}

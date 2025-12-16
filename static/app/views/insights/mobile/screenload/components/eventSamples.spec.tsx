@@ -38,7 +38,6 @@ describe('ScreenLoadEventSamples', () => {
     jest.mocked(useReleaseSelection).mockReturnValue({
       primaryRelease: 'com.example.vu.android@2.10.5',
       isLoading: false,
-      secondaryRelease: 'com.example.vu.android@2.10.3+42',
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/events/`,

@@ -56,7 +56,7 @@ function ReleaseSelector({
 }: Props) {
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
   const {data, isLoading} = useReleases(searchTerm, sortBy);
-  const {primaryRelease, secondaryRelease} = useReleaseSelection();
+  const {primaryRelease} = useReleaseSelection();
 
   const options: Array<SelectOption<string> & {count?: number}> = [];
 
@@ -91,7 +91,7 @@ function ReleaseSelector({
   }
 
   data
-    ?.filter(({version}) => ![primaryRelease, secondaryRelease].includes(version))
+    ?.filter(({version}) => primaryRelease !== version)
     .forEach(release => {
       const option = {
         value: release.version,
