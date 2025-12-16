@@ -34,7 +34,7 @@ def validate_date_params(
     stats_period: str | None,
     start: str | None,
     end: str | None,
-    default_stats_period: str | None = None,
+    default_stats_period: str = "7d",
     allow_none: bool = False,
 ) -> tuple[str | None, str | None, str | None]:
     """
