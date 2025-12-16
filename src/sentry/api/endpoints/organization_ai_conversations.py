@@ -282,8 +282,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         Get first input and last output for conversations (query 4).
 
         Fetches ai_client spans ordered by timestamp to determine:
-        - firstInput: gen_ai.request.messages from earliest ai_client span per conversation
-        - lastOutput: gen_ai.request.messages from latest ai_client span per conversation
+        - firstInput: first user message content from earliest ai_client span per conversation
+        - lastOutput: gen_ai.response.text from latest ai_client span per conversation
         """
         logger.info(
             "[ai-conversations] Getting first input / last output",
@@ -296,6 +296,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             selected_columns=[
                 "gen_ai.conversation.id",
                 "gen_ai.request.messages",
+                "gen_ai.response.text",
                 "precise.start_ts",
                 "precise.finish_ts",
             ],
@@ -356,12 +357,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         """
         Apply first input and last output to conversations.
 
-        - firstInput: messages array from the FIRST ai_client span (by start_ts)
-        - lastOutput: messages array from the LAST ai_client span (by finish_ts)
+        - firstInput: first user message content from the FIRST ai_client span (by start_ts)
+        - lastOutput: gen_ai.response.text from the LAST ai_client span (by finish_ts)
         """
-        # Track first/last messages per conversation
-        first_messages_by_conv: dict[str, list] = {}
-        last_messages_by_conv: dict[str, tuple[float, list]] = {}
+        # Track first input and last output per conversation
+        first_input_by_conv: dict[str, str] = {}
+        last_output_by_conv: dict[str, tuple[float, str]] = {}
 
         for row in first_last_io_data.get("data", []):
             conv_id = row.get("gen_ai.conversation.id", "")
@@ -369,20 +370,51 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 continue
 
             messages = row.get("gen_ai.request.messages")
+            response_text = row.get("gen_ai.response.text")
             finish_ts = row.get("precise.finish_ts", 0)
 
-            # First input: take from first span per conversation (data ordered by start_ts)
-            if conv_id not in first_messages_by_conv and messages:
-                first_messages_by_conv[conv_id] = messages
+            # First input: extract first user message from first span per conversation
+            # Data is ordered by start_ts, so first occurrence is the earliest span
+            if conv_id not in first_input_by_conv and messages:
+                first_user_content = self._extract_first_user_message(messages)
+                if first_user_content:
+                    first_input_by_conv[conv_id] = first_user_content
 
-            # Last output: track the one with latest finish_ts
-            if messages:
-                current = last_messages_by_conv.get(conv_id)
+            # Last output: track gen_ai.response.text from span with latest finish_ts
+            if response_text:
+                current = last_output_by_conv.get(conv_id)
                 if current is None or finish_ts > current[0]:
-                    last_messages_by_conv[conv_id] = (finish_ts, messages)
+                    last_output_by_conv[conv_id] = (finish_ts, response_text)
 
         for conversation in conversations:
             conv_id = conversation["conversationId"]
-            conversation["firstInput"] = first_messages_by_conv.get(conv_id)
-            last_tuple = last_messages_by_conv.get(conv_id)
+            conversation["firstInput"] = first_input_by_conv.get(conv_id)
+            last_tuple = last_output_by_conv.get(conv_id)
             conversation["lastOutput"] = last_tuple[1] if last_tuple else None
+
+    def _extract_first_user_message(self, messages: str | list | None) -> str | None:
+        """
+        Extract the content of the first user message from messages.
+
+        Messages can be a JSON string or a list of message objects.
+        Each message object has 'role' and 'content' fields.
+        """
+        if not messages:
+            return None
+
+        # Parse if it's a JSON string
+        if isinstance(messages, str):
+            try:
+                messages = json.loads(messages)
+            except (json.JSONDecodeError, TypeError):
+                return None
+
+        if not isinstance(messages, list):
+            return None
+
+        # Find first message with role "user"
+        for msg in messages:
+            if isinstance(msg, dict) and msg.get("role") == "user":
+                return msg.get("content")
+
+        return None

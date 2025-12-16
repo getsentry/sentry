@@ -32,6 +32,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         trace_id=None,
         agent_name=None,
         messages=None,
+        response_text=None,
     ):
         span_data = {"gen_ai.conversation.id": conversation_id}
         if operation_type:
@@ -45,6 +46,8 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         if messages is not None:
             # Serialize as JSON string since test infrastructure doesn't support list attributes
             span_data["gen_ai.request.messages"] = json.dumps(messages)
+        if response_text is not None:
+            span_data["gen_ai.response.text"] = response_text
 
         extra_data = {
             "description": description or "default",
@@ -113,10 +116,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         conversation_id = uuid4().hex
 
         first_messages = [{"role": "user", "content": "Hello, I need help"}]
-        last_messages = [
-            {"role": "user", "content": "Hello, I need help"},
-            {"role": "assistant", "content": "Here is the answer"},
-        ]
+        last_response_text = "Here is the final answer"
 
         self.store_ai_span(
             conversation_id=conversation_id,
@@ -137,6 +137,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
             cost=LLM_COST,
             trace_id=trace_id,
             messages=first_messages,
+            response_text="Let me help you with that",
         )
 
         self.store_ai_span(
@@ -166,7 +167,8 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
             tokens=LLM_TOKENS,
             cost=LLM_COST,
             trace_id=trace_id,
-            messages=last_messages,
+            messages=[{"role": "user", "content": "Thanks"}],
+            response_text=last_response_text,
         )
 
         query = {
@@ -192,10 +194,10 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         assert conversation["flow"] == ["Customer Support Agent", "Response Generator"]
         assert len(conversation["traceIds"]) == 1
         assert conversation["traceIds"][0] == trace_id
-        # firstInput from first ai_client span, lastOutput from last ai_client span
-        # Messages are stored as JSON strings
-        assert conversation["firstInput"] == json.dumps(first_messages)
-        assert conversation["lastOutput"] == json.dumps(last_messages)
+        # firstInput: first user message content from first ai_client span
+        # lastOutput: gen_ai.response.text from last ai_client span
+        assert conversation["firstInput"] == "Hello, I need help"
+        assert conversation["lastOutput"] == last_response_text
 
     def test_conversation_spanning_multiple_traces(self) -> None:
         """Test a conversation with spans across multiple traces"""
@@ -505,18 +507,8 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
-        first_messages = [
-            {"role": "user", "content": "What is the weather?"},
-        ]
-        middle_messages = [
-            {"role": "user", "content": "What is the weather?"},
-            {"role": "assistant", "content": "Let me check..."},
-            {"role": "user", "content": "Thanks"},
-        ]
-        last_messages = [
-            {"role": "user", "content": "Any updates?"},
-            {"role": "assistant", "content": "The weather is sunny!"},
-        ]
+        first_user_content = "What is the weather?"
+        last_response_text = "The weather is sunny!"
 
         # First ai_client span with input
         self.store_ai_span(
@@ -525,7 +517,8 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
             op="gen_ai.chat",
             operation_type="ai_client",
             trace_id=trace_id,
-            messages=first_messages,
+            messages=[{"role": "user", "content": first_user_content}],
+            response_text="Let me check...",
         )
 
         # Middle ai_client span
@@ -535,7 +528,12 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
             op="gen_ai.chat",
             operation_type="ai_client",
             trace_id=trace_id,
-            messages=middle_messages,
+            messages=[
+                {"role": "user", "content": "What is the weather?"},
+                {"role": "assistant", "content": "Let me check..."},
+                {"role": "user", "content": "Thanks"},
+            ],
+            response_text="Processing your request...",
         )
 
         # Last ai_client span with output
@@ -545,7 +543,8 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
             op="gen_ai.chat",
             operation_type="ai_client",
             trace_id=trace_id,
-            messages=last_messages,
+            messages=[{"role": "user", "content": "Any updates?"}],
+            response_text=last_response_text,
         )
 
         query = {
@@ -559,9 +558,10 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
         assert len(response.data) == 1
 
         conversation = response.data[0]
-        # Messages are stored as JSON strings
-        assert conversation["firstInput"] == json.dumps(first_messages)
-        assert conversation["lastOutput"] == json.dumps(last_messages)
+        # firstInput: first user message content from first ai_client span
+        # lastOutput: gen_ai.response.text from last ai_client span
+        assert conversation["firstInput"] == first_user_content
+        assert conversation["lastOutput"] == last_response_text
 
     def test_first_input_last_output_no_ai_client_spans(self) -> None:
         """Test firstInput and lastOutput are None when no ai_client spans exist"""
@@ -601,7 +601,7 @@ class OrganizationAIConversationsEndpointTest(BaseSpansTestCase, SpanTestCase, A
 
     def test_query_filter(self) -> None:
         """Test that query parameter filters conversations"""
-        now = before_now(days=95).replace(microsecond=0)
+        now = before_now(days=30).replace(microsecond=0)
         conversation_id_1 = uuid4().hex
         conversation_id_2 = uuid4().hex
 
