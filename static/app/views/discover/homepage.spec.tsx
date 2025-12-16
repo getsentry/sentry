@@ -159,7 +159,9 @@ describe('Discover > Homepage', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
-          query: expect.objectContaining({query: 'event.type:error'}),
+          query: expect.objectContaining({
+            field: 'event.type',
+          }),
         })
       );
     });
@@ -418,7 +420,7 @@ describe('Discover > Homepage', () => {
     await waitFor(() => expect(screen.getByTestId('set-as-default')).toBeEnabled());
   });
 
-  it('saves homepage with dataset selection', async () => {
+  it('shows Set as Default when dataset differs from saved homepage', async () => {
     organization = OrganizationFixture({
       features: ['discover-basic', 'discover-query'],
     });
