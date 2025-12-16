@@ -89,7 +89,7 @@ export function StreamlinedExternalIssueList({
   }
 
   return (
-    <Flex direction="row" gap="md">
+    <Flex direction="row" gap="md" wrap="wrap">
       {linkedIssues.length > 0 && (
         <IssueActionWrapper>
           {linkedIssues.map(linkedIssue => (
