@@ -13,10 +13,14 @@ import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/co
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 interface DetectorBaseFieldsProps {
+  envFieldProps?: Partial<React.ComponentProps<typeof SelectField>>;
   noEnvironment?: boolean;
 }
 
-export function DetectorBaseFields({noEnvironment}: DetectorBaseFieldsProps) {
+export function DetectorBaseFields({
+  noEnvironment,
+  envFieldProps,
+}: DetectorBaseFieldsProps) {
   const {setHasSetDetectorName} = useDetectorFormContext();
 
   return (
@@ -43,7 +47,7 @@ export function DetectorBaseFields({noEnvironment}: DetectorBaseFieldsProps) {
       </Layout.Title>
       <Flex gap="md">
         <ProjectField />
-        {!noEnvironment && <EnvironmentField />}
+        {!noEnvironment && <EnvironmentField {...envFieldProps} />}
       </Flex>
     </Flex>
   );
@@ -85,7 +89,7 @@ function ProjectField() {
   );
 }
 
-function EnvironmentField() {
+function EnvironmentField(props: Partial<React.ComponentProps<typeof SelectField>>) {
   const {projects} = useProjects();
   const projectId = useFormField<string>('projectId')!;
 
@@ -104,6 +108,7 @@ function EnvironmentField() {
       placeholder={t('Environment')}
       aria-label={t('Select Environment')}
       size="sm"
+      {...props}
     />
   );
 }
