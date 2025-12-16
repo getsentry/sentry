@@ -1,6 +1,9 @@
 import {useCallback} from 'react';
 
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
+import {defined} from 'sentry/utils';
 import useUrlParams from 'sentry/utils/url/useUrlParams';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export enum TabKey {
   AI = 'ai',
@@ -36,7 +39,18 @@ function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}
 }
 
 function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boolean}) {
-  const defaultTab = TabKey.BREADCRUMBS;
+  const organization = useOrganization();
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
+  const hasMobileSummary = organization.features.includes('replay-ai-summaries-mobile');
+  const hasAiSummary =
+    organization.features.includes('replay-ai-summaries') && areAiFeaturesAllowed;
+
+  const isAiTabAvailable = hasAiSummary && (!isVideoReplay || hasMobileSummary);
+
+  const defaultTab =
+    defined(areAiFeaturesAllowed) && areAiFeaturesAllowed && isAiTabAvailable
+      ? TabKey.AI
+      : TabKey.BREADCRUMBS;
 
   const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
 
