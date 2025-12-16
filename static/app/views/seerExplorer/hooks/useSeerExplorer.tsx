@@ -5,7 +5,6 @@ import {
   setApiQueryData,
   useApiQuery,
   useQueryClient,
-  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -14,6 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import useAsciiSnapshot from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
+import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
 
 export type PendingUserInput = {
   data: Record<string, any>;
@@ -54,11 +54,6 @@ const OPTIMISTIC_ASSISTANT_TEXTS = [
   'Replaying prod...',
   'Scanning the error-waves...',
 ] as const;
-
-const makeSeerExplorerQueryKey = (orgSlug: string, runId?: number): ApiQueryKey => [
-  `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
-  {},
-];
 
 const makeInitialSeerExplorerData = (): SeerExplorerResponse => ({
   session: null,

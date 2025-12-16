@@ -3,6 +3,7 @@ import {createPortal} from 'react-dom';
 
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import AskUserQuestionBlock from 'sentry/views/seerExplorer/askUserQuestionBlock';
 import BlockComponent from 'sentry/views/seerExplorer/blockComponents';
 import EmptyState from 'sentry/views/seerExplorer/emptyState';
@@ -20,9 +21,11 @@ import PanelContainers, {
 import {usePRWidgetData} from 'sentry/views/seerExplorer/prWidget';
 import TopBar from 'sentry/views/seerExplorer/topBar';
 import type {Block, ExplorerPanelProps} from 'sentry/views/seerExplorer/types';
+import {useCopySessionDataToClipboard} from 'sentry/views/seerExplorer/utils';
 
 function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const organization = useOrganization({allowNull: true});
+  const {projects} = useProjects();
 
   const [inputValue, setInputValue] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1); // -1 means input is focused
@@ -53,6 +56,17 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     respondToUserInput,
     createPR,
   } = useSeerExplorer();
+
+  const copySessionEnabled = Boolean(
+    sessionData?.status === 'completed' && !!sessionData?.run_id && !!organization?.slug
+  );
+
+  const {copySessionToClipboard} = useCopySessionDataToClipboard({
+    blocks: sessionData?.blocks || [],
+    orgSlug: organization?.slug ?? '',
+    projects,
+    enabled: copySessionEnabled,
+  });
 
   // Handle external open events (from openSeerExplorer() calls)
   const {isWaitingForSessionData} = useExternalOpen({
@@ -474,7 +488,9 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
           focusInput();
         }}
         onPRWidgetClick={openPRWidget}
+        onCopySessionClick={copySessionToClipboard}
         onSessionHistoryClick={openSessionHistory}
+        isCopySessionEnabled={copySessionEnabled}
         onSizeToggleClick={handleSizeToggle}
         panelSize={panelSize}
         prWidgetButtonRef={prWidgetButtonRef}
