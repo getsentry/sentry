@@ -98,6 +98,23 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 [call("incidents.alert_rules.ignore_update_missing_on_demand")]
             )
 
+    @patch("sentry.incidents.subscription_processor.metrics")
+    def test_test_skip_already_processed_update(self, mock_metrics: MagicMock) -> None:
+        assert self.send_update(value=self.critical_threshold + 1) is True
+        mock_metrics.incr.reset_mock()
+        assert self.send_update(value=self.critical_threshold + 1) is False
+
+        mock_metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.skipping_already_processed_update"
+        )
+        mock_metrics.incr.reset_mock()
+        assert (
+            self.send_update(value=self.critical_threshold + 1, timedelta=timedelta(hours=1))
+            is True
+        )
+
+        mock_metrics.incr.assert_called_once_with("incidents.alert_rules.process_update.start")
+
     def test_resolve(self) -> None:
         self.send_update(self.critical_threshold + 1, timedelta(minutes=-2))
         assert self.get_detector_state(self.detector) == DetectorPriorityLevel.HIGH
