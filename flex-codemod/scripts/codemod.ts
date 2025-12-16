@@ -385,6 +385,7 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
     string,
     {componentName: 'Flex' | 'Stack'; propsStr: string}
   >();
+  const exportedComponents = new Set<string>();
   const fileName = root.filename();
 
   // Find all styled component declarations
@@ -477,14 +478,9 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
 
     // Check if this is an export statement
     const exportStmt = styledCall.ancestors().find(a => a.is('export_statement'));
+    const isExported = !!exportStmt;
 
     // Now check bailout conditions for viable candidates (has display: flex)
-
-    // Bailout if component is exported (might be used in other files)
-    if (exportStmt) {
-      console.log(`[BAILOUT] ${fileName}:${lineNumber} - "${oldComponentName}" is exported (cannot safely transform cross-file usage)`);
-      continue;
-    }
 
     // Bailout if wrapping an existing component
     if (isWrappingComponent(firstArg)) {
@@ -507,7 +503,7 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
     const asAttr = elementName === 'div' ? undefined : elementName;
     const propsStr = buildPropsString(flexProps, asAttr);
 
-    // Find the lexical declaration (const/let/var) to remove it
+    // Find the lexical declaration (const/let/var) to remove or transform it
     const lexicalDecl = styledCall.ancestors().find(a => a.is('lexical_declaration'));
 
     if (lexicalDecl) {
@@ -526,15 +522,32 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
           // Store component replacement info
           componentsToReplace.set(styledComponentName, {componentName, propsStr});
 
-          // Remove the lexical declaration (we already checked it's not exported above)
-          edits.push(lexicalDecl.replace(''));
+          if (isExported && exportStmt) {
+            // For exported components, transform to an arrow function component
+            const exportKeyword = exportStmt.text().startsWith('export const') ? 'export const' : 'export';
+            const openingTag = propsStr ? `<${componentName} ${propsStr}>` : `<${componentName}>`;
+            const closingTag = `</${componentName}>`;
+            const replacement = `${exportKeyword} ${styledComponentName} = ({children}: {children?: React.ReactNode}) => (\n  ${openingTag}{children}${closingTag}\n);`;
+
+            edits.push(exportStmt.replace(replacement));
+            // Track that this component is exported so we don't replace its JSX usages
+            exportedComponents.add(styledComponentName);
+          } else {
+            // For non-exported components, just remove the declaration
+            edits.push(lexicalDecl.replace(''));
+          }
         }
       }
     }
   }
 
-  // Replace JSX usages of the styled components
+  // Replace JSX usages of the styled components (but skip exported ones)
   for (const [oldName, {componentName, propsStr}] of componentsToReplace) {
+    // Skip exported components - they're now arrow function components with the same name
+    if (exportedComponents.has(oldName)) {
+      continue;
+    }
+
     // Find opening elements
     const openingElements = rootNode.findAll({
       rule: {
