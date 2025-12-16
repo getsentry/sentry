@@ -258,7 +258,9 @@ export function getMergedFilePatchesFromBlocks(blocks: Block[]): ExplorerFilePat
  * Check if there are code changes in the state.
  */
 export function hasCodeChanges(blocks: Block[]): boolean {
-  return blocks.some(block => block.file_patches && block.file_patches.length > 0);
+  return blocks.some(
+    block => block.merged_file_patches && block.merged_file_patches.length > 0
+  );
 }
 
 interface UseExplorerAutofixOptions {
