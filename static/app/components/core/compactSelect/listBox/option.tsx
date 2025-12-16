@@ -2,6 +2,7 @@ import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaOptionProps} from '@react-aria/listbox';
 import {useOption} from '@react-aria/listbox';
+import {mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
@@ -19,11 +20,13 @@ export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
   listState: ListState<any>;
   size: MenuListItemProps['size'];
+  'data-index'?: number;
+  ref?: React.Ref<HTMLLIElement>;
   showDetails?: boolean;
 }
 
 /**
- * A <li /> element with accessibile behaviors & attributes.
+ * A <li /> element with accessible behaviors & attributes.
  * https://react-spectrum.adobe.com/react-aria/useListBox.html
  */
 export function ListBoxOption({
@@ -31,6 +34,8 @@ export function ListBoxOption({
   listState,
   size,
   showDetails = true,
+  ref: refProp,
+  'data-index': dataIndex,
 }: ListBoxOptionProps) {
   const ref = useRef<HTMLLIElement>(null);
   const {
@@ -96,7 +101,8 @@ export function ListBoxOption({
   return (
     <StyledMenuListItem
       {...optionPropsMemo}
-      ref={ref}
+      data-index={dataIndex}
+      ref={mergeRefs(ref, refProp)}
       size={size}
       label={label}
       details={showDetails ? details : null}
