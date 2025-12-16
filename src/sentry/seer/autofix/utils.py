@@ -207,6 +207,22 @@ def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
     raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
+def set_project_seer_preference(preference: SeerProjectPreference) -> None:
+    """Set Seer project preference for a single project."""
+    path = "/v1/project-preference/set"
+    body = orjson.dumps({"preference": preference.dict()})
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=15,
+    )
+
+    if response.status >= 400:
+        raise SeerApiError(response.data.decode("utf-8"), response.status)
+
+
 def has_project_connected_repos(organization_id: int, project_id: int) -> bool:
     """
     Check if a project has connected repositories for Seer automation.

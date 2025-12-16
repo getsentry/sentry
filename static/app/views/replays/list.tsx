@@ -8,6 +8,10 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
+import {
+  ReplayAccess,
+  ReplayAccessFallbackAlert,
+} from 'sentry/components/replays/replayAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
@@ -75,7 +79,9 @@ export default function ReplaysListContainer() {
                 <Grid gap="xl" columns="100%">
                   <ReplayListPageHeaderHook />
                   {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
-                    <ReplayIndexContainer />
+                    <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
+                      <ReplayIndexContainer />
+                    </ReplayAccess>
                   ) : (
                     <Fragment>
                       <Flex gap="xl" wrap="wrap">
