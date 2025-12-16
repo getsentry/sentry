@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum
-from typing import Literal, Required, TypedDict
+from typing import Any, Literal, Required, TypedDict
 
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckStatus, CheckStatusReasonType
 
@@ -105,7 +105,7 @@ class CheckConfig(TypedDict, total=False):
     Defines how we'll schedule checks based on other active regions.
     """
 
-    assertion: any
+    assertion: Any
     """
     The runtime assertion to execute, or null.
     """
