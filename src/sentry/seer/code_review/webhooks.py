@@ -2,34 +2,27 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from enum import StrEnum
 from typing import Any
 
 import orjson
 from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry import options
+from sentry import metrics, options
 from sentry.models.organization import Organization
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils.seer import can_use_prevent_ai_features
 
+from .types import GitHubCheckRunAction, GitHubCheckRunEvent
+
 logger = logging.getLogger(__name__)
-
-
-# https://docs.github.com/en/webhooks/webhook-events-and-payloads#check_run
-class CheckRunAction(StrEnum):
-    COMPLETED = "completed"
-    CREATED = "created"
-    REQUESTED_ACTION = "requested_action"
-    REREQUESTED = "rerequested"
 
 
 # This needs to match the value defined in the Seer API:
 # https://github.com/getsentry/seer/blob/main/src/seer/automation/codegen/pr_review_coding_agent.py
 SEER_PR_REVIEW_RERUN_PATH = "/v1/automation/codegen/pr-review/rerun"
-PREFIX = "seer.code_review.check_run"
+PREFIX = "seer.code_review.check_run.rerun"
 
 connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
 
@@ -49,60 +42,71 @@ def handle_github_check_run_event(organization: Organization, event: Mapping[str
     Returns:
         True if the event was handled successfully, False otherwise
     """
-    action = event["action"]
-
-    # Check if we should handle this event before extracting fields
-    if not _should_handle_github_check_run_event(organization, action):
+    if not _should_handle_github_check_run_event(organization, event):
         return False
 
-    # Now extract and validate required fields for events we care about
-    check_run = event["check_run"]
-    extra = {
-        "organization_id": organization.id,
-        "action": action,
-        "html_url": check_run.get("html_url"),
-    }
     try:
-        original_run_id = int(event["check_run"]["external_id"])
-        extra["original_run_id"] = original_run_id
+        check_run, extra = _extract_check_run_and_extra(event, organization)
     except (TypeError, ValueError, KeyError):
         logger.warning("%s.missing_external_id", PREFIX, extra=extra)
         return False
 
-    # Forward the original run ID to Seer for PR review rerun
-    payload = {"original_run_id": original_run_id}
+    return _make_rerun_request(check_run, extra)
+
+
+def _extract_check_run_and_extra(
+    event: Mapping[str, Any],
+    organization: Organization,
+    action: GitHubCheckRunAction,
+) -> tuple[GitHubCheckRunEvent, dict[str, Any]]:
+    check_run = event["check_run"].value
+    extra = {
+        "organization_id": organization.id,
+        "action": action,
+        "html_url": check_run.value["html_url"],
+    }
+    original_run_id = check_run.value["external_id"]
+    extra["original_run_id"] = original_run_id
+
+    return check_run, extra
+
+
+def _make_rerun_request(check_run: GitHubCheckRunEvent, extra: dict[str, Any]) -> bool:
+    payload = {"original_run_id": check_run["external_id"]}
+    error_status = None
     try:
         response = make_signed_seer_api_request(
             connection_pool=connection_pool,
             path=SEER_PR_REVIEW_RERUN_PATH,
             body=orjson.dumps(payload),
         )
-    except (TimeoutError, MaxRetryError):
-        logger.exception("%s.forward.exception", PREFIX, extra=extra)
-        return False
+        if response.status >= 400:
+            error_status = response.status
+    except TimeoutError:
+        error_status = "timeout"
+    except MaxRetryError:
+        error_status = "max_retry"
 
-    if response.status >= 400:
-        logger.error(
-            "%s.forward.error",
-            PREFIX,
-            extra={**extra, "status": response.status, "response_data": response.data},
-        )
+    # Record metric for HTTP responses (both success and error)
+    metrics.incr(f"{PREFIX}.outcome", tags={"status": error_status or "success"})
+
+    if error_status is not None:
+        logger.error("%s.error", PREFIX, extra={**extra, "error_status": error_status})
         return False
 
     return True
 
 
-def _should_handle_github_check_run_event(organization: Organization, action: str) -> bool:
+def _should_handle_github_check_run_event(
+    organization: Organization, action: GitHubCheckRunAction
+) -> bool:
     """
     Determine if the GitHub check_run event should be handled.
     """
+    if not options.get("coding_workflows.code_review.github.enabled"):
+        return False
+
     if not can_use_prevent_ai_features(organization):
         return False
 
-    if action != CheckRunAction.REREQUESTED:
-        return False
-
-    if not options.get("coding_workflows.code_review.github.check_run.rerun.enabled"):
-        return False
-
-    return True
+    return action == GitHubCheckRunAction.REREQUESTED
