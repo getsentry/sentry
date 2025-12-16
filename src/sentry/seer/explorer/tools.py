@@ -1437,7 +1437,6 @@ def get_baseline_tag_distribution(
     Returns:
         Dict with "baseline_tag_distribution" containing list of
         {"tag_key": str, "tag_value": str, "count": int} entries.
-        Returns None if organization or project not found.
     """
 
     if not tag_keys:
