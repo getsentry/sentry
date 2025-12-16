@@ -71,7 +71,7 @@ def get_anomaly_data_from_seer(
     source_type = DataSourceType.SNUBA_QUERY_SUBSCRIPTION
 
     if aggregation_value is None or str(aggregation_value) == "nan":
-        logger.error(
+        logger.warning(
             "Invalid aggregation value", extra={"source_id": source_id, "source_type": source_type}
         )
         return None

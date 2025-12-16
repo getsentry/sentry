@@ -142,7 +142,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         assert self.dc.evaluate_value(data_packet.packet.values) == ConditionError(
             msg="Error during Seer data evaluation process."
         )
-        mock_logger.error.assert_called_with(
+        mock_logger.warning.assert_called_with(
             "Invalid aggregation value",
             extra={
                 "source_id": self.subscription.id,
