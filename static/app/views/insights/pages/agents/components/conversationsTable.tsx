@@ -1,7 +1,9 @@
 import {Fragment, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Button} from 'sentry/components/core/button';
 import Pagination from 'sentry/components/pagination';
@@ -14,34 +16,20 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {getUtcDateString} from 'sentry/utils/dates';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
-import {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
-import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+import {
+  useConversations,
+  type Conversation,
+} from 'sentry/views/insights/pages/agents/hooks/useConversations';
 import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
 import {hasGenAiConversationsFeature} from 'sentry/views/insights/pages/agents/utils/features';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
-
-interface TableData {
-  conversationId: string;
-  duration: number;
-  errors: number;
-  flow: string[];
-  llmCalls: number;
-  timestamp: number;
-  toolCalls: number;
-  totalCost: number | null;
-  totalTokens: number;
-  traceCount: number;
-  traceIds: string[];
-}
 
 export function ConversationsTable() {
   const organization = useOrganization();
@@ -56,16 +44,15 @@ export function ConversationsTable() {
 const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
-  {key: 'conversationId', name: t('Conversation ID'), width: 135},
-  {key: 'traceIds', name: t('Traces'), width: 130},
-  {key: 'flow', name: t('Flow'), width: COL_WIDTH_UNDEFINED}, // Containing summary of the conversation or list of agents
+  {key: 'conversationId', name: t('Conversation ID'), width: 140},
+  {key: 'inputOutput', name: t('Input / Output'), width: COL_WIDTH_UNDEFINED},
   {key: 'duration', name: t('Duration'), width: 130},
   {key: 'errors', name: t('Errors'), width: 100},
   {key: 'llmCalls', name: t('LLM Calls'), width: 110},
   {key: 'toolCalls', name: t('Tool Calls'), width: 110},
   {key: 'totalTokens', name: t('Total Tokens'), width: 120},
   {key: 'totalCost', name: t('Total Cost'), width: 120},
-  {key: 'timestamp', name: t('Timestamp'), width: 100},
+  {key: 'timestamp', name: t('Last Message'), width: 120},
 ];
 
 const rightAlignColumns = new Set([
@@ -79,56 +66,25 @@ const rightAlignColumns = new Set([
 ]);
 
 function ConversationsTableInner() {
-  const organization = useOrganization();
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: defaultColumnOrder,
   });
 
-  const {cursor, setCursor} = useTableCursor();
-  const pageFilters = usePageFilters();
-
-  const {start, end, period, utc} = pageFilters.selection.datetime;
-
-  const {
-    data = [],
-    isLoading,
-    error,
-    getResponseHeader,
-  } = useApiQuery<TableData[]>(
-    [
-      `/organizations/${organization.slug}/ai-conversations/`,
-      {
-        query: {
-          cursor,
-          project: pageFilters.selection.projects,
-          environment: pageFilters.selection.environments,
-          period,
-          start: start instanceof Date ? getUtcDateString(start) : start,
-          end: end instanceof Date ? getUtcDateString(end) : end,
-          utc,
-        },
-      },
-    ],
-    {
-      staleTime: 0,
-    }
-  );
-
-  const pageLinks = getResponseHeader?.('Link');
+  const {data, isLoading, error, pageLinks, setCursor} = useConversations();
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
       <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
         {column.name}
         {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
-        {column.key === 'flow' && <CellExpander />}
+        {column.key === 'inputOutput' && <CellExpander />}
       </HeadCell>
     );
   }, []);
 
   const renderBodyCell = useCallback(
-    (column: GridColumnOrder<string>, dataRow: TableData) => {
-      return <BodyCell column={column} dataRow={dataRow} query="" />;
+    (column: GridColumnOrder<string>, dataRow: Conversation) => {
+      return <BodyCell column={column} dataRow={dataRow} />;
     },
     []
   );
@@ -160,33 +116,69 @@ const BodyCell = memo(function BodyCell({
   dataRow,
 }: {
   column: GridColumnHeader<string>;
-  dataRow: TableData;
-  query: string;
+  dataRow: Conversation;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const {openTraceViewDrawer} = useTraceViewDrawer();
 
   switch (column.key) {
     case 'conversationId':
-      return dataRow.conversationId.slice(0, 8);
-    case 'traceIds':
       return (
-        <Flex align="start" direction="column" gap="sm">
-          {dataRow.traceIds.length > 0 &&
-            dataRow.traceIds.map(traceId => (
-              <TraceIdButton
-                key={traceId}
-                priority="link"
-                onClick={() => openTraceViewDrawer(traceId)}
-              >
-                {traceId.slice(0, 8)}
-              </TraceIdButton>
-            ))}
-        </Flex>
+        <ConversationIdButton priority="link" disabled>
+          {dataRow.conversationId.slice(0, 8)}
+        </ConversationIdButton>
       );
-    case 'flow':
-      return <span>{dataRow.flow.join(' → ')}</span>;
+    case 'inputOutput': {
+      return (
+        <div>
+          <Grid
+            areas={`
+              "inputLabel inputValue"
+              "outputLabel outputValue"
+            `}
+            columns="min-content 1fr"
+            gap="2xs md"
+          >
+            <Container area="inputLabel">
+              <Text variant="muted">{t('Input')}</Text>
+            </Container>
+            <Container area="inputValue" minWidth="0px">
+              <Tooltip
+                title={dataRow.firstInput}
+                disabled={!dataRow.firstInput}
+                showOnlyOnOverflow
+                maxWidth={800}
+                isHoverable
+              >
+                {dataRow.firstInput ? (
+                  <Text ellipsis>{dataRow.firstInput}</Text>
+                ) : (
+                  <Text variant="muted">&mdash;</Text>
+                )}
+              </Tooltip>
+            </Container>
+            <Container area="outputLabel">
+              <Text variant="muted">{t('Output')}</Text>
+            </Container>
+            <Container area="outputValue" minWidth="0px">
+              <Tooltip
+                title={dataRow.lastOutput}
+                disabled={!dataRow.lastOutput}
+                showOnlyOnOverflow
+                maxWidth={800}
+                isHoverable
+              >
+                {dataRow.lastOutput ? (
+                  <Text ellipsis>{dataRow.lastOutput}</Text>
+                ) : (
+                  <Text variant="muted">&mdash;</Text>
+                )}
+              </Tooltip>
+            </Container>
+          </Grid>
+        </div>
+      );
+    }
     case 'duration':
       return <DurationCell milliseconds={dataRow.duration} />;
     case 'errors':
@@ -244,7 +236,7 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
 `;
 
-const TraceIdButton = styled(Button)`
+const ConversationIdButton = styled(Button)`
   font-weight: normal;
   padding: 0;
 `;

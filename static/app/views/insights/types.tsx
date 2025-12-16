@@ -114,6 +114,7 @@ export enum SpanFields {
   GEN_AI_USAGE_TOTAL_TOKENS = 'gen_ai.usage.total_tokens',
   GEN_AI_OPERATION_TYPE = 'gen_ai.operation.type',
   GEN_AI_OPERATION_NAME = 'gen_ai.operation.name',
+  GEN_AI_CONVERSATION_ID = 'gen_ai.conversation.id',
   MCP_CLIENT_NAME = 'mcp.client.name',
   MCP_TRANSPORT = 'mcp.transport',
   MCP_TOOL_NAME = 'mcp.tool.name',
