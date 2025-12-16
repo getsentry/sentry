@@ -4,6 +4,7 @@ import type {Organization} from 'sentry/types/organization';
 import {descopeFeatureName} from 'sentry/utils';
 
 import withSubscription from 'getsentry/components/withSubscription';
+import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
 import type {Plan, Subscription} from 'getsentry/types';
 import {isBizPlanFamily, isDeveloperPlan} from 'getsentry/utils/billing';
@@ -106,9 +107,15 @@ function PlanFeature({subscription, features, organization, children}: Props) {
   }
 
   // Locate the first plan that offers these features
-  const requiredPlan = plans.find(plan =>
+  let requiredPlan = plans.find(plan =>
     features.map(descopeFeatureName).every(f => plan.features.includes(f))
   );
+
+  if (!requiredPlan && features.some(f => descopeFeatureName(f) === 'dashboards-edit')) {
+    // XXX(isabella): This is a temporary fix to allow upsells using dashboards-edit
+    // to work as expected before the feature was migrated to flagpole (to represent unlimited dashboards)
+    requiredPlan = plans.find(plan => plan.dashboardLimit === UNLIMITED_RESERVED);
+  }
 
   const tierChange =
     requiredPlan !== undefined && subscription.planTier !== billingConfig.id
