@@ -328,17 +328,10 @@ class OAuthAuthorizeView(AuthLoginView):
         # once they login, bind their user ID
         if request.user.is_authenticated:
             # Regenerate session to prevent session fixation attacks
-            # Save the OAuth payload before rotating the session key
-            old_payload = request.session.get("oa2")
-
-            # Rotate session key (creates new session ID)
             request.session.cycle_key()
 
-            # Restore OAuth data with authenticated user ID
-            if old_payload:
-                old_payload["uid"] = request.user.id
-                request.session["oa2"] = old_payload
-
+            # Update OAuth payload with authenticated user ID for validation in post()
+            request.session["oa2"]["uid"] = request.user.id
             request.session.modified = True
         return response
 
