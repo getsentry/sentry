@@ -218,7 +218,7 @@ class OAuthAuthorizeView(AuthLoginView):
                     state=state,
                 )
 
-            # OAuth 2.1: Only S256 method is allowed (plain method deprecated for security)
+            # Require S256 method explicitly (plain method not supported for security)
             if code_challenge_method != "S256":
                 logger.error(
                     "oauth.pkce.invalid-method",
