@@ -12,9 +12,12 @@ import {css} from '@emotion/react';
 import modifyColor from 'color';
 import {spring, type Transition} from 'framer-motion';
 
-import {color} from 'sentry/utils/theme/scraps/color';
-import {breakpoints, radius, size, space} from 'sentry/utils/theme/scraps/size';
-import {typography} from 'sentry/utils/theme/scraps/typography';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
+// eslint-disable-next-line no-restricted-imports
+import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/light';
+import {color} from 'sentry/utils/theme/scraps/tokens/color';
+import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
 import type {
   AlertVariant,
@@ -459,7 +462,7 @@ const formTheme: FormTheme = {
       paddingRight: 16,
       paddingTop: 12,
       paddingBottom: 12,
-      borderRadius: radius.lg,
+      borderRadius: baseLightTheme.radius.lg,
     },
     sm: {
       height: '32px',
@@ -470,7 +473,7 @@ const formTheme: FormTheme = {
       paddingRight: 12,
       paddingTop: 8,
       paddingBottom: 8,
-      borderRadius: radius.md,
+      borderRadius: baseLightTheme.radius.md,
     },
     xs: {
       height: '28px',
@@ -481,7 +484,7 @@ const formTheme: FormTheme = {
       paddingRight: 8,
       paddingTop: 6,
       paddingBottom: 6,
-      borderRadius: radius.sm,
+      borderRadius: baseLightTheme.radius.sm,
     },
   },
 };
@@ -490,10 +493,6 @@ const formTheme: FormTheme = {
  * Values shared between light and dark theme
  */
 const commonTheme = {
-  breakpoints,
-
-  space,
-  size,
   motion: generateMotion(),
 
   // Try to keep these ordered plz
@@ -1503,9 +1502,7 @@ const lightThemeDefinition = {
   ...deprecatedColorMappings(lightColors),
   ...lightAliases,
   ...lightShadows,
-
-  tokens: lightTokens,
-  radius,
+  ...baseLightTheme,
   focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${lightAliases.focusBorder}`,
@@ -1544,7 +1541,7 @@ export const lightTheme: SentryTheme = lightThemeDefinition;
 /**
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
-export const darkTheme: SentryTheme = {
+export const darkTheme = {
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
@@ -1552,9 +1549,8 @@ export const darkTheme: SentryTheme = {
   ...deprecatedColorMappings(darkColors),
   ...darkAliases,
   ...darkShadows,
-  tokens: darkTokens,
+  ...baseDarkTheme,
 
-  radius,
   focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${darkAliases.focusBorder}`,
