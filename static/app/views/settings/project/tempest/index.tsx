@@ -115,7 +115,6 @@ export default function TempestSettings() {
               organization={organization}
               projectId={project.id}
               origin="project-settings"
-              sdkName="playstation"
             />
           </ButtonBar>
         }

@@ -273,7 +273,6 @@ export const onboarding: OnboardingConfig = {
               organization={params.organization}
               projectId={params.project.id}
               origin={params.newOrg ? 'onboarding' : 'project-creation'}
-              sdkName="PlayStation"
             />
           ),
         },

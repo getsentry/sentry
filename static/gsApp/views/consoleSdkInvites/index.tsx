@@ -33,7 +33,6 @@ function ConsoleSDKInvitesSettings() {
           <RequestSdkAccessButton
             organization={organization}
             origin="org-settings"
-            sdkName="None"
             projectId="None"
           />
         }

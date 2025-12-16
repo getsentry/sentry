@@ -44,7 +44,6 @@ export const onboarding: OnboardingConfig = {
               organization={params.organization}
               projectId={params.project.id}
               origin="onboarding"
-              sdkName="Xbox"
             />
           ),
         },

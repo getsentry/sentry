@@ -46,7 +46,6 @@ export interface PrivateGamingSdkAccessModalProps {
   organization: Organization;
   origin: 'onboarding' | 'project-creation' | 'project-settings' | 'org-settings';
   projectId: string;
-  sdkName: string;
   gamingPlatform?: GamingPlatform;
   onSubmit?: () => void;
 }
@@ -57,7 +56,6 @@ export function PrivateGamingSdkAccessModal({
   Footer,
   closeModal,
   organization,
-  sdkName,
   gamingPlatform,
   projectId,
   onSubmit,
@@ -191,11 +189,7 @@ export function PrivateGamingSdkAccessModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h3>
-          {tct('Request [sdkName] SDK Access', {
-            sdkName,
-          })}
-        </h3>
+        <h3>{t('Request console SDK Access')}</h3>
       </Header>
       <Body>
         {isPending ? (

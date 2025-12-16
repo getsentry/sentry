@@ -11,21 +11,19 @@ export function RequestSdkAccessButton({
   organization,
   origin,
   projectId,
-  sdkName,
 }: PrivateGamingSdkAccessModalProps) {
   const buttonProps: PrivateGamingSdkAccessModalProps = {
     gamingPlatform,
     organization,
     origin,
     projectId,
-    sdkName,
   };
 
   useReopenGamingSdkModal(buttonProps);
 
   return (
     <Button
-      priority="default"
+      priority="primary"
       size="sm"
       data-test-id="request-sdk-access"
       icon={<IconLock locked />}

@@ -97,7 +97,6 @@ function getEnabledPlayStationContent(params: DocsParams): ContentBlock[] {
           organization={params.organization}
           projectId={params.project.id}
           origin={params.newOrg ? 'onboarding' : 'project-creation'}
-          sdkName="playstation"
         />
       ),
     },
@@ -149,7 +148,6 @@ function getEnabledNintendoSwitchContent(params: DocsParams): ContentBlock[] {
           organization={params.organization}
           projectId={params.project.id}
           origin={params.newOrg ? 'onboarding' : 'project-creation'}
-          sdkName="nintendo-switch"
         />
       ),
     },
@@ -196,7 +194,6 @@ function getEnabledXboxContent(params: DocsParams): ContentBlock[] {
           organization={params.organization}
           projectId={params.project.id}
           origin={params.newOrg ? 'onboarding' : 'project-creation'}
-          sdkName="xbox"
         />
       ),
     },
