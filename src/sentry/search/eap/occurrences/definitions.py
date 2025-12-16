@@ -7,12 +7,19 @@ from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
     ColumnDefinitions,
     ResolvedAttribute,
+    count_argument_resolver_optimized,
 )
 from sentry.search.eap.common_columns import COMMON_COLUMNS
 
 OCCURRENCES_ALWAYS_PRESENT_ATTRIBUTES = [
     AttributeKey(name="group_id", type=AttributeKey.Type.TYPE_INT),
 ]
+
+
+def count_processor(count_value: int | None) -> int:
+    if count_value is None:
+        return 0
+    return count_value
 
 
 OCCURRENCE_COLUMNS = {
@@ -52,6 +59,29 @@ OCCURRENCE_DEFINITIONS = ColumnDefinitions(
                     },
                 )
             ],
+        ),
+        "count": AggregateDefinition(
+            internal_function=Function.FUNCTION_COUNT,
+            infer_search_type_from_arguments=False,
+            default_search_type="integer",
+            processor=count_processor,
+            arguments=[
+                AttributeArgumentDefinition(
+                    attribute_types={
+                        "duration",
+                        "number",
+                        "integer",
+                        "percentage",
+                        "currency",
+                        *constants.SIZE_TYPE,
+                        *constants.DURATION_TYPE,
+                    },
+                    default_arg="group_id",
+                )
+            ],
+            attribute_resolver=count_argument_resolver_optimized(
+                OCCURRENCES_ALWAYS_PRESENT_ATTRIBUTES
+            ),
         ),
     },  # c.f. SPAN_AGGREGATE_DEFINITIONS when we're ready.
     formulas={},

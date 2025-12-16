@@ -33,6 +33,12 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInboxReason, InboxReasonDetails, add_group_to_inbox
+from sentry.search.eap.occurrences.common_queries import count_occurrences
+from sentry.search.eap.occurrences.rollout_utils import (
+    should_callsite_use_eap_data_in_read,
+    should_double_read_from_eap,
+    validate_read,
+)
 from sentry.services.eventstore.models import GroupEvent
 from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -246,7 +252,7 @@ def _extract_organization_and_project_and_group_ids(
     return group_ids_by_organization
 
 
-def get_group_hourly_count(group: Group) -> int:
+def get_group_hourly_count_snuba(group: Group) -> int:
     """Return the number of events a group has had today in the last hour"""
     key = f"hourly-group-count:{group.project.id}:{group.id}"
     hourly_count = cache.get(key)
@@ -281,6 +287,28 @@ def get_group_hourly_count(group: Group) -> int:
             ]
         )
         cache.set(key, hourly_count, GROUP_HOURLY_COUNT_TTL)
+
+    return int(hourly_count)
+
+
+def get_group_hourly_count_eap(group: Group) -> int:
+    """Return the number of events a group has had today in the last hour"""
+    key = f"hourly-group-count-eap:{group.project.id}:{group.id}"
+    hourly_count = cache.get(key)
+
+    if hourly_count is None:
+        now = datetime.now()
+        current_hour = now.replace(minute=0, second=0, microsecond=0)
+        hourly_count = count_occurrences(
+            organization=group.project.organization,
+            projects=[group.project],
+            start=current_hour,
+            end=now,
+            referrer=Referrer.IS_ESCALATING_GROUP.value,
+            group_id=group.id,
+        )
+        cache.set(key, hourly_count, GROUP_HOURLY_COUNT_TTL)
+
     return int(hourly_count)
 
 
@@ -288,7 +316,16 @@ def is_escalating(group: Group) -> tuple[bool, int | None]:
     """
     Return whether the group is escalating and the daily forecast if it exists.
     """
-    group_hourly_count = get_group_hourly_count(group)
+    snuba_count = get_group_hourly_count_snuba(group)
+    group_hourly_count = snuba_count
+
+    if should_double_read_from_eap():
+        eap_count = get_group_hourly_count_eap(group)
+        validate_read(snuba_count, eap_count, "issues.escalating.is_escalating")
+
+        if should_callsite_use_eap_data_in_read("issues.escalating.is_escalating"):
+            group_hourly_count = eap_count
+
     forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)
     # Check if current event occurrence is greater than forecast for today's date
     if forecast_today and group_hourly_count > forecast_today:
