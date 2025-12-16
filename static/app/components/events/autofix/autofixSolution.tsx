@@ -2,6 +2,8 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -516,14 +518,14 @@ function AutofixSolutionDisplay({
     return (
       <SolutionContainer>
         <CustomSolutionPadding>
-          <HeaderWrapper>
+          <Flex justify="space-between" align="center" wrap="wrap" gap="sm">
             <HeaderText>
-              <HeaderIconWrapper ref={iconFixRef}>
+              <Flex justify="center" align="center" ref={iconFixRef}>
                 <IconFix size="sm" color="green400" />
-              </HeaderIconWrapper>
+              </Flex>
               {t('Custom Solution')}
             </HeaderText>
-          </HeaderWrapper>
+          </Flex>
           <Content>
             <SolutionDescriptionWrapper>{customSolution}</SolutionDescriptionWrapper>
           </Content>
@@ -544,11 +546,11 @@ function AutofixSolutionDisplay({
 
   return (
     <SolutionContainer ref={containerRef}>
-      <HeaderWrapper>
+      <Flex justify="space-between" align="center" wrap="wrap" gap="sm">
         <HeaderText>
-          <HeaderIconWrapper ref={iconFixRef}>
+          <Flex justify="center" align="center" ref={iconFixRef}>
             <IconFix size="md" color="green400" />
-          </HeaderIconWrapper>
+          </Flex>
           {t('Solution')}
           <Button
             size="zero"
@@ -561,7 +563,7 @@ function AutofixSolutionDisplay({
             <IconChat />
           </Button>
         </HeaderText>
-      </HeaderWrapper>
+      </Flex>
       <AnimatePresence>
         {agentCommentThread && iconFixRef.current && (
           <AutofixHighlightPopup
@@ -715,14 +717,6 @@ const Content = styled('div')`
   padding: ${space(1)} 0 0;
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-`;
-
 const HeaderText = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.lg};
@@ -742,12 +736,6 @@ const AnimationWrapper = styled(motion.div)`
 
 const CustomSolutionPadding = styled('div')`
   padding: ${space(1)} ${space(0.25)} ${space(2)} ${space(0.25)};
-`;
-
-const HeaderIconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const InstructionsInputWrapper = styled('form')`

@@ -2,6 +2,8 @@ import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -229,13 +231,21 @@ const TraceExternalLayout = styled('div')`
   }
 `;
 
-const FlexBox = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
+function TraceLayout({
+  children,
+  ref,
+}: {
+  children: React.ReactNode;
+  ref: React.RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <Stack gap="md" ref={ref}>
+      {children}
+    </Stack>
+  );
+}
 
-const TraceInnerLayout = styled(FlexBox)`
+const TraceInnerLayout = styled(TraceLayout)`
   padding: ${space(2)} ${space(3)};
   flex-grow: 1;
   overflow-y: auto;

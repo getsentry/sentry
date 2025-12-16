@@ -1,6 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {SuspectCommitHeader} from 'sentry/components/events/styles';
 import {SuspectCommitFeedback} from 'sentry/components/events/suspectCommitFeedback';
@@ -125,7 +127,10 @@ export function SuspectCommits({
       <SuspectCommitHeader>
         <h3 data-test-id="suspect-commit">{commitHeading}</h3>
         {commits.length > 1 && (
-          <ExpandButton
+          <Flex
+            as="button"
+            align="center"
+            gap="xs"
             onClick={() => setIsExpanded(!isExpanded)}
             data-test-id="expand-commit-list"
           >
@@ -138,7 +143,7 @@ export function SuspectCommits({
                 {t('Show more')} <IconAdd size="md" />
               </Fragment>
             )}
-          </ExpandButton>
+          </Flex>
         )}
       </SuspectCommitHeader>
       <StyledPanel>
@@ -157,12 +162,6 @@ export function SuspectCommits({
 
 const StyledPanel = styled(Panel)`
   margin: 0;
-`;
-
-const ExpandButton = styled('button')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 const Title = styled('div')`

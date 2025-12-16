@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -116,7 +118,7 @@ function SidebarContent() {
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Debug Issues with Feature Flag Context')}</Heading>
-        <HeaderActions>
+        <Flex justify="space-between" gap="xxl">
           <div
             onClick={e => {
               // we need to stop bubbling the CompactSelect click event
@@ -153,7 +155,7 @@ function SidebarContent() {
               position="bottom-end"
             />
           </div>
-        </HeaderActions>
+        </Flex>
         {currentProject ? (
           <OnboardingContent currentProject={currentProject} />
         ) : (
@@ -220,7 +222,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         choices={[
           [
             'sdkSelect',
-            <SdkSelect key="sdkSelect">
+            <Flex align="center" wrap="wrap" gap="sm" key="sdkSelect">
               {tct('I use a Feature Flag SDK from [sdkSelect]', {
                 sdkSelect: (
                   <CompactSelect
@@ -242,7 +244,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                   />
                 ),
               })}
-            </SdkSelect>,
+            </Flex>,
           ],
           [
             'generic',
@@ -385,20 +387,6 @@ const StyledIdBadge = styled(IdBadge)`
   flex-shrink: 1;
 `;
 
-const HeaderActions = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(3)};
-`;
-
 const ContentHeader = styled('div')`
   padding: ${space(2)} 0;
-`;
-
-const SdkSelect = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  flex-wrap: wrap;
 `;

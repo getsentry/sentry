@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
@@ -17,7 +18,6 @@ import organizationGeneralSettingsFields from 'sentry/data/forms/organizationGen
 import organizationMembershipSettingsFields from 'sentry/data/forms/organizationMembershipSettings';
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -85,7 +85,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
           !organization.features.includes('codecov-integration') ||
           !access.has('org:write'),
         label: (
-          <PoweredByCodecov>
+          <Flex align="center" gap="xs">
             {t('Enable Code Coverage Insights')}{' '}
             <Feature
               hookName="feature-disabled:codecov-integration-setting"
@@ -108,17 +108,17 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
             >
               {() => null}
             </Feature>
-          </PoweredByCodecov>
+          </Flex>
         ),
         formatMessageValue: (value: boolean) => {
           const onOff = value ? t('on') : t('off');
           return t('Codecov access was turned %s', onOff);
         },
         help: (
-          <PoweredByCodecov>
+          <Flex align="center" gap="xs">
             {t('powered by')} <IconCodecov /> Codecov{' '}
             <HookCodecovSettingsLink organization={organization} />
-          </PoweredByCodecov>
+          </Flex>
         ),
       },
       makePreventAiField(),
@@ -160,14 +160,3 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
 }
 
 export default OrganizationSettingsForm;
-
-const PoweredByCodecov = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-
-  & > span {
-    display: flex;
-    align-items: center;
-  }
-`;

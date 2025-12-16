@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboarding/onboardingAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -87,26 +89,20 @@ export function FeatureFlagOnboardingLayout({
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
-        <Steps>
+        <Stack direction="column" gap="1.5rem">
           {steps.map(step => (
             <Step key={step.title ?? step.type} {...step} />
           ))}
           <StyledLinkButton to="/issues/" priority="primary">
             {t('Take me to Issues')}
           </StyledLinkButton>
-        </Steps>
+        </Stack>
         <Divider />
         <OnboardingAdditionalFeatures organization={organization} />
       </Wrapper>
     </AuthTokenGeneratorProvider>
   );
 }
-
-const Steps = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
 
 const StyledLinkButton = styled(LinkButton)`
   align-self: flex-start;

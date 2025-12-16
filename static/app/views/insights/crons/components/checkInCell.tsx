@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout';
@@ -120,13 +122,13 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
   const statusText = statusToText[status];
 
   const statusColumn = (
-    <Status>
+    <Flex align="center">
       <StatusIndicator
         status={checkStatusToIndicatorStatus[status]}
         tooltipTitle={tct('Check-in Status: [statusText]', {statusText})}
       />
       {statusText}
-    </Status>
+    </Flex>
   );
 
   const environmentColumn = <div>{environment}</div>;
@@ -203,18 +205,18 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
   );
 
   const durationColumn = defined(duration) ? (
-    <DurationContainer>
+    <Flex align="center">
       <Tooltip skipWrapper title={<Duration exact seconds={duration / 1000} />}>
         <Duration seconds={duration / 1000} />
       </Tooltip>
-    </DurationContainer>
+    </Flex>
   ) : (
     emptyCell
   );
 
   const groupsColumn =
     groups && groups.length > 0 ? (
-      <IssuesContainer>
+      <Stack direction="column">
         {groups.map(({id: groupId, shortId}) => (
           <QuickContextHovercard
             dataRow={{
@@ -232,7 +234,7 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
             />
           </QuickContextHovercard>
         ))}
-      </IssuesContainer>
+      </Stack>
     ) : (
       emptyCell
     );
@@ -487,26 +489,11 @@ function ProcessingLatencyIndicator({checkIn}: ProcessingLatencyProps) {
   return <QuestionTooltip icon="info" size="sm" title={tooltipMessage} />;
 }
 
-const Status = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const TimestampContainer = styled('div')`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
   font-variant-numeric: tabular-nums;
-`;
-
-const DurationContainer = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const IssuesContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
 `;
 
 const ExpectedDateTime = styled(DateTime)`

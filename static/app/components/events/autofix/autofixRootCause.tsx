@@ -2,6 +2,8 @@ import React, {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -526,14 +528,14 @@ function AutofixRootCauseDisplay({
     return (
       <CausesContainer>
         <CustomRootCausePadding>
-          <HeaderWrapper>
+          <Flex justify="space-between" align="center" wrap="wrap" gap="sm">
             <HeaderText>
-              <IconWrapper ref={iconFocusRef}>
+              <Flex justify="center" align="center" ref={iconFocusRef}>
                 <IconFocus size="md" color="pink400" />
-              </IconWrapper>
+              </Flex>
               {t('Custom Root Cause')}
             </HeaderText>
-          </HeaderWrapper>
+          </Flex>
           <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
           <BottomDivider />
           <BottomButtonContainer>
@@ -558,11 +560,11 @@ function AutofixRootCauseDisplay({
 
   return (
     <CausesContainer>
-      <HeaderWrapper>
+      <Flex justify="space-between" align="center" wrap="wrap" gap="sm">
         <HeaderText>
-          <IconWrapper ref={iconFocusRef}>
+          <Flex justify="center" align="center" ref={iconFocusRef}>
             <IconFocus size="md" color="pink400" />
-          </IconWrapper>
+          </Flex>
           {t('Root Cause')}
           <Button
             size="zero"
@@ -575,7 +577,7 @@ function AutofixRootCauseDisplay({
             <IconChat />
           </Button>
         </HeaderText>
-      </HeaderWrapper>
+      </Flex>
       <AnimatePresence>
         {agentCommentThread && iconFocusRef.current && (
           <AutofixHighlightPopup
@@ -692,20 +694,6 @@ const CausesContainer = styled('div')`
 
 const Content = styled('div')`
   padding: ${space(1)} 0;
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(1)};
-  flex-wrap: wrap;
-`;
-
-const IconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const HeaderText = styled('div')`

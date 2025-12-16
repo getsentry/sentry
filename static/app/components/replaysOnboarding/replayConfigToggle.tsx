@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Switch} from 'sentry/components/core/switch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,23 +19,17 @@ function ReplayConfigToggle({
 }) {
   return (
     <SwitchWrapper>
-      <SwitchItem htmlFor="mask">
+      <Flex as="label" align="center" gap="sm" htmlFor="mask">
         {t('Mask All Text')}
         <Switch id="mask" onChange={onMaskToggle} size="lg" checked={maskToggle} />
-      </SwitchItem>
-      <SwitchItem htmlFor="block">
+      </Flex>
+      <Flex as="label" align="center" gap="sm" htmlFor="block">
         {t('Block All Media')}
         <Switch id="block" onChange={onBlockToggle} size="lg" checked={blockToggle} />
-      </SwitchItem>
+      </Flex>
     </SwitchWrapper>
   );
 }
-
-const SwitchItem = styled('label')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
 
 const SwitchWrapper = styled('div')`
   display: flex;

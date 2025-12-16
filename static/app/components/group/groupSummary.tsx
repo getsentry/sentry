@@ -2,6 +2,8 @@ import {isValidElement, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
@@ -206,7 +208,7 @@ function GroupSummaryPreview({
     <div data-testid="group-summary-preview">
       {isError ? <div>{t('Error loading summary')}</div> : null}
       <Content>
-        <InsightGrid>
+        <Stack direction="column" gap="sm">
           {insightCards.map(card => {
             if ((!isPending && !card.insight) || (isPending && !card.showWhenLoading)) {
               return null;
@@ -219,7 +221,7 @@ function GroupSummaryPreview({
                     <CardTitleText>{card.title}</CardTitleText>
                   </AiPrivacyTooltip>
                 </CardTitle>
-                <CardContentContainer>
+                <Flex align="center" gap="sm">
                   <CardLineDecorationWrapper>
                     <CardLineDecoration />
                   </CardLineDecorationWrapper>
@@ -234,11 +236,11 @@ function GroupSummaryPreview({
                       )}
                     </CardContent>
                   )}
-                </CardContentContainer>
+                </Flex>
               </InsightCard>
             );
           })}
-        </InsightGrid>
+        </Stack>
       </Content>
     </div>
   );
@@ -279,7 +281,7 @@ function GroupSummaryCollapsed({
       {!isError && (
         <CollapsedContent>
           <CollapsedHeader onClick={handleToggle}>
-            <CollapsedHeaderContent>
+            <Flex justify="space-between" align="center" gap="sm">
               {isPending ? (
                 <Placeholder height="1.5rem" width="80%" />
               ) : (
@@ -294,7 +296,7 @@ function GroupSummaryCollapsed({
                   <IconChevron direction="down" size="sm" />
                 )}
               </ChevronIcon>
-            </CollapsedHeaderContent>
+            </Flex>
           </CollapsedHeader>
 
           <ExpandableContent
@@ -393,7 +395,7 @@ function GroupSummaryFull({
     <div data-testid="group-summary">
       {isError ? <div>{t('Error loading summary')}</div> : null}
       <Content>
-        <InsightGrid>
+        <Stack direction="column" gap="sm">
           {insightCards.map(card => {
             if ((!isPending && !card.insight) || (isPending && !card.showWhenLoading)) {
               return null;
@@ -404,7 +406,7 @@ function GroupSummaryFull({
                   <CardTitleIcon>{card.icon}</CardTitleIcon>
                   <CardTitleText>{card.title}</CardTitleText>
                 </CardTitle>
-                <CardContentContainer>
+                <Flex align="center" gap="sm">
                   <CardLineDecorationWrapper>
                     <CardLineDecoration />
                   </CardLineDecorationWrapper>
@@ -420,11 +422,11 @@ function GroupSummaryFull({
                       )}
                     </CardContent>
                   )}
-                </CardContentContainer>
+                </Flex>
               </InsightCard>
             );
           })}
-        </InsightGrid>
+        </Stack>
         {data?.eventId && !isPending && event && event.id !== data?.eventId && (
           <ResummarizeWrapper>
             <Button
@@ -447,12 +449,6 @@ const Content = styled('div')`
   flex-direction: column;
   gap: ${space(1)};
   position: relative;
-`;
-
-const InsightGrid = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
 `;
 
 const InsightCard = styled('div')`
@@ -481,12 +477,6 @@ const CardTitleIcon = styled('div')`
   display: flex;
   align-items: center;
   color: ${p => p.theme.subText};
-`;
-
-const CardContentContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const CardLineDecorationWrapper = styled('div')`
@@ -533,13 +523,6 @@ const CollapsedContent = styled('div')`
 const CollapsedHeader = styled('div')`
   cursor: pointer;
   transition: all 0.2s ease-in-out;
-`;
-
-const CollapsedHeaderContent = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${space(1)};
 `;
 
 const ChevronIcon = styled('div')`

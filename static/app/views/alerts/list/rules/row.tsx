@@ -1,6 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Access from 'sentry/components/acl/access';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
@@ -174,12 +176,12 @@ function RuleListRow({
   const unassignedOption = {
     value: '',
     label: (
-      <MenuItemWrapper>
+      <Flex align="center">
         <IconContainer>
           <IconUser />
         </IconContainer>
         <Label>{t('Unassigned')}</Label>
-      </MenuItemWrapper>
+      </Flex>
     ),
     textValue: 'unassigned',
   };
@@ -193,12 +195,12 @@ function RuleListRow({
       value: `team:${team.id}`,
       textValue: team.slug,
       label: (
-        <MenuItemWrapper key={idx}>
+        <Flex align="center" key={idx}>
           <IconContainer>
             <TeamAvatar team={team} />
           </IconContainer>
           <Label>#{team.slug}</Label>
-        </MenuItemWrapper>
+        </Flex>
       ),
     }))
     .concat(unassignedOption);
@@ -309,7 +311,7 @@ function RuleListRow({
         {ownerActor ? (
           <ActorAvatar actor={ownerActor} size={24} />
         ) : (
-          <AssigneeWrapper>
+          <Flex justify="end">
             {!projectsLoaded && <StyledLoadingIndicator mini size={16} />}
             {projectsLoaded && (
               <CompactSelect
@@ -330,7 +332,7 @@ function RuleListRow({
                 onChange={handleOwnerChange}
               />
             )}
-          </AssigneeWrapper>
+          </Flex>
         )}
       </Flex>
       <ActionsColumn>
@@ -391,22 +393,12 @@ const ActionsColumn = styled('div')`
   padding: ${space(1)};
 `;
 
-const AssigneeWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
 const IconContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
   width: ${() => SvgIcon.ICON_SIZES.lg};
   flex-shrink: 0;
-`;
-
-const MenuItemWrapper = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const Label = styled(TextOverflow)`

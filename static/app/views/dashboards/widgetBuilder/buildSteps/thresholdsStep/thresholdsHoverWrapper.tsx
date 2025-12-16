@@ -2,6 +2,8 @@ import type React from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
@@ -33,25 +35,25 @@ export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
     <StyledHoverCard
       skipWrapper
       body={
-        <BodyWrapper>
+        <Stack direction="column" gap="sm">
           <ContextTitle>{title}</ContextTitle>
-          <Row>
+          <Flex as="span" align="center" gap="xs">
             <StyledIndicator color={theme.green300} size={10} />
             <span>0 - {maxOneValue}</span>
-          </Row>
-          <Row>
+          </Flex>
+          <Flex as="span" align="center" gap="xs">
             <StyledIndicator color={theme.yellow300} size={10} />
             <span>
               {maxOneValue} - {maxTwoValue}
             </span>
-          </Row>
-          <Row>
+          </Flex>
+          <Flex as="span" align="center" gap="xs">
             <StyledIndicator color={theme.red300} size={10} />
             <span>
               {maxTwoValue} - {t('No max')}
             </span>
-          </Row>
-        </BodyWrapper>
+          </Flex>
+        </Stack>
       }
     >
       {children}
@@ -61,18 +63,6 @@ export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
 
 const StyledHoverCard = styled(Hovercard)`
   width: fit-content;
-`;
-
-const BodyWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const Row = styled('span')`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
 `;
 
 const ContextTitle = styled('h6')`

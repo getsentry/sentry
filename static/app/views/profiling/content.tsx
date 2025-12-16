@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
@@ -164,7 +166,7 @@ export default function ProfilingContent() {
           </Feature>
           <ProfilingContentPageHeader />
           <LayoutBody>
-            <LayoutMain width="full">
+            <Stack direction="column" width="full">
               <ActionBar>
                 <PageFilterBar condensed>
                   <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
@@ -240,7 +242,7 @@ export default function ProfilingContent() {
                   )}
                 </Fragment>
               )}
-            </LayoutMain>
+            </Stack>
           </LayoutBody>
         </Layout.Page>
       </PageFiltersContainer>
@@ -375,7 +377,7 @@ function shouldShowProfilingOnboardingPanel(selection: PageFilters, projects: Pr
 function ProfilingContentPageHeader() {
   return (
     <StyledLayoutHeader unified>
-      <StyledHeaderContent unified>
+      <Flex justify="space-between" align="center" unified>
         <Layout.Title>
           {t('Profiling')}
           <PageHeadingQuestionTooltip
@@ -386,7 +388,7 @@ function ProfilingContentPageHeader() {
           />
         </Layout.Title>
         <FeedbackButton />
-      </StyledHeaderContent>
+      </Flex>
     </StyledLayoutHeader>
   );
 }
@@ -413,11 +415,6 @@ const LayoutBody = styled(Layout.Body)`
   }
 `;
 
-const LayoutMain = styled(Layout.Main)`
-  display: flex;
-  flex-direction: column;
-`;
-
 const LandingAggregateFlamegraphSizer = styled('div')`
   height: 100%;
   min-height: max(80vh, 300px);
@@ -434,13 +431,6 @@ const LandingAggregateFlamegraphContainer = styled('div')`
 
 const StyledLayoutHeader = styled(Layout.Header)`
   display: block;
-`;
-
-const StyledHeaderContent = styled(Layout.HeaderContent)`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-direction: row;
 `;
 
 const ActionBar = styled('div')`

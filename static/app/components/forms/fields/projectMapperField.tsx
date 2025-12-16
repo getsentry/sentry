@@ -2,6 +2,8 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import difference from 'lodash/difference';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openProjectCreationModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -186,7 +188,9 @@ export class RenderField extends Component<RenderProps, State> {
           <MappedItemValue>
             {mappedItem ? (
               <Fragment>
-                <IntegrationIconWrapper>{getIcon(iconType)}</IntegrationIconWrapper>
+                <Flex as="span" align="center">
+                  {getIcon(iconType)}
+                </Flex>
                 {mappedItem.label}
                 <StyledExternalLink href={mappedItem.url}>
                   <IconOpen size="xs" />
@@ -233,10 +237,10 @@ export class RenderField extends Component<RenderProps, State> {
               SingleValue: (containerProps: any) => {
                 return (
                   <components.ValueContainer {...containerProps}>
-                    <MappedValueContainer>
+                    <Flex gap="sm">
                       {containerProps.data.leadingItems}
                       {containerProps.children}
-                    </MappedValueContainer>
+                    </Flex>
                   </components.ValueContainer>
                 );
               },
@@ -355,11 +359,6 @@ const RightArrow = styled(IconArrow)`
   grid-area: arrow;
 `;
 
-const IntegrationIconWrapper = styled('span')`
-  display: flex;
-  align-items: center;
-`;
-
 const StyledFormField = styled(FormField)`
   padding: 0;
 `;
@@ -385,9 +384,4 @@ const NextButtonWrapper = styled('div')`
   grid-template-columns: 1fr max-content;
   gap: ${space(1)};
   align-items: center;
-`;
-
-const MappedValueContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;

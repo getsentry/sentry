@@ -1,6 +1,8 @@
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {Actor} from 'sentry/types/core';
@@ -93,7 +95,7 @@ function AvatarList({
   }
 
   return (
-    <AvatarListWrapper className={className}>
+    <Flex direction="row-reverse" align="center" className={className}>
       {!!numCollapsedAvatars &&
         (renderCollapsedAvatars ? (
           renderCollapsedAvatars(avatarSize, numCollapsedAvatars)
@@ -150,18 +152,13 @@ function AvatarList({
               hasTooltip
             />
           ))}
-    </AvatarListWrapper>
+    </Flex>
   );
 }
 
 export default AvatarList;
 
 // used in releases list page to do some alignment
-const AvatarListWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-direction: row-reverse;
-`;
 
 const AvatarStyle = (p: {theme: Theme}) => css`
   border: 2px solid ${p.theme.tokens.background.primary};

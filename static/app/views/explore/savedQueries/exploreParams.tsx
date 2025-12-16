@@ -2,6 +2,8 @@ import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
@@ -137,7 +139,11 @@ export function ExploreParams({
     visibleTokens.push(
       <Tooltip
         key="more"
-        title={<TooltipTokensContainer>{hiddenTokens}</TooltipTokensContainer>}
+        title={
+          <Flex as="span" wrap="wrap" gap="xs">
+            {hiddenTokens}
+          </Flex>
+        }
       >
         <Token>
           <ExploreMoreTokens>
@@ -197,10 +203,4 @@ const ExploreMoreTokens = ExploreVisualizes;
 const FormattedQueryWrapper = styled('span')`
   display: inline-block;
   font-size: ${p => p.theme.form.sm.fontSize};
-`;
-
-const TooltipTokensContainer = styled('span')`
-  display: flex;
-  gap: ${space(0.5)};
-  flex-wrap: wrap;
 `;

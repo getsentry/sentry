@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -35,7 +37,7 @@ export default function FeatureFlagCTAContent({
             'Want to know which feature flags were associated with this issue? Set up your feature flag integration.'
           )}
         </BannerDescription>
-        <ActionButton>
+        <Flex gap="sm">
           <Button onClick={handleSetupButtonClick} priority="primary">
             {t('Set Up Now')}
           </Button>
@@ -52,17 +54,12 @@ export default function FeatureFlagCTAContent({
           >
             {t('Read More')}
           </LinkButton>
-        </ActionButton>
+        </Flex>
       </BannerContent>
       <BannerIllustration src={onboardingInstall} alt="" />
     </Fragment>
   );
 }
-
-const ActionButton = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
 
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};

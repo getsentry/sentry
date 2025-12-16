@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -27,36 +29,23 @@ function NavigateToExternalLinkModal({Body, closeModal, Header, linkText}: Props
         <ParagraphContainer>{linkText}</ParagraphContainer>
         &nbsp;
       </Body>
-      <ButtonContainer>
-        <ButtonBar>
+      <Stack direction="column" gap="10px">
+        <Flex justify="end" gap="5px">
           <LinkButton priority="primary" href={linkText} onClick={handleClose} external>
             {t('Continue')}
           </LinkButton>
           <Button priority="default" onClick={handleClose}>
             {t('Cancel')}
           </Button>
-        </ButtonBar>
-      </ButtonContainer>
+        </Flex>
+      </Stack>
     </Fragment>
   );
 }
 
 export default NavigateToExternalLinkModal;
 
-const ButtonContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-`;
-
 const ParagraphContainer = styled('p')`
   word-break: break-all;
   white-space: normal;
-`;
-
-const ButtonBar = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: 5px;
-  justify-content: end;
 `;

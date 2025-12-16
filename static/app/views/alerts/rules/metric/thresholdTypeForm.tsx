@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
@@ -68,7 +70,7 @@ function ThresholdTypeForm({
       AlertRuleComparisonType.CHANGE,
       comparisonType === AlertRuleComparisonType.CHANGE ? (
         // Prevent default to avoid dropdown menu closing on click
-        <ComparisonContainer onClick={e => e.preventDefault()}>
+        <Flex align="center" onClick={e => e.preventDefault()}>
           {t('Percent Change: {x%} higher or lower compared to')}
           <Select
             name="comparisonDelta"
@@ -96,7 +98,7 @@ function ThresholdTypeForm({
             options={comparisonDeltaOptions}
             required={comparisonType === AlertRuleComparisonType.CHANGE}
           />
-        </ComparisonContainer>
+        </Flex>
       ) : (
         t('Percent Change: {x%} higher or lower compared to previous period')
       ),
@@ -110,7 +112,7 @@ function ThresholdTypeForm({
   ) {
     thresholdTypeChoices.push([
       AlertRuleComparisonType.DYNAMIC,
-      <ComparisonContainer key="Dynamic">
+      <Flex align="center" key="Dynamic">
         {tct(
           'Anomaly: whenever values are outside of expected bounds ([learnMore:learn more])',
           {
@@ -119,7 +121,7 @@ function ThresholdTypeForm({
             ),
           }
         )}
-      </ComparisonContainer>,
+      </Flex>,
     ] as RadioOption);
   }
 
@@ -144,12 +146,6 @@ const FormRow = styled('div')`
   align-items: center;
   flex-wrap: wrap;
   margin-bottom: ${space(2)};
-`;
-
-const ComparisonContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
 `;
 
 const StyledRadioGroup = styled(RadioGroup)`

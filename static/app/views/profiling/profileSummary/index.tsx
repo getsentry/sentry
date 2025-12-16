@@ -1,6 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -157,12 +159,12 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
         </Layout.Title>
       </ProfilingHeaderContent>
       {transactionSummaryTarget && (
-        <StyledHeaderActions>
+        <Flex gap="sm">
           <FeedbackButton />
           <LinkButton to={transactionSummaryTarget} size="sm">
             {t('View Summary')}
           </LinkButton>
-        </StyledHeaderActions>
+        </Flex>
       )}
       <Tabs onChange={props.onViewChange} value={props.view}>
         <TabList hideBorder>
@@ -184,12 +186,6 @@ const ProfilingHeaderContent = styled(Layout.HeaderContent)`
   h1 {
     line-height: normal;
   }
-`;
-
-const StyledHeaderActions = styled(Layout.HeaderActions)`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1)};
 `;
 
 const ProfilingTitleContainer = styled('div')`

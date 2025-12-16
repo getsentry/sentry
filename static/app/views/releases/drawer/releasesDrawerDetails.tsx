@@ -1,6 +1,8 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
@@ -67,7 +69,7 @@ function ReleasesDrawerContent({
       <EventNavigator>
         <ErrorBoundary mini>
           <HeaderToolbar>
-            <ReleaseWithPlatform>
+            <Flex align="center" gap="sm">
               <ErrorBoundary mini>
                 <SelectableProjectBadges>
                   {releaseMeta?.projects?.map(releaseProject => (
@@ -93,7 +95,7 @@ function ReleasesDrawerContent({
                 </SelectableProjectBadges>
               </ErrorBoundary>
               {formatVersion(release)}
-            </ReleaseWithPlatform>
+            </Flex>
 
             <LinkButton
               to={normalizeUrl({
@@ -328,12 +330,6 @@ const Title = styled('div')`
   font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
-`;
-
-const ReleaseWithPlatform = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const SelectableProjectBadges = styled('div')`

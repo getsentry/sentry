@@ -1,6 +1,8 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Flex} from 'sentry/components/core/layout';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
@@ -151,7 +153,7 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   };
 
   return (
-    <Wrapper>
+    <Stack direction="column" gap="lg">
       {hasStreamlinedUI ? (
         <Flex justify="between">
           <Flex align="center" gap="md">
@@ -169,7 +171,7 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
         ? renderScreenshotGallery()
         : renderAttachmentsTable()}
       <NoMarginPagination pageLinks={getResponseHeader?.('Link')} />
-    </Wrapper>
+    </Stack>
   );
 }
 
@@ -196,10 +198,4 @@ const ScreenshotGrid = styled('div')`
 
 const NoMarginPagination = styled(Pagination)`
   margin: 0;
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
 `;

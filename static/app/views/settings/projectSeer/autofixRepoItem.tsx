@@ -1,6 +1,8 @@
 import {useEffect, useState, type ChangeEvent} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -128,12 +130,12 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
     <SelectedRepoContainer>
       <SelectedRepoHeader role="button" onClick={toggleExpanded}>
         <InteractionStateLayer />
-        <RepoNameAndExpandToggle>
+        <Flex align="center">
           <StyledIconExpandToggle direction={isExpanded ? 'up' : 'down'} size="xs" />
           <RepoInfoWrapper>
             <RepoName>{repo.name}</RepoName>
           </RepoInfoWrapper>
-        </RepoNameAndExpandToggle>
+        </Flex>
         <RepoProvider>{repo.provider?.name || t('Unknown Provider')}</RepoProvider>
       </SelectedRepoHeader>
       {isExpanded && (
@@ -151,7 +153,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                   />
                 </BranchInputLabel>
 
-                <BranchInputContainer>
+                <Flex align="center" gap="sm">
                   <SubHeader>{t('By default, look at')}</SubHeader>
 
                   <InputGroup>
@@ -199,7 +201,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                     )}
                     size="sm"
                   />
-                </BranchInputContainer>
+                </Flex>
 
                 <BranchOverridesList>
                   {branchOverridesValue.map((override, index) => (
@@ -368,12 +370,6 @@ const SubHeader = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
-const BranchInputContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const RepoForm = styled('div')`
   display: flex;
   flex-direction: column;
@@ -400,11 +396,6 @@ const ClearButton = styled(Button)`
   &:hover {
     color: ${p => p.theme.gray500};
   }
-`;
-
-const RepoNameAndExpandToggle = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const StyledIconExpandToggle = styled(IconExpandToggle)`

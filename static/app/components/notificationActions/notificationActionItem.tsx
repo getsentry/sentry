@@ -1,6 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -284,7 +286,9 @@ function NotificationActionItem({
       case NotificationActionService.SENTRY_NOTIFICATION:
         return (
           <NotificationActionFormContainer>
-            <NotificationActionCell>{renderDescription()}</NotificationActionCell>
+            <Flex align="center" wrap="wrap" gap="xs">
+              {renderDescription()}
+            </Flex>
             <ButtonBar gap="xs">
               <Button onClick={handleCancel} size="xs">
                 {t('Cancel')}
@@ -345,7 +349,9 @@ function NotificationActionItem({
         <Fragment>
           <NotificationActionContainer data-test-id={`${serviceType}-action`}>
             <IconContainer>{renderIcon()}</IconContainer>
-            <NotificationActionCell>{renderDescription()}</NotificationActionCell>
+            <Flex align="center" wrap="wrap" gap="xs">
+              {renderDescription()}
+            </Flex>
           </NotificationActionContainer>
           {renderEditButton()}
         </Fragment>
@@ -373,13 +379,6 @@ const NotificationActionContainer = styled('div')`
   display: flex;
   align-items: center;
   width: 100%;
-`;
-
-const NotificationActionCell = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
 `;
 
 const NotificationActionFormContainer = styled('div')`

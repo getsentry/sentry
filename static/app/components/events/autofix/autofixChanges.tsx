@@ -2,6 +2,8 @@ import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import ClippedBox from 'sentry/components/clippedBox';
@@ -277,11 +279,11 @@ export function AutofixChanges({
     <AnimatePresence initial={isChangesFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
         <ChangesContainer>
-          <HeaderWrapper>
+          <Flex justify="space-between" align="center" wrap="wrap" gap="sm">
             <HeaderText>
-              <HeaderIconWrapper ref={iconCodeRef}>
+              <Flex justify="center" align="center" ref={iconCodeRef}>
                 <IconCode size="md" color="blue400" />
-              </HeaderIconWrapper>
+              </Flex>
               {t('Code Changes')}
               <Button
                 size="zero"
@@ -294,7 +296,7 @@ export function AutofixChanges({
                 <IconChat />
               </Button>
             </HeaderText>
-          </HeaderWrapper>
+          </Flex>
           <AnimatePresence>
             {agentCommentThread && iconCodeRef.current && (
               <AutofixHighlightPopup
@@ -481,20 +483,6 @@ const HeaderText = styled('div')`
   align-items: center;
   gap: ${space(1)};
   margin-right: ${space(2)};
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-`;
-
-const HeaderIconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const BottomDivider = styled('div')`

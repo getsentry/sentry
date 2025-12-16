@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import type {LocationDescriptor} from 'history';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import ClippedBox from 'sentry/components/clippedBox';
@@ -94,11 +95,6 @@ const DetailContainer = styled('div')`
   height: 100%;
   overflow: hidden;
   padding: ${space(1)} ${space(2)};
-`;
-
-const FlexBox = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const Actions = styled(FlexBox)`
@@ -448,7 +444,7 @@ function Highlights({
   return (
     <Fragment>
       <HighlightsWrapper>
-        <HighlightsLeftColumn>
+        <Stack direction="column" justify="center" align="center">
           <Tooltip title={node.projectSlug}>
             <ProjectBadge
               project={project ? project : {slug: node.projectSlug ?? ''}}
@@ -457,7 +453,7 @@ function Highlights({
             />
           </Tooltip>
           <VerticalLine />
-        </HighlightsLeftColumn>
+        </Stack>
         <HighlightsRightColumn>
           <HighlightOp>{node.op}</HighlightOp>
           <HighlightsDurationWrapper>
@@ -529,7 +525,7 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
       <HighlightsSpanCount>
         {t('Most frequent span ops for this transaction are')}
       </HighlightsSpanCount>
-      <TopOpsList>
+      <Flex wrap="wrap" gap="sm">
         {breakdown.slice(0, 3).map(currOp => {
           const {name, percentage} = currOp;
 
@@ -554,7 +550,7 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
             </HighlightsOpRow>
           );
         })}
-      </TopOpsList>
+      </Flex>
     </HighlightsOpsBreakdownWrapper>
   );
 }
@@ -588,7 +584,7 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
   return (
     <HighlightsOpsBreakdownWrapper>
       <HighlightsSpanCount>{t('Most frequent child span ops are:')}</HighlightsSpanCount>
-      <TopOpsList>
+      <Flex wrap="wrap" gap="sm">
         {displayOps.map(currOp => {
           const operationName = currOp.op;
           const color = pickBarColor(operationName, theme);
@@ -611,17 +607,10 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
             </HighlightsOpRow>
           );
         })}
-      </TopOpsList>
+      </Flex>
     </HighlightsOpsBreakdownWrapper>
   );
 }
-
-const TopOpsList = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-`;
 
 const HighlightsOpPct = styled('div')`
   color: ${p => p.theme.subText};
@@ -720,13 +709,6 @@ const HighlightsWrapper = styled('div')`
   gap: ${space(1)};
   width: 100%;
   margin: ${space(1)} 0;
-`;
-
-const HighlightsLeftColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
 `;
 
 const HighlightsRightColumn = styled('div')`

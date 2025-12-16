@@ -1,6 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -200,7 +202,7 @@ function StacktraceLinkModal({
         <h4>{t('Set up Code Mapping')}</h4>
       </Header>
       <Body>
-        <ModalContainer>
+        <Stack direction="column" gap="lg">
           {error && (
             <Alert type="error">
               {error === 'Could not find repo'
@@ -293,7 +295,7 @@ function StacktraceLinkModal({
               </ItemContainer>
             </li>
           </StyledList>
-        </ModalContainer>
+        </Stack>
       </Body>
       <Footer>
         <ButtonBar>
@@ -340,12 +342,6 @@ const ItemContainer = styled('div')`
   margin-top: ${space(0.25)};
   flex: 1;
   max-width: calc(100% - 25px - 8px);
-`;
-
-const ModalContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
 `;
 
 const StyledCode = styled('code')`

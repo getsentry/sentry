@@ -1,6 +1,8 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
@@ -85,7 +87,7 @@ export function SamplesTables({transactionName}: any) {
   return (
     <div>
       <Controls>
-        <FiltersContainer>
+        <Flex align="center" gap="sm">
           {sampleType === SPANS && (
             <SpanOpSelector
               primaryRelease={primaryRelease}
@@ -99,7 +101,7 @@ export function SamplesTables({transactionName}: any) {
             moduleName={ModuleName.APP_START}
           />
           <SubregionSelector />
-        </FiltersContainer>
+        </Flex>
         <SegmentedControl
           onChange={value => {
             trackAnalytics('insight.app_start.spans.toggle_sample_type', {
@@ -131,10 +133,4 @@ const Controls = styled('div')`
   justify-content: space-between;
   align-items: center;
   margin-bottom: ${space(1)};
-`;
-
-const FiltersContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;

@@ -3,6 +3,8 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
@@ -152,7 +154,7 @@ export default function ReplayPreviewPlayer({
             {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
           </PlayerBreadcrumbContainer>
           <ErrorBoundary mini>
-            <ButtonGrid>
+            <Flex justify="space-between" align="center" gap="0 sm">
               {showNextAndPrevious && (
                 <Button
                   size="sm"
@@ -190,7 +192,7 @@ export default function ReplayPreviewPlayer({
                 </TimelineScaleContextProvider>
               </Container>
               <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
-            </ButtonGrid>
+            </Flex>
           </ErrorBoundary>
         </TooltipContext>
       </PreviewPlayerContainer>
@@ -237,13 +239,6 @@ const PlayerContextContainer = styled(FluidHeight)`
 const StaticPanel = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.radius.md};
-`;
-const ButtonGrid = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: 0 ${space(1)};
-  flex-direction: row;
-  justify-content: space-between;
 `;
 
 const Container = styled('div')`

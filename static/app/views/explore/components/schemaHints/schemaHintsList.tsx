@@ -5,6 +5,8 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -429,11 +431,11 @@ function SchemaHintsList({
     }
 
     return (
-      <HintTextContainer>
+      <Flex gap="xs">
         <HintName>{formatHintName(hint)}</HintName>
         <HintOperator>{formatHintOperator(hint)}</HintOperator>
         <HintValue>...</HintValue>
-      </HintTextContainer>
+      </Flex>
     );
   };
 
@@ -502,12 +504,6 @@ export const SchemaHintsSection = styled('div')`
     margin-bottom: 0;
     margin-top: 0;
   }
-`;
-
-const HintTextContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.5)};
 `;
 
 const HintName = styled('span')`

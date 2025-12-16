@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import toNumber from 'lodash/toNumber';
 
 import {Alert} from '@sentry/scraps/alert/alert';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link/link';
 
 import {Disclosure} from 'sentry/components/core/disclosure';
@@ -269,7 +270,7 @@ function PriorityRow({
   );
 
   return (
-    <PriorityRowContainer>
+    <Flex align="center" gap="sm">
       <PriorityDot priority={priority} />
       <PriorityLabel>
         {isHigh ? t('High priority') : t('Medium priority')}
@@ -334,7 +335,7 @@ function PriorityRow({
           </Fragment>
         )}
       </Flex>
-    </PriorityRowContainer>
+    </Flex>
   );
 }
 
@@ -795,12 +796,6 @@ const PriorityRowsContainer = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   margin-top: ${space(1)};
-`;
-
-const PriorityRowContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const PriorityLabel = styled('span')`

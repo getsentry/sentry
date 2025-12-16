@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -187,7 +189,7 @@ export default function ProjectCreationModal({
             }}
           />
           <Subtitle>{t('Name your project and assign it a team')}</Subtitle>
-          <ProjectNameTeamSection>
+          <Flex gap="sm">
             <div>
               <Label>{t('Project slug')}</Label>
               <ProjectNameInputWrap>
@@ -215,7 +217,7 @@ export default function ProjectCreationModal({
                 teamFilter={(tm: Team) => tm.access.includes('team:admin')}
               />
             </div>
-          </ProjectNameTeamSection>
+          </Flex>
         </Fragment>
       )}
       <Footer>
@@ -271,12 +273,6 @@ const ProjectNameInput = styled(Input)`
 export const modalCss = css`
   width: 100%;
   max-width: 1000px;
-`;
-
-const ProjectNameTeamSection = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1)};
 `;
 
 const Label = styled('div')`

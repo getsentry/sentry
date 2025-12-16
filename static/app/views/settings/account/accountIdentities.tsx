@@ -2,6 +2,8 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {disconnectIdentity} from 'sentry/actionCreators/account';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
@@ -56,14 +58,14 @@ interface IdentityItemProps {
 function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
   return (
     <IdentityPanelItem key={`${identity.category}:${identity.id}`}>
-      <InternalContainer>
+      <Flex justify="center">
         <IdentityIcon providerId={identity.provider.key} />
         <IdentityText isSingleLine={!identity.dateAdded}>
           <IdentityName>{identity.provider.name}</IdentityName>
           {identity.dateAdded && <IdentityDateTime date={moment(identity.dateAdded)} />}
         </IdentityText>
-      </InternalContainer>
-      <InternalContainer>
+      </Flex>
+      <Flex justify="center">
         <TagWrapper>
           {identity.category === UserIdentityCategory.SOCIAL_IDENTITY && (
             <Tag type="default">{t('Legacy')}</Tag>
@@ -119,7 +121,7 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
             {t('Disconnect')}
           </Button>
         )}
-      </InternalContainer>
+      </Flex>
     </IdentityPanelItem>
   );
 }
@@ -231,12 +233,6 @@ function AccountIdentities() {
 const IdentityPanelItem = styled(PanelItem)`
   align-items: center;
   justify-content: space-between;
-`;
-
-const InternalContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
 `;
 
 const IdentityText = styled('div')<{isSingleLine?: boolean}>`

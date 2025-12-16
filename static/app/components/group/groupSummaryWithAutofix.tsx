@@ -2,6 +2,8 @@ import React, {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
@@ -265,11 +267,11 @@ export function AutofixSummary({
               <InsightCardButton key={card.id} onClick={card.onClick} role="button">
                 <InsightCard>
                   <CardTitle preview={card.isLoading}>
-                    <CardTitleSpacer>
+                    <Flex align="center" gap="0.75">
                       <CardTitleIcon>{card.icon}</CardTitleIcon>
                       <CardTitleText>{card.title}</CardTitleText>
-                    </CardTitleSpacer>
-                    <CardActions>
+                    </Flex>
+                    <Flex align="center" gap="xs">
                       {!card.isLoading && card.feedbackType && autofixData?.run_id && (
                         <AutofixStepFeedback
                           stepType={card.feedbackType}
@@ -294,7 +296,7 @@ export function AutofixSummary({
                           analyticsEventKey={card.copyAnalyticsEventKey}
                         />
                       )}
-                    </CardActions>
+                    </Flex>
                   </CardTitle>
                   <CardContent>
                     {card.isLoading ? (
@@ -398,13 +400,6 @@ const CardTitle = styled('div')<{preview?: boolean}>`
   justify-content: space-between;
 `;
 
-const CardTitleSpacer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(0.75)};
-`;
-
 const CardTitleText = styled('p')`
   margin: 0;
   font-size: ${p => p.theme.fontSize.md};
@@ -442,10 +437,4 @@ const CardContent = styled('div')`
       text-decoration: underline;
     }
   }
-`;
-
-const CardActions = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;

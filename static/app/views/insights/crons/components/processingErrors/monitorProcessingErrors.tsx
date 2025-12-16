@@ -2,6 +2,8 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -84,10 +86,10 @@ export function MonitorProcessingErrors({
         const errortype = errors[0]!.error.type;
         return (
           <ErrorGroup key={index}>
-            <ErrorHeader>
+            <Flex gap="sm">
               <Tag type="error">{errors.length}x</Tag>
               <ProcessingErrorTitle type={errortype} />
-              <ErrorHeaderActions>
+              <Flex gap="xs">
                 <Button
                   icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
                   aria-label={isExpanded ? t('Collapse') : t('Expand')}
@@ -116,8 +118,8 @@ export function MonitorProcessingErrors({
                     }
                   />
                 )}
-              </ErrorHeaderActions>
-            </ErrorHeader>
+              </Flex>
+            </Flex>
             {isExpanded && (
               <List symbol="bullet">
                 {errors.map(({error, checkin}, errorIndex) => (
@@ -135,14 +137,14 @@ export function MonitorProcessingErrors({
       });
 
       return showingMultipleProjects ? (
-        <ErrorsList key={projectId}>
+        <Stack direction="column" gap="sm" key={projectId}>
           {project ? (
             <StyledProjectBadge avatarSize={16} project={project} disableLink />
           ) : (
             tct('Project [projectId]', {projectId})
           )}
           {projectEntries}
-        </ErrorsList>
+        </Stack>
       ) : (
         projectEntries
       );
@@ -156,7 +158,9 @@ export function MonitorProcessingErrors({
         showingMultipleProjects ? (
           <ProjectGroupsList>{accordionErrors}</ProjectGroupsList>
         ) : (
-          <ErrorsList>{accordionErrors}</ErrorsList>
+          <Stack direction="column" gap="sm">
+            {accordionErrors}
+          </Stack>
         )
       }
     >
@@ -165,12 +169,6 @@ export function MonitorProcessingErrors({
   );
 }
 
-const ErrorsList = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
 const ProjectGroupsList = styled(ErrorsList)`
   gap: ${space(1.5)};
 `;
@@ -178,16 +176,6 @@ const ProjectGroupsList = styled(ErrorsList)`
 const ErrorGroup = styled('div')`
   display: Flex;
   flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
-const ErrorHeader = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
-
-const ErrorHeaderActions = styled('div')`
-  display: flex;
   gap: ${space(0.5)};
 `;
 

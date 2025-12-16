@@ -181,10 +181,9 @@ export const DetailsContent = styled(StyledPanel)`
   padding: ${space(1)} ${space(2)};
 `;
 
-export const LogFirstCellContent = styled('div')`
-  display: flex;
-  align-items: center;
-`;
+export function LogFirstCellContent({children}: {children?: React.ReactNode}) {
+  return <Flex align="center">{children}</Flex>;
+}
 
 export const LogBasicRendererContainer = styled('span')<{align?: 'left' | 'right'}>`
   ${NumberContainer} {
@@ -280,12 +279,13 @@ export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
   padding-left: ${space(1)};
 `;
 
-export const TableActionsContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: flex-end;
-  align-items: center;
-`;
+export function TableActionsContainer({children}: {children?: React.ReactNode}) {
+  return (
+    <Flex justify="end" align="center" gap="sm">
+      {children}
+    </Flex>
+  );
+}
 
 export const LogsItemContainer = styled('div')`
   flex: 1 1 auto;

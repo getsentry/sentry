@@ -6,6 +6,8 @@ import styled from '@emotion/styled';
 import BadStackTraceExample from 'sentry-images/issue_details/bad-stack-trace-example.png';
 import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-example.png';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
@@ -885,8 +887,8 @@ export function SourceMapsDebuggerModal({
 
 function CheckListItem({children, title, status}: PropsWithChildren<CheckListItemProps>) {
   return (
-    <ListItemContainer>
-      <CheckMarkContainer>
+    <Flex as="li">
+      <Stack direction="column" align="center">
         {
           {
             none: <IconCircle size="md" color="gray200" />,
@@ -896,14 +898,14 @@ function CheckListItem({children, title, status}: PropsWithChildren<CheckListIte
           }[status]
         }
         <Line className="source-map-debugger-modal-checklist-line" />
-      </CheckMarkContainer>
+      </Stack>
       <ListItemContentContainer>
         <ListItemTitleWrapper>
           <ListItemTitle status={status}>{title}</ListItemTitle>
         </ListItemTitleWrapper>
         {children}
       </ListItemContentContainer>
-    </ListItemContainer>
+    </Flex>
   );
 }
 
@@ -1985,22 +1987,6 @@ interface CheckListItemProps {
   status: 'none' | 'checked' | 'alert' | 'question';
   title: ReactNode;
 }
-
-const ListItemContainer = styled('li')`
-  display: flex;
-
-  &:last-of-type {
-    .source-map-debugger-modal-checklist-line {
-      display: none;
-    }
-  }
-`;
-
-const CheckMarkContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
 
 const Line = styled('div')`
   margin: ${space(0.5)} 0;

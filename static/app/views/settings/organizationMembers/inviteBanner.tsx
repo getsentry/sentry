@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
@@ -170,8 +172,8 @@ export function InviteBanner({
       {/* this is temporary to collect feedback about the banner */}
       <FloatingFeedbackButton />
       <StyledCard>
-        <CardTitleContainer>
-          <CardTitleContent>
+        <Flex justify="space-between">
+          <Stack direction="column">
             <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
             <Subtitle>
               {tct('[missingMemberCount] missing members', {
@@ -184,7 +186,7 @@ export function InviteBanner({
                 size="xs"
               />
             </Subtitle>
-          </CardTitleContent>
+          </Stack>
           <ButtonBar>
             <Button
               priority="primary"
@@ -205,7 +207,7 @@ export function InviteBanner({
               }}
             />
           </ButtonBar>
-        </CardTitleContainer>
+        </Flex>
         <Carousel>
           <MemberCards
             missingMembers={missingMembers}
@@ -305,16 +307,6 @@ const StyledCard = styled(Card)`
   padding: ${space(2)};
   padding-bottom: ${space(1.5)};
   overflow: hidden;
-`;
-
-const CardTitleContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
-
-const CardTitleContent = styled('div')`
-  display: flex;
-  flex-direction: column;
 `;
 
 const CardTitle = styled('h6')`

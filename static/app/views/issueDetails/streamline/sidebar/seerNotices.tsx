@@ -8,7 +8,7 @@ import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 import onboardingCompass from 'sentry-images/spot/onboarding-compass.svg';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -212,7 +212,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const anyStepIncomplete = incompleteStepIndices.length > 0;
 
   return (
-    <NoticesContainer>
+    <Stack direction="column" align="stretch">
       {/* Collapsed summary */}
       {!isLoadingPreferences && anyStepIncomplete && stepsCollapsed && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
@@ -250,7 +250,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
               >
                 <StepContentRow>
                   <StepTextCol>
-                    <CardDescription>
+                    <Stack direction="column" gap="sm">
                       <span>
                         {tct(
                           'Seer is [bold:a lot better] when it has your codebase as context.',
@@ -287,7 +287,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                           }
                         )}
                       </span>
-                    </CardDescription>
+                    </Stack>
                   </StepTextCol>
                   <StepImageCol>
                     <CardIllustration
@@ -320,7 +320,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
               >
                 <StepContentRow>
                   <StepTextCol>
-                    <CardDescription>
+                    <Stack direction="column" gap="sm">
                       <span>
                         {t('Select the repos Seer can explore in this project.')}
                       </span>
@@ -329,7 +329,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                           'You can also configure working branches and custom instructions so Seer fits your unique workflow.'
                         )}
                       </span>
-                    </CardDescription>
+                    </Stack>
                   </StepTextCol>
                   <StepImageCol>
                     <CardIllustration src={onboardingCompass} alt="Compass" />
@@ -360,13 +360,13 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
               >
                 <StepContentRow>
                   <StepTextCol>
-                    <CardDescription>
+                    <Stack direction="column" gap="sm">
                       <span>
                         {t(
                           'Let Seer automatically deep dive into incoming issues, so you wake up to solutions, not headaches.'
                         )}
                       </span>
-                    </CardDescription>
+                    </Stack>
                   </StepTextCol>
                   <StepImageCol>
                     <CardIllustration src={waitingForEventImg} alt="Waiting for Event" />
@@ -398,7 +398,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                 >
                   <StepContentRow>
                     <StepTextCol>
-                      <CardDescription>
+                      <Stack direction="column" gap="sm">
                         <span>
                           {t(
                             'Seer scans all your issues and highlights the ones that are likely quick to fix.'
@@ -409,7 +409,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                             'Star the recommended issue view to keep an eye on quick debugging opportunities. You can customize the view later.'
                           )}
                         </span>
-                      </CardDescription>
+                      </Stack>
                     </StepTextCol>
                     <StepImageCol>
                       <CardIllustration src={feedbackOnboardingImg} alt="Feedback" />
@@ -446,7 +446,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                 >
                   <StepContentRow>
                     <StepTextCol>
-                      <CardDescription>
+                      <Stack direction="column" gap="sm">
                         {cursorIntegration ? (
                           <Fragment>
                             <span>
@@ -492,7 +492,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                             </span>
                           </Fragment>
                         )}
-                      </CardDescription>
+                      </Stack>
                     </StepTextCol>
                     <StepImageCol>
                       <CursorCardIllustration
@@ -578,7 +578,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
               )}
         </StyledAlert>
       )}
-    </NoticesContainer>
+    </Stack>
   );
 }
 
@@ -588,18 +588,6 @@ const StyledGuidedSteps = styled(GuidedSteps)`
 
 const StyledAlert = styled(Alert)`
   margin-bottom: ${space(2)};
-`;
-
-const NoticesContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-`;
-
-const CardDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
 `;
 
 const CardIllustration = styled('img')`

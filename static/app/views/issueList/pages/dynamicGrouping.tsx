@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
@@ -480,7 +480,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
         <ClusterStats>
           {cluster.fixability_score !== null &&
             cluster.fixability_score !== undefined && (
-              <StatItem>
+              <Flex align="center" gap="xs">
                 <IconFix size="xs" color="gray300" />
                 <Text size="xs">
                   <Text size="xs" bold as="span">
@@ -488,9 +488,9 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
                   </Text>{' '}
                   {t('relevance')}
                 </Text>
-              </StatItem>
+              </Flex>
             )}
-          <StatItem>
+          <Flex align="center" gap="xs">
             <IconFire size="xs" color="gray300" />
             {clusterStats.isPending ? (
               <Text size="xs" variant="muted">
@@ -504,8 +504,8 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
                 {tn('event', 'events', clusterStats.totalEvents)}
               </Text>
             )}
-          </StatItem>
-          <StatItem>
+          </Flex>
+          <Flex align="center" gap="xs">
             <IconUser size="xs" color="gray300" />
             {clusterStats.isPending ? (
               <Text size="xs" variant="muted">
@@ -519,9 +519,9 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
                 {tn('user', 'users', clusterStats.totalUsers)}
               </Text>
             )}
-          </StatItem>
+          </Flex>
           {!clusterStats.isPending && clusterStats.lastSeen && (
-            <StatItem>
+            <Flex align="center" gap="xs">
               <IconClock size="xs" color="gray300" />
               <TimeSince
                 tooltipPrefix={t('Last Seen')}
@@ -529,10 +529,10 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
                 suffix={t('ago')}
                 unitStyle="short"
               />
-            </StatItem>
+            </Flex>
           )}
           {!clusterStats.isPending && clusterStats.firstSeen && (
-            <StatItem>
+            <Flex align="center" gap="xs">
               <IconCalendar size="xs" color="gray300" />
               <TimeSince
                 tooltipPrefix={t('First Seen')}
@@ -540,7 +540,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
                 suffix={t('old')}
                 unitStyle="short"
               />
-            </StatItem>
+            </Flex>
           )}
         </ClusterStats>
         {!clusterStats.isPending &&
@@ -598,7 +598,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
         <TabContent>
           {activeTab === 'summary' && (
             <Flex direction="column" gap="md">
-              <StructuredInfo>
+              <Stack direction="column" gap="xs">
                 {cluster.error_type && (
                   <InfoRow>
                     <InfoLabel>{t('Error')}</InfoLabel>
@@ -611,13 +611,13 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
                     <InfoValue>{cluster.location}</InfoValue>
                   </InfoRow>
                 )}
-              </StructuredInfo>
+              </Stack>
               {allTags.length > 0 && (
-                <TagsContainer>
+                <Flex wrap="wrap" gap="xs">
                   {allTags.map(tag => (
                     <TagPill key={tag}>{tag}</TagPill>
                   ))}
-                </TagsContainer>
+                </Flex>
               )}
             </Flex>
           )}
@@ -654,7 +654,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
               </Flex>
             }
           >
-            <ProjectAvatars>
+            <Flex align="center" gap="xxs">
               {clusterProjects.slice(0, 3).map(project => (
                 <ProjectBadge
                   key={project.id}
@@ -667,10 +667,10 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
               {clusterProjects.length > 3 && (
                 <MoreProjectsCount>+{clusterProjects.length - 3}</MoreProjectsCount>
               )}
-            </ProjectAvatars>
+            </Flex>
           </Tooltip>
         )}
-        <FooterActions>
+        <Flex align="center" gap="sm">
           <ButtonBar merged gap="0">
             <SeerButton
               size="sm"
@@ -736,7 +736,7 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
             )}
             position="bottom-end"
           />
-        </FooterActions>
+        </Flex>
       </CardFooter>
     </CardContainer>
   );
@@ -1252,18 +1252,6 @@ const ClusterStats = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const StatItem = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const ProjectAvatars = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.25)};
-`;
-
 const MoreProjectsCount = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
@@ -1363,12 +1351,6 @@ const CardFooter = styled('div')`
   gap: ${space(1)};
 `;
 
-const FooterActions = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
 // Split button for Send to Seer action
 const SeerButton = styled(Button)`
   border-top-right-radius: 0;
@@ -1434,18 +1416,6 @@ const DescriptionText = styled('p')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   line-height: 1.5;
-`;
-
-const StructuredInfo = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
-const TagsContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
 `;
 
 const TagPill = styled('span')`

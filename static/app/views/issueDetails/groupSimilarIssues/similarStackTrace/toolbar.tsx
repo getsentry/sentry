@@ -1,6 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
@@ -82,7 +84,7 @@ class SimilarToolbar extends Component<Props, State> {
 
     return (
       <PanelHeader hasButtons>
-        <ButtonPanel>
+        <Flex align="left" gap="sm">
           <Confirm
             disabled={mergeCount === 0}
             message={t('Are you sure you want to merge these issues?')}
@@ -92,7 +94,7 @@ class SimilarToolbar extends Component<Props, State> {
               {t('Merge %s', `(${mergeCount || 0})`)}
             </Button>
           </Confirm>
-        </ButtonPanel>
+        </Flex>
 
         <Columns>
           <StyledToolbarHeader>{t('Events')}</StyledToolbarHeader>
@@ -121,10 +123,4 @@ const StyledToolbarHeader = styled(ToolbarHeader)`
   display: flex;
   justify-content: center;
   padding: ${space(0.5)} 0;
-`;
-
-const ButtonPanel = styled('div')`
-  display: flex;
-  align-items: left;
-  gap: ${space(1)};
 `;

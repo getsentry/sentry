@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {CodeBlock} from 'sentry/components/core/code';
 import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
@@ -39,7 +41,7 @@ export function OtherPlatformsInfo({
   }
 
   return (
-    <Wrapper>
+    <Stack direction="column" gap="lg">
       {t(
         "We cannot provide instructions for '%s' projects. However, please find below the DSN key for this project, which is required to instrument Sentry.",
         platform
@@ -97,15 +99,10 @@ export function OtherPlatformsInfo({
           }
         )}
       </div>
-    </Wrapper>
+    </Stack>
   );
 }
 
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
 const Suggestion = styled(Wrapper)`
   gap: ${space(1)};
 `;

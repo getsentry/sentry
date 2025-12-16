@@ -2,6 +2,8 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -221,12 +223,12 @@ export function InviteMissingMembersModal({
             checked={selectedAll}
           />,
           t('User Information'),
-          <StyledHeader key={1}>
+          <Flex gap="xs" key={1}>
             {t('Recent Commits')}
             <Tooltip title={t('Based on the last 30 days of commit data')}>
               <IconInfo size="xs" />
             </Tooltip>
-          </StyledHeader>,
+          </Flex>,
           t('Role'),
           t('Team'),
         ]}
@@ -288,7 +290,7 @@ export function InviteMissingMembersModal({
           );
         })}
       </StyledPanelTable>
-      <Footer>
+      <Flex justify="space-between">
         <div>{renderStatusMessage()}</div>
         <ButtonBar>
           <Button
@@ -315,7 +317,7 @@ export function InviteMissingMembersModal({
             {inviteButtonLabel()}
           </Button>
         </ButtonBar>
-      </Footer>
+      </Flex>
     </Fragment>
   );
 
@@ -336,18 +338,8 @@ const StyledPanelTable = styled(PanelTable)`
   max-height: 475px;
 `;
 
-const StyledHeader = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-`;
-
 const StyledPanelItem = styled(PanelItem)`
   flex-direction: column;
-`;
-
-const Footer = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;
 
 const ContentRow = styled('div')`

@@ -1,6 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -50,23 +52,17 @@ export function ContinuousProfileHeader({transaction}: ContinuousProfileHeader) 
           <ProfilingBreadcrumbs organization={organization} trails={breadCrumbs} />
         </SmallerProfilingBreadcrumbsWrapper>
       </SmallerHeaderContent>
-      <StyledHeaderActions>
+      <Flex gap="sm">
         <FeedbackButton />
         {transactionTarget && (
           <LinkButton size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
             {t('Go to Trace')}
           </LinkButton>
         )}
-      </StyledHeaderActions>
+      </Flex>
     </SmallerLayoutHeader>
   );
 }
-
-const StyledHeaderActions = styled(Layout.HeaderActions)`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1)};
-`;
 
 const SmallerHeaderContent = styled(Layout.HeaderContent)`
   margin-bottom: ${space(1.5)};

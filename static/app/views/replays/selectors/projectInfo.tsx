@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
@@ -12,11 +14,11 @@ export default function ProjectInfo({id, isWidget}: {id: number; isWidget: boole
   const platform = project?.platform;
   const slug = project?.slug;
   return isWidget ? (
-    <WidgetProjectContainer>
+    <Flex align="center" gap="0.75">
       <Tooltip title={slug}>
         <PlatformIcon size={16} platform={platform ?? 'default'} />
       </Tooltip>
-    </WidgetProjectContainer>
+    </Flex>
   ) : (
     <IndexProjectContainer>
       <PlatformIcon size={16} platform={platform ?? 'default'} />
@@ -24,13 +26,6 @@ export default function ProjectInfo({id, isWidget}: {id: number; isWidget: boole
     </IndexProjectContainer>
   );
 }
-
-const WidgetProjectContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(0.75)};
-`;
 
 const IndexProjectContainer = styled(WidgetProjectContainer)`
   padding-right: ${space(1)};

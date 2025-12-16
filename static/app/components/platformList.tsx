@@ -2,6 +2,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {PlatformKey} from 'sentry/types/project';
 
 type Props = {
@@ -37,7 +39,7 @@ export function PlatformList({
     const platformIcons = visiblePlatforms.slice().reverse();
 
     return (
-      <PlatformIcons>
+      <Flex>
         {platformIcons.map((visiblePlatform, index) => (
           <StyledPlatformIcon
             data-test-id={`platform-icon-${visiblePlatform}`}
@@ -46,7 +48,7 @@ export function PlatformList({
             size={size}
           />
         ))}
-      </PlatformIcons>
+      </Flex>
     );
   }
 
@@ -60,10 +62,6 @@ export function PlatformList({
 function getOverlapWidth(size: number) {
   return Math.round(size / 4);
 }
-
-const PlatformIcons = styled('div')`
-  display: flex;
-`;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   cursor: default;

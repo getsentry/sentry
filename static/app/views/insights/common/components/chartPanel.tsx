@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
@@ -37,7 +39,7 @@ export default function ChartPanel({
                 )}
               </ChartLabel>
             )}
-            <MenuContainer>
+            <Flex as="span">
               {button}
               <Button
                 aria-label={t('Expand Insight Chart')}
@@ -48,7 +50,7 @@ export default function ChartPanel({
                   openInsightChartModal({title, children});
                 }}
               />
-            </MenuContainer>
+            </Flex>
           </Header>
         )}
         {subtitle && (
@@ -90,8 +92,4 @@ const Header = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-`;
-
-const MenuContainer = styled('span')`
-  display: flex;
 `;

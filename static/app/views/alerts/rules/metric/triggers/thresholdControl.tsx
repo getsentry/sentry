@@ -1,6 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {NumberDragInput} from 'sentry/components/core/input/numberDragInput';
 import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
@@ -84,7 +86,7 @@ class ThresholdControl extends Component<Props, State> {
     const inputValue = currentValue ?? threshold ?? '';
 
     return (
-      <Wrapper>
+      <Flex align="center" gap="sm">
         <Container comparisonType={comparisonType}>
           <SelectContainer>
             <Select
@@ -157,16 +159,10 @@ class ThresholdControl extends Component<Props, State> {
             </ThresholdContainer>
           )}
         </Container>
-      </Wrapper>
+      </Flex>
     );
   }
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
 
 const Container = styled('div')<{comparisonType: AlertRuleComparisonType}>`
   flex: 2;

@@ -1,6 +1,8 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
@@ -204,11 +206,11 @@ function Chart({
   }, [chartType, timeseriesResult, visualize, samplingMode, topEvents]);
 
   const Title = (
-    <ChartTitle>
+    <Flex>
       <Widget.WidgetTitle
         title={prettifyAggregation(visualize.yAxis) ?? visualize.yAxis}
       />
-    </ChartTitle>
+    </Flex>
   );
 
   const Actions = (
@@ -323,8 +325,4 @@ const ChartList = styled('div')`
   display: grid;
   row-gap: ${space(1)};
   margin-bottom: ${space(1)};
-`;
-
-const ChartTitle = styled('div')`
-  display: flex;
 `;

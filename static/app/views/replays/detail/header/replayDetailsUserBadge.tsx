@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -106,7 +106,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
     <UserBadge
       avatarSize={24}
       displayName={
-        <DisplayHeader>
+        <Stack direction="column">
           <Layout.Title>
             {searchQuery ? (
               <Link
@@ -159,7 +159,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
               </Button>
             </TimeContainer>
           ) : null}
-        </DisplayHeader>
+        </Stack>
       }
       user={{
         name: replayRecord.user.display_name || '',
@@ -196,9 +196,4 @@ const TimeContainer = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.md};
   line-height: 1.4;
-`;
-
-const DisplayHeader = styled('div')`
-  display: flex;
-  flex-direction: column;
 `;

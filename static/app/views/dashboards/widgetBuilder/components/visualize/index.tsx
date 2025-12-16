@@ -5,6 +5,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {openLinkToDashboardModal} from 'sentry/actionCreators/modal';
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -448,7 +450,7 @@ function Visualize({error, setError}: VisualizeProps) {
             items={draggableFieldIds}
             strategy={verticalListSortingStrategy}
           >
-            <Fields>
+            <Stack direction="column" gap="sm">
               {fields?.map((field, index) => {
                 const canDelete = canDeleteField(
                   state.dataset ?? WidgetType.ERRORS,
@@ -912,7 +914,7 @@ function Visualize({error, setError}: VisualizeProps) {
                   </SortableVisualizeFieldWrapper>
                 );
               })}
-            </Fields>
+            </Stack>
           </SortableContext>
           <DragOverlay dropAnimation={null}>
             {activeId && (
@@ -1137,12 +1139,6 @@ const AddButton = styled(Button)`
 const AddButtons = styled('div')`
   display: inline-flex;
   gap: ${space(1.5)};
-`;
-
-const Fields = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
 `;
 
 export const StyledArithmeticInput = styled(ArithmeticInput)`

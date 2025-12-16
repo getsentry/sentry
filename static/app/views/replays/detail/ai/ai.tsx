@@ -4,6 +4,8 @@ import loadingGif from 'sentry-images/spot/ai-loader.gif';
 import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -196,14 +198,14 @@ export default function Ai() {
     <Wrapper data-test-id="replay-details-ai-summary-tab">
       <Summary>
         <SummaryLeft>
-          <SummaryLeftTitle>
+          <Flex align="center" gap="sm">
             <Flex align="center" gap="xs">
               {t('Replay Summary')}
             </Flex>
-          </SummaryLeftTitle>
+          </Flex>
           <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
-        <SummaryRight>
+        <Stack direction="column" align="end" gap="sm">
           <Flex gap="xs">
             <ThumbsUpDownButton type="positive" />
             <ThumbsUpDownButton type="negative" />
@@ -223,7 +225,7 @@ export default function Ai() {
           >
             {t('Regenerate')}
           </Button>
-        </SummaryRight>
+        </Stack>
       </Summary>
       <StyledTabItemContainer>
         <OverflowBody>
@@ -337,19 +339,6 @@ const SummaryLeft = styled('div')`
   justify-content: space-between;
   font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const SummaryRight = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  align-items: flex-end;
-`;
-
-const SummaryLeftTitle = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const SummaryText = styled('p')`

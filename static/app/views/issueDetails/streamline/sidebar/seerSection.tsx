@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {Text} from 'sentry/components/core/text';
 import {
@@ -221,7 +223,7 @@ export default function SeerSection({
       sectionKey={SectionKey.SEER}
       preventCollapse={!hasStreamlinedUI}
     >
-      <SeerSectionContainer>
+      <Stack direction="column">
         {renderSectionContent()}
         {event &&
           showCtaButton &&
@@ -242,15 +244,10 @@ export default function SeerSection({
               hasStreamlinedUI={hasStreamlinedUI}
             />
           ))}
-      </SeerSectionContainer>
+      </Stack>
     </SidebarFoldSection>
   );
 }
-
-const SeerSectionContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 const Summary = styled('div')`
   margin-bottom: ${space(0.5)};

@@ -1,6 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {Polarity} from 'sentry/components/percentChange';
 import {defined} from 'sentry/utils';
@@ -77,14 +79,14 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
   if (typeof value === 'string') {
     return (
       <Wrapper>
-        <NumberAndDifferenceContainer>
+        <Flex align="end" gap="min(8px, 3cqw)">
           {fieldRenderer(
             {
               [field]: value,
             },
             {...baggage, theme}
           )}
-        </NumberAndDifferenceContainer>
+        </Flex>
       </Wrapper>
     );
   }
@@ -94,7 +96,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
 
   return (
     <Wrapper>
-      <NumberAndDifferenceContainer>
+      <Flex align="end" gap="min(8px, 3cqw)">
         {defined(props.thresholds?.max_values.max1) &&
           defined(props.thresholds?.max_values.max2) && (
             <ThresholdsIndicator
@@ -145,7 +147,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
               }
             />
           )}
-      </NumberAndDifferenceContainer>
+      </Flex>
     </Wrapper>
   );
 }
@@ -182,12 +184,6 @@ const AutoResizeParent = styled('div')`
     line-height: 1;
     text-align: left !important;
   }
-`;
-
-const NumberAndDifferenceContainer = styled('div')`
-  display: flex;
-  align-items: flex-end;
-  gap: min(8px, 3cqw);
 `;
 
 const NumberContainerOverride = styled('div')`

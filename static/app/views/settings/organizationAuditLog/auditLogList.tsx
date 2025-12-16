@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -356,10 +358,10 @@ function AuditLogList({
             <Fragment key={entry.id}>
               <UserInfo>
                 <div>{getAvatarDisplay(entry.actor)}</div>
-                <NameContainer>
+                <Stack direction="column" justify="center">
                   {addUsernameDisplay(entry.actor)}
                   <AuditNote entry={entry} orgSlug={organization.slug} />
-                </NameContainer>
+                </Stack>
               </UserInfo>
               <Flex align="center">
                 <MonoDetail>{getTypeDisplay(entry.event)}</MonoDetail>
@@ -411,12 +413,6 @@ const UserInfo = styled('div')`
   line-height: 1.2;
   font-size: ${p => p.theme.fontSize.sm};
   min-width: 250px;
-`;
-
-const NameContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 `;
 
 const Note = styled('div')`

@@ -2,6 +2,8 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import color from 'color';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -113,7 +115,7 @@ export function ExplorerSeerSectionCtaButton({
   }
 
   return (
-    <Container>
+    <Stack direction="column">
       <StyledButton
         to={seerLink}
         onClick={handleOpenDrawer}
@@ -137,14 +139,9 @@ export function ExplorerSeerSectionCtaButton({
           )}
         </ChevronContainer>
       </StyledButton>
-    </Container>
+    </Stack>
   );
 }
-
-const Container = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 const StyledButton = styled(LinkButton)`
   margin-top: ${p => p.theme.space.md};

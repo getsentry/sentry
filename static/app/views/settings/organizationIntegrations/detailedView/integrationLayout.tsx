@@ -2,6 +2,8 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Access from 'sentry/components/acl/access';
 import type {AlertProps} from 'sentry/components/core/alert';
 import {Alert} from 'sentry/components/core/alert';
@@ -54,7 +56,7 @@ function TopSection({
 }) {
   const tags = getCategories(featureData);
   return (
-    <TopSectionWrapper>
+    <Flex justify="space-between">
       <Flex>
         {integrationIcon}
         <NameContainer>
@@ -75,7 +77,7 @@ function TopSection({
         {addInstallButton}
         {additionalCTA}
       </Flex>
-    </TopSectionWrapper>
+    </Flex>
   );
 }
 
@@ -309,11 +311,6 @@ export default IntegrationLayout;
 
 const IntegrationDescription = styled('div')`
   flex-grow: 1;
-`;
-
-const TopSectionWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;
 
 const NameContainer = styled('div')`

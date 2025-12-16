@@ -9,6 +9,8 @@ import devkitCrashesStep4 from 'sentry-images/tempest/devkit-crashes-step4.jpg';
 import devkitCrashesStep5 from 'sentry-images/tempest/devkit-crashes-step5.jpg';
 import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import Accordion from 'sentry/components/container/accordion';
 import {Button} from 'sentry/components/core/button';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -114,13 +116,13 @@ export default function DevKitSettings({organization, project}: Props) {
                             content: (
                               <AccordionContentWrapper>
                                 <StepContentColumn>
-                                  <StepTextSection>
+                                  <Stack direction="column" gap="sm">
                                     <p>
                                       {t(
                                         `Using the Windows tool enter the URL as the 'Request Check URL' and 'Upload URL'.`
                                       )}
                                     </p>
-                                  </StepTextSection>
+                                  </Stack>
                                   <StepImageSection>
                                     <CardIllustration
                                       src={windowToolImg}
@@ -140,13 +142,13 @@ export default function DevKitSettings({organization, project}: Props) {
                             content: (
                               <AccordionContentWrapper>
                                 <StepContentColumn>
-                                  <StepTextSection>
+                                  <Stack direction="column" gap="sm">
                                     <p>
                                       {t(
                                         `If you haven't done it via the Windows tool, you can set up the 'Upload URL' and 'Request Check URL' directly in the DevKit. This can be done under 'Debug Settings' > 'Core Dump' > 'Upload' > 'Upload URL' and 'Debug Settings' > 'Core Dump' > 'Data Request' > 'Request Check URL' respectively.`
                                       )}
                                     </p>
-                                  </StepTextSection>
+                                  </Stack>
                                   <StepImageSection>
                                     <CardIllustration
                                       src={devkitCrashesStep1}
@@ -289,12 +291,6 @@ const StepContentColumn = styled('div')`
   flex-direction: column;
   width: 100%;
   gap: ${space(3)};
-`;
-
-const StepTextSection = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
 `;
 
 const StepImageSection = styled('div')`

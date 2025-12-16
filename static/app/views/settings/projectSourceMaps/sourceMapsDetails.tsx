@@ -2,6 +2,8 @@ import {Fragment, useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {useRole} from 'sentry/components/acl/useRole';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -67,7 +69,9 @@ function ArtifactsTableRow({
   return (
     <Fragment>
       <ArtifactColumn>
-        <Name>{name || `(${t('empty')})`}</Name>
+        <Flex justify="start" align="center">
+          {name || `(${t('empty')})`}
+        </Flex>
         {artifactColumnDetails}
       </ArtifactColumn>
       {type && <TypeColumn>{type}</TypeColumn>}
@@ -390,12 +394,6 @@ const ArtifactColumn = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: center;
-`;
-
-const Name = styled('div')`
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
 `;
 
 const TypeColumn = styled('div')`

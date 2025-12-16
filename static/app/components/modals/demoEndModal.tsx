@@ -2,6 +2,8 @@ import {useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
@@ -100,7 +102,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton}: Props) 
   };
 
   return (
-    <EndModal>
+    <Stack direction="column" align="center" gap="xl">
       <CloseButton
         size="zero"
         onClick={() => {
@@ -118,7 +120,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton}: Props) 
       </ModalHeader>
       <ModalTask title={cardTitle} />
       <ModalHeader>{body}</ModalHeader>
-      <ButtonContainer>
+      <Stack direction="column" gap="10px">
         <LinkButton
           priority="primary"
           external
@@ -131,12 +133,12 @@ export default function DemoEndingModal({tour, closeModal, CloseButton}: Props) 
         >
           {t('Sign up for Sentry')}
         </LinkButton>
-        <ButtonBar>
+        <Flex justify="center" gap="5px">
           <Button onClick={handleMoreTours}>{t('More Tours')} </Button>
           <Button onClick={handleRestart}>{t('Restart Tour')}</Button>
-        </ButtonBar>
-      </ButtonContainer>
-    </EndModal>
+        </Flex>
+      </Stack>
+    </Stack>
   );
 }
 
@@ -149,13 +151,6 @@ export const modalCss = css`
   }
 `;
 
-const EndModal = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  align-items: center;
-`;
-
 const ModalHeader = styled('div')`
   p {
     font-size: 16px;
@@ -166,16 +161,4 @@ const ModalHeader = styled('div')`
     font-size: 2em;
     margin: 0;
   }
-`;
-
-const ButtonBar = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: 5px;
-  justify-content: center;
-`;
-const ButtonContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 `;

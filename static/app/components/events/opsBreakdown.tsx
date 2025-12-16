@@ -2,6 +2,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
 import type {ActiveOperationFilter} from 'sentry/components/events/interfaces/spans/filter';
 import type {
@@ -264,10 +266,10 @@ function OpsBreakdown({
           <OpsDot style={{backgroundColor: isOther ? 'transparent' : opsColor}} />
           <OpsName>{operationName}</OpsName>
         </OpsNameContainer>
-        <OpsContent>
+        <Flex align="center">
           <Dur>{durLabel}ms</Dur>
           <Pct>{pctLabel}%</Pct>
-        </OpsContent>
+        </Flex>
       </OpsLine>
     );
   });
@@ -322,11 +324,6 @@ export const OpsDot = styled('div')`
   height: 8px;
   margin-right: ${space(1)};
   border-radius: 100%;
-`;
-
-const OpsContent = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const OpsNameContainer = styled(OpsContent)`

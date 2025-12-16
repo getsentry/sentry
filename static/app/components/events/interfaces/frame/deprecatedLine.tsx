@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -204,7 +206,7 @@ function DeprecatedLine({
         >
           {isExpandable ? <InteractionStateLayer /> : null}
           <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
-            <LeftLineTitle>
+            <Flex align="center">
               <div>
                 <LeadHint
                   nextFrame={nextFrame}
@@ -220,9 +222,9 @@ function DeprecatedLine({
                   isPotentiallyThirdParty={isPotentiallyThirdPartyFrame(data, event)}
                 />
               </div>
-            </LeftLineTitle>
+            </Flex>
           </DefaultLineTitleWrapper>
-          <DefaultLineTagWrapper>
+          <Flex align="center" gap="sm">
             <RepeatsIndicator timesRepeated={timesRepeated} />
             {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
               <Tag type="warning" onClick={scrollToSuspectRootCause}>
@@ -329,7 +331,7 @@ function DeprecatedLine({
             ) : (
               <div style={{width: 26, height: 20}} />
             )}
-          </DefaultLineTagWrapper>
+          </Flex>
         </DefaultLine>
       </StrictClick>
       <Context
@@ -384,11 +386,6 @@ const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
 `;
 
-const LeftLineTitle = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const RepeatedContent = styled(LeftLineTitle)`
   justify-content: center;
 `;
@@ -416,12 +413,6 @@ const DefaultLine = styled('div')<{
 
 const StyledIconRefresh = styled(IconRefresh)`
   margin-right: ${space(0.25)};
-`;
-
-const DefaultLineTagWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const ToggleContextButton = styled(Button)`

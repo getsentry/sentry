@@ -2,6 +2,8 @@ import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'r
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
@@ -357,23 +359,17 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
   return (
     <Wrapper>
       {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
-      <Steps>
+      <Stack direction="column" gap="1.5rem">
         {steps.map(step => {
           return <Step key={step.title ?? step.type} {...step} />;
         })}
-      </Steps>
+      </Stack>
     </Wrapper>
   );
 }
 
 const Wrapper = styled('div')`
   margin-top: ${space(2)};
-`;
-
-const Steps = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
 `;
 
 const Introduction = styled('div')`

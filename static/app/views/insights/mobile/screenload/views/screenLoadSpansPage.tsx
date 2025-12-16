@@ -2,6 +2,8 @@ import React, {useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
@@ -213,7 +215,7 @@ export function ScreenLoadSpansContent() {
           </SegmentedControl>
         </Controls>
         {sampleType === EVENT && (
-          <SampleContainer>
+          <Flex wrap="wrap" gap="lg">
             {showComparison ? (
               <React.Fragment>
                 <SampleContainerItem>
@@ -243,7 +245,7 @@ export function ScreenLoadSpansContent() {
                 />
               </SampleContainerItem>
             )}
-          </SampleContainer>
+          </Flex>
         )}
         {sampleType === SPANS && (
           <ScreenLoadSpansTable
@@ -262,13 +264,6 @@ const FilterContainer = styled('div')`
   column-gap: ${space(1)};
   grid-template-rows: auto;
   grid-template-columns: auto 1fr;
-`;
-
-const SampleContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: ${space(2)};
 `;
 
 const SampleContainerItem = styled('div')`

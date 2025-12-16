@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
@@ -108,10 +110,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             crumbs={[
               {
                 label: (
-                  <CrumbContainer>
+                  <Flex align="center" gap="sm">
                     <ProjectAvatar project={project} />
                     <ShortId>{group.shortId}</ShortId>
-                  </CrumbContainer>
+                  </Flex>
                 ),
               },
               {label: getShortEventId(event.id)},
@@ -164,10 +166,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
               crumbs={[
                 {
                   label: (
-                    <CrumbContainer>
+                    <Flex align="center" gap="sm">
                       <ProjectAvatar project={project} />
                       <ShortId>{group.shortId}</ShortId>
-                    </CrumbContainer>
+                    </Flex>
                   ),
                 },
                 {label: getShortEventId(event.id)},
@@ -193,10 +195,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             crumbs={[
               {
                 label: (
-                  <CrumbContainer>
+                  <Flex align="center" gap="sm">
                     <ProjectAvatar project={project} />
                     <ShortId>{group.shortId}</ShortId>
-                  </CrumbContainer>
+                  </Flex>
                 ),
               },
               {label: getShortEventId(event.id)},
@@ -380,10 +382,10 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
           crumbs={[
             {
               label: (
-                <CrumbContainer>
+                <Flex align="center" gap="sm">
                   <ProjectAvatar project={project} />
                   <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
+                </Flex>
               ),
             },
             {label: getShortEventId(event.id)},
@@ -611,12 +613,6 @@ const Header = styled('h3')`
 const NavigationCrumbs = styled(NavigationBreadcrumbs)`
   margin: 0;
   padding: 0;
-`;
-
-const CrumbContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const ShortId = styled('div')`

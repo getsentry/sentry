@@ -1,6 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
@@ -39,7 +41,7 @@ export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
           <RepoInfoWrapper>
             <RepoName>{repo.name}</RepoName>
 
-            <SelectionWrapper>
+            <Flex align="center" gap="sm">
               <RepoProvider>{repo.provider?.name || t('Unknown Provider')}</RepoProvider>
 
               <StyledCheckbox
@@ -48,7 +50,7 @@ export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
                 readOnly
                 disabled={!isSupportedProvider}
               />
-            </SelectionWrapper>
+            </Flex>
           </RepoInfoWrapper>
         </RepoHeader>
       </Tooltip>
@@ -110,10 +112,4 @@ const RepoProvider = styled('div')`
 
 const StyledCheckbox = styled(Checkbox)`
   margin: 0;
-`;
-
-const SelectionWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;

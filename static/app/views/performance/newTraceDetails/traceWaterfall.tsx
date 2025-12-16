@@ -13,10 +13,11 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Flex} from 'sentry/components/core/layout';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -663,7 +664,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   return (
     <Flex direction="column" flex={1}>
-      <TraceToolbar>
+      <Flex gap="sm">
         <TraceSearchInput onTraceSearch={onTraceSearch} organization={organization} />
         <TraceLinksNavigation
           rootEventResults={props.rootEventResults}
@@ -687,7 +688,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           onAutogroupChange={onAutogroupChange}
           onMissingInstrumentationChange={onMissingInstrumentationChange}
         />
-      </TraceToolbar>
+      </Flex>
       <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
         <DemoTourElement
           id={DemoTourStep.PERFORMANCE_SPAN_TREE}
@@ -737,11 +738,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     </Flex>
   );
 }
-
-const TraceToolbar = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
 
 export const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';

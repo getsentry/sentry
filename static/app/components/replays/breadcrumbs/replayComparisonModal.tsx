@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Alert} from 'sentry/components/core/alert';
@@ -17,7 +19,6 @@ import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser'
 import {IconSliders} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -55,7 +56,7 @@ export default function ReplayComparisonModal({
       >
         <Header closeButton>
           <ModalHeader>
-            <Title>
+            <Flex as="h4" gap="sm">
               {t('Hydration Error')}
               <Tooltip
                 isHoverable
@@ -72,7 +73,7 @@ export default function ReplayComparisonModal({
               >
                 <IconInfo />
               </Tooltip>
-            </Title>
+            </Flex>
             <Flex gap="md">
               {isHydrateCrumb(frameOrEvent) ? (
                 <AutoWideHovercard
@@ -137,11 +138,6 @@ const ModalHeader = styled('div')`
   justify-content: space-between;
   flex-direction: row;
   flex: 1;
-`;
-
-const Title = styled('h4')`
-  display: flex;
-  gap: ${space(1)};
 `;
 
 const Before = styled('span')`

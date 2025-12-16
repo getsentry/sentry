@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
@@ -143,7 +145,7 @@ export function WebVitalDescription({score, value, webVital}: Props) {
       </DescriptionWrapper>
       <SupportedBrowsers>
         {Object.values(Browser).map(browser => (
-          <BrowserItem key={browser}>
+          <Flex align="center" gap="sm" key={browser}>
             {vitalSupportedBrowsers[
               WebVital[webVital.toUpperCase() as Uppercase<typeof webVital>]
             ]?.includes(browser) ? (
@@ -152,7 +154,7 @@ export function WebVitalDescription({score, value, webVital}: Props) {
               <IconClose color="dangerText" size="sm" />
             )}
             {browser}
-          </BrowserItem>
+          </Flex>
         ))}
       </SupportedBrowsers>
       <ReferenceLink>{link}</ReferenceLink>
@@ -168,12 +170,6 @@ const SupportedBrowsers = styled('div')`
 
 const ReferenceLink = styled('div')`
   margin-bottom: ${space(2)};
-`;
-
-const BrowserItem = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const DescriptionWrapper = styled('div')`
