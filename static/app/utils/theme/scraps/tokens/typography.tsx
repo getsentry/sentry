@@ -65,15 +65,15 @@ export const typography = {
       /**
        * A named lineHeight value evaluating to “1”
        */
-      compressed: 1,
+      compressed: '1',
       /**
        * A named lineHeight value evaluating to “1.2”
        */
-      default: 1.2,
+      default: '1.2',
       /**
        * A named lineHeight value evaluating to “1.4”
        */
-      comfortable: 1.4,
+      comfortable: '1.4',
       /**
        * A named lineHeight value evaluating to “1rem”
        */
