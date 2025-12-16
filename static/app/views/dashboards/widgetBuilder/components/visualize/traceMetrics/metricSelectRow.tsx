@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -29,12 +28,9 @@ export function MetricSelectRow({
           traceMetric={traceMetric}
           onChange={option => {
             if (field.kind === 'function') {
-              const newTraceMetric = cloneDeep(traceMetric);
-              newTraceMetric.name = option.name;
-              newTraceMetric.type = option.type;
               dispatch({
                 type: BuilderStateAction.SET_TRACE_METRIC,
-                payload: newTraceMetric,
+                payload: option,
               });
             }
           }}
