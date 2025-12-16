@@ -41,6 +41,7 @@ import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/componen
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
+import {useAgentMonitoringTrackPageView} from 'sentry/views/insights/pages/agents/hooks/useAgentMonitoringTrackPageView';
 import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
@@ -57,6 +58,8 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const showOnboarding = useShowAgentOnboarding();
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
+
+  useAgentMonitoringTrackPageView();
 
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
