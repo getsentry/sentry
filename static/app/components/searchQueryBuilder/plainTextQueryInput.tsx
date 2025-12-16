@@ -122,7 +122,7 @@ const InvisibleInput = styled('textarea')<{size: 'small' | 'normal'}>`
     background: rgba(0, 0, 0, 0.2);
   }
   &::placeholder {
-    color: ${p => p.theme.formPlaceholder};
+    color: ${p => p.theme.colors.gray300};
   }
   :placeholder-shown {
     overflow: hidden;
