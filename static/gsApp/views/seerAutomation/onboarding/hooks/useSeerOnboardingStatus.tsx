@@ -10,7 +10,7 @@ interface OnboardingStatus {
   isSeerConfigured: boolean;
 }
 
-export function useSeerOnboardingStatus() {
+function useSeerOnboardingStatus({staleTime = 0}: {staleTime?: number}) {
   const organization = useOrganization();
   return useQuery({
     ...apiOptions.as<OnboardingStatus>()(
@@ -19,25 +19,14 @@ export function useSeerOnboardingStatus() {
         path: {
           organizationIdOrSlug: organization.slug,
         },
-        staleTime: 60_000,
+        staleTime,
       }
     ),
   });
 }
 
 export function useSeerOnboardingStep() {
-  const organization = useOrganization();
-  const statusQuery = useQuery({
-    ...apiOptions.as<OnboardingStatus>()(
-      '/organizations/$organizationIdOrSlug/seer/onboarding-check/',
-      {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
-        staleTime: 60_000,
-      }
-    ),
-  });
+  const statusQuery = useSeerOnboardingStatus({staleTime: 60_000});
 
   let initialStep = 1;
 
