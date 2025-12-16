@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
@@ -19,7 +18,7 @@ import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
 import type {SettingsBreadcrumbProps} from './types';
 import {CrumbLink} from '.';
 
-function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
+export function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();
   const {organizations} = useLegacyStore(OrganizationsStore);
   const organization = useOrganization();
@@ -71,9 +70,7 @@ function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
     <BreadcrumbDropdown
       name={
         <CrumbLink to={orgSettings}>
-          <BadgeWrapper>
-            <IdBadge avatarSize={18} organization={organization} />
-          </BadgeWrapper>
+          <IdBadge avatarSize={18} organization={organization} />
         </CrumbLink>
       }
       onCrumbSelect={handleSelect}
@@ -97,10 +94,3 @@ function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
     />
   );
 }
-
-const BadgeWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-export {OrganizationCrumb};
