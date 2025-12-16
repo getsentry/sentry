@@ -356,7 +356,10 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                         "guid": str(uuid.uuid4()),
                         "subscription_id": result["subscription_id"],
                         "status": CHECKSTATUS_MISSED_WINDOW,
-                        "status_reason": None,
+                        "status_reason": {
+                            "type": "miss_backfill",
+                            "description": "Miss was never reported for this scheduled check_time",
+                        },
                         "trace_id": str(uuid.uuid4()),
                         "span_id": str(uuid.uuid4()),
                         "region": result["region"],

@@ -438,6 +438,18 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             assert synth_2.attributes["check_status"].string_value == "missed_window"
             assert synth_3.attributes["check_status"].string_value == "failure"
 
+            # Verify backfilled misses have the correct status_reason
+            assert synth_1.attributes["status_reason_type"].string_value == "miss_backfill"
+            assert (
+                synth_1.attributes["status_reason_description"].string_value
+                == "Miss was never reported for this scheduled check_time"
+            )
+            assert synth_2.attributes["status_reason_type"].string_value == "miss_backfill"
+            assert (
+                synth_2.attributes["status_reason_description"].string_value
+                == "Miss was never reported for this scheduled check_time"
+            )
+
             assert (
                 synth_1.attributes["scheduled_check_time_us"].int_value
                 == (last_update_time + 300 * 1000) * 1000
