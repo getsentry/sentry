@@ -304,8 +304,8 @@ def get_group_hourly_count_eap(group: Group) -> int:
         current_hour = now.replace(minute=0, second=0, microsecond=0)
 
         hourly_count = count_occurrences(
-            organization_id=group.project.organization.id,
-            project_ids=[group.project.id],
+            organization=group.project.organization,
+            projects=[group.project],
             start=current_hour,
             end=now,
             referrer=Referrer.IS_ESCALATING_GROUP.value,

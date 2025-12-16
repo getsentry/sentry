@@ -363,14 +363,14 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
 
 class TestGetGroupHourlyCountEAP(TestCase):
-    @patch("sentry.search.eap.occurrences.query.snuba_rpc.table_rpc")
+    @patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
     def test_returns_count_from_eap(self, mock_table_rpc: mock.MagicMock) -> None:
         group = self.create_group()
 
         mock_response = TraceItemTableResponse(
             column_values=[
                 TraceItemColumnValues(
-                    attribute_name="count",
+                    attribute_name="count()",
                     results=[AttributeValue(val_double=42.0)],
                 )
             ]
@@ -382,7 +382,7 @@ class TestGetGroupHourlyCountEAP(TestCase):
         assert result == 42
         mock_table_rpc.assert_called_once()
 
-    @patch("sentry.search.eap.occurrences.query.snuba_rpc.table_rpc")
+    @patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
     def test_returns_zero_on_empty_column_values(self, mock_table_rpc: mock.MagicMock) -> None:
         group = self.create_group()
 
@@ -393,7 +393,7 @@ class TestGetGroupHourlyCountEAP(TestCase):
 
         assert result == 0
 
-    @patch("sentry.search.eap.occurrences.query.snuba_rpc.table_rpc")
+    @patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
     def test_returns_zero_on_exception(self, mock_table_rpc: mock.MagicMock) -> None:
         group = self.create_group()
         mock_table_rpc.side_effect = Exception("RPC failed")
