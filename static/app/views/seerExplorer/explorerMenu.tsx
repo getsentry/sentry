@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import TimeSince from 'sentry/components/timeSince';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 
 type MenuMode = 'slash-commands-keyboard' | 'session-history' | 'pr-widget' | 'hidden';
@@ -16,6 +17,7 @@ interface ExplorerMenuProps {
   panelVisible: boolean;
   slashCommandHandlers: {
     onFeedback: (() => void) | undefined;
+    onLangfuse: () => void;
     onMaxSize: () => void;
     onMedSize: () => void;
     onNew: () => void;
@@ -342,12 +344,16 @@ function useSlashCommands({
   onMedSize,
   onNew,
   onFeedback,
+  onLangfuse,
 }: {
   onFeedback: (() => void) | undefined;
+  onLangfuse: () => void;
   onMaxSize: () => void;
   onMedSize: () => void;
   onNew: () => void;
 }): MenuItemProps[] {
+  const isSentryEmployee = useIsSentryEmployee();
+
   return useMemo(
     (): MenuItemProps[] => [
       {
@@ -384,8 +390,18 @@ function useSlashCommands({
             },
           ]
         : []),
+      ...(isSentryEmployee
+        ? [
+            {
+              title: '/langfuse',
+              key: '/langfuse',
+              description: 'Open Langfuse to view session details',
+              handler: onLangfuse,
+            },
+          ]
+        : []),
     ],
-    [onNew, onMaxSize, onMedSize, onFeedback]
+    [onNew, onMaxSize, onMedSize, onFeedback, onLangfuse, isSentryEmployee]
   );
 }
 
