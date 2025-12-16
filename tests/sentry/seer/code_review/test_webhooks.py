@@ -8,6 +8,7 @@ from fixtures.github import (
     CHECK_RUN_COMPLETED_EVENT_EXAMPLE,
     CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
 )
+from sentry.seer.code_review.webhooks import SEER_PR_REVIEW_RERUN_PATH
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.github import GitHubWebhookTestCase
 
@@ -24,9 +25,12 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
 
     def _send_check_run_event(self, event_data: bytes | str) -> Response:
         """Helper to send check_run event."""
-        repo_id = event_data["repository"]["id"]
+        # Parse event data to extract repository ID
+        event = orjson.loads(event_data) if isinstance(event_data, (bytes, str)) else event_data
+        repo_id = int(event["repository"]["id"])
+
         integration = self.create_github_integration()
-        # Create a repository that matches the fixture's repository.id (35129377)
+        # Create a repository that matches the fixture's repository ID
         self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -64,7 +68,7 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             call_kwargs = mock_request.call_args[1]
             body = orjson.loads(call_kwargs["body"])
             assert body == {"original_run_id": 4663713}
-            assert call_kwargs["path"] == "/v1/automation/codegen/pr-review/rerun"
+            assert call_kwargs["path"] == SEER_PR_REVIEW_RERUN_PATH
 
     @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
     @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
@@ -82,7 +86,7 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
                 mock_request.assert_not_called()
                 # Verify warning was logged
                 mock_logger.warning.assert_called_once()
-                assert "missing_external_id" in mock_logger.warning.call_args[0][0]
+                assert "invalid_payload" in mock_logger.warning.call_args[0][0]
 
     @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
     @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
@@ -100,7 +104,7 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
                 mock_request.assert_not_called()
                 # Verify warning was logged
                 mock_logger.warning.assert_called_once()
-                assert "missing_external_id" in mock_logger.warning.call_args[0][0]
+                assert "invalid_payload" in mock_logger.warning.call_args[0][0]
 
     @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
     @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
@@ -117,7 +121,9 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
                 mock_request.assert_called_once()
                 # Verify error logging (not exception since we now handle the status code)
                 mock_logger.error.assert_called_once()
-                assert "forward.error" in mock_logger.error.call_args[0][0]
+                # Check format string and PREFIX argument (logger uses %-formatting)
+                assert mock_logger.error.call_args[0][0] == "%s.error"
+                assert "seer.code_review.check_run.rerun.error" in mock_logger.error.call_args[0][1]
 
     @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
     @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
@@ -132,7 +138,7 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             mock_request.assert_called_once()
             # Verify the correct connection pool and path were used
             call_kwargs = mock_request.call_args[1]
-            assert call_kwargs["path"] == "/v1/automation/codegen/pr-review/rerun"
+            assert call_kwargs["path"] == SEER_PR_REVIEW_RERUN_PATH
             assert "body" in call_kwargs
 
     def test_check_run_without_integration_returns_204(self) -> None:

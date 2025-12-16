@@ -46,15 +46,27 @@ def handle_github_check_run_event(organization: Organization, event: Mapping[str
     if not _should_handle_github_check_run_event(organization, event["action"]):
         return False
 
+    # Build base extra dict for logging
     extra = {
         "organization_id": organization.id,
         "action": event["action"],
-        # Useful to get to the original run in the GitHub UI
-        "html_url": event["check_run"]["html_url"],
-        # Value set by Seer when the PR review is created
-        "external_id": event["check_run"]["external_id"],
     }
-    return _make_rerun_request(int(extra["external_id"]), extra)
+    try:
+        check_run = event["check_run"]
+        extra["html_url"] = check_run["html_url"]
+        external_id_str = check_run["external_id"]
+        extra["external_id"] = external_id_str
+        original_run_id = int(external_id_str)
+    except (KeyError, ValueError) as e:
+        # We need to handle these errors to prevent sending a 500 error to GitHub
+        # which would trigger a retry.
+        extra["error"] = str(e)
+        # If this happens, we should report it to GitHub as their payload is invalid.
+        logger.warning("%s.invalid_payload", PREFIX, extra=extra)
+        metrics.incr(f"{PREFIX}.outcome", tags={"status": "invalid_payload"})
+        return False
+
+    return _make_rerun_request(original_run_id, extra)
 
 
 def _make_rerun_request(original_run_id: int, extra: dict[str, Any]) -> bool:
