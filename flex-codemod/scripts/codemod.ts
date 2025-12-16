@@ -475,7 +475,16 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
     const oldComponentName = componentNameNode?.text() || 'unknown';
     const lineNumber = styledCall.range().start.line;
 
+    // Check if this is an export statement
+    const exportStmt = styledCall.ancestors().find(a => a.is('export_statement'));
+
     // Now check bailout conditions for viable candidates (has display: flex)
+
+    // Bailout if component is exported (might be used in other files)
+    if (exportStmt) {
+      console.log(`[BAILOUT] ${fileName}:${lineNumber} - "${oldComponentName}" is exported (cannot safely transform cross-file usage)`);
+      continue;
+    }
 
     // Bailout if wrapping an existing component
     if (isWrappingComponent(firstArg)) {
@@ -499,8 +508,6 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
     const propsStr = buildPropsString(flexProps, asAttr);
 
     // Find the lexical declaration (const/let/var) to remove it
-    // But first check if it's inside an export statement
-    const exportStmt = styledCall.ancestors().find(a => a.is('export_statement'));
     const lexicalDecl = styledCall.ancestors().find(a => a.is('lexical_declaration'));
 
     if (lexicalDecl) {
@@ -519,13 +526,8 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
           // Store component replacement info
           componentsToReplace.set(styledComponentName, {componentName, propsStr});
 
-          // If this is an export statement, remove the entire export statement
-          // Otherwise just remove the lexical declaration
-          if (exportStmt) {
-            edits.push(exportStmt.replace(''));
-          } else {
-            edits.push(lexicalDecl.replace(''));
-          }
+          // Remove the lexical declaration (we already checked it's not exported above)
+          edits.push(lexicalDecl.replace(''));
         }
       }
     }

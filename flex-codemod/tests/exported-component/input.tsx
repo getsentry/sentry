@@ -1,11 +1,13 @@
 import styled from '@emotion/styled';
 
-export const FlexContainer = styled('div')`
+// This component is exported and should NOT be transformed
+export const ExportedFlex = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
 `;
 
+// This component is internal and SHOULD be transformed
 const InternalFlex = styled('div')`
   display: flex;
   gap: 8px;
@@ -14,8 +16,8 @@ const InternalFlex = styled('div')`
 function MyComponent() {
   return (
     <div>
-      <FlexContainer>Exported</FlexContainer>
-      <InternalFlex>Internal</InternalFlex>
+      <ExportedFlex>Exported (not transformed)</ExportedFlex>
+      <InternalFlex>Internal (transformed)</InternalFlex>
     </div>
   );
 }
