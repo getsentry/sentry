@@ -2,6 +2,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
     AttributeValue,
+    ExtrapolationMode,
     Function,
     IntArray,
 )
@@ -68,6 +69,8 @@ class OccurrencesRPCTest(TestCase):
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
             key=AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT),
+            label="count()",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
         assert resolved_column.public_alias == "count()"
