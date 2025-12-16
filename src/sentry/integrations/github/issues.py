@@ -13,6 +13,7 @@ from sentry.integrations.source_code_management.issues import SourceCodeIssueInt
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.repository import Repository
 from sentry.organizations.services.organization.service import organization_service
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import (
@@ -222,6 +223,16 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         repo = data.get("repo")
         if not repo:
             raise IntegrationFormError({"repo": "Repository is required"})
+
+        # Check the repository belongs to the integration
+        try:
+            Repository.objects.get(
+                name=repo, integration_id=self.model.id, organization_id=self.organization_id
+            )
+        except Repository.DoesNotExist:
+            raise IntegrationFormError(
+                {"repo": f"Given repository, {repo} does not belong to this integration"}
+            )
 
         # Create clean issue data with required fields
         if not data.get("title"):
