@@ -2,6 +2,8 @@ import {useCallback} from 'react';
 import * as echarts from 'echarts/core';
 
 import {formatAbbreviatedNumberWithDynamicPrecision} from 'sentry/utils/formatters';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
 
 /**
@@ -10,6 +12,9 @@ import {prettifyAggregation} from 'sentry/views/explore/utils';
  * Elements within any ancestor marked with `data-seer-explorer-root` are excluded.
  */
 function useAsciiSnapshot() {
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
+
   const capture = useCallback(() => {
     if (typeof document === 'undefined' || typeof window === 'undefined') {
       return '';
@@ -732,16 +737,44 @@ function useAsciiSnapshot() {
     const url = window.location.href;
     let result = url + '\n' + grid.map(row => row.join('')).join('\n');
 
-    // Append chart tables as footnotes
-    if (chartTables.length > 0) {
-      result += '\n\n=== CHART DATA FOOTNOTES ===\n\n';
-      chartTables.forEach((table, index) => {
-        result += `Chart ${index + 1}:\n${table}\n\n`;
-      });
+    // Check if project selector exists on the page and get selected project slugs
+    const projectSlugs: string[] = [];
+    const projectSelector = document.querySelector(
+      '[data-test-id="page-filter-project-selector"]'
+    );
+    if (projectSelector && selection.projects.length > 0) {
+      // Convert project IDs to slugs
+      const projectIdToSlug = new Map(projects.map(p => [parseInt(p.id, 10), p.slug]));
+      for (const projectId of selection.projects) {
+        const slug = projectIdToSlug.get(projectId);
+        if (slug) {
+          projectSlugs.push(slug);
+        }
+      }
+    }
+
+    // Append footnotes if either charts or projects are present
+    if (chartTables.length > 0 || projectSlugs.length > 0) {
+      result += '\n\n=== FOOTNOTES ===\n\n';
+
+      // Append selected project slugs if project selector exists
+      if (projectSlugs.length > 0) {
+        result += `This page has the following projects selected: ${projectSlugs.join(', ')}\n`;
+        if (chartTables.length > 0) {
+          result += '\n';
+        }
+      }
+
+      // Append chart tables
+      if (chartTables.length > 0) {
+        chartTables.forEach((table, index) => {
+          result += `Chart ${index + 1}:\n${table}\n\n`;
+        });
+      }
     }
 
     return result;
-  }, []);
+  }, [selection.projects, projects]);
 
   return capture;
 }
