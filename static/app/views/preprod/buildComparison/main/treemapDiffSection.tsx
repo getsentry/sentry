@@ -14,10 +14,7 @@ import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getAppSizeDiffCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
 import type {DiffItem, TreemapDiffElement} from 'sentry/views/preprod/types/appSizeTypes';
-import {
-  buildTreemapDiff,
-  formatSizeDiff,
-} from 'sentry/views/preprod/utils/treemapDiffUtils';
+import {buildTreemapDiff} from 'sentry/views/preprod/utils/treemapDiffUtils';
 
 interface TreemapDiffSectionProps {
   diffItems: DiffItem[];
@@ -64,14 +61,13 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
 
     const data: any = {
       name: element.name,
-      value: Math.abs(element.size), // Use absolute size for treemap layout
+      value: Math.abs(element.size_diff),
       path: element.path,
-      size: element.size,
       size_diff: element.size_diff,
       diff_type: element.diff_type,
       itemStyle: {
         color: 'transparent',
-        borderColor: diffCategoryInfo.color,
+        borderColor: diffCategoryInfo.translucentColor,
         borderWidth: 6,
         gapWidth: 2,
         gapColor: 'transparent',
@@ -112,7 +108,6 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
   }
 
   const chartData = convertToEChartsData(treemapDiff);
-  const totalSize = Math.abs(treemapDiff.size);
 
   const series: TreemapSeriesOption[] = [
     {
@@ -201,8 +196,6 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
       fontFamily: 'Rubik',
     },
     formatter: function (params: any) {
-      const value = typeof params.value === 'number' ? params.value : 0;
-      const percent = totalSize > 0 ? ((value / totalSize) * 100).toFixed(2) : '0.00';
       const pathElement = params.data?.path
         ? `<p style="font-size: 12px; margin-bottom: -4px;">${params.data.path}</p>`
         : null;
@@ -226,8 +219,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
               <span style="font-size: 14px; font-weight: bold;">${params.name}</span>
             </div>
             ${pathElement || ''}
-            <p style="font-size: 12px; margin-bottom: -4px;">${formatBytesBase10(params.data?.size || 0)} (${percent}%)</p>
-            ${sizeDiff === 0 ? '' : `<p style="font-size: 12px; margin-bottom: -4px; color: ${diffColor};">Change: ${formatSizeDiff(sizeDiff)}</p>`}
+            ${sizeDiff === 0 ? '' : `<p style="font-size: 12px; margin-bottom: -4px; color: ${diffColor};">Change: ${sizeDiff > 0 ? '+' : ''}${formatBytesBase10(sizeDiff)}</p>`}
           </div>
         </div>
       `.trim();

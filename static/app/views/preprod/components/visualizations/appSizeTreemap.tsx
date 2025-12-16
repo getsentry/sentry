@@ -124,8 +124,8 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     // Use headerColor for parent nodes, regular color for leaf nodes
     const hasChildren = element.children && element.children.length > 0;
     const borderColor =
-      hasChildren && categoryInfo.headerColor
-        ? categoryInfo.headerColor
+      hasChildren && categoryInfo.translucentColor
+        ? categoryInfo.translucentColor
         : categoryInfo.color;
 
     const data: any = {
@@ -426,7 +426,6 @@ const ButtonContainer = styled(Flex)`
   top: 0px;
   right: 0;
   height: 20px;
-  align-items: center;
   z-index: 10;
 
   button {

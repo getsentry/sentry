@@ -7,7 +7,7 @@ import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 export interface AppSizeCategoryInfo {
   color: string;
   displayName: string;
-  headerColor?: string;
+  translucentColor?: string;
 }
 
 function createTranslucentColor(baseColor: string): string {
@@ -31,142 +31,142 @@ export function getAppSizeCategoryInfo(
   return {
     [TreemapType.FILES]: {
       color: neutralColor,
-      headerColor: createTranslucentColor(neutralColor),
+      translucentColor: createTranslucentColor(neutralColor),
       displayName: t('Files'),
     },
     [TreemapType.EXECUTABLES]: {
       color: groupColor1,
-      headerColor: createTranslucentColor(groupColor1),
+      translucentColor: createTranslucentColor(groupColor1),
       displayName: t('Executables'),
     },
     [TreemapType.RESOURCES]: {
       color: groupColor2,
-      headerColor: createTranslucentColor(groupColor2),
+      translucentColor: createTranslucentColor(groupColor2),
       displayName: t('Resources'),
     },
     [TreemapType.LOCALIZATIONS]: {
       color: groupColor2,
-      headerColor: createTranslucentColor(groupColor2),
+      translucentColor: createTranslucentColor(groupColor2),
       displayName: t('Localizations'),
     },
     [TreemapType.ASSETS]: {
       color: groupColor3,
-      headerColor: createTranslucentColor(groupColor3),
+      translucentColor: createTranslucentColor(groupColor3),
       displayName: t('Assets'),
     },
     [TreemapType.MANIFESTS]: {
       color: groupColor1,
-      headerColor: createTranslucentColor(groupColor1),
+      translucentColor: createTranslucentColor(groupColor1),
       displayName: t('Manifests'),
     },
     [TreemapType.SIGNATURES]: {
       color: groupColor1,
-      headerColor: createTranslucentColor(groupColor1),
+      translucentColor: createTranslucentColor(groupColor1),
       displayName: t('Signatures'),
     },
     [TreemapType.FONTS]: {
       color: groupColor4,
-      headerColor: createTranslucentColor(groupColor4),
+      translucentColor: createTranslucentColor(groupColor4),
       displayName: t('Fonts'),
     },
     [TreemapType.FRAMEWORKS]: {
       color: groupColor2,
-      headerColor: createTranslucentColor(groupColor2),
+      translucentColor: createTranslucentColor(groupColor2),
       displayName: t('Frameworks'),
     },
     [TreemapType.PLISTS]: {
       color: groupColor2,
-      headerColor: createTranslucentColor(groupColor2),
+      translucentColor: createTranslucentColor(groupColor2),
       displayName: t('Plist Files'),
     },
     [TreemapType.DYLD]: {
       color: groupColor1,
-      headerColor: createTranslucentColor(groupColor1),
+      translucentColor: createTranslucentColor(groupColor1),
       displayName: t('DYLD'),
     },
     [TreemapType.MACHO]: {
       color: groupColor2,
-      headerColor: createTranslucentColor(groupColor2),
+      translucentColor: createTranslucentColor(groupColor2),
       displayName: t('Mach-O Files'),
     },
     [TreemapType.FUNCTION_STARTS]: {
       color: groupColor2,
-      headerColor: createTranslucentColor(groupColor2),
+      translucentColor: createTranslucentColor(groupColor2),
       displayName: t('Function Starts'),
     },
     [TreemapType.DEX]: {
       color: groupColor1,
-      headerColor: createTranslucentColor(groupColor1),
+      translucentColor: createTranslucentColor(groupColor1),
       displayName: 'Dex', // not translated because it's an Android term
     },
     [TreemapType.NATIVE_LIBRARIES]: {
       color: groupColor6,
-      headerColor: createTranslucentColor(groupColor6),
+      translucentColor: createTranslucentColor(groupColor6),
       displayName: t('Native Libraries'),
     },
     [TreemapType.COMPILED_RESOURCES]: {
       color: groupColor3,
-      headerColor: createTranslucentColor(groupColor3),
+      translucentColor: createTranslucentColor(groupColor3),
       displayName: t('Compiled Resources'),
     },
     [TreemapType.MODULES]: {
       color: groupColor5,
-      headerColor: createTranslucentColor(groupColor5),
+      translucentColor: createTranslucentColor(groupColor5),
       displayName: t('Modules'),
     },
     [TreemapType.CLASSES]: {
       color: groupColor5,
-      headerColor: createTranslucentColor(groupColor5),
+      translucentColor: createTranslucentColor(groupColor5),
       displayName: t('Classes'),
     },
     [TreemapType.METHODS]: {
       color: groupColor5,
-      headerColor: createTranslucentColor(groupColor5),
+      translucentColor: createTranslucentColor(groupColor5),
       displayName: t('Methods'),
     },
     [TreemapType.STRINGS]: {
       color: groupColor5,
-      headerColor: createTranslucentColor(groupColor5),
+      translucentColor: createTranslucentColor(groupColor5),
       displayName: t('Strings'),
     },
     [TreemapType.SYMBOLS]: {
       color: groupColor5,
-      headerColor: createTranslucentColor(groupColor5),
+      translucentColor: createTranslucentColor(groupColor5),
       displayName: t('Symbols'),
     },
     [TreemapType.BINARY]: {
       color: groupColor5,
-      headerColor: createTranslucentColor(groupColor5),
+      translucentColor: createTranslucentColor(groupColor5),
       displayName: t('Binary Data'),
     },
     [TreemapType.EXTERNAL_METHODS]: {
       color: groupColor5,
-      headerColor: createTranslucentColor(groupColor5),
+      translucentColor: createTranslucentColor(groupColor5),
       displayName: t('External Methods'),
     },
     [TreemapType.OTHER]: {
       color: neutralColor,
-      headerColor: createTranslucentColor(neutralColor),
+      translucentColor: createTranslucentColor(neutralColor),
       displayName: t('Other'),
     },
     [TreemapType.UNMAPPED]: {
       color: neutralColor,
-      headerColor: createTranslucentColor(neutralColor),
+      translucentColor: createTranslucentColor(neutralColor),
       displayName: t('Unmapped'),
     },
     [TreemapType.EXTENSIONS]: {
       color: groupColor2,
-      headerColor: createTranslucentColor(groupColor2),
+      translucentColor: createTranslucentColor(groupColor2),
       displayName: t('Extensions'),
     },
     [TreemapType.CODE_SIGNATURE]: {
       color: groupColor1,
-      headerColor: createTranslucentColor(groupColor1),
+      translucentColor: createTranslucentColor(groupColor1),
       displayName: t('Code Signature'),
     },
     [TreemapType.AUDIO]: {
       color: groupColor7,
-      headerColor: createTranslucentColor(groupColor7),
+      translucentColor: createTranslucentColor(groupColor7),
       displayName: t('Audio'),
     },
   };
@@ -177,19 +177,23 @@ export function getAppSizeDiffCategoryInfo(
 ): Record<string, AppSizeCategoryInfo> {
   return {
     added: {
-      color: createTranslucentColor(theme.colors.red400),
+      color: theme.colors.red400,
+      translucentColor: createTranslucentColor(theme.colors.red400),
       displayName: t('Added'),
     },
     increased: {
-      color: createTranslucentColor(theme.colors.red200),
+      color: theme.colors.red200,
+      translucentColor: createTranslucentColor(theme.colors.red200),
       displayName: t('Increased'),
     },
     decreased: {
-      color: createTranslucentColor(theme.colors.green200),
+      color: theme.colors.green200,
+      translucentColor: createTranslucentColor(theme.colors.green200),
       displayName: t('Decreased'),
     },
     removed: {
-      color: createTranslucentColor(theme.colors.green400),
+      color: theme.colors.green400,
+      translucentColor: createTranslucentColor(theme.colors.green400),
       displayName: t('Removed'),
     },
   };

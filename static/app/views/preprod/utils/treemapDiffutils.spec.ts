@@ -1,109 +1,8 @@
 import {TreemapType, type DiffItem} from 'sentry/views/preprod/types/appSizeTypes';
 
-import {
-  buildTreeFromDiffItems,
-  buildTreemapDiff,
-  formatSizeDiff,
-  getFileSize,
-} from './treemapDiffUtils';
+import {buildTreeFromDiffItems, buildTreemapDiff} from './treemapDiffUtils';
 
 describe('treemapDiffUtils', () => {
-  describe('formatSizeDiff', () => {
-    it('should format positive size diffs with + sign', () => {
-      expect(formatSizeDiff(1024)).toBe('+1.02 KB');
-      expect(formatSizeDiff(5000)).toBe('+5 KB');
-    });
-
-    it('should format negative size diffs without extra sign', () => {
-      expect(formatSizeDiff(-1024)).toBe('-1,024 B');
-      expect(formatSizeDiff(-5000)).toBe('-5,000 B');
-    });
-
-    it('should format zero diff without sign', () => {
-      expect(formatSizeDiff(0)).toBe('0 B');
-    });
-  });
-
-  describe('getFileSize', () => {
-    it('should return head_size for added files', () => {
-      const diffItem: DiffItem = {
-        path: 'src/file.js',
-        size_diff: 1000,
-        type: 'added',
-        head_size: 1500,
-        base_size: null,
-        item_type: TreemapType.FILES,
-      };
-
-      expect(getFileSize(diffItem)).toBe(1500);
-    });
-
-    it('should return base_size for removed files', () => {
-      const diffItem: DiffItem = {
-        path: 'src/removed.js',
-        size_diff: -1000,
-        type: 'removed',
-        head_size: null,
-        base_size: 1000,
-        item_type: TreemapType.FILES,
-      };
-
-      expect(getFileSize(diffItem)).toBe(1000);
-    });
-
-    it('should return head_size for increased files', () => {
-      const diffItem: DiffItem = {
-        path: 'src/increased.js',
-        size_diff: 500,
-        type: 'increased',
-        head_size: 1500,
-        base_size: 1000,
-        item_type: TreemapType.FILES,
-      };
-
-      expect(getFileSize(diffItem)).toBe(1500);
-    });
-
-    it('should return head_size for decreased files', () => {
-      const diffItem: DiffItem = {
-        path: 'src/decreased.js',
-        size_diff: -200,
-        type: 'decreased',
-        head_size: 800,
-        base_size: 1000,
-        item_type: TreemapType.FILES,
-      };
-
-      expect(getFileSize(diffItem)).toBe(800);
-    });
-
-    it('should calculate size from base_size + size_diff as fallback', () => {
-      const diffItem: DiffItem = {
-        path: 'src/fallback.js',
-        size_diff: 300,
-        type: 'increased',
-        head_size: null,
-        base_size: 1000,
-        item_type: TreemapType.FILES,
-      };
-
-      expect(getFileSize(diffItem)).toBe(1300);
-    });
-
-    it('should use absolute value of size_diff as last resort', () => {
-      const diffItem: DiffItem = {
-        path: 'src/last-resort.js',
-        size_diff: -500,
-        type: 'removed',
-        head_size: null,
-        base_size: null,
-        item_type: TreemapType.FILES,
-      };
-
-      expect(getFileSize(diffItem)).toBe(500);
-    });
-  });
-
   describe('buildTreeFromDiffItems', () => {
     it('should return null for empty diff items', () => {
       const result = buildTreeFromDiffItems([]);
@@ -138,7 +37,6 @@ describe('treemapDiffUtils', () => {
       expect(appFile.name).toBe('app.js');
       expect(appFile.is_dir).toBe(false);
       expect(appFile.path).toBe('src/app.js');
-      expect(appFile.size).toBe(2000);
       expect(appFile.size_diff).toBe(1000);
       expect(appFile.diff_type).toBe('added');
     });
@@ -205,7 +103,6 @@ describe('treemapDiffUtils', () => {
       expect(packageFile.name).toBe('package.json');
       expect(packageFile.is_dir).toBe(false);
       expect(packageFile.path).toBe('package.json');
-      expect(packageFile.size).toBe(1200);
       expect(packageFile.size_diff).toBe(100);
     });
 
@@ -234,12 +131,10 @@ describe('treemapDiffUtils', () => {
       expect(result).toBeDefined();
 
       const srcDir = result!.children![0]!;
-      expect(srcDir.size).toBe(1800); // 1000 + 800
       expect(srcDir.size_diff).toBe(800); // 500 + 300
       expect(srcDir.diff_type).toBe('increased');
 
       // Root should also aggregate
-      expect(result!.size).toBe(1800);
       expect(result!.size_diff).toBe(800);
     });
 
@@ -262,7 +157,6 @@ describe('treemapDiffUtils', () => {
       const removedFile = result!.children![0]!.children![0]!;
       expect(removedFile.name).toBe('removed.js');
       expect(removedFile.diff_type).toBe('removed');
-      expect(removedFile.size).toBe(1000); // base_size
       expect(removedFile.size_diff).toBe(-1000);
 
       // Directory should have decreased type

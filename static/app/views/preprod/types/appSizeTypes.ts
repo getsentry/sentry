@@ -274,9 +274,7 @@ export interface TreemapDiffElement {
   is_dir: boolean;
   name: string;
   path: string | null;
-  size: number;
   size_diff: number;
-  type: string | null;
 }
 
 export interface TreemapDiffResults {
