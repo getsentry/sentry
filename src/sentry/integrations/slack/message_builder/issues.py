@@ -767,7 +767,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         if features.has("organizations:seer-slack-workflows", self.group.organization):
             autofix_button: ButtonElement = SeerSlackRenderer.render_autofix_button(
-                data=SeerAutofixTrigger(source="seer-autofix-trigger")
+                data=SeerAutofixTrigger(
+                    source="seer-autofix-trigger",
+                    project_id=self.group.project_id,
+                    organization_id=self.group.project.organization_id,
+                )
             )
             # We have to coerce this since we're not using the proper SlackSDK client to emit this
             # notification yet, it just takes JSON.

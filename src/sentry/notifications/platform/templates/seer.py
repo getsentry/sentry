@@ -13,6 +13,8 @@ from sentry.notifications.platform.types import (
 
 @dataclass(frozen=True)
 class SeerAutofixTrigger(NotificationData):
+    project_id: int
+    organization_id: int
     source: str = "seer-autofix-trigger"
     label: str = "Start RCA"
 
@@ -20,7 +22,9 @@ class SeerAutofixTrigger(NotificationData):
 @template_registry.register(SeerAutofixTrigger.source)
 class SeerAutofixTriggerTemplate(NotificationTemplate[SeerAutofixTrigger]):
     category = NotificationCategory.SEER
-    example_data = SeerAutofixTrigger(source="seer-autofix-trigger")
+    example_data = SeerAutofixTrigger(
+        source="seer-autofix-trigger", project_id=1, organization_id=1
+    )
     hide_from_debugger = True
 
     def render(self, data: SeerAutofixTrigger) -> NotificationRenderedTemplate:

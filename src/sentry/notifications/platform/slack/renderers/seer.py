@@ -43,13 +43,18 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
     @classmethod
     def render_autofix_button(cls, data: SeerAutofixTrigger) -> ButtonElement:
+        from sentry.integrations.slack.message_builder.routing import encode_action_id
         from sentry.integrations.slack.message_builder.types import SlackAction
 
         return ButtonElement(
             text=data.label,
             style="primary",
             value=SlackAction.SEER_AUTOFIX_START.value,
-            action_id=SlackAction.SEER_AUTOFIX_START.value,
+            action_id=encode_action_id(
+                action=SlackAction.SEER_AUTOFIX_START.value,
+                organization_id=data.organization_id,
+                project_id=data.project_id,
+            ),
         )
 
     @classmethod

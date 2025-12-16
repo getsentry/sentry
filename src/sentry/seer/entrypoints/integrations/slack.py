@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, TypedDict
 
-from sentry.integrations.slack.integration import SlackIntegration
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.templates.seer import SeerAutofixError, SeerContextInput
@@ -15,7 +14,7 @@ from sentry.sentry_apps.metrics import SentryAppEventType
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.integrations.slack.webhooks.action import SlackActionRequest
+    from sentry.integrations.slack.requests import SlackActionRequest
 
 
 class SlackEntrypointCachePayload(TypedDict):
@@ -28,6 +27,8 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
     key = SeerEntrypointKey.SLACK
 
     def __init__(self, slack_request: SlackActionRequest, organization_id: int):
+        from sentry.integrations.slack.integration import SlackIntegration
+
         self.slack_request = slack_request
         self.channel_id = slack_request.channel_id or ""
         self.thread_ts = slack_request.data.get("message", {}).get("ts")

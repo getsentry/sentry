@@ -583,8 +583,8 @@ class SlackActionEndpoint(Endpoint):
         for action_data in slack_request.data.get("actions", []):
             # Get the _first_ value in the action list.
             value = action_data.get("value")
+            action_id = action_data.get("action_id")
             if value:
-                action_id = action_data.get("action_id")
                 action_option = value
                 break
 
