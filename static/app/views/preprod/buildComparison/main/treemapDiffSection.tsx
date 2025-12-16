@@ -1,19 +1,23 @@
 import {useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import type {ECharts, TreemapSeriesOption} from 'echarts';
 
-import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator/separator';
 import {Heading} from '@sentry/scraps/text';
 
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {IconContract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import type {Theme} from 'sentry/utils/theme';
 import {getAppSizeDiffCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
-import type {DiffItem, TreemapDiffElement} from 'sentry/views/preprod/types/appSizeTypes';
+import {TreemapControlButtons} from 'sentry/views/preprod/components/visualizations/treemapControlButtons';
+import type {
+  DiffItem,
+  DiffType,
+  TreemapDiffElement,
+} from 'sentry/views/preprod/types/appSizeTypes';
+import {formattedSizeDiff} from 'sentry/views/preprod/utils/labelUtils';
 import {buildTreemapDiff} from 'sentry/views/preprod/utils/treemapDiffUtils';
 
 interface TreemapDiffSectionProps {
@@ -57,7 +61,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
       throw new Error(`Diff type ${element.diff_type} not found`);
     }
 
-    const data: any = {
+    const data: TreemapSeriesOption = {
       name: element.name,
       value: Math.abs(element.size_diff),
       path: element.path,
@@ -68,6 +72,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
         borderColor: diffCategoryInfo.translucentColor,
         borderWidth: 6,
         gapWidth: 2,
+        // @ts-expect-error Type issue, just ignore
         gapColor: 'transparent',
       },
       label: {
@@ -97,6 +102,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
     };
 
     if (element.children && element.children.length > 0) {
+      // @ts-expect-error Type issue, just ignore
       data.children = element.children.map((child: TreemapDiffElement) =>
         convertToEChartsData(child)
       );
@@ -109,7 +115,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
 
   const series: TreemapSeriesOption[] = [
     {
-      name: 'Size Diff Analysis',
+      name: t('X-Ray Diff'),
       type: 'treemap',
       animationEasing: 'quarticOut',
       animationDuration: 300,
@@ -204,20 +210,15 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
       if (!diffCategoryInfo) {
         throw new Error(`Diff type ${diffType} not found`);
       }
-      const diffColor = diffCategoryInfo.color;
-
+      const diffTag = DiffTag(theme, sizeDiff, diffType, diffCategoryInfo.displayName);
       return `
         <div style="font-family: Rubik;">
-          <div style="display: flex; align-items: center; font-size: 12px; font-weight: bold; line-height: 1; margin-bottom: ${theme.space.md}; gap: ${theme.space.md}">
-            <div style="flex: initial; width: 8px !important; height: 8px !important; border-radius: 50%; background-color: ${diffColor};"></div>
-            <span style="color: ${diffCategoryInfo.color}">${diffCategoryInfo.displayName || 'Other'}</span>
-          </div>
           <div style="display: flex; flex-direction: column; line-height: 1; gap: ${theme.space.sm}">
             <div style="display: flex; align-items: center; gap: 6px;">
               <span style="font-size: 14px; font-weight: bold;">${params.name}</span>
             </div>
             ${pathElement || ''}
-            ${sizeDiff === 0 ? '' : `<p style="font-size: 12px; margin-bottom: -4px; color: ${diffColor};">Change: ${sizeDiff > 0 ? '+' : ''}${formatBytesBase10(sizeDiff)}</p>`}
+            <div style="display: flex; width: 100%;"><span style="display: inline-flex;">${diffTag}</span></div>
           </div>
         </div>
       `.trim();
@@ -229,7 +230,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
       <Separator orientation="horizontal" border="primary" />
 
       <Stack gap="md">
-        <Heading as="h2">{t('Size diff')}</Heading>
+        <Heading as="h2">{t('X-Ray Diff')}</Heading>
         <Stack paddingBottom="xl">
           <Container
             height="400px"
@@ -247,22 +248,17 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
               tooltip={tooltip}
               onChartReady={handleChartReady}
             />
-            <ButtonContainer
-              gap="xs"
-              align="center"
-              direction="row"
-              onMouseDown={e => e.stopPropagation()}
-            >
-              <Button
-                size="xs"
-                aria-label={t('Recenter View')}
-                title={t('Recenter')}
-                borderless
-                icon={<IconContract />}
-                onClick={handleRecenter}
-                disabled={!isZoomed}
-              />
-            </ButtonContainer>
+            <TreemapControlButtons
+              buttons={[
+                {
+                  ariaLabel: t('Recenter View'),
+                  title: t('Recenter'),
+                  icon: <IconContract />,
+                  onClick: handleRecenter,
+                  disabled: !isZoomed,
+                },
+              ]}
+            />
           </Container>
         </Stack>
       </Stack>
@@ -270,29 +266,46 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
   );
 }
 
-const ButtonContainer = styled(Flex)`
-  position: absolute;
-  top: 0px;
-  right: 0;
-  height: 20px;
-  z-index: 10;
-
-  button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${p => p.theme.white};
-    height: 22px;
-    min-height: 20px;
-    max-height: 20px;
-    padding: 0 ${p => p.theme.space.xs};
-    background: rgba(0, 0, 0, 0.8);
-    border-radius: ${p => p.theme.radius.md};
-    box-shadow: ${p => p.theme.dropShadowMedium};
-
-    &:hover {
-      color: ${p => p.theme.white};
-      background: rgba(0, 0, 0, 0.9);
-    }
+function DiffTag(
+  theme: Theme,
+  sizeDiff: number,
+  diffType: DiffType,
+  label: string
+): string {
+  const diffString = formattedSizeDiff(sizeDiff);
+  let tagType: 'success' | 'error' | 'default' = 'default';
+  if (diffType === 'increased' || diffType === 'added') {
+    tagType = 'error';
+  } else if (diffType === 'decreased' || diffType === 'removed') {
+    tagType = 'success';
   }
-`;
+
+  // Intentionally a string as Echarts cannot render React components
+  return `<div style="
+    font-size: ${theme.font.size.sm};
+    background-color: ${theme.tag[tagType].background};
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    border-radius: 4px;
+    padding: 0 ${theme.space.md};
+    gap: ${theme.space.md};
+    color: ${theme.tag[tagType].color};
+  ">
+    <span style="
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: inline-block;
+      font-weight: bold;
+    ">
+      ${diffString}
+    </span>
+    <span style="
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: inline-block;
+    ">(${label})</span>
+  </div>`;
+}

@@ -164,6 +164,60 @@ describe('treemapDiffUtils', () => {
       expect(srcDir.diff_type).toBe('decreased');
       expect(srcDir.size_diff).toBe(-1000);
     });
+
+    it('should assign diff_type correctly for parent/child with mixed increases and decreases (Emerge edge case)', () => {
+      // Edge case seen before
+      //         (A -50)
+      //       /        \
+      //   (B -51)    (C +1)
+      //
+      // Root
+      //  └── A (size_diff: -50, children: [B, C])
+      //         ├── B (size_diff: -51)
+      //         └── C (size_diff: +1)
+
+      const diffItems: DiffItem[] = [
+        {
+          path: 'A/B',
+          size_diff: -51 * 1024 * 1024,
+          type: 'decreased',
+          head_size: 10 * 1024 * 1024,
+          base_size: 61 * 1024 * 1024,
+          item_type: TreemapType.FILES,
+        },
+        {
+          path: 'A/C',
+          size_diff: 1 * 1024 * 1024,
+          type: 'increased',
+          head_size: 2 * 1024 * 1024,
+          base_size: 1 * 1024 * 1024,
+          item_type: TreemapType.FILES,
+        },
+      ];
+
+      const result = buildTreeFromDiffItems(diffItems);
+
+      expect(result).toBeDefined();
+      // Root
+      expect(result!.diff_type).toBe('decreased');
+
+      // Get A directory
+      const aDir = result!.children!.find(child => child.name === 'A')!;
+      expect(aDir).toBeDefined();
+      expect(aDir.size_diff).toBe(-50 * 1024 * 1024); // -51 + 1
+      expect(aDir.diff_type).toBe('decreased'); // overall decreased
+
+      // Children
+      const bFile = aDir.children!.find(child => child.name === 'B')!;
+      expect(bFile).toBeDefined();
+      expect(bFile.size_diff).toBe(-51 * 1024 * 1024);
+      expect(bFile.diff_type).toBe('decreased');
+
+      const cFile = aDir.children!.find(child => child.name === 'C')!;
+      expect(cFile).toBeDefined();
+      expect(cFile.size_diff).toBe(1 * 1024 * 1024);
+      expect(cFile.diff_type).toBe('increased');
+    });
   });
 
   describe('buildTreemapDiff', () => {
