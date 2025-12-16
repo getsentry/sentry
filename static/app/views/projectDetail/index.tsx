@@ -1,17 +1,13 @@
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import withOrganization from 'sentry/utils/withOrganization';
 
 import ProjectDetail from './projectDetail';
 
-function ProjectDetailContainer(
-  props: Omit<
-    React.ComponentProps<typeof ProjectDetail>,
-    'projects' | 'loadingProjects' | 'selection'
-  >
-) {
+export default function ProjectDetailContainer() {
+  const params = useParams<{projectId: string}>();
   const {projects} = useProjects();
-  const project = projects.find(p => p.slug === props.params.projectId);
+  const project = projects.find(p => p.slug === params.projectId);
 
   useRouteAnalyticsParams(
     project
@@ -22,7 +18,5 @@ function ProjectDetailContainer(
       : {}
   );
 
-  return <ProjectDetail {...props} />;
+  return <ProjectDetail />;
 }
-
-export default withOrganization(ProjectDetailContainer);
