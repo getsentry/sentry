@@ -30,7 +30,7 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
             alias="testuser",
         )
 
-    def test_returns_false_when_seat_based_seer_disabled(self, mock_quota):
+    def test_returns_false_when_seat_based_seer_disabled(self):
         self.create_repository_settings(repository=self.repo, enabled_code_review=True)
 
         result = should_create_or_increment_contributor_seat(
