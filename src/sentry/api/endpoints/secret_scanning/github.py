@@ -118,7 +118,7 @@ class SecretScanningGitHubEndpoint(View):
                     # TODO: revoke token
                     pass
 
-                # Send an email
+                # Send an email notification
                 url_prefix = options.get("system.url-prefix")
                 if isinstance(token, ApiToken):
                     # for personal token, send an alert to the token owner
@@ -160,7 +160,12 @@ class SecretScanningGitHubEndpoint(View):
                     type="user.secret-scanning-alert",
                     context=context,
                 )
-                msg.send_async([u.username for u in users])
+
+                # only send email to users in the allowlist
+                allowed_emails = options.get("secret-scanning.github.notifications.email-allowlist")
+                recipients = [u.email for u in users if u.email in allowed_emails]
+                if recipients:
+                    msg.send_async(recipients)
 
                 response.append(
                     {
