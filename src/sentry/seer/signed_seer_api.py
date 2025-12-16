@@ -1,13 +1,10 @@
 import hashlib
 import hmac
 import logging
-from collections.abc import Mapping
 from random import random
 from typing import Any
 from urllib.parse import urlparse
 
-import orjson
-import requests
 import sentry_sdk
 from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
@@ -54,53 +51,6 @@ def make_signed_seer_api_request(
             headers={"content-type": "application/json;charset=utf-8", **auth_headers},
             **options,
         )
-
-
-@sentry_sdk.tracing.trace
-def post_to_seer(
-    path: str,
-    payload: Mapping[str, Any],
-    timeout: int | float = 5,
-    base_url: str | None = None,
-) -> requests.Response:
-    """
-    Simple wrapper to POST data to Seer with automatic signing.
-
-    This is a simpler alternative to make_signed_seer_api_request for one-off requests.
-    Use this for webhook forwarding and simple API calls. Use make_signed_seer_api_request
-    if you need connection pooling for high-volume requests.
-
-    Args:
-        path: The API path (e.g., "/v1/automation/codegen/pr-review/github")
-        payload: The data to send (will be JSON-serialized)
-        timeout: Request timeout in seconds (default: 5)
-        base_url: Base URL override (defaults to settings.SEER_AUTOFIX_URL)
-
-    Returns:
-        requests.Response object
-
-    Raises:
-        requests.HTTPError: If the response status indicates an error
-    """
-    base_url = base_url or settings.SEER_AUTOFIX_URL
-    body = orjson.dumps(payload)
-
-    with metrics.timer(
-        "seer.request_to_seer",
-        sample_rate=1.0,
-        tags={"endpoint": path},
-    ):
-        response = requests.post(
-            f"{base_url}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
-            timeout=timeout,
-        )
-        response.raise_for_status()
-        return response
 
 
 def sign_with_seer_secret(body: bytes) -> dict[str, str]:

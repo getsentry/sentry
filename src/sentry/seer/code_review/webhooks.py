@@ -5,10 +5,14 @@ from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any
 
+import orjson
+from django.conf import settings
+from urllib3.exceptions import MaxRetryError, TimeoutError
+
 from sentry import options
 from sentry.models.organization import Organization
-from sentry.seer.signed_seer_api import post_to_seer
-from sentry.utils import metrics
+from sentry.net.http import connection_from_url
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils.seer import can_use_prevent_ai_features
 
 logger = logging.getLogger(__name__)
@@ -26,6 +30,8 @@ class CheckRunAction(StrEnum):
 # https://github.com/getsentry/seer/blob/main/src/seer/automation/codegen/pr_review_coding_agent.py
 SEER_PR_REVIEW_RERUN_PATH = "/v1/automation/codegen/pr-review/rerun"
 PREFIX = "seer.code_review.check_run"
+
+connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
 
 
 def handle_github_check_run_event(organization: Organization, event: Mapping[str, Any]) -> bool:
@@ -62,16 +68,25 @@ def handle_github_check_run_event(organization: Organization, event: Mapping[str
 
     # Forward the original run ID to Seer for PR review rerun
     payload = {"original_run_id": original_run_id}
-    outcome = "failure"
     try:
-        post_to_seer(path=SEER_PR_REVIEW_RERUN_PATH, payload=payload)
-        outcome = "success"
-    except Exception:
+        response = make_signed_seer_api_request(
+            connection_pool=connection_pool,
+            path=SEER_PR_REVIEW_RERUN_PATH,
+            body=orjson.dumps(payload),
+        )
+    except (TimeoutError, MaxRetryError):
         logger.exception("%s.forward.exception", PREFIX, extra=extra)
-    finally:
-        metrics.incr(f"{PREFIX}.forward.outcome", tags={"outcome": outcome})
+        return False
 
-    return outcome == "success"
+    if response.status >= 400:
+        logger.error(
+            "%s.forward.error",
+            PREFIX,
+            extra={**extra, "status": response.status, "response_data": response.data},
+        )
+        return False
+
+    return True
 
 
 def _should_handle_github_check_run_event(organization: Organization, action: str) -> bool:
