@@ -7,25 +7,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
-interface InputContent {
-  text: string;
-  type: string;
-}
-
-interface ConversationApiResponse {
-  conversationId: string;
-  duration: number;
-  errors: number;
-  flow: string[];
-  llmCalls: number;
-  timestamp: number;
-  toolCalls: number;
-  totalTokens: number;
-  traceCount: number;
-  traceIds: string[];
-  firstInput?: InputContent[] | null;
-  lastOutput?: string | null;
-  totalCost?: number | null;
+interface ConversationApiResponse extends Omit<Conversation, 'firstInput'> {
+  firstInput?: Array<{text: string; type: string}> | string | null;
 }
 
 export interface Conversation {
@@ -41,44 +24,6 @@ export interface Conversation {
   totalTokens: number;
   traceCount: number;
   traceIds: string[];
-}
-
-/**
- * Extracts a displayable text string from the firstInput array.
- * The firstInput field contains an array of content objects with type and text.
- */
-function extractFirstInputText(
-  firstInput: InputContent[] | null | undefined | string
-): string | null {
-  if (typeof firstInput === 'string') {
-    return firstInput;
-  }
-  if (!firstInput || firstInput.length === 0) {
-    return null;
-  }
-  // Find the first text content and return its text
-  const textContent = firstInput.find(content => content.type === 'text');
-  return textContent?.text ?? null;
-}
-
-/**
- * Transforms API response conversation to the frontend Conversation type.
- */
-function transformConversation(conversation: ConversationApiResponse): Conversation {
-  return {
-    conversationId: conversation.conversationId,
-    duration: conversation.duration,
-    errors: conversation.errors,
-    firstInput: extractFirstInputText(conversation.firstInput),
-    lastOutput: conversation.lastOutput ?? null,
-    llmCalls: conversation.llmCalls,
-    timestamp: conversation.timestamp,
-    toolCalls: conversation.toolCalls,
-    totalCost: conversation.totalCost ?? null,
-    totalTokens: conversation.totalTokens,
-    traceCount: conversation.traceCount,
-    traceIds: conversation.traceIds,
-  };
 }
 
 export function useConversations() {
@@ -117,13 +62,17 @@ export function useConversations() {
 
   const pageLinks = getResponseHeader?.('Link');
 
-  // Transform API response to frontend format
-  const data: Conversation[] = useMemo(() => {
-    if (!rawData) {
-      return [];
-    }
-
-    return rawData.map(transformConversation);
+  const data = useMemo(() => {
+    return (rawData ?? []).map((conversation): Conversation => {
+      let firstInput: string | null = null;
+      if (typeof conversation.firstInput === 'string') {
+        firstInput = conversation.firstInput;
+      } else if (Array.isArray(conversation.firstInput)) {
+        firstInput =
+          conversation.firstInput.find(content => content.type === 'text')?.text ?? null;
+      }
+      return {...conversation, firstInput};
+    });
   }, [rawData]);
 
   return {
