@@ -25,12 +25,10 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
   const [isZoomed, setIsZoomed] = useState(false);
   const chartRef = useRef<ECharts | null>(null);
 
-  // Construct the treemap diff from available data
   const treemapDiff = useMemo(() => {
     return buildTreemapDiff(diffItems);
   }, [diffItems]);
 
-  // Don't render if no diff data
   if (!treemapDiff) {
     return null;
   }
