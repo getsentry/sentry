@@ -32,8 +32,8 @@ export function useBulkUpdateRepositorySettings(
   const organization = useOrganization();
 
   return useMutation<RepositoryWithSettings[], Error, RepositorySettings, unknown>({
-    mutationFn: (data: RepositorySettings) => {
-      return fetchMutation<RepositoryWithSettings[]>({
+    mutationFn: data => {
+      return fetchMutation({
         method: 'PUT',
         url: `/organizations/${organization.slug}/repos/settings/`,
         data,
