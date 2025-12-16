@@ -128,11 +128,11 @@ type AsyncCompactSelectProps<Value extends string> = Omit<
   /**
    * Function to transform query string into API params
    */
-  onQuery: (query: string) => Record<string, any>;
+  buildQueryParams: (query: string) => Record<string, unknown>;
   /**
    * Function to transform API response into options
    */
-  onResults: (data: any) => Array<SelectOption<Value>>;
+  formatOptions: (data: unknown) => Array<SelectOption<Value>>;
   /**
    * URL to fetch options from
    */
@@ -151,8 +151,8 @@ type AsyncCompactSelectProps<Value extends string> = Omit<
  */
 function AsyncCompactSelectForIntegrationConfig<Value extends string = string>({
   url,
-  onQuery,
-  onResults,
+  buildQueryParams,
+  formatOptions,
   defaultOptions,
   clearable: _clearable,
   onChange,
@@ -172,12 +172,12 @@ function AsyncCompactSelectForIntegrationConfig<Value extends string = string>({
   }, [api]);
 
   const {data, isFetching} = useQuery({
-    queryKey: [url, onQuery(debouncedQuery)],
+    queryKey: [url, buildQueryParams(debouncedQuery)],
     queryFn: async () => {
       // This exists because /extensions/type/search API is not prefixed with /api/0/
       // We do this in the externalIssues modal as well unfortunately.
       const response = await api.requestPromise(url, {
-        query: onQuery(debouncedQuery),
+        query: buildQueryParams(debouncedQuery),
       });
       return response;
     },
@@ -185,7 +185,7 @@ function AsyncCompactSelectForIntegrationConfig<Value extends string = string>({
     staleTime: 30_000,
   });
 
-  const options = data ? onResults(data) : defaultOptions || [];
+  const options = data ? formatOptions(data) : defaultOptions || [];
 
   const handleSearch = (value: string) => {
     setQuery(value);
@@ -296,23 +296,26 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
       ...restDropdownProps
     } = addDropdown;
 
+    const buildAsyncQueryParams = (query: string) => ({
+      field: searchField,
+      query,
+    });
+
+    const formatAsyncOptions = (data: any) =>
+      data
+        .filter((item: SelectOption<string>) => !value.hasOwnProperty(item.value))
+        .map((item: SelectOption<string>) => ({
+          value: item.value,
+          label: item.label,
+        }));
+
     const dropdown = asyncUrl ? (
       <AsyncCompactSelectForIntegrationConfig
         {...restDropdownProps}
         url={asyncUrl}
         value={undefined}
-        onQuery={(query: string) => ({
-          field: searchField,
-          query,
-        })}
-        onResults={(data: any) =>
-          data
-            .filter((item: SelectOption<string>) => !value.hasOwnProperty(item.value))
-            .map((item: SelectOption<string>) => ({
-              value: item.value,
-              label: item.label,
-            }))
-        }
+        buildQueryParams={buildAsyncQueryParams}
+        formatOptions={formatAsyncOptions}
         defaultOptions={selectableValues}
         onChange={addRow}
         size="xs"
