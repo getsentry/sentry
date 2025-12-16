@@ -421,25 +421,14 @@ type ButtonColors = Record<
   }
 >;
 
-type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-
+export type Size = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 /**
  * Unless you are implementing a new component in the `sentry/components/core`
  * directory, use `ComponentProps['size']` instead.
  * @internal
  */
 export type FormSize = 'xs' | 'sm' | 'md';
-
 export type Space = keyof typeof space;
-
-const iconSizes: Record<Size, string> = {
-  xs: '12px',
-  sm: '14px',
-  md: '18px',
-  lg: '24px',
-  xl: '32px',
-  '2xl': '72px',
-} as const;
 
 const legacyTypography = {
   fontSize: typography.font.size,
@@ -523,9 +512,6 @@ const commonTheme = {
   size,
   motion: generateMotion(),
 
-  // Icons
-  iconSizes,
-
   // Try to keep these ordered plz
   zIndex: {
     // Generic z-index when you hope your component is isolated and
@@ -600,7 +586,6 @@ const commonTheme = {
 };
 
 export type Color = keyof ReturnType<typeof deprecatedColorMappings>;
-export type IconSize = keyof typeof iconSizes;
 type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
 export interface SentryTheme extends Omit<typeof lightThemeDefinition, 'chart'> {

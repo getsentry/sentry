@@ -5,9 +5,9 @@ import {getReactContextData} from 'sentry/components/events/contexts/platformCon
 import {getSpringContextData} from 'sentry/components/events/contexts/platformContext/spring';
 import {getUnityContextData} from 'sentry/components/events/contexts/platformContext/unity';
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
-import type {IconSize} from 'sentry/utils/theme';
 
 enum PlatformContextKeys {
   LARAVEL = 'laravel',
@@ -38,7 +38,7 @@ export function getPlatformContextIcon({
   size = 'sm',
 }: {
   platform: string;
-  size?: IconSize;
+  size?: SVGIconProps['size'];
 }) {
   let platformIconName = '';
   switch (platform) {
