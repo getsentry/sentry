@@ -638,6 +638,7 @@ module = [
     "sentry.taskworker.*",
     "sentry.tempest.endpoints.*",
     "sentry.tempest.migrations.*",
+    "sentry.testutils.helpers.github",
     "sentry.testutils.helpers.task_runner",
     "sentry.testutils.helpers.usage_accountant",
     "sentry.testutils.notifications.*",

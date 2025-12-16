@@ -8,13 +8,14 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry import metrics, options
+from sentry import options
 from sentry.models.organization import Organization
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.utils import metrics
 from sentry.utils.seer import can_use_prevent_ai_features
 
-from .types import GitHubCheckRunAction, GitHubCheckRunEvent
+from .types import GitHubCheckRunAction
 
 logger = logging.getLogger(__name__)
 
@@ -42,38 +43,23 @@ def handle_github_check_run_event(organization: Organization, event: Mapping[str
     Returns:
         True if the event was handled successfully, False otherwise
     """
-    if not _should_handle_github_check_run_event(organization, event):
+    if not _should_handle_github_check_run_event(organization, event["action"]):
         return False
 
-    try:
-        check_run, extra = _extract_check_run_and_extra(event, organization)
-    except (TypeError, ValueError, KeyError):
-        logger.warning("%s.missing_external_id", PREFIX, extra=extra)
-        return False
-
-    return _make_rerun_request(check_run, extra)
-
-
-def _extract_check_run_and_extra(
-    event: Mapping[str, Any],
-    organization: Organization,
-    action: GitHubCheckRunAction,
-) -> tuple[GitHubCheckRunEvent, dict[str, Any]]:
-    check_run = event["check_run"].value
     extra = {
         "organization_id": organization.id,
-        "action": action,
-        "html_url": check_run.value["html_url"],
+        "action": event["action"],
+        # Useful to get to the original run in the GitHub UI
+        "html_url": event["check_run"]["html_url"],
+        # Value set by Seer when the PR review is created
+        "external_id": event["check_run"]["external_id"],
     }
-    original_run_id = check_run.value["external_id"]
-    extra["original_run_id"] = original_run_id
-
-    return check_run, extra
+    return _make_rerun_request(int(extra["external_id"]), extra)
 
 
-def _make_rerun_request(check_run: GitHubCheckRunEvent, extra: dict[str, Any]) -> bool:
-    payload = {"original_run_id": check_run["external_id"]}
-    error_status = None
+def _make_rerun_request(original_run_id: int, extra: dict[str, Any]) -> bool:
+    payload = {"original_run_id": original_run_id}
+    status = "failure"
     try:
         response = make_signed_seer_api_request(
             connection_pool=connection_pool,
@@ -81,29 +67,26 @@ def _make_rerun_request(check_run: GitHubCheckRunEvent, extra: dict[str, Any]) -
             body=orjson.dumps(payload),
         )
         if response.status >= 400:
-            error_status = response.status
-    except TimeoutError:
-        error_status = "timeout"
-    except MaxRetryError:
-        error_status = "max_retry"
+            logger.error("%s.error", PREFIX, extra=extra)
+        else:
+            status = "success"
+    except (TimeoutError, MaxRetryError) as e:
+        status = e.__class__.__name__
+        logger.exception("%s.%s", PREFIX, status, extra=extra)
 
     # Record metric for HTTP responses (both success and error)
-    metrics.incr(f"{PREFIX}.outcome", tags={"status": error_status or "success"})
-
-    if error_status is not None:
-        logger.error("%s.error", PREFIX, extra={**extra, "error_status": error_status})
+    metrics.incr(f"{PREFIX}.outcome", tags={"status": status == "success"})
+    if status != "success":
         return False
 
     return True
 
 
-def _should_handle_github_check_run_event(
-    organization: Organization, action: GitHubCheckRunAction
-) -> bool:
+def _should_handle_github_check_run_event(organization: Organization, action: str) -> bool:
     """
     Determine if the GitHub check_run event should be handled.
     """
-    if not options.get("coding_workflows.code_review.github.enabled"):
+    if not options.get("coding_workflows.code_review.github.check_run.rerun.enabled"):
         return False
 
     if not can_use_prevent_ai_features(organization):

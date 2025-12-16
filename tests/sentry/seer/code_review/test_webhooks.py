@@ -24,12 +24,13 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
 
     def _send_check_run_event(self, event_data: bytes | str) -> Response:
         """Helper to send check_run event."""
+        repo_id = event_data["repository"]["id"]
         integration = self.create_github_integration()
         # Create a repository that matches the fixture's repository.id (35129377)
         self.create_repo(
             project=self.project,
             provider="integrations:github",
-            external_id="35129377",
+            external_id=repo_id,
             integration_id=integration.id,
         )
         response = self.send_github_webhook_event("check_run", event_data)
@@ -39,21 +40,15 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
     @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
     def test_check_run_skips_when_ai_features_disabled(self, mock_request: MagicMock) -> None:
         """Test that the handler returns early when AI features are not enabled."""
-        # Without enabling feature flags, no request should be made
         self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
-
-        # Verify NO request was made to Seer
         mock_request.assert_not_called()
 
     @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
     @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
     def test_check_run_skips_when_option_disabled(self, mock_request: MagicMock) -> None:
-        """Test that handler returns early when the option is disabled."""
-        with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": False}):
-            self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
-
-            # Verify NO request was made to Seer
-            mock_request.assert_not_called()
+        """Test that handler returns early since the option is disabled by default."""
+        self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
+        mock_request.assert_not_called()
 
     @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
     @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})

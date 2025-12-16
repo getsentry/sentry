@@ -10,7 +10,10 @@ from datetime import datetime, timedelta
 from typing import Any
 from uuid import uuid4
 
+from django.http.response import HttpResponseBase
+
 from sentry import options
+from sentry.integrations.models.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -62,7 +65,7 @@ class GitHubWebhookTestCase(APITestCase):
         external_id: str = "12345",
         access_token: str = "1234",
         **metadata_overrides: Any,
-    ):
+    ) -> Integration:
         """
         Create a GitHub integration for testing.
 
@@ -97,7 +100,7 @@ class GitHubWebhookTestCase(APITestCase):
         event_type: str,
         event_data: str | bytes,
         **extra_headers: str,
-    ):
+    ) -> HttpResponseBase:
         """
         Send a GitHub webhook event with proper signatures and headers.
 
