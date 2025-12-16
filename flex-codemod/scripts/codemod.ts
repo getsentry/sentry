@@ -311,30 +311,25 @@ function ensureImport(
   rootNode: SgNode<TSX>,
   componentName: 'Flex' | 'Stack'
 ): Edit | null {
-  // Check if import already exists
-  const existingImport = rootNode.find({
-    rule: {
-      kind: 'import_statement',
-      has: {
-        field: 'source',
-        regex: '@sentry/scraps/layout',
-      },
-    },
+  // Find all import statements and check if one imports from @sentry/scraps/layout
+  const allImports = rootNode.findAll({
+    rule: {kind: 'import_statement'},
   });
+
+  let existingImport: SgNode<TSX> | null = null;
+
+  for (const importStmt of allImports) {
+    const importText = importStmt.text();
+    if (importText.includes('@sentry/scraps/layout')) {
+      existingImport = importStmt;
+      break;
+    }
+  }
 
   if (existingImport) {
     // Check if componentName is already imported
-    const hasComponent = existingImport.has({
-      rule: {
-        kind: 'import_specifier',
-        has: {
-          field: 'name',
-          regex: `^${componentName}$`,
-        },
-      },
-    });
-
-    if (hasComponent) {
+    const importText = existingImport.text();
+    if (importText.includes(componentName)) {
       return null;
     }
 
@@ -344,14 +339,15 @@ function ensureImport(
     });
 
     if (namedImports) {
-      const closeBrace = namedImports.find({
-        rule: {kind: '}'},
-      });
+      // Find the last import specifier to add after it
+      const lastSpecifier = namedImports.findAll({
+        rule: {kind: 'import_specifier'},
+      }).pop();
 
-      if (closeBrace) {
+      if (lastSpecifier) {
         return {
-          startPos: closeBrace.range().start.index,
-          endPos: closeBrace.range().start.index,
+          startPos: lastSpecifier.range().end.index,
+          endPos: lastSpecifier.range().end.index,
           insertedText: `, ${componentName}`,
         };
       }
@@ -389,6 +385,7 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
     string,
     {componentName: 'Flex' | 'Stack'; propsStr: string}
   >();
+  const fileName = root.filename();
 
   // Find all styled component declarations
   const styledCalls = rootNode.findAll({
@@ -438,6 +435,12 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
 
     // Bailout if wrapping an existing component
     if (isWrappingComponent(firstArg)) {
+      const componentNameNode = styledCall.ancestors().find(a => a.is('variable_declarator'))?.find({
+        rule: {kind: 'identifier'},
+      });
+      const componentName = componentNameNode?.text() || 'unknown';
+      const lineNumber = styledCall.range().start.line;
+      console.log(`[BAILOUT] ${fileName}:${lineNumber} - "${componentName}" wraps existing component`);
       continue;
     }
 
@@ -471,7 +474,23 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
     // Parse CSS and extract flex properties
     const flexProps = extractFlexProps(cssText, templateString);
 
-    if (!flexProps || flexProps.hasUnsupportedProps) {
+    if (!flexProps) {
+      const componentNameNode = styledCall.ancestors().find(a => a.is('variable_declarator'))?.find({
+        rule: {kind: 'identifier'},
+      });
+      const componentName = componentNameNode?.text() || 'unknown';
+      const lineNumber = styledCall.range().start.line;
+      console.log(`[BAILOUT] ${fileName}:${lineNumber} - "${componentName}" missing display:flex`);
+      continue;
+    }
+
+    if (flexProps.hasUnsupportedProps) {
+      const componentNameNode = styledCall.ancestors().find(a => a.is('variable_declarator'))?.find({
+        rule: {kind: 'identifier'},
+      });
+      const componentName = componentNameNode?.text() || 'unknown';
+      const lineNumber = styledCall.range().start.line;
+      console.log(`[BAILOUT] ${fileName}:${lineNumber} - "${componentName}" has unsupported CSS properties`);
       continue;
     }
 
