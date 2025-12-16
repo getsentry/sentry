@@ -1,23 +1,20 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {IconSize} from 'sentry/utils/theme';
+import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
 
 type IconCircledNumberProps = {
   number: number;
-  size?: IconSize;
+  size?: SVGIconProps['size'];
 };
 
 export function IconCircledNumber({number, size = 'md'}: IconCircledNumberProps) {
-  const theme = useTheme();
-
   return (
     <Circle
       role="img"
-      size={theme.iconSizes[size]}
+      size={SvgIcon.ICON_SIZES[size]}
       aria-label={`circled number ${number}`}
     >
-      <Number size={theme.iconSizes[size]}>{number}</Number>
+      <Number size={SvgIcon.ICON_SIZES[size]}>{number}</Number>
     </Circle>
   );
 }

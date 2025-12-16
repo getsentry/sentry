@@ -179,14 +179,14 @@ const ChartTableRow = styled('label')<{
     !p.isLoading &&
     css`
       ${Cell}, ${NumericCell}, ${DescriptionCell}, ${TitleWrapper}, ${ExpanderCell} {
-        background-color: ${p.theme.bodyBackground};
+        background-color: ${p.theme.tokens.background.secondary};
       }
     `}
 
   &:hover {
     cursor: pointer;
     ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell}, ${TitleWrapper} {
-      ${p => !p.isLoading && `background-color: ${p.theme.bodyBackground}`}
+      ${p => !p.isLoading && `background-color: ${p.theme.tokens.background.secondary}`}
     }
   }
 
