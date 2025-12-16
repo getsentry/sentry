@@ -77,8 +77,7 @@ class OrganizationProjectKeysEndpoint(OrganizationEndpoint):
         """
         Return a list of client keys (DSNs) for all projects in an organization.
 
-        This endpoint allows retrieving DSNs for multiple projects at once, which is
-        useful for bulk operations and dashboard views. Each key includes the project ID
+        This paginated endpoint lists client keys across all projects in an organization. Each key includes the project ID
         to identify which project it belongs to.
 
         Query Parameters:
