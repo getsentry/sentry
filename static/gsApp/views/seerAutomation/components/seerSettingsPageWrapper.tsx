@@ -49,7 +49,7 @@ export default function SeerSettingsPageWrapper({children}: Props) {
 
   return (
     <Feature
-      features={['seer-settings-gtm']}
+      features={['seat-based-seer-enabled']}
       organization={organization}
       renderDisabled={NoAccess}
     >
