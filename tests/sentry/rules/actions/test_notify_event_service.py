@@ -21,7 +21,9 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
+from sentry.workflow_engine.models import DataConditionGroup, DataConditionGroupAction
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from sentry.workflow_engine.typings.notification_action import ActionTarget
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = [requires_snuba]
@@ -158,6 +160,48 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
         assert payload["event"]["id"] == self.event.event_id
         assert payload["event"]["event_id"] == self.event.event_id
         assert payload["triggering_rules"] == ["error_detector"]
+
+    @responses.activate
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    @with_feature("organizations:workflow-engine-ui-links")
+    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
+    def test_legacy_webhooks_uneven_dual_write_aci(self):
+        """
+        Test that if a dual written Rule has it's Action updated to email instead that we do not fire a response to the webhook
+        """
+        responses.add(method=responses.POST, url="http://my-fake-webhook.io", json={}, status=408)
+        rule = Rule.objects.create(
+            label="bad stuff happening",
+            project=self.event.project,
+            data=self.rule_webhook_data,
+        )
+        # dual write the rule to replicate current reality
+        workflow = IssueAlertMigrator(rule, self.user.id).run()
+
+        # fetch the if_dcg to get the action
+        dcg = DataConditionGroup.objects.exclude(workflow=workflow).first()
+        dcga = DataConditionGroupAction.objects.get(condition_group=dcg.id)
+        action = dcga.action
+
+        action_config = {
+            "target_type": ActionTarget.USER.value,
+            "target_display": None,
+            "target_identifier": str(self.user.id),
+        }
+        action.update(config=action_config, type="email", data={})
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(self.event),
+                group_id=self.event.group_id,
+                project_id=self.event.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        assert len(responses.calls) == 0
 
     @responses.activate
     @with_feature("organizations:workflow-engine-single-process-workflows")
