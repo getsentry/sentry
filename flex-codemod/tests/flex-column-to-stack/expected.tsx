@@ -1,4 +1,12 @@
-import {Stack} from '@sentry/scraps/layout';
 import styled from '@emotion/styled';
 
-// TODO: Convert VerticalStack usages to <Stack direction="column" gap="8px">
+import {Stack} from '@sentry/scraps/layout';
+
+function Component() {
+  return (
+    <Stack direction="column" gap="8px">
+      <div>Item 1</div>
+      <div>Item 2</div>
+    </Stack>
+  );
+}

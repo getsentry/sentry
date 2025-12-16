@@ -1,4 +1,11 @@
-import {Flex} from '@sentry/scraps/layout';
 import styled from '@emotion/styled';
 
-// TODO: Convert FlexContainer usages to <Flex align="center" gap="16px">
+import {Flex} from '@sentry/scraps/layout';
+
+function Component() {
+  return (
+    <Flex align="center" gap="16px">
+      Text
+    </Flex>
+  );
+}

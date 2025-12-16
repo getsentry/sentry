@@ -1,7 +1,11 @@
 import styled from '@emotion/styled';
 
-const InlineFlexSpan = styled("span")`
+const InlineFlexSpan = styled('span')`
   display: flex;
   align-items: center;
   gap: 4px;
 `;
+
+export default function () {
+  return <InlineFlexSpan>Text</InlineFlexSpan>;
+}

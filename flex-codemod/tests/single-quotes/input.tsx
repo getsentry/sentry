@@ -5,3 +5,7 @@ const FlexContainer = styled('div')`
   gap: 16px;
   align-items: center;
 `;
+
+function Component() {
+  return <FlexContainer>Text</FlexContainer>;
+}

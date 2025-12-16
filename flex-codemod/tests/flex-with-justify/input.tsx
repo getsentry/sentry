@@ -1,8 +1,12 @@
 import styled from '@emotion/styled';
 
-const CenteredContainer = styled("div")`
+const CenteredContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 10px;
 `;
+
+function App() {
+  return <CenteredContainer>Hello</CenteredContainer>;
+}

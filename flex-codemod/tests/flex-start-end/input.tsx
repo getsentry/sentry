@@ -1,7 +1,11 @@
 import styled from '@emotion/styled';
 
-const FlexContainer = styled("div")`
+const FlexContainer = styled('div')`
   display: flex;
   justify-content: flex-start;
   align-items: flex-end;
 `;
+
+export function Test() {
+  return <FlexContainer />;
+}

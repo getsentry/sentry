@@ -1,24 +1,24 @@
-import type { SgRoot, SgNode, Edit } from "@codemod.com/jssg-types/main";
-import type TSX from "codemod:ast-grep/langs/tsx";
-import { parse } from "codemod:ast-grep";
+import type {Edit, SgNode, SgRoot} from '@codemod.com/jssg-types/main';
+import {parse} from 'codemod:ast-grep';
+import type TSX from 'codemod:ast-grep/langs/tsx';
 
 // Map CSS flex properties to Flex/Stack component props
 const FLEX_PROP_MAP: Record<string, string> = {
-  "justify-content": "justify",
-  "align-items": "align",
-  "flex-direction": "direction",
-  "flex-wrap": "wrap",
-  gap: "gap",
+  'justify-content': 'justify',
+  'align-items': 'align',
+  'flex-direction': 'direction',
+  'flex-wrap': 'wrap',
+  gap: 'gap',
 };
 
 // Flex/Stack component supported CSS properties
 const FLEX_SUPPORTED_PROPS = new Set([
-  "display",
-  "justify-content",
-  "align-items",
-  "flex-direction",
-  "flex-wrap",
-  "gap",
+  'display',
+  'justify-content',
+  'align-items',
+  'flex-direction',
+  'flex-wrap',
+  'gap',
 ]);
 
 interface CSSProperty {
@@ -27,12 +27,12 @@ interface CSSProperty {
 }
 
 interface FlexProps {
-  direction?: string;
-  justify?: string;
-  align?: string;
-  wrap?: string;
-  gap?: string;
   hasUnsupportedProps: boolean;
+  align?: string;
+  direction?: string;
+  gap?: string;
+  justify?: string;
+  wrap?: string;
 }
 
 /**
@@ -43,16 +43,16 @@ function parseCSSProperties(cssText: string): CSSProperty[] {
 
   try {
     // Parse CSS using ast-grep
-    const cssRoot = parse("css", cssText);
+    const cssRoot = parse('css', cssText);
     const cssRootNode = cssRoot.root();
 
     // Find all CSS declarations
     const declarations = cssRootNode.findAll({
-      rule: { kind: "declaration" },
+      rule: {kind: 'declaration'},
     });
 
     for (const decl of declarations) {
-      const propertyNode = decl.find({ rule: { kind: "property_name" } });
+      const propertyNode = decl.find({rule: {kind: 'property_name'}});
 
       if (!propertyNode) continue;
 
@@ -63,11 +63,11 @@ function parseCSSProperties(cssText: string): CSSProperty[] {
       const valueTokens: string[] = [];
 
       for (const child of children) {
-        if (child.text() === ":") {
+        if (child.text() === ':') {
           valueStarted = true;
           continue;
         }
-        if (child.text() === ";") {
+        if (child.text() === ';') {
           break;
         }
         if (valueStarted && child.text().trim()) {
@@ -77,8 +77,8 @@ function parseCSSProperties(cssText: string): CSSProperty[] {
 
       if (valueTokens.length > 0) {
         const property = propertyNode.text().trim();
-        const value = valueTokens.join(" ");
-        properties.push({ property, value });
+        const value = valueTokens.join(' ');
+        properties.push({property, value});
       }
     }
   } catch (e) {
@@ -94,7 +94,7 @@ function parseCSSProperties(cssText: string): CSSProperty[] {
  */
 function isWrappingComponent(styledArg: SgNode<TSX>): boolean {
   // Check if argument is an identifier (component reference) not a string
-  return styledArg.is("identifier");
+  return styledArg.is('identifier');
 }
 
 /**
@@ -109,7 +109,7 @@ function extractFlexProps(cssText: string): FlexProps | null {
 
   // Check if display: flex is present
   const hasDisplayFlex = properties.some(
-    p => p.property === "display" && p.value === "flex"
+    p => p.property === 'display' && p.value === 'flex'
   );
 
   if (!hasDisplayFlex) {
@@ -117,16 +117,14 @@ function extractFlexProps(cssText: string): FlexProps | null {
   }
 
   // Check for unsupported properties
-  const hasUnsupportedProps = properties.some(
-    p => !FLEX_SUPPORTED_PROPS.has(p.property)
-  );
+  const hasUnsupportedProps = properties.some(p => !FLEX_SUPPORTED_PROPS.has(p.property));
 
   if (hasUnsupportedProps) {
-    return { hasUnsupportedProps: true };
+    return {hasUnsupportedProps: true};
   }
 
   // Extract flex properties
-  const flexProps: FlexProps = { hasUnsupportedProps: false };
+  const flexProps: FlexProps = {hasUnsupportedProps: false};
 
   for (const prop of properties) {
     if (FLEX_PROP_MAP[prop.property]) {
@@ -144,18 +142,18 @@ function extractFlexProps(cssText: string): FlexProps | null {
 function convertPropValue(cssValue: string): string {
   // Map common CSS values to component prop values
   const valueMap: Record<string, string> = {
-    "flex-start": "start",
-    "flex-end": "end",
-    center: "center",
-    "space-between": "space-between",
-    "space-around": "space-around",
-    "space-evenly": "space-evenly",
-    stretch: "stretch",
-    baseline: "baseline",
-    row: "row",
-    column: "column",
-    wrap: "wrap",
-    nowrap: "nowrap",
+    'flex-start': 'start',
+    'flex-end': 'end',
+    center: 'center',
+    'space-between': 'space-between',
+    'space-around': 'space-around',
+    'space-evenly': 'space-evenly',
+    stretch: 'stretch',
+    baseline: 'baseline',
+    row: 'row',
+    column: 'column',
+    wrap: 'wrap',
+    nowrap: 'nowrap',
   };
 
   return valueMap[cssValue] || cssValue;
@@ -171,7 +169,7 @@ function buildPropsString(flexProps: FlexProps, as?: string): string {
     props.push(`as="${as}"`);
   }
 
-  if (flexProps.direction && flexProps.direction !== "row") {
+  if (flexProps.direction && flexProps.direction !== 'row') {
     const dirValue = convertPropValue(flexProps.direction);
     props.push(`direction="${dirValue}"`);
   }
@@ -195,7 +193,7 @@ function buildPropsString(flexProps: FlexProps, as?: string): string {
     props.push(`gap="${flexProps.gap}"`);
   }
 
-  return props.join(" ");
+  return props.join(' ');
 }
 
 /**
@@ -203,15 +201,15 @@ function buildPropsString(flexProps: FlexProps, as?: string): string {
  */
 function ensureImport(
   rootNode: SgNode<TSX>,
-  componentName: "Flex" | "Stack"
+  componentName: 'Flex' | 'Stack'
 ): Edit | null {
   // Check if import already exists
   const existingImport = rootNode.find({
     rule: {
-      kind: "import_statement",
+      kind: 'import_statement',
       has: {
-        field: "source",
-        regex: "@sentry/scraps/layout",
+        field: 'source',
+        regex: '@sentry/scraps/layout',
       },
     },
   });
@@ -220,9 +218,9 @@ function ensureImport(
     // Check if componentName is already imported
     const hasComponent = existingImport.has({
       rule: {
-        kind: "import_specifier",
+        kind: 'import_specifier',
         has: {
-          field: "name",
+          field: 'name',
           regex: `^${componentName}$`,
         },
       },
@@ -234,12 +232,12 @@ function ensureImport(
 
     // Add to existing import
     const namedImports = existingImport.find({
-      rule: { kind: "named_imports" },
+      rule: {kind: 'named_imports'},
     });
 
     if (namedImports) {
       const closeBrace = namedImports.find({
-        rule: { kind: "}" },
+        rule: {kind: '}'},
       });
 
       if (closeBrace) {
@@ -254,7 +252,7 @@ function ensureImport(
 
   // Add new import at the top
   const firstImport = rootNode.find({
-    rule: { kind: "import_statement" },
+    rule: {kind: 'import_statement'},
   });
 
   const importStatement = `import {${componentName}} from '@sentry/scraps/layout';\n`;
@@ -278,26 +276,30 @@ function ensureImport(
 const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
   const rootNode = root.root();
   const edits: Edit[] = [];
-  const importsToAdd = new Set<"Flex" | "Stack">();
+  const importsToAdd = new Set<'Flex' | 'Stack'>();
+  const componentsToReplace = new Map<
+    string,
+    {componentName: 'Flex' | 'Stack'; propsStr: string}
+  >();
 
   // Find all styled component declarations
   const styledCalls = rootNode.findAll({
     rule: {
-      kind: "call_expression",
+      kind: 'call_expression',
       has: {
-        field: "function",
+        field: 'function',
         any: [
           {
-            kind: "call_expression",
+            kind: 'call_expression',
             has: {
-              field: "function",
-              kind: "identifier",
-              regex: "^styled$",
+              field: 'function',
+              kind: 'identifier',
+              regex: '^styled$',
             },
           },
           {
-            kind: "identifier",
-            regex: "^styled$",
+            kind: 'identifier',
+            regex: '^styled$',
           },
         ],
       },
@@ -308,11 +310,11 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
     // Get the styled() function call
     const styledFunc = styledCall.find({
       rule: {
-        kind: "call_expression",
+        kind: 'call_expression',
         has: {
-          field: "function",
-          kind: "identifier",
-          regex: "^styled$",
+          field: 'function',
+          kind: 'identifier',
+          regex: '^styled$',
         },
       },
     });
@@ -320,7 +322,7 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
     if (!styledFunc) continue;
 
     // Get the first argument (element or component)
-    const args = styledFunc.find({ rule: { kind: "arguments" } });
+    const args = styledFunc.find({rule: {kind: 'arguments'}});
     if (!args) continue;
 
     const firstArg = args.child(1); // Skip opening paren
@@ -332,10 +334,10 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
     }
 
     // Get the element name from string
-    let elementName = "div";
-    if (firstArg.is("string")) {
+    let elementName = 'div';
+    if (firstArg.is('string')) {
       const stringContent = firstArg.find({
-        rule: { kind: "string_fragment" },
+        rule: {kind: 'string_fragment'},
       });
       if (stringContent) {
         elementName = stringContent.text();
@@ -344,19 +346,19 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
 
     // Get the template string with CSS
     const templateString = styledCall.find({
-      rule: { kind: "template_string" },
+      rule: {kind: 'template_string'},
     });
 
     if (!templateString) continue;
 
     // Extract CSS text
     const cssFragments = templateString.findAll({
-      rule: { kind: "string_fragment" },
+      rule: {kind: 'string_fragment'},
     });
 
     if (cssFragments.length === 0) continue;
 
-    const cssText = cssFragments.map(f => f.text()).join("");
+    const cssText = cssFragments.map(f => f.text()).join('');
 
     // Parse CSS and extract flex properties
     const flexProps = extractFlexProps(cssText);
@@ -366,38 +368,107 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
     }
 
     // Determine component type (Flex or Stack)
-    const isColumn = flexProps.direction === "column";
-    const componentName = isColumn ? "Stack" : "Flex";
+    const isColumn = flexProps.direction === 'column';
+    const componentName = isColumn ? 'Stack' : 'Flex';
     importsToAdd.add(componentName);
 
     // Build props string
-    const asAttr = elementName !== "div" ? elementName : undefined;
+    const asAttr = elementName === 'div' ? undefined : elementName;
     const propsStr = buildPropsString(flexProps, asAttr);
 
-    // Replace the styled call with component
-    const replacement = propsStr ? `<${componentName} ${propsStr}>` : `<${componentName}>`;
-
-    // Find the lexical declaration (const/let/var) to replace the entire statement
-    const lexicalDecl = styledCall.ancestors().find(a =>
-      a.is("lexical_declaration")
-    );
+    // Find the lexical declaration (const/let/var) to remove it
+    const lexicalDecl = styledCall.ancestors().find(a => a.is('lexical_declaration'));
 
     if (lexicalDecl) {
       const varDeclarator = lexicalDecl.find({
-        rule: { kind: "variable_declarator" },
+        rule: {kind: 'variable_declarator'},
       });
 
       if (varDeclarator) {
         const componentNameNode = varDeclarator.find({
-          rule: { kind: "identifier" },
+          rule: {kind: 'identifier'},
         });
 
         if (componentNameNode) {
           const oldComponentName = componentNameNode.text();
 
-          // Replace the entire declaration with a comment
-          edits.push(lexicalDecl.replace(`// TODO: Convert ${oldComponentName} usages to ${replacement}`));
+          // Store component replacement info
+          componentsToReplace.set(oldComponentName, {componentName, propsStr});
+
+          // Remove the entire declaration
+          edits.push(lexicalDecl.replace(''));
         }
+      }
+    }
+  }
+
+  // Replace JSX usages of the styled components
+  for (const [oldName, {componentName, propsStr}] of componentsToReplace) {
+    // Find opening elements
+    const openingElements = rootNode.findAll({
+      rule: {
+        kind: 'jsx_opening_element',
+        has: {
+          field: 'name',
+          kind: 'identifier',
+          regex: `^${oldName}$`,
+        },
+      },
+    });
+
+    for (const openingEl of openingElements) {
+      const nameNode = openingEl.find({
+        rule: {kind: 'identifier', regex: `^${oldName}$`},
+      });
+
+      if (nameNode) {
+        const replacement = propsStr ? `${componentName} ${propsStr}` : componentName;
+        edits.push(nameNode.replace(replacement));
+      }
+    }
+
+    // Find self-closing elements
+    const selfClosingElements = rootNode.findAll({
+      rule: {
+        kind: 'jsx_self_closing_element',
+        has: {
+          field: 'name',
+          kind: 'identifier',
+          regex: `^${oldName}$`,
+        },
+      },
+    });
+
+    for (const selfClosingEl of selfClosingElements) {
+      const nameNode = selfClosingEl.find({
+        rule: {kind: 'identifier', regex: `^${oldName}$`},
+      });
+
+      if (nameNode) {
+        const replacement = propsStr ? `${componentName} ${propsStr}` : componentName;
+        edits.push(nameNode.replace(replacement));
+      }
+    }
+
+    // Find closing elements
+    const closingElements = rootNode.findAll({
+      rule: {
+        kind: 'jsx_closing_element',
+        has: {
+          field: 'name',
+          kind: 'identifier',
+          regex: `^${oldName}$`,
+        },
+      },
+    });
+
+    for (const closingEl of closingElements) {
+      const nameNode = closingEl.find({
+        rule: {kind: 'identifier', regex: `^${oldName}$`},
+      });
+
+      if (nameNode) {
+        edits.push(nameNode.replace(componentName));
       }
     }
   }

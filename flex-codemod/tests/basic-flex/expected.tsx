@@ -1,6 +1,13 @@
-import {Flex} from '@sentry/scraps/layout';
 import styled from '@emotion/styled';
 
-// TODO: Convert FlexContainer usages to <Flex justify="center">
+import {Flex} from '@sentry/scraps/layout';
 
-export default FlexContainer;
+function MyComponent() {
+  return (
+    <Flex justify="center">
+      <span>Content</span>
+    </Flex>
+  );
+}
+
+export default MyComponent;
