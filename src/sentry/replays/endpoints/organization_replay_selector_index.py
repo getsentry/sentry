@@ -106,8 +106,7 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationReplayEndpoint):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """Return a list of selectors for a given organization."""
-        if response := self.check_replay_access(request, organization):
-            return response
+        self.check_replay_access(request, organization)
 
         try:
             filter_params = self.get_replay_filter_params(request, organization)

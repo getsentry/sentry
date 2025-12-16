@@ -84,8 +84,7 @@ class ProjectReplayClicksIndexEndpoint(ProjectReplayEndpoint):
     )
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Retrieve a collection of RRWeb DOM node-ids and the timestamp they were clicked."""
-        if response := self.check_replay_access(request, project):
-            return response
+        self.check_replay_access(request, project)
 
         filter_params = self.get_filter_params(request, project)
 

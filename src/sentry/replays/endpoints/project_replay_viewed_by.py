@@ -55,8 +55,7 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
     )
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Return a list of users who have viewed a replay."""
-        if response := self.check_replay_access(request, project):
-            return response
+        self.check_replay_access(request, project)
 
         try:
             uuid.UUID(replay_id)
@@ -96,8 +95,7 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
         if not request.user.is_authenticated:
             return Response(status=400)
 
-        if response := self.check_replay_access(request, project):
-            return response
+        self.check_replay_access(request, project)
 
         try:
             replay_id = str(uuid.UUID(replay_id))

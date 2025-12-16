@@ -40,8 +40,7 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
     permission_classes = (ReplayDetailsPermission,)
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
-        if response := self.check_replay_access(request, project):
-            return response
+        self.check_replay_access(request, project)
 
         filter_params = self.get_filter_params(request, project)
 
@@ -86,8 +85,7 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
         """
         Delete a replay.
         """
-        if response := self.check_replay_access(request, project):
-            return response
+        self.check_replay_access(request, project)
 
         if has_archived_segment(project.id, replay_id):
             return Response(status=404)

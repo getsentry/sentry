@@ -49,9 +49,7 @@ class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
         """
         Return a list of replays belonging to an organization.
         """
-
-        if response := self.check_replay_access(request, organization):
-            return response
+        self.check_replay_access(request, organization)
 
         try:
             filter_params = self.get_filter_params(request, organization)

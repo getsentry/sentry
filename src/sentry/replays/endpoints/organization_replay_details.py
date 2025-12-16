@@ -244,8 +244,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
         """
         Return details on an individual replay.
         """
-        if response := self.check_replay_access(request, organization):
-            return response
+        self.check_replay_access(request, organization)
 
         try:
             filter_params = self.get_filter_params(

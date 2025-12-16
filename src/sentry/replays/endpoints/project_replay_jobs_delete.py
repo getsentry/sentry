@@ -143,8 +143,7 @@ class ProjectReplayDeletionJobDetailEndpoint(ProjectReplayEndpoint):
         """
         Fetch a replay delete job instance.
         """
-        if response := self.check_replay_access(request, project):
-            return response
+        self.check_replay_access(request, project)
 
         try:
             job = ReplayDeletionJobModel.objects.get(

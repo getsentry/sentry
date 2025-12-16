@@ -55,8 +55,7 @@ class ProjectReplayVideoDetailsEndpoint(ProjectReplayEndpoint):
     )
     def get(self, request: Request, project, replay_id, segment_id) -> HttpResponseBase:
         """Return a replay video."""
-        if response := self.check_replay_access(request, project):
-            return response
+        self.check_replay_access(request, project)
 
         segment = fetch_segment_metadata(project.id, replay_id, int(segment_id))
         if not segment:

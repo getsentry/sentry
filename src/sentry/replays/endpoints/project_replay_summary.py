@@ -128,8 +128,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                 {"sample_rate": self.sample_rate_get} if self.sample_rate_get else None
             ),
         ):
-            if response := self.check_replay_access(request, project):
-                return response
+            self.check_replay_access(request, project)
 
             if not self.has_replay_summary_access(project, request):
                 return self.respond(
@@ -157,8 +156,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                 {"sample_rate": self.sample_rate_post} if self.sample_rate_post else None
             ),
         ):
-            if response := self.check_replay_access(request, project):
-                return response
+            self.check_replay_access(request, project)
 
             if not self.has_replay_summary_access(project, request):
                 return self.respond(

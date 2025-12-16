@@ -52,8 +52,7 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectReplayEndpoint):
     )
     def get(self, request: Request, project, replay_id: str) -> Response:
         """Return a collection of replay recording segments."""
-        if response := self.check_replay_access(request, project):
-            return response
+        self.check_replay_access(request, project)
 
         return self.paginate(
             request=request,
