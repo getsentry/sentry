@@ -26,8 +26,10 @@ class RepositoryDeleteEmailTest(TestCase):
         self.provider = DummyRepositoryProvider("dummy")
         self.repo.get_provider = lambda: self.provider
 
-    @with_feature("organizations:notification-platform")
-    @override_options({"notifications.platform-rate.unable-to-delete-repository": 1.0})
+    @with_feature("organizations:notification-platform.internal-testing")
+    @override_options(
+        {"notifications.platform-rollout.internal-testing": {"unable-to-delete-repository": 1.0}}
+    )
     def test_send_delete_fail_email_with_notification_platform(self) -> None:
         with self.tasks():
             self.repo.send_delete_fail_email("Failed to connect to GitHub API", self.user.email)

@@ -6,6 +6,7 @@ from enum import StrEnum
 from typing import Any, Literal, Protocol, Self
 
 from sentry.integrations.types import ExternalProviderEnum
+from sentry.notifications.platform.templates.types import NotificationTemplateSource
 
 
 class NotificationCategory(StrEnum):
@@ -105,7 +106,7 @@ class NotificationData(Protocol):
     All data passing through the notification platform must adhere to this protocol.
     """
 
-    source: str
+    source: NotificationTemplateSource
     """
     The source is uniquely attributable to the way this notification was sent. It will be tracked in
     metrics/analytics to determine the egress from a given code-path or service.
