@@ -160,7 +160,7 @@ def query_baseline_set(
 
     response = raw_snql_query(
         snuba_request,
-        referrer="issues.suspect_flags.query_baseline_set",
+        referrer=Referrer.ISSUES_SUSPECT_FLAGS_QUERY_BASELINE_SET.value,
         use_cache=True,
     )
 
@@ -236,7 +236,7 @@ def query_selection_set(
 
     response = raw_snql_query(
         snuba_request,
-        referrer="issues.suspect_flags.query_selection_set",
+        referrer=Referrer.ISSUES_SUSPECT_FLAGS_QUERY_SELECTION_SET.value,
         use_cache=True,
     )
 
