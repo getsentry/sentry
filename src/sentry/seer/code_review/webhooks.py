@@ -70,17 +70,25 @@ def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRun
     Validate GitHub check_run event payload using Pydantic.
 
     Raises:
-        ValidationError: If the event payload is invalid or external_id is not numeric
+        ValidationError: If the event payload is invalid
+        ValueError: If external_id is not numeric
     """
     try:
-        return GitHubCheckRunEvent.parse_obj(event)
+        validated_event = GitHubCheckRunEvent.parse_obj(event)
+        int(validated_event.check_run.external_id)
     except ValidationError:
-        logger.exception()
+        logger.exception("Invalid GitHub check_run event payload")
+        metrics.incr(f"{PREFIX}.outcome", tags={"status": "invalid_payload"})
+        raise
+    except ValueError:
+        logger.exception("external_id must be numeric")
         metrics.incr(f"{PREFIX}.outcome", tags={"status": "invalid_payload"})
         raise
 
+    return validated_event
 
-def _make_rerun_request(original_run_id: int, extra: dict[str, Any]) -> bool:
+
+def _make_rerun_request(original_run_id: str, extra: dict[str, Any]) -> bool:
     payload = {"original_run_id": original_run_id}
     status = "failure"
     try:
@@ -95,7 +103,7 @@ def _make_rerun_request(original_run_id: int, extra: dict[str, Any]) -> bool:
             status = "success"
     except (TimeoutError, MaxRetryError) as e:
         status = e.__class__.__name__
-        logger.exception()
+        logger.exception("Failed to make rerun request", extra=extra)
 
     # Record metric for HTTP responses (both success and error)
     metrics.incr(f"{PREFIX}.outcome", tags={"status": status == "success"})

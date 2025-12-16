@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import orjson
+from django.http.response import HttpResponseBase
 from urllib3 import BaseHTTPResponse
 
 from fixtures.github import (
@@ -22,13 +23,13 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
         mock_response.data = data
         return mock_response
 
-    def _send_check_run_event(self, event_data: bytes | str) -> BaseHTTPResponse:
+    def _send_check_run_event(self, event_data: bytes | str) -> HttpResponseBase:
         """Helper to send check_run event with Pydantic validation."""
         # Parse and validate event data
-        event_dict = (
+        self.event_dict = (
             orjson.loads(event_data) if isinstance(event_data, (bytes, str)) else event_data
         )
-        repo_id = int(event_dict["repository"]["id"])
+        repo_id = int(self.event_dict["repository"]["id"])
 
         integration = self.create_github_integration()
         # Create a repository that matches the fixture's repository ID
@@ -55,7 +56,7 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             mock_request.assert_called_once()
             call_kwargs = mock_request.call_args[1]
             body = orjson.loads(call_kwargs["body"])
-            assert body == {"original_run_id": str(self.original_run_id)}
+            assert body == {"original_run_id": str(self.event_dict["check_run"]["external_id"])}
             assert call_kwargs["path"] == SEER_PR_REVIEW_RERUN_PATH
 
     @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
@@ -85,9 +86,12 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
 
                 # Verify NO request was made to Seer
                 mock_request.assert_not_called()
-                # Verify error was logged (validation errors are logged as errors)
-                mock_logger.error.assert_called_once()
-                assert "invalid_payload" in mock_logger.error.call_args[0][0]
+                # Verify error was logged (validation errors are logged with exception)
+                mock_logger.exception.assert_called_once()
+                assert (
+                    "Invalid GitHub check_run event payload"
+                    in mock_logger.exception.call_args[0][0]
+                )
 
     @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
     @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
@@ -103,9 +107,9 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
 
                 # Verify NO request was made to Seer
                 mock_request.assert_not_called()
-                # Verify error was logged (validation errors are logged as errors)
-                mock_logger.error.assert_called_once()
-                assert "invalid_payload" in mock_logger.error.call_args[0][0]
+                # Verify error was logged (ValueError for non-numeric external_id)
+                mock_logger.exception.assert_called_once()
+                assert "external_id must be numeric" in mock_logger.exception.call_args[0][0]
 
     @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
     @with_feature({"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"})
