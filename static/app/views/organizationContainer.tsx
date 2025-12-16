@@ -27,7 +27,9 @@ function OrganizationLoadingIndicator() {
   const root = document.getElementById(ROOT_ELEMENT);
   // There is no scenario in which this component is rendering,
   // but the root element where the app is mounted doesn't exist
-  const ssrLoader = root!.innerHTML;
+  //
+  // Hack to start the animation once React loads
+  const ssrLoader = root!.innerHTML.replace('animation-play-state: paused;', '');
 
   return <div dangerouslySetInnerHTML={{__html: ssrLoader}} />;
 }
