@@ -832,15 +832,6 @@ class PullRequestEventWebhook(GitHubWebhook):
                                 },
                             )
 
-                    logger.info(
-                        "organization_contributors.assign_seat.start",
-                        extra={
-                            "contributor_id": locked_contributor.id,
-                            "user_type": user_type,
-                            "author_association": author_association,
-                        },
-                    )
-
                     if (
                         locked_contributor
                         and is_contributor_eligible_for_seat_assignment(
@@ -849,6 +840,14 @@ class PullRequestEventWebhook(GitHubWebhook):
                         and locked_contributor.num_actions
                         >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
                     ):
+                        logger.info(
+                            "github.webhook.organization_contributor.assign_seat.start",
+                            extra={
+                                "contributor_id": locked_contributor.id,
+                                "user_type": user_type,
+                                "author_association": author_association,
+                            },
+                        )
                         assign_seat_to_organization_contributor.delay(locked_contributor.id)
 
                 metrics.incr(
