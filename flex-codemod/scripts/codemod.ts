@@ -36,10 +36,112 @@ interface FlexProps {
 }
 
 /**
- * Parse CSS string and extract properties
+ * Extract space/gap value from template substitution
  */
-function parseCSSProperties(cssText: string): CSSProperty[] {
+function extractSpaceValue(templateSub: SgNode<TSX>): string | null {
+  const subText = templateSub.text();
+
+  // Match patterns like ${space(2)} or ${p => p.theme.space[2]}
+  // Extract the numeric value
+  const spaceMatch = subText.match(/space\[(\d+(?:\.\d+)?)\]|space\((\d+(?:\.\d+)?)\)/);
+  if (spaceMatch) {
+    const value = spaceMatch[1] || spaceMatch[2];
+    return value;
+  }
+
+  return null;
+}
+
+/**
+ * Map numeric space values to t-shirt sizes
+ */
+function mapSpaceToSize(spaceValue: string): string {
+  const sizeMap: Record<string, string> = {
+    '0': 'none',
+    '0.25': 'xxs',
+    '0.5': 'xs',
+    '1': 'sm',
+    '1.5': 'md',
+    '2': 'lg',
+    '2.5': 'xl',
+    '3': 'xxl',
+    '4': 'xxxl',
+  };
+
+  return sizeMap[spaceValue] || spaceValue;
+}
+
+/**
+ * Map pixel values to t-shirt sizes (common Sentry spacing values)
+ */
+function mapPixelsToSize(pixels: string): string {
+  const pxValue = pixels.replace('px', '').trim();
+  const pxMap: Record<string, string> = {
+    '0': 'none',
+    '2': 'xxs',
+    '4': 'xs',
+    '8': 'sm',
+    '12': 'md',
+    '16': 'lg',
+    '20': 'xl',
+    '24': 'xxl',
+    '32': 'xxxl',
+  };
+
+  return pxMap[pxValue] || pixels;
+}
+
+/**
+ * Build CSS text with template substitutions replaced by extracted values
+ */
+function buildCSSWithSubstitutions(templateString: SgNode<TSX>): string {
+  let cssText = '';
+  const children = templateString.children();
+
+  for (const child of children) {
+    const childKind = child.kind();
+
+    if (childKind === 'string_fragment') {
+      cssText += child.text();
+    } else if (childKind === 'template_substitution') {
+      const spaceValue = extractSpaceValue(child);
+      if (spaceValue) {
+        const sizeValue = mapSpaceToSize(spaceValue);
+        cssText += sizeValue;
+      } else {
+        // Unknown template substitution, use placeholder
+        cssText += '__TEMPLATE__';
+      }
+    } else if (childKind === '`') {
+      // Skip backticks
+      continue;
+    }
+  }
+
+  return cssText;
+}
+
+/**
+ * Parse CSS string and extract properties, handling template substitutions
+ */
+function parseCSSProperties(cssText: string, templateString?: SgNode<TSX>): CSSProperty[] {
   const properties: CSSProperty[] = [];
+
+  // If we have a template string with substitutions, rebuild the CSS text
+  if (templateString) {
+    const hasSubstitutions = templateString.has({
+      rule: {kind: 'template_substitution'},
+    });
+
+    if (hasSubstitutions) {
+      cssText = buildCSSWithSubstitutions(templateString);
+
+      // If we still have unresolved templates, bail out
+      if (cssText.includes('__TEMPLATE__')) {
+        return [];
+      }
+    }
+  }
 
   try {
     // Parse CSS using ast-grep
@@ -77,7 +179,13 @@ function parseCSSProperties(cssText: string): CSSProperty[] {
 
       if (valueTokens.length > 0) {
         const property = propertyNode.text().trim();
-        const value = valueTokens.join(' ');
+        let value = valueTokens.join(' ');
+
+        // Map pixel values to sizes for gap
+        if (property === 'gap' && value.includes('px')) {
+          value = mapPixelsToSize(value);
+        }
+
         properties.push({property, value});
       }
     }
@@ -100,8 +208,8 @@ function isWrappingComponent(styledArg: SgNode<TSX>): boolean {
 /**
  * Extract flex properties from CSS and determine if conversion is possible
  */
-function extractFlexProps(cssText: string): FlexProps | null {
-  const properties = parseCSSProperties(cssText);
+function extractFlexProps(cssText: string, templateString?: SgNode<TSX>): FlexProps | null {
+  const properties = parseCSSProperties(cssText, templateString);
 
   if (properties.length === 0) {
     return null;
@@ -361,7 +469,7 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
     const cssText = cssFragments.map(f => f.text()).join('');
 
     // Parse CSS and extract flex properties
-    const flexProps = extractFlexProps(cssText);
+    const flexProps = extractFlexProps(cssText, templateString);
 
     if (!flexProps || flexProps.hasUnsupportedProps) {
       continue;

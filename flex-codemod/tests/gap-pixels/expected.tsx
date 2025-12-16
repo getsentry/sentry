@@ -3,6 +3,13 @@ import styled from '@emotion/styled';
 
 
 
+
+
 function Component() {
-  return <Flex align="center" gap="lg">Text</Flex>;
+  return (
+    <>
+      <Flex gap="lg">Content</Flex>
+      <Flex gap="sm">Content</Flex>
+    </>
+  );
 }

@@ -4,5 +4,5 @@ import styled from '@emotion/styled';
 
 
 function Component() {
-  return <Flex align="center" gap="lg">Text</Flex>;
+  return <Flex gap="sm">Content</Flex>;
 }
