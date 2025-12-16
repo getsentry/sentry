@@ -24,6 +24,7 @@ import {
   type DiffTableSort,
 } from 'sentry/views/preprod/buildComparison/main/diffTable';
 import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
+import {formattedSizeDiff} from 'sentry/views/preprod/utils/labelUtils';
 
 const tableHeaders = [
   {
@@ -240,8 +241,7 @@ export function SizeCompareItemDiffTable({
                     : '-'}
               </SimpleTable.RowCell>
               <DiffTableChangeAmountCell changeType={diffItem.type}>
-                {diffItem.size_diff > 0 ? '+' : '-'}
-                {formatBytesBase10(Math.abs(diffItem.size_diff))}
+                {formattedSizeDiff(diffItem.size_diff)}
               </DiffTableChangeAmountCell>
             </SimpleTable.Row>
           );
