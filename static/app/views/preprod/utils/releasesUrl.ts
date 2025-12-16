@@ -1,13 +1,11 @@
 type ReleasesUrlParams = {
-  appId?: string;
   query?: string;
   tab?: string;
-  version?: string;
 };
 
 export function makeReleasesUrl(
   projectId: string | undefined,
-  {appId, query, tab = 'mobile-builds', version}: ReleasesUrlParams = {}
+  {query, tab = 'mobile-builds'}: ReleasesUrlParams = {}
 ): string {
   // Not knowing the projectId should be transient.
   if (projectId === undefined) {
@@ -21,12 +19,6 @@ export function makeReleasesUrl(
   const queries: string[] = [];
   if (query) {
     queries.push(query);
-  }
-  if (appId) {
-    queries.push(`release.package:${appId}`);
-  }
-  if (version) {
-    queries.push(`release.version:${version}`);
   }
 
   if (queries.length) {
