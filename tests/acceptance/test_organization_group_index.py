@@ -15,6 +15,7 @@ from sentry.testutils.silo import no_silo_test
 event_time = before_now(days=3)
 
 
+@pytest.mark.xdist_unsafe
 @no_silo_test
 class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self) -> None:
