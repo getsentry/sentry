@@ -255,7 +255,9 @@ class OAuthAuthorizeView(AuthLoginView):
                 raise NotImplementedError(f"{pending_scopes} scopes did not have descriptions")
 
         if application.requires_org_level_access:
-            organization_options = user_service.get_organizations(user_id=request.user.id)
+            organization_options = user_service.get_organizations(
+                user_id=request.user.id, only_visible=True
+            )
             if not organization_options:
                 return self.respond(
                     "sentry/oauth-error.html",
