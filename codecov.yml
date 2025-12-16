@@ -62,7 +62,7 @@ flags:
     # Do not send any status checks until n coverage reports are uploaded.
     # NOTE: If you change this, make sure to change `comment.after_n_builds` below as well.
     # this should match MATRIX_INSTANCE_TOTAL in backend.yml
-    after_n_builds: 22
+    after_n_builds: 25
   backend-migration:
     paths:
       - '**/*.py'

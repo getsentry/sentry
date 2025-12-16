@@ -116,19 +116,12 @@ jobs:
             22,
             23,
             24,
-            25,
-            26,
-            27,
-            28,
-            29,
-            30,
-            31,
           ]
 
     env:
       # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
       # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.
-      MATRIX_INSTANCE_TOTAL: 32
+      MATRIX_INSTANCE_TOTAL: 25
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
