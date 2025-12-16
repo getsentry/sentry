@@ -13,8 +13,8 @@ import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {
   hasCodeChanges as checkHasCodeChanges,
   getArtifactsFromBlocks,
-  getMergedFilePatchesFromBlocks,
   getFilePatchesFromBlocks,
+  getMergedFilePatchesFromBlocks,
   getOrderedArtifactKeys,
   useExplorerAutofix,
   type AutofixExplorerStep,
