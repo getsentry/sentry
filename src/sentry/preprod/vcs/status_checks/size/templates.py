@@ -169,7 +169,7 @@ def _format_artifact_summary(
 
     def _render_table(rows: list[str], install_label: str) -> str:
         return _(
-            "| Name | Configuration | Version | Download | {install_label} | Approval |\n"
+            "| Name | Configuration | Version | Download Size | {install_label} | Approval |\n"
             "|------|--------------|---------|----------|-----------------|----------|\n"
             "{table_rows}"
         ).format(table_rows="\n".join(rows), install_label=install_label)
@@ -180,9 +180,9 @@ def _format_artifact_summary(
             continue
 
         if group_key == "android":
-            tables.append(_render_table(grouped_rows[group_key], str(_("Uncompressed"))))
+            tables.append(_render_table(grouped_rows[group_key], str(_("Uncompressed Size"))))
         else:
-            tables.append(_render_table(grouped_rows[group_key], str(_("Install"))))
+            tables.append(_render_table(grouped_rows[group_key], str(_("Install Size"))))
 
     return "\n\n".join(tables)
 

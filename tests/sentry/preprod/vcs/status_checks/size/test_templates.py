@@ -796,8 +796,8 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         tables = summary.strip().split("\n\n")
         assert len(tables) == 2
 
-        android_table = next(t for t in tables if "Uncompressed" in t.split("\n")[0])
-        ios_table = next(t for t in tables if "Install" in t.split("\n")[0])
+        android_table = next(t for t in tables if "Uncompressed Size" in t.split("\n")[0])
+        ios_table = next(t for t in tables if "Install Size" in t.split("\n")[0])
 
         assert "com.example.android" in android_table
         assert "com.example.ios" in ios_table
