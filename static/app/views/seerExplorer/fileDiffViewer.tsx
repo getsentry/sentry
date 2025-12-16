@@ -112,7 +112,7 @@ export function FileDiffViewer({
   collapsible = false,
   defaultExpanded = false,
 }: FileDiffViewerProps) {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [isExpanded, setIsExpanded] = useState(collapsible ? defaultExpanded : true);
   const isDelete = patch.type === DiffFileType.DELETED;
   const filePath = repoName ? `${repoName}:${patch.path}` : patch.path;
 
