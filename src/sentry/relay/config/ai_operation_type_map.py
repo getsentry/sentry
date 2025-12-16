@@ -14,8 +14,10 @@ AI_OPERATION_TYPE_MAP: dict[AI_OPERATION_TYPE_VALUE, list[str]] = {
         "gen_ai.create_agent",
         "invoke_agent",
         "create_agent",
+        "ai.streamText*",
+        "ai.generateText*",
     ],
-    "tool": ["gen_ai.execute_tool", "execute_tool"],
+    "tool": ["gen_ai.execute_tool", "execute_tool", "ai.toolCall*"],
     "handoff": ["gen_ai.handoff", "handoff"],
     "ai_client": ["*"],  # default fallback
 }
