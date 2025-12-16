@@ -6,6 +6,7 @@ import sentry_sdk
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
 from sentry.seer.workflows.compare import KeyedValueCount, keyed_rrf_score_with_filter
+from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -150,7 +151,7 @@ def query_baseline_set(
 
     response = raw_snql_query(
         snuba_request,
-        referrer="issues.suspect_flags.query_baseline_set",
+        referrer=Referrer.ISSUES_SUSPECT_FLAGS_QUERY_BASELINE_SET.value,
         use_cache=True,
     )
 
@@ -226,7 +227,7 @@ def query_selection_set(
 
     response = raw_snql_query(
         snuba_request,
-        referrer="issues.suspect_flags.query_selection_set",
+        referrer=Referrer.ISSUES_SUSPECT_FLAGS_QUERY_SELECTION_SET.value,
         use_cache=True,
     )
 
@@ -288,7 +289,7 @@ def query_error_counts(
 
     response = raw_snql_query(
         snuba_request,
-        referrer="issues.suspect_flags.query_error_counts",
+        referrer=Referrer.ISSUES_SUSPECT_FLAGS_QUERY_ERROR_COUNTS.value,
         use_cache=True,
     )
 
