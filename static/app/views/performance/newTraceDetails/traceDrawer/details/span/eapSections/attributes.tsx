@@ -30,8 +30,8 @@ import {
   getTraceAttributesTreeActions,
   sortAttributes,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+import type {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
@@ -80,7 +80,7 @@ export function Attributes({
 }: {
   attributes: TraceItemResponseAttribute[];
   location: Location;
-  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.UptimeCheck>;
+  node: EapSpanNode | UptimeCheckNode;
   organization: Organization;
   project: Project | undefined;
   theme: Theme;
@@ -164,9 +164,6 @@ export function Attributes({
       return formatDollars(+Number(props.item.value).toFixed(10));
     },
     [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: (props: CustomRenderersProps) => {
-      return formatDollars(+Number(props.item.value).toFixed(10));
-    },
-    [SpanFields.GEN_AI_USAGE_TOTAL_COST]: (props: CustomRenderersProps) => {
       return formatDollars(+Number(props.item.value).toFixed(10));
     },
   };

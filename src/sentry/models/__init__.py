@@ -104,6 +104,7 @@ from .releaseheadcommit import *  # NOQA
 from .releaseprojectenvironment import *  # NOQA
 from .releases.release_project import *  # NOQA
 from .repository import *  # NOQA
+from .repositorysettings import *  # NOQA
 from .rollbackorganization import *  # NOQA
 from .rollbackuser import *  # NOQA
 from .rule import *  # NOQA

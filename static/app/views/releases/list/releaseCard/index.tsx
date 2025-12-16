@@ -347,7 +347,7 @@ const FinalizeWrapper = styled('div')`
 
 const PackageName = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
@@ -398,15 +398,15 @@ const ExpandButtonWrapper = styled('div')`
   justify-content: center;
   background-image: linear-gradient(
     180deg,
-    ${p => color(p.theme.background).alpha(0).string()} 0,
-    ${p => p.theme.background}
+    ${p => color(p.theme.tokens.background.primary).alpha(0).string()} 0,
+    ${p => p.theme.tokens.background.primary}
   );
   background-repeat: repeat-x;
-  border-bottom: ${space(1)} solid ${p => p.theme.background};
+  border-bottom: ${space(1)} solid ${p => p.theme.tokens.background.primary};
   border-top: ${space(1)} solid transparent;
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.radius.md};
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
+    border-bottom-left-radius: ${p => p.theme.radius.md};
   }
 `;
 
@@ -516,9 +516,9 @@ const HiddenProjectsMessage = styled('div')`
   line-height: 24px;
   color: ${p => p.theme.subText};
   background-color: ${p => p.theme.backgroundSecondary};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.radius.md};
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
+    border-bottom-left-radius: ${p => p.theme.radius.md};
   }
 `;
 

@@ -4,6 +4,8 @@ from datetime import timedelta
 import sentry_sdk
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 
+from sentry.api.serializers.models.project import get_has_trace_metrics
+from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
@@ -20,6 +22,10 @@ logger = logging.getLogger("sentry.snuba.trace_metrics")
 class TraceMetrics(rpc_dataset_common.RPCBase):
 
     DEFINITIONS = TRACE_METRICS_DEFINITIONS
+
+    @classmethod
+    def filter_project(cls, project: Project) -> bool:
+        return get_has_trace_metrics(project)
 
     @classmethod
     @sentry_sdk.trace
@@ -83,6 +89,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
         config: SearchResolverConfig,
         sampling_mode: SAMPLING_MODES | None,
         comparison_delta: timedelta | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> SnubaTSResult:
         cls.validate_granularity(params)
         search_resolver = cls.get_resolver(params, config)
@@ -95,6 +102,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
             groupby=[],
             referrer=referrer,
             sampling_mode=sampling_mode,
+            additional_queries=additional_queries,
         )
 
         """Run the query"""

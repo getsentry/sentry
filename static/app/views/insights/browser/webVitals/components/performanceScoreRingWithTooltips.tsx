@@ -289,7 +289,7 @@ function PerformanceScoreRingWithTooltips({
           textCss={() => css`
             font-size: 32px;
             font-weight: ${theme.fontWeight.bold};
-            color: ${theme.textColor};
+            color: ${theme.tokens.content.primary};
           `}
           segmentColors={ringSegmentColors}
           backgroundColors={ringBackgroundColors}
@@ -346,7 +346,7 @@ const ProgressRingContainer = styled('div')``;
 
 const ProgressRingText = styled('text')<{isLink?: boolean}>`
   font-size: ${p => p.theme.fontSize.md};
-  fill: ${p => (p.isLink ? p.theme.blue300 : p.theme.textColor)};
+  fill: ${p => (p.isLink ? p.theme.blue300 : p.theme.tokens.content.primary)};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
   text-anchor: middle;
@@ -367,7 +367,7 @@ const ProgressRingDiffSubText = styled(ProgressRingSubText)<{value: number}>`
 const PerformanceScoreRingTooltip = styled('div')<{x: number; y: number}>`
   position: absolute;
   background: ${p => p.theme.backgroundElevated};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
   transform: translate3d(${p => p.x - 100}px, ${p => p.y - 74}px, 0px);
   padding: ${space(1)} ${space(2)};

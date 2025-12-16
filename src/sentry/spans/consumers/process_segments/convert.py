@@ -3,6 +3,7 @@ from typing import Any, cast
 import orjson
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SpanLink
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import (
@@ -28,8 +29,8 @@ FIELD_TO_ATTRIBUTE = {
 }
 
 RENAME_ATTRIBUTES = {
-    "sentry.description": "sentry.raw_description",
-    "sentry.segment.id": "sentry.segment_id",
+    ATTRIBUTE_NAMES.SENTRY_DESCRIPTION: "sentry.raw_description",
+    ATTRIBUTE_NAMES.SENTRY_SEGMENT_ID: "sentry.segment_id",
 }
 
 
@@ -50,12 +51,12 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         except Exception:
             sentry_sdk.capture_exception()
         else:
-            if k == "sentry.client_sample_rate":
+            if k == ATTRIBUTE_NAMES.SENTRY_CLIENT_SAMPLE_RATE:
                 try:
                     client_sample_rate = float(value)  # type:ignore[arg-type]
                 except ValueError:
                     pass
-            elif k == "sentry.server_sample_rate":
+            elif k == ATTRIBUTE_NAMES.SENTRY_SERVER_SAMPLE_RATE:
                 try:
                     server_sample_rate = float(value)  # type:ignore[arg-type]
                 except ValueError:

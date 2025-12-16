@@ -34,7 +34,8 @@ def validate_date_params(
     stats_period: str | None,
     start: str | None,
     end: str | None,
-    default_stats_period: str | None = None,
+    default_stats_period: str = "7d",
+    allow_none: bool = False,
 ) -> tuple[str | None, str | None, str | None]:
     """
     Validate the format and combinations of date params. Raises ValueError.
@@ -45,6 +46,8 @@ def validate_date_params(
     if not any([bool(stats_period), bool(start), bool(end)]):
         if default_stats_period:
             return default_stats_period, None, None
+        elif allow_none:
+            return None, None, None
         else:
             raise ValueError("either stats_period or start and end must be provided")
 

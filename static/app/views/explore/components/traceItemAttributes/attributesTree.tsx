@@ -516,7 +516,9 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
   }
   color: ${p => (p.hasErrors ? p.theme.alert.error.color : p.theme.subText)};
   background-color: ${p =>
-    p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.background};
+    p.hasErrors
+      ? p.theme.alert.error.backgroundLight
+      : p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px
     ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
 `;
@@ -565,7 +567,7 @@ const TreeValue = styled('div')<{hasErrors?: boolean}>`
   font-size: ${p => p.theme.fontSize.sm};
   word-break: break-word;
   grid-column: span 1;
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.primary)};
 `;
 
 const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`

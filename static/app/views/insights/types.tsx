@@ -111,9 +111,10 @@ export enum SpanFields {
   GEN_AI_USAGE_INPUT_TOKENS_CACHED = 'gen_ai.usage.input_tokens.cached',
   GEN_AI_USAGE_OUTPUT_TOKENS = 'gen_ai.usage.output_tokens',
   GEN_AI_USAGE_OUTPUT_TOKENS_REASONING = 'gen_ai.usage.output_tokens.reasoning',
-  GEN_AI_USAGE_TOTAL_COST = 'gen_ai.usage.total_cost',
   GEN_AI_USAGE_TOTAL_TOKENS = 'gen_ai.usage.total_tokens',
   GEN_AI_OPERATION_TYPE = 'gen_ai.operation.type',
+  GEN_AI_OPERATION_NAME = 'gen_ai.operation.name',
+  GEN_AI_CONVERSATION_ID = 'gen_ai.conversation.id',
   MCP_CLIENT_NAME = 'mcp.client.name',
   MCP_TRANSPORT = 'mcp.transport',
   MCP_TOOL_NAME = 'mcp.tool.name',
@@ -207,12 +208,14 @@ export type SpanNumberFields =
   | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
   | SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
   | SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY
+  | SpanFields.GEN_AI_COST_INPUT_TOKENS
+  | SpanFields.GEN_AI_COST_OUTPUT_TOKENS
+  | SpanFields.GEN_AI_COST_TOTAL_TOKENS
   | SpanFields.GEN_AI_USAGE_INPUT_TOKENS
-  | SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED
   | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS
-  | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING
   | SpanFields.GEN_AI_USAGE_TOTAL_TOKENS
-  | SpanFields.GEN_AI_USAGE_TOTAL_COST
+  | SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED
+  | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING
   | SpanFields.TOTAL_SCORE
   | SpanFields.INP
   | SpanFields.INP_SCORE

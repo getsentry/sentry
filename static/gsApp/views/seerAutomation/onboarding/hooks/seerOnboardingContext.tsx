@@ -1,10 +1,19 @@
-import {createContext, useCallback, useContext, useMemo, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import * as Sentry from '@sentry/react';
 
-import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
+import {useOrganizationRepositoriesWithSettings} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
-  Repository,
+  RepositoryWithSettings,
 } from 'sentry/types/integrations';
 
 import {useIntegrationInstallation} from './useIntegrationInstallation';
@@ -12,23 +21,27 @@ import {useIntegrationProvider} from './useIntegrationProvider';
 
 interface SeerOnboardingContextProps {
   addRepositoryProjectMappings: (additionalMappings: Record<string, string[]>) => void;
+  addRootCauseAnalysisRepository: (repoId: string) => void;
   changeRepositoryProjectMapping: (
     repoId: string,
     index: number,
     newValue: string | undefined
   ) => void;
+  changeRootCauseAnalysisRepository: (oldRepoId: string, newRepoId: string) => void;
+  clearRootCauseAnalysisRepositories: () => void;
   installationData: OrganizationIntegration[] | undefined;
   isInstallationPending: boolean;
   isProviderPending: boolean;
   isRepositoriesFetching: boolean;
   provider: IntegrationProvider | undefined;
   removeRootCauseAnalysisRepository: (repoId: string) => void;
-  repositories: Repository[] | undefined;
+  repositories: RepositoryWithSettings[] | undefined;
   repositoryProjectMapping: Record<string, string[]>;
-  selectedCodeReviewRepositories: Repository[];
+  selectedCodeReviewRepositories: RepositoryWithSettings[];
   selectedCodeReviewRepositoriesMap: Record<string, boolean>;
-  selectedRootCauseAnalysisRepositories: Repository[];
+  selectedRootCauseAnalysisRepositories: RepositoryWithSettings[];
   setCodeReviewRepositories: (newSelections: Record<string, boolean>) => void;
+  unselectedCodeReviewRepositories: RepositoryWithSettings[];
 }
 
 const SeerOnboardingContext = createContext<SeerOnboardingContextProps>({
@@ -41,10 +54,14 @@ const SeerOnboardingContext = createContext<SeerOnboardingContextProps>({
   selectedCodeReviewRepositories: [],
   selectedCodeReviewRepositoriesMap: {},
   selectedRootCauseAnalysisRepositories: [],
+  unselectedCodeReviewRepositories: [],
   repositoryProjectMapping: {},
   changeRepositoryProjectMapping: () => {},
+  changeRootCauseAnalysisRepository: () => {},
+  clearRootCauseAnalysisRepositories: () => {},
   setCodeReviewRepositories: () => {},
   removeRootCauseAnalysisRepository: () => {},
+  addRootCauseAnalysisRepository: () => {},
   addRepositoryProjectMappings: () => {},
 });
 
@@ -52,16 +69,41 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
   const [selectedCodeReviewRepositoriesMap, setSelectedCodeReviewRepositoriesMap] =
     useState<Record<string, boolean>>({});
   const [selectedRootCauseAnalysisRepositories, setRootCauseAnalysisRepositories] =
-    useState<Repository[]>([]);
+    useState<RepositoryWithSettings[]>([]);
   const [repositoryProjectMapping, setRepositoryProjectMapping] = useState<
     Record<string, string[]>
   >({});
 
+  // Track if we've initialized the map to avoid overwriting user changes
+  const hasInitializedCodeReviewMap = useRef(false);
+
   const {data: repositories, isFetching: isRepositoriesFetching} =
-    useOrganizationRepositories();
+    useOrganizationRepositoriesWithSettings();
   const {data: installationData, isPending: isInstallationPending} =
     useIntegrationInstallation('github');
   const {provider, isPending: isProviderPending} = useIntegrationProvider('github');
+
+  // Initialize selectedCodeReviewRepositoriesMap from server data
+  useEffect(() => {
+    if (!repositories || isRepositoriesFetching || hasInitializedCodeReviewMap.current) {
+      return;
+    }
+
+    const initialMap = repositories.reduce<Record<string, boolean>>((acc, repo) => {
+      if (repo.settings?.enabledCodeReview) {
+        acc[repo.id] = true;
+      }
+      return acc;
+    }, {});
+
+    setSelectedCodeReviewRepositoriesMap(initialMap);
+
+    // Initialize RCA repos to match code review repos (keeping them in sync)
+    const enabledRepos = repositories.filter(repo => repo.settings?.enabledCodeReview);
+    setRootCauseAnalysisRepositories(enabledRepos);
+
+    hasInitializedCodeReviewMap.current = true;
+  }, [repositories, isRepositoriesFetching]);
 
   // Create map for lookup for `selectedRepositories`
   const repositoriesMap = useMemo(
@@ -73,6 +115,18 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
     () =>
       Object.entries(selectedCodeReviewRepositoriesMap)
         .filter(([_, isSelected]) => isSelected)
+        .map(([repoId]) => repositoriesMap[repoId])
+        .filter(repo => repo !== undefined),
+    [selectedCodeReviewRepositoriesMap, repositoriesMap]
+  );
+
+  /**
+   * Repositories that were selected but became unselected
+   */
+  const unselectedCodeReviewRepositories = useMemo(
+    () =>
+      Object.entries(selectedCodeReviewRepositoriesMap)
+        .filter(([_, isSelected]) => !isSelected)
         .map(([repoId]) => repositoriesMap[repoId])
         .filter(repo => repo !== undefined),
     [selectedCodeReviewRepositoriesMap, repositoriesMap]
@@ -92,7 +146,7 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         // Add new repositories that were selected
         const newRepos = Object.entries(newSelections)
           .filter(([repoId, isSelected]) => isSelected && repoId in repositoriesMap)
-          .map(([repoId]) => repositoriesMap[repoId] as Repository);
+          .map(([repoId]) => repositoriesMap[repoId] as RepositoryWithSettings);
 
         return [...existingRepos, ...newRepos];
       });
@@ -112,6 +166,73 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
     [setRootCauseAnalysisRepositories]
   );
 
+  const changeRootCauseAnalysisRepository = useCallback(
+    (oldRepoId: string, newRepoId: string) => {
+      const newRepo = repositoriesMap[newRepoId];
+      if (!newRepo) {
+        return;
+      }
+
+      let shouldUpdateMappings = false;
+
+      // The updater function below executes synchronously, so shouldUpdateMappings
+      // will be set before we check it. Only the re-render is async.
+      setRootCauseAnalysisRepositories(prev => {
+        // Check if the new repository is already selected using current state
+        const isDuplicate = prev.some(
+          repo => repo.id === newRepoId && repo.id !== oldRepoId
+        );
+        if (isDuplicate) {
+          return prev;
+        }
+
+        // Mark that we should update mappings (executes synchronously)
+        shouldUpdateMappings = true;
+
+        // Replace the old repository with the new one
+        return prev.map(repo => (repo.id === oldRepoId ? newRepo : repo));
+      });
+
+      // Only clear project mappings if the repository was actually changed
+      if (shouldUpdateMappings) {
+        setRepositoryProjectMapping(prev => {
+          const newMappings = {...prev};
+          delete newMappings[oldRepoId];
+          return newMappings;
+        });
+      }
+    },
+    [repositoriesMap]
+  );
+
+  const clearRootCauseAnalysisRepositories = useCallback(() => {
+    setRootCauseAnalysisRepositories([]);
+    setRepositoryProjectMapping({});
+  }, [setRootCauseAnalysisRepositories, setRepositoryProjectMapping]);
+
+  const addRootCauseAnalysisRepository = useCallback(
+    (repoId: string) => {
+      const repo = repositoriesMap[repoId];
+      if (!repo) {
+        Sentry.logger.warn(
+          'SeerOnboarding: Repository not found when adding new repository',
+          {repoId}
+        );
+        return;
+      }
+
+      // Add repository to the list
+      setRootCauseAnalysisRepositories(prev => [...prev, repo]);
+
+      // Initialize empty project mapping
+      setRepositoryProjectMapping(prev => ({
+        ...prev,
+        [repoId]: [],
+      }));
+    },
+    [repositoriesMap]
+  );
+
   const addRepositoryProjectMappings = useCallback(
     (additionalMappings: Record<string, string[]>) => {
       setRepositoryProjectMapping(prev => {
@@ -120,8 +241,8 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
           ...Object.fromEntries(
             Object.entries(additionalMappings)
               .map(([repoId, projects]) => {
-                // Don't overwrite existing mappings
-                if (prev[repoId]) {
+                // Don't overwrite existing mappings that have projects
+                if (prev[repoId] && prev[repoId].length > 0) {
                   return null;
                 }
                 return [repoId, projects];
@@ -180,13 +301,17 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         provider,
         isProviderPending,
         selectedCodeReviewRepositories,
+        unselectedCodeReviewRepositories,
         selectedCodeReviewRepositoriesMap,
         setCodeReviewRepositories,
         selectedRootCauseAnalysisRepositories,
         removeRootCauseAnalysisRepository,
+        changeRootCauseAnalysisRepository,
+        addRootCauseAnalysisRepository,
         repositoryProjectMapping,
         addRepositoryProjectMappings,
         changeRepositoryProjectMapping,
+        clearRootCauseAnalysisRepositories,
       }}
     >
       {children}

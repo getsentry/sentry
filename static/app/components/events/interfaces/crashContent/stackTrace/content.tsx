@@ -233,7 +233,7 @@ export const StackTraceContentPanel = styled(Panel)<{hideIcon?: boolean}>`
     css`
       border-top-left-radius: 0;
       @media (max-width: ${p.theme.breakpoints.md}) {
-        border-top-left-radius: ${p.theme.borderRadius};
+        border-top-left-radius: ${p.theme.radius.md};
       }
     `}
 `;

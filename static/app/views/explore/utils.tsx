@@ -65,6 +65,7 @@ export function getExploreUrl({
   sort,
   field,
   id,
+  table,
   title,
   referrer,
 }: {
@@ -79,6 +80,7 @@ export function getExploreUrl({
   referrer?: string;
   selection?: PageFilters;
   sort?: string;
+  table?: string;
   title?: string;
   visualize?: BaseVisualize[];
 }) {
@@ -100,6 +102,7 @@ export function getExploreUrl({
     field,
     utc,
     id,
+    table,
     title,
     referrer,
   };

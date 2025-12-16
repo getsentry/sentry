@@ -122,6 +122,8 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
                 data=workflow.get_audit_log_data(),
             )
 
+        workflow.refresh_from_db()
+
         return Response(
             serialize(workflow, request.user, WorkflowSerializer()),
             status=200,

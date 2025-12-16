@@ -5,7 +5,7 @@ import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import type {TraceDrawerActionKind} from './traceDrawer/details/utils';
-import {TraceShape, type TraceTree} from './traceModels/traceTree';
+import type {TraceShape, TraceTree} from './traceModels/traceTree';
 
 export type TraceTreeSource =
   | 'trace_view'
@@ -28,7 +28,7 @@ const trackTraceSuccessState = (
   const trace_duration_seconds = (tree.root.space?.[1] ?? 0) / 1000;
   const projectSlugs = [
     ...new Set(
-      tree.list.map(node => node.metadata.project_slug).filter(slug => slug !== undefined)
+      tree.list.map(node => node.projectSlug).filter(slug => slug !== undefined)
     ),
   ];
 

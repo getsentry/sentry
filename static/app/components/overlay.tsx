@@ -10,7 +10,6 @@ import {NODE_ENV} from 'sentry/constants';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 import testableTransition from 'sentry/utils/testableTransition';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 type OriginPoint = Partial<{x: number; y: number}>;
@@ -143,7 +142,7 @@ const OverlayInner = withChonk(
     placement?: OverlayProps['placement'];
   }>`
     position: relative;
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     background: ${p => p.theme.backgroundElevated};
     box-shadow:
       0 0 0 1px ${p => p.theme.translucentBorder},
@@ -160,16 +159,15 @@ const OverlayInner = withChonk(
       ${p => p.overlayStyle as any}
     }
   `,
-  chonkStyled(motion.div)<{
+  styled(motion.div)<{
     overlayStyle?: React.CSSProperties | SerializedStyles;
     placement?: OverlayProps['placement'];
   }>`
     position: relative;
     background: ${p => p.theme.tokens.background.primary};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
     border: 1px solid ${p => p.theme.tokens.border.primary};
-    box-shadow:
-      0 2px 0 ${p => p.theme.tokens.border.primary};
+    box-shadow: 0 2px 0 ${p => p.theme.tokens.border.primary};
     font-size: ${p => p.theme.fontSize.md};
 
     /* Override z-index from useOverlayPosition */

@@ -163,7 +163,7 @@ const OurLogsContentWrapper = styled('div')`
 
 const BorderedSection = styled(FluidHeight)<{isStatus?: boolean}>`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   ${p => p.isStatus && 'justify-content: center;'}
 `;
 
@@ -173,5 +173,5 @@ const TableScrollContainer = styled('div')`
   height: 100%;
   min-height: 0;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;

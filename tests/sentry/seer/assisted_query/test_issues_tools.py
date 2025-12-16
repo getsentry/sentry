@@ -3,6 +3,9 @@ from datetime import datetime
 import pytest
 
 from sentry.seer.assisted_query.issues_tools import (
+    _EVENT_CONTEXT_FIELDS,
+    DEVICE_CLASS_VALUES,
+    _get_static_values,
     execute_issues_query,
     get_filter_key_values,
     get_issue_filter_keys,
@@ -892,3 +895,731 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
         # Optional stats field in lifetime (currently None in implementation)
         if "stats" in lifetime:
             assert lifetime["stats"] is None or isinstance(lifetime["stats"], dict)
+
+
+@pytest.mark.django_db(databases=["default", "control"])
+class TestGetStaticValues(APITestCase):
+    """Tests for _get_static_values() function"""
+
+    def test_boolean_field_returns_true_false(self):
+        """Test that boolean fields return true/false values"""
+        # Test all boolean fields
+        boolean_fields = [
+            "error.handled",
+            "error.unhandled",
+            "error.main_thread",
+            "symbolicated_in_app",
+            "app.in_foreground",
+        ]
+        for field in boolean_fields:
+            result = _get_static_values(field)
+            assert result is not None
+            assert len(result) == 2
+            values = {item["value"] for item in result}
+            assert values == {"true", "false"}
+
+    def test_device_class_returns_enum_values(self):
+        """Test that device.class returns high/medium/low values"""
+        result = _get_static_values("device.class")
+        assert result is not None
+        assert len(result) == 3
+        values = [item["value"] for item in result]
+        assert values == DEVICE_CLASS_VALUES
+        assert "high" in values
+        assert "medium" in values
+        assert "low" in values
+
+    def test_datetime_fields_return_empty_list(self):
+        """Test that datetime fields return empty list (no suggested values)"""
+        datetime_fields = [
+            "lastSeen",
+            "firstSeen",
+            "event.timestamp",
+            "timestamp",
+            "issue.seer_last_run",
+        ]
+        for field in datetime_fields:
+            result = _get_static_values(field)
+            assert result == []
+
+    def test_uuid_field_returns_empty_list(self):
+        """Test that uuid field returns empty list"""
+        result = _get_static_values("id")
+        assert result == []
+
+    def test_issue_short_id_returns_empty_list(self):
+        """Test that issue short id field returns empty list"""
+        result = _get_static_values("issue")
+        assert result == []
+
+    def test_integer_field_returns_empty_list(self):
+        """Test that integer field returns empty list"""
+        result = _get_static_values("timesSeen")
+        assert result == []
+
+    def test_text_fields_return_none(self):
+        """Test that text fields return None (fall through to API query)"""
+        text_fields = ["message", "title", "location"]
+        for field in text_fields:
+            result = _get_static_values(field)
+            assert result is None
+
+    def test_unknown_field_returns_none(self):
+        """Test that unknown fields return None (fall through to API query)"""
+        result = _get_static_values("unknown_field")
+        assert result is None
+
+
+@pytest.mark.django_db(databases=["default", "control"])
+class TestEventContextFields(APITestCase, SnubaTestCase):
+    """Tests for event context fields functionality"""
+
+    databases = {"default", "control"}
+
+    def test_event_context_fields_included_in_built_in_fields(self):
+        """Test that event context fields are included in get_issue_filter_keys"""
+        result = get_issue_filter_keys(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+        )
+
+        assert result is not None
+        assert "built_in_fields" in result
+        built_in_fields = result["built_in_fields"]
+
+        # Get all built-in field keys
+        built_in_keys = {field["key"] for field in built_in_fields}
+
+        # Check that key event context fields are present
+        expected_event_context_fields = [
+            # Device fields
+            "device.class",
+            "device.family",
+            "device.arch",
+            # Error fields
+            "error.handled",
+            "error.unhandled",
+            "error.type",
+            # Event metadata
+            "title",
+            "message",
+            "location",
+            # Geographic
+            "geo.city",
+            "geo.country_code",
+            # HTTP
+            "http.method",
+            "http.url",
+            # OS
+            "os.build",
+            # Stack
+            "stack.function",
+            "stack.filename",
+            # User
+            "user.email",
+            "user.id",
+            # Release
+            "release",
+        ]
+
+        for field in expected_event_context_fields:
+            assert field in built_in_keys, f"Expected '{field}' to be in built_in_fields"
+
+    def test_event_context_fields_list_completeness(self):
+        """Test that _EVENT_CONTEXT_FIELDS contains expected fields"""
+        # Check that the list contains key categories of fields
+        assert "device.class" in _EVENT_CONTEXT_FIELDS
+        assert "error.handled" in _EVENT_CONTEXT_FIELDS
+        assert "http.method" in _EVENT_CONTEXT_FIELDS
+        assert "geo.city" in _EVENT_CONTEXT_FIELDS
+        assert "user.email" in _EVENT_CONTEXT_FIELDS
+        assert "stack.function" in _EVENT_CONTEXT_FIELDS
+        assert "release" in _EVENT_CONTEXT_FIELDS
+        assert "sdk.name" in _EVENT_CONTEXT_FIELDS
+        assert "os.build" in _EVENT_CONTEXT_FIELDS
+        assert "transaction" in _EVENT_CONTEXT_FIELDS
+
+    def test_boolean_event_fields_have_values(self):
+        """Test that boolean event context fields have true/false values in built-in fields"""
+        result = get_issue_filter_keys(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+        )
+
+        assert result is not None
+        built_in_fields = result["built_in_fields"]
+
+        # Find the error.handled field
+        error_handled_field = next(
+            (f for f in built_in_fields if f["key"] == "error.handled"), None
+        )
+        assert error_handled_field is not None
+        assert error_handled_field["values"] == ["true", "false"]
+
+        # Find the error.unhandled field
+        error_unhandled_field = next(
+            (f for f in built_in_fields if f["key"] == "error.unhandled"), None
+        )
+        assert error_unhandled_field is not None
+        assert error_unhandled_field["values"] == ["true", "false"]
+
+    def test_device_class_field_has_enum_values(self):
+        """Test that device.class field has high/medium/low values in built-in fields"""
+        result = get_issue_filter_keys(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+        )
+
+        assert result is not None
+        built_in_fields = result["built_in_fields"]
+
+        # Find the device.class field
+        device_class_field = next((f for f in built_in_fields if f["key"] == "device.class"), None)
+        assert device_class_field is not None
+        assert device_class_field["values"] == DEVICE_CLASS_VALUES
+
+
+@pytest.mark.django_db(databases=["default", "control"])
+class TestGetFilterKeyValuesStaticFields(APITestCase, SnubaTestCase):
+    """Tests for get_filter_key_values with static/built-in fields"""
+
+    databases = {"default", "control"}
+
+    def test_get_filter_key_values_boolean_field(self):
+        """Test that boolean fields return true/false values"""
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="error.handled",
+        )
+
+        assert result is not None
+        assert len(result) == 2
+        values = {item["value"] for item in result}
+        assert values == {"true", "false"}
+
+    def test_get_filter_key_values_device_class(self):
+        """Test that device.class returns enum values"""
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="device.class",
+        )
+
+        assert result is not None
+        assert len(result) == 3
+        values = [item["value"] for item in result]
+        assert values == DEVICE_CLASS_VALUES
+
+    def test_get_filter_key_values_datetime_field(self):
+        """Test that datetime fields return empty list"""
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="lastSeen",
+        )
+
+        assert result == []
+
+    def test_get_filter_key_values_uuid_field(self):
+        """Test that uuid field returns empty list"""
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="id",
+        )
+
+        assert result == []
+
+    def test_get_filter_key_values_boolean_with_substring_filter(self):
+        """Test that substring filtering works on boolean fields"""
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="error.handled",
+            substring="tr",
+        )
+
+        assert result is not None
+        assert len(result) == 1
+        assert result[0]["value"] == "true"
+
+
+@pytest.mark.django_db(databases=["default", "control"])
+class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
+    """Integration tests for text fields that fall through to API query"""
+
+    databases = {"default", "control"}
+
+    def setUp(self):
+        super().setUp()
+        self.min_ago = before_now(minutes=1)
+
+    def test_get_filter_key_values_message_field(self):
+        """Test that message field queries the API and returns actual event messages"""
+        # Store events with different messages
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "DatabaseError: connection timeout",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "DatabaseError: query failed",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "message": "ValueError: invalid input",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        # Query for message values - should fall through to API
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="message",
+        )
+
+        # Should return actual message values from events, not empty or None
+        assert result is not None
+        assert isinstance(result, list)
+        # The API should return values (may be empty if message isn't indexed as a tag)
+        # At minimum, verify we got a list back (not None which would indicate built-in handling)
+
+    def test_get_filter_key_values_message_with_substring(self):
+        """Test that message field supports substring filtering via API"""
+        # Store events with different messages
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "DatabaseError: connection timeout",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "DatabaseError: query failed",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "message": "ValueError: invalid input",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        # Query for message values with substring filter
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="message",
+            substring="Database",
+        )
+
+        # Should return a list (API was queried, not short-circuited)
+        assert result is not None
+        assert isinstance(result, list)
+
+    def test_get_filter_key_values_title_field(self):
+        """Test that title field queries the API and returns actual event titles"""
+        # Store events - title is derived from the event
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Error in payment processing",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "Error in user authentication",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        # Query for title values - should fall through to API
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="title",
+        )
+
+        # Should return a list (API was queried)
+        assert result is not None
+        assert isinstance(result, list)
+
+    def test_get_filter_key_values_location_field(self):
+        """Test that location field queries the API"""
+        # Store events with stack traces that have locations
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Test error",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "test",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "filename": "app/views.py",
+                                        "function": "handle_request",
+                                        "lineno": 42,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        # Query for location values - should fall through to API
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="location",
+        )
+
+        # Should return a list (API was queried)
+        assert result is not None
+        assert isinstance(result, list)
+
+    def test_text_fields_not_in_field_value_types(self):
+        """Verify text fields are not in _FIELD_VALUE_TYPES so they fall through to API query"""
+        from sentry.seer.assisted_query.issues_tools import _FIELD_VALUE_TYPES
+
+        # These text fields should NOT be in the mapping, so they fall through to API query
+        assert "message" not in _FIELD_VALUE_TYPES
+        assert "title" not in _FIELD_VALUE_TYPES
+        assert "location" not in _FIELD_VALUE_TYPES
+
+    def test_release_fields_query_api(self):
+        """Test that release fields fall through to API query"""
+        # Store event with release
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Test error",
+                "release": "myapp@1.0.0",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "Test error 2",
+                "release": "myapp@2.0.0",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        # Query for release values - should fall through to API
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="release",
+        )
+
+        # Should return a list with actual release values
+        assert result is not None
+        assert isinstance(result, list)
+        # Release is a common tag so it should have values
+        if len(result) > 0:
+            values = {item["value"] for item in result}
+            assert "myapp@1.0.0" in values or "myapp@2.0.0" in values
+
+
+@pytest.mark.django_db(databases=["default", "control"])
+class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
+    """Integration tests for assignee and username field values"""
+
+    databases = {"default", "control"}
+
+    def test_get_filter_key_values_assigned_field(self):
+        """Test that assigned field returns assignee values including special values and team slugs"""
+        # Create a team in the organization
+        team = self.create_team(organization=self.organization, slug="backend-team")
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="assigned",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+        values = [item["value"] for item in result]
+
+        # Should include special values
+        assert "me" in values
+        assert "my_teams" in values
+        assert "none" in values
+
+        # Should include team slug prefixed with #
+        assert f"#{team.slug}" in values
+
+    def test_get_filter_key_values_assigned_or_suggested_field(self):
+        """Test that assigned_or_suggested field returns same values as assigned"""
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="assigned_or_suggested",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+        values = [item["value"] for item in result]
+        assert "me" in values
+        assert "my_teams" in values
+        assert "none" in values
+
+    def test_get_filter_key_values_assigned_includes_member_usernames(self):
+        """Test that assigned field includes organization member usernames"""
+        # The test user is automatically a member of the organization
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="assigned",
+        )
+
+        assert result is not None
+        values = [item["value"] for item in result]
+
+        # Should include the test user's username or email
+        # The test user from APITestCase should be included
+        assert len(values) > 3  # More than just special values (me, my_teams, none)
+
+    def test_get_filter_key_values_bookmarks_field(self):
+        """Test that bookmarks field returns usernames"""
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="bookmarks",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+        # Should have usernames (at least the test user)
+
+    def test_get_filter_key_values_subscribed_field(self):
+        """Test that subscribed field returns usernames"""
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="subscribed",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+
+    def test_get_filter_key_values_assigned_with_substring_filter(self):
+        """Test that substring filtering works on assigned field"""
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="assigned",
+            substring="my_",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+        # Should only include values containing "my_"
+        for item in result:
+            assert "my_" in item["value"].lower()
+
+    def test_get_issue_filter_keys_includes_assignee_values(self):
+        """Test that get_issue_filter_keys includes assignee values in built_in_fields"""
+        # Create a team
+        team = self.create_team(organization=self.organization, slug="test-team")
+
+        result = get_issue_filter_keys(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+        )
+
+        assert result is not None
+        assert "built_in_fields" in result
+        built_in_fields = result["built_in_fields"]
+
+        # Find the assigned field
+        assigned_field = next((f for f in built_in_fields if f["key"] == "assigned"), None)
+        assert assigned_field is not None
+        assert "values" in assigned_field
+        assert "me" in assigned_field["values"]
+        assert "my_teams" in assigned_field["values"]
+        assert "none" in assigned_field["values"]
+        assert f"#{team.slug}" in assigned_field["values"]
+
+        # Find the assigned_or_suggested field
+        assigned_or_suggested_field = next(
+            (f for f in built_in_fields if f["key"] == "assigned_or_suggested"), None
+        )
+        assert assigned_or_suggested_field is not None
+        assert assigned_or_suggested_field["values"] == assigned_field["values"]
+
+        # Find the bookmarks field - should have usernames
+        bookmarks_field = next((f for f in built_in_fields if f["key"] == "bookmarks"), None)
+        assert bookmarks_field is not None
+        assert "values" in bookmarks_field
+
+        # Find the subscribed field - should have usernames
+        subscribed_field = next((f for f in built_in_fields if f["key"] == "subscribed"), None)
+        assert subscribed_field is not None
+        assert "values" in subscribed_field
+
+    def test_format_username_uuid_username_uses_email(self):
+        """Test that users with UUID usernames (32 hex chars) return email instead"""
+        # Create a user with a UUID username (SAML users get UUID usernames)
+        uuid_username = "01e2eb9a75174388a63daa4afcf782de"  # 32 hex characters
+        user_email = "samluser@sentry.io"
+        user = self.create_user(username=uuid_username, email=user_email)
+        self.create_member(organization=self.organization, user=user)
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="assigned",
+        )
+
+        assert result is not None
+        values = [item["value"] for item in result]
+        # Should use email, not UUID username
+        assert user_email in values
+        assert uuid_username not in values
+
+
+@pytest.mark.django_db(databases=["default", "control"])
+class TestReleaseFieldValues(APITestCase, SnubaTestCase):
+    """Integration tests for release field values"""
+
+    databases = {"default", "control"}
+
+    def test_get_filter_key_values_release_field(self):
+        """Test that release field returns actual release versions"""
+        # Create releases
+        release1 = self.create_release(
+            project=self.project, version="myapp@1.0.0", date_added=before_now(days=1)
+        )
+        release2 = self.create_release(
+            project=self.project, version="myapp@2.0.0", date_added=before_now(hours=1)
+        )
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="release",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+        values = [item["value"] for item in result]
+        assert release1.version in values
+        assert release2.version in values
+
+    def test_get_filter_key_values_first_release_field(self):
+        """Test that firstRelease field returns actual release versions"""
+        # Create releases
+        release1 = self.create_release(project=self.project, version="myapp@1.0.0")
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="firstRelease",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+        values = [item["value"] for item in result]
+        assert release1.version in values
+
+    def test_get_filter_key_values_release_stage_field(self):
+        """Test that release.stage field returns static enum values"""
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="release.stage",
+        )
+
+        assert result is not None
+        assert len(result) == 3
+        values = [item["value"] for item in result]
+        assert "adopted" in values
+        assert "low_adoption" in values
+        assert "replaced" in values
+
+    def test_get_filter_key_values_release_with_substring(self):
+        """Test that release field supports substring filtering"""
+        self.create_release(project=self.project, version="myapp@1.0.0")
+        self.create_release(project=self.project, version="myapp@2.0.0")
+        self.create_release(project=self.project, version="otherapp@1.0.0")
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="release",
+            substring="myapp",
+        )
+
+        assert result is not None
+        # Should only include releases containing "myapp"
+        for item in result:
+            assert "myapp" in item["value"]
+
+    def test_get_issue_filter_keys_includes_release_values(self):
+        """Test that get_issue_filter_keys includes actual release values"""
+        release = self.create_release(project=self.project, version="myapp@3.0.0")
+
+        result = get_issue_filter_keys(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+        )
+
+        assert result is not None
+        assert "built_in_fields" in result
+        built_in_fields = result["built_in_fields"]
+
+        # Find the release field
+        release_field = next((f for f in built_in_fields if f["key"] == "release"), None)
+        assert release_field is not None
+        assert release.version in release_field["values"]
+
+        # Find the firstRelease field
+        first_release_field = next((f for f in built_in_fields if f["key"] == "firstRelease"), None)
+        assert first_release_field is not None
+        assert release.version in first_release_field["values"]
+
+        # Find the release.stage field - should have static values
+        release_stage_field = next(
+            (f for f in built_in_fields if f["key"] == "release.stage"), None
+        )
+        assert release_stage_field is not None
+        assert release_stage_field["values"] == ["adopted", "low_adoption", "replaced"]

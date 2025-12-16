@@ -173,7 +173,7 @@ function useTimelineZoom<E extends HTMLElement>({enabled = true, onSelect}: Opti
 
 const Selection = styled(motion.div)`
   pointer-events: none;
-  background: ${p => (p.theme.isChonk ? p.theme.gray200 : p.theme.translucentGray200)};
+  background: ${p => p.theme.gray200};
   border-left: 1px solid ${p => p.theme.purple200};
   border-right: 1px solid ${p => p.theme.purple200};
   height: 100%;

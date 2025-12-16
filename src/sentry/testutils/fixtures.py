@@ -279,6 +279,9 @@ class Fixtures:
             project = self.project
         return Factories.create_repo(project, *args, **kwargs)
 
+    def create_repository_settings(self, *args, **kwargs):
+        return Factories.create_repository_settings(*args, **kwargs)
+
     def create_commit(self, *args, **kwargs):
         return Factories.create_commit(*args, **kwargs)
 
