@@ -135,11 +135,11 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
       };
     case 'info':
       return {
-        background: theme.blue300,
-        backgroundLight: theme.blue100,
-        border: theme.blue200,
-        borderHover: theme.blue300,
-        color: theme.blue400,
+        background: theme.colors.blue400,
+        backgroundLight: theme.colors.blue100,
+        border: theme.colors.blue200,
+        borderHover: theme.colors.blue400,
+        color: theme.colors.blue500,
       };
     case 'warning':
       return {

@@ -33,7 +33,7 @@ function makeBadgeTheme(
       };
     case 'new':
       return {
-        background: `linear-gradient(90deg, ${theme.blue300}, ${theme.green300})`,
+        background: `linear-gradient(90deg, ${theme.colors.blue400}, ${theme.green300})`,
         color: theme.white,
       };
     case 'warning':

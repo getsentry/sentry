@@ -638,7 +638,7 @@ const Tab = styled('li')`
   }
 
   &:hover {
-    border-bottom: 2px solid ${p => p.theme.blue200};
+    border-bottom: 2px solid ${p => p.theme.colors.blue200};
 
     button:last-child {
       transition: all 0.3s ease-in-out 500ms;
@@ -647,7 +647,7 @@ const Tab = styled('li')`
     }
   }
   &[aria-selected='true'] {
-    border-bottom: 2px solid ${p => p.theme.blue400};
+    border-bottom: 2px solid ${p => p.theme.colors.blue500};
   }
 `;
 
