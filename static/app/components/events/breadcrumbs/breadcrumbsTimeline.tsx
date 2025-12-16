@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import moment from 'moment-timezone';
+
+import {Link} from '@sentry/scraps/link';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
