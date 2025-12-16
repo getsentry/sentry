@@ -149,7 +149,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         fontFamily: 'Rubik',
         padding: 0,
         textShadowBlur: 2,
-        textShadowColor: theme.gray500,
+        textShadowColor: theme.colors.gray800,
         textShadowOffsetY: 0.5,
       },
       upperLabel: {
@@ -163,7 +163,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         fontFamily: 'Rubik',
         padding: 0,
         textShadowBlur: 2,
-        textShadowColor: theme.gray500,
+        textShadowColor: theme.colors.gray800,
         textShadowOffsetY: 0.5,
       },
     };
@@ -186,7 +186,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
           <span
             style={{
               fontFamily: 'monospace',
-              backgroundColor: theme.gray100,
+              backgroundColor: theme.colors.gray100,
               padding: theme.space.xs,
               borderRadius: theme.radius.md,
             }}

@@ -105,7 +105,7 @@ const LineNumberWrapper = styled('div')<{
     if (!p.hasLineNumber) {
       return css`
         background-color: var(--prism-block-background);
-        border-right: ${space(0.25)} solid ${p.theme.gray200};
+        border-right: ${space(0.25)} solid ${p.theme.colors.gray200};
       `;
     }
 
@@ -136,7 +136,7 @@ const LineNumberWrapper = styled('div')<{
 
     return css`
       background-color: var(--prism-block-background);
-      border-right: ${space(0.25)} solid ${p.theme.gray200};
+      border-right: ${space(0.25)} solid ${p.theme.colors.gray200};
     `;
   }}
 `;

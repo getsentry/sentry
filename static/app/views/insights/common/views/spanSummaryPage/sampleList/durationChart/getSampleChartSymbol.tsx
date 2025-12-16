@@ -16,7 +16,7 @@ export function getSampleChartSymbol(
   if (areNumbersAlmostEqual(value, baseline, NEAR_AVERAGE_THRESHOLD_PERCENTAGE)) {
     return {
       symbol: crossIconPath,
-      color: theme.gray500,
+      color: theme.colors.gray800,
     };
   }
 

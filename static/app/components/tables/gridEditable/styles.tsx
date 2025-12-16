@@ -312,7 +312,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
   }
 
   &:hover::after {
-    background-color: ${p => p.theme.gray200};
+    background-color: ${p => p.theme.colors.gray200};
   }
 
   /**

@@ -16,11 +16,11 @@ const Wrapper = styled('div')`
   mark {
     border-radius: 8px;
     padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.colors.gray100};
     margin-right: ${space(0.5)};
   }
   h2 {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
   p {
     margin: ${space(1)} ${space(0.5)};
@@ -29,7 +29,7 @@ const Wrapper = styled('div')`
     margin: ${space(0.5)};
   }
   .encrypt-help {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
     padding-bottom: ${space(1)};
   }
   .encrypt-note {
