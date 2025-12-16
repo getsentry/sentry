@@ -5,10 +5,8 @@ export function buildTreemapDiff(diffItems: DiffItem[]): TreemapDiffElement | nu
     return null;
   }
 
-  // Build the tree structure from diff items
   const root = buildTreeFromDiffItems(diffItems);
 
-  // Only return if there are changes
   if (!root || root.size_diff === 0) {
     return null;
   }
