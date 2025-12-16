@@ -145,6 +145,9 @@ def should_create_or_increment_contributor_seat(
     2. Require code review OR autofix to be enabled for the repo
     3. Check Seer quota (returns True if contributor has seat OR quota available)
     """
+    if not features.has("organizations:seat-based-seer-enabled", organization):
+        return False
+
     if features.has("organizations:code-review-beta", organization):
         return False
 
