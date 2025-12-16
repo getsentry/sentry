@@ -163,7 +163,8 @@ body = serializers.CharField(
 )
 assertion = serializers.JSONField(
     required=False,
-    help_text="The body to send with the check request.",
+    allow_null=True,
+    help_text="The assertion to send with the check request.",
 )
 
 
@@ -173,8 +174,8 @@ class UptimeTestValidator(CamelSnakeSerializer):
     method = method
     headers = headers
     body = body
-    assertion = assertion
     timeout_ms = timeout_ms
+    assertion = assertion
     region = serializers.CharField(
         required=True,
         allow_null=False,

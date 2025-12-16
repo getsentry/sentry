@@ -23,6 +23,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
 from sentry.uptime.endpoints.validators import UptimeTestValidator
 from sentry.uptime.types import CheckConfig
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ class OrganizationUptimeAlertTestEndpoint(OrganizationEndpoint):
                 headers={
                     "content-type": "application/json;charset=utf-8",
                 },
-                json=check,
+                data=json.dumps(check).encode("utf-8"),
                 timeout=10,
             )
             result.raise_for_status()
