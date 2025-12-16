@@ -22,6 +22,7 @@ interface ExplorerMenuProps {
   };
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   inputAnchorRef?: React.RefObject<HTMLElement | null>;
+  langfuseUrl?: string;
   menuAnchorRef?: React.RefObject<HTMLElement | null>;
   prWidgetAnchorRef?: React.RefObject<HTMLElement | null>;
   prWidgetFooter?: React.ReactNode;
@@ -49,6 +50,7 @@ export function useExplorerMenu({
   prWidgetAnchorRef,
   prWidgetItems,
   prWidgetFooter,
+  langfuseUrl,
 }: ExplorerMenuProps) {
   const [menuMode, setMenuMode] = useState<MenuMode>('hidden');
   const [menuPosition, setMenuPosition] = useState<{
@@ -58,7 +60,7 @@ export function useExplorerMenu({
     top?: string | number;
   }>({});
 
-  const allSlashCommands = useSlashCommands(slashCommandHandlers);
+  const allSlashCommands = useSlashCommands({...slashCommandHandlers, langfuseUrl});
 
   const filteredSlashCommands = useMemo(() => {
     // Filter commands based on current input
@@ -342,11 +344,13 @@ function useSlashCommands({
   onMedSize,
   onNew,
   onFeedback,
+  langfuseUrl,
 }: {
   onFeedback: (() => void) | undefined;
   onMaxSize: () => void;
   onMedSize: () => void;
   onNew: () => void;
+  langfuseUrl?: string;
 }): MenuItemProps[] {
   return useMemo(
     (): MenuItemProps[] => [
@@ -384,8 +388,20 @@ function useSlashCommands({
             },
           ]
         : []),
+      ...(langfuseUrl
+        ? [
+            {
+              title: '/langfuse',
+              key: '/langfuse',
+              description: 'Open Langfuse to view session details',
+              handler: () => {
+                window.open(langfuseUrl, '_blank');
+              },
+            },
+          ]
+        : []),
     ],
-    [onNew, onMaxSize, onMedSize, onFeedback]
+    [onNew, onMaxSize, onMedSize, onFeedback, langfuseUrl]
   );
 }
 

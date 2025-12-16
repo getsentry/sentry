@@ -247,13 +247,14 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     setIsMinimized(false);
   }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
+  const langfuseUrl = sessionData?.run_id
+    ? `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${sessionData.run_id}`
+    : undefined;
+
   const openFeedbackForm = useFeedbackForm();
 
   const handleFeedback = useCallback(() => {
     if (openFeedbackForm) {
-      const langfuseUrl = sessionData?.run_id
-        ? `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${sessionData.run_id}`
-        : undefined;
       openFeedbackForm({
         formTitle: 'Seer Explorer Feedback',
         messagePlaceholder: 'How can we make Seer Explorer better for you?',
@@ -263,7 +264,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         },
       });
     }
-  }, [openFeedbackForm, sessionData?.run_id]);
+  }, [openFeedbackForm, langfuseUrl]);
 
   const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
     useExplorerMenu({
@@ -285,6 +286,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       prWidgetAnchorRef: prWidgetButtonRef,
       prWidgetItems,
       prWidgetFooter,
+      langfuseUrl,
     });
 
   const handlePanelBackgroundClick = useCallback(() => {
