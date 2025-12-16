@@ -24,6 +24,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.github.utils import should_create_or_increment_contributor_seat
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -38,6 +39,10 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import (
+    ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
+    OrganizationContributors,
+)
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -45,9 +50,11 @@ from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
+from sentry.preprod.pull_request.comment_types import AuthorAssociation
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.seer.code_review.webhooks import handle_github_check_run_event
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
@@ -71,6 +78,20 @@ def get_file_language(filename: str) -> str | None:
         language = EXTENSION_LANGUAGE_MAP.get(extension)
 
     return language
+
+
+def is_contributor_eligible_for_seat_assignment(
+    user_type: str | None, author_association: str
+) -> bool:
+    """
+    Determine if a contributor is eligible for seat assignment based on their user type and author association.
+    - Contributor must be MEMBER or OWNER of the repo
+    - Contributor cannot be a bot
+    """
+    return user_type != "Bot" and author_association in (
+        AuthorAssociation.MEMBER,
+        AuthorAssociation.OWNER,
+    )
 
 
 class GitHubWebhook(SCMWebhook, ABC):
@@ -695,7 +716,9 @@ class PullRequestEventWebhook(GitHubWebhook):
         number = pull_request["number"]
         title = pull_request["title"]
         body = pull_request["body"]
+        author_association = pull_request["author_association"]
         user = pull_request["user"]
+        user_type = user.get("type")
         action = event["action"]
 
         """
@@ -768,6 +791,58 @@ class PullRequestEventWebhook(GitHubWebhook):
             )
 
             if created:
+                # Track AI contributor if eligible
+                contributor, _ = OrganizationContributors.objects.get_or_create(
+                    organization_id=organization.id,
+                    integration_id=integration.id,
+                    external_identifier=user["id"],
+                    defaults={
+                        "alias": user["login"],
+                    },
+                )
+
+                if should_create_or_increment_contributor_seat(organization, repo, contributor):
+                    metrics.incr(
+                        "github.webhook.organization_contributor.should_create",
+                        sample_rate=1.0,
+                        tags={
+                            "organization_id": organization.id,
+                            "repository_id": repo.id,
+                        },
+                    )
+
+                    locked_contributor = None
+                    with transaction.atomic(router.db_for_write(OrganizationContributors)):
+                        try:
+                            locked_contributor = (
+                                OrganizationContributors.objects.select_for_update().get(
+                                    organization_id=organization.id,
+                                    integration_id=integration.id,
+                                    external_identifier=user["id"],
+                                )
+                            )
+                            locked_contributor.num_actions += 1
+                            locked_contributor.save(update_fields=["num_actions", "date_updated"])
+                        except OrganizationContributors.DoesNotExist:
+                            logger.exception(
+                                "github.webhook.organization_contributor.not_found",
+                                extra={
+                                    "organization_id": organization.id,
+                                    "integration_id": integration.id,
+                                    "external_identifier": user["id"],
+                                },
+                            )
+
+                    if (
+                        locked_contributor
+                        and is_contributor_eligible_for_seat_assignment(
+                            user_type, author_association
+                        )
+                        and locked_contributor.num_actions
+                        >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
+                    ):
+                        assign_seat_to_organization_contributor.delay(locked_contributor.id)
+
                 metrics.incr(
                     "github.webhook.pull_request.created",
                     sample_rate=1.0,

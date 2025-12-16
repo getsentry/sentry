@@ -44,7 +44,9 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         self, detector_id: str, organization: Organization
     ) -> Group | None:
         try:
-            detector = Detector.objects.select_related("project").get(id=detector_id)
+            detector = (
+                Detector.objects.with_type_filters().select_related("project").get(id=detector_id)
+            )
         except (Detector.DoesNotExist, ValueError):
             raise ValidationError({"detectorId": "Detector not found"})
 

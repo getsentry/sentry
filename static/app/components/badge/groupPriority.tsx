@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
@@ -248,14 +247,9 @@ const DropdownButton = styled(Button)`
   border-radius: 20px;
   box-shadow: none;
 
-  ${p =>
-    // Chonk tags have a smaller border radius, so we need make sure it matches.
-    p.theme.isChonk &&
-    css`
-      > span > div {
-        border-radius: 20px;
-      }
-    `}
+  > span > div {
+    border-radius: 20px;
+  }
 `;
 
 const StyledTag = styled(Tag)`

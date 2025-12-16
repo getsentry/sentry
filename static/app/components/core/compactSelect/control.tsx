@@ -145,6 +145,7 @@ export interface ControlProps
   menuHeaderTrailingItems?:
     | React.ReactNode
     | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+  menuHeight?: number | string;
   /**
    * Title to display in the menu's header. Keep the title as short as possible.
    */
@@ -217,6 +218,7 @@ export function Control({
   menuTitle,
   maxMenuHeight = '32rem',
   menuWidth,
+  menuHeight,
   menuHeaderTrailingItems,
   menuBody,
   menuFooter,
@@ -235,9 +237,11 @@ export function Control({
   loading = false,
   grid = false,
   children,
+  menuRef,
   ...wrapperProps
 }: ControlProps & {
   items?: Array<SelectOptionOrSection<SelectKey>>;
+  menuRef?: React.Ref<HTMLDivElement>;
   value?: SelectKey | SelectKey[] | undefined;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -491,7 +495,9 @@ export function Control({
         >
           {overlayIsOpen && (
             <StyledOverlay
+              ref={menuRef}
               width={menuWidth ?? menuFullWidth}
+              height={menuHeight}
               minWidth={overlayProps.style!.minWidth}
               maxWidth={
                 overlayProps.style?.maxWidth
@@ -570,7 +576,6 @@ const ControlWrap = styled('div')`
 export const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   text-align: left;
-  ${p => !p.theme.isChonk && 'line-height: normal;'}
 `;
 
 const StyledBadge = styled(Badge)`
@@ -596,7 +601,7 @@ const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
     box-shadow: none;
   }
 
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
   z-index: 2;
 
   font-size: ${p => (p.size === 'xs' ? p.theme.fontSize.xs : p.theme.fontSize.sm)};
@@ -611,7 +616,7 @@ const MenuHeaderTrailingItems = styled('div')`
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.medium};
   white-space: nowrap;
   margin-right: ${space(2)};
 `;
@@ -626,7 +631,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.regular};
   color: ${p => p.theme.subText};
   padding: 0 ${space(0.5)};
   margin: -${space(0.25)} -${space(0.5)};
@@ -646,9 +651,10 @@ const SearchInput = styled(Input)`
 const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {
-  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+  shouldForwardProp: prop => isPropValid(prop),
 })<{
   maxHeightProp: string | number;
+  height?: string | number;
   maxHeight?: string | number;
   maxWidth?: string | number;
   minWidth?: string | number;
@@ -661,6 +667,7 @@ const StyledOverlay = styled(Overlay, {
   overflow: hidden;
 
   ${p => p.width && `width: ${withUnits(p.width)};`}
+  ${p => p.height && `height: ${withUnits(p.height)};`}
   ${p => p.minWidth && `min-width: ${withUnits(p.minWidth)};`}
   max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : `100%`)};
   max-height: ${p =>

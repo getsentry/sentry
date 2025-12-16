@@ -20,6 +20,7 @@ class NotificationCategory(StrEnum):
     DATA_EXPORT = "data-export"
     DYNAMIC_SAMPLING = "dynamic-sampling"
     REPOSITORY = "repository"
+    SEER = "seer"
 
     def get_sources(self) -> list[str]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -43,6 +44,12 @@ NOTIFICATION_SOURCE_MAP = {
     ],
     NotificationCategory.REPOSITORY: [
         "unable-to-delete-repository",
+    ],
+    NotificationCategory.SEER: [
+        "seer-autofix-trigger",
+        "seer-autofix-error",
+        "seer-context-input",
+        "seer-context-input-complete",
     ],
 }
 
@@ -294,6 +301,11 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
     """
     The example data for this notification.
     """
+    hide_from_debugger: bool = False
+    """
+    Set 'true' to omit these templates from the internal debugger (sentry.io/debug/notifications).
+    This is useful for templates that only use custom renderers and bypass NotificationRenderedTemplates.
+    """
 
     @abc.abstractmethod
     def render(self, data: T) -> NotificationRenderedTemplate:
@@ -309,3 +321,10 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
         implementation should be pure, and not populate with any live data.
         """
         return self.render(data=self.example_data)
+
+    @classmethod
+    def get_data_class(cls) -> type[NotificationData]:
+        """
+        Returns NotificationData type for this template.
+        """
+        return cls.example_data.__class__

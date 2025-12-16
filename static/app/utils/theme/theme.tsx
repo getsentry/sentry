@@ -8,13 +8,13 @@
  * - Theme type exports
  */
 import type {CSSProperties} from 'react';
-import {css, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
+import {css} from '@emotion/react';
 import modifyColor from 'color';
 import {spring, type Transition} from 'framer-motion';
 
 import {color} from 'sentry/utils/theme/scraps/color';
 import {breakpoints, radius, size, space} from 'sentry/utils/theme/scraps/size';
+import {typography} from 'sentry/utils/theme/scraps/typography';
 
 type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
 
@@ -199,11 +199,15 @@ const generateThemePrismVariables = (
     ...prismColors,
   });
 
-const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
+const generateButtonTheme = (
+  colors: Colors,
+  alias: Aliases,
+  tokens: ReturnType<typeof generateChonkTokens>
+): ButtonColors => ({
   default: {
     // all alias-based, already derived from new theme
-    color: alias.textColor,
-    colorActive: alias.textColor,
+    color: tokens.content.primary,
+    colorActive: tokens.content.primary,
     background: alias.background,
     backgroundActive: alias.hover,
     border: alias.border,
@@ -257,8 +261,8 @@ const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
     focusShadow: 'transparent',
   },
   transparent: {
-    color: alias.textColor,
-    colorActive: alias.textColor,
+    color: tokens.content.primary,
+    colorActive: tokens.content.primary,
     background: 'transparent',
     backgroundActive: 'transparent',
     border: 'transparent',
@@ -308,17 +312,24 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   },
 });
 
-const generateLevelTheme = (colors: Colors): LevelColors => ({
-  sample: colors.blue400,
-  info: colors.blue400,
-  warning: colors.yellow400,
-  // Hardcoded legacy color (orange400). We no longer use orange anywhere
-  // else in the app (except for the chart palette). This needs to be harcoded
-  // here because existing users may still associate orange with the "error" level.
-  error: '#FF7738',
-  fatal: colors.red400,
-  default: colors.gray400,
-  unknown: colors.gray200,
+const generateLevelTheme = (
+  tokens: ReturnType<typeof generateChonkTokens>,
+  mode: 'light' | 'dark'
+): LevelColors => ({
+  sample: tokens.graphics.accent,
+  info: tokens.graphics.accent,
+  // BAD: accessing named colors is forbidden
+  // but necessary to differente from orange
+  warning: color.categorical[mode].yellow,
+  // BAD: hardcoded legacy color! We no longer use orange in the main UI,
+  // but do have it in the chart palette. This needs to be harcoded
+  // because existing users still associate orange with the "error" level.
+  error: color.categorical[mode].orange,
+  fatal: tokens.graphics.danger,
+  // BAD: should be `tokens.dataviz.semantic.neutral` once available
+  default: color.neutral[mode][mode === 'light' ? 'opaque800' : 'opaque900'],
+  // BAD: should be `tokens.dataviz.semantic.other` once available
+  unknown: color.neutral[mode][mode === 'light' ? 'opaque400' : 'opaque800'],
 });
 
 const generateTagTheme = (colors: Colors): TagColors => ({
@@ -363,18 +374,6 @@ const generateTagTheme = (colors: Colors): TagColors => ({
     border: colors.blue100,
     color: colors.blue500,
   },
-
-  white: {
-    background: colors.white,
-    border: colors.white,
-    color: colors.black,
-  },
-
-  black: {
-    background: colors.black,
-    border: colors.black,
-    color: colors.white,
-  },
 });
 
 /**
@@ -390,10 +389,7 @@ type Tag =
   | 'warning'
   | 'success'
   | 'error'
-  | 'info'
-  // @TODO(jonasbadalic): What are white and black tags?
-  | 'white'
-  | 'black';
+  | 'info';
 
 type TagColors = Record<
   Tag,
@@ -425,16 +421,28 @@ type ButtonColors = Record<
   }
 >;
 
-type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-
+export type Size = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 /**
  * Unless you are implementing a new component in the `sentry/components/core`
  * directory, use `ComponentProps['size']` instead.
  * @internal
  */
 export type FormSize = 'xs' | 'sm' | 'md';
-
 export type Space = keyof typeof space;
+
+const legacyTypography = {
+  fontSize: typography.font.size,
+  fontWeight: {
+    normal: typography.font.weight.regular,
+    bold: typography.font.weight.medium,
+  },
+  text: {
+    family: typography.font.family.sans,
+    familyMono: typography.font.family.mono,
+    lineHeightHeading: typography.font.lineHeight.default,
+    lineHeightBody: typography.font.lineHeight.comfortable,
+  },
+} as const;
 
 type FormTheme = {
   form: Record<
@@ -452,15 +460,47 @@ type FormTheme = {
     }
   >;
 };
-
-const iconSizes: Record<Size, string> = {
-  xs: '12px',
-  sm: '14px',
-  md: '18px',
-  lg: '24px',
-  xl: '32px',
-  '2xl': '72px',
-} as const;
+const formTheme: FormTheme = {
+  /**
+   * Common styles for form inputs & buttons, separated by size.
+   * Should be used to ensure consistent sizing among form elements.
+   */
+  form: {
+    md: {
+      height: '36px',
+      minHeight: '36px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+      paddingLeft: 16,
+      paddingRight: 16,
+      paddingTop: 12,
+      paddingBottom: 12,
+      borderRadius: radius.lg,
+    },
+    sm: {
+      height: '32px',
+      minHeight: '32px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingTop: 8,
+      paddingBottom: 8,
+      borderRadius: radius.md,
+    },
+    xs: {
+      height: '28px',
+      minHeight: '28px',
+      fontSize: '0.75rem',
+      lineHeight: '1rem',
+      paddingLeft: 8,
+      paddingRight: 8,
+      paddingTop: 6,
+      paddingBottom: 6,
+      borderRadius: radius.sm,
+    },
+  },
+};
 
 /**
  * Values shared between light and dark theme
@@ -471,9 +511,6 @@ const commonTheme = {
   space,
   size,
   motion: generateMotion(),
-
-  // Icons
-  iconSizes,
 
   // Try to keep these ordered plz
   zIndex: {
@@ -543,30 +580,12 @@ const commonTheme = {
     },
   },
 
-  fontSize: {
-    xs: '11px',
-    sm: '12px',
-    md: '14px',
-    lg: '16px',
-    xl: '18px',
-    '2xl': '20px',
-  } satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>,
-
-  fontWeight: {
-    normal: 400 as const,
-    bold: 600 as const,
-  },
-
-  text: {
-    family: "'Rubik', 'Avenir Next', sans-serif",
-    familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
-    lineHeightHeading: 1.2,
-    lineHeightBody: 1.4,
-  },
+  ...legacyTypography,
+  ...typography,
+  ...formTheme,
 };
 
 export type Color = keyof ReturnType<typeof deprecatedColorMappings>;
-export type IconSize = keyof typeof iconSizes;
 type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
 export interface SentryTheme extends Omit<typeof lightThemeDefinition, 'chart'> {
@@ -962,48 +981,6 @@ function makeChartColorPalette<T extends ChartColorPalette>(
   };
 }
 
-const formTheme: FormTheme = {
-  /**
-   * Common styles for form inputs & buttons, separated by size.
-   * Should be used to ensure consistent sizing among form elements.
-   */
-  form: {
-    md: {
-      height: '36px',
-      minHeight: '36px',
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-      paddingLeft: 16,
-      paddingRight: 16,
-      paddingTop: 12,
-      paddingBottom: 12,
-      borderRadius: radius.lg,
-    },
-    sm: {
-      height: '32px',
-      minHeight: '32px',
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-      paddingLeft: 12,
-      paddingRight: 12,
-      paddingTop: 8,
-      paddingBottom: 8,
-      borderRadius: radius.md,
-    },
-    xs: {
-      height: '28px',
-      minHeight: '28px',
-      fontSize: '0.75rem',
-      lineHeight: '1rem',
-      paddingLeft: 8,
-      paddingRight: 8,
-      paddingTop: 6,
-      paddingBottom: 6,
-      borderRadius: radius.sm,
-    },
-  },
-};
-
 // @TODO(jonasbadalic): eventually, we should port component usage to these values
 function generateChonkTokens(colorScheme: typeof lightColors) {
   return {
@@ -1259,19 +1236,9 @@ const generateAliases = (
   colors: typeof lightColors
 ) => ({
   /**
-   * Primary text color
-   */
-  textColor: tokens.content.primary,
-
-  /**
    * Text that should not have as much emphasis
    */
   subText: tokens.content.muted,
-
-  /**
-   * Background for the main content area of a page?
-   */
-  bodyBackground: tokens.background.secondary,
 
   /**
    * Primary background color
@@ -1377,28 +1344,6 @@ const generateAliases = (
   linkColor: tokens.component.link.accent.default,
   linkHoverColor: tokens.component.link.accent.hover,
   linkUnderline: tokens.component.link.accent.default,
-  linkFocus: tokens.border.accent,
-
-  /**
-   * Form placeholder text color
-   */
-  formPlaceholder: colors.gray300,
-
-  /**
-   * Color of lines that flow across the background of the chart to indicate axes levels
-   * (This should only be used for yAxis)
-   */
-  chartLineColor: colors.gray300,
-
-  /**
-   * Color for chart label text
-   */
-  chartLabel: tokens.content.muted,
-
-  /**
-   * Color for the 'others' series in topEvent charts
-   */
-  chartOther: tokens.content.muted,
 
   /**
    * Default Progressbar color
@@ -1433,15 +1378,6 @@ const generateAliases = (
     warningActive: modifyColor(colors.yellow200).opaquer(1).string(),
   },
 });
-
-const fontSize = {
-  xs: '11px' as const,
-  sm: '12px' as const,
-  md: '14px' as const,
-  lg: '16px' as const,
-  xl: '20px' as const,
-  '2xl': '24px' as const,
-} satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>;
 
 const lightTokens = generateChonkTokens(lightColors);
 const darkTokens = generateChonkTokens(darkColors);
@@ -1632,12 +1568,9 @@ const deprecatedColorMappings = (colors: Colors) => ({
 });
 
 const lightThemeDefinition = {
-  isChonk: true,
   type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-  fontSize,
-  ...formTheme,
   ...deprecatedColorMappings(lightColors),
   ...lightAliases,
   ...lightShadows,
@@ -1652,9 +1585,9 @@ const lightThemeDefinition = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(deprecatedColorMappings(lightColors), lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
-  button: generateButtonTheme(lightColors, lightAliases),
+  button: generateButtonTheme(lightColors, lightAliases, lightTokens),
   tag: generateTagTheme(lightColors),
-  level: generateLevelTheme(lightColors),
+  level: generateLevelTheme(lightTokens, 'light'),
 
   chart: {
     neutral: modifyColor(lightColors.gray400).lighten(0.8).toString(),
@@ -1683,12 +1616,10 @@ export const lightTheme: SentryTheme = lightThemeDefinition;
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const darkTheme: SentryTheme = {
-  isChonk: true,
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-  fontSize,
-  ...formTheme,
+
   ...deprecatedColorMappings(darkColors),
   ...darkAliases,
   ...darkShadows,
@@ -1703,9 +1634,9 @@ export const darkTheme: SentryTheme = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(deprecatedColorMappings(darkColors), darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
-  button: generateButtonTheme(darkColors, darkAliases),
+  button: generateButtonTheme(darkColors, darkAliases, darkTokens),
   tag: generateTagTheme(darkColors),
-  level: generateLevelTheme(darkColors),
+  level: generateLevelTheme(darkTokens, 'dark'),
 
   chart: {
     neutral: modifyColor(darkColors.gray400).darken(0.35).toString(),
@@ -1736,8 +1667,3 @@ export type StrictCSSObject = {
   [key: `> ${string}:last-child`]: StrictCSSObject; // Allow some nested selectors
   [key: `> ${string}:first-child`]: StrictCSSObject; // Allow some nested selectors
 }>;
-
-// tkdodo: kept for backwards compatibility, to be deleted
-
-export const chonkStyled = styled;
-export const useChonkTheme = useTheme;
