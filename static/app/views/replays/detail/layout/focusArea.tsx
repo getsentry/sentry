@@ -1,5 +1,4 @@
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import Ai from 'sentry/views/replays/detail/ai/ai';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
@@ -13,8 +12,7 @@ import TagPanel from 'sentry/views/replays/detail/tagPanel';
 import TraceFeature from 'sentry/views/replays/detail/trace/index';
 
 export default function FocusArea({isVideoReplay}: {isVideoReplay?: boolean}) {
-  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
-  const {getActiveTab} = useActiveReplayTab({isVideoReplay, areAiFeaturesAllowed});
+  const {getActiveTab} = useActiveReplayTab({isVideoReplay});
 
   switch (getActiveTab()) {
     case TabKey.AI:
