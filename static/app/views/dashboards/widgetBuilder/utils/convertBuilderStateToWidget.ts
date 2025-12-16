@@ -11,6 +11,7 @@ import {
   serializeSorts,
   type WidgetBuilderState,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {generateMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/generateMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
@@ -22,17 +23,34 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     defined(state.legendAlias) && state.legendAlias.length > 0 ? state.legendAlias : [];
 
   const fieldAliases = state.fields?.map(field => field.alias ?? '');
-  const aggregates =
-    (state.yAxis?.length ?? 0) > 0
-      ? state.yAxis?.map(generateFieldAsString)
-      : state.fields
-          ?.filter(field =>
-            [FieldValueKind.FUNCTION, FieldValueKind.EQUATION].includes(
-              field.kind as FieldValueKind
-            )
+  let aggregates: string[];
+  if (state.yAxis?.length) {
+    if (state.dataset === WidgetType.TRACEMETRICS) {
+      // HACK: Inject the trace metric name and type into the aggregate function
+      // prior to making the request because the current types for y-axes do not support
+      // the correct number of arguments required for trace metrics
+      aggregates =
+        state.yAxis?.map(axis => {
+          const traceMetric = state.traceMetric ?? {name: '', type: ''};
+          if (axis.kind === 'function') {
+            return generateMetricAggregate(traceMetric, axis);
+          }
+          return axis.field;
+        }) ?? [];
+    } else {
+      aggregates = state.yAxis?.map(generateFieldAsString) ?? [];
+    }
+  } else {
+    aggregates =
+      state.fields
+        ?.filter(field =>
+          [FieldValueKind.FUNCTION, FieldValueKind.EQUATION].includes(
+            field.kind as FieldValueKind
           )
-          .map(generateFieldAsString)
-          .filter(Boolean);
+        )
+        .map(generateFieldAsString)
+        .filter(Boolean) ?? [];
+  }
   const columns = state.fields
     ?.filter(field => field.kind === FieldValueKind.FIELD)
     .map(generateFieldAsString)

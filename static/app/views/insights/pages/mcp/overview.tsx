@@ -8,13 +8,13 @@ import {NoAccess} from 'sentry/components/noAccess';
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
@@ -78,7 +78,7 @@ function McpOverviewPage({datePageFilterProps}: McpOverviewPageProps) {
                   </PageFilterBar>
                   {!showOnboarding && (
                     <Flex flex={2}>
-                      <EAPSpanSearchQueryBuilder {...mcpSpanSearchProps.queryBuilder} />
+                      <TraceItemSearchQueryBuilder {...mcpSpanSearchProps.queryBuilder} />
                     </Flex>
                   )}
                 </ToolRibbon>

@@ -13,6 +13,7 @@ import {InlineCode} from 'sentry/components/core/code/inlineCode';
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {Link} from 'sentry/components/core/link';
 import {TextArea} from 'sentry/components/core/textarea';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -634,20 +635,40 @@ function ClusterCard({cluster, filterByRegressed, filterByEscalating}: ClusterCa
 
       <CardFooter>
         {clusterProjects.length > 0 && (
-          <ProjectAvatars>
-            {clusterProjects.slice(0, 3).map(project => (
-              <ProjectBadge
-                key={project.id}
-                project={project}
-                avatarSize={16}
-                hideName
-                disableLink
-              />
-            ))}
-            {clusterProjects.length > 3 && (
-              <MoreProjectsCount>+{clusterProjects.length - 3}</MoreProjectsCount>
-            )}
-          </ProjectAvatars>
+          <Tooltip
+            isHoverable
+            overlayStyle={{maxWidth: 300}}
+            title={
+              <Flex direction="column" gap="xs">
+                {clusterProjects.map(project => (
+                  <Flex key={project.id} align="center" gap="xs">
+                    <ProjectBadge
+                      project={project}
+                      avatarSize={12}
+                      hideName
+                      disableLink
+                    />
+                    <Text size="xs">{project.slug}</Text>
+                  </Flex>
+                ))}
+              </Flex>
+            }
+          >
+            <ProjectAvatars>
+              {clusterProjects.slice(0, 3).map(project => (
+                <ProjectBadge
+                  key={project.id}
+                  project={project}
+                  avatarSize={16}
+                  hideName
+                  disableLink
+                />
+              ))}
+              {clusterProjects.length > 3 && (
+                <MoreProjectsCount>+{clusterProjects.length - 3}</MoreProjectsCount>
+              )}
+            </ProjectAvatars>
+          </Tooltip>
         )}
         <FooterActions>
           <ButtonBar merged gap="0">
@@ -1187,9 +1208,9 @@ const CardsColumn = styled('div')`
 
 // Card with subtle hover effect
 const CardContainer = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -1216,7 +1237,7 @@ const ClusterTitle = styled('h3')`
   margin: 0;
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   line-height: 1.3;
   word-break: break-word;
 `;
@@ -1262,7 +1283,7 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
   align-items: center;
   gap: ${space(0.5)};
   padding: ${space(0.5)} ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   font-size: ${p => p.theme.fontSize.xs};
 
   ${p => {
@@ -1304,7 +1325,7 @@ const Tab = styled('button')<{isActive: boolean}>`
   padding: ${space(1)} ${space(1.5)};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: 500;
-  color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
+  color: ${p => (p.isActive ? p.theme.tokens.content.primary : p.theme.subText)};
   cursor: pointer;
   position: relative;
   margin-bottom: -1px;
@@ -1324,7 +1345,7 @@ const Tab = styled('button')<{isActive: boolean}>`
   `}
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
@@ -1364,9 +1385,9 @@ const SeerDropdownTrigger = styled(Button)`
 const IssuePreviewLink = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   transition:
     border-color 0.15s ease,
     background 0.15s ease;
@@ -1381,7 +1402,7 @@ const IssuePreviewLink = styled(Link)`
 const IssueTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   line-height: 1.4;
   ${p => p.theme.overflowEllipsis};
 
@@ -1434,7 +1455,7 @@ const TagPill = styled('span')`
   color: ${p => p.theme.subText};
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const InfoRow = styled('div')`
@@ -1452,7 +1473,7 @@ const InfoLabel = styled('span')`
 `;
 
 const InfoValue = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   word-break: break-word;
 `;
 
@@ -1468,7 +1489,7 @@ const ShowMoreButton = styled('button')`
   padding: ${space(2)} ${space(3)};
   background: ${p => p.theme.backgroundSecondary};
   border: 1px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.md};
   cursor: pointer;
@@ -1480,7 +1501,7 @@ const ShowMoreButton = styled('button')`
   &:hover {
     background: ${p => p.theme.backgroundTertiary};
     border-color: ${p => p.theme.purple300};
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
@@ -1489,7 +1510,7 @@ const JsonInputContainer = styled('div')`
   padding: ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const CustomDataBadge = styled('div')`
@@ -1499,7 +1520,7 @@ const CustomDataBadge = styled('div')`
   padding: ${space(0.5)} ${space(1)};
   background: ${p => p.theme.yellow100};
   border: 1px solid ${p => p.theme.yellow300};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.yellow400};
 `;
 

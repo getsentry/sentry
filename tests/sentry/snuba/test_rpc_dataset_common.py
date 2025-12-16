@@ -5,6 +5,7 @@ from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageCon
 
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.rpc_dataset_common import RPCBase, TableQuery
 from sentry.snuba.spans_rpc import Spans
@@ -105,7 +106,12 @@ trace_id_test_cases = (
 
 
 @pytest.mark.parametrize(
-    ["dataset"], [pytest.param(Spans, id="spans"), pytest.param(OurLogs, id="ourlogs")]
+    ["dataset"],
+    [
+        pytest.param(Spans, id="spans"),
+        pytest.param(OurLogs, id="ourlogs"),
+        pytest.param(Occurrences, id="occurrences"),
+    ],
 )
 @pytest.mark.parametrize(trace_id_test_cases[0], trace_id_test_cases[1])
 @django_db_all
@@ -126,7 +132,12 @@ def test_force_sampling_mode_in_table(dataset, query, mode):
 
 
 @pytest.mark.parametrize(
-    ["dataset"], [pytest.param(Spans, id="spans"), pytest.param(OurLogs, id="ourlogs")]
+    ["dataset"],
+    [
+        pytest.param(Spans, id="spans"),
+        pytest.param(OurLogs, id="ourlogs"),
+        pytest.param(Occurrences, id="occurrences"),
+    ],
 )
 @pytest.mark.parametrize(trace_id_test_cases[0], trace_id_test_cases[1])
 @django_db_all

@@ -20,6 +20,7 @@ import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconEllipsis, IconUser} from 'sentry/icons';
+import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
@@ -399,7 +400,7 @@ const IconContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: ${p => p.theme.iconSizes.lg};
+  width: ${() => SvgIcon.ICON_SIZES.lg};
   flex-shrink: 0;
 `;
 

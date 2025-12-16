@@ -7,6 +7,7 @@ from enum import IntEnum, StrEnum
 from logging import Logger
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 
+from django.db.models import Q
 from sentry_sdk import logger as sentry_logger
 
 from sentry import features, options
@@ -383,3 +384,4 @@ class DetectorSettings:
     handler: type[DetectorHandler] | None = None
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
+    filter: Q | None = None

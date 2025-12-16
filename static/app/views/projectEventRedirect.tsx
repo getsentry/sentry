@@ -18,19 +18,14 @@ import {useParams} from 'sentry/utils/useParams';
  */
 export default function ProjectEventRedirect() {
   const [error, setError] = useState<string | null>(null);
-
-  const {orgId, projectId, eventId} = useParams<{
-    eventId: string;
-    orgId: string;
-    projectId: string;
-  }>();
   const navigate = useNavigate();
+  const params = useParams<{eventId: string; orgId: string; projectId: string}>();
 
   useEffect(() => {
     // This presumes that _this_ React view/route is only reachable at
     // /:org/:project/events/:eventId (the same URL which serves the ProjectEventRedirect
     // Django view).
-    const endpoint = `/organizations/${orgId}/projects/${projectId}/events/${eventId}/`;
+    const endpoint = `/organizations/${params.orgId}/projects/${params.projectId}/events/${params.eventId}/`;
 
     // Use XmlHttpRequest directly instead of our client API helper (fetch),
     // because you can't reach the underlying XHR via $.ajax, and we need
@@ -68,7 +63,7 @@ export default function ProjectEventRedirect() {
     xhr.onerror = () => {
       setError(t('Could not load the requested event'));
     };
-  }, [orgId, projectId, eventId, navigate]);
+  }, [params, navigate]);
 
   return error ? (
     <DetailedError heading={t('Not found')} message={error} hideSupportLinks />

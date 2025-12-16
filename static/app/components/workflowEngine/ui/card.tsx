@@ -8,6 +8,6 @@ export const Card = styled('div')`
   gap: ${space(2)};
   background-color: ${p => p.theme.backgroundElevated};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(2)} ${space(2)};
 `;

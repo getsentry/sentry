@@ -142,7 +142,7 @@ function ProductSelect({
                 ariaRole="checkbox"
               >
                 <Flex align="center" gap="lg" padding="xl">
-                  <IconSeer variant="waiting" size="lg" />
+                  <IconSeer animation="waiting" size="lg" />
                   <Heading as="h2">
                     {t('Detect and fix issues faster with our AI agent')}
                   </Heading>
@@ -337,6 +337,6 @@ const FeatureItem = styled('div')`
   display: grid;
   grid-template-columns: ${p => p.theme.space.xl} 1fr;
   align-items: start;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   gap: ${p => p.theme.space.md};
 `;

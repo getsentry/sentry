@@ -21,6 +21,7 @@ import {detectorRoutes} from 'sentry/views/detectors/routes';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MCP_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mcp/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
@@ -693,6 +694,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/project/tempest')),
     },
     {
+      path: 'preprod/',
+      name: t('Preprod'),
+      component: make(() => import('sentry/views/settings/project/preprod')),
+    },
+    {
       path: 'keys/',
       name: t('Client Keys'),
       children: [
@@ -1160,7 +1166,6 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/settings/organizationAuthTokens/authTokenDetails')
           ),
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -1213,6 +1218,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('getsentry/views/seerAutomation/index')),
       children: [
         {
+          path: 'trial/',
+          component: make(() => import('getsentry/views/seerAutomation/trial')),
+        },
+        {
           index: true,
           component: make(() => import('getsentry/views/seerAutomation/seerAutomation')),
         },
@@ -1222,18 +1231,14 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'repos/',
-          name: t('Seer'),
           component: make(() => import('getsentry/views/seerAutomation/repos')),
         },
         {
           path: 'onboarding/',
-          name: t('Configure Seer for All Projects'),
-          component: make(() => import('getsentry/views/seerAutomation/onboarding')),
-        },
-        {
-          path: 'onboarding-v2/',
           name: t('Setup Wizard'),
-          component: make(() => import('getsentry/views/seerAutomation/onboardingV2')),
+          component: make(
+            () => import('getsentry/views/seerAutomation/onboarding/onboarding')
+          ),
         },
       ],
     },
@@ -1343,7 +1348,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':projectId/',
       component: make(() => import('sentry/views/projectDetail')),
-      deprecatedRouteProps: true,
     },
     {
       path: ':projectId/events/:eventId/',
@@ -1352,7 +1356,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':projectId/getting-started/',
       component: make(() => import('sentry/views/projectInstall/gettingStarted')),
-      deprecatedRouteProps: true,
     },
   ];
   const projectsRoutes: SentryRouteObject = {
@@ -1360,7 +1363,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/projects/')),
     withOrgPath: true,
     children: projectsChildren,
-    deprecatedRouteProps: true,
   };
 
   const traceView: SentryRouteObject = {
@@ -2186,6 +2188,21 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
+    {
+      path: `${CONVERSATIONS_LANDING_SUB_PATH}/`,
+      component: make(() => import('sentry/views/insights/pages/conversations/layout')),
+      children: [
+        {
+          index: true,
+          handle: {module: undefined},
+          component: make(
+            () => import('sentry/views/insights/pages/conversations/overview')
+          ),
+        },
+        transactionSummaryRoute,
+        traceView,
+      ],
+    },
     // Redirect old links to the new agents landing page
     {
       path: `ai/*`,
@@ -2652,7 +2669,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'dynamic-groups/',
       component: make(() => import('sentry/views/issueList/pages/dynamicGrouping')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'views/:viewId/',
