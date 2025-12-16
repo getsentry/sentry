@@ -141,10 +141,14 @@ def should_create_or_increment_contributor_seat(
     and potentially assign a new seat.
 
     Logic:
-    1. Exclude organizations in code-review-beta cohort (they use a different flow)
-    2. Require code review OR autofix to be enabled for the repo
-    3. Check Seer quota (returns True if contributor has seat OR quota available)
+    1. Require seat-based Seer to be enabled for the organization
+    2. Exclude organizations in code-review-beta cohort (they use a different flow)
+    3. Require code review OR autofix to be enabled for the repo
+    4. Check Seer quota (returns True if contributor has seat OR quota available)
     """
+    if not features.has("organizations:seat-based-seer-enabled", organization):
+        return False
+
     if features.has("organizations:code-review-beta", organization):
         return False
 
