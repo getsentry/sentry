@@ -925,6 +925,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.uptime.autodetect.tasks",
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
+    "sentry.uptime.tasks",
     "sentry.workflow_engine.tasks.delayed_workflows",
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
@@ -971,6 +972,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "monitors-detect-broken-monitor-envs": {
         "task": "crons:sentry.monitors.tasks.detect_broken_monitor_envs",
         "schedule": task_crontab("0", "15", "mon-fri", "*", "*"),
+    },
+    "uptime-write-pending-misses": {
+        "task": "uptime_tasks:sentry.uptime.tasks.write_pending_missed_checks",
+        "schedule": timedelta(minutes=1),
     },
     "clear-expired-snoozes": {
         "task": "issues:sentry.tasks.clear_expired_snoozes",
