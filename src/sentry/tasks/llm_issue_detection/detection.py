@@ -53,6 +53,7 @@ class DetectedIssue(BaseModel):
     title: str
     subcategory: str
     category: str
+    verification_reason: str | None = None
     # context fields, not LLM generated
     trace_id: str
     transaction_name: str
@@ -329,6 +330,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                     extra={
                         "category": detected_issue.category,
                         "subcategory": detected_issue.subcategory,
+                        "verification_reason": detected_issue.verification_reason,
                     },
                 )
             except Exception as issue_creation_exception:
