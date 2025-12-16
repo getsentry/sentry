@@ -8,6 +8,7 @@ from uuid import uuid4
 import sentry_sdk
 from django.conf import settings
 from pydantic import BaseModel, ValidationError
+from urllib3 import Retry
 
 from sentry import features, options
 from sentry.constants import VALID_PLATFORMS
@@ -29,7 +30,7 @@ logger = logging.getLogger("sentry.tasks.llm_issue_detection")
 
 SEER_ANALYZE_ISSUE_ENDPOINT_PATH = "/v1/automation/issue-detection/analyze"
 SEER_TIMEOUT_S = 180
-SEER_RETRIES = 1
+SEER_RETRIES = Retry(total=1, backoff_factor=2, status_forcelist=[408, 429, 502, 503, 504])
 START_TIME_DELTA_MINUTES = 30
 TRANSACTION_BATCH_SIZE = 100
 NUM_TRANSACTIONS_TO_PROCESS = 20
@@ -61,6 +62,7 @@ class DetectedIssue(BaseModel):
 
 class IssueDetectionResponse(BaseModel):
     issues: list[DetectedIssue]
+    traces_analyzed: int
 
 
 class IssueDetectionRequest(BaseModel):
@@ -234,19 +236,14 @@ def detect_llm_issues_for_project(project_id: int) -> None:
 
     # Shuffle to randomize order
     random.shuffle(evidence_traces)
-    selections = evidence_traces[:NUM_TRANSACTIONS_TO_PROCESS]
-    logger.info(
-        "Sending traces to analyze",
-        extra={
-            "total_sent_for_analysis": len(selections),
-            "organization_id": organization_id,
-            "project_id": project_id,
-        },
-    )
+    processed_traces = 0
 
-    for evidence_trace in selections:
+    for trace in evidence_traces:
+        if processed_traces >= NUM_TRANSACTIONS_TO_PROCESS:
+            break
+
         seer_request = IssueDetectionRequest(
-            traces=[evidence_trace],
+            traces=[trace],
             organization_id=organization_id,
             project_id=project_id,
         )
@@ -307,6 +304,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             continue
 
         n_found_issues = len(response_data.issues)
+        processed_traces += response_data.traces_analyzed
         logger.info(
             "Seer issue detection success",
             extra={
