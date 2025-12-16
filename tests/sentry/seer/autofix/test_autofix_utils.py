@@ -14,8 +14,9 @@ from sentry.seer.autofix.utils import (
     has_project_connected_repos,
     is_issue_eligible_for_seer_automation,
     is_seer_seat_based_tier_enabled,
+    set_project_seer_preference,
 )
-from sentry.seer.models import SeerApiError
+from sentry.seer.models import SeerApiError, SeerProjectPreference
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
 
@@ -546,3 +547,76 @@ class TestHasProjectConnectedRepos(TestCase):
 
         assert result is True
         mock_get_code_mappings.assert_called_once()
+
+
+class TestSetProjectSeerPreference(TestCase):
+    """Test the set_project_seer_preference function."""
+
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_set_project_seer_preference_success(self, mock_make_request):
+        """Test set_project_seer_preference sends correct request."""
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_make_request.return_value = mock_response
+
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[],
+            automated_run_stopping_point="code_changes",
+        )
+
+        set_project_seer_preference(preference)
+
+        mock_make_request.assert_called_once()
+        call = mock_make_request.call_args
+        assert call.args[1] == "/v1/project-preference/set"
+
+        actual_body = orjson.loads(call.kwargs["body"])
+        assert actual_body["preference"]["organization_id"] == self.organization.id
+        assert actual_body["preference"]["project_id"] == self.project.id
+        assert actual_body["preference"]["repositories"] == []
+        assert actual_body["preference"]["automated_run_stopping_point"] == "code_changes"
+        assert call.kwargs["timeout"] == 15
+
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_set_project_seer_preference_with_open_pr_stopping_point(self, mock_make_request):
+        """Test set_project_seer_preference with open_pr stopping point."""
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_make_request.return_value = mock_response
+
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[],
+            automated_run_stopping_point="open_pr",
+        )
+
+        set_project_seer_preference(preference)
+
+        call = mock_make_request.call_args
+        actual_body = orjson.loads(call.kwargs["body"])
+        assert actual_body["preference"]["automated_run_stopping_point"] == "open_pr"
+
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_set_project_seer_preference_http_error_raises(self, mock_make_request):
+        """Test set_project_seer_preference raises on HTTP error status."""
+        mock_response = Mock()
+        mock_response.status = 500
+        mock_response.data = b"Internal Server Error"
+        mock_make_request.return_value = mock_response
+
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[],
+        )
+
+        with pytest.raises(SeerApiError):
+            set_project_seer_preference(preference)
