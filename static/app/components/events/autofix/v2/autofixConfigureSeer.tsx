@@ -110,7 +110,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
             <Stack align="start">
               <LinkButton
                 priority="primary"
-                to={`/settings/${organization.slug}/seer/onboarding/`}
+                to={`/organizations/${organization.slug}/settings/seer/onboarding/`}
                 icon={<IconSeer />}
               >
                 {t('Set Up Seer')}
