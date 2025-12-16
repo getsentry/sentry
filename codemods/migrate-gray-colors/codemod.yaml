@@ -1,0 +1,9 @@
+version: '1'
+name: migrate-gray-colors
+description: Migrate gray color references from theme.grayXXX to theme.colors.grayXXX
+author: Jonas Badalic
+language: typescript
+tags:
+  - theme
+  - colors
+  - migration
