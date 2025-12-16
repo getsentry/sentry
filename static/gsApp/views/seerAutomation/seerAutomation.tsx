@@ -12,12 +12,14 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 
 import {SeerAutomationDefault} from 'getsentry/views/seerAutomation/components/seerAutomationDefault';
 import {SeerAutomationProjectList} from 'getsentry/views/seerAutomation/components/seerAutomationProjectList';
+import {useShowNewSeer} from 'getsentry/views/seerAutomation/onboarding/hooks/useShowNewSeer';
 import SeerAutomationSettings from 'getsentry/views/seerAutomation/settings';
 
 export default function SeerAutomation() {
   const organization = useOrganization();
+  const showNewSeer = useShowNewSeer();
 
-  if (organization.features.includes('seer-settings-gtm')) {
+  if (showNewSeer) {
     return <SeerAutomationSettings />;
   }
 
