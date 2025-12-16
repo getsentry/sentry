@@ -597,15 +597,12 @@ def onboarding_seer_settings_update(
         rca_default_tuning = AutofixAutomationTuningSettings.MEDIUM
     else:
         rca_default_tuning = AutofixAutomationTuningSettings.OFF
-    organization.update_option("sentry:default_autofix_automation_tuning", rca_default_tuning)
 
     # Set the default stopping point and auto open PRs for the org
     if is_auto_open_prs_enabled:
         stopping_point = AutofixStoppingPoint.OPEN_PR
-        organization.update_option("sentry:auto_open_prs", True)
     else:
         stopping_point = AutofixStoppingPoint.CODE_CHANGES
-        organization.update_option("sentry:auto_open_prs", False)
 
     # Update preferences for each project with its repositories
     preferences_to_set = []
@@ -627,7 +624,7 @@ def onboarding_seer_settings_update(
         "onboarding_seer_settings_update for new org completed",
         extra={
             "organization_id": organization_id,
-            "default_autofix_automation_tuning": rca_default_tuning,
+            "autofix_automation_tuning": rca_default_tuning,
             "auto_open_prs": is_auto_open_prs_enabled,
             "org_slug": organization.slug,
             "num_projects": len(project_repo_dict),
