@@ -240,7 +240,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         state.pending_user_input.model_dump() if state.pending_user_input else None
                     ),
                     "repo_pr_states": {
-                        repo: pr_state.model_dump() for repo, pr_state in state.repo_pr_states.items()
+                        repo: pr_state.model_dump()
+                        for repo, pr_state in state.repo_pr_states.items()
                     },
                 }
             }

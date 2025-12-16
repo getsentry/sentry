@@ -155,7 +155,9 @@ class DispatchRemoteCallTest(TestCase):
         org = self.create_organization()
 
         response_value = RpcUserOrganizationContext(organization=serialize_rpc_organization(org))
-        self._set_up_mock_response("organization/get_organization_by_id", response_value.model_dump())
+        self._set_up_mock_response(
+            "organization/get_organization_by_id", response_value.model_dump()
+        )
 
         result = dispatch_remote_call(
             None, "organization", "get_organization_by_id", {"id": org.id}
