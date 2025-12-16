@@ -56,7 +56,7 @@ export function useGetBulkAutofixAutomationSettings() {
   });
 }
 
-export type AutofixAutomationUpdate =
+type AutofixAutomationUpdate =
   | {
       autofixAutomationTuning: AutofixAutomationTuning;
       projectIds: string[];
