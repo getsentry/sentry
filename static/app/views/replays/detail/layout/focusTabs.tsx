@@ -79,7 +79,9 @@ type Props = {
 export default function FocusTabs({isVideoReplay}: Props) {
   const organization = useOrganization();
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
-  const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
+  const {getActiveTab, setActiveTab} = useActiveReplayTab({
+    isVideoReplay,
+  });
   const activeTab = getActiveTab();
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
