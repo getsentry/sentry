@@ -25,11 +25,6 @@ import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/comp
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
-import {ConversationsTable} from 'sentry/views/insights/pages/agents/components/conversationsTable';
-import {
-  ConversationsTableSwitch,
-  useConversationsTableSwitch,
-} from 'sentry/views/insights/pages/agents/components/conversationsTableSwitch';
 import {IssuesWidget} from 'sentry/views/insights/pages/agents/components/issuesWidget';
 import LLMGenerationsWidget from 'sentry/views/insights/pages/agents/components/llmCallsWidget';
 import {WidgetGrid} from 'sentry/views/insights/pages/agents/components/styles';
@@ -55,7 +50,6 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
   const showOnboarding = useShowAgentOnboarding();
   useDefaultToAllProjects();
 
-  const {value: conversationTable} = useConversationsTableSwitch();
   const agentSpanSearchProps = useAgentSpanSearchProps();
 
   useOverviewPageTrackPageload();
@@ -148,10 +142,7 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
                         <ToolUsageWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
-                    <Flex justify="end">
-                      <ConversationsTableSwitch />
-                    </Flex>
-                    {conversationTable ? <ConversationsTable /> : <TracesTable />}
+                    <TracesTable />
                   </Stack>
                 )}
               </ModuleLayout.Full>
