@@ -16,7 +16,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 import type {Block, TodoItem} from './types';
-import {buildToolLinkUrl, getToolsStringFromBlock, postProcessLLMMarkdown} from './utils';
+import {
+  buildToolLinkUrl,
+  getToolsStringFromBlock,
+  getValidToolLinks,
+  postProcessLLMMarkdown,
+} from './utils';
 
 interface BlockProps {
   block: Block;
@@ -163,49 +168,13 @@ function BlockComponent({
   // Get valid tool links sorted by their corresponding tool call indices
   // Also create a mapping from tool call index to sorted link index
   const {sortedToolLinks, toolCallToLinkIndexMap} = useMemo(() => {
-    const mappedLinks = (block.tool_links || [])
-      .map((link, idx) => {
-        if (!link) {
-          return null;
-        }
-
-        // Don't show links for tools that returned errors, but do show for empty results
-        if (link.params?.is_error === true) {
-          return null;
-        }
-
-        // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
-        const toolCallId = block.tool_results?.[idx]?.tool_call_id;
-        const toolCallIndex = block.message.tool_calls?.findIndex(
-          call => call.id === toolCallId
-        );
-        const canBuildUrl = buildToolLinkUrl(link, organization.slug, projects) !== null;
-
-        if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
-          return {link, toolCallIndex};
-        }
-        return null;
-      })
-      .filter(
-        (
-          item
-        ): item is {
-          link: {kind: string; params: Record<string, any>};
-          toolCallIndex: number;
-        } => item !== null
-      )
-      .sort((a, b) => a.toolCallIndex - b.toolCallIndex);
-
-    // Create mapping from tool call index to sorted link index
-    const toolCallToLinkMap = new Map<number, number>();
-    mappedLinks.forEach((item, sortedIndex) => {
-      toolCallToLinkMap.set(item.toolCallIndex, sortedIndex);
-    });
-
-    return {
-      sortedToolLinks: mappedLinks.map(item => item.link),
-      toolCallToLinkIndexMap: toolCallToLinkMap,
-    };
+    return getValidToolLinks(
+      block.tool_links || [],
+      block.tool_results || [],
+      block.message.tool_calls || [],
+      organization.slug,
+      projects
+    );
   }, [
     block.tool_links,
     block.tool_results,
@@ -360,9 +329,9 @@ function BlockComponent({
                 <ToolCallStack gap="md">
                   {block.message.tool_calls?.map((toolCall, idx) => {
                     const toolString = toolsUsed[idx];
-                    const hasLink = toolCallToLinkIndexMap.has(idx);
                     // Check if this tool call corresponds to the selected link
                     const correspondingLinkIndex = toolCallToLinkIndexMap.get(idx);
+                    const hasLink = correspondingLinkIndex !== undefined;
                     const isHighlighted =
                       isFocused &&
                       hasValidLinks &&
@@ -381,10 +350,10 @@ function BlockComponent({
                           {hasLink ? (
                             <ToolCallLink
                               onClick={e =>
-                                handleNavigateClick(e, correspondingLinkIndex!)
+                                handleNavigateClick(e, correspondingLinkIndex)
                               }
                               onMouseEnter={() =>
-                                setSelectedLinkIndex(correspondingLinkIndex!)
+                                setSelectedLinkIndex(correspondingLinkIndex)
                               }
                               isHighlighted={isHighlighted}
                             >
