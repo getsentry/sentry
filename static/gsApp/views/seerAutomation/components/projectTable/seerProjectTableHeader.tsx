@@ -116,7 +116,7 @@ export default function ProjectTableHeader({
               size="xs"
               items={[
                 {
-                  key: 'on',
+                  key: 'medium',
                   label: t('On'),
                   onAction: () =>
                     updateBulkAutofixAutomationSettings(
@@ -141,16 +141,16 @@ export default function ProjectTableHeader({
               size="xs"
               items={[
                 {
-                  key: 'on',
+                  key: 'open_pr',
                   label: t('On'),
-                  onAction: () => () =>
+                  onAction: () =>
                     updateBulkAutofixAutomationSettings(
                       {projectIds, automatedRunStoppingPoint: 'open_pr'},
                       getMutationCallbacks(projectIds.length)
                     ),
                 },
                 {
-                  key: 'off',
+                  key: 'code_changes',
                   label: t('Off'),
                   onAction: () =>
                     updateBulkAutofixAutomationSettings(

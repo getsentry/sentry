@@ -43,7 +43,7 @@ export type AutofixAutomationSettings = {
 export function useGetBulkAutofixAutomationSettings() {
   const organization = useOrganization();
 
-  return useFetchSequentialPages<AutofixAutomationSettings>({
+  return useFetchSequentialPages<AutofixAutomationSettings[]>({
     enabled: true,
     perPage: 100,
     getQueryKey: useCallback(
@@ -82,7 +82,7 @@ export function useUpdateBulkAutofixAutomationSettings(
   const organization = useOrganization();
 
   return useMutation<unknown, Error, AutofixAutomationUpdate, unknown>({
-    mutationFn: data => {
+    mutationFn: (data: AutofixAutomationUpdate) => {
       return fetchMutation({
         method: 'POST',
         url: `/organizations/${organization.slug}/autofix/automation-settings/`,

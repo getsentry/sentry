@@ -48,7 +48,7 @@ export default function SeerProjectTable() {
     useGetBulkAutofixAutomationSettings();
 
   const [mutationData, setMutations] = useState<
-    Record<string, AutofixAutomationSettings>
+    Record<string, Partial<AutofixAutomationSettings>>
   >({});
 
   const {mutate: updateBulkAutofixAutomationSettings} =
@@ -57,9 +57,8 @@ export default function SeerProjectTable() {
         const {projectIds, ...rest} = variables;
         setMutations(prev => {
           const updated = {...prev};
-          (projectIds ?? []).forEach(projectId => {
+          projectIds.forEach(projectId => {
             updated[projectId] = {
-              ...getDefaultAutofixSettings(organization, projectId),
               ...prev[projectId],
               ...rest,
             };
@@ -75,7 +74,12 @@ export default function SeerProjectTable() {
     });
 
   const autofixSettingsByProjectId = useMemo(
-    () => new Map(autofixAutomationSettings.map(setting => [setting.projectId, setting])),
+    () =>
+      new Map(
+        autofixAutomationSettings.flatMap(page =>
+          page.map(setting => [String(setting.projectId), setting])
+        )
+      ),
     [autofixAutomationSettings]
   );
 
@@ -176,11 +180,11 @@ export default function SeerProjectTable() {
             key={project.id}
             project={project}
             isFetchingSettings={isFetchingSettings}
-            autofixSettings={
-              mutationData[project.id] ??
-              autofixSettingsByProjectId.get(project.id) ??
-              getDefaultAutofixSettings(organization, project.id)
-            }
+            autofixSettings={{
+              ...getDefaultAutofixSettings(organization, project.id),
+              ...autofixSettingsByProjectId.get(project.id),
+              ...mutationData[project.id],
+            }}
             updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
           />
         ))}

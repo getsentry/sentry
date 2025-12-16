@@ -45,9 +45,6 @@ export default function SeerProjectTableRow({
   const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
-  // const {mutate: mutateProject} = useUpdateProject(project);
-  // const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
-
   // We used to support multiple sensitivity values for Auto-Fix. Now we only support 'off' and 'medium'.
   // If any other value is set, we treat it as 'medium'.
   const hasAutoFixEnabled =
