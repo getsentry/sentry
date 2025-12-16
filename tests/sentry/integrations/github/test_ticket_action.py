@@ -9,10 +9,13 @@ from sentry.integrations.github import client
 from sentry.integrations.github.actions.create_ticket import GitHubCreateTicketAction
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.services.eventstore.models import GroupEvent
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
 
@@ -75,6 +78,14 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         title = "sample title"
         sample_description = "sample bug report"
         html_url = f"https://github.com/foo/bar/issues/{self.issue_num}"
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            Repository.objects.create(
+                name=self.repo,
+                provider="integrations:github",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
 
         responses.add(
             method=responses.POST,
