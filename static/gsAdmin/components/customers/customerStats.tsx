@@ -67,27 +67,27 @@ export const useSeries = (): Record<string, SeriesItem> => {
     accepted: {
       seriesName: SeriesName.ACCEPTED,
       data: [],
-      color: theme.purple300,
+      color: theme.colors.blue400,
     },
     overQuota: {
       seriesName: SeriesName.OVER_QUOTA,
       data: [],
-      color: theme.pink200,
+      color: theme.colors.pink200,
     },
     totalFiltered: {
       seriesName: SeriesName.FILTERED,
       data: [],
-      color: theme.purple200,
+      color: theme.colors.blue200,
     },
     totalDiscarded: {
       seriesName: SeriesName.DISCARDED,
       data: [],
-      color: theme.yellow300,
+      color: theme.colors.yellow400,
     },
     totalDropped: {
       seriesName: SeriesName.DROPPED,
       data: [],
-      color: theme.red300,
+      color: theme.colors.red400,
     },
   };
 };
@@ -428,7 +428,7 @@ export const CustomerStats = memo(
       zeroFillDates(
         zeroFillStart,
         new Date(dataDatetime.end ?? moment().format()).valueOf() / 1000,
-        {color: theme.purple200}
+        {color: theme.colors.blue200}
       ),
     ];
 

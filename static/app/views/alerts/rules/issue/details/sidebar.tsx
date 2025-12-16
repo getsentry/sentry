@@ -197,7 +197,7 @@ const StepContent = styled('div')`
     height: 100%;
     top: 28px;
     left: ${space(0.75)};
-    border-right: 1px ${p => p.theme.gray200} dashed;
+    border-right: 1px ${p => p.theme.colors.gray200} dashed;
   }
 `;
 
@@ -215,10 +215,10 @@ const ChevronContainer = styled('div')`
 
 const Badge = styled('span')`
   display: inline-block;
-  background-color: ${p => p.theme.purple300};
+  background-color: ${p => p.theme.colors.blue400};
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   text-transform: uppercase;
   text-align: center;
   font-size: ${p => p.theme.fontSize.sm};
@@ -228,7 +228,7 @@ const Badge = styled('span')`
 
 const ConditionsBadge = styled('span')`
   display: block;
-  background-color: ${p => p.theme.surface200};
+  background-color: ${p => p.theme.colors.surface300};
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};

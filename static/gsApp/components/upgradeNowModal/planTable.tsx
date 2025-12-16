@@ -175,7 +175,7 @@ const PlanLabel = styled('dt')<{hasChanged?: boolean; isTotal?: boolean}>`
   padding: ${p => (p.isTotal ? space(1) : `${space(0.5)} ${space(1)}`)};
 
   font-weight: ${p => (p.hasChanged || p.isTotal ? 'bold' : 'normal')};
-  background: ${p => (p.isTotal ? p.theme.purple100 : 'transparent')};
+  background: ${p => (p.isTotal ? p.theme.colors.blue100 : 'transparent')};
 `;
 
 const PlanValue = styled(PlanLabel)`

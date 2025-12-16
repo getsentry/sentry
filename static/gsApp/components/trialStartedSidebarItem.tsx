@@ -181,7 +181,7 @@ const startedStyle = (theme: Theme) => css`
   }
 
   &:hover {
-    box-shadow: 0 0 8px ${theme.purple400};
+    box-shadow: 0 0 8px ${theme.colors.blue500};
   }
 `;
 

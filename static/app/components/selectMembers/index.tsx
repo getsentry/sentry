@@ -206,7 +206,7 @@ class SelectMembers extends Component<Props, State> {
             ...provided,
 
             svg: {
-              color: state.isSelected && state.theme.white,
+              color: state.isSelected && state.theme.colors.white,
             },
           }),
         }}

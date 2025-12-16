@@ -38,7 +38,7 @@ const Wrapper = styled('div')<Pick<Props, 'error'>>`
     left: 50%;
     transform: translate(-50%);
     position: absolute;
-    background: ${p => (p.error ? p.theme.red300 : p.theme.innerBorder)};
+    background: ${p => (p.error ? p.theme.colors.red400 : p.theme.innerBorder)};
   }
 `;
 
@@ -49,7 +49,7 @@ const IconWrapper = styled('div')<Pick<Props, 'color'>>`
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   background: ${p =>
     (p.theme[p.color as keyof typeof p.theme] as string | undefined) ?? p.color};
   box-shadow: ${p => p.theme.dropShadowLight};

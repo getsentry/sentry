@@ -456,7 +456,7 @@ const PerformanceUnits = styled(BaseRow)`
 
 const PerformanceTag = styled(BaseRow)`
   gap: ${p => p.theme.space.xs};
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.colors.blue400};
 `;
 
 const VolumeAmount = styled('div')`

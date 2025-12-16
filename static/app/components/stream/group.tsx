@@ -758,7 +758,7 @@ const CheckboxLabel = styled('label')`
 const UnreadIndicator = styled('div')`
   width: 8px;
   height: 8px;
-  background-color: ${p => p.theme.purple400};
+  background-color: ${p => p.theme.colors.blue500};
   border-radius: 50%;
   margin-top: 1px;
   margin-left: ${space(2)};
@@ -998,7 +998,7 @@ const AssigneeWrapper = styled('div')<{breakpoint: string}>`
 const StartedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
   ${p => p.theme.overflowEllipsis};
   width: 85px;
 
@@ -1011,7 +1011,7 @@ const StartedColumn = styled('div')`
 const EventsReprocessedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
   ${p => p.theme.overflowEllipsis};
   width: 75px;
 

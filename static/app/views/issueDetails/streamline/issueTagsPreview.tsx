@@ -357,7 +357,7 @@ const TagBarPlaceholder = styled('div')`
   width: 100%;
   border-radius: 3px;
   box-shadow: inset 0 0 0 1px ${p => p.theme.translucentBorder};
-  background: ${p => Color(p.theme.gray300).alpha(0.1).toString()};
+  background: ${p => Color(p.theme.colors.gray400).alpha(0.1).toString()};
   overflow: hidden;
 `;
 
@@ -432,11 +432,11 @@ const LegendTitle = styled('div')`
 `;
 
 const DistributionsDrawerLink = styled(Link)`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.colors.blue400};
   align-self: flex-start;
 
   &:hover {
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.colors.blue500};
   }
 `;
 

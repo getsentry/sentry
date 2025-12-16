@@ -77,7 +77,7 @@ const Header = styled('div')`
 const Subheader = styled('div')`
   text-transform: uppercase;
   font-weight: bold;
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.colors.blue400};
   font-size: ${p => p.theme.fontSize.xs};
 `;
 

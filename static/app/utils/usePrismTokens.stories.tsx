@@ -124,7 +124,7 @@ const Line = styled('div')`
 `;
 
 const LineNumber = styled('div')`
-  background: ${p => p.theme.purple400};
-  color: ${p => p.theme.white};
+  background: ${p => p.theme.colors.blue500};
+  color: ${p => p.theme.colors.white};
   padding: 0 ${space(1)};
 `;

@@ -219,7 +219,7 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   min-width: 30px;
 
   svg {
-    fill: ${p => p.theme.white};
+    fill: ${p => p.theme.colors.white};
     width: 14px;
     height: 14px;
   }
@@ -785,7 +785,7 @@ const TableValueRow = styled('div')`
   gap: ${space(1)};
 
   border-radius: 4px;
-  background-color: ${p => p.theme.surface200};
+  background-color: ${p => p.theme.colors.surface300};
   margin: 2px;
 `;
 

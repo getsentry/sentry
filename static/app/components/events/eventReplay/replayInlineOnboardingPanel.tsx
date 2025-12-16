@@ -110,7 +110,7 @@ export default function ReplayInlineOnboardingPanel({
 }
 
 const PurpleText = styled('span')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.colors.blue400};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
@@ -144,7 +144,7 @@ const CloseDropdownMenu = styled(DropdownMenu)`
   display: block;
   top: ${space(1)};
   right: ${space(1)};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;
 `;

@@ -46,27 +46,27 @@ export const CallTreeTable = styled('div')`
     }
 
     &[tabindex='0'] {
-      background: ${p => p.theme.blue300};
+      background: ${p => p.theme.colors.blue400};
       color: #fff;
 
       .${CallTreeTableClassNames.WEIGHT} {
-        color: ${p => p.theme.white};
+        color: ${p => p.theme.colors.white};
         opacity: 0.7;
       }
 
       .${CallTreeTableClassNames.BACKGROUND_WEIGHT} {
-        background-color: ${props => props.theme.yellow100};
-        border-bottom: 1px solid ${props => props.theme.yellow200};
+        background-color: ${props => props.theme.colors.yellow100};
+        border-bottom: 1px solid ${props => props.theme.colors.yellow200};
       }
 
       .${CallTreeTableClassNames.FRAME_TYPE} {
-        color: ${p => p.theme.white};
+        color: ${p => p.theme.colors.white};
         opacity: 0.7;
       }
     }
 
     &[data-hovered='true']:not([tabindex='0']) {
-      background: ${p => p.theme.surface200};
+      background: ${p => p.theme.colors.surface300};
     }
   }
 
@@ -106,8 +106,8 @@ export const CallTreeTable = styled('div')`
     position: absolute;
     right: 0;
     top: 0;
-    background-color: ${props => props.theme.yellow100};
-    border-bottom: 1px solid ${props => props.theme.yellow200};
+    background-color: ${props => props.theme.colors.yellow100};
+    border-bottom: 1px solid ${props => props.theme.colors.yellow200};
     transform-origin: center right;
     height: 100%;
     width: 100%;
@@ -231,7 +231,7 @@ export const CallTreeTableHeaderButton = styled('button')`
   justify-content: space-between;
   padding: 0 ${space(1)};
   border: none;
-  background-color: ${props => props.theme.surface200};
+  background-color: ${props => props.theme.colors.surface300};
   transition: background-color 100ms ease-in-out;
   line-height: 29px;
 

@@ -119,7 +119,7 @@ const DiamondBackground = withChonk(
       width: 13px;
       height: 13px;
       transform: rotate(-45deg);
-      color: ${p => p.theme.white};
+      color: ${p => p.theme.colors.white};
     }
   `,
   ChonkAlertBadgeDiamondBackground

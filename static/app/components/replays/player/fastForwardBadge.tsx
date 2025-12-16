@@ -31,8 +31,8 @@ const Badge = styled('div')`
 
 /* Badge layout and style */
 const FastForwardTooltip = styled(Tooltip)`
-  background: ${p => p.theme.gray300};
-  color: ${p => p.theme.white};
+  background: ${p => p.theme.colors.gray400};
+  color: ${p => p.theme.colors.white};
   padding: ${space(1.5)} ${space(2)};
   border-top-right-radius: ${p => p.theme.radius.md};
   z-index: ${p => p.theme.zIndex.initial};

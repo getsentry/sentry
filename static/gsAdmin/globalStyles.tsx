@@ -16,7 +16,7 @@ const styles = (theme: Theme) => css`
 
   .loading .loading-indicator {
     border-color: ${theme.backgroundSecondary};
-    border-left-color: ${theme.purple300};
+    border-left-color: ${theme.colors.blue400};
   }
 
   acronym,

@@ -171,7 +171,7 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
   grid-template-columns: 1fr;
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.surface400};
+  background-color: ${p => p.theme.colors.surface500};
   font-weight: ${p => p.theme.fontWeight.normal};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   overflow: hidden;
@@ -223,7 +223,7 @@ const Visualization = styled('div')`
 function MetricVisualization() {
   const theme = useTheme();
   const danger = theme.red300;
-  const defaultChartColor = theme.chart.getColorPalette(0)[0] ?? theme.purple400;
+  const defaultChartColor = theme.chart.getColorPalette(0)[0] ?? theme.colors.blue500;
   return (
     <svg fill="none" viewBox="0 0 480 56">
       <path

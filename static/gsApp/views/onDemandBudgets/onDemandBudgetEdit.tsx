@@ -413,7 +413,7 @@ const BudgetContainer = styled('div')`
 `;
 
 const InputFields = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   font-size: ${p => p.theme.fontSize.md};
   margin-bottom: 1px;
 `;

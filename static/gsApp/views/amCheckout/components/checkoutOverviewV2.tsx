@@ -470,7 +470,7 @@ const EmphasisText = styled('span')`
 `;
 
 const ReservedNumberEmphasisText = styled(EmphasisText)`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.colors.blue400};
 `;
 
 const DefaultAmountTag = styled(Tag)`

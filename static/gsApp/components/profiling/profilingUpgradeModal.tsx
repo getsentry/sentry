@@ -128,7 +128,7 @@ const Subheader = styled('h2')`
 `;
 
 const SubheaderPrimary = styled(Subheader)`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.colors.blue400};
 `;
 
 const Header = styled('h1')`

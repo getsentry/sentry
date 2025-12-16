@@ -15,31 +15,31 @@ function makeBadgeTheme(
   switch (props.type) {
     case 'alpha':
       return {
-        background: `linear-gradient(90deg, ${theme.pink300}, ${theme.yellow300})`,
-        color: theme.white,
+        background: `linear-gradient(90deg, ${theme.colors.pink400}, ${theme.colors.yellow400})`,
+        color: theme.colors.white,
       };
     case 'beta':
       return {
-        background: `linear-gradient(90deg, ${theme.purple300}, ${theme.pink300})`,
-        color: theme.white,
+        background: `linear-gradient(90deg, ${theme.colors.blue400}, ${theme.colors.pink400})`,
+        color: theme.colors.white,
       };
     // @TODO(jonasbadalic) default, experimental and internal all look the same and should be consolidated
     case 'default':
     case 'experimental':
     case 'internal':
       return {
-        background: theme.gray100,
-        color: theme.gray500,
+        background: theme.colors.gray100,
+        color: theme.colors.gray800,
       };
     case 'new':
       return {
-        background: `linear-gradient(90deg, ${theme.blue300}, ${theme.green300})`,
-        color: theme.white,
+        background: `linear-gradient(90deg, ${theme.colors.blue400}, ${theme.colors.green400})`,
+        color: theme.colors.white,
       };
     case 'warning':
       return {
-        background: theme.yellow300,
-        color: theme.gray500,
+        background: theme.colors.yellow400,
+        color: theme.colors.gray800,
       };
     default:
       unreachable(props.type);

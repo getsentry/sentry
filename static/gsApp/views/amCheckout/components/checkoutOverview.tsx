@@ -473,7 +473,7 @@ const DurationText = styled('div')`
 const ProminantPlanName = styled('span')`
   font-weight: 500;
   font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
 `;
 
 const ChurnPromoText = styled('span')`

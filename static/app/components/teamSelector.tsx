@@ -33,7 +33,7 @@ const UnassignedWrapper = styled('div')`
 const StyledIconUser = styled(IconUser)`
   margin-left: ${space(0.25)};
   margin-right: ${space(1)};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
 `;
 
 // An option to be unassigned on the team dropdown
@@ -69,7 +69,7 @@ const unassignedSelectStyles: StylesConfig = {
     // as the emotion theme object in react-select
     const theme = state.theme as unknown as Theme;
 
-    return {...provided, svg: {color: state.isSelected ? theme.white : undefined}};
+    return {...provided, svg: {color: state.isSelected ? theme.colors.white : undefined}};
   },
 };
 

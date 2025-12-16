@@ -337,7 +337,7 @@ const Paragraph = styled('p')`
 `;
 
 const TouchCustomerMessage = styled('p')`
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.colors.pink500};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: ${space(2)};
 `;

@@ -163,7 +163,7 @@ function RootAllocationCard({
                         }
                       >
                         &nbsp;
-                        <span style={{color: theme.red400, marginLeft: space(1)}}>
+                        <span style={{color: theme.colors.red500, marginLeft: space(1)}}>
                           (
                           {bigNumFormatter(
                             rootAllocation.consumedQuantity -
@@ -190,7 +190,7 @@ export default RootAllocationCard;
 
 const Header = styled('div')`
   display: flex;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   font-weight: 600;
   font-size: ${p => p.theme.fontSize.lg};
   padding: ${space(1)};

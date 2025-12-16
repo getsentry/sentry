@@ -209,14 +209,14 @@ const PathWrapper = styled('div')`
 const PathContainer = styled('div')`
   padding: ${space(3)};
   grid-auto-rows: max-content;
-  border: 1px solid ${p => p.theme.gray300};
+  border: 1px solid ${p => p.theme.colors.gray400};
   margin-left: auto;
   margin-right: auto;
   border-radius: 5px;
   width: 250px;
 
   &:first-of-type {
-    border: 1px solid ${p => p.theme.gray100};
+    border: 1px solid ${p => p.theme.colors.gray100};
   }
 `;
 

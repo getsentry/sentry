@@ -377,9 +377,9 @@ const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
     switch (p.level) {
       case BreadcrumbLevelType.ERROR:
       case BreadcrumbLevelType.FATAL:
-        return p.theme.red400;
+        return p.theme.colors.red500;
       case BreadcrumbLevelType.WARNING:
-        return p.theme.yellow400;
+        return p.theme.colors.yellow500;
       default:
       case BreadcrumbLevelType.DEBUG:
       case BreadcrumbLevelType.INFO:

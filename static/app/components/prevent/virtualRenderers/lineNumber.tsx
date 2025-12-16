@@ -105,38 +105,38 @@ const LineNumberWrapper = styled('div')<{
     if (!p.hasLineNumber) {
       return css`
         background-color: var(--prism-block-background);
-        border-right: ${space(0.25)} solid ${p.theme.gray200};
+        border-right: ${space(0.25)} solid ${p.theme.colors.gray200};
       `;
     }
 
     if (p.isHighlighted) {
       return css`
-        ${generatePseudoElement({background: p.theme.blue100})}
-        border-right: ${space(0.25)} solid ${p.theme.blue300};
+        ${generatePseudoElement({background: p.theme.colors.blue100})}
+        border-right: ${space(0.25)} solid ${p.theme.colors.blue400};
       `;
     }
     if (p.coverage === 'H') {
       return css`
-        ${generatePseudoElement({background: p.theme.green100})}
-        border-right: ${space(0.25)} solid ${p.theme.green300};
+        ${generatePseudoElement({background: p.theme.colors.green100})}
+        border-right: ${space(0.25)} solid ${p.theme.colors.green400};
       `;
     }
     if (p.coverage === 'M') {
       return css`
-        ${generatePseudoElement({background: p.theme.red100})}
-        border-right: ${space(0.25)} solid ${p.theme.red300};
+        ${generatePseudoElement({background: p.theme.colors.red100})}
+        border-right: ${space(0.25)} solid ${p.theme.colors.red400};
       `;
     }
     if (p.coverage === 'P') {
       return css`
-        ${generatePseudoElement({background: p.theme.yellow100})}
-        border-right: ${space(0.25)} solid ${p.theme.yellow300};
+        ${generatePseudoElement({background: p.theme.colors.yellow100})}
+        border-right: ${space(0.25)} solid ${p.theme.colors.yellow400};
       `;
     }
 
     return css`
       background-color: var(--prism-block-background);
-      border-right: ${space(0.25)} solid ${p.theme.gray200};
+      border-right: ${space(0.25)} solid ${p.theme.colors.gray200};
     `;
   }}
 `;

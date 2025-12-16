@@ -145,12 +145,12 @@ const Title = styled('h4')`
 `;
 
 const Before = styled('span')`
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.colors.red400};
   font-weight: bold;
 `;
 
 const After = styled('span')`
-  color: ${p => p.theme.green300};
+  color: ${p => p.theme.colors.green400};
   font-weight: bold;
 `;
 
