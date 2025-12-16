@@ -244,7 +244,7 @@ export function AIInputSection({
           key={node.id}
           messages={messages}
           originalLength={
-            originalMessagesLength ? Number(originalMessagesLength) : undefined
+            defined(originalMessagesLength) ? Number(originalMessagesLength) : undefined
           }
         />
       ) : null}
