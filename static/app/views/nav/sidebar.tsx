@@ -8,7 +8,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {chonkStyled} from 'sentry/utils/theme/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -134,7 +133,7 @@ const SuperuserBadgeContainer = styled('div')`
   margin: 0;
 `;
 
-const ChonkSuperuserBadgeContainer = chonkStyled('div')`
+const ChonkSuperuserBadgeContainer = styled('div')`
   position: absolute;
   top: -${p => p.theme.space.lg};
   z-index: ${p => p.theme.zIndex.initial};
