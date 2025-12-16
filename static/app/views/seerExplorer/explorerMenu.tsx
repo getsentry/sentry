@@ -16,13 +16,13 @@ interface ExplorerMenuProps {
   panelVisible: boolean;
   slashCommandHandlers: {
     onFeedback: (() => void) | undefined;
+    onLangfuse: () => void;
     onMaxSize: () => void;
     onMedSize: () => void;
     onNew: () => void;
   };
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   inputAnchorRef?: React.RefObject<HTMLElement | null>;
-  langfuseUrl?: string;
   menuAnchorRef?: React.RefObject<HTMLElement | null>;
   prWidgetAnchorRef?: React.RefObject<HTMLElement | null>;
   prWidgetFooter?: React.ReactNode;
@@ -50,7 +50,6 @@ export function useExplorerMenu({
   prWidgetAnchorRef,
   prWidgetItems,
   prWidgetFooter,
-  langfuseUrl,
 }: ExplorerMenuProps) {
   const [menuMode, setMenuMode] = useState<MenuMode>('hidden');
   const [menuPosition, setMenuPosition] = useState<{
@@ -60,7 +59,7 @@ export function useExplorerMenu({
     top?: string | number;
   }>({});
 
-  const allSlashCommands = useSlashCommands({...slashCommandHandlers, langfuseUrl});
+  const allSlashCommands = useSlashCommands(slashCommandHandlers);
 
   const filteredSlashCommands = useMemo(() => {
     // Filter commands based on current input
@@ -344,13 +343,13 @@ function useSlashCommands({
   onMedSize,
   onNew,
   onFeedback,
-  langfuseUrl,
+  onLangfuse,
 }: {
   onFeedback: (() => void) | undefined;
+  onLangfuse: () => void;
   onMaxSize: () => void;
   onMedSize: () => void;
   onNew: () => void;
-  langfuseUrl?: string;
 }): MenuItemProps[] {
   return useMemo(
     (): MenuItemProps[] => [
@@ -388,20 +387,18 @@ function useSlashCommands({
             },
           ]
         : []),
-      ...(langfuseUrl
+      ...(onLangfuse
         ? [
             {
               title: '/langfuse',
               key: '/langfuse',
               description: 'Open Langfuse to view session details',
-              handler: () => {
-                window.open(langfuseUrl, '_blank');
-              },
+              handler: onLangfuse,
             },
           ]
         : []),
     ],
-    [onNew, onMaxSize, onMedSize, onFeedback, langfuseUrl]
+    [onNew, onMaxSize, onMedSize, onFeedback, onLangfuse]
   );
 }
 
