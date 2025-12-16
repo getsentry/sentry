@@ -36,19 +36,14 @@ def count_occurrences(
     Returns:
         The count of matching occurrences, or 0 if the query fails
     """
-    query_parts: list[str] = []
-
-    if group_id is not None:
-        query_parts.append(f"group_id:{group_id}")
-
-    query_string = " ".join(query_parts)
+    query_string = f"group_id:{group_id}" if group_id is not None else ""
 
     snuba_params = SnubaParams(
         start=start,
         end=end,
         organization=organization,
-        projects=list(projects),
-        environments=list(environments) if environments else [],
+        projects=projects,
+        environments=environments if environments else [],
     )
 
     try:

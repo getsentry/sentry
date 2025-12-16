@@ -4,7 +4,6 @@ This is later used for generating group forecasts for determining when a group m
 
 from __future__ import annotations
 
-import logging
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
@@ -34,7 +33,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInboxReason, InboxReasonDetails, add_group_to_inbox
-from sentry.search.eap.occurrences.query import count_occurrences
+from sentry.search.eap.occurrences.common_queries import count_occurrences
 from sentry.search.eap.occurrences.rollout_utils import (
     should_callsite_use_eap_data_in_read,
     should_double_read_from_eap,
@@ -50,8 +49,6 @@ from sentry.utils.cache import cache
 from sentry.utils.snuba import raw_snql_query
 
 __all__ = ["query_groups_past_counts", "parse_groups_past_counts"]
-
-logger = logging.getLogger(__name__)
 
 # The amount of data needed to generate a group forecast
 BUCKETS_PER_GROUP = 7 * 24
