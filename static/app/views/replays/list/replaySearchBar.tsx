@@ -24,6 +24,7 @@ import {
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 
 const getReplayFieldDefinition = (key: string) => getFieldDefinition(key, 'replay');
 
@@ -161,8 +162,8 @@ function ReplaySearchBar(props: Props) {
     return getFilterKeySections(customTags);
   }, [customTags]);
 
-  const getTagValues = useCallback(
-    (tag: Tag, searchQuery: string): Promise<string[]> => {
+  const getTagValues = useCallback<GetTagValues>(
+    (tag, searchQuery) => {
       if (isAggregateField(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't

@@ -1,8 +1,8 @@
-import type {SerializedStyles} from '@emotion/react';
+import type {SerializedStyles, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import type {AlertProps} from 'sentry/components/core/alert';
-import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -19,10 +19,9 @@ export const chonkAlertPropMapping: ChonkPropMapping<
 
 interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
   type: 'subtle' | 'info' | 'warning' | 'success' | 'danger';
-  theme?: ReturnType<typeof useChonkTheme>;
 }
 
-export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
+export const AlertPanel = styled('div')<ChonkAlertProps>`
   position: relative;
   display: grid;
   grid-template-columns: ${p => getAlertGridLayout(p)};
@@ -35,7 +34,7 @@ export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   row-gap: 0;
   overflow: hidden;
   min-height: 44px;
-  ${props => makeChonkAlertTheme(props)};
+  ${props => makeChonkAlertTheme(props, props.theme)};
 
   a:not([role='button']) {
     text-decoration: underline;
@@ -46,23 +45,20 @@ function getAlertGridLayout(p: ChonkAlertProps) {
   return `1fr ${p.trailingItems ? 'auto' : ''} ${p.expand ? 'min-content' : ''}`;
 }
 
-function makeChonkAlertTheme(props: ChonkAlertProps): SerializedStyles {
-  const tokens = getChonkAlertTokens(props.type, props.theme!);
+function makeChonkAlertTheme(props: ChonkAlertProps, theme: Theme): SerializedStyles {
+  const tokens = getChonkAlertTokens(props.type, theme);
   return css`
-    ${generateAlertBackground(props, tokens, props.theme!)};
+    ${generateAlertBackground(props, tokens, theme)};
     border-color: ${tokens.border};
 
     /* We dont want to override the color of any elements inside buttons */
     :not(button *) {
-      color: ${props.theme!.tokens.content.primary};
+      color: ${theme.tokens.content.primary};
     }
   `;
 }
 
-function getChonkAlertTokens(
-  type: ChonkAlertProps['type'],
-  theme: ReturnType<typeof useChonkTheme>
-) {
+function getChonkAlertTokens(type: ChonkAlertProps['type'], theme: Theme) {
   switch (type) {
     case 'info':
       return {
@@ -104,7 +100,7 @@ function getChonkAlertTokens(
 function generateAlertBackground(
   props: ChonkAlertProps,
   tokens: ReturnType<typeof getChonkAlertTokens>,
-  theme: ReturnType<typeof useChonkTheme>
+  theme: Theme
 ) {
   const width = 44;
   if (props.showIcon) {
@@ -121,7 +117,7 @@ function generateAlertBackground(
           ${tokens.background} ${width + 1}px
         ),
         linear-gradient(${theme.tokens.background.primary});
-      padding-left: calc(${width}px + ${props.theme!.space.lg});
+      padding-left: calc(${width}px + ${theme.space.lg});
     `;
   }
   return css`
@@ -131,7 +127,7 @@ function generateAlertBackground(
   `;
 }
 
-export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
+export const TrailingItems = styled('div')<ChonkAlertProps>`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
@@ -158,13 +154,13 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
   }
 `;
 
-export const Message = chonkStyled('div')`
+export const Message = styled('div')`
   line-height: ${p => p.theme.font.lineHeight.comfortable};
   place-content: center;
   padding-block: ${p => p.theme.space.xs};
 `;
 
-export const IconWrapper = chonkStyled('div')<{type: AlertProps['type']}>`
+export const IconWrapper = styled('div')<{type: AlertProps['type']}>`
   position: absolute;
   top: ${p => p.theme.space.lg};
   left: ${p => p.theme.space.lg};
@@ -173,16 +169,21 @@ export const IconWrapper = chonkStyled('div')<{type: AlertProps['type']}>`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${p => (['info', 'error'].includes(p.type) ? p.theme.colors.white : p.type === 'muted' ? p.theme.tokens.content.primary : p.theme.colors.black)};
+  color: ${p =>
+    ['info', 'error'].includes(p.type)
+      ? p.theme.colors.white
+      : p.type === 'muted'
+        ? p.theme.tokens.content.primary
+        : p.theme.colors.black};
 `;
 
-export const ExpandIconWrap = chonkStyled('div')`
+export const ExpandIconWrap = styled('div')`
   display: flex;
   align-items: center;
   align-self: flex-start;
 `;
 
-export const ExpandContainer = chonkStyled('div')<{
+export const ExpandContainer = styled('div')<{
   showIcon: boolean;
   showTrailingItems: boolean;
 }>`

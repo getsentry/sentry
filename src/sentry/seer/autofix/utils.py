@@ -8,6 +8,7 @@ import pydantic
 import requests
 from django.conf import settings
 from pydantic import BaseModel
+from rest_framework import serializers
 from urllib3 import Retry
 
 from sentry import features, options, ratelimits
@@ -23,6 +24,7 @@ from sentry.seer.models import (
     SeerApiError,
     SeerApiResponseValidationError,
     SeerPermissionError,
+    SeerProjectPreference,
     SeerRawPreferenceResponse,
     SeerRepoDefinition,
 )
@@ -142,6 +144,38 @@ autofix_connection_pool = connection_from_url(
 )
 
 
+class SeerAutofixSettingsSerializer(serializers.Serializer):
+    """Base serializer for autofixAutomationTuning and automatedRunStoppingPoint"""
+
+    autofixAutomationTuning = serializers.ChoiceField(
+        choices=[opt.value for opt in AutofixAutomationTuningSettings],
+        required=False,
+        help_text="The tuning setting for the projects.",
+    )
+    automatedRunStoppingPoint = serializers.ChoiceField(
+        choices=[opt.value for opt in AutofixStoppingPoint],
+        required=False,
+        help_text="The stopping point for the projects.",
+    )
+
+    def validate(self, data):
+        if "autofixAutomationTuning" not in data and "automatedRunStoppingPoint" not in data:
+            raise serializers.ValidationError(
+                "At least one of 'autofixAutomationTuning' or 'automatedRunStoppingPoint' must be provided."
+            )
+        return data
+
+
+def default_seer_project_preference(project: Project) -> SeerProjectPreference:
+    return SeerProjectPreference(
+        organization_id=project.organization.id,
+        project_id=project.id,
+        repositories=[],
+        automated_run_stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
+        automation_handoff=None,
+    )
+
+
 def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
     """
     Fetch Seer project preferences from the Seer API.
@@ -171,6 +205,22 @@ def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
             raise SeerApiResponseValidationError(str(e)) from e
 
     raise SeerApiError(response.data.decode("utf-8"), response.status)
+
+
+def set_project_seer_preference(preference: SeerProjectPreference) -> None:
+    """Set Seer project preference for a single project."""
+    path = "/v1/project-preference/set"
+    body = orjson.dumps({"preference": preference.dict()})
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=15,
+    )
+
+    if response.status >= 400:
+        raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
 def has_project_connected_repos(organization_id: int, project_id: int) -> bool:

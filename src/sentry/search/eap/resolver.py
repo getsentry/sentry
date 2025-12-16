@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from re import Match
@@ -39,6 +39,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.api import event_search
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     AggregateDefinition,
@@ -101,16 +102,30 @@ class SearchResolver:
         self,
         referrer: str,
         sampling_mode: SAMPLING_MODES | None = None,
+        filter_project: Callable[[Project], bool] | None = None,
     ) -> RequestMeta:
         if self.params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
         span = sentry_sdk.get_current_span()
         if span:
             span.set_tag("SearchResolver.params", self.params)
+
+        projects = self.params.projects
+
+        # If a filter is specified, use it to narrow down the list
+        # of projects to query on.
+        if filter_project:
+            projects = [project for project in projects if filter_project(project)]
+
+            # if filtering removed all projects, we reset to all
+            # selected project again to prevent potential snuba errors
+            if not projects:
+                projects = self.params.projects
+
         return RequestMeta(
             organization_id=self.params.organization_id,
             referrer=referrer,
-            project_ids=self.params.project_ids,
+            project_ids=[project.id for project in projects],
             start_timestamp=self.params.rpc_start_date,
             end_timestamp=self.params.rpc_end_date,
             trace_item_type=self.definitions.trace_item_type,

@@ -7,6 +7,8 @@ from sentry.db.models import BoundedIntegerField, FlexibleForeignKey, region_sil
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
+ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD = 2
+
 
 @region_silo_model
 class OrganizationContributors(DefaultFieldsModel):
