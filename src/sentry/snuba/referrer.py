@@ -488,6 +488,7 @@ class Referrer(StrEnum):
     API_AI_CONVERSATIONS = "api.ai-conversations"
     API_AI_CONVERSATIONS_COMPLETE = "api.ai-conversations.complete"
     API_AI_CONVERSATIONS_ENRICHMENT = "api.ai-conversations.enrichment"
+    API_AI_CONVERSATIONS_FIRST_LAST_IO = "api.ai-conversations.first-last-io"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
     API_PROFILING_ONBOARDING = "profiling-onboarding"
