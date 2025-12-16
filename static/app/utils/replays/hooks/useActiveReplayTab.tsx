@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {defined} from 'sentry/utils';
 import useUrlParams from 'sentry/utils/url/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -37,14 +38,9 @@ function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}
   return Object.values<string>(TabKey).includes(tab);
 }
 
-function useActiveReplayTab({
-  areAiFeaturesAllowed,
-  isVideoReplay = false,
-}: {
-  areAiFeaturesAllowed: boolean;
-  isVideoReplay?: boolean;
-}) {
+function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boolean}) {
   const organization = useOrganization();
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const hasAiSummary =
     organization.features.includes('replay-ai-summaries') && areAiFeaturesAllowed;
 
