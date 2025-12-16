@@ -38,8 +38,14 @@ from sentry.uptime.subscriptions.tasks import (
     update_remote_uptime_subscription,
 )
 from sentry.uptime.types import UptimeMonitorMode
-from sentry.uptime.utils import build_last_seen_interval_key, build_last_update_key, get_cluster
-from sentry.utils import metrics
+from sentry.uptime.utils import (
+    build_backfilled_miss_key,
+    build_last_seen_interval_key,
+    build_last_update_key,
+    build_pending_misses_key,
+    get_cluster,
+)
+from sentry.utils import json, metrics
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.processors.detector import process_detectors
@@ -54,6 +60,10 @@ LAST_UPDATE_REDIS_TTL = timedelta(days=7)
 ACTIVE_THRESHOLD_REDIS_TTL = timedelta(seconds=max(UptimeSubscription.IntervalSeconds)) + timedelta(
     minutes=60
 )
+
+# The TTL of the redis key used to track backfilled misses. This allows late results to upgrade backfilled
+# misses within a reasonable time window.
+BACKFILLED_MISS_TTL = timedelta(minutes=10)
 
 # We want to limit cardinality for provider tags. This controls how many tags we should include
 TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
@@ -351,6 +361,12 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
                 synthetic_metric_tags = metric_tags.copy()
                 synthetic_metric_tags["status"] = CHECKSTATUS_MISSED_WINDOW
+
+                # Prepare sorted set for pending misses if feature flag is enabled
+                use_pending_misses = features.has(
+                    "organizations:uptime-upgrade-late-results", organization
+                )
+
                 for i in range(0, num_missed_checks):
                     missed_result: CheckResult = {
                         "guid": str(uuid.uuid4()),
@@ -366,11 +382,27 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                         "duration_ms": 0,
                         "request_info": None,
                     }
-                    produce_eap_uptime_result(
-                        detector,
-                        missed_result,
-                        synthetic_metric_tags.copy(),
-                    )
+
+                    if use_pending_misses:
+                        # Store miss data and schedule for later writing
+                        backfill_key = build_backfilled_miss_key(
+                            detector, missed_result["scheduled_check_time_ms"]
+                        )
+                        cluster.set(backfill_key, json.dumps(missed_result), ex=BACKFILLED_MISS_TTL)
+                        write_time_ms = (
+                            datetime.now(timezone.utc).timestamp() * 1000
+                            + BACKFILLED_MISS_TTL.total_seconds() * 1000
+                        )
+                        cluster.zadd(
+                            build_pending_misses_key(),
+                            {backfill_key: write_time_ms},
+                        )
+                    else:
+                        produce_eap_uptime_result(
+                            detector,
+                            missed_result,
+                            synthetic_metric_tags.copy(),
+                        )
             else:
                 logger.info(
                     "uptime.result_processor.false_num_missing_check",

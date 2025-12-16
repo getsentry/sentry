@@ -14,6 +14,14 @@ def build_last_seen_interval_key(detector: Detector) -> str:
     return f"project-sub-last-seen-interval:detector:{detector.id}"
 
 
+def build_backfilled_miss_key(detector: Detector, scheduled_check_time_ms: int) -> str:
+    return f"uptime:backfilled_miss:{detector.id}:{scheduled_check_time_ms}"
+
+
+def build_pending_misses_key() -> str:
+    return "uptime:pending_misses"
+
+
 def build_detector_fingerprint_component(detector: Detector) -> str:
     return f"uptime-detector:{detector.id}"
 

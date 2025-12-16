@@ -50,11 +50,14 @@ from sentry.uptime.subscriptions.subscriptions import (
 )
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.uptime.utils import (
+    build_backfilled_miss_key,
     build_detector_fingerprint_component,
     build_last_seen_interval_key,
     build_last_update_key,
+    build_pending_misses_key,
     get_cluster,
 )
+from sentry.utils import json
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
@@ -1373,6 +1376,82 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             ],
             current_minute=5,
         )
+
+    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
+    @override_options({"uptime.use-eap": True})
+    def test_backfilled_misses_tracked_in_redis(self, mock_produce: MagicMock) -> None:
+        """Test that backfilled misses store JSON and sorted set entries when feature flag is enabled."""
+        with self.feature("organizations:uptime-upgrade-late-results"):
+            cluster = get_cluster()
+            result = self.create_uptime_result(self.subscription.subscription_id)
+
+            # Pretend we got a result 600 seconds ago (subscription has 300s interval)
+            # This will trigger 1 missed check
+            last_update_time = int(result["scheduled_check_time_ms"]) - (600 * 1000)
+            cluster.set(
+                build_last_update_key(self.detector),
+                last_update_time,
+            )
+            cluster.set(
+                build_last_seen_interval_key(self.detector),
+                300 * 1000,
+            )
+
+            self.send_result(result)
+
+            expected_miss_time = last_update_time + 300 * 1000
+            backfill_key = build_backfilled_miss_key(self.detector, expected_miss_time)
+            stored_data = cluster.get(backfill_key)
+            assert stored_data is not None
+            miss_data = json.loads(stored_data)
+            assert miss_data["subscription_id"] == self.subscription.subscription_id
+            assert miss_data["status"] == CHECKSTATUS_MISSED_WINDOW
+
+            pending_misses_key = build_pending_misses_key(self.detector)
+            pending_misses = cluster.zrange(pending_misses_key, 0, -1)
+            assert len(pending_misses) == 1
+            assert backfill_key in [
+                m.decode() if isinstance(m, bytes) else m for m in pending_misses
+            ]
+
+            # Verify only the actual result should have been written to EAP, not the misses
+            assert mock_produce.call_count == 1
+
+    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
+    @override_options({"uptime.use-eap": True})
+    def test_backfilled_misses_not_tracked_without_feature_flag(
+        self, mock_produce: MagicMock
+    ) -> None:
+        """Test that backfilled misses are written immediately when feature flag is disabled."""
+        cluster = get_cluster()
+        result = self.create_uptime_result(self.subscription.subscription_id)
+
+        # Pretend we got a result 600 seconds ago (subscription has 300s interval)
+        # This will trigger 1 missed check
+        last_update_time = int(result["scheduled_check_time_ms"]) - (600 * 1000)
+        cluster.set(
+            build_last_update_key(self.detector),
+            last_update_time,
+        )
+        cluster.set(
+            build_last_seen_interval_key(self.detector),
+            300 * 1000,
+        )
+
+        with self.feature("organizations:uptime"):
+            self.send_result(result)
+
+        expected_miss_time = last_update_time + 300 * 1000
+        backfill_key = build_backfilled_miss_key(self.detector, expected_miss_time)
+        assert cluster.get(backfill_key) is None
+
+        pending_misses_key = build_pending_misses_key()
+        pending_misses = cluster.zrange(pending_misses_key, 0, -1)
+        assert backfill_key not in [
+            m.decode() if isinstance(m, bytes) else m for m in pending_misses
+        ]
+
+        assert mock_produce.call_count == 2
 
 
 @thread_leak_allowlist(reason="uptime consumers", issue=97045)
