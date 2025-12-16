@@ -264,7 +264,6 @@ class OAuthAuthorizeView(AuthLoginView):
                 # if we've already approved all of the required scopes
                 # we can skip prompting the user
                 if all(existing_auth.has_scope(s) for s in scopes):
-                    # Use PKCE parameters from session to prevent injection attacks
                     return self.approve(
                         request=request,
                         user=request.user,
@@ -432,9 +431,6 @@ class OAuthAuthorizeView(AuthLoginView):
                     state=state,
                 )
 
-            # Validate that user is a member of the selected organization
-            # This prevents privilege escalation attacks where a user tries to authorize access
-            # to an organization they don't belong to
             user_orgs = user_service.get_organizations(user_id=user.id, only_visible=True)
             org_ids = {org.id for org in user_orgs}
 

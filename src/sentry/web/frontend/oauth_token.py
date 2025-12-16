@@ -7,7 +7,7 @@ import re
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
 
-from django.db import router
+from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
@@ -18,6 +18,7 @@ from django.views.generic.base import View
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
@@ -321,10 +322,6 @@ class OAuthTokenView(View):
         return (None, None), None
 
     def get_access_tokens(self, request: Request, application: ApiApplication) -> dict:
-        from django.db import transaction
-
-        from sentry.locks import locks
-
         code = request.POST.get("code")
         try:
             grant = ApiGrant.objects.get(application=application, code=code)
