@@ -130,7 +130,8 @@ export function ConfigureRootCauseAnalysisStep() {
     // Only submit if RCA is disabled (empty mapping is fine) or there are valid mappings
     const hasMappings = Object.keys(projectRepoMapping).length > 0;
     if (!hasMappings) {
-      addErrorMessage(t('At least one repository must be mapped to a project'));
+      // Otherwise, there is nothing mapped so nothing to do here, can advance to the next step.
+      setCurrentStep(currentStep + 1);
       return;
     }
 
