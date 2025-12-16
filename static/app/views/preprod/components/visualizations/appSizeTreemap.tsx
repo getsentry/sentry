@@ -13,10 +13,9 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {IconClose, IconContract, IconExpand, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {ChartRenderingContext} from 'sentry/views/insights/common/components/chart';
-import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTheme';
+import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
 import {TreemapType, type TreemapElement} from 'sentry/views/preprod/types/appSizeTypes';
 import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering';
 
@@ -364,6 +363,8 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         />
         <ButtonContainer
           direction="row"
+          gap="xs"
+          align="center"
           position="absolute"
           onMouseDown={e => e.stopPropagation()}
         >
@@ -426,7 +427,6 @@ const ButtonContainer = styled(Flex)`
   right: 0;
   height: 20px;
   align-items: center;
-  gap: ${space(0.5)};
   z-index: 10;
 
   button {
@@ -437,7 +437,7 @@ const ButtonContainer = styled(Flex)`
     height: 22px;
     min-height: 20px;
     max-height: 20px;
-    padding: 0 ${space(0.5)};
+    padding: 0 ${p => p.theme.space.xs};
     background: rgba(0, 0, 0, 0.8);
     border-radius: ${p => p.theme.radius.md};
     box-shadow: ${p => p.theme.dropShadowMedium};

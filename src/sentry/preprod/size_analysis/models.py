@@ -185,30 +185,10 @@ class InsightDiffItem(BaseModel):
     group_diffs: list[DiffItem]
 
 
-class TreemapDiffElement(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    name: str
-    size_diff: int
-    diff_type: DiffType
-    path: str | None
-    is_dir: bool
-    type: str | None
-    children: list[TreemapDiffElement]
-
-
-class TreemapDiffResults(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    root: TreemapDiffElement
-    total_size_diff: int
-
-
 class ComparisonResults(BaseModel):
     diff_items: list[DiffItem]
     insight_diff_items: list[InsightDiffItem]
     size_metric_diff_item: SizeMetricDiffItem
-    treemap_diff: TreemapDiffResults | None
     skipped_diff_item_comparison: bool
     head_analysis_version: str | None = None
     base_analysis_version: str | None = None

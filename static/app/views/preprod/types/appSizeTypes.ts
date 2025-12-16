@@ -267,3 +267,18 @@ export interface SizeAnalysisComparisonResults {
   insight_diff_items: InsightDiffItem[];
   size_metric_diff_item: SizeMetricDiffItem;
 }
+
+export interface TreemapDiffElement {
+  children: TreemapDiffElement[] | null;
+  diff_type: DiffType;
+  is_dir: boolean;
+  name: string;
+  path: string | null;
+  size: number;
+  size_diff: number;
+  type: string | null;
+}
+
+export interface TreemapDiffResults {
+  root: TreemapDiffElement;
+}

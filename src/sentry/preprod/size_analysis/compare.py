@@ -23,8 +23,6 @@ from sentry.preprod.size_analysis.models import (
     InsightDiffItem,
     SizeAnalysisResults,
     SizeMetricDiffItem,
-    TreemapDiffElement,
-    TreemapDiffResults,
     TreemapElement,
 )
 
@@ -53,15 +51,17 @@ def compare_size_analysis(
 
     all_paths = set(head_files.keys()) | set(base_files.keys())
 
-    diff_items = []
-
     head_renamed_paths, base_renamed_paths = _find_renamed_paths(
         head_size_analysis_results.file_analysis,
         base_size_analysis_results.file_analysis,
     )
 
+    diff_items = []
+    insight_diff_items = []
+
     if not skip_diff_item_comparison:
         for path in sorted(all_paths):
+
             head_elements = head_files.get(path, [])
             base_elements = base_files.get(path, [])
 
@@ -138,6 +138,10 @@ def compare_size_analysis(
                         diff_items=None,
                     )
                 )
+
+        insight_diff_items = _compare_insights(
+            head_size_analysis_results, base_size_analysis_results
+        )
     else:
         logger.info(
             "preprod.size_analysis.compare.skipped_diff_item_comparison",
@@ -157,32 +161,10 @@ def compare_size_analysis(
         base_download_size=base_size_analysis.max_download_size,
     )
 
-    # Compare insights only if we're not skipping the comparison
-    insight_diff_items = []
-    if not skip_diff_item_comparison:
-        insight_diff_items = _compare_insights(
-            head_size_analysis_results, base_size_analysis_results
-        )
-    else:
-        logger.info(
-            "preprod.size_analysis.compare.skipped_insight_comparison",
-            extra={
-                "head_analysis_version": head_size_analysis_results.analysis_version,
-                "base_analysis_version": base_size_analysis_results.analysis_version,
-                "preprod_artifact_id": head_size_analysis.preprod_artifact_id,
-            },
-        )
-
-    # Generate treemap diff for visualization
-    treemap_diff = None
-    if not skip_diff_item_comparison and head_treemap and base_treemap:
-        treemap_diff = _generate_treemap_diff(head_treemap, base_treemap)
-
     return ComparisonResults(
         diff_items=diff_items,
         size_metric_diff_item=size_metric_diff_item,
         insight_diff_items=insight_diff_items,
-        treemap_diff=treemap_diff,
         skipped_diff_item_comparison=skip_diff_item_comparison,
         head_analysis_version=head_size_analysis_results.analysis_version,
         base_analysis_version=base_size_analysis_results.analysis_version,
@@ -668,196 +650,3 @@ def _compare_insights(
             insight_diff_items.append(insight_diff_item)
 
     return insight_diff_items
-
-
-def _generate_treemap_diff(
-    head_treemap: TreemapElement, base_treemap: TreemapElement
-) -> TreemapDiffResults:
-
-    # Build lookup dictionaries for efficient comparison
-    head_lookup = _build_treemap_lookup(head_treemap)
-    base_lookup = _build_treemap_lookup(base_treemap)
-
-    # Calculate statistics for color intensity scaling
-    all_size_diffs = []
-    for path in set(head_lookup.keys()) | set(base_lookup.keys()):
-        head_element = head_lookup.get(path)
-        base_element = base_lookup.get(path)
-        head_size = head_element.size if head_element else 0
-        base_size = base_element.size if base_element else 0
-        size_diff = head_size - base_size
-        if size_diff != 0:
-            all_size_diffs.append(size_diff)
-
-    if not all_size_diffs:
-        # No changes, return empty diff
-        root_diff = _convert_to_diff_element(head_treemap, 0, DiffType.INCREASED, 0.0)
-        return TreemapDiffResults(
-            root=root_diff,
-            total_size_diff=0,
-            largest_increase=0,
-            largest_decrease=0,
-        )
-
-    max_increase = (
-        max(diff for diff in all_size_diffs if diff > 0)
-        if any(diff > 0 for diff in all_size_diffs)
-        else 0
-    )
-    max_decrease = (
-        abs(min(diff for diff in all_size_diffs if diff < 0))
-        if any(diff < 0 for diff in all_size_diffs)
-        else 0
-    )
-
-    # Generate the diff tree
-    root_diff = _generate_diff_tree(
-        head_treemap, base_treemap, head_lookup, base_lookup, max_increase, max_decrease
-    )
-
-    total_size_diff = head_treemap.size - base_treemap.size
-
-    return TreemapDiffResults(
-        root=root_diff,
-        total_size_diff=total_size_diff,
-        largest_increase=max_increase,
-        largest_decrease=max_decrease,
-    )
-
-
-def _build_treemap_lookup(
-    element: TreemapElement, parent_path: str = ""
-) -> dict[str, TreemapElement]:
-    """Build a path-to-element lookup dictionary for the treemap."""
-    lookup = {}
-
-    current_path = element.path or (
-        parent_path + "/" + element.name if parent_path else element.name
-    )
-    lookup[current_path] = element
-
-    if element.children:
-        for child in element.children:
-            child_lookup = _build_treemap_lookup(child, current_path)
-            lookup.update(child_lookup)
-
-    return lookup
-
-
-def _generate_diff_tree(
-    head_element: TreemapElement | None,
-    base_element: TreemapElement | None,
-    head_lookup: dict[str, TreemapElement],
-    base_lookup: dict[str, TreemapElement],
-    max_increase: int,
-    max_decrease: int,
-    parent_path: str = "",
-) -> TreemapDiffElement:
-    """Recursively generate the diff tree structure."""
-
-    if head_element is None and base_element is None:
-        raise ValueError("Both head and base elements cannot be None")
-
-    # Determine element properties
-    if head_element is not None:
-        name = head_element.name
-        is_dir = head_element.is_dir
-        type_str = head_element.type
-        current_path = head_element.path or (parent_path + "/" + name if parent_path else name)
-        head_size = head_element.size
-    else:
-        name = base_element.name
-        is_dir = base_element.is_dir
-        type_str = base_element.type
-        current_path = base_element.path or (parent_path + "/" + name if parent_path else name)
-        head_size = 0
-
-    base_size = base_element.size if base_element else 0
-    size_diff = head_size - base_size
-
-    # Determine diff type
-    if size_diff > 0:
-        diff_type = DiffType.INCREASED if base_element else DiffType.ADDED
-    elif size_diff < 0:
-        diff_type = DiffType.DECREASED if head_element else DiffType.REMOVED
-    else:
-        diff_type = DiffType.INCREASED  # No change, but need a default
-
-    # Calculate color intensity for visualization
-    color_intensity = 0.0
-    if size_diff != 0:
-        if size_diff > 0 and max_increase > 0:
-            color_intensity = min(1.0, abs(size_diff) / max_increase)
-        elif size_diff < 0 and max_decrease > 0:
-            color_intensity = min(1.0, abs(size_diff) / max_decrease)
-
-    # Generate children if this is a directory/has children
-    children = None
-    if (head_element and head_element.children) or (base_element and base_element.children):
-        children = []
-
-        # Get all child names from both head and base
-        head_child_names = (
-            {child.name for child in (head_element.children or [])} if head_element else set()
-        )
-        base_child_names = (
-            {child.name for child in (base_element.children or [])} if base_element else set()
-        )
-        all_child_names = head_child_names | base_child_names
-
-        for child_name in sorted(all_child_names):
-            head_child = None
-            base_child = None
-
-            if head_element and head_element.children:
-                head_child = next((c for c in head_element.children if c.name == child_name), None)
-            if base_element and base_element.children:
-                base_child = next((c for c in base_element.children if c.name == child_name), None)
-
-            if head_child or base_child:
-                child_diff = _generate_diff_tree(
-                    head_child,
-                    base_child,
-                    head_lookup,
-                    base_lookup,
-                    max_increase,
-                    max_decrease,
-                    current_path,
-                )
-                children.append(child_diff)
-
-    return TreemapDiffElement(
-        name=name,
-        path=current_path,
-        size=head_size,
-        size_diff=size_diff,
-        diff_type=diff_type,
-        is_dir=is_dir,
-        type=type_str,
-        children=children,
-        color_intensity=color_intensity,
-    )
-
-
-def _convert_to_diff_element(
-    element: TreemapElement, size_diff: int, diff_type: DiffType, color_intensity: float
-) -> TreemapDiffElement:
-    """Convert a TreemapElement to TreemapDiffElement with diff info."""
-    children = None
-    if element.children:
-        children = [
-            _convert_to_diff_element(child, 0, DiffType.INCREASED, 0.0)
-            for child in element.children
-        ]
-
-    return TreemapDiffElement(
-        name=element.name,
-        path=element.path,
-        size=element.size,
-        size_diff=size_diff,
-        diff_type=diff_type,
-        is_dir=element.is_dir,
-        type=element.type,
-        children=children,
-        color_intensity=color_intensity,
-    )

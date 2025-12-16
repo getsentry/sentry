@@ -21,7 +21,7 @@ import {BuildComparisonMetricCards} from 'sentry/views/preprod/buildComparison/m
 import {InsightComparisonSection} from 'sentry/views/preprod/buildComparison/main/insightComparisonSection';
 import {SizeCompareItemDiffTable} from 'sentry/views/preprod/buildComparison/main/sizeCompareItemDiffTable';
 import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectedBuilds';
-import {TreemapDiffView} from 'sentry/views/preprod/buildComparison/main/treemapDiffView';
+import {TreemapDiffSection} from 'sentry/views/preprod/buildComparison/main/treemapDiffSection';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {
@@ -252,11 +252,6 @@ export function SizeCompareMainContent() {
           />
         )}
 
-      {/* Treemap Diff Section */}
-      {comparisonDataQuery.data?.treemap_diff && (
-        <TreemapDiffView treemapDiff={comparisonDataQuery.data.treemap_diff} />
-      )}
-
       {/* Items Changed Section */}
       <Container background="primary" radius="lg" padding="0" border="primary">
         <Flex direction="column" gap="0">
@@ -325,6 +320,12 @@ export function SizeCompareMainContent() {
           )}
         </Flex>
       </Container>
+
+      {/* Treemap Diff Section */}
+      {comparisonDataQuery.data?.diff_items &&
+        comparisonDataQuery.data.diff_items.length > 0 && (
+          <TreemapDiffSection diffItems={comparisonDataQuery.data.diff_items} />
+        )}
     </Flex>
   );
 }
