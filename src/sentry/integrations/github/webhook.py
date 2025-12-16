@@ -837,15 +837,18 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
     def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:
         return self._handlers.get(event_type)
 
-    def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
+    @staticmethod
+    def compute_signature(method: str, body: bytes, secret: str) -> str:
         if method == "sha256":
             mod = hashlib.sha256
         elif method == "sha1":
             mod = hashlib.sha1
         else:
             raise NotImplementedError(f"signature method {method} is not supported")
-        expected = hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=mod).hexdigest()
+        return hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=mod).hexdigest()
 
+    def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
+        expected = GitHubIntegrationsWebhookEndpoint.compute_signature(method, body, secret)
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)

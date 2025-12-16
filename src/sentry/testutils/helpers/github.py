@@ -4,8 +4,6 @@ Utilities for testing GitHub integration webhooks.
 
 from __future__ import annotations
 
-import hashlib
-import hmac
 from datetime import datetime, timedelta
 from typing import Any
 from uuid import uuid4
@@ -13,6 +11,7 @@ from uuid import uuid4
 from django.http.response import HttpResponseBase
 
 from sentry import options
+from sentry.integrations.github.webhook import GitHubIntegrationsWebhookEndpoint
 from sentry.integrations.models.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -33,14 +32,7 @@ def compute_github_webhook_signature(body: bytes, secret: str, method: str = "sh
     Returns:
         Signature string in format "method=hexdigest"
     """
-    if method == "sha256":
-        mod = hashlib.sha256
-    elif method == "sha1":
-        mod = hashlib.sha1
-    else:
-        raise ValueError(f"Unsupported hash method: {method}")
-
-    signature = hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=mod).hexdigest()
+    signature = GitHubIntegrationsWebhookEndpoint.compute_signature(method, body, secret)
     return f"{method}={signature}"
 
 
