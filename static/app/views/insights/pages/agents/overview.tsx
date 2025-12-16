@@ -36,6 +36,7 @@ import {WidgetGrid} from 'sentry/views/insights/pages/agents/components/styles';
 import TokenUsageWidget from 'sentry/views/insights/pages/agents/components/tokenUsageWidget';
 import ToolUsageWidget from 'sentry/views/insights/pages/agents/components/toolCallsWidget';
 import {TracesTable} from 'sentry/views/insights/pages/agents/components/tracesTable';
+import {useAgentMonitoringTrackPageView} from 'sentry/views/insights/pages/agents/hooks/useAgentMonitoringTrackPageView';
 import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/useAgentSpanSearchProps';
 import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
@@ -58,6 +59,7 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
   const agentSpanSearchProps = useAgentSpanSearchProps();
 
   useOverviewPageTrackPageload();
+  useAgentMonitoringTrackPageView();
 
   // Fire a request to check if there are any agent runs
   // If there are, we show the count/duration of agent runs
