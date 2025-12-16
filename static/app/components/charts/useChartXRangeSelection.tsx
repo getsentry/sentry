@@ -14,6 +14,7 @@ import type {EChartsInstance} from 'echarts-for-react';
 
 import ToolBox from 'sentry/components/charts/components/toolBox';
 import type {EChartBrushEndHandler, EChartBrushStartHandler} from 'sentry/types/echarts';
+import usePrevious from 'sentry/utils/usePrevious';
 
 export type Selection = {
   /**
@@ -146,6 +147,8 @@ export function useChartXRangeSelection({
   const tooltipFrameRef = useRef<number | null>(null);
   const brushStateSyncFrameRef = useRef<number | null>(null);
 
+  const previousInitialSelection = usePrevious(initialSelection);
+
   const clearSelection = useCallback(() => {
     if (!selectionState?.selection) return;
 
@@ -221,11 +224,15 @@ export function useChartXRangeSelection({
         setSelectionState(newState);
 
         if (newState) {
-          onSelectionEnd?.(callbackParams);
+          onSelectionEnd?.({
+            selectionState: newState,
+            setSelectionState,
+            clearSelection,
+          });
         }
       }
     },
-    [onSelectionEnd, callbackParams]
+    [onSelectionEnd, setSelectionState, clearSelection]
   );
 
   const enableBrushMode = useCallback(() => {
@@ -236,6 +243,59 @@ export function useChartXRangeSelection({
       brushOption: CHART_X_RANGE_BRUSH_OPTION,
     });
   }, [chartRef]);
+
+  const syncSelectionStates = useCallback(() => {
+    const chartInstance = chartRef.current?.getEchartsInstance();
+
+    if (!chartInstance) {
+      return;
+    }
+
+    // Initial selection is cleared, so we clear the selection
+    // Example: Back navigation to an unselected chart region state
+    if (previousInitialSelection && !initialSelection) {
+      clearSelection();
+      return;
+    }
+
+    // Initial selection is not set, so we don't need to sync the selection
+    if (!initialSelection) {
+      return;
+    }
+
+    const newState = calculateNewState({
+      chartInstance,
+      newRange: initialSelection.range,
+      panelId: initialSelection.panelId,
+    });
+
+    if (!newState) {
+      return;
+    }
+
+    // Initialization of the selection state from the initialSelection prop
+    if (!selectionState) {
+      setSelectionState(newState);
+      return;
+    }
+
+    // This is the case where a selection already exists but we are now passing a
+    // new defined initialSelection prop.
+    // Example: Back navigating from a selected chart region state to a previous chart region selected state.
+    const hasRangeChanged =
+      selectionState.selection.range[0] !== initialSelection.range[0] ||
+      selectionState.selection.range[1] !== initialSelection.range[1];
+
+    if (hasRangeChanged) {
+      setSelectionState(newState);
+    }
+  }, [
+    initialSelection,
+    selectionState,
+    clearSelection,
+    chartRef,
+    previousInitialSelection,
+  ]);
 
   // This effect sets up the listener for clicks anywhere on the chart to trigger the
   // onChartClick callback if it is passed in. The params to it include state management functions,
@@ -304,20 +364,7 @@ export function useChartXRangeSelection({
     // Everything inside `requestAnimationFrame` is called only after the current render cycle completes,
     // and this ensures ECharts has fully processed all the dispatchActions like the one above.
     brushStateSyncFrameRef.current = requestAnimationFrame(() => {
-      // We only propagate the range of the selection box to the consumers,
-      // so we need to calculate the rest of the state from the `initialSelection` prop on load.
-      if (initialSelection && !selectionState) {
-        const newState = calculateNewState({
-          chartInstance,
-          newRange: initialSelection.range,
-          panelId: initialSelection.panelId,
-        });
-
-        if (newState) {
-          setSelectionState(newState);
-        }
-      }
-
+      syncSelectionStates();
       enableBrushMode();
     });
 
@@ -339,6 +386,7 @@ export function useChartXRangeSelection({
     chartsGroupName,
     initialSelection,
     deps,
+    syncSelectionStates,
   ]);
 
   const brush: BrushComponentOption | undefined = useMemo(() => {
