@@ -103,7 +103,7 @@ export function CohortComparison({
   }, [selection]);
 
   return (
-    <Panel data-explore-chart-selection-region>
+    <Panel>
       <Flex direction="column" gap="2xl" padding="xl">
         <AttributeBreakdownsComponent.ControlsContainer>
           <AttributeBreakdownsComponent.StyledBaseSearchBar

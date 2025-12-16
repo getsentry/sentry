@@ -64,6 +64,7 @@ export function FloatingTrigger({chartIndex, selection, clearSelection, setTab}:
       <ListItem onClick={handleFindAttributeBreakdowns}>
         {t('Compare Attribute Breakdowns')}
       </ListItem>
+      <ListItem onClick={() => clearSelection()}>{t('Clear Selection')}</ListItem>
     </List>
   );
 }

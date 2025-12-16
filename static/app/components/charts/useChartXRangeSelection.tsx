@@ -214,38 +214,6 @@ export function useChartXRangeSelection({
     [onSelectionEnd, clearSelection]
   );
 
-  const handleOutsideClick = useCallback(
-    (event: MouseEvent) => {
-      let el = event.target as HTMLElement | null;
-
-      // Propagate the click event to the parent elements until we find the element that has the
-      // data-explore-chart-selection-region attribute. This is used to prevent the selection from
-      // being cleared if the user clicks within an 'inbound' region.
-      while (el) {
-        if (el.dataset?.exploreChartSelectionRegion !== undefined) {
-          return;
-        }
-        el = el.parentElement;
-      }
-
-      clearSelection();
-    },
-    [clearSelection]
-  );
-
-  // This effect sets up the event listener for clearing of the selection
-  //  when the user clicks outside the declared inbound regions.
-  useEffect(() => {
-    if (disabled || !state?.selection) return;
-
-    window.addEventListener('click', handleOutsideClick, {capture: true});
-
-    // eslint-disable-next-line consistent-return
-    return () => {
-      window.removeEventListener('click', handleOutsideClick, {capture: true});
-    };
-  }, [handleOutsideClick, disabled, state?.selection]);
-
   const enableBrushMode = useCallback(() => {
     const chartInstance = chartRef.current?.getEchartsInstance();
     chartInstance?.dispatchAction({
@@ -368,7 +336,6 @@ export function useChartXRangeSelection({
 
     return createPortal(
       <div
-        data-explore-chart-selection-region
         style={{
           position: 'absolute',
           transform,
