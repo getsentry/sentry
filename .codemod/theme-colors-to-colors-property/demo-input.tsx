@@ -13,21 +13,23 @@ function Component({theme}) {
   const textColor = theme.gray800;
 
   return (
-    <div style={{
-      color: theme.gray800,
-      backgroundColor: theme.surface500,
-      borderColor: theme.blue400
-    }}>
+    <div
+      style={{
+        color: theme.gray800,
+        backgroundColor: theme.surface500,
+        borderColor: theme.blue400,
+      }}
+    >
       Content
     </div>
   );
 }
 
 // Example 3: String literals (should NOT be transformed)
-const colorName = "gray100";
+const colorName = 'gray100';
 const config = {
-  key: "blue500",
-  value: theme.blue500  // This SHOULD be transformed
+  key: 'blue500',
+  value: theme.blue500, // This SHOULD be transformed
 };
 
 // Example 4: All color types
@@ -40,5 +42,5 @@ const colors = {
   yellow: theme.yellow300,
   green: theme.green500,
   black: theme.black,
-  white: theme.white
+  white: theme.white,
 };

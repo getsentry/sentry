@@ -18,6 +18,7 @@ This codemod uses the exact mappings from `deprecatedColorMappings` in `static/a
 Transforms deprecated color property access to use the correct `theme.colors` property:
 
 ### Before
+
 ```tsx
 const StyledDiv = styled('div')`
   background: ${p => p.theme.gray100};
@@ -29,14 +30,15 @@ const purple = theme.purple300;
 ```
 
 ### After
+
 ```tsx
 const StyledDiv = styled('div')`
   background: ${p => p.theme.colors.gray100};
-  color: ${p => p.theme.colors.gray800};  // Note: gray500 → gray800!
+  color: ${p => p.theme.colors.gray800}; // Note: gray500 → gray800!
 `;
 
-const color = theme.colors.blue500;  // Note: blue400 → blue500!
-const purple = theme.colors.blue400;  // Note: purple300 → blue400!
+const color = theme.colors.blue500; // Note: blue400 → blue500!
+const purple = theme.colors.blue400; // Note: purple300 → blue400!
 ```
 
 ## Deprecated Color Mappings
@@ -44,6 +46,7 @@ const purple = theme.colors.blue400;  // Note: purple300 → blue400!
 The codemod transforms these deprecated colors (based on `deprecatedColorMappings` in theme.tsx):
 
 ### Gray Colors
+
 - `gray100` → `colors.gray100` ✓ (same)
 - `gray200` → `colors.gray200` ✓ (same)
 - `gray300` → `colors.gray400` ⚠️ (shifted!)
@@ -51,6 +54,7 @@ The codemod transforms these deprecated colors (based on `deprecatedColorMapping
 - `gray500` → `colors.gray800` ⚠️ (shifted!)
 
 ### Surface Colors
+
 - `surface100` → `colors.surface200` ⚠️ (shifted!)
 - `surface200` → `colors.surface300` ⚠️ (shifted!)
 - `surface300` → `colors.surface400` ⚠️ (shifted!)
@@ -58,42 +62,49 @@ The codemod transforms these deprecated colors (based on `deprecatedColorMapping
 - `surface500` → `colors.surface500` ✓ (same)
 
 ### Purple Colors (map to Blue!)
+
 - `purple100` → `colors.blue100` ⚠️
 - `purple200` → `colors.blue200` ⚠️
 - `purple300` → `colors.blue400` ⚠️
 - `purple400` → `colors.blue500` ⚠️
 
 ### Blue Colors
+
 - `blue100` → `colors.blue100` ✓ (same)
 - `blue200` → `colors.blue200` ✓ (same)
 - `blue300` → `colors.blue400` ⚠️ (shifted!)
 - `blue400` → `colors.blue500` ⚠️ (shifted!)
 
 ### Pink Colors
+
 - `pink100` → `colors.pink100` ✓ (same)
 - `pink200` → `colors.pink200` ✓ (same)
 - `pink300` → `colors.pink400` ⚠️ (shifted!)
 - `pink400` → `colors.pink500` ⚠️ (shifted!)
 
 ### Red Colors
+
 - `red100` → `colors.red100` ✓ (same)
 - `red200` → `colors.red200` ✓ (same)
 - `red300` → `colors.red400` ⚠️ (shifted!)
 - `red400` → `colors.red500` ⚠️ (shifted!)
 
 ### Yellow Colors
+
 - `yellow100` → `colors.yellow100` ✓ (same)
 - `yellow200` → `colors.yellow200` ✓ (same)
 - `yellow300` → `colors.yellow400` ⚠️ (shifted!)
 - `yellow400` → `colors.yellow500` ⚠️ (shifted!)
 
 ### Green Colors
+
 - `green100` → `colors.green100` ✓ (same)
 - `green200` → `colors.green200` ✓ (same)
 - `green300` → `colors.green400` ⚠️ (shifted!)
 - `green400` → `colors.green500` ⚠️ (shifted!)
 
 ### Other Colors
+
 - `black` → `colors.black` ✓
 - `white` → `colors.white` ✓
 - `translucentSurface100` → `colors.surface100`
@@ -137,6 +148,7 @@ pnpm test
 ## Examples
 
 ### Styled components
+
 ```tsx
 // Before
 const Button = styled('button')`
@@ -154,6 +166,7 @@ const Button = styled('button')`
 ```
 
 ### Direct access
+
 ```tsx
 // Before
 function Component({theme}) {
@@ -167,10 +180,11 @@ function Component({theme}) {
 ```
 
 ### Nested access
+
 ```tsx
 // Before
-const getColor = (props) => props.theme.red500;
+const getColor = props => props.theme.red500;
 
 // After
-const getColor = (props) => props.theme.colors.red500;
+const getColor = props => props.theme.colors.red500;
 ```

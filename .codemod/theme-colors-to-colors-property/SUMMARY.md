@@ -10,13 +10,13 @@ Transforms deprecated theme color references to use `theme.colors`, respecting t
 
 ```tsx
 // Before
-const color = theme.gray500;        // Deprecated property
-const bg = theme.blue400;           // Deprecated property
-const purple = theme.purple300;     // Deprecated property
+const color = theme.gray500; // Deprecated property
+const bg = theme.blue400; // Deprecated property
+const purple = theme.purple300; // Deprecated property
 
 // After (with CORRECT mappings!)
 const color = theme.colors.gray800; // gray500 → gray800 (shifted!)
-const bg = theme.colors.blue500;    // blue400 → blue500 (shifted!)
+const bg = theme.colors.blue500; // blue400 → blue500 (shifted!)
 const purple = theme.colors.blue400; // purple300 → blue400 (different color!)
 ```
 
@@ -25,6 +25,7 @@ const purple = theme.colors.blue400; // purple300 → blue400 (different color!)
 Many deprecated colors map to **different** values in `theme.colors`:
 
 ### Key Shifted Mappings
+
 - `gray500` → `colors.gray800` (NOT gray500!)
 - `gray400` → `colors.gray500` (NOT gray400!)
 - `gray300` → `colors.gray400` (NOT gray300!)
@@ -33,12 +34,14 @@ Many deprecated colors map to **different** values in `theme.colors`:
 - Similar pattern for pink, red, yellow, green colors (300/400 are shifted)
 
 ### Purple Maps to Blue!
+
 - `purple400` → `colors.blue500`
 - `purple300` → `colors.blue400`
 - `purple200` → `colors.blue200`
 - `purple100` → `colors.blue100`
 
 ### Surface Colors Are Shifted
+
 - `surface100` → `colors.surface200`
 - `surface200` → `colors.surface300`
 - `surface300` → `colors.surface400`
@@ -52,6 +55,7 @@ See `README.md` for the full mapping table with all 50+ deprecated colors.
 ## ✅ Test Coverage
 
 All 6 test suites pass:
+
 - ✅ `positive-basic` - Basic transformations
 - ✅ `positive-multiple` - Multiple color references
 - ✅ `positive-all-colors` - All deprecated color types including purple→blue
@@ -62,12 +66,14 @@ All 6 test suites pass:
 ## 🚀 Usage
 
 ### Run Tests
+
 ```bash
 cd .codemod/theme-colors-to-colors-property
 pnpm test
 ```
 
 ### Apply to Codebase
+
 ```bash
 npx codemod workflow run \
   -w .codemod/theme-colors-to-colors-property/workflow.yaml \
@@ -75,6 +81,7 @@ npx codemod workflow run \
 ```
 
 ### Dry Run (Preview)
+
 ```bash
 npx codemod workflow run \
   -w .codemod/theme-colors-to-colors-property/workflow.yaml \
@@ -94,6 +101,7 @@ npx codemod workflow run \
 ## 🔍 What Gets Transformed
 
 Only the **50+ deprecated colors** from `deprecatedColorMappings`:
+
 - Gray: 100, 200, 300, 400, 500
 - Surface: 100, 200, 300, 400, 500
 - Purple: 100, 200, 300, 400 (maps to blue!)
@@ -124,6 +132,7 @@ Only the **50+ deprecated colors** from `deprecatedColorMappings`:
 ## 📊 Expected Impact
 
 When run on the Sentry codebase, this codemod will:
+
 - Transform all deprecated theme color accesses
 - Update colors to their correct mapped values
 - Maintain visual appearance (colors map to same underlying values)

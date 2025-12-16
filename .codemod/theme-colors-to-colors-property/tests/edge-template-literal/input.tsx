@@ -11,5 +11,5 @@ const StyledDiv = styled('div')`
 const cssString = `color: ${theme.blue400}; background: ${theme.surface100};`;
 
 // Arrow functions with different param names
-const getColor = (p) => p.theme.red400;
-const getBg = (props) => props.theme.green300;
+const getColor = p => p.theme.red400;
+const getBg = props => props.theme.green300;
