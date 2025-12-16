@@ -4,7 +4,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
-  getFilePatchesFromBlocks,
+  getMergedFilePatchesFromBlocks,
   getOrderedArtifactKeys,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {getArtifactIcon} from 'sentry/components/events/autofix/v2/artifactCards';
@@ -53,7 +53,7 @@ function getOneLineDescription(
     case 'impact_assessment':
       return getStringField(data, 'one_line_description');
     case 'code_changes': {
-      const filePatches = getFilePatchesFromBlocks(blocks);
+      const filePatches = getMergedFilePatchesFromBlocks(blocks);
       if (filePatches.length === 0) {
         return null;
       }

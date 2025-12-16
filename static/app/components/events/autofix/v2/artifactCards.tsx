@@ -709,58 +709,12 @@ interface CodeChangesCardProps {
 }
 
 /**
- * Merge consecutive patches to the same file into a single unified diff.
- * This is needed because the Explorer may create multiple patches for the same file.
- */
-function mergeFilePatches(patches: ExplorerFilePatch[]): ExplorerFilePatch[] {
-  const patchesByFile = new Map<string, ExplorerFilePatch[]>();
-
-  // Group patches by repo + file path
-  for (const patch of patches) {
-    const key = `${patch.repo_name}:${patch.patch.path}`;
-    const existing = patchesByFile.get(key) || [];
-    existing.push(patch);
-    patchesByFile.set(key, existing);
-  }
-
-  // Merge patches for each file
-  const merged: ExplorerFilePatch[] = [];
-  for (const [, filePatches] of patchesByFile) {
-    const firstPatch = filePatches[0];
-    if (!firstPatch) {
-      continue;
-    }
-
-    if (filePatches.length === 1) {
-      merged.push(firstPatch);
-    } else {
-      // Merge hunks from multiple patches
-      const mergedHunks = filePatches.flatMap(p => p.patch.hunks);
-
-      merged.push({
-        repo_name: firstPatch.repo_name,
-        patch: {
-          ...firstPatch.patch,
-          hunks: mergedHunks,
-          added: filePatches.reduce((sum, p) => sum + p.patch.added, 0),
-          removed: filePatches.reduce((sum, p) => sum + p.patch.removed, 0),
-        },
-      });
-    }
-  }
-
-  return merged;
-}
-
-/**
  * Code Changes card showing file diffs.
  */
 export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCardProps) {
-  const mergedPatches = mergeFilePatches(patches);
-
   // Group by repo
   const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
-  for (const patch of mergedPatches) {
+  for (const patch of patches) {
     const existing = patchesByRepo.get(patch.repo_name) || [];
     existing.push(patch);
     patchesByRepo.set(patch.repo_name, existing);
