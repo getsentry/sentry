@@ -550,7 +550,7 @@ const RowHeader = styled('span')<{
   background-color: ${p =>
     !p.isInAppFrame && p.isSubFrame
       ? `${p.theme.surface100}`
-      : `${p.theme.bodyBackground}`};
+      : `${p.theme.tokens.background.secondary}`};
   font-size: ${p => p.theme.fontSize.sm};
   padding: ${space(1)};
   color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};

@@ -1256,11 +1256,6 @@ const generateAliases = (
   subText: tokens.content.muted,
 
   /**
-   * Background for the main content area of a page?
-   */
-  bodyBackground: tokens.background.secondary,
-
-  /**
    * Primary background color
    */
   background: tokens.background.primary,

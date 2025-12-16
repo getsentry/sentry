@@ -221,7 +221,7 @@ const NoRootInfo = styled('div')`
 
 const Table = styled('table')`
   tr:nth-child(even) {
-    background-color: ${p => p.theme.bodyBackground};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 const THead = styled('th')`
