@@ -150,7 +150,12 @@ export const Text = styled(
         : undefined};
 
   font-family: ${p => p.theme.font.family[p.monospace ? 'mono' : 'sans']};
-  font-weight: ${p => (p.bold ? p.theme.font.weight.medium : undefined)};
+  font-weight: ${p =>
+    p.bold === true
+      ? p.theme.font.weight.medium
+      : p.bold === false
+        ? p.theme.font.weight.regular
+        : undefined};
   font-variant-numeric: ${p =>
     [
       p.tabular ? 'tabular-nums' : undefined,
