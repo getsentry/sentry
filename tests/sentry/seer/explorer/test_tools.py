@@ -9,6 +9,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.api import client
 from sentry.constants import ObjectStatus
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
@@ -43,7 +44,7 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.samples import load_data
-from tests.sentry.issues.test_utils import OccurrenceTestMixin
+from tests.sentry.issues.test_utils import OccurrenceTestMixin, SearchIssueTestMixin
 
 
 def _get_utc_iso_without_timezone(dt: datetime) -> str:
@@ -2558,7 +2559,7 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
         assert self.get_id_str(self.metrics[2]) in ids
 
 
-class TestGetBaselineTagDistribution(APITransactionTestCase, SnubaTestCase):
+class TestGetBaselineTagDistribution(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
     """Tests for get_baseline_tag_distribution RPC handler."""
 
     def _insert_event(
@@ -2671,3 +2672,72 @@ class TestGetBaselineTagDistribution(APITransactionTestCase, SnubaTestCase):
         tag_keys = {item["tag_key"] for item in distribution}
         assert tag_keys == {"browser"}
         assert len(distribution) == 2  # Chrome and Firefox
+
+    def test_combines_events_and_search_issues(self) -> None:
+        """Test that baseline includes both error events and issue platform occurrences.
+
+        Note: The store_search_issue test helper creates entries in BOTH the events dataset
+        (via store_event) AND the search_issues dataset (via save_issue_occurrence). This is
+        a test artifact - in production, performance issues only exist in search_issues.
+        As a result, tags from store_search_issue appear twice in the combined count.
+        """
+        now = datetime.now(UTC)
+        before = now - timedelta(hours=1)
+        after = now + timedelta(hours=1)
+
+        target_group_id = 12345
+
+        # Insert error events (goes to "events" dataset only)
+        self._insert_event(now, 67890, {"browser": "Chrome", "os": "Windows"})
+        self._insert_event(now, 67890, {"browser": "Firefox", "os": "Linux"})
+
+        # Insert search issues / performance issues
+        # Note: store_search_issue inserts to BOTH events AND search_issues datasets
+        fingerprint = f"{ProfileFileIOGroupType.type_id}-test-group"
+        self.store_search_issue(
+            project_id=self.project.id,
+            user_id=1,
+            fingerprints=[fingerprint],
+            environment=None,
+            insert_time=now,
+            tags=[("browser", "Safari"), ("os", "Mac")],
+        )
+        self.store_search_issue(
+            project_id=self.project.id,
+            user_id=2,
+            fingerprints=[fingerprint],
+            environment=None,
+            insert_time=now,
+            tags=[("browser", "Safari"), ("os", "Mac")],
+        )
+
+        result = get_baseline_tag_distribution(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=target_group_id,
+            tag_keys=["browser", "os"],
+            start=_get_utc_iso_without_timezone(before),
+            end=_get_utc_iso_without_timezone(after),
+        )
+
+        assert result is not None
+        distribution = result["baseline_tag_distribution"]
+
+        # Build a dict for easier assertions
+        dist_dict: dict[tuple[str, str], int] = {}
+        for item in distribution:
+            key = (item["tag_key"], item["tag_value"])
+            dist_dict[key] = item["count"]
+
+        # Error events (from _insert_event): Chrome=1, Firefox=1, Windows=1, Linux=1
+        # These only go to the events dataset
+        assert dist_dict.get(("browser", "Chrome")) == 1
+        assert dist_dict.get(("browser", "Firefox")) == 1
+        assert dist_dict.get(("os", "Windows")) == 1
+        assert dist_dict.get(("os", "Linux")) == 1
+
+        # Search issues (from store_search_issue): Safari and Mac tags
+        # Due to test helper behavior, these appear in both datasets (2 occurrences x 2 datasets = 4)
+        # This verifies that we ARE querying both datasets and combining results
+        assert dist_dict.get(("browser", "Safari")) == 4
+        assert dist_dict.get(("os", "Mac")) == 4

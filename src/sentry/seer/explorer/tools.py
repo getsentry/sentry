@@ -1600,20 +1600,23 @@ def get_baseline_tag_distribution(
     project_id: int,
     group_id: int,
     tag_keys: list[str],
+    stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
 ) -> dict[str, Any] | None:
     """
     Get baseline tag distribution for suspect attributes analysis.
 
-    Returns tag value counts for all events except those in the specified issue,
-    filtered to only include the specified tag keys.
+    Returns tag value counts for all events/occurrences except those in the specified issue,
+    filtered to only include the specified tag keys. Queries both error events and
+    issue platform occurrences (performance issues, etc.) to build a comprehensive baseline.
 
     Args:
         organization_id: The organization ID
         project_id: The project ID
         group_id: The issue group ID to exclude from baseline
         tag_keys: List of tag keys to fetch (from the issue's tags_overview)
+        stats_period: Stats period for the time range (e.g. "7d"). Defaults to "7d" if no time params provided.
         start: ISO timestamp for start of time range (optional)
         end: ISO timestamp for end of time range (optional)
 
@@ -1626,74 +1629,89 @@ def get_baseline_tag_distribution(
     if not tag_keys:
         return {"baseline_tag_distribution": []}
 
-    if start and end:
-        start_dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
-        end_dt = datetime.fromisoformat(end.replace("Z", "+00:00"))
-    else:
-        # Default to last 7 days if no time range specified
-        end_dt = datetime.now(timezone.utc)
-        start_dt = end_dt - timedelta(days=7)
+    stats_period, start, end = validate_date_params(
+        stats_period, start, end, default_stats_period="7d"
+    )
 
-    query = Query(
-        match=Entity("events"),
-        select=[
-            Function(
-                "arrayJoin",
-                parameters=[
+    if stats_period:
+        period_delta = parse_stats_period(stats_period)
+        assert period_delta is not None  # Already validated
+        end_dt = datetime.now(timezone.utc)
+        start_dt = end_dt - period_delta
+    else:
+        assert start and end
+        start_dt = datetime.fromisoformat(start)
+        end_dt = datetime.fromisoformat(end)
+
+    # Query both error events and issue platform occurrences for a comprehensive baseline.
+    # "events" contains error issues, "search_issues" contains performance and other issue types.
+    combined_counts: dict[tuple[str, str], int] = {}
+
+    for dataset in ["events", "search_issues"]:
+        query = Query(
+            match=Entity(dataset),
+            select=[
+                Function(
+                    "arrayJoin",
+                    parameters=[
+                        Function(
+                            "arrayZip",
+                            parameters=[
+                                Column("tags.key"),
+                                Column("tags.value"),
+                            ],
+                        ),
+                    ],
+                    alias="variants",
+                ),
+                Function("count", parameters=[], alias="count"),
+            ],
+            where=[
+                Condition(Column("project_id"), Op.EQ, project_id),
+                Condition(Column("timestamp"), Op.GTE, start_dt),
+                Condition(Column("timestamp"), Op.LT, end_dt),
+                # Exclude the current issue from baseline
+                Condition(Column("group_id"), Op.NEQ, group_id),
+                # Only include specified tag keys
+                Condition(
                     Function(
-                        "arrayZip",
+                        "has",
                         parameters=[
-                            Column("tags.key"),
-                            Column("tags.value"),
+                            tag_keys,
+                            Function("tupleElement", parameters=[Column("variants"), 1]),
                         ],
                     ),
-                ],
-                alias="variants",
-            ),
-            Function("count", parameters=[], alias="count"),
-        ],
-        where=[
-            Condition(Column("project_id"), Op.EQ, project_id),
-            Condition(Column("timestamp"), Op.GTE, start_dt),
-            Condition(Column("timestamp"), Op.LT, end_dt),
-            # Exclude the current issue from baseline
-            Condition(Column("group_id"), Op.NEQ, group_id),
-            # Only include specified tag keys
-            Condition(
-                Function(
-                    "has",
-                    parameters=[
-                        tag_keys,
-                        Function("tupleElement", parameters=[Column("variants"), 1]),
-                    ],
+                    Op.EQ,
+                    1,
                 ),
-                Op.EQ,
-                1,
-            ),
-        ],
-        groupby=[Column("variants")],
-        limit=Limit(5000),
-    )
+            ],
+            groupby=[Column("variants")],
+            limit=Limit(5000),
+        )
 
-    snuba_request = Request(
-        dataset="events",
-        app_id="seer-explorer",
-        query=query,
-        tenant_ids={"organization_id": organization_id},
-    )
-    response = raw_snql_query(
-        snuba_request,
-        referrer="seer.explorer.get_baseline_tag_distribution",
-        use_cache=True,
-    )
+        snuba_request = Request(
+            dataset=dataset,
+            app_id="seer-explorer",
+            query=query,
+            tenant_ids={"organization_id": organization_id},
+        )
+        response = raw_snql_query(
+            snuba_request,
+            referrer="seer.explorer.get_baseline_tag_distribution",
+            use_cache=True,
+        )
+
+        for result in response.get("data", []):
+            key = (result["variants"][0], result["variants"][1])
+            combined_counts[key] = combined_counts.get(key, 0) + result["count"]
 
     baseline_distribution = [
         {
-            "tag_key": result["variants"][0],
-            "tag_value": result["variants"][1],
-            "count": result["count"],
+            "tag_key": tag_key,
+            "tag_value": tag_value,
+            "count": count,
         }
-        for result in response.get("data", [])
+        for (tag_key, tag_value), count in combined_counts.items()
     ]
 
     return {"baseline_tag_distribution": baseline_distribution}
