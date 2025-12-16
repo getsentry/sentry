@@ -85,9 +85,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(project?.id, {
-        appId: buildDetailsData.app_info.app_id ?? undefined,
-      }),
+      to: makeReleasesUrl(project?.id, {tab: 'mobile-builds'}),
       label: 'Releases',
     },
   ];
@@ -95,8 +93,8 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   if (buildDetailsData.app_info.version) {
     breadcrumbs.push({
       to: makeReleasesUrl(project?.id, {
-        version: buildDetailsData.app_info.version,
-        appId: buildDetailsData.app_info.app_id ?? undefined,
+        query: buildDetailsData.app_info.version,
+        tab: 'mobile-builds',
       }),
       label: buildDetailsData.app_info.version,
     });
