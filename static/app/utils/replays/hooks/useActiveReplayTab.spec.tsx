@@ -69,6 +69,32 @@ describe('useActiveReplayTab', () => {
         act(() => result.current.setActiveTab('foo bar'));
         expect(router.location.query).toEqual({query: 'click.tag:button', t_main: 'ai'});
       });
+
+      it('should use AI as default for video replays when replay-ai-summaries-mobile is enabled', () => {
+        const {result} = renderHookWithProviders(useActiveReplayTab, {
+          initialProps: {isVideoReplay: true},
+          organization: OrganizationFixture({
+            features: [
+              'gen-ai-features',
+              'replay-ai-summaries',
+              'replay-ai-summaries-mobile',
+            ],
+          }),
+        });
+
+        expect(result.current.getActiveTab()).toBe(TabKey.AI);
+      });
+
+      it('should use Breadcrumbs as default for video replays when replay-ai-summaries-mobile is NOT enabled', () => {
+        const {result} = renderHookWithProviders(useActiveReplayTab, {
+          initialProps: {isVideoReplay: true},
+          organization: OrganizationFixture({
+            features: ['gen-ai-features', 'replay-ai-summaries'],
+          }),
+        });
+
+        expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
+      });
     });
   });
 

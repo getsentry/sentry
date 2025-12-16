@@ -41,11 +41,14 @@ function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}
 function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boolean}) {
   const organization = useOrganization();
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
+  const hasMobileSummary = organization.features.includes('replay-ai-summaries-mobile');
   const hasAiSummary =
     organization.features.includes('replay-ai-summaries') && areAiFeaturesAllowed;
 
+  const isAiTabAvailable = hasAiSummary && (!isVideoReplay || hasMobileSummary);
+
   const defaultTab =
-    defined(areAiFeaturesAllowed) && areAiFeaturesAllowed && hasAiSummary
+    defined(areAiFeaturesAllowed) && areAiFeaturesAllowed && isAiTabAvailable
       ? TabKey.AI
       : TabKey.BREADCRUMBS;
 
