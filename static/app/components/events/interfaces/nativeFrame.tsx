@@ -28,6 +28,7 @@ import {IconChevron} from 'sentry/icons';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
+import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
@@ -385,7 +386,7 @@ function NativeFrame({
           <GroupingCell>
             {isUsedForGrouping && (
               <Tooltip title={t('This frame is repeated in every event of this issue')}>
-                <IconRefresh size="sm" color="textColor" />
+                <IconRefresh size="sm" variant="primary" />
               </Tooltip>
             )}
           </GroupingCell>
@@ -550,7 +551,7 @@ const RowHeader = styled('span')<{
   background-color: ${p =>
     !p.isInAppFrame && p.isSubFrame
       ? `${p.theme.surface100}`
-      : `${p.theme.bodyBackground}`};
+      : `${p.theme.tokens.background.secondary}`};
   font-size: ${p => p.theme.fontSize.sm};
   padding: ${space(1)};
   color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};
@@ -573,7 +574,7 @@ const StackTraceFrame = styled('li')`
 `;
 
 const SymbolicatorIcon = styled('div')`
-  width: ${p => p.theme.iconSizes.sm};
+  width: ${() => SvgIcon.ICON_SIZES.sm};
 `;
 
 const ShowHideButton = styled(Button)`
