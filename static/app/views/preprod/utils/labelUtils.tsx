@@ -144,6 +144,15 @@ export function formattedPrimaryMetricDownloadSize(
   return '-';
 }
 
+export function formattedSizeDiff(diff: number): string {
+  if (diff === 0) {
+    return '';
+  }
+
+  const sign = diff > 0 ? '+' : '-';
+  return `${sign}${formatBytesBase10(Math.abs(diff))}`;
+}
+
 export function getTrend(diff: number): {
   variant: 'danger' | 'success' | 'muted';
   icon?: React.ReactNode;
