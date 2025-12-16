@@ -746,6 +746,62 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert "Install" in ios_summary
         assert "Uncompressed" not in ios_summary
 
+    def test_mixed_platforms_render_separate_tables(self):
+        """Mixed Android/iOS artifacts should render separate tables with platform-specific labels."""
+        android_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.android",
+            build_version="1.0.0",
+            build_number=1,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+        )
+        ios_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.ios",
+            build_version="2.0.0",
+            build_number=2,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+        )
+
+        android_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=android_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+        ios_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=ios_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=2048 * 1024,
+            max_download_size=2048 * 1024,
+            min_install_size=3 * 1024 * 1024,
+            max_install_size=3 * 1024 * 1024,
+        )
+
+        size_metrics_map = {
+            android_artifact.id: [android_metrics],
+            ios_artifact.id: [ios_metrics],
+        }
+
+        _, _, summary = format_status_check_messages(
+            [android_artifact, ios_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+        )
+
+        tables = summary.strip().split("\n\n")
+        assert len(tables) == 2
+
+        android_table = next(t for t in tables if "Uncompressed" in t.split("\n")[0])
+        ios_table = next(t for t in tables if "Install" in t.split("\n")[0])
+
+        assert "com.example.android" in android_table
+        assert "com.example.ios" in ios_table
+
 
 @region_silo_test
 class BuildConfigurationComparisonTest(StatusCheckTestBase):
