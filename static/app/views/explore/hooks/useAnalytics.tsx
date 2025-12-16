@@ -17,6 +17,7 @@ import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logs
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
+import {useCrossEventQueries} from 'sentry/views/explore/hooks/useCrossEventQueries';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
@@ -85,6 +86,12 @@ function useTrackAnalytics({
   isTopN,
 }: UseTrackAnalyticsProps) {
   const organization = useOrganization();
+  const crossEventQueries = useCrossEventQueries();
+
+  const crossEventQueryCount = Object.values(crossEventQueries ?? {}).reduce(
+    (acc, curr) => acc + curr.length,
+    0
+  );
 
   const {
     data: {hasExceededPerformanceUsageLimit},
@@ -150,6 +157,10 @@ function useTrackAnalytics({
       interval,
       gave_seer_consent: gaveSeerConsent,
       version: 2,
+      cross_event_query_count: crossEventQueryCount,
+      cross_event_log_queries: crossEventQueries?.logQuery,
+      cross_event_metric_queries: crossEventQueries?.metricQuery,
+      cross_event_span_queries: crossEventQueries?.spanQuery,
     });
 
     /* eslint-disable @typescript-eslint/no-base-to-string */
@@ -169,6 +180,10 @@ function useTrackAnalytics({
       has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
       page_source: ${page_source}
       gave_seer_consent: ${gaveSeerConsent}
+      cross_event_query_count: ${crossEventQueryCount}
+      cross_event_log_queries: ${crossEventQueries?.logQuery}
+      cross_event_metric_queries: ${crossEventQueries?.metricQuery}
+      cross_event_span_queries: ${crossEventQueries?.spanQuery}
     `,
       {isAnalytics: true}
     );
@@ -178,6 +193,10 @@ function useTrackAnalytics({
     aggregatesTableResult.result.data?.length,
     aggregatesTableResult.result.isPending,
     aggregatesTableResult.result.meta?.dataScanned,
+    crossEventQueries?.logQuery,
+    crossEventQueries?.metricQuery,
+    crossEventQueries?.spanQuery,
+    crossEventQueryCount,
     dataset,
     hasExceededPerformanceUsageLimit,
     interval,
@@ -241,6 +260,10 @@ function useTrackAnalytics({
       gave_seer_consent: gaveSeerConsent,
       version: 2,
       attribute_breakdowns_mode: attributeBreakdownsMode,
+      cross_event_query_count: crossEventQueryCount,
+      cross_event_log_queries: crossEventQueries?.logQuery,
+      cross_event_metric_queries: crossEventQueries?.metricQuery,
+      cross_event_span_queries: crossEventQueries?.spanQuery,
     });
 
     info(fmt`trace.explorer.metadata:
@@ -259,8 +282,17 @@ function useTrackAnalytics({
       page_source: ${page_source}
       gave_seer_consent: ${gaveSeerConsent}
       attribute_breakdowns_mode: ${attributeBreakdownsMode}
+      cross_event_query_count: ${crossEventQueryCount}
+      cross_event_log_queries: ${crossEventQueries?.logQuery}
+      cross_event_metric_queries: ${crossEventQueries?.metricQuery}
+      cross_event_span_queries: ${crossEventQueries?.spanQuery}
     `);
   }, [
+    attributeBreakdownsMode,
+    crossEventQueries?.logQuery,
+    crossEventQueries?.metricQuery,
+    crossEventQueries?.spanQuery,
+    crossEventQueryCount,
     dataset,
     fields,
     hasExceededPerformanceUsageLimit,
@@ -281,7 +313,6 @@ function useTrackAnalytics({
     timeseriesResult.isPending,
     title,
     visualizes,
-    attributeBreakdownsMode,
   ]);
 
   useEffect(() => {
@@ -327,6 +358,10 @@ function useTrackAnalytics({
       gave_seer_consent: gaveSeerConsent,
       version: 2,
       attribute_breakdowns_mode: attributeBreakdownsMode,
+      cross_event_query_count: crossEventQueryCount,
+      cross_event_log_queries: crossEventQueries?.logQuery,
+      cross_event_metric_queries: crossEventQueries?.metricQuery,
+      cross_event_span_queries: crossEventQueries?.spanQuery,
     });
 
     info(fmt`trace.explorer.metadata:
@@ -345,10 +380,18 @@ function useTrackAnalytics({
       page_source: ${page_source}
       gave_seer_consent: ${gaveSeerConsent}
       attribute_breakdowns_mode: ${attributeBreakdownsMode}
+      cross_event_query_count: ${crossEventQueryCount}
+      cross_event_log_queries: ${crossEventQueries?.logQuery}
+      cross_event_metric_queries: ${crossEventQueries?.metricQuery}
+      cross_event_span_queries: ${crossEventQueries?.spanQuery}
     `);
   }, [
+    attributeBreakdownsMode,
+    crossEventQueries?.logQuery,
+    crossEventQueries?.metricQuery,
+    crossEventQueries?.spanQuery,
+    crossEventQueryCount,
     dataset,
-    fields,
     hasExceededPerformanceUsageLimit,
     interval,
     isLoadingSeerSetup,
@@ -364,7 +407,6 @@ function useTrackAnalytics({
     timeseriesResult.isPending,
     title,
     visualizes,
-    attributeBreakdownsMode,
   ]);
 
   const tracesTableResultDefined = defined(tracesTableResult);
@@ -424,8 +466,16 @@ function useTrackAnalytics({
       interval,
       gave_seer_consent: gaveSeerConsent,
       version: 2,
+      cross_event_query_count: crossEventQueryCount,
+      cross_event_log_queries: crossEventQueries?.logQuery,
+      cross_event_metric_queries: crossEventQueries?.metricQuery,
+      cross_event_span_queries: crossEventQueries?.spanQuery,
     });
   }, [
+    crossEventQueries?.logQuery,
+    crossEventQueries?.metricQuery,
+    crossEventQueries?.spanQuery,
+    crossEventQueryCount,
     dataset,
     hasExceededPerformanceUsageLimit,
     interval,
