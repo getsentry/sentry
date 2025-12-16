@@ -309,7 +309,7 @@ const EmptyHighlights = styled('div')`
   padding: ${space(2)} ${space(1)};
   border-radius: ${p => p.theme.radius.md};
   border: 1px dashed ${p => p.theme.translucentBorder};
-  background: ${p => p.theme.bodyBackground};
+  background: ${p => p.theme.tokens.background.secondary};
   grid-column: 1 / -1;
   display: flex;
   text-align: center;

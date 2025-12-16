@@ -59,7 +59,7 @@ const Footer = styled('form')`
   justify-content: flex-end;
   bottom: 0;
   z-index: 100;
-  background-color: ${p => p.theme.bodyBackground};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-top: 1px solid ${p => p.theme.innerBorder};
   padding: ${space(2)};
 `;
