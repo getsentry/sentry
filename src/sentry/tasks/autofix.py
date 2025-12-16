@@ -142,9 +142,6 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
         "sentry:default_autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
     )
 
-    # Invalidate seat-based tier cache so new settings take effect immediately
-    cache.delete(get_seer_seat_based_tier_cache_key(organization_id))
-
     projects = list(
         Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
     )
@@ -191,6 +188,10 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
     if len(preferences_to_set) > 0:
         bulk_set_project_preferences(organization_id, preferences_to_set)
+
+    # Invalidate existing cache entry and set cache to True to prevent race conditions where another
+    # request re-caches False before the billing flag has fully propagated
+    cache.set(get_seer_seat_based_tier_cache_key(organization_id), True, timeout=60 * 5)
 
     logger.info(
         "Task: configure_seer_for_existing_org completed",
