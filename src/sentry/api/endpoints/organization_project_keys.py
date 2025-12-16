@@ -99,7 +99,7 @@ class OrganizationProjectKeysEndpoint(OrganizationEndpoint):
             except Team.DoesNotExist:
                 raise ResourceDoesNotExist(detail="Team not found")
 
-            project_id_set = set[int](
+            project_id_set: set[int] = set(
                 Project.objects.filter(id__in=project_id_set, teams=team).values_list(
                     "id", flat=True
                 )
