@@ -1,14 +1,12 @@
 from unittest.mock import MagicMock, patch
 
 import orjson
-from pydantic import ValidationError
 from urllib3 import BaseHTTPResponse
 
 from fixtures.github import (
     CHECK_RUN_COMPLETED_EVENT_EXAMPLE,
     CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
 )
-from sentry.seer.code_review.types import GitHubCheckRunEventForTests
 from sentry.seer.code_review.webhooks import PREFIX, SEER_PR_REVIEW_RERUN_PATH
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.github import GitHubWebhookTestCase
@@ -30,29 +28,7 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
         event_dict = (
             orjson.loads(event_data) if isinstance(event_data, (bytes, str)) else event_data
         )
-
-        try:
-            # Validate using Pydantic model
-            validated_event = GitHubCheckRunEventForTests.parse_obj(event_dict)
-            repo_id = validated_event.repository.id
-
-            # Store original_run_id if present and valid (may not exist or be valid in error test cases)
-            if validated_event.check_run and validated_event.check_run.external_id:
-                try:
-                    self.original_run_id = int(validated_event.check_run.external_id)
-                except (ValueError, TypeError):
-                    # Test cases for invalid external_id will fail here, which is expected
-                    pass
-        except ValidationError:
-            # For test cases with intentionally invalid payloads, we still need the repo_id
-            # to create the integration, so fall back to dictionary access
-            repo_id = int(event_dict["repository"]["id"])
-            # Try to extract original_run_id if it exists
-            if "check_run" in event_dict and "external_id" in event_dict["check_run"]:
-                try:
-                    self.original_run_id = int(event_dict["check_run"]["external_id"])
-                except (ValueError, TypeError):
-                    pass
+        repo_id = int(event_dict["repository"]["id"])
 
         integration = self.create_github_integration()
         # Create a repository that matches the fixture's repository ID
@@ -79,7 +55,7 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             mock_request.assert_called_once()
             call_kwargs = mock_request.call_args[1]
             body = orjson.loads(call_kwargs["body"])
-            assert body == {"original_run_id": self.original_run_id}
+            assert body == {"original_run_id": str(self.original_run_id)}
             assert call_kwargs["path"] == SEER_PR_REVIEW_RERUN_PATH
 
     @patch("sentry.seer.code_review.webhooks.make_signed_seer_api_request")
