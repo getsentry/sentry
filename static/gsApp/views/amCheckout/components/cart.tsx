@@ -113,6 +113,7 @@ interface SubtotalSummaryProps extends BaseSummaryProps {
 interface TotalSummaryProps extends BaseSummaryProps {
   billedTotal: number;
   buttonDisabled: boolean;
+  buttonDisabledText: React.ReactNode;
   effectiveDate: Date | null;
   isSubmitting: boolean;
   onSubmit: (applyNow?: boolean) => void;
@@ -498,6 +499,7 @@ function TotalSummary({
   billedTotal,
   onSubmit,
   buttonDisabled,
+  buttonDisabledText,
   isSubmitting,
   effectiveDate,
   renewalDate,
@@ -732,6 +734,7 @@ function TotalSummary({
               priority="danger"
               onClick={() => onSubmit(true)}
               disabled={buttonDisabled || previewDataLoading}
+              title={buttonDisabled ? buttonDisabledText : undefined}
               icon={<IconLightning />}
             >
               {isSubmitting ? t('Checking out...') : t('Migrate Now')}
@@ -742,13 +745,7 @@ function TotalSummary({
             priority="primary"
             onClick={() => onSubmit()}
             disabled={buttonDisabled || previewDataLoading}
-            title={
-              buttonDisabled
-                ? t(
-                    'Please provide your billing information, including your business address and payment method'
-                  )
-                : null
-            }
+            title={buttonDisabled ? buttonDisabledText : undefined}
             icon={<IconLock locked />}
           >
             {isSubmitting ? t('Checking out...') : buttonText}
@@ -787,14 +784,16 @@ function Cart({
     () => utils.hasBillingInfo(billingDetails, subscription, true),
     [billingDetails, subscription]
   );
+  const shouldDisableCheckout = useMemo(
+    () => !hasCompleteBillingInfo || subscription.isSuspended,
+    [hasCompleteBillingInfo, subscription.isSuspended]
+  );
 
   const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
 
   const fetchPreview = useCallback(
     async () => {
-      if (!hasCompleteBillingInfo) {
-        // NOTE: this should never be necessary because you cannot clear
-        // existing billing info, BUT YA NEVER KNOW
+      if (shouldDisableCheckout) {
         resetPreviewState();
         return;
       }
@@ -850,7 +849,7 @@ function Cart({
       formDataForPreview,
       organization,
       subscription.contractPeriodEnd,
-      hasCompleteBillingInfo,
+      shouldDisableCheckout,
       billingDetails,
     ]
   );
@@ -963,7 +962,19 @@ function Cart({
       <TotalSummary
         activePlan={activePlan}
         billedTotal={previewState.billedTotal}
-        buttonDisabled={!hasCompleteBillingInfo}
+        buttonDisabled={shouldDisableCheckout}
+        buttonDisabledText={
+          subscription.isSuspended
+            ? tct(
+                'Your account has been suspended. Please contact [mailto:support@sentry.io] if you have any questions or need assistance.',
+                {
+                  mailto: <a href="mailto:support@sentry.io" />,
+                }
+              )
+            : t(
+                'Please provide your billing information, including your business address and payment method.'
+              )
+        }
         formData={formData}
         isSubmitting={isSubmitting}
         originalBilledTotal={previewState.originalBilledTotal}
