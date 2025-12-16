@@ -341,10 +341,12 @@ class OAuthAuthorizeTokenTest(TestCase):
         assert location == "https://example.com"
         fragment_d = parse_qs(fragment)
         assert fragment_d["access_token"] == [token.token]
-        assert fragment_d["token_type"] == ["bearer"]
+        assert fragment_d["token_type"] == ["Bearer"]
         assert "refresh_token" not in fragment_d
+        # expires_in should be a positive integer number of seconds until expiry
         assert fragment_d["expires_in"]
-        assert fragment_d["token_type"] == ["bearer"]
+        assert int(fragment_d["expires_in"][0]) > 0
+        assert fragment_d["token_type"] == ["Bearer"]
 
     def test_minimal_params_code_deny_flow(self) -> None:
         self.login_as(self.user)
@@ -1098,9 +1100,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         """Test that redirect_uri is required when multiple custom schemes are registered."""
         self.login_as(self.user)
         # Update application to have multiple redirect URIs
-        self.application.redirect_uris = (
-            f"{self.custom_uri}\nsentry-apple://sentry.io/callback"
-        )
+        self.application.redirect_uris = f"{self.custom_uri}\nsentry-apple://sentry.io/callback"
         self.application.save()
 
         resp = self.client.get(
