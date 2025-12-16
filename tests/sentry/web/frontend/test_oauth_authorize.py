@@ -1512,6 +1512,19 @@ class OAuthAuthorizePKCETest(TestCase):
         assert "error=invalid_request" in resp["Location"]
         assert not ApiGrant.objects.filter(user=self.user).exists()
 
+    def test_pkce_empty_challenge_rejected(self) -> None:
+        """Test that empty code_challenge string is rejected."""
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge=&code_challenge_method=S256"
+        )
+
+        assert resp.status_code == 302
+        assert "error=invalid_request" in resp["Location"]
+        assert not ApiGrant.objects.filter(user=self.user).exists()
+
 
 @control_silo_test
 class OAuthAuthorizeSecurityTest(TestCase):

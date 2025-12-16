@@ -205,7 +205,7 @@ class OAuthAuthorizeView(AuthLoginView):
         code_challenge = request.GET.get("code_challenge")
         code_challenge_method = request.GET.get("code_challenge_method")
 
-        if code_challenge:
+        if code_challenge is not None:
             # Validate code_challenge format per RFC 7636 §4.2: 43-128 unreserved chars
             if not CODE_CHALLENGE_REGEX.match(code_challenge):
                 return self.error(

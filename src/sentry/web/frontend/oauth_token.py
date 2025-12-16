@@ -101,7 +101,7 @@ class OAuthTokenView(View):
         Returns (is_valid, error_reason).
         Reference: https://datatracker.ietf.org/doc/html/rfc7636#section-4.6
         """
-        if not grant.code_challenge:
+        if grant.code_challenge is None:
             # No PKCE challenge was provided during authorization, so no verification needed
             return True, None
 
