@@ -93,5 +93,6 @@ def process_github_webhook_event(self: Any, *, organization_id: int, **kwargs: A
         if self.request.retries >= max_retries:
             logger.exception("%s.error", PREFIX, extra=context)
         raise  # Re-raise to trigger task retry
-
-    metrics.incr(f"{PREFIX}.outcome", tags={"status": status})
+    finally:
+        # Always record outcome metric, whether success, client error, or HTTP error
+        metrics.incr(f"{PREFIX}.outcome", tags={"status": status})
