@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import debounce from 'lodash/debounce';
 
+import {Heading} from '@sentry/scraps/text';
+
 import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
@@ -417,6 +419,52 @@ export default Storybook.story('CompactSelect', story => {
             icon: <IconSiren />,
             children: option ? `${option.label} (${option.details})` : 'None',
           }}
+          onChange={newValue => {
+            setValue(newValue.value);
+          }}
+          options={options}
+        />
+      </Fragment>
+    );
+  });
+
+  story('Virtualization', () => {
+    const [value, setValue] = useState<string>('');
+    const options = COUNTRY_NAMES.map(name => ({
+      value: name,
+      label: name,
+    }));
+
+    return (
+      <Fragment>
+        <p>
+          <code>CompactSelect</code> can be virtualized for large lists of options. This
+          improves performance when rendering large lists.
+        </p>
+        <p>
+          To enable virtualization, set the <code>virtualizeThreshold</code> prop to the
+          number of options above which virtualization should be enabled. By default,
+          virtualization is enabled for lists with more than 150 options.
+        </p>
+        <Heading as="h3">Known Limitations</Heading>
+        <p>
+          Virtualization comes with some limitations. Currently, it does not support items
+          that are grouped into sections, so virtualization will be disabled if sections
+          are found.
+        </p>
+        <p>
+          Additionally, since not all items are rendered to the DOM, we cannot
+          automatically calculate the width of the underlying menu. To address this, we
+          are trying to find out which option will be the longest to render & measure it
+          when the menu is first opened. This process only looks at <code>textValue</code>{' '}
+          and <code>label</code> of the option, so it might fail in cases where different{' '}
+          <code>trailingItems</code> or <code>leadingItems</code> are used, or when long{' '}
+          <code>details</code> are rendered. You can instead also pass a hardcoded{' '}
+          <code>menuWidth</code> to <code>CompactSelect</code>.
+        </p>
+
+        <CompactSelect
+          value={value}
           onChange={newValue => {
             setValue(newValue.value);
           }}
