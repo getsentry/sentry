@@ -78,8 +78,8 @@ type MenuCrumbProps = HTMLAttributes<HTMLButtonElement> & {
   crumbLabel: React.ReactNode;
   menuHasHover: boolean;
   isLast?: boolean;
+  ref?: React.Ref<HTMLButtonElement>;
 };
-
 // XXX(epurkhiser): We have a couple hacks in place to get hover-activation of
 // our CompactSelect working well for these breadcrumbs.
 //
