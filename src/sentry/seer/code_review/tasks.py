@@ -64,8 +64,23 @@ def process_github_webhook_event(self: Any, *, organization_id: int, **kwargs: A
             path=SEER_PR_REVIEW_RERUN_PATH,
             body=orjson.dumps(payload),
         )
-        if response.status >= 400:
-            logger.error("%s.error", PREFIX, extra=context)
+        # Retry on server errors (5xx) and rate limits (429), but not client errors (4xx)
+        if response.status >= 500 or response.status == 429:
+            # Server error or rate limit - transient, should retry
+            logger.error(
+                "%s.error.retryable_status",
+                PREFIX,
+                extra={**context, "status_code": response.status},
+            )
+            raise HTTPError(f"Seer returned retryable status {response.status}")
+        elif response.status >= 400:
+            # Client error (4xx except 429) - permanent, don't retry
+            logger.error(
+                "%s.error.client_error",
+                PREFIX,
+                extra={**context, "status_code": response.status},
+            )
+            status = f"client_error_{response.status}"
         else:
             status = "success"
     except HTTPError as e:

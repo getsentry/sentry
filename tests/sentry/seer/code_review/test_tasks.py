@@ -56,27 +56,103 @@ class ProcessGitHubWebhookEventTest(TestCase):
         return mock_self
 
     @patch("sentry.seer.code_review.tasks.make_signed_seer_api_request")
-    def test_seer_error_response_logged(self, mock_request: MagicMock) -> None:
-        """Test that Seer error responses are logged."""
+    def test_server_error_response_raises_for_retry(self, mock_request: MagicMock) -> None:
+        """Test that Seer 5xx responses are raised to trigger task retry."""
         mock_request.return_value = self._mock_response(
             500, b'{"detail": "Error handling check_run rerun."}'
         )
 
         with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
             with patch("sentry.seer.code_review.tasks.logger") as mock_logger:
-                # Create mock task self (retry count doesn't matter for this test)
+                # Create mock task self on last retry
+                mock_self = self._create_mock_task_self(retries=2)
+
+                # Task should raise HTTPError to trigger retry
+                try:
+                    process_github_webhook_event._func(
+                        mock_self,
+                        organization_id=self.organization.id,
+                        original_run_id="4663713",
+                    )
+                    assert False, "Expected HTTPError to be raised for 500 status"
+                except HTTPError:
+                    pass
+
+                # Verify retryable status error was logged
+                mock_logger.error.assert_called_once()
+                assert mock_logger.error.call_args[0][0] == "%s.error.retryable_status"
+                assert mock_logger.error.call_args[0][1] == PREFIX
+
+    @patch("sentry.seer.code_review.tasks.make_signed_seer_api_request")
+    def test_service_unavailable_response_raises_for_retry(self, mock_request: MagicMock) -> None:
+        """Test that Seer 503 (service unavailable) responses are raised to trigger task retry."""
+        mock_request.return_value = self._mock_response(503, b'{"detail": "Service unavailable"}')
+
+        with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
+            with patch("sentry.seer.code_review.tasks.logger") as mock_logger:
+                # Create mock task self on last retry
+                mock_self = self._create_mock_task_self(retries=2)
+
+                # Task should raise HTTPError to trigger retry
+                try:
+                    process_github_webhook_event._func(
+                        mock_self,
+                        organization_id=self.organization.id,
+                        original_run_id="4663713",
+                    )
+                    assert False, "Expected HTTPError to be raised for 503 status"
+                except HTTPError:
+                    pass
+
+                # Verify retryable status error was logged
+                mock_logger.error.assert_called_once()
+                assert mock_logger.error.call_args[0][0] == "%s.error.retryable_status"
+
+    @patch("sentry.seer.code_review.tasks.make_signed_seer_api_request")
+    def test_rate_limit_response_raises_for_retry(self, mock_request: MagicMock) -> None:
+        """Test that Seer 429 (rate limit) responses are raised to trigger task retry."""
+        mock_request.return_value = self._mock_response(429, b'{"detail": "Rate limit exceeded"}')
+
+        with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
+            with patch("sentry.seer.code_review.tasks.logger") as mock_logger:
+                # Create mock task self on last retry
+                mock_self = self._create_mock_task_self(retries=2)
+
+                # Task should raise HTTPError to trigger retry
+                try:
+                    process_github_webhook_event._func(
+                        mock_self,
+                        organization_id=self.organization.id,
+                        original_run_id="4663713",
+                    )
+                    assert False, "Expected HTTPError to be raised for 429 status"
+                except HTTPError:
+                    pass
+
+                # Verify retryable status error was logged
+                mock_logger.error.assert_called_once()
+                assert mock_logger.error.call_args[0][0] == "%s.error.retryable_status"
+
+    @patch("sentry.seer.code_review.tasks.make_signed_seer_api_request")
+    def test_client_error_response_not_retried(self, mock_request: MagicMock) -> None:
+        """Test that Seer 4xx client errors (except 429) do NOT trigger retry."""
+        mock_request.return_value = self._mock_response(400, b'{"detail": "Bad request"}')
+
+        with self.options({"coding_workflows.code_review.github.check_run.rerun.enabled": True}):
+            with patch("sentry.seer.code_review.tasks.logger") as mock_logger:
+                # Create mock task self
                 mock_self = self._create_mock_task_self(retries=0)
 
-                # Call the task directly
+                # Task should NOT raise exception (client errors are permanent)
                 process_github_webhook_event._func(
                     mock_self,
                     organization_id=self.organization.id,
                     original_run_id="4663713",
                 )
 
-                # Verify Seer API error was logged
+                # Verify client error was logged (not retryable_status)
                 mock_logger.error.assert_called_once()
-                assert mock_logger.error.call_args[0][0] == "%s.error"
+                assert mock_logger.error.call_args[0][0] == "%s.error.client_error"
                 assert mock_logger.error.call_args[0][1] == PREFIX
 
     @patch("sentry.seer.code_review.tasks.make_signed_seer_api_request")
