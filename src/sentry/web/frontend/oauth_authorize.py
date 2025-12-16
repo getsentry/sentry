@@ -24,8 +24,8 @@ from sentry.web.frontend.auth_login import AuthLoginView
 
 logger = logging.getLogger("sentry.oauth")
 
-# RFC 7636 §4.1: code_verifier is 43-128 unreserved characters
-# ABNF: code-verifier = 43*128unreserved
+# RFC 7636 §4.2: code_challenge is 43-128 unreserved characters (same format as verifier)
+# ABNF: code-challenge = 43*128unreserved
 # unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
 CODE_CHALLENGE_REGEX = re.compile(r"^[A-Za-z0-9\-._~]{43,128}$")
 
@@ -200,7 +200,8 @@ class OAuthAuthorizeView(AuthLoginView):
                 )
 
         # PKCE support (RFC 7636): accept code_challenge and code_challenge_method.
-        # OAuth 2.1 mandates S256 method only (plain method removed for security)
+        # This implementation only supports S256 method (plain method not supported for security).
+        # Note: OAuth 2.1 requires S256 to be implemented; plain is still allowed in narrow cases.
         # Reference: https://datatracker.ietf.org/doc/html/rfc7636#section-4.2
         code_challenge = request.GET.get("code_challenge")
         code_challenge_method = request.GET.get("code_challenge_method")
