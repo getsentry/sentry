@@ -124,7 +124,10 @@ function buildCSSWithSubstitutions(templateString: SgNode<TSX>): string {
 /**
  * Parse CSS string and extract properties, handling template substitutions
  */
-function parseCSSProperties(cssText: string, templateString?: SgNode<TSX>): CSSProperty[] {
+function parseCSSProperties(
+  cssText: string,
+  templateString?: SgNode<TSX>
+): CSSProperty[] {
   const properties: CSSProperty[] = [];
 
   // If we have a template string with substitutions, rebuild the CSS text
@@ -201,14 +204,18 @@ function parseCSSProperties(cssText: string, templateString?: SgNode<TSX>): CSSP
  * Check if a styled component call wraps an existing component
  */
 function isWrappingComponent(styledArg: SgNode<TSX>): boolean {
-  // Check if argument is an identifier (component reference) not a string
-  return styledArg.is('identifier');
+  // Check if argument is an identifier (component reference) or instantiation_expression (generic component)
+  // Examples: styled(Component) or styled(Component<Type>)
+  return styledArg.is('identifier') || styledArg.is('instantiation_expression');
 }
 
 /**
  * Extract flex properties from CSS and determine if conversion is possible
  */
-function extractFlexProps(cssText: string, templateString?: SgNode<TSX>): FlexProps | null {
+function extractFlexProps(
+  cssText: string,
+  templateString?: SgNode<TSX>
+): FlexProps | null {
   const properties = parseCSSProperties(cssText, templateString);
 
   if (properties.length === 0) {
@@ -340,9 +347,11 @@ function ensureImport(
 
     if (namedImports) {
       // Find the last import specifier to add after it
-      const lastSpecifier = namedImports.findAll({
-        rule: {kind: 'import_specifier'},
-      }).pop();
+      const lastSpecifier = namedImports
+        .findAll({
+          rule: {kind: 'import_specifier'},
+        })
+        .pop();
 
       if (lastSpecifier) {
         return {
@@ -470,9 +479,12 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
     }
 
     // Get component name for logging
-    const componentNameNode = styledCall.ancestors().find(a => a.is('variable_declarator'))?.find({
-      rule: {kind: 'identifier'},
-    });
+    const componentNameNode = styledCall
+      .ancestors()
+      .find(a => a.is('variable_declarator'))
+      ?.find({
+        rule: {kind: 'identifier'},
+      });
     const oldComponentName = componentNameNode?.text() || 'unknown';
     const lineNumber = styledCall.range().start.line;
 
@@ -484,13 +496,17 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
 
     // Bailout if wrapping an existing component
     if (isWrappingComponent(firstArg)) {
-      console.log(`[BAILOUT] ${fileName}:${lineNumber} - "${oldComponentName}" wraps existing component`);
+      console.log(
+        `[BAILOUT] ${fileName}:${lineNumber} - "${oldComponentName}" wraps existing component`
+      );
       continue;
     }
 
     // Bailout if has unsupported CSS properties
     if (flexProps.hasUnsupportedProps) {
-      console.log(`[BAILOUT] ${fileName}:${lineNumber} - "${oldComponentName}" has unsupported CSS properties`);
+      console.log(
+        `[BAILOUT] ${fileName}:${lineNumber} - "${oldComponentName}" has unsupported CSS properties`
+      );
       continue;
     }
 
@@ -524,8 +540,12 @@ const transform = async (root: SgRoot<TSX>): Promise<string | null> => {
 
           if (isExported && exportStmt) {
             // For exported components, transform to an arrow function component
-            const exportKeyword = exportStmt.text().startsWith('export const') ? 'export const' : 'export';
-            const openingTag = propsStr ? `<${componentName} ${propsStr}>` : `<${componentName}>`;
+            const exportKeyword = exportStmt.text().startsWith('export const')
+              ? 'export const'
+              : 'export';
+            const openingTag = propsStr
+              ? `<${componentName} ${propsStr}>`
+              : `<${componentName}>`;
             const closingTag = `</${componentName}>`;
             const replacement = `${exportKeyword} ${styledComponentName} = ({children}: {children?: React.ReactNode}) => (\n  ${openingTag}{children}${closingTag}\n);`;
 
