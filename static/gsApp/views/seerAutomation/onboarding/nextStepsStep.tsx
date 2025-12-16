@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import nextStepsImg from 'sentry-images/spot/seer-config-error.svg';
+import nextStepsImg from 'sentry-images/spot/seer-config-bug-2.svg';
 
 import {LinkButton} from '@sentry/scraps/button/linkButton';
-import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -12,18 +11,10 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {ActionSection, MaxWidthPanel, PanelDescription, StepContent} from './common';
 
 export function NextStepsStep() {
-  const {selectedCodeReviewRepositories, selectedRootCauseAnalysisRepositories} =
-    useSeerOnboardingContext();
-
   const organization = useOrganization();
-  const totalRepositories = new Set([
-    ...selectedCodeReviewRepositories.map(repo => repo.id),
-    ...selectedRootCauseAnalysisRepositories.map(repo => repo.id),
-  ]).size;
 
   return (
     <Fragment>
@@ -55,30 +46,6 @@ export function NextStepsStep() {
                 )}
               </Text>
             </PanelDescription>
-            <PanelDescription>
-              <Flex direction="column" gap="md">
-                <Text bold>{t('Predicted spend')}</Text>
-                <Text>
-                  {t(`Based on the activity in your Seer-connected repositories
-              over the last month, this is an estimate of what you would owe at the end of
-              your trial:`)}
-                </Text>
-                <Well>
-                  <WellContent>
-                    <CellTitle>{t('Connected Repos')}</CellTitle>
-                    <Text>{totalRepositories}</Text>
-                  </WellContent>
-                  <WellContent>
-                    <CellTitle>{t('Active Contributors')}</CellTitle>
-                    <Text>??</Text>
-                  </WellContent>
-                  <WellContent>
-                    <CellTitle>{t('Predicted Spend')}</CellTitle>
-                    <Text>$4,000</Text>
-                  </WellContent>
-                </Well>
-              </Flex>
-            </PanelDescription>
           </PanelBody>
         </MaxWidthPanel>
 
@@ -98,29 +65,9 @@ export function NextStepsStep() {
 
 const StepContentWithBackground = styled(StepContent)`
   background: url(${nextStepsImg}) no-repeat 638px 0;
-  background-size: 192px 168px;
+  background-size: 233px 212px;
 `;
 
 const NextStepsList = styled('ul')`
   margin: ${p => p.theme.space.xl} 0;
-`;
-
-const Well = styled(Flex)`
-  background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.radius.md};
-`;
-const WellContent = styled(Flex)`
-  flex-direction: column;
-  border-right: 1px solid ${p => p.theme.border};
-  padding: ${p => p.theme.space.lg};
-
-  &:last-child {
-    border-right: none;
-  }
-`;
-const CellTitle = styled(Text)`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  text-transform: uppercase;
 `;
