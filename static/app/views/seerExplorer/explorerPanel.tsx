@@ -259,7 +259,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         messagePlaceholder: 'How can we make Seer Explorer better for you?',
         tags: {
           ['feedback.source']: 'seer_explorer',
-          ['langfuse_url']: langfuseUrl,
+          ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
         },
       });
     }
