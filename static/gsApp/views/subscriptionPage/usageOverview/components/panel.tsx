@@ -10,6 +10,7 @@ import {IconClock, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
@@ -19,7 +20,6 @@ import {
   normalizeMetricHistory,
   supportsPayg,
 } from 'getsentry/utils/billing';
-import useSeerOnboardingCheck from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingCheck';
 import BilledSeats from 'getsentry/views/subscriptionPage/usageOverview/components/billedSeats';
 import {
   DataCategoryUsageBreakdownInfo,
