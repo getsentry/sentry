@@ -664,7 +664,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         assert no_commit_build["vcs_info"]["head_sha"] is None
         assert no_commit_build["vcs_info"]["pr_number"] is None
 
-    # Case-insensitive exact match tests for app_id
+    # Case-sensitive exact match tests for app_id
     def test_list_builds_filter_app_id_exact_match_same_case(self) -> None:
         url = self._get_url()
         response = self.client.get(
@@ -677,7 +677,8 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         assert len(resp_data["builds"]) == 1
         assert resp_data["builds"][0]["app_info"]["app_id"] == "com.example.app"
 
-    def test_list_builds_filter_app_id_exact_match_different_case(self) -> None:
+    def test_list_builds_filter_app_id_exact_match_different_case_no_match(self) -> None:
+        """App ID filter is case-sensitive, so different case should not match."""
         url = self._get_url()
         response = self.client.get(
             f"{url}?app_id=COM.EXAMPLE.APP",
@@ -686,8 +687,8 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         resp_data = response.json()
-        assert len(resp_data["builds"]) == 1
-        assert resp_data["builds"][0]["app_info"]["app_id"] == "com.example.app"
+        # No match because filter is case-sensitive exact match
+        assert len(resp_data["builds"]) == 0
 
     def test_list_builds_filter_app_id_partial_match_no_results(self) -> None:
         url = self._get_url()
@@ -698,10 +699,10 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         resp_data = response.json()
-        # Should return no results because we use exact match (iexact), not contains (icontains)
+        # Should return no results because we use exact match (exact), not contains (icontains)
         assert len(resp_data["builds"]) == 0
 
-    # Case-insensitive exact match tests for build_configuration
+    # Case-sensitive exact match tests for build_configuration
     def test_list_builds_filter_build_configuration_exact_match_same_case(self) -> None:
         build_config = self.create_preprod_build_configuration(
             name="Release",
@@ -732,7 +733,10 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         assert len(resp_data["builds"]) == 1
         assert resp_data["builds"][0]["app_info"]["build_configuration"] == "Release"
 
-    def test_list_builds_filter_build_configuration_exact_match_different_case(self) -> None:
+    def test_list_builds_filter_build_configuration_exact_match_different_case_no_match(
+        self,
+    ) -> None:
+        """Build configuration filter is case-sensitive, so different case should not match."""
         build_config = self.create_preprod_build_configuration(
             name="Debug",
             project=self.project,
@@ -759,8 +763,8 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         resp_data = response.json()
-        assert len(resp_data["builds"]) == 1
-        assert resp_data["builds"][0]["app_info"]["build_configuration"] == "Debug"
+        # No match because filter is case-sensitive exact match
+        assert len(resp_data["builds"]) == 0
 
     def test_list_builds_filter_build_configuration_partial_match_no_results(self) -> None:
         build_config = self.create_preprod_build_configuration(
@@ -791,3 +795,73 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         resp_data = response.json()
         # Should return no results because we use exact match (iexact), not contains (icontains)
         assert len(resp_data["builds"]) == 0
+
+    def test_list_builds_filter_build_configuration_case_sensitive_prevents_mismatch(self) -> None:
+        """
+        Build configuration filter is case-sensitive, which prevents selecting
+        incomparable builds with different case variants (e.g., "Release" vs "RELEASE").
+        """
+        # Create two separate build configurations with different case names
+        config_release = self.create_preprod_build_configuration(
+            name="Release",
+            project=self.project,
+        )
+
+        config_release_upper = self.create_preprod_build_configuration(
+            name="RELEASE",
+            project=self.project,
+        )
+
+        # Create artifacts with each configuration
+        self.create_preprod_artifact(
+            project=self.project,
+            file_id=self.file.id,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.example.release.lower",
+            app_name="ReleaseLowerApp",
+            build_version="1.0.0",
+            build_number=200,
+            build_configuration=config_release,
+            installable_app_file_id=1250,
+        )
+
+        self.create_preprod_artifact(
+            project=self.project,
+            file_id=self.file.id,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.example.release.upper",
+            app_name="ReleaseUpperApp",
+            build_version="1.0.0",
+            build_number=201,
+            build_configuration=config_release_upper,
+            installable_app_file_id=1251,
+        )
+
+        url = self._get_url()
+
+        # Filtering by "Release" (exact case) should only find the one with that exact case
+        response = self.client.get(
+            f"{url}?build_configuration=Release",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        resp_data = response.json()
+        # Only finds the exact case match
+        assert len(resp_data["builds"]) == 1
+        assert resp_data["builds"][0]["app_info"]["build_configuration"] == "Release"
+
+        # Filtering by "RELEASE" should only find the uppercase variant
+        response = self.client.get(
+            f"{url}?build_configuration=RELEASE",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert len(resp_data["builds"]) == 1
+        assert resp_data["builds"][0]["app_info"]["build_configuration"] == "RELEASE"
+
+        # This case-sensitive behavior ensures only comparable builds are selectable
