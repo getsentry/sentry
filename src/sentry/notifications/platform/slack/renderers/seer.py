@@ -13,11 +13,13 @@ from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     SeerAutofixError,
+    SeerAutofixSuccess,
     SeerAutofixTrigger,
     SeerContextInput,
     SeerContextInputComplete,
 )
 from sentry.notifications.platform.types import NotificationData, NotificationRenderedTemplate
+from sentry.seer.autofix.utils import AutofixStoppingPoint
 
 
 class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
@@ -34,6 +36,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             )
         elif isinstance(data, SeerAutofixError):
             return cls.render_autofix_error(data)
+        elif isinstance(data, SeerAutofixSuccess):
+            return cls.render_autofix_success(data)
         elif isinstance(data, SeerContextInput):
             return cls.render_context_input(data)
         elif isinstance(data, SeerContextInputComplete):
@@ -49,7 +53,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         return ButtonElement(
             text=data.label,
             style="primary",
-            value=SlackAction.SEER_AUTOFIX_START.value,
+            value=data.stopping_point.value,
             action_id=encode_action_id(
                 action=SlackAction.SEER_AUTOFIX_START.value,
                 organization_id=data.organization_id,
@@ -65,6 +69,35 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 SectionBlock(text=MarkdownTextObject(text=f">{data.error_message}")),
             ],
             text="Seer Autofix Error",
+        )
+
+    @classmethod
+    def render_autofix_success(cls, data: SeerAutofixSuccess) -> SlackRenderable:
+        autofix_mrkdwn_parts: list[str] = []
+        if data.stopping_point == AutofixStoppingPoint.ROOT_CAUSE:
+            autofix_mrkdwn_parts.append(":hourglass: Start Root Cause Analysis")
+        elif data.stopping_point == AutofixStoppingPoint.SOLUTION:
+            autofix_mrkdwn_parts.append(":white_check_mark: Start Root Cause Analysis")
+            autofix_mrkdwn_parts.append(":hourglass: Plan a Solution")
+        elif data.stopping_point == AutofixStoppingPoint.CODE_CHANGES:
+            autofix_mrkdwn_parts.append(":white_check_mark: Start Root Cause Analysis")
+            autofix_mrkdwn_parts.append(":white_check_mark: Plan a Solution")
+            autofix_mrkdwn_parts.append(":hourglass: Write Code Changes")
+        elif data.stopping_point == AutofixStoppingPoint.OPEN_PR:
+            autofix_mrkdwn_parts.append(":white_check_mark: Start Root Cause Analysis")
+            autofix_mrkdwn_parts.append(":white_check_mark: Plan a Solution")
+            autofix_mrkdwn_parts.append(":white_check_mark: Write Code Changes")
+            autofix_mrkdwn_parts.append(":hourglass: Draft a Pull Request")
+
+        autofix_mrkdwn = "\n\n".join(autofix_mrkdwn_parts)
+
+        return SlackRenderable(
+            blocks=[
+                SectionBlock(text=MarkdownTextObject(text="*Seer is working on it...*")),
+                SectionBlock(text=MarkdownTextObject(text=autofix_mrkdwn)),
+                ContextBlock(elements=[PlainTextObject(text=f"Run ID: {data.run_id}")]),
+            ],
+            text="Seer Autofix Success",
         )
 
     @classmethod

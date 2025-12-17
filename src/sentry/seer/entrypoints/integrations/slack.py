@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING, Any, TypedDict
 
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.service import NotificationService
-from sentry.notifications.platform.templates.seer import SeerAutofixError, SeerContextInput
+from sentry.notifications.platform.templates.seer import SeerAutofixError, SeerAutofixSuccess
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
+from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -26,7 +27,12 @@ class SlackEntrypointCachePayload(TypedDict):
 class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
     key = SeerEntrypointKey.SLACK
 
-    def __init__(self, slack_request: SlackActionRequest, organization_id: int):
+    def __init__(
+        self,
+        slack_request: SlackActionRequest,
+        organization_id: int,
+        autofix_stopping_point: AutofixStoppingPoint | None = None,
+    ):
         from sentry.integrations.slack.integration import SlackIntegration
 
         self.slack_request = slack_request
@@ -37,6 +43,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             model=slack_request.integration,
             organization_id=organization_id,
         )
+        self.autofix_stopping_point = autofix_stopping_point
 
     def _send_thread_update(self, *, data: NotificationData) -> None:
         provider = provider_registry.get(NotificationProviderKey.SLACK)
@@ -54,7 +61,11 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
 
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
         self._send_thread_update(
-            data=SeerContextInput(run_id=run_id, organization_id=self.organization_id)
+            data=SeerAutofixSuccess(
+                run_id=run_id,
+                organization_id=self.organization_id,
+                stopping_point=self.autofix_stopping_point,
+            )
         )
 
     def on_message_autofix_error(self, *, error: str) -> None:
@@ -65,7 +76,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         # TODO(Leander): Add a reaction and disable the context input block?
         pass
 
-    def setup_on_autofix_update(self) -> SlackEntrypointCachePayload:
+    def create_autofix_cache_payload(self) -> SlackEntrypointCachePayload:
         return SlackEntrypointCachePayload(
             thread_ts=self.thread_ts,
             channel_id=self.channel_id,
@@ -73,12 +84,11 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
 
     @staticmethod
     def on_autofix_update(
-        event_name: SentryAppEventType,
+        event_type: SentryAppEventType,
         event_payload: dict[str, Any],
         cached_payload: SlackEntrypointCachePayload,
     ) -> None:
-        # TODO(Leander): Implement this
-        match event_name:
+        match event_type:
             case SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
                 pass
             case SentryAppEventType.SEER_SOLUTION_COMPLETED:

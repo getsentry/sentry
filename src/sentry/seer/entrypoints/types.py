@@ -52,7 +52,7 @@ class SeerEntrypoint[CachePayloadT](Protocol):
         """
         ...
 
-    def setup_on_autofix_update(self) -> CachePayloadT:
+    def create_autofix_cache_payload(self) -> CachePayloadT:
         """
         Creates a cached payload which will be provided to on_autofix_update.
 
@@ -62,12 +62,12 @@ class SeerEntrypoint[CachePayloadT](Protocol):
 
     @staticmethod
     def on_autofix_update(
-        event_name: SentryAppEventType, event_payload: dict[str, Any], cached_payload: CachePayloadT
+        event_type: SentryAppEventType, event_payload: dict[str, Any], cache_payload: CachePayloadT
     ) -> None:
         """
         Called when an autofix update is received (via Seer's webhooks).
-        The shape of the cached payload is determined by `setup_on_autofix_update`.
-        The event_name, and event_payload are webhook payloads emitted by Seer for Sentry Apps.
+        The shape of the cached payload is determined by `create_autofix_cache_payload`.
+        The event_type, and event_payload are webhook payloads emitted by Seer for Sentry Apps.
 
         Example Usage: Reply with an update in a thread, Give links to the run in Sentry, etc.
 

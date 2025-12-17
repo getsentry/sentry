@@ -826,7 +826,7 @@ def handle_seer_webhook(*, event_name: str, organization_id: int, payload: dict)
 
     event_type = f"seer.{event_name}"
     try:
-        SentryAppEventType(event_type)
+        sentry_app_event_type = SentryAppEventType(event_type)
     except ValueError:
         logger.exception(
             "seer.webhook_invalid_event_type",
@@ -853,7 +853,7 @@ def handle_seer_webhook(*, event_name: str, organization_id: int, payload: dict)
         else:
             SeerOperator.handle_autofix_updates(
                 run_id=run_id,
-                event_name=SentryAppEventType(event_name),
+                event_type=sentry_app_event_type,
                 event_payload=payload,
             )
 

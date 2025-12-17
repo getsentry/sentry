@@ -55,6 +55,7 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
+from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint, decode_context_block_id
 from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.shared_integrations.exceptions import ApiError
@@ -483,12 +484,12 @@ class SlackActionEndpoint(Endpoint):
                     with self.record_event(
                         MessagingInteractionType.SEER_AUTOFIX_START, group, request
                     ).capture():
-                        entrypoint = SlackEntrypoint(
+                        self.handle_seer_autofix_start(
                             slack_request=slack_request,
-                            organization_id=group.project.organization_id,
+                            action=action,
+                            group=group,
+                            user=identity_user,
                         )
-                        operator = SeerOperator(entrypoint=entrypoint)
-                        operator.start_autofix(group=group, user=identity_user)
                     defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)
@@ -560,6 +561,44 @@ class SlackActionEndpoint(Endpoint):
             return self.respond(status=403)
 
         return self.respond()
+
+    def handle_seer_autofix_start(
+        self,
+        *,
+        slack_request: SlackActionRequest,
+        action: BlockKitMessageAction,
+        group: Group,
+        user: RpcUser,
+    ) -> None:
+        try:
+            stopping_point = (
+                AutofixStoppingPoint(action.value)
+                if action.value
+                else AutofixStoppingPoint.ROOT_CAUSE
+            )
+        except ValueError:
+            _logger.exception(
+                "invalid_autofix_stopping_point",
+                extra={
+                    "stopping_point": action.value,
+                    "action_id": action.action_id,
+                    "group_id": group.id,
+                    "user_id": user.id,
+                },
+            )
+            return
+
+        entrypoint = SlackEntrypoint(
+            slack_request=slack_request,
+            organization_id=group.project.organization_id,
+            autofix_stopping_point=stopping_point,
+        )
+        operator = SeerOperator(entrypoint=entrypoint)
+        operator.start_autofix(
+            group=group,
+            user=user,
+            stopping_point=stopping_point,
+        )
 
     def handle_seer_context_input(self, slack_request: SlackActionRequest) -> Response:
         actions_list = slack_request.data.get("actions", [])

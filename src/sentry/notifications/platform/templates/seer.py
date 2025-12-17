@@ -9,6 +9,7 @@ from sentry.notifications.platform.types import (
     ParagraphBlock,
     PlainTextBlock,
 )
+from sentry.seer.autofix.utils import AutofixStoppingPoint
 
 
 @dataclass(frozen=True)
@@ -17,13 +18,17 @@ class SeerAutofixTrigger(NotificationData):
     organization_id: int
     source: str = "seer-autofix-trigger"
     label: str = "Start RCA"
+    stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
 
 
 @template_registry.register(SeerAutofixTrigger.source)
 class SeerAutofixTriggerTemplate(NotificationTemplate[SeerAutofixTrigger]):
     category = NotificationCategory.SEER
     example_data = SeerAutofixTrigger(
-        source="seer-autofix-trigger", project_id=1, organization_id=1
+        source="seer-autofix-trigger",
+        project_id=1,
+        organization_id=1,
+        stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
     )
     hide_from_debugger = True
 
@@ -51,6 +56,29 @@ class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
             subject=data.error_title,
             body=[ParagraphBlock(blocks=[PlainTextBlock(text=data.error_message)])],
         )
+
+
+@dataclass(frozen=True)
+class SeerAutofixSuccess(NotificationData):
+    run_id: int
+    organization_id: int
+    stopping_point: AutofixStoppingPoint
+    source: str = "seer-autofix-success"
+
+
+@template_registry.register(SeerAutofixSuccess.source)
+class SeerAutofixSuccessTemplate(NotificationTemplate[SeerAutofixSuccess]):
+    category = NotificationCategory.SEER
+    example_data = SeerAutofixSuccess(
+        source="seer-autofix-success",
+        run_id=12152025,
+        organization_id=1,
+        stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerAutofixSuccess) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(subject="Seer Autofix Success", body=[])
 
 
 @dataclass(frozen=True)
