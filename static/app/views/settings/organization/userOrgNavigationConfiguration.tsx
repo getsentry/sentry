@@ -182,7 +182,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         },
         {
           path: `${organizationSettingsPathPrefix}/seer/`,
-          title: t('Seer Automation'),
+          title: t('Seer'),
           description: t(
             "Manage settings for Seer's automated analysis across your organization"
           ),
