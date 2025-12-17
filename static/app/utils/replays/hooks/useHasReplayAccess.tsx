@@ -9,7 +9,7 @@ export function useHasReplayAccess() {
   const user = useUser();
   const hasFeature = organization.features.includes('granular-replay-permissions');
 
-  if (!hasFeature || !organization.hasGranularReplayPermissions) {
+  if (user.isSuperuser || !hasFeature || !organization.hasGranularReplayPermissions) {
     return true;
   }
 
