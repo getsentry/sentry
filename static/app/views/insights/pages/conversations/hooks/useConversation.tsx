@@ -4,7 +4,6 @@ import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQueries} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   AI_CONVERSATION_ATTRIBUTES,
   AI_TRACE_BASE_ATTRIBUTES,
@@ -55,7 +54,6 @@ export function useConversation(
 
   const api = useApi();
   const organization = useOrganization();
-  const {selection} = usePageFilters();
 
   const queryKeys: ApiQueryKey[] = useMemo(() => {
     return conversation.traceIds.map(traceId => [
@@ -67,11 +65,10 @@ export function useConversation(
             ...AI_TRACE_BASE_ATTRIBUTES,
             ...AI_CONVERSATION_ATTRIBUTES,
           ],
-          statsPeriod: selection.datetime.period,
         },
       },
     ]);
-  }, [conversation.traceIds, organization.slug, selection.datetime.period]);
+  }, [conversation.traceIds, organization.slug]);
 
   const traceResults = useApiQueries<TraceTree.Trace>(queryKeys, {
     staleTime: Infinity,

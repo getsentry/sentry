@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
@@ -14,21 +14,13 @@ import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/typ
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 
-interface UserMessage {
+interface ConversationMessage {
   content: string;
-  nodeId: null;
-  role: 'user';
-  timestamp: number;
-}
-
-interface AssistantMessage {
-  content: string;
+  id: string;
   nodeId: string;
-  role: 'assistant';
+  role: 'user' | 'assistant';
   timestamp: number;
 }
-
-type ConversationMessage = UserMessage | AssistantMessage;
 
 interface RequestMessage {
   content: string | Array<{text: string}>;
@@ -70,7 +62,13 @@ function extractMessagesFromNodes(nodes: AITraceSpanNode[]): ConversationMessage
           // Deduplicate user messages by content
           if (content && !seenUserMessages.has(content)) {
             seenUserMessages.add(content);
-            messages.push({role: 'user', content, timestamp, nodeId: null});
+            messages.push({
+              id: `user-${node.id}`,
+              role: 'user',
+              content,
+              timestamp,
+              nodeId: node.id,
+            });
           }
         }
       } catch {
@@ -78,10 +76,11 @@ function extractMessagesFromNodes(nodes: AITraceSpanNode[]): ConversationMessage
         if (!seenUserMessages.has(requestMessages)) {
           seenUserMessages.add(requestMessages);
           messages.push({
+            id: `user-${node.id}`,
             role: 'user',
             content: requestMessages,
             timestamp,
-            nodeId: null,
+            nodeId: node.id,
           });
         }
       }
@@ -95,6 +94,7 @@ function extractMessagesFromNodes(nodes: AITraceSpanNode[]): ConversationMessage
     if (responseText && !seenAssistantMessages.has(responseText)) {
       seenAssistantMessages.add(responseText);
       messages.push({
+        id: `assistant-${node.id}`,
         role: 'assistant',
         content: responseText,
         timestamp: timestamp + 1,
@@ -117,6 +117,23 @@ interface MessagesPanelProps {
 
 export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPanelProps) {
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+  const [clickedMessageId, setClickedMessageId] = useState<string | null>(null);
+
+  // Compute effective selected message: use clicked message if it matches current node,
+  // otherwise fall back to assistant message for the selected node
+  const effectiveSelectedMessageId = useMemo(() => {
+    if (clickedMessageId) {
+      const clickedMessage = messages.find(m => m.id === clickedMessageId);
+      if (clickedMessage?.nodeId === selectedNodeId) {
+        return clickedMessageId;
+      }
+    }
+    // Fall back to assistant message for the selected node
+    const assistantMessage = messages.find(
+      m => m.nodeId === selectedNodeId && m.role === 'assistant'
+    );
+    return assistantMessage?.id ?? null;
+  }, [clickedMessageId, messages, selectedNodeId]);
 
   const nodeMap = useMemo(() => {
     const map = new Map<string, AITraceSpanNode>();
@@ -127,12 +144,11 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
   }, [nodes]);
 
   const handleMessageClick = useCallback(
-    (nodeId: string | null) => {
-      if (nodeId) {
-        const node = nodeMap.get(nodeId);
-        if (node) {
-          onSelectNode(node);
-        }
+    (message: ConversationMessage) => {
+      setClickedMessageId(message.id);
+      const node = nodeMap.get(message.nodeId);
+      if (node) {
+        onSelectNode(node);
       }
     },
     [nodeMap, onSelectNode]
@@ -153,19 +169,16 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
       <MessagesListContainer>
         <Stack gap="md">
           {messages.map((message, index) => {
-            const isClickable = message.role === 'assistant' && message.nodeId !== null;
-            const isSelected = message.nodeId === selectedNodeId;
+            const isSelected = message.id === effectiveSelectedMessageId;
             return (
               <MessageBubble
                 key={index}
                 role={message.role}
-                isClickable={isClickable}
+                isClickable
                 isSelected={isSelected}
-                onClick={
-                  isClickable ? () => handleMessageClick(message.nodeId) : undefined
-                }
+                onClick={() => handleMessageClick(message)}
               >
-                <MessageHeader>
+                <MessageHeader role={message.role}>
                   {message.role === 'user' ? (
                     <IconUser size="sm" />
                   ) : (
@@ -222,8 +235,6 @@ const MessageBubble = styled('div')<{
   isClickable?: boolean;
   isSelected?: boolean;
 }>`
-  background-color: ${p =>
-    p.role === 'user' ? p.theme.backgroundSecondary : p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
@@ -244,13 +255,14 @@ const MessageBubble = styled('div')<{
   `}
 `;
 
-const MessageHeader = styled('div')`
+const MessageHeader = styled('div')<{role: 'user' | 'assistant'}>`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.sm};
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   background-color: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.border};
+  justify-content: ${p => (p.role === 'assistant' ? 'flex-end' : 'flex-start')};
 `;
 
 const StyledClippedBox = styled(ClippedBox)`
