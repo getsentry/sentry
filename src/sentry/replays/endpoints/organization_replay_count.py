@@ -85,7 +85,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
         """
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
-        if not has_replay_permission(organization, request.user):
+        if not has_replay_permission(request, organization):
             return Response(status=403)
 
         try:
