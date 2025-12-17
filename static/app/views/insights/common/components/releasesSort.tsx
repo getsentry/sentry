@@ -27,9 +27,8 @@ export function ReleasesSort({environments, sortBy, onChange}: Props) {
   return (
     <CompositeSelect
       trigger={triggerProps => (
-        <SelectTrigger.Button
+        <SelectTrigger.IconButton
           {...triggerProps}
-          showChevron={false}
           size="xs"
           icon={<IconSort />}
           title={t('Sort Releases')}

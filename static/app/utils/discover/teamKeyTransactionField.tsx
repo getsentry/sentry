@@ -56,11 +56,10 @@ function TeamKeyTransactionField({
               : null
           }
         >
-          <SelectTrigger.Button
+          <SelectTrigger.IconButton
             {...triggerProps}
             disabled={disabled}
             borderless
-            showChevron={false}
             size="zero"
             icon={
               <IconStar

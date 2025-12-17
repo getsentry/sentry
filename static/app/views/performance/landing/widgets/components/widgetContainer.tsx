@@ -350,11 +350,10 @@ function WidgetContainerActions({
   return (
     <CompositeSelect
       trigger={triggerProps => (
-        <SelectTrigger.Button
+        <SelectTrigger.IconButton
           {...triggerProps}
           size="xs"
           borderless
-          showChevron={false}
           aria-label={t('More')}
           icon={<IconEllipsis />}
         />
