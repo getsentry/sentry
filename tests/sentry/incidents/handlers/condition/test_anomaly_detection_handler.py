@@ -95,7 +95,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             ],
         }
 
-    def assert_seer_call(self, mock_seer_request: mock.MagicMock):
+    def assert_seer_call(self, mock_seer_request: mock.MagicMock) -> None:
         assert mock_seer_request.call_args.args[0] == "POST"
         assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = orjson.loads(mock_seer_request.call_args.kwargs["body"])

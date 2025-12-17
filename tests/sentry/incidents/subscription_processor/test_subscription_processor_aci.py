@@ -103,7 +103,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         mock_metrics.incr.reset_mock()
         assert (
-            self.send_update(value=self.critical_threshold + 1, timedelta=timedelta(hours=1))
+            self.send_update(value=self.critical_threshold + 1, time_delta=timedelta(hours=1))
             is True
         )
 
@@ -194,12 +194,12 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
     def comparison_detector_below(self):
         self.detector.config.update({"comparison_delta": 60 * 60})
         self.detector.save()
-        self.DataCondition.objects.filter(
+        DataCondition.objects.filter(
             condition_group=self.detector.workflow_condition_group
         ).delete()
         self.set_up_data_conditions(self.detector, Condition.LESS, 50, None, 50)
-        self.snuba_query = self.get_snuba_query(self.detector)
-        self.snuba_query.update(time_window=60 * 60)
+        snuba_query = self.get_snuba_query(self.detector)
+        snuba_query.update(time_window=60 * 60)
         return self.detector
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
