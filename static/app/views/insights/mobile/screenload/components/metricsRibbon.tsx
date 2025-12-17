@@ -38,11 +38,7 @@ export function MobileMetricsRibbon({
   referrer: string;
   filters?: string[];
 }) {
-  const {
-    primaryRelease,
-    secondaryRelease,
-    isLoading: isReleasesLoading,
-  } = useReleaseSelection();
+  const {primaryRelease, isLoading: isReleasesLoading} = useReleaseSelection();
 
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
@@ -53,14 +49,8 @@ export function MobileMetricsRibbon({
       searchQuery.addFilterValue('os.name', selectedPlatform);
     }
 
-    return appendReleaseFilters(searchQuery, primaryRelease, secondaryRelease);
-  }, [
-    filters,
-    isProjectCrossPlatform,
-    primaryRelease,
-    secondaryRelease,
-    selectedPlatform,
-  ]);
+    return appendReleaseFilters(searchQuery, primaryRelease);
+  }, [filters, isProjectCrossPlatform, primaryRelease, selectedPlatform]);
 
   const {isPending, data, meta} = useSpans(
     {

@@ -382,9 +382,15 @@ register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIAB
 # Whether to use redis to cache `FileBlob.id` lookups
 register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# New `objectstore` service configuration. Additional supported options:
-# - propagate_traces: bool
-
+# New `objectstore` service configuration. Additional supported options and
+# their defaults:
+#  - propagate_traces: bool = False,
+#  - retries: int | None = None,
+#  - timeout_ms: float | None = None,
+#  - connection_kwargs: Mapping[str, Any] | None = None,
+#
+# For an always up-to-date list, see:
+# https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
 register(
     "objectstore.config",
     default={"base_url": "http://127.0.0.1:8888"},
@@ -3693,28 +3699,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Controls whether occurrence data should be read from both Snuba and EAP.
-# Will not use or display the EAP data to the user; rather, will just (1) issue
-# the queries to ensure that reads are functional and (2) compare the data from
-# each source and log whether they match.
-# This option should be controlled on a region-by-region basis.
-register(
-    "eap.occurrences.should_double_read",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Controls whether a given callsite should use occurrence data from EAP instead
-# of Snuba. Callsites should only be added here after they're known to be safe.
-# This option should be controlled on a region-by-region basis.
-register(
-    "eap.occurrences.callsites_using_eap_data_allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Killswich for LLM issue detection
 register(
     "issue-detection.llm-detection.enabled",
@@ -3808,5 +3792,14 @@ register(
     "dashboards.prebuilt-dashboard-ids",
     default=[],
     type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Project ID allowlist to enable detailed search debug logging for diagnosing
+# bugs with issue feed search.
+register(
+    "snuba.search.debug-log-project-allowlist",
+    type=Sequence,
+    default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -54,10 +54,8 @@ describe('SpanOpSelector', () => {
             'span.op': 'string',
             'span.description': 'string',
             'span.group': 'string',
-            'avg_if(span.self_time,release,equals,release1)': 'duration',
-            'avg_compare(span.self_time,release,release1,release2)': 'percent_change',
+            'avg(span.self_time)': 'duration',
             'count()': 'integer',
-            'avg_if(span.self_time,release,equals,release2)': 'duration',
             'sum(span.self_time)': 'duration',
           },
         },
@@ -67,10 +65,8 @@ describe('SpanOpSelector', () => {
             'span.op': 'app.start.warm',
             'span.description': 'Application Init',
             'span.group': '7f4be68f08c0455f',
-            'avg_if(span.self_time,release,equals,release1)': 22.549867,
-            'avg_compare(span.self_time,release,release1,release2)': 0.5,
+            'avg(span.self_time)': 22.549867,
             'count()': 14,
-            'avg_if(span.self_time,release,equals,release2)': 12504.931908384617,
             'sum(span.self_time)': 162586.66467600001,
           },
         ],
@@ -79,76 +75,20 @@ describe('SpanOpSelector', () => {
   });
 
   it('renders data properly', async () => {
-    render(
-      <SpanOperationTable
-        transaction="foo-bar"
-        primaryRelease="release1"
-        secondaryRelease="release2"
-      />
-    );
+    render(<SpanOperationTable transaction="foo-bar" primaryRelease="release1" />);
 
     expect(await screen.findByRole('link', {name: 'Operation'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Span Description'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Avg Duration (R1)'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Avg Duration (R2)'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Change'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Avg Duration'})).toBeInTheDocument();
 
     expect(await screen.findByRole('cell', {name: 'app.start.warm'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Application Init'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '22.55ms'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '12.50s'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '+50%'})).toBeInTheDocument();
 
     expect(screen.getByRole('link', {name: 'Application Init'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/insights/mobile/mobile-vitals/details/?spanDescription=Application%20Init&spanGroup=7f4be68f08c0455f&spanOp=app.start.warm&transaction=foo-bar'
     );
-  });
-
-  it('displays the infinity symbol for new spans with null percent change', async () => {
-    mockEventsRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: {
-        meta: {
-          fields: {
-            'project.id': 'integer',
-            'span.op': 'string',
-            'span.description': 'string',
-            'span.group': 'string',
-            'avg_if(span.self_time,release,equals,release1)': 'duration',
-            'avg_compare(span.self_time,release,release1,release2)': 'percent_change',
-            'count()': 'integer',
-            'avg_if(span.self_time,release,equals,release2)': 'duration',
-            'sum(span.self_time)': 'duration',
-          },
-        },
-        data: [
-          {
-            'project.id': parseInt(project.id, 10),
-            'span.op': 'app.start.warm',
-            'span.description': 'Application Init',
-            'span.group': '7f4be68f08c0455f',
-            'count()': 14,
-            'sum(span.self_time)': 162586.66467600001,
-
-            // simulate a scenario where a span was added in release 2
-            'avg_if(span.self_time,release,equals,release1)': 0,
-            'avg_if(span.self_time,release,equals,release2)': 12504.931908384617,
-            'avg_compare(span.self_time,release,release1,release2)': null,
-          },
-        ],
-      },
-    });
-
-    render(
-      <SpanOperationTable
-        transaction="foo-bar"
-        primaryRelease="release1"
-        secondaryRelease="release2"
-      />
-    );
-
-    expect(await screen.findByRole('cell', {name: '+∞%'})).toBeInTheDocument();
   });
 
   it('modifies the request to events when a span operation is selected', async () => {
@@ -184,13 +124,7 @@ describe('SpanOpSelector', () => {
       ],
     });
 
-    render(
-      <SpanOperationTable
-        transaction="foo-bar"
-        primaryRelease="release1"
-        secondaryRelease="release2"
-      />
-    );
+    render(<SpanOperationTable transaction="foo-bar" primaryRelease="release1" />);
 
     await waitFor(() => {
       expect(mockEventsRequest).toHaveBeenCalledWith(
