@@ -1322,6 +1322,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 orphans.extend(result)
             elif len(roots) > 0:
                 trace_roots = result
+        sentry_sdk.set_context(
+            "trace_root_keys", {"keys": [child_sort_key(trace_root) for trace_root in trace_roots]}
+        )
         # We sort orphans and roots separately because we always want the root(s) as the first element(s)
         trace_roots.sort(key=child_sort_key)
         orphans.sort(key=child_sort_key)
