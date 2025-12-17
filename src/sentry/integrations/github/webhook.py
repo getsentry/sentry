@@ -800,7 +800,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                 )
 
                 logger.info(
-                    "github.webhook.pull_request.contributor_eligibility_check",
+                    "github.webhook.organization_contributor.eligibility_check",
                     extra={
                         "pr_number": number,
                         "user_login": user["login"],
