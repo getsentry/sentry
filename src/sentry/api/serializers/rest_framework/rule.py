@@ -11,6 +11,7 @@ from sentry import features
 from sentry.api.fields.actor import ActorField
 from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
 from sentry.models.environment import Environment
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.rules import rules
 from sentry.rules.actions.sentry_apps.base import SentryAppEventAction
 
@@ -177,6 +178,25 @@ class RuleSerializer(RuleSetSerializer):
                 del condition["name"]
 
         return conditions
+
+    def validate_owner(self, owner):
+        if owner is None:
+            return owner
+
+        if owner.is_team:
+            request = self.context.get("request")
+            if request and hasattr(request, "user") and request.user:
+                user_is_team_member = OrganizationMemberTeam.objects.filter(
+                    team_id=owner.id,
+                    organizationmember__user_id=request.user.id,
+                    is_active=True,
+                ).exists()
+                if not user_is_team_member:
+                    raise serializers.ValidationError(
+                        "You must be a member of a team to assign it as the rule owner."
+                    )
+
+        return owner
 
     def validate(self, attrs):
         return super().validate(validate_actions(attrs))

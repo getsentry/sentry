@@ -637,7 +637,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert_rule_from_payload(self.rule, payload)
 
     def test_update_owner_type(self) -> None:
-        team = self.create_team(organization=self.organization)
+        team = self.create_team(organization=self.organization, members=[self.user])
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
         payload = {
             "name": "hello world 2",
@@ -670,6 +670,29 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.owner_team_id is None
         assert rule.owner_user_id == self.user.id
+
+    def test_team_owner_not_member(self) -> None:
+        team = self.create_team(organization=self.organization)
+        payload = {
+            "name": "hello world",
+            "owner": f"team:{team.id}",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": self.first_seen_condition,
+        }
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            self.rule.id,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            **payload,
+        )
+        assert "owner" in response.data
+        assert (
+            str(response.data["owner"][0])
+            == "You must be a member of a team to assign it as the rule owner."
+        )
 
     def test_update_name(self) -> None:
         conditions = [

@@ -524,7 +524,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert str(response.data["owner"][0]) == "Team is not a member of this organization"
 
     def test_team_owner(self) -> None:
-        team = self.create_team(organization=self.organization)
+        team = self.create_team(organization=self.organization, members=[self.user])
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -542,6 +542,26 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.owner_team_id == team.id
         assert rule.owner_user_id is None
+
+    def test_team_owner_not_member(self) -> None:
+        team = self.create_team(organization=self.organization)
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            frequency=30,
+            owner=f"team:{team.id}",
+            actionMatch="any",
+            filterMatch="any",
+            actions=self.notify_event_action,
+            conditions=self.first_seen_condition,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert "owner" in response.data
+        assert (
+            str(response.data["owner"][0])
+            == "You must be a member of a team to assign it as the rule owner."
+        )
 
     def test_frequency_percent_validation(self) -> None:
         condition = {
