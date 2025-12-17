@@ -15,6 +15,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
 from sentry.taskworker.retry import Retry
+from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -34,10 +35,9 @@ DELAY_BETWEEN_RETRIES = 60  # 1 minute
     namespace=seer_code_review_tasks,
     retry=Retry(times=MAX_RETRIES, delay=DELAY_BETWEEN_RETRIES, on=(HTTPError,)),
     silo_mode=SiloMode.REGION,
-    bind=True,  # Access self.request.retries for conditional logging
 )
 def process_github_webhook_event(
-    self: Any, *, organization_id: int, enqueued_at_str: str, **kwargs: Any
+    *, organization_id: int, enqueued_at_str: str, **kwargs: Any
 ) -> None:
     """
     Process GitHub webhook event by forwarding to Seer if applicable.
@@ -45,7 +45,6 @@ def process_github_webhook_event(
     This will be expanded to handle other GitHub webhook events in the future.
 
     Args:
-        self: Task instance (bound via bind=True)
         organization_id: The organization ID (for logging/metrics)
         enqueued_at_str: The timestamp when the task was enqueued
         **kwargs: Additional logging context & other parameters
@@ -69,7 +68,8 @@ def process_github_webhook_event(
         # Catches all urllib3 errors: TimeoutError, MaxRetryError, NewConnectionError,
         # SSLError, ProxyError, ProtocolError, ResponseError, DecodeError, etc.
         status = e.__class__.__name__
-        if self.request.retries < MAX_RETRIES - 1:
+        task = current_task()
+        if task and task.retries_remaining:
             should_record_latency = False
         # Exception automatically captured to Sentry by taskworker on final retry
         raise  # Trigger task retry (error listed in on= parameter)

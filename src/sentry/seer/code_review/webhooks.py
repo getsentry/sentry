@@ -62,8 +62,7 @@ def handle_github_check_run_event(organization: Organization, event: Mapping[str
         metrics.incr(f"{PREFIX}.outcome", tags={"status": "invalid_payload"})
         return False
 
-    # bind=True means self is automatically provided, mypy doesn't understand this
-    process_github_webhook_event.delay(  # type: ignore[call-arg]
+    process_github_webhook_event.delay(
         original_run_id=validated_event.check_run.external_id,
         organization_id=organization.id,
         action=validated_event.action,
