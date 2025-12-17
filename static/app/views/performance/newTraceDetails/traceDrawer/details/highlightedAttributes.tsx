@@ -145,7 +145,7 @@ function getAISpanAttributes({
     });
   }
 
-  // Check for missing cost calculation when model exists
+  // Check for missing cost calculation
   if (model && (!totalCosts || Number(totalCosts) === 0)) {
     Sentry.captureMessage('Gen AI span missing cost calculation', {
       level: 'warning',
