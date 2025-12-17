@@ -15,6 +15,7 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Placeholder from 'sentry/components/placeholder';
 import Version from 'sentry/components/version';
 import {
   IconDelete,
@@ -90,13 +91,16 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     },
   ];
 
-  if (buildDetailsData.app_info.version) {
+  const version = buildDetailsData.app_info?.version;
+  const buildNumber = buildDetailsData.app_info?.build_number;
+
+  if (version) {
     breadcrumbs.push({
       to: makeReleasesUrl(project?.id, {
-        query: buildDetailsData.app_info.version,
+        query: version,
         tab: 'mobile-builds',
       }),
-      label: buildDetailsData.app_info.version,
+      label: version,
     });
   }
 
@@ -104,7 +108,13 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     label: 'Build Details',
   });
 
-  const version = `v${buildDetailsData.app_info.version ?? 'Unknown'} (${buildDetailsData.app_info.build_number ?? 'Unknown'})`;
+  let versionTitle: string | undefined = undefined;
+  if (version) {
+    versionTitle = `v${version}`;
+    if (buildNumber) {
+      versionTitle += ` (${buildNumber})`;
+    }
+  }
 
   const handleCompareClick = () => {
     trackAnalytics('preprod.builds.details.compare_build_clicked', {
@@ -135,8 +145,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
           <FeatureBadge type="beta" />
         </Flex>
         <Layout.Title>
-          {project && <IdBadge project={project} avatarSize={28} hideName />}
-          <Version version={version} anchor={false} truncate />
+          <Flex align="center" gap="sm" minHeight="1lh">
+            {project && <IdBadge project={project} avatarSize={28} hideName />}
+            {versionTitle && <Version version={versionTitle} anchor={false} truncate />}
+            {!versionTitle && <Placeholder width="30ch" height="1em" />}
+          </Flex>
         </Layout.Title>
       </Layout.HeaderContent>
 
