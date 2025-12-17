@@ -16,7 +16,7 @@ import useTimeout from 'sentry/utils/useTimeout';
 import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-export const LIVE_TOOLTIP_MESSAGE = t('This replay is in progress.');
+const LIVE_TOOLTIP_MESSAGE = t('This replay is in progress.');
 
 export function getReplayExpiresAtMs(startedAt: ReplayRecord['started_at']): number {
   const ONE_HOUR_MS = 3_600_000;
@@ -43,7 +43,7 @@ const pulse = keyframes`
   }
 `;
 
-export const LiveIndicator = styled('div')`
+const LiveIndicator = styled('div')`
   background: ${p => p.theme.successText};
   height: 8px;
   width: 8px;
