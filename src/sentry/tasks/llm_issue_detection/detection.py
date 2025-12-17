@@ -54,7 +54,7 @@ class DetectedIssue(BaseModel):
     title: str
     subcategory: str
     category: str
-    verification_reason: str | None = None
+    verification_reason: str
     # context fields, not LLM generated
     trace_id: str
     transaction_name: str
