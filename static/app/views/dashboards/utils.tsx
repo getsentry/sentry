@@ -539,10 +539,25 @@ export function dashboardFiltersToString(
   const pinnedFilters = omit(dashboardFilters, DashboardFilterKeys.GLOBAL_FILTER);
   if (pinnedFilters) {
     for (const [key, activeFilters] of Object.entries(pinnedFilters)) {
-      if (activeFilters.length === 1) {
-        dashboardFilterConditions += `${key}:"${activeFilters[0]}" `;
-      } else if (activeFilters.length > 1) {
-        dashboardFilterConditions += `${key}:[${activeFilters
+      if (!Array.isArray(activeFilters)) {
+        continue;
+      }
+
+      const sanitizedFilters = activeFilters.filter(filter => {
+        if (!defined(filter)) {
+          return false;
+        }
+        return typeof filter === 'string' ? filter.trim() !== '' : true;
+      });
+
+      if (sanitizedFilters.length === 0) {
+        continue;
+      }
+
+      if (sanitizedFilters.length === 1) {
+        dashboardFilterConditions += `${key}:"${sanitizedFilters[0]}" `;
+      } else {
+        dashboardFilterConditions += `${key}:[${sanitizedFilters
           .map(f => `"${f}"`)
           .join(',')}] `;
       }

@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
+  dashboardFiltersToString,
   eventViewFromWidget,
   flattenErrors,
   getCurrentPageFilters,
@@ -26,6 +27,27 @@ describe('Dashboards util', () => {
     environments: [],
     projects: [],
   };
+
+  describe('dashboardFiltersToString', () => {
+    it('omits pinned filters that only contain empty values', () => {
+      const filters = {
+        release: [''],
+      } as DashboardDetails['filters'];
+
+      expect(dashboardFiltersToString(filters)).toBe('');
+    });
+
+    it('filters out empty or whitespace-only values when others exist', () => {
+      const filters = {
+        release: ['1.0.0', '', '  '],
+        tool_call: ['', 'foo'],
+      } as DashboardDetails['filters'] & Record<string, string[]>;
+
+      expect(dashboardFiltersToString(filters)).toBe(
+        'release:["1.0.0"] tool_call:["foo"] '
+      );
+    });
+  });
   describe('eventViewFromWidget', () => {
     let widget!: Widget;
     beforeEach(() => {
