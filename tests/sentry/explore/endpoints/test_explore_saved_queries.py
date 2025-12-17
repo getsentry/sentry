@@ -58,6 +58,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert "range" not in response.data[0]
         assert response.data[0]["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": [
                     "id",
                     "span.op",
@@ -618,6 +619,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["environment"] == ["dev"]
         assert data["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": ["span.op", "count(span.duration)"],
                 "mode": "samples",
                 "query": "span.op:pageload",
@@ -1139,6 +1141,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["dataset"] == "metrics"
         assert data["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": ["count()"],
                 "mode": "aggregate",
                 "metric": {
@@ -1158,6 +1161,7 @@ class ExploreSavedQueriesTest(APITestCase):
                     "dataset": "metrics",
                     "query": [
                         {
+                            "caseInsensitive": False,
                             "fields": ["avg()"],
                             "mode": "aggregate",
                             "metric": {
@@ -1300,7 +1304,7 @@ class ExploreSavedQueriesTest(APITestCase):
                         {
                             "fields": ["span.op"],
                             "mode": "samples",
-                            "caseInsensitive": True,
+                            "caseInsensitive": 1,
                         }
                     ],
                     "range": "24h",
