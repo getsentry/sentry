@@ -96,7 +96,7 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
         if not release_version_parsed:
             app_id = params.get("app_id")
             if app_id:
-                queryset = queryset.filter(app_id__icontains=app_id)
+                queryset = queryset.filter(app_id__exact=app_id)
 
             build_version = params.get("build_version")
             if build_version:
@@ -133,7 +133,7 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
 
         build_configuration = params.get("build_configuration")
         if build_configuration:
-            queryset = queryset.filter(build_configuration__name__icontains=build_configuration)
+            queryset = queryset.filter(build_configuration__name__exact=build_configuration)
 
         platform = params.get("platform")
         if platform:
