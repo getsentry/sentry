@@ -47,9 +47,8 @@ export default function ReplayPreferenceDropdown({
       size="sm"
       disabled={isLoading}
       trigger={triggerProps => (
-        <SelectTrigger.Button
+        <SelectTrigger.IconButton
           {...triggerProps}
-          showChevron={false}
           title={t('Settings')}
           aria-label={t('Settings')}
           icon={<IconSettings />}
