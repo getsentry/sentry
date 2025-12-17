@@ -23,6 +23,7 @@ from sentry.models.organization import Organization
 from sentry.utils import metrics
 
 from .types import GitHubCheckRunAction, GitHubCheckRunEvent
+from .webhook_task import process_github_webhook_event
 
 logger = logging.getLogger(__name__)
 
@@ -44,21 +45,23 @@ def handle_github_check_run_event(organization: Organization, event: Mapping[str
     Returns:
         True if the event was handled successfully (task enqueued), False otherwise
     """
-    if not _should_handle_github_check_run_event(organization, event["action"]):
+    action = event.get("action")
+    if action is None:
+        logger.error("github.webhook.check_run.missing-action")
+        metrics.incr(f"{PREFIX}.outcome", tags={"status": "missing_action"})
         return False
 
-    # Validate event payload using Pydantic
+    if not _should_handle_github_check_run_event(organization, action):
+        return False
+
     try:
         validated_event = _validate_github_check_run_event(event)
     except (ValidationError, ValueError):
-        # Handle validation errors to prevent sending a 500 error to GitHub
-        # which would trigger a retry. Both ValidationError (Pydantic) and
-        # ValueError (numeric check) are caught here.
+        # Do not raise an exception here to prevent sending a 500 error to GitHub
+        # which would trigger a retry.
+        logger.exception("github.webhook.check_run.invalid-payload")
         metrics.incr(f"{PREFIX}.outcome", tags={"status": "invalid_payload"})
         return False
-
-    # Enqueue task to process the rerun request asynchronously
-    from .webhook_task import process_github_webhook_event
 
     # Note: bind=True means self is automatically provided, mypy doesn't understand this
     process_github_webhook_event.delay(  # type: ignore[call-arg]
@@ -81,18 +84,8 @@ def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRun
         ValidationError: If the event payload is invalid
         ValueError: If external_id is not numeric
     """
-    try:
-        validated_event = GitHubCheckRunEvent.parse_obj(event)
-        int(validated_event.check_run.external_id)
-    # These exceptions should be reported to GitHub as errors.
-    except ValidationError:
-        logger.exception("Invalid GitHub check_run event payload")
-        raise
-    except ValueError:
-        logger.exception("external_id must be numeric")
-        raise
-
-    return validated_event
+    validated_event = GitHubCheckRunEvent.parse_obj(event)
+    return int(validated_event.check_run.external_id)
 
 
 def _should_handle_github_check_run_event(organization: Organization, action: str) -> bool:

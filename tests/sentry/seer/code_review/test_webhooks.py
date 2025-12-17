@@ -34,7 +34,7 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
         assert response.status_code == 204
         return response
 
-    @patch("sentry.seer.code_review.webhook_task.process_github_webhook_event")
+    @patch("sentry.seer.code_review.webhooks.process_github_webhook_event")
     @with_feature({"organizations:code-review-beta"})
     def test_base_case(self, mock_task: MagicMock) -> None:
         """Test that rerequested action enqueues task with correct parameters."""
@@ -52,13 +52,26 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             assert "enqueued_at_str" in call_kwargs
             assert isinstance(call_kwargs["enqueued_at_str"], str)
 
-    @patch("sentry.seer.code_review.webhook_task.process_github_webhook_event")
+    @patch("sentry.seer.code_review.webhooks.process_github_webhook_event")
     def test_check_run_skips_when_ai_features_disabled(self, mock_task: MagicMock) -> None:
         """Test that the handler returns early when AI features are not enabled (even though the option is enabled)."""
         self._send_check_run_event(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
         mock_task.delay.assert_not_called()
 
-    @patch("sentry.seer.code_review.webhook_task.process_github_webhook_event")
+    @patch("sentry.seer.code_review.webhooks.process_github_webhook_event")
+    @with_feature({"organizations:code-review-beta"})
+    def test_check_run_fails_when_action_missing(self, mock_task: MagicMock) -> None:
+        """Test that missing action field is handled gracefully without KeyError."""
+        event_without_action = orjson.loads(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
+        del event_without_action["action"]
+
+        with patch("sentry.seer.code_review.webhooks.logger") as mock_logger:
+            self._send_check_run_event(orjson.dumps(event_without_action))
+
+            mock_task.delay.assert_not_called()
+            mock_logger.warning.assert_called_once_with("github.webhook.check_run.missing-action")
+
+    @patch("sentry.seer.code_review.webhooks.process_github_webhook_event")
     @with_feature({"organizations:code-review-beta"})
     def test_check_run_fails_when_external_id_missing(self, mock_task: MagicMock) -> None:
         """Test that missing external_id is handled gracefully."""
@@ -75,7 +88,7 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             mock_logger.exception.assert_called_once()
             assert "Invalid GitHub check_run event payload" in mock_logger.exception.call_args[0][0]
 
-    @patch("sentry.seer.code_review.webhook_task.process_github_webhook_event")
+    @patch("sentry.seer.code_review.webhooks.process_github_webhook_event")
     @with_feature({"organizations:code-review-beta"})
     def test_check_run_fails_when_external_id_not_numeric(self, mock_task: MagicMock) -> None:
         """Test that non-numeric external_id is handled gracefully."""
@@ -92,7 +105,7 @@ class CheckRunEventWebhookTest(GitHubWebhookTestCase):
             mock_logger.exception.assert_called_once()
             assert "external_id must be numeric" in mock_logger.exception.call_args[0][0]
 
-    @patch("sentry.seer.code_review.webhook_task.process_github_webhook_event")
+    @patch("sentry.seer.code_review.webhooks.process_github_webhook_event")
     @with_feature({"organizations:code-review-beta"})
     def test_check_run_enqueues_task_for_processing(self, mock_task: MagicMock) -> None:
         """Test that webhook successfully enqueues task for async processing."""

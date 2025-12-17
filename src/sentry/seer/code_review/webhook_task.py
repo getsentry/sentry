@@ -53,12 +53,12 @@ def process_github_webhook_event(
     context = {"organization_id": organization_id, **kwargs}
     if not options.get("coding_workflows.code_review.github.check_run.rerun.enabled"):
         logger.info("Skipping rerun request because the option is disabled", extra=context)
-        status = "option_disabled"
+        metrics.incr(f"{PREFIX}.outcome", tags={"status": "option_disabled"})
         return
 
     original_run_id = kwargs.get("original_run_id")
     if original_run_id is None:
-        metrics.incr(f"{PREFIX}.outcome", tags={"status": "invalid_task_parameters"})
+        metrics.incr(f"{PREFIX}.outcome", tags={"status": "missing_required_parameters"})
         raise ValueError("Missing required task parameters.")
 
     should_record_latency = True
@@ -79,8 +79,7 @@ def process_github_webhook_event(
         # Unexpected errors (JSON parsing, config issues, etc.)
         # These are not retryable and indicate a programming or configuration error
         status = f"unexpected_error_{e.__class__.__name__}"
-        logger.exception("%s.unexpected_error", PREFIX, extra=context)
-        raise  # Task will fail (no retry for unexpected errors, not listed in on= parameter)
+        raise
     finally:
         metrics.incr(f"{PREFIX}.outcome", tags={"status": status})
         if should_record_latency:
