@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -30,6 +31,7 @@ interface BuildDetailsSidebarAppInfoProps {
 export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProps) {
   const organization = useOrganization();
   const labels = getLabels(props.appInfo.platform ?? undefined);
+  const [imageError, setImageError] = useState(false);
 
   const datetimeFormat = getFormat({
     seconds: true,
@@ -44,8 +46,16 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
   return (
     <Flex direction="column" gap="xl">
       <Flex align="center" gap="sm">
-        {iconUrl && <img src={iconUrl} alt="App Icon" width={24} height={24} />}
-        {!iconUrl && (
+        {iconUrl && !imageError && (
+          <AppIcon
+            src={iconUrl}
+            alt="App Icon"
+            width={24}
+            height={24}
+            onError={() => setImageError(true)}
+          />
+        )}
+        {(!iconUrl || imageError) && (
           <AppIconPlaceholder>{props.appInfo.name?.charAt(0) || ''}</AppIconPlaceholder>
         )}
         {props.appInfo.name && <Heading as="h3">{props.appInfo.name}</Heading>}
@@ -140,6 +150,10 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
     </Flex>
   );
 }
+
+const AppIcon = styled('img')`
+  border-radius: 4px;
+`;
 
 const AppIconPlaceholder = styled('div')`
   width: 24px;
