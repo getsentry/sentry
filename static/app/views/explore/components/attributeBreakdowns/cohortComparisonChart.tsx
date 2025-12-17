@@ -163,7 +163,7 @@ export function Chart({
       const escapedTruncatedName = escape(truncatedName);
 
       return `
-      <div data-explore-chart-selection-region class="tooltip-series" style="padding: 0;">
+      <div class="tooltip-series" style="padding: 0;">
         <div class="tooltip-label" style="display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin: 0 auto; padding: 8px 15px; min-width: 100px; max-width: 300px; cursor: default;">
           <strong style="word-break: break-word; white-space: normal; overflow-wrap: anywhere; text-align: center;">${escapedTruncatedName}</strong>
           <span style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">

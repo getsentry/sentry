@@ -14,6 +14,7 @@ import type {EChartsInstance} from 'echarts-for-react';
 
 import ToolBox from 'sentry/components/charts/components/toolBox';
 import type {EChartBrushEndHandler, EChartBrushStartHandler} from 'sentry/types/echarts';
+import usePrevious from 'sentry/utils/usePrevious';
 
 export type Selection = {
   /**
@@ -25,8 +26,9 @@ export type Selection = {
   range: [number, number];
 };
 
-type State = {
+type SelectionState = {
   actionMenuPosition: {left: number; position: 'left' | 'right'; top: number} | null;
+  isActionMenuVisible: boolean;
   selection: Selection;
 } | null;
 
@@ -67,7 +69,13 @@ const CHART_X_RANGE_BRUSH_OPTION: BrushComponentOption = {
   xAxisIndex: 0,
   brushStyle: {},
   removeOnClick: false,
-  transformable: true,
+  transformable: false,
+};
+
+export type SelectionCallbackParams = {
+  clearSelection: () => void;
+  selectionState: SelectionState;
+  setSelectionState: (selectionState: SelectionState) => void;
 };
 
 export type ChartXRangeSelectionProps = {
@@ -79,10 +87,7 @@ export type ChartXRangeSelectionProps = {
   /**
    * The renderer for the action menu that is displayed when the selection/dragging ends.
    */
-  actionMenuRenderer?: (
-    selection: Selection,
-    clearSelection: () => void
-  ) => React.ReactNode;
+  actionMenuRenderer?: (params: SelectionCallbackParams) => React.ReactNode;
 
   /**
    * In the case of multiple charts, this is the name of the chart's group.
@@ -105,25 +110,31 @@ export type ChartXRangeSelectionProps = {
   initialSelection?: Selection;
 
   /**
+   * The callback that is called when the chart is clicked.
+   */
+  onChartClick?: (params: SelectionCallbackParams) => void;
+
+  /**
    * The callback that is called when the selection is cleared.
    */
-  onClearSelection?: () => void;
+  onClearSelection?: (params: SelectionCallbackParams) => void;
 
   /**
    * The callback that is called when the selection/dragging ends.
    */
-  onSelectionEnd?: (selection: Selection, clearSelection: () => void) => void;
+  onSelectionEnd?: (params: SelectionCallbackParams) => void;
 
   /**
    * The callback that is called when the selection/dragging starts.
    */
-  onSelectionStart?: () => void;
+  onSelectionStart?: (params: SelectionCallbackParams) => void;
 };
 
 export function useChartXRangeSelection({
   chartRef,
   onSelectionEnd,
   onSelectionStart,
+  onChartClick,
   onClearSelection,
   actionMenuRenderer,
   chartsGroupName,
@@ -131,10 +142,35 @@ export function useChartXRangeSelection({
   disabled = false,
   deps = [],
 }: ChartXRangeSelectionProps): BoxSelectionOptions {
-  const [state, setState] = useState<State>(null);
+  const [selectionState, setSelectionState] = useState<SelectionState>(null);
 
   const tooltipFrameRef = useRef<number | null>(null);
   const brushStateSyncFrameRef = useRef<number | null>(null);
+
+  const previousInitialSelection = usePrevious(initialSelection);
+
+  const clearSelection = useCallback(() => {
+    if (!selectionState?.selection) return;
+
+    const chartInstance = chartRef.current?.getEchartsInstance();
+
+    chartInstance?.dispatchAction({type: 'brush', areas: []});
+
+    // Restore the tooltip as we clear selection
+    if (tooltipFrameRef.current) cancelAnimationFrame(tooltipFrameRef.current);
+
+    tooltipFrameRef.current = requestAnimationFrame(() => {
+      chartInstance?.setOption({tooltip: {show: true}}, {silent: true});
+    });
+
+    setSelectionState(null);
+
+    onClearSelection?.({selectionState, setSelectionState, clearSelection});
+  }, [chartRef, onClearSelection, selectionState]);
+
+  const callbackParams = useMemo<SelectionCallbackParams>(() => {
+    return {selectionState, setSelectionState, clearSelection};
+  }, [selectionState, setSelectionState, clearSelection]);
 
   const onBrushStart = useCallback<EChartBrushStartHandler>(
     (_evt, chartInstance) => {
@@ -161,29 +197,10 @@ export function useChartXRangeSelection({
         );
       });
 
-      onSelectionStart?.();
+      onSelectionStart?.(callbackParams);
     },
-    [chartsGroupName, onSelectionStart]
+    [chartsGroupName, onSelectionStart, callbackParams]
   );
-
-  const clearSelection = useCallback(() => {
-    if (!state?.selection) return;
-
-    const chartInstance = chartRef.current?.getEchartsInstance();
-
-    chartInstance?.dispatchAction({type: 'brush', areas: []});
-
-    // Restore the tooltip as we clear selection
-    if (tooltipFrameRef.current) cancelAnimationFrame(tooltipFrameRef.current);
-
-    tooltipFrameRef.current = requestAnimationFrame(() => {
-      chartInstance?.setOption({tooltip: {show: true}}, {silent: true});
-    });
-
-    setState(null);
-
-    onClearSelection?.();
-  }, [chartRef, onClearSelection, state?.selection]);
 
   const onBrushEnd = useCallback<EChartBrushEndHandler>(
     (evt, chartInstance) => {
@@ -204,47 +221,19 @@ export function useChartXRangeSelection({
           panelId: area.panelId,
         });
 
-        setState(newState);
+        setSelectionState(newState);
 
         if (newState) {
-          onSelectionEnd?.(newState.selection, clearSelection);
+          onSelectionEnd?.({
+            selectionState: newState,
+            setSelectionState,
+            clearSelection,
+          });
         }
       }
     },
-    [onSelectionEnd, clearSelection]
+    [onSelectionEnd, setSelectionState, clearSelection]
   );
-
-  const handleOutsideClick = useCallback(
-    (event: MouseEvent) => {
-      let el = event.target as HTMLElement | null;
-
-      // Propagate the click event to the parent elements until we find the element that has the
-      // data-explore-chart-selection-region attribute. This is used to prevent the selection from
-      // being cleared if the user clicks within an 'inbound' region.
-      while (el) {
-        if (el.dataset?.exploreChartSelectionRegion !== undefined) {
-          return;
-        }
-        el = el.parentElement;
-      }
-
-      clearSelection();
-    },
-    [clearSelection]
-  );
-
-  // This effect sets up the event listener for clearing of the selection
-  //  when the user clicks outside the declared inbound regions.
-  useEffect(() => {
-    if (disabled || !state?.selection) return;
-
-    window.addEventListener('click', handleOutsideClick, {capture: true});
-
-    // eslint-disable-next-line consistent-return
-    return () => {
-      window.removeEventListener('click', handleOutsideClick, {capture: true});
-    };
-  }, [handleOutsideClick, disabled, state?.selection]);
 
   const enableBrushMode = useCallback(() => {
     const chartInstance = chartRef.current?.getEchartsInstance();
@@ -254,6 +243,92 @@ export function useChartXRangeSelection({
       brushOption: CHART_X_RANGE_BRUSH_OPTION,
     });
   }, [chartRef]);
+
+  const syncSelectionStates = useCallback(() => {
+    if (disabled) return;
+
+    const chartInstance = chartRef.current?.getEchartsInstance();
+
+    if (!chartInstance) {
+      return;
+    }
+
+    const hasInitialSelectionChanged = previousInitialSelection !== initialSelection;
+
+    // Initial selection changed to undefined, so we clear the selection
+    // Example: Back navigation to an unselected chart region state
+    if (hasInitialSelectionChanged && !initialSelection) {
+      clearSelection();
+      return;
+    }
+
+    // No initial selection to sync
+    if (!initialSelection) {
+      return;
+    }
+
+    // Determine if we need to update state. This is the case when:
+    // 1. No current selection state BUT initialSelection is defined, so we initialize the selection state
+    // 2. Initial selection changed and range is different.
+    //    Example: Back navigation from one selected chart region state to another selected chart region state.
+    const hasRangeChanged =
+      selectionState &&
+      (selectionState.selection.range[0] !== initialSelection.range[0] ||
+        selectionState.selection.range[1] !== initialSelection.range[1]);
+
+    const newState = calculateNewState({
+      chartInstance,
+      newRange: initialSelection.range,
+      panelId: initialSelection.panelId,
+    });
+
+    // If we couldn't calculate a new state (ex: out of bounds selection), we clear selection
+    if (!newState) {
+      clearSelection();
+      return;
+    }
+
+    const shouldUpdateState =
+      !selectionState || (hasInitialSelectionChanged && hasRangeChanged);
+
+    if (!shouldUpdateState) {
+      return;
+    }
+
+    setSelectionState(newState);
+  }, [
+    initialSelection,
+    selectionState,
+    clearSelection,
+    chartRef,
+    previousInitialSelection,
+    disabled,
+  ]);
+
+  // This effect sets up the listener for clicks anywhere on the chart to trigger the
+  // onChartClick callback if it is passed in. The params to it include state management functions,
+  // giving the consumer full control over the selection state.
+  useEffect(() => {
+    if (disabled) return;
+
+    const chartInstance = chartRef.current?.getEchartsInstance();
+    if (!chartInstance) return;
+
+    const dom = chartInstance.getDom();
+
+    const handleClickAnywhere = (event: MouseEvent) => {
+      event.preventDefault();
+
+      onChartClick?.(callbackParams);
+    };
+
+    dom.addEventListener('click', handleClickAnywhere);
+
+    // eslint-disable-next-line consistent-return
+    return () => {
+      dom.removeEventListener('click', handleClickAnywhere);
+    };
+  }, [enableBrushMode, callbackParams, chartRef, onChartClick, disabled]);
 
   // This effect fires whenever state changes. It:
   // - Re-draws the selection box in the chart on state change enforcing persistence.
@@ -272,15 +347,15 @@ export function useChartXRangeSelection({
 
     // Re-draw the box in the chart whenever state.selection changes,
     // enforcing persistence.
-    if (state?.selection) {
+    if (selectionState?.selection) {
       chartInstance.dispatchAction({
         type: 'brush',
         areas: [
           {
             brushType: 'lineX',
-            coordRange: state.selection.range,
-            coordRanges: [state.selection.range],
-            panelId: state.selection.panelId,
+            coordRange: selectionState.selection.range,
+            coordRanges: [selectionState.selection.range],
+            panelId: selectionState.selection.panelId,
           },
         ],
       });
@@ -299,20 +374,7 @@ export function useChartXRangeSelection({
     // Everything inside `requestAnimationFrame` is called only after the current render cycle completes,
     // and this ensures ECharts has fully processed all the dispatchActions like the one above.
     brushStateSyncFrameRef.current = requestAnimationFrame(() => {
-      // We only propagate the range of the selection box to the consumers,
-      // so we need to calculate the rest of the state from the `initialSelection` prop on load.
-      if (initialSelection && !state) {
-        const newState = calculateNewState({
-          chartInstance,
-          newRange: initialSelection.range,
-          panelId: initialSelection.panelId,
-        });
-
-        if (newState) {
-          setState(newState);
-        }
-      }
-
+      syncSelectionStates();
       enableBrushMode();
     });
 
@@ -327,13 +389,14 @@ export function useChartXRangeSelection({
       }
     };
   }, [
-    state,
+    selectionState,
     disabled,
     enableBrushMode,
     chartRef,
     chartsGroupName,
     initialSelection,
     deps,
+    syncSelectionStates,
   ]);
 
   const brush: BrushComponentOption | undefined = useMemo(() => {
@@ -358,31 +421,37 @@ export function useChartXRangeSelection({
   }, [disabled]);
 
   const renderedActionMenu = useMemo(() => {
-    if (!state?.actionMenuPosition || !actionMenuRenderer) return null;
+    if (
+      !selectionState?.actionMenuPosition ||
+      !actionMenuRenderer ||
+      !selectionState.isActionMenuVisible
+    )
+      return null;
 
     // We want the top right corner of the action menu to be aligned with the bottom left
     // corner of the selection box, when the menu is positioned to the left. Using a transform, saves us
     // form having to calculate the exact position of the menu.
     const transform =
-      state.actionMenuPosition.position === 'left' ? 'translateX(-100%)' : 'none';
+      selectionState.actionMenuPosition.position === 'left'
+        ? 'translateX(-100%)'
+        : 'none';
 
     return createPortal(
       <div
-        data-explore-chart-selection-region
         style={{
           position: 'absolute',
           transform,
           whiteSpace: 'nowrap',
-          top: state.actionMenuPosition.top,
-          left: state.actionMenuPosition.left,
+          top: selectionState.actionMenuPosition.top,
+          left: selectionState.actionMenuPosition.left,
           zIndex: 1000,
         }}
       >
-        {actionMenuRenderer(state.selection, clearSelection)}
+        {actionMenuRenderer(callbackParams)}
       </div>,
       document.body
     );
-  }, [state, actionMenuRenderer, clearSelection]);
+  }, [selectionState, actionMenuRenderer, callbackParams]);
 
   const options: BoxSelectionOptions = useMemo(() => {
     return {
@@ -405,7 +474,7 @@ function calculateNewState({
   chartInstance: EChartsInstance;
   newRange: [number, number];
   panelId: string;
-}): State {
+}): SelectionState {
   // @ts-expect-error TODO Abdullah Khan: chartInstance.getModel is a private method, but we access it to get the axis extremes
   // could not find a better way, this works out perfectly for now. Passing down the entire series data to the hook is more gross.
   const xAxis = chartInstance.getModel()?.getComponent?.('xAxis', 0);
@@ -426,6 +495,11 @@ function calculateNewState({
   const xMaxPixel = chartInstance.convertToPixel({xAxisIndex: 0}, xMax);
   const yMinPixel = chartInstance.convertToPixel({yAxisIndex: 0}, yMin);
   const [selected_xMin, selected_xMax] = newRange;
+
+  // If the selection is completely out of bounds, return null
+  if (selected_xMin > xMax || selected_xMax < xMin) {
+    return null;
+  }
 
   // Since we can keep dragging beyond the visible range,
   // clamp the ranges to the minimum and maximum values of the visible x axis and y axis
@@ -457,6 +531,7 @@ function calculateNewState({
       range: clampedCoordRange,
       panelId,
     },
+    isActionMenuVisible: true,
   };
 }
 
