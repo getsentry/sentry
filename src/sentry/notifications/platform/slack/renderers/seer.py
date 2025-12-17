@@ -2,9 +2,7 @@ from slack_sdk.models.blocks import (
     ActionsBlock,
     ButtonElement,
     ContextBlock,
-    InputBlock,
     MarkdownTextObject,
-    PlainTextInputElement,
     PlainTextObject,
     RichTextBlock,
     RichTextListElement,
@@ -19,8 +17,6 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixSuccess,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
-    SeerContextInput,
-    SeerContextInputComplete,
 )
 from sentry.notifications.platform.types import NotificationData, NotificationRenderedTemplate
 from sentry.seer.autofix.utils import AutofixStoppingPoint
@@ -44,10 +40,6 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls.render_autofix_success(data)
         elif isinstance(data, SeerAutofixUpdate):
             return cls.render_autofix_update(data)
-        elif isinstance(data, SeerContextInput):
-            return cls.render_context_input(data)
-        elif isinstance(data, SeerContextInputComplete):
-            return cls.render_context_input_complete(data)
         else:
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
 
@@ -106,6 +98,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             text="Seer Autofix Success",
         )
 
+    @classmethod
     def render_autofix_update(cls, data: SeerAutofixUpdate) -> SlackRenderable:
         if data.current_point == AutofixStoppingPoint.ROOT_CAUSE:
             next_stage_button = cls.render_autofix_button(
@@ -155,38 +148,4 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 ContextBlock(elements=[MarkdownTextObject(text=f"Run ID: {data.run_id}")]),
             ],
             text="Seer Autofix Update",
-        )
-
-    @classmethod
-    def render_context_input(cls, data: SeerContextInput) -> SlackRenderable:
-        from sentry.integrations.slack.message_builder.types import SlackAction
-        from sentry.seer.entrypoints.integrations.slack import encode_context_block_id
-
-        return SlackRenderable(
-            blocks=[
-                InputBlock(
-                    dispatch_action=True,
-                    label=PlainTextObject(text=data.label),
-                    element=PlainTextInputElement(
-                        placeholder=PlainTextObject(text=data.placeholder),
-                        action_id=SlackAction.SEER_CONTEXT_INPUT.value,
-                    ),
-                    block_id=encode_context_block_id(
-                        run_id=data.run_id,
-                        organization_id=data.organization_id,
-                    ),
-                ),
-                ContextBlock(elements=[PlainTextObject(text=f"Run ID: {data.run_id}")]),
-            ],
-            text="Seer Context Input",
-        )
-
-    @classmethod
-    def render_context_input_complete(cls, data: SeerContextInputComplete) -> SlackRenderable:
-        return SlackRenderable(
-            blocks=[
-                SectionBlock(text=MarkdownTextObject(text="*Seer says thanks.*")),
-                SectionBlock(text=MarkdownTextObject(text=f">{data.provided_context}")),
-            ],
-            text="Seer Context Input Complete",
         )

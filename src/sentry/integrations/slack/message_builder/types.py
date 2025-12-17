@@ -21,7 +21,6 @@ class SlackAction(StrEnum):
     ARCHIVE_DIALOG = "archive_dialog"
     ASSIGN = "assign"
     SEER_AUTOFIX_START = "seer_autofix_start"
-    SEER_CONTEXT_INPUT = "seer_context_input"
 
 
 INCIDENT_COLOR_MAPPING = {

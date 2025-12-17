@@ -179,14 +179,3 @@ def _send_thread_update(
     )
     # Skip over the notification service for now since threading isn't yet formalized.
     install.send_threaded_message(channel_id=channel_id, thread_ts=thread_ts, renderable=renderable)
-
-
-def encode_context_block_id(run_id: int, organization_id: int) -> str:
-    from sentry.integrations.slack.message_builder.types import SlackAction
-
-    return f"{SlackAction.SEER_CONTEXT_INPUT.value}::{organization_id}::{run_id}"
-
-
-def decode_context_block_id(block_id: str) -> tuple[int, int]:
-    _action, organization_id, run_id = block_id.split("::")
-    return int(organization_id), int(run_id)
