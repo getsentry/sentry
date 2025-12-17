@@ -789,6 +789,23 @@ class PullRequestEventWebhook(GitHubWebhook):
                 },
             )
 
+            if created:
+                logger.info(
+                    "github.webhook.pull_request.contributor_eligibility_check",
+                    extra={
+                        "organization_id": organization.id,
+                        "repository_id": repo.id,
+                        "pr_number": number,
+                        "user_id": user["id"],
+                        "user_login": user["login"],
+                        "user_type": user_type,
+                        "author_association": author_association,
+                        "is_eligible": is_contributor_eligible_for_seat_assignment(
+                            user_type, author_association
+                        ),
+                    },
+                )
+
             if created and is_contributor_eligible_for_seat_assignment(
                 user_type, author_association
             ):
