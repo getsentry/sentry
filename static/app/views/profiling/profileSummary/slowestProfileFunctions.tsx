@@ -115,7 +115,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           value={functionType}
           options={SLOWEST_FUNCTION_OPTIONS}
           onChange={onChangeFunctionType}
-          triggerProps={TRIGGER_PROPS}
+          triggerProps={{borderless: true, size: 'zero' as const}}
           offset={4}
         />
         <SlowestFunctionsPagination
@@ -296,7 +296,6 @@ const SlowestFunctionMetricsRow = styled('div')`
   margin-top: ${space(0.25)};
 `;
 
-const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};
 const SLOWEST_FUNCTION_OPTIONS: Array<SelectOption<'application' | 'system' | 'all'>> = [
   {
     label: t('Slowest Application Functions'),

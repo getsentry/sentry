@@ -174,7 +174,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
           value={trendType}
           options={TREND_FUNCTION_OPTIONS}
           onChange={onChangeTrendType}
-          triggerProps={TRIGGER_PROPS}
+          triggerProps={{borderless: true, size: 'zero' as const}}
           offset={4}
         />
         <RegressedFunctionsPagination
@@ -477,7 +477,6 @@ const RegressedFunctionsQueryState = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};
 const TREND_FUNCTION_OPTIONS: Array<SelectOption<TrendType>> = [
   {
     label: t('Most Regressed Functions'),
