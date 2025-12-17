@@ -1,5 +1,5 @@
 from django.db.models import F
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.utils import OpenApiExample, extend_schema, inline_serializer
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,7 +11,8 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project_key import ProjectKeySerializerResponse
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.project_examples import KEY_NO_RATE_LIMIT, KEY_RATE_LIMIT
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
@@ -65,13 +66,19 @@ class OrganizationProjectKeysEndpoint(OrganizationEndpoint):
             ),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
-            404: inline_serializer(
-                name="TeamNotFound",
-                fields={
-                    "detail": serializers.CharField(default="Team not found"),
-                },
-            ),
+            404: RESPONSE_NOT_FOUND,
         },
+        examples=[
+            OpenApiExample(
+                "List client keys for all projects in an organization",
+                value=[
+                    KEY_RATE_LIMIT,
+                    KEY_NO_RATE_LIMIT,
+                ],
+                status_codes=["200"],
+                response_only=True,
+            ),
+        ],
     )
     def get(self, request: Request, organization) -> Response:
         """
