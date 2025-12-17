@@ -15,10 +15,7 @@ export type SelectTriggerProps = React.HTMLAttributes<TriggerEl> & {
   ref?: React.Ref<TriggerEl>;
 };
 
-export type ButtonTriggerProps = SetRequired<
-  DistributedOmit<DropdownButtonProps, 'ref'>,
-  'children'
-> & {
+export type ButtonTriggerProps = DistributedOmit<DropdownButtonProps, 'ref'> & {
   ref?: React.Ref<TriggerEl>;
 };
 
