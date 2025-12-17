@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 from unittest import mock
 
 import orjson
@@ -17,6 +18,7 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.subscriptions import create_snuba_subscription
 from sentry.workflow_engine.models import Condition, DataPacket
+from sentry.workflow_engine.models.data_source import DataSource
 from sentry.workflow_engine.types import ConditionError, DetectorPriorityLevel
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
@@ -46,7 +48,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             timestamp=datetime.now(UTC),
             entity="test-entity",
         )
-
+        DataSource.objects.all().delete()
         self.data_source = self.create_data_source(
             source_id=str(packet.subscription_id),
             organization=self.organization,
@@ -95,11 +97,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             ],
         }
 
-    def assert_seer_call(self, mock_seer_request: mock.MagicMock) -> None:
-        assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
-        deserialized_body = orjson.loads(mock_seer_request.call_args.kwargs["body"])
-
+    def assert_seer_call(self, deserialized_body: dict[str, Any]) -> None:
         assert deserialized_body["organization_id"] == self.detector.project.organization.id
         assert deserialized_body["project_id"] == self.detector.project_id
         assert deserialized_body["config"]["time_period"] == self.snuba_query.time_window / 60
@@ -119,7 +117,6 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             deserialized_body["context"]["cur_window"]["value"]
             == self.data_packet.packet.values["value"]
         )
-        mock_seer_request.reset_mock()
 
     @mock.patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
@@ -132,7 +129,10 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             self.dc.evaluate_value(self.data_packet.packet.values)
             == DetectorPriorityLevel.HIGH.value
         )
-        self.assert_seer_call(mock_seer_request)
+        assert mock_seer_request.call_args.args[0] == "POST"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
+        deserialized_body = orjson.loads(mock_seer_request.call_args.kwargs["body"])
+        self.assert_seer_call(deserialized_body)
 
     @mock.patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
@@ -144,7 +144,10 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         assert (
             self.dc.evaluate_value(self.data_packet.packet.values) == DetectorPriorityLevel.OK.value
         )
-        self.assert_seer_call(mock_seer_request)
+        assert mock_seer_request.call_args.args[0] == "POST"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
+        deserialized_body = orjson.loads(mock_seer_request.call_args.kwargs["body"])
+        self.assert_seer_call(deserialized_body)
 
     @mock.patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
@@ -160,7 +163,10 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             self.dc.evaluate_value(self.data_packet.packet.values)
             == DetectorPriorityLevel.HIGH.value
         )
-        self.assert_seer_call(mock_seer_request)
+        assert mock_seer_request.call_args.args[0] == "POST"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
+        deserialized_body = orjson.loads(mock_seer_request.call_args.kwargs["body"])
+        self.assert_seer_call(deserialized_body)
 
         # ensure that it resolves
         mock_seer_request.return_value = HTTPResponse(
@@ -169,7 +175,10 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         assert (
             self.dc.evaluate_value(self.data_packet.packet.values) == DetectorPriorityLevel.OK.value
         )
-        self.assert_seer_call(mock_seer_request)
+        assert mock_seer_request.call_args.args[0] == "POST"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
+        deserialized_body = orjson.loads(mock_seer_request.call_args.kwargs["body"])
+        self.assert_seer_call(deserialized_body)
 
     @mock.patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
