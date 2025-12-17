@@ -5,6 +5,14 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from django.db import router, transaction
+from sentry_protos.snuba.v1.endpoint_delete_trace_items_pb2 import DeleteTraceItemsRequest
+from sentry_protos.snuba.v1.request_common_pb2 import (
+    RequestMeta,
+    TraceItemFilterWithType,
+    TraceItemType,
+)
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.models.files.file import File
 from sentry.preprod.models import (
@@ -12,6 +20,7 @@ from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeMetrics,
 )
+from sentry.utils import snuba_rpc
 
 if TYPE_CHECKING:
     pass
@@ -189,6 +198,14 @@ def delete_artifact_and_related_objects(
                 )
                 raise
 
+        # Delete from EAP (Snuba)
+        _delete_preprod_artifact_from_eap(
+            organization_id=preprod_artifact.organization_id,
+            project_id=preprod_artifact.project_id,
+            preprod_artifact_id=preprod_artifact.id,
+            artifact_id=artifact_id,
+        )
+
         # Delete the artifact record (related objects already explicitly deleted above)
         preprod_artifact.delete()
 
@@ -197,3 +214,56 @@ def delete_artifact_and_related_objects(
             installable_count=installable_count,
             size_metrics_count=size_metrics_count,
         )
+
+
+def _delete_preprod_artifact_from_eap(
+    organization_id: int,
+    project_id: int,
+    preprod_artifact_id: int,
+    artifact_id: int,
+) -> None:
+    """Delete preprod size metrics from EAP for the given artifact."""
+    try:
+        artifact_filter = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="preprod_artifact_id", type=AttributeKey.TYPE_INT),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_int=preprod_artifact_id),
+            )
+        )
+
+        request = DeleteTraceItemsRequest(
+            meta=RequestMeta(
+                referrer="preprod.artifact.delete",
+                cogs_category="preprod_size_analysis",
+                organization_id=organization_id,
+                project_ids=[project_id],
+                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_PREPROD,
+            ),
+            filters=[
+                TraceItemFilterWithType(
+                    item_type=TraceItemType.TRACE_ITEM_TYPE_PREPROD,
+                    filter=artifact_filter,
+                )
+            ],
+        )
+        snuba_rpc.delete_trace_items_rpc(request)
+
+        logger.info(
+            "preprod_artifact.admin_batch_delete.eap_deleted",
+            extra={
+                "artifact_id": artifact_id,
+                "preprod_artifact_id": preprod_artifact_id,
+            },
+        )
+    except Exception as e:
+        logger.warning(
+            "preprod_artifact.admin_batch_delete.eap_delete_failed",
+            extra={
+                "artifact_id": artifact_id,
+                "preprod_artifact_id": preprod_artifact_id,
+                "error": str(e),
+            },
+        )
+        # Don't raise - EAP deletion failure shouldn't block artifact deletion
+        # Data will be cleaned up by retention_days TTL
