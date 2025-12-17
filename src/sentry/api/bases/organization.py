@@ -669,6 +669,14 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
                 return []
             has_valid_api_key = request.auth.has_scope("org:ci")
 
+        # Check if authenticated user has appropriate release scopes
+        # This ensures consistency with the project releases endpoint which allows
+        # users with project:releases or org:ci scopes to create releases even if
+        # they're not direct team members of the project.
+        if not has_valid_api_key and request.user and request.user.is_authenticated:
+            if request.access.has_scope("project:releases") or request.access.has_scope("org:ci"):
+                has_valid_api_key = True
+
         if not (
             has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)
         ):

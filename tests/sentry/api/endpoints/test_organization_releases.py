@@ -2149,6 +2149,61 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 201, response.content
         assert Release.objects.filter(version="3.0.0", organization_id=org.id).exists()
 
+    def test_user_auth_token_with_project_releases_scope_non_member(self) -> None:
+        """
+        Test that a user with a token that has project:releases scope can create
+        releases for projects they're not a team member of, ensuring consistency
+        with the project releases endpoint behavior.
+        """
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+
+        # User is only a member of team1
+        project1 = self.create_project(name="project1", organization=org, teams=[team1])
+        project2 = self.create_project(name="project2", organization=org, teams=[team2])
+
+        # Make user a member of the org with team1, but not team2
+        self.create_member(teams=[team1], user=user, organization=org)
+
+        # Create a token with project:releases scope
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=user, scope_list=["project:releases"])
+
+        url = reverse(
+            "sentry-api-0-organization-releases",
+            kwargs={"organization_id_or_slug": org.slug},
+        )
+
+        # Should be able to create release for project1 (team member)
+        response = self.client.post(
+            url,
+            data={"version": "1.0.0", "projects": [project1.slug]},
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+        assert response.status_code == 201, response.content
+        assert Release.objects.filter(version="1.0.0", organization_id=org.id).exists()
+
+        # Should also be able to create release for project2 (not a team member)
+        # This ensures consistency with the project releases endpoint which allows
+        # users with project:releases scope to create releases even if they're not
+        # direct team members
+        response = self.client.post(
+            url,
+            data={"version": "2.0.0", "projects": [project2.slug]},
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+        assert response.status_code == 201, response.content
+        assert Release.objects.filter(version="2.0.0", organization_id=org.id).exists()
+
+        # Verify release is properly associated with project2
+        release = Release.objects.get(version="2.0.0", organization_id=org.id)
+        assert ReleaseProject.objects.filter(release=release, project=project2).exists()
+
 
 class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
     def setUp(self) -> None:
